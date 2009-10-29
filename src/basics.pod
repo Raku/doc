@@ -1,0 +1,58 @@
+=head0 The Basics
+
+Perl has traditionally been very strong in the area of gathering information
+from text files, and report it. In fact that is what Perl was written for
+originally.
+
+A typical such problem might look like this: You host a table tennis
+tournament, and the referees tell you the results of each game in the format
+C<Player 1 vs Player 2 | 3:2>, which means that C<Player 1> won against
+C<Player 2> by 3 to 2 sets. You need a script that sums up how many games and
+sets each player has won, and thus determines the overall winner.
+
+The input data looks like this:
+
+    Beth Ana Charlie Dave
+    Ana vs Dave | 3:0
+    Charlie vs Beth | 3:1
+    Ana vs Beth | 2:3
+    Dave vs Charlie | 3:0
+    Ana vs Charlie | 3:1
+    Beth vs Dave | 0:3
+
+Where the first line is just the list of players, and every line after that is
+a result of a match.
+
+Here's one way to solve that problem in Perl 6:
+
+    use v6;
+
+    my $file = open 'scores';
+
+    my @names = $file.get.split(' ');
+    my %games;
+    my %sets;
+    %games{@names} = 0 xx @names;
+    %sets{@names}  = 0 xx @names;
+
+    for $file.lines -> $line {
+        my ($pairing, $result) = $line.split(' | ');
+        my ($p1, $p2) = $pairing.split(' vs ');
+        my ($r1, $r2) = $result.split(':');
+        %sets{$p1} += $r1;
+        %sets{$p2} += $r2;
+        if $r1 > $r2 {
+            %games{$p1}++;
+        } else {
+            %games{$p2}++;
+        }
+    }
+
+    my @sorted = @names.sort({ %sets{$_} }).sort({ %games{$_} }).reverse;
+    for @sorted -> $n {
+        say "$n has won { %games{$n} } games and { %sets{$n} } sets";
+    }
+
+
+
+=for vim: spell
