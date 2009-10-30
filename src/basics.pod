@@ -32,8 +32,6 @@ Here's one way to solve that problem in Perl 6:
     my @names = $file.get.split(' ');
     my %games;
     my %sets;
-    %games{@names} = 0 xx @names;
-    %sets{@names}  = 0 xx @names;
 
     for $file.lines -> $line {
         my ($pairing, $result) = $line.split(' | ');
@@ -53,6 +51,119 @@ Here's one way to solve that problem in Perl 6:
         say "$n has won { %games{$n} } games and { %sets{$n} } sets";
     }
 
+Every Perl 6 program should begin with C<use v6;>. This line tells the
+compiler which version of Perl it is written in, and if you accidentally use
+the Perl 5 interpreter, it gives you a rather helpful error message.
 
+A Perl 6 program consists of a number of statements separated by semicolons,
+with the small exception that the semicolon is optional if the statement ends
+in a curly bracket and stands at the end of a line.
+
+    my $file = open 'scores';
+
+C<my> declares a lexical variable, that is a variable that is visible in the
+current block, or in the rest of the file if it's not in a block.
+
+A variable name begins with a I<sigil>, which is a non-word character like
+C<$>, C<@>, C<%>, C<&> or sometimes even more characters, like the double
+colon C<::>. After the sigil comes an identifier, which may consist of
+letters, digits and the underscore. Between letters you can also use a dash
+C<-> or a hyphen C<'>, so C<isn't> and C<very-cool> are valid identifiers.
+
+Each sigil carries a meaning. Variables starting with a dollar can hold
+arbitrary values. Here the built-in function C<open> is called, which opens a
+file of name C<scores>, and returns an object describing that file, a
+I<file handle>. The equality sign C<=> I<assigns> that file handle to the
+variable on the left, which means it takes care the C<$file> stores that
+file handle.
+
+C<'scores'> is a I<string literal>. A string is a piece of text, or sequence
+of characters. Writing it directly after the function name passes it as an
+argument to that function. A different way to write that is C<open('scores')>,
+which is more familiar to programmers of C-style languages.
+
+    my @names = $file.get.split(' ');
+
+Another variable declaration; the C<@> sigil makes that variable an C<Array>.
+Arrays store ordered lists of things and can be manipulated later. The
+right-hand side uses the previously declared and initialized variable
+C<$file>, and calls the C<get> method on it, which reads one line from the
+file, and returns it (with the line ending removed). We call the C<split>
+method on the result string, passing a string of a single blank to it.
+C<split> decomposes the string it was called on into a list of strings, so it
+turns C<"Beth Ana Charlie Dave"> into C<"Beth", "Ana", "Charlie", "Dave">.
+This list is stored into the array C<@names>.
+
+    my %games;
+    my %sets;
+
+Here two variables are declared as hashes. A C<Hash> is an unordered
+collection of pairs of keys and values. Other programming languages call that
+a I<hash table>, I<dictionary> or I<map>. You can ask a hash table for the
+value that corresponds to a certain C<$key> with C<%hash{$key}>.
+
+Here in the score counting program C<%games> stores the number of won games
+per player, and C<%sets> the number of won sets per player.
+
+    for $file.lines -> $line {
+        ...
+    }
+
+C<$file.lines> produces a list of lines that are read from the file
+C<scores>.
+C<for> introduces a loop that runs the block indicated by C<...> once for
+each item of the list, setting the variable C<$line> to current value.
+
+During the first iteration C<$line> contains the string
+C<Ana vs Dave | 3:0>, during the second C<Charlie vs Beth | 3:1> and so on.
+
+        my ($pairing, $result) = $line.split(' | ');
+
+Again C<my> declares variables, this time a two of them at once. The
+right-hand side of the assignment is again a call to C<split>, this time
+splitting up on a vertical bar surrounded by spaces. C<$pairing> gets the
+first item of the returned list, C<$result> the second.
+
+So while processing the first line, C<$pairing> holds the string
+C<Ana vs Dave> and C<$result> is set to C<3:0>.
+
+The next two lines follow the same pattern:
+
+        my ($p1, $p2) = $pairing.split(' vs ');
+        my ($r1, $r2) = $result.split(':');
+
+The names of the two players are extracted and stored in C<$p1> and C<$p2>,
+and the results for each player are stored in C<$r1> and C<$r2>.
+
+So for the first line the variables are set up as follows:
+
+    Variable    Contents
+    $line       'Ana vs Dave | 3:0'
+    $pairing    'Ana vs Dave'
+    $result     '3:0'
+    $p1         'Ana'
+    $p2         'Dave'
+    $r1         '3'
+    $r2         '0'
+
+Then the number of won sets are counted:
+
+        %sets{$p1} += $r1;
+        %sets{$p2} += $r2;
+
+This is a shortcut for
+
+        %sets{$p1} = %sets{$p1} + $r1;
+        %sets{$p2} = %sets{$p2} + $r2;
+
+So C<+= $r1> means I<increase the thing on the left by $r1>.
+In the first iteration C<%sets{$p1}> is not yet set, so it defaults to a
+special value called C<undef>. The plus sign treats it as a number, the result
+of which is zero. The plus sign also treats C<$r1> as a number.
+
+Before these two lines are execute, C<%sets> is empty. The assignment
+automatically populates the hash; after these two lines run for the first
+time, C<%sets> is C<< 'Ana' => 3, 'Dave' => 0 >>.
+(The fat arrow C<< => >> separates key and value in a C<Pair>.)
 
 =for vim: spell
