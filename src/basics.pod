@@ -1,14 +1,14 @@
 =head0 The Basics
 
-Perl has traditionally been very strong in the area of gathering and
-summarizing information from text files. That is, in fact, what Perl was
-written for originally.
+Perl originated as a programming language intended to gather and summarize
+information from text files.  Its history demonstrates its strength at those
+tasks.
 
-A typical such problem might look like this: You host a table tennis
-tournament, and the referees tell you the results of each game in the format
-C<Player 1 vs Player 2 | 3:2>, which means that C<Player 1> won against
-C<Player 2> by 3 to 2 sets. You need a script that sums up how many games and
-sets each player has won, and thus determines the overall winner.
+Suppose that you host a table tennis tournament.  The referees tell you the
+results of each game in the format C<Player 1 vs Player 2 | 3:2>, which means
+that C<Player 1> won against C<Player 2> by 3 to 2 sets. You need a script that
+sums up how many games and sets each player has won to determine the overall
+winner.
 
 The input data looks like this:
 
@@ -20,25 +20,35 @@ The input data looks like this:
     Ana vs Charlie | 3:1
     Beth vs Dave | 0:3
 
-Where the first line is just the list of players, and every line after that is
-a result of a match.
+The first line is the list of players.  Every subsequent line records a result
+of a match.
 
 Here's one way to solve that problem in Perl 6:
 
+=for author
+
+The =begin/=end tags here add a bit of semantic markup we can exploit later.
+
+=end for
+
+=begin programlisting
+
     use v6;
 
-    my $file = open 'scores';
-
+    my $file  = open 'scores';
     my @names = $file.get.split(' ');
+
     my %games;
     my %sets;
 
     for $file.lines -> $line {
         my ($pairing, $result) = $line.split(' | ');
-        my ($p1, $p2) = $pairing.split(' vs ');
-        my ($r1, $r2) = $result.split(':');
+        my ($p1, $p2)          = $pairing.split(' vs ');
+        my ($r1, $r2)          = $result.split(':');
+
         %sets{$p1} += $r1;
         %sets{$p2} += $r2;
+
         if $r1 > $r2 {
             %games{$p1}++;
         } else {
@@ -47,102 +57,152 @@ Here's one way to solve that problem in Perl 6:
     }
 
     my @sorted = @names.sort({ %sets{$_} }).sort({ %games{$_} }).reverse;
+
     for @sorted -> $n {
         say "$n has won { %games{$n} } games and { %sets{$n} } sets";
     }
 
-This produces the output
+=end programlisting
+
+This produces the output:
 
     Ana has won 2 games and 8 sets
     Dave has won 2 games and 6 sets
     Charlie has won 1 games and 4 sets
     Beth has won 1 games and 4 sets
 
-Every Perl 6 program should begin with C<use v6;>. This line tells the
-compiler which version of Perl it is written in, and if you accidentally use
-the Perl 5 interpreter, it gives you a rather helpful error message.
+Every Perl 6 program should begin with C<use v6;>. This line tells the compiler
+which version of Perl it is written in.  If you accidentally run the file with
+Perl 5, you'll get a helpful error message.
 
-A Perl 6 program consists of a number of statements separated by semicolons,
-with the small exception that the semicolon is optional if the statement ends
-in a curly bracket and stands at the end of a line.
+A Perl 6 program consists of one or more statements.  A statement ends with a
+semicolon or a curly bracket at the end of a line.
+
+=begin programlisting
 
     my $file = open 'scores';
 
-C<my> declares a lexical variable, that is a variable that is visible in the
-current block, or in the rest of the file if it's not in a block.
+=end programlisting
 
-A variable name begins with a I<sigil>, which is a non-word character like
-C<$>, C<@>, C<%>, C<&> or sometimes even more characters, like the double
-colon C<::>. After the sigil comes an identifier, which may consist of
-letters, digits and the underscore. Between letters you can also use a dash
-C<-> or a hyphen C<'>, so C<isn't> and C<very-cool> are valid identifiers.
+X<lexical>
+X<variables; lexical>
+
+C<my> declares a lexical variable.  This is a variable that is visible only in
+the current block.  If there's no enclosing block, it's visible in the
+remainder of the file.
+
+X<sigil>
+X<identifier>
+
+A variable name begins with a I<sigil>, which is a non-word character such as
+C<$>, C<@>, C<%>, or C<&> -- or occasionally the double colon C<::>. After the
+sigil comes an identifier, which may consist of letters, digits and the
+underscore. Between letters you can also use a dash C<-> or a hyphen C<'>, so
+C<isn't> and C<very-cool> are valid identifiers.
+
+=for author
+
+I'm not clear about the intent of the following paragraph.  It starts to
+explain scalars, but then veers off into "arbitrary values", which could mean a
+lot of things.
+
+=end for
+
+X<files; handle>
+X<file handle>
 
 Each sigil carries a meaning. Variables starting with a dollar can hold
-arbitrary values. Here the built-in function C<open> is called, which opens a
-file of name C<scores>, and returns an object describing that file, a
-I<file handle>. The equality sign C<=> I<assigns> that file handle to the
-variable on the left, which means it takes care the C<$file> stores that
-file handle.
+arbitrary values. The built-in function C<open> opens a file, here named
+F<scores>, and returns an object describing that file, a I<file handle>. The
+equality sign C<=> I<assigns> that file handle to the variable on the left,
+which means that C<$file> now stores the file handle.
+
+X<strings; literal>
+X<string literal>
+X<string>
 
 C<'scores'> is a I<string literal>. A string is a piece of text, or sequence
-of characters. Writing it directly after the function name passes it as an
-argument to that function. A different way to write that is C<open('scores')>,
-which is more familiar to programmers of C-style languages.
+of characters. In this line, it's an argument provided to C<open>.  If you prefer C-style notation, you could also write C<open('scores')>.
+
+=begin programlisting
 
     my @names = $file.get.split(' ');
 
-Another variable declaration; the C<@> sigil makes that variable an C<Array>.
-Arrays store ordered lists of things and can be manipulated later. The
-right-hand side uses the previously declared and initialized variable
-C<$file>, and calls the C<get> method on it, which reads one line from the
-file, and returns it (with the line ending removed). We call the C<split>
-method on the result string, passing a string of a single blank to it.
-C<split> decomposes the string it was called on into a list of strings, so it
-turns C<"Beth Ana Charlie Dave"> into C<"Beth", "Ana", "Charlie", "Dave">.
-This list is stored into the array C<@names>.
+=end programlisting
+
+X<array>
+
+The right-hand side calls a method named C<get> on the file handle stored in
+C<$file>.  This method reads and returns one line from the file, removing the
+line ending.  C<split> is also a method, called on the string returned from
+C<get>.  C<split>'s single argument is a string containing a space character.
+C<split> decomposes its invocant string into a list of strings. It turns
+C<'Beth Ana Charlie Dave'> into C<'Beth', 'Ana', 'Charlie', 'Dave'>.  Finally,
+this list gets stored into the array C<@names>.  The C<@> sigil makes the
+declared variable an C<Array>.  Arrays store ordered lists.
+
+=begin programlisting
 
     my %games;
     my %sets;
 
-Here two variables are declared as hashes. A C<Hash> is an unordered
-collection of pairs of keys and values. Other programming languages call that
-a I<hash table>, I<dictionary> or I<map>. You can query a hash table for the
+=end programlisting
+
+X<hash>
+
+These two lines of code declare two hashes.  A C<Hash> is an unordered
+collection of pairs of keys and values. Other programming languages call that a
+I<hash table>, I<dictionary>, or I<map>. You can ask query a hash table for the
 value that corresponds to a certain C<$key> with C<%hash{$key}>.
 
 Here in the score counting program, C<%games> stores the number of won games
-per player, and C<%sets> holds the number of won sets per player.
+per player and C<%sets> the number of won sets per player.
+
+=begin programlisting
 
     for $file.lines -> $line {
         ...
     }
 
-C<$file.lines> produces a list of lines that are read from the file
-C<scores>.
-C<for> introduces a loop that runs the block indicated by C<...> once for
-each item of the list, setting the variable C<$line> to current value.
+=end programlisting
 
-During the first iteration C<$line> contains the string
-C<Ana vs Dave | 3:0>, during the second C<Charlie vs Beth | 3:1> and so on.
+X<for>
+
+C<for> introduces a loop that runs the block indicated by C<...> once for each
+item of the list, setting the variable C<$line> to the current value.
+C<$file.lines> produces a list of the lines read from the file C<scores>.
+
+During the first iteration, C<$line> contains the string C<Ana vs Dave | 3:0>.
+During the second, C<Charlie vs Beth | 3:1>, and so on.
+
+=begin programlisting
 
         my ($pairing, $result) = $line.split(' | ');
 
-Again C<my> declares variables, this time a two of them at once. The
-right-hand side of the assignment is again a call to C<split>, this time
-splitting up on a vertical bar surrounded by spaces. C<$pairing> gets the
-first item of the returned list, C<$result> the second.
+=end programlisting
 
-So while processing the first line, C<$pairing> holds the string
-C<Ana vs Dave> and C<$result> is set to C<3:0>.
+Again C<my> declares variables, this time a list of two at once. The right-hand
+side of the assignment is again a call to C<split>, this time splitting on a
+vertical bar surrounded by spaces. C<$pairing> gets the first item of the
+returned list and C<$result> the second.
+
+While processing the first line, C<$pairing> holds the string C<Ana vs Dave>
+and C<$result> is set to C<3:0>.
 
 The next two lines follow the same pattern:
+
+=begin programlisting
 
         my ($p1, $p2) = $pairing.split(' vs ');
         my ($r1, $r2) = $result.split(':');
 
-The names of the two players are extracted and stored in C<$p1> and C<$p2>,
-and the results for each player are stored in C<$r1> and C<$r2>.
+=end programlisting
 
-So for the first line the variables are set up as follows:
+The first extracts and stores the names of the two players in the variables
+C<$p1> and C<$p2>.  The second extracts the results for each player and stores
+them in C<$r1> and C<$r2>.
+
+After processing the first line of the file, the variables contain the values:
 
 =begin table Contents of Variables
 
@@ -200,25 +260,43 @@ So for the first line the variables are set up as follows:
 
 =end table
 
-Then the number of won sets are counted:
+The program then counts the number of won sets:
+
+=begin programlisting
 
         %sets{$p1} += $r1;
         %sets{$p2} += $r2;
 
+=end programlisting
+
 This is a shortcut for
+
+=begin programlisting
 
         %sets{$p1} = %sets{$p1} + $r1;
         %sets{$p2} = %sets{$p2} + $r2;
 
-So C<+= $r1> means I<increase the thing on the left by $r1>.
-In the first iteration C<%sets{$p1}> is not yet set, so it defaults to a
-special value called C<undef>. The plus sign treats it as a number, the result
-of which is zero. The plus sign also treats C<$r1> as a number.
+=end programlisting
 
-Before these two lines are execute, C<%sets> is empty. The assignment
-automatically populates the hash; after these two lines have run for the
-first time, C<%sets> is C<< 'Ana' => 3, 'Dave' => 0 >>.
-(The fat arrow C<< => >> separates key and value in a C<Pair>.)
+X<undef>
+X<+=>
+X<operators; +=>
+
+C<+= $r1> means I<increase the value in the variable the left by $r1>.  In the
+first iteration C<%sets{$p1}> is not yet set, so it defaults to a special value
+called C<undef>. The addition and incrementing operators treat C<undef> as a
+number with the value of zero.
+
+X<fat arrow>
+X<< => >>
+X<pair>
+
+Before these two lines execute, C<%sets> is empty. The assignment automatically
+populates the hash; after these two lines have run for the first time, C<%sets>
+contains C<< 'Ana' => 3, 'Dave' => 0 >>.  (The fat arrow C<< => >> separates
+key and value in a C<Pair>.)
+
+=begin programlisting
 
         if $r1 > $r2 {
             %games{$p1}++;
@@ -226,10 +304,17 @@ first time, C<%sets> is C<< 'Ana' => 3, 'Dave' => 0 >>.
             %games{$p2}++;
         }
 
-If C<$r1> has a larger value than C<$r2>, C<%games{$p1}> is incremented by
-one, if that hash item did not exist previously it springs into existence
-automatically If C<$r1> is not larger than C<$r2>, C<%games{$p2}> is
-incremented.
+=end programlisting
+
+If C<$r1> has a larger value than C<$r2>, C<%games{$p1}> increments by one.  If
+C<$r1> is not larger than C<$r2>, C<%games{$p2}> increments.  If either hash
+value did not exist previously, it springs into existence from the increment
+operation.
+
+X<postincrement>
+X<operators; postincrement>
+X<preincrement>
+X<operators; preincrement>
 
 C<$thing++> is short for C<$thing += 1> or
 C<$thing = $thing + 1>, with the small exception that the return value of the
@@ -237,59 +322,90 @@ expression is C<$thing>, not the incremented value. Just like in the C
 programming language you can also use C<++> as a prefix, in which case it
 returns the increment value; C<my $x = 1; say ++$x> prints C<2>.
 
+=begin programlisting
+
     my @sorted = @names.sort({ %sets{$_} }).sort({ %games{$_} }).reverse;
+
+=end programlisting
+
+X<topic variable>
+X<topic>
+X<variables; $_>
 
 This might look a bit scary at first, but it consists of three relatively
 simple steps. An array knows how to sort itself with the C<sort> method.
-However, to print out the winner first, we have to sort by the score of the
-player, not by its name. You can achieve that by passing a I<block> to the
-sort method, which transforms the array elements (the names of
-players) to the thing you want to sort by. The array items are passed in
-through the I<topic variable> C<$_>.
+However, the default sort on an array sorts by its contents.  To print the
+players names in winner-first order, the code must sort the array by the scores
+of the players, not their names.  The C<sort> method can take an argument, a
+I<block> used to transform the array elements (the names of players) to the
+thing you want to sort by. The array items are passed in through the I<topic
+variable> C<$_>.
+
+X<block>
 
 You have seen blocks before: The C<for> loop worked on a block
 C<< -> $line { ... } >>, the C<if> statement worked on the blocks
-C<{ %games{$p1}++ }> and C<{ %games{$p1} }>. A block is just a piece of normal
-Perl 6 code, optionally with a signature (the C<< -> $line >> part).
+C<{ %games{$p1}++ }> and C<{ %games{$p1} }>. A block is a self-contained
+piece of Perl 6 code, optionally with a signature (the C<< -> $line >> part).
 More about that in the next chapter. (TODO: write that)
 
-So the simplest way to sort the players by score would be
-C<@names.sort({ %games{$_} })>, which sorts by number of won games. However,
-Ana and Dave have both won two games, and that simple sort doesn't account for
-the number of won sets, which is the secondary criterion to decide who has won
-the tournament.
+The simplest way to sort the players by score would be C<@names.sort({
+%games{$_} })>, which sorts by number of games won. However Ana and Dave have
+both won two games. That simple sort doesn't account for the number of sets
+won, which is the secondary criterion to decide who has won the tournament.
 
-When two array items are transformed to the same number, C<sort> leaves their
-relative order unchanged. Computer scientists call that a I<stable> sort. We
-can use this fact to achieve our goal by two sorting twice: first sorting by
-the number of won sets (the secondary criterion), then by the number of won
-games.
+X<stable sort>
+X<sort; stable>
 
-After the first sorting step, the names are in the order
-C<Beth Charlie Dave Ana>, and after the second sorting step it's again the
-same, because nobody has won less games but more sets than somebody else
-(which is quite possible, especially at larger tournaments).
+When two array items have the same value, C<sort> leaves their relative
+order unchanged. Computer scientists call that a I<stable> sort.  The program
+uses this property of Perl 6's C<sort> to achieve the goal by sorting twice:
+first by the number of sets won (the secondary criterion), then by the number
+of games won.
 
-Since C<sort> sorts in ascending order, but we want to print winners first, we
-C<.reverse> the result of the second sort. This list is then stored in
-C<@sorted>.
+After the first sorting step the names are in the order C<Beth Charlie Dave
+Ana>.  After the second sorting step, it's again the same, because nobody has
+won fewer games but more sets than somebody else.  Such a situation is
+entirely possible, especially at larger tournaments.
+
+C<sort> sorts in ascending order, from smallest to largest.  This is the
+opposite of the desired order.  Thus, the code calls the C<.reverse> method on
+the result of the second sort, and stores the final list in C<@sorted>.
+
+=begin programlisting
 
     for @sorted -> $n {
         say "$n has won { %games{$n} } games and { %sets{$n} } sets";
     }
 
-To print out the players and their scores we loop over C<@sorted>, setting
-C<$n> to the name of each player in turn. C<say> prints out its arguments to
-the standard output (the screen, normally), followed by a newline. (Use
+=end programlisting
+
+X<say>
+X<print>
+X<operators; print>
+X<operators; say>
+
+To print out the players and their scores, the code loops over C<@sorted>,
+setting C<$n> to the name of each player in turn. C<say> prints its arguments
+to the standard output (the screen, normally), followed by a newline.  (Use
 C<print> instead if you don't want the newline at the end).
+
+X<interpolation>
 
 When you try out the program, you'll find that it doesn't print the literal
 text C<$n> each time, but the name that is stored in C<$n>. This automatic
-substitution is called M<interpolation>. Not only variables with the dollar
-sigil are interpolated, but also blocks of code in curly braces.
+substitution is called M<interpolation>.  Perl 6 can interpolate variables with
+the dollar sigil as well as blocks of code in curly braces.
 
-This interpolation happens only in strings that are delimited by double quotes
-C<"...">; in single quoted strings C<'...> no interpolation happens:
+X<double-quoted strings>
+X<strings; double-quoted>
+X<single-quoted strings>
+X<strings; single-quoted>
+
+This interpolation happens only in strings delimited by double quotes
+C<"...">.  Single quoted strings C<'...> do not interpolate:
+
+=begin programlisting
 
     my $names = 'things';
     say 'Do not call me $names';
@@ -302,6 +418,8 @@ C<"...">; in single quoted strings C<'...> no interpolation happens:
     # Do not call me things
     # Math: { 1 + 2 }
     # Math: 3
+
+=end programlisting
 
 TODO: explain (non-)interpolation of arrays and hashes once Rakudo gets that
 right
