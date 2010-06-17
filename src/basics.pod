@@ -2,7 +2,7 @@
 
 Perl originated as a programming language intended to gather and summarize
 information from text files.  It's still strong in text processing, but Perl 5
-is a powerful general-purpose programming language.  Perl 6 is even better.
+is also a powerful general-purpose programming language.  Perl 6 is even better.
 
 Suppose that you host a table tennis tournament.  The referees tell you the
 results of each game in the format C<Player 1 vs Player 2 | 3:2>, which means
@@ -89,7 +89,7 @@ a semicolon or a curly bracket at the end of a line:
 X<lexical>
 X<variables; lexical>
 
-C<my> declares a lexical variable.  This is a variable that is visible only in
+C<my> declares a lexical variable.  Lexical variables are visible only in
 the current block.  If there's no enclosing block, it's visible throughout the
 remainder of the file.
 
@@ -107,16 +107,8 @@ identifiers.
 X<variable; scalar>
 X<scalar>
 
-=for author
-
-The footnote is confusing.
-
-=end for
-
 The C<$> sigil indicates a I<scalar> variable, which indicates that the
-variable stores a single valueN<However, this single value can still be a
-compound object like an array or a hash. When you iterate over a C<$>-sigiled
-variable, it is interpreted as a single value, even if it stores an array>.
+variable stores a single value.
 
 X<files; handle>
 X<file handle>
@@ -150,9 +142,9 @@ on the file handle stored in C<$file>.  This method reads and returns one line
 from the file, removing the line ending.  C<split> is also a method, called on
 the string returned from C<get>.  C<split>'s single argument is a string
 containing a space character.  C<split> decomposes its I<invocant>--the string
-on which it operates--into a list of strings. It turns C<'Beth Ana Charlie
-Dave'> into C<'Beth', 'Ana', 'Charlie', 'Dave'>.  Finally, this list gets
-stored into the array C<@names>.  The C<@> sigil marks the declared variable as
+on which it operates--into a list of strings. It turns the single string C<'Beth Ana Charlie
+Dave'> into the list of strings C<'Beth', 'Ana', 'Charlie', 'Dave'>.  Finally, this list gets
+stored in the array C<@names>.  The C<@> sigil marks the declared variable as
 an C<Array>.  Arrays store ordered lists.
 
 =begin programlisting
@@ -164,21 +156,26 @@ an C<Array>.  Arrays store ordered lists.
 
 X<hash>
 
-These two lines of code declare two hashes.  A C<Hash> is an unordered
+These two lines of code declare two hashes.  The C<%> sigil marks each variable 
+as a C<Hash>.  A C<Hash> is an unordered
 collection of pairs of keys and values. Other programming languages call that a
 I<hash table>, I<dictionary>, or I<map>. You can query a hash table for the
-value that corresponds to a certain C<$key> with C<%hash{$key}>.N<Perl 5
-programmers will notice that in Perl 6 the sigil sticks to variable, and does
-not change upon indexing with C<[ ]> or C<{ }>.>
+value that corresponds to a certain C<$key> with C<%hash{$key}>N<
+Perl 5 programmers will notice that in Perl 6 the sigil stays the same
+and does not change upon indexing with C<[ ]> or C<{ }>. This
+is referred to as M<I<sigil invariance>>.>.
 
 In the score counting program, C<%matches> stores the number of matches each
 player has won.  C<%sets> stores the number of sets each player has won.
 
-C<Array>s and C<Hash>es are central enough to each have their own sigil in
-Perl. The C<$> sigil, however, confers no restriction on the type of the value
-it contains. You can store numbers, strings, or more complex objects in
-C<$>-sigil variables. (You can even put an C<Array> or a C<Hash> in there,
-should you wish.)
+Sigils indicate the default access method for a variable. Variables
+with the C<@> sigil are accessed positionally; variables with the C<%>
+sigil are accessed by string key. The C<$> sigil, however, indicates a
+general container that can hold anything and be accessed in any manner.
+A scalar can even contain a compound object like an C<Array> or a
+C<Hash>; the C<$> sigil signifies that it should be treated as a single
+value, even in a context that expects multiple values (as with an
+C<Array> or C<Hash>).
 
 =begin programlisting
 
@@ -422,29 +419,52 @@ X<interpolation>
 When you run the program, you'll see that C<say> doesn't print the contents of
 that string verbatim.  In place of C<$n> it prints the contents of C<$n>-- the
 names of players stored in C<$n>.  This automatic substitution of code with its
-contents is I<interpolation>.  Perl 6 quotes can interpolate variables with the
-dollar sigil as well as blocks of code in curly braces.
+contents is I<interpolation>. This interpolation happens only in strings
+delimited by double quotes C<"...">. Single quoted strings C<'...'> do
+not interpolate:
 
 X<double-quoted strings>
 X<strings; double-quoted>
 X<single-quoted strings>
 X<strings; single-quoted>
 
-This interpolation happens only in strings delimited by double quotes
-C<"...">.  Single quoted strings C<'...'> do not interpolate:
-
 =begin programlisting
 
     my $names = 'things';
     say 'Do not call me $names'; # Do not call me $names
     say "Do not call me $names"; # Do not call me things
-    say 'Math: { 1 + 2 }'        # Math: { 1 + 2 }
-    say "Math: { 1 + 2 }"        # Math: 3
 
 =end programlisting
 
-TODO: explain (non-)interpolation of arrays and hashes once Rakudo gets that
-right
+Double quoted strings in Perl 6 can interpolate variables with the C<$>
+sigil as well as blocks of code in curly braces. Since any arbitrary
+Perl code can appear within curly braces, C<Array>s and C<Hash>es may be
+interpolated by placing them within curly bracesN<There is another
+interpolation method known as the M<I<zen slice>>. If an array name is
+followed by empty subscripts within the double quoted string (i.e. C<say
+"@array[]";>), then the array is interpolated as a space separated list.
+Similarly, if a hash is followed by empty subscripts (i.e. C<say
+"%h{}">) then the C<Hash> is interpolated as a space separated list of
+values. The keys of the C<Hash> are not interpolated.>. C<Arrays> within
+curly braces are interpolated with a single space character between each
+item. C<Hash>es within curly braces are interpolated as a series of
+lines. Each line will contain a key, followed by a tab character, then
+the value associated with that key, and finally a newline.
+
+=begin programlisting
+
+    say "Math: { 1 + 2 }"                   # Math: 3
+    my @people = <Luke Matthew Mark>;
+    say "The synoptics are: {@people}"      # The synoptics are: Luke Matthew Mark
+
+    say "{%sets}";                          # From the tennis tournament
+
+    # Charlie 4
+    # Dave    6
+    # Ana     8
+    # Beth    4
+
+=end programlisting
 
 =head1 Exercises
 
