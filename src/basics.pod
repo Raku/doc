@@ -5,20 +5,20 @@ information from text files.  It's still strong in text processing, but Perl 5
 is also a powerful general-purpose programming language.  Perl 6 is even better.
 
 Suppose that you host a table tennis tournament.  The referees tell you the
-results of each game in the format C<Player 1 vs Player 2 | 3:2>, which means
-that C<Player 1> won against C<Player 2> by 3 to 2 sets. You need a script that
+results of each game in the format C<Player1 Player2 | 3:2>, which means
+that C<Player1> won against C<Player2> by 3 to 2 sets. You need a script that
 sums up how many matches and sets each player has won to determine the overall
 winner.
 
 The input data looks like this:
 
     Beth Ana Charlie Dave
-    Ana vs Dave | 3:0
-    Charlie vs Beth | 3:1
-    Ana vs Beth | 2:3
-    Dave vs Charlie | 3:0
-    Ana vs Charlie | 3:1
-    Beth vs Dave | 0:3
+    Ana Dave | 3:0
+    Charlie Beth | 3:1
+    Ana Beth | 2:3
+    Dave Charlie | 3:0
+    Ana Charlie | 3:1
+    Beth Dave | 0:3
 
 The first line is the list of players.  Every subsequent line records a result
 of a match.
@@ -30,14 +30,14 @@ Here's one way to solve that problem in Perl 6:
     use v6;
 
     my $file  = open 'scores';
-    my @names = $file.get.split(' ');
+    my @names = $file.get.words;
 
     my %matches;
     my %sets;
 
     for $file.lines -> $line {
         my ($pairing, $result) = $line.split(' | ');
-        my ($p1, $p2)          = $pairing.split(' vs ');
+        my ($p1, $p2)          = $pairing.words;
         my ($r1, $r2)          = $result.split(':');
 
         %sets{$p1} += $r1;
@@ -133,7 +133,7 @@ the argument provided to C<open>.
 
 =begin programlisting
 
-    my @names = $file.get.split(' ');
+    my @names = $file.get.words;
 
 =end programlisting
 
@@ -143,25 +143,16 @@ X<invocant>
 
 The right-hand side calls a I<method> --a named group of behavior-- named C<get>
 on the file handle stored in C<$file>.  The C<get> method reads and returns 
-one line from the file, removing the line ending.  C<split> is also a method, 
-called on the string returned from C<get>.  C<split>'s single argument is 
-a string containing a space character.  C<split> decomposes its 
-I<invocant>--the string on which it operates--into a list of strings. 
+one line from the file, removing the line ending.  C<words> is also a method, 
+called on the string returned from C<get>. C<words> decomposes its 
+I<invocant>--the string on which it operates--into a list of words, which
+here means strings without whitespace.
 It turns the single string C<'Beth Ana Charlie Dave'> into the list of 
-strings C<'Beth', 'Ana', 'Charlie', 'Dave'>.  Finally, this list gets
+strings C<'Beth', 'Ana', 'Charlie', 'Dave'>. 
+
+Finally, this list gets
 stored in the array C<@names>.  The C<@> sigil marks the declared variable as
 an C<Array>.  Arrays store ordered lists.
-
-=begin sidebar
-
-Splitting on a single blank is not very robust, and breaks the code when
-spaces are at the end of a line, or more than one blank in a row, or even an empty
-line in the input file. You will learn a more robust method for data
-extraction in the chapter about regexes.
-
-TODO: proper cross-link
-
-=end sidebar
 
 =begin programlisting
 
@@ -226,8 +217,14 @@ During the first iteration, C<$line> will contain the string C<Ana vs Dave |
 =end programlisting
 
 C<my> can declare multiple variables simultaneously. The right-hand side of the
-assignment is again a call to C<split>, this time splitting on a vertical bar
-surrounded by spaces. C<$pairing> gets the first item of the returned list, and
+assignment is a call to a method named C<split>, passing along the string
+C<' | '> as an argument.
+
+C<split> decomposes its invocant into a
+list of strings, so that joining the list items with the separator C<' | '>
+produces the original string.
+
+C<$pairing> gets the first item of the returned list, and
 C<$result> the second.
 
 After processing the first line, C<$pairing> will hold the string C<Ana vs
@@ -237,7 +234,7 @@ The next two lines follow the same pattern:
 
 =begin programlisting
 
-    my ($p1, $p2) = $pairing.split(' vs ');
+    my ($p1, $p2) = $pairing.words;
     my ($r1, $r2) = $result.split(':');
 
 =end programlisting
@@ -525,7 +522,7 @@ subsequent rows.
 How can you change the program if the first input line is omitted?
 Hint: C<%hash.keys> returns a list of all keys stored in C<%hash>.
 
-B<Answer:> Remove the line C<my @names = $file.get.split(' ');>, and change:
+B<Answer:> Remove the line C<my @names = $file.get.words;>, and change:
 
 =begin programlisting
 
