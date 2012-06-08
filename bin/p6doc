@@ -1,0 +1,50 @@
+#!/usr/bin/env perl6
+
+constant DEBUG = %*ENV<P6DOC_DEBUG>;
+sub findbin() returns Str {
+    $*PROGRAM_NAME.subst(rx{<-[/]>+$}, '');
+}
+sub search-paths() {
+    findbin()  ~ '../doc/perl6/lib/',
+    findbin()  ~ '../lib/',
+    @*INC;
+}
+
+sub module-names(Str $modulename) {
+    $modulename.split('::').join('/')
+        X~ '.pm', '.pm6', '.pod';
+}
+
+sub locate-module(Str $modulename) {
+    return (search-paths() X~ module-names($modulename)).first: *.IO.f;
+}
+
+sub show-docs(Str $path) {
+    my $pager = %*ENV<PAGER> // 'less';
+    shell "perl6 --doc $path | $pager";
+}
+
+multi sub MAIN() {
+    say 'What documentation do you want to read?';
+}
+
+multi sub MAIN($docee) {
+    return MAIN($docee, :f) if defined $docee.index('.') ;
+    my $m = locate-module($docee);
+    if $m.defined {
+        show-docs($m);
+    }
+    else {
+        say "Cannot locate $docee in any of the following paths:";
+        say "   $_" for search-paths();
+        exit 1;
+    }
+}
+
+multi sub MAIN($docee, Bool :$f!) {
+    my ($package, $method) = $docee.split('.');
+    say '-f is not yet implemented, sorry';
+}
+
+
+# vim: ft=perl6
