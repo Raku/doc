@@ -1,9 +1,26 @@
 #!/usr/bin/env perl6
 
+# die with printing a backtrace
+my class X::P6doc is Exception {
+    has $.message;
+    multi method gist(X::P6doc:D:) {
+        self.message;
+    }
+}
+
 constant DEBUG = %*ENV<P6DOC_DEBUG>;
 sub findbin() returns Str {
     $*PROGRAM_NAME.subst(rx{<-[/]>+$}, '');
 }
+sub tempfile() {
+    my $tempfile = %*ENV<TEMP> // %*ENV<TMP> // '/tmp';
+    $tempfile ~= '/';
+    $tempfile ~= join '', ('a'..'z', 0..9).roll(5);
+    $tempfile ~= '.tmp';
+    nextsame if $tempfile.IO.e;
+    return $tempfile;
+}
+
 sub search-paths() {
     findbin()  ~ '../doc/perl6/lib/',
     findbin()  ~ '../lib/',
@@ -16,7 +33,47 @@ sub module-names(Str $modulename) {
 }
 
 sub locate-module(Str $modulename) {
-    return (search-paths() X~ module-names($modulename)).first: *.IO.f;
+    my $m = (search-paths() X~ module-names($modulename)).first: *.IO.f;
+    unless $m.defined {
+        my $message = join "\n",
+            "Cannot locate $modulename in any of the following paths:",
+            search-paths.map({"  $_"});
+        X::P6doc.new(:$message).throw;
+    }
+    return $m;
+}
+
+sub extract-section-from-file(Str $filename, Str $section) {
+    my $f = open :r, $filename;
+
+    my $temp-filename = tempfile();
+    LEAVE $f.close;
+
+    my $temp-fh = open :w, $temp-filename;
+    $temp-fh.say: '=begin pod';
+    $temp-fh.say: '';
+    LEAVE $temp-fh.close;
+    UNDO unlink $temp-fh;
+
+    my $found-start = False;
+    my $start-re = rx/ ^ '=head' (\d+) \s+ $section >>/;
+    my $heading-level;
+    my $stop-re = rx/ ^ [ '=head' (\d+) <?{ $0 <= $heading-level }> | '=end pod' ] /;
+    for $f.lines {
+        last if $found-start && ($_ ~~ $stop-re);
+        if $found-start {
+            $temp-fh.say: $_;
+        }
+        elsif $_ ~~ $start-re {
+            $temp-fh.say: $_;
+            $found-start   = True;
+            $heading-level = +$0;
+        }
+    }
+    $temp-fh.say: '';
+    $temp-fh.say: '=end pod';
+    X::P6doc.new(message => "No documentation found for '$section' in file '$filename'").throw unless $found-start;
+    return $temp-filename;
 }
 
 sub show-docs(Str $path) {
@@ -30,20 +87,19 @@ multi sub MAIN() {
 
 multi sub MAIN($docee) {
     return MAIN($docee, :f) if defined $docee.index('.') ;
-    my $m = locate-module($docee);
-    if $m.defined {
-        show-docs($m);
-    }
-    else {
-        say "Cannot locate $docee in any of the following paths:";
-        say "   $_" for search-paths();
-        exit 1;
-    }
+    show-docs(locate-module($docee));
 }
 
 multi sub MAIN($docee, Bool :$f!) {
     my ($package, $method) = $docee.split('.');
-    say '-f is not yet implemented, sorry';
+    unless $method {
+        say 'unqualified sub and method names are not yet implemented';
+        say 'For example use "p6doc -f Str.split" instead of "p6doc -f split" for now';
+        exit 2;
+    }
+    my $m = locate-module($package);
+    $m = extract-section-from-file($m, $method);
+    show-docs($m);
 }
 
 
