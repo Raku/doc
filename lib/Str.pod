@@ -121,11 +121,114 @@ If you want that behavior, consider using C<Str.comb> instead.
 
     multi sub    comb(Str:D   $matcher, Str:D $input, $limit = Inf, Bool :$match) 
     multi sub    comb(Regex:D $matcher, Str:D $input, $limit = Inf, Bool :$match) 
+    multi method comb(Str:D $input:)
     multi method comb(Str:D $input: Str:D   $matcher, $limit = Inf, Bool :$match) 
     multi method comb(Str:D $input: Regex:D $matcher, $limit = Inf, Bool :$match) 
 
 Searches for C<$matcher> in C<$input> and returns a list of all matches
 (as C<Str> by default, or as C<Match> if C<$match> is True), limited to at most
 C<$limit> matches.
+
+If no matcher is supplied, a list of characters in the string
+(ie C<$delimiter = rx/./>) is returned.
+
+=head3 lines
+
+    multi sub    lines(Str:D $input, $limit = Inf) returns Positional
+    multi method lines(Str:D $input: $limit = Inf) returns Positional
+
+Returns a list of lines (without trailing newline characters), i.e. the
+same as a call to C<$input.comb( / ^^ \N* /, $limit )> would.
+
+=item words
+
+    multi sub    words(Str:D $input, $limit = Inf) returns Positional
+    multi method words(Str:D $input: $limit = Inf) returns Positional
+
+Returns a list of non-whitespace bits, i.e. the same as a call to
+C<$input.comb( / \S+ /, $limit )> would.
+
+=item flip
+
+    multi sub    flip(Str:D ) returns Str:D
+    multi method flip(Str:D:) returns Str:D
+
+Returns the string reversed character by character.
+
+=head3 sprintf
+
+ multi sub sprintf ( Str:D $format, *@args) returns Str:D
+
+This function is mostly identical to the C library sprintf function.
+
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Format tokens have the following grammar:
+
+ grammar Str::SprintfFormat {
+  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ '$' }
+  token precision { <flags>? <vector>? <precision_count> }
+  token flags { <[ \x20 + 0 \# \- ]>+ }
+  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
+  token vector { '*'? v }
+  token modifier { < ll l h m V q L > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
+ }
+
+Directives guide the use (if any) of the arguments. When a directive
+(other than C<%>) is used, it indicates how the next argument
+passed is to be formatted into the string.
+
+The directives are:
+
+ %   a literal percent sign
+ c   a character with the given codepoint
+ s   a string
+ d   a signed integer, in decimal
+ u   an unsigned integer, in decimal
+ o   an unsigned integer, in octal
+ x   an unsigned integer, in hexadecimal
+ e   a floating-point number, in scientific notation
+ f   a floating-point number, in fixed decimal notation
+ g   a floating-point number, in %e or %f notation
+ X   like x, but using uppercase letters
+ E   like e, but using an uppercase "E"
+ G   like g, but with an uppercase "E" (if applicable)
+ b   an unsigned integer, in binary
+
+Compatibility:
+
+ i   a synonym for %d
+ D   a synonym for %ld
+ U   a synonym for %lu
+ O   a synonym for %lo
+ F   a synonym for %f
+
+Perl 5 (non-)compatibility:
+
+ n   produces a runtime exception
+ p   produces a runtime exception
+
+Modifiers change the meaning of format directives. The most important being
+support for complex numbers (a basic type in Perl). Here are all of the
+modifiers and what they modify:
+
+ h  interpret integer as native "short" (typically int16)
+ l  interpret integer as native "long" (typically int32 or int64)
+ ll interpret integer as native "long long" (typically int64)
+ L  interpret integer as native "long long" (typically uint64)
+ q  interpret integer as native "quads" (typically int64 or larger)
+ m  interpret value as a complex number
+
+The C<m> modifier works with C<d,u,o,x,F,E,G,X,E> and C<G> format
+directives, and the directive applies to both the real and imaginary
+parts of the complex number.
+
+Examples:
+
+ sprintf "%ld a big number, %lld a bigger number, %mf complexity\n",
+    4294967295, 4294967296, 1+2i);
+
+
 
 =end pod
