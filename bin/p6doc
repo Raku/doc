@@ -12,6 +12,7 @@ constant DEBUG = %*ENV<P6DOC_DEBUG>;
 sub findbin() returns Str {
     $*PROGRAM_NAME.subst(rx{<-[/]>+$}, '');
 }
+
 sub tempfile() {
     my $tempfile = %*ENV<TEMP> // %*ENV<TMP> // '/tmp';
     $tempfile ~= '/';
@@ -43,42 +44,18 @@ sub locate-module(Str $modulename) {
     return $m;
 }
 
-sub extract-section-from-file(Str $filename, Str $section) {
-    my $f = open :r, $filename;
+sub show-docs(Str $path, :$section) {
+   my $pager = %*ENV<PAGER> // 'less';
+   if $section.defined {
+       %*ENV<PERL6_POD_HEADING> = $section;
+       my $i = findbin() ~ '../lib';
+       say "launching 'perl6 -I$i --doc=SectionFilter $path | $pager'" if DEBUG;
+       shell "perl6 -I$i --doc=SectionFilter $path | $pager";
+   }
+   else {
+       shell "perl6 --doc $path | $pager";
+   }
 
-    my $temp-filename = tempfile();
-    LEAVE $f.close;
-
-    my $temp-fh = open :w, $temp-filename;
-    $temp-fh.say: '=begin pod';
-    $temp-fh.say: '';
-    LEAVE $temp-fh.close;
-    UNDO unlink $temp-fh;
-
-    my $found-start = False;
-    my $start-re = rx/ ^ '=head' (\d+) \s+ $section >>/;
-    my $heading-level;
-    my $stop-re = rx/ ^ [ '=head' (\d+) <?{ $0 <= $heading-level }> | '=end pod' ] /;
-    for $f.lines {
-        last if $found-start && ($_ ~~ $stop-re);
-        if $found-start {
-            $temp-fh.say: $_;
-        }
-        elsif $_ ~~ $start-re {
-            $temp-fh.say: $_;
-            $found-start   = True;
-            $heading-level = +$0;
-        }
-    }
-    $temp-fh.say: '';
-    $temp-fh.say: '=end pod';
-    X::P6doc.new(message => "No documentation found for '$section' in file '$filename'").throw unless $found-start;
-    return $temp-filename;
-}
-
-sub show-docs(Str $path) {
-    my $pager = %*ENV<PAGER> // 'less';
-    shell "perl6 --doc $path | $pager";
 }
 
 multi sub MAIN() {
@@ -98,8 +75,7 @@ multi sub MAIN($docee, Bool :$f!) {
         exit 2;
     }
     my $m = locate-module($package);
-    $m = extract-section-from-file($m, $method);
-    show-docs($m);
+    show-docs($m, :section($method));
 }
 
 
