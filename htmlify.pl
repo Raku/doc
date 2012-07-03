@@ -10,8 +10,9 @@ my %types;
 my %routines;
 
 sub MAIN($out_dir = 'html') {
-    mkdir $out_dir unless $out_dir.IO ~~ :e;
-    mkdir "$out_dir/type" unless "$out_dir/type".IO ~~ :e;
+    for ('', <type language>) {
+        mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
+    }
 
     # TODO:  be recursive instead
     my @source = dir('lib').grep(*.f).grep(rx{\.pod$});
@@ -20,11 +21,11 @@ sub MAIN($out_dir = 'html') {
 
     for (@source) {
         my $podname = .basename.subst(rx{\.pod$}, '').subst(:g, '/', '::');
-        # XXX just to speed stuff up for index creation debugging
-        say "$_.path() => $podname";
-        %names{$podname}<type>.push: "/type/$podname";
-        %types{$podname} =           "/type/$podname";
-        shell("perl6 --doc=HTML $_.path() > $out_dir/type/$podname.html");
+        my $what = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
+        say "$_.path() => $what/$podname";
+        %names{$podname}{$what}.push: "/$what/$podname";
+        %types{$what}{$podname} =    "/$what/$podname";
+        shell("perl6 --doc=HTML $_.path() > $out_dir/$what/$podname.html");
 
         shell("perl6 -Ilib --doc=Serialization $_.path() > $tempfile");
         # assume just one pod block for now
@@ -82,10 +83,29 @@ sub write-index-file($out_dir) {
             Pod::Heading.new(
                 level => 1,
                 content => Array.new(
+                    Pod::Block::Para.new(content => ["Language Documentation"])
+                )
+            ),
+            %types<language>.pairs.sort.map({
+                Pod::Item.new(
+                    level => 1,
+                    content =>  [
+                        Pod::FormattingCode.new(
+                            type    => 'L',
+                            content => [
+                                .key ~ '|' ~ .value;
+                            ],
+                        ),
+                    ],
+                );
+            }),
+            Pod::Heading.new(
+                level => 1,
+                content => Array.new(
                     Pod::Block::Para.new(content => ["Types"])
                 )
             ),
-            %types.sort.map: {
+            %types<type>.sort.map({
                 Pod::Item.new(
                     level => 1,
                     content =>  [
@@ -97,7 +117,7 @@ sub write-index-file($out_dir) {
                         ),
                     ],
                 ),
-            }
+            }),
         )
     );
     my $file = open :w, "$out_dir/index.html";
