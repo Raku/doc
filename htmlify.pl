@@ -26,6 +26,7 @@ sub MAIN($out_dir = 'html') {
         %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
         shell("perl6 --doc=HTML $_.path() > $out_dir/$what/$podname.html");
+        next if $what eq 'language';
 
         shell("perl6 -Ilib --doc=Serialization $_.path() > $tempfile");
         # assume just one pod block for now
