@@ -97,7 +97,7 @@ sub pod-with-title($title, *@blocks) {
                     )
                 )
             ),
-            @blocks,
+            @blocks.flat,
         ]
     );
 }
@@ -158,12 +158,13 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
     say "Writing $out_dir/routine/$name.html";
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
-            following types:"));
-    $pod.content.push: @chunks.map(-> Pair (:key($type), :value($chunk)) {
+            following types:"),
+        @chunks.map(-> Pair (:key($type), :value($chunk)) {
             pod-heading($type),
             pod-block("From ", pod-link($type, "/type/{$type}#$name")),
             @$chunk
-        });
+        })
+    );
     my $file = open :w, "$out_dir/routine/$name.html";
     $file.print: pod2html($pod);
     $file.close;
