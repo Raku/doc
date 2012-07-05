@@ -36,7 +36,7 @@ sub MAIN($out_dir = 'html') {
     my $tempfile = join '-', "tempfile", $*PID, (1..1000).pick ~ '.temp';
 
     for (@source) {
-        my $podname = .basename.subst(rx{\.pod$}, '').subst(:g, '/', '::');
+        my $podname = .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::');
         my $what = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$_.path() => $what/$podname";
         %names{$podname}{$what}.push: "/$what/$podname";
