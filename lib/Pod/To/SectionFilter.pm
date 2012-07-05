@@ -11,6 +11,9 @@ class Pod::To::SectionFilter {
                 $heading-level = $b.level;
             }
         }
+        return "No documentation found for method '$search_for'"
+            unless defined $from;
+
         my $to = @blocks.end;
         for $from + 1 .. @blocks.end -> $i {
             if @blocks[$i] ~~ Pod::Heading && @blocks[$i].level <= $heading-level {
