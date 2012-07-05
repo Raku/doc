@@ -11,6 +11,73 @@ for invocation.
 Passing arguments to a signature I<binds> the arguments the parameters,
 and (loosely speaking) to the signature.
 
+=head1 Signature Literals
+
+Signatures appear in parenthesis after subroutine and method names, on
+blocks after a C<< -> >> or C<< <-> >> arrow, or as a separate term starting
+with a colon.
+
+    sub f($x) { }
+    #    ^^^^ signature
+    method x() { }
+    #       ^^ signature
+    my $s = sub (*@a) { }
+    #           ^^^^^ signature
+
+    for @list -> $x { }
+    #            ^^   signature
+
+    my $sig = :($a, $b);
+    #          ^^^^^^^^ signature
+
+A signature consists of zero or more I<parameters>, separated by comma.
+As an exception the first parameter may be followed by a colon instead of
+a comma to mark the invocant of a method.
+
+    :($a, @b, %c)       # comma-separted parameters
+    :($a: @b, %c)       # first argument is the invocant
+
+Parameters can optionally have a type constraint (the default is L<Any>).
+Anonymous parameters are fine too.
+
+    :(Int $a, Str $b)   # type constraints
+    :($, @, %a)         # two anonymous and a "normal" parameter
+    :(Int, Positional)  # just a type is also fine (two parameters)
+
+An array or hash parameter can be marked as I<slurpy> by a leading asterisk,
+which means they can bind to an arbitrary amount of arguments (zero or more).
+
+    :($a, *@b)          # at least one argument, @b is slurpy
+    :($a, @b)           # two arguments, the second one must be Positional
+
+A parameter can be I<postional> or I<named>. All parameters are positional,
+except those marked with a leading colon C<:>, and slurpy hash parameters.
+
+    :($a)               # a positional parameter
+    :(:$a)              # a named parameter of name 'a'
+    :(*@a)              # a slurpy positional parameter
+    :(*%h)              # a slurpy named parameter
+
+Named parameters are optional by default, and can be made mandatory with a
+trailing exclamation mark:
+
+    :(:$name!)          # mandatory 'name' named parameter
+
+Positional parameters are mandatory by default, and can be made optional
+with a default value or a trailing question mark:
+
+    :($base = 10)       # optional parameter, default value 10
+    :(Int $x?)          # optional parameter, default is the Int type object
+
+Named parameter can also have default values.
+
+Default values can depend on previous parameters, and are (at least
+notionally) computed anew for each call
+
+    :($goal, $accuarcy = $goal / 100);
+    :(:$excludes = ['.', '..']);        # a new Array for every call
+
+
 =head1 Methods
 
 =head2 params
