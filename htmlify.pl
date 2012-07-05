@@ -65,61 +65,67 @@ sub chunks-grep(:$from!, :&to!, *@elems) {
     }
 }
 
-sub write-index-file($out_dir) {
-    my $pod = Pod::Block::Named.new(
+sub pod-with-title($title, *@blocks) {
+    Pod::Block::Named.new(
         name => "pod",
-        content => Array.new(
+        content => [
             Pod::Block::Named.new(
                 name => "TITLE",
                 content => Array.new(
                     Pod::Block::Para.new(
-                        content => ["Perl 6 Documentation"],
+                        content => [$title],
                     )
                 )
             ),
-            Pod::Block::Para.new(
-                content => ['Official Perl 6 documentation'],
-            ),
-            # TODO: add more
-            Pod::Heading.new(
+            @blocks,
+        ]
+    );
+}
+
+sub write-index-file($out_dir) {
+    my $pod = pod-with-title('Perl 6 Documentation',
+        Pod::Block::Para.new(
+            content => ['Official Perl 6 documentation'],
+        ),
+        # TODO: add more
+        Pod::Heading.new(
+            level => 1,
+            content => Array.new(
+                Pod::Block::Para.new(content => ["Language Documentation"])
+            )
+        ),
+        %types<language>.pairs.sort.map({
+            Pod::Item.new(
                 level => 1,
-                content => Array.new(
-                    Pod::Block::Para.new(content => ["Language Documentation"])
-                )
-            ),
-            %types<language>.pairs.sort.map({
-                Pod::Item.new(
-                    level => 1,
-                    content =>  [
-                        Pod::FormattingCode.new(
-                            type    => 'L',
-                            content => [
-                                .key ~ '|' ~ .value;
-                            ],
-                        ),
-                    ],
-                );
-            }),
-            Pod::Heading.new(
+                content =>  [
+                    Pod::FormattingCode.new(
+                        type    => 'L',
+                        content => [
+                            .key ~ '|' ~ .value;
+                        ],
+                    ),
+                ],
+            );
+        }),
+        Pod::Heading.new(
+            level => 1,
+            content => Array.new(
+                Pod::Block::Para.new(content => ["Types"])
+            )
+        ),
+        %types<type>.sort.map({
+            Pod::Item.new(
                 level => 1,
-                content => Array.new(
-                    Pod::Block::Para.new(content => ["Types"])
-                )
+                content =>  [
+                    Pod::FormattingCode.new(
+                        type    => 'L',
+                        content => [
+                            .key ~ '|' ~ .value;
+                        ],
+                    ),
+                ],
             ),
-            %types<type>.sort.map({
-                Pod::Item.new(
-                    level => 1,
-                    content =>  [
-                        Pod::FormattingCode.new(
-                            type    => 'L',
-                            content => [
-                                .key ~ '|' ~ .value;
-                            ],
-                        ),
-                    ],
-                ),
-            }),
-        )
+        })
     );
     my $file = open :w, "$out_dir/index.html";
     $file.print: pod2html($pod);
