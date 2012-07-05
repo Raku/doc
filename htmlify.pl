@@ -1,6 +1,7 @@
 #!/usr/bin/env perl6
 use v6;
 use Pod::To::HTML;
+use URI::Escape;
 
 # this script isn't in bin/ because it's not meant
 # to be installed.
@@ -9,18 +10,33 @@ my %names;
 my %types;
 my %routines;
 
+sub recursive-dir($dir) {
+    my @todo = $dir;
+    gather while @todo {
+        my $d = @todo.shift;
+        for dir($d) -> $f {
+            if $f.f {
+                take $f;
+            }
+            else {
+                @todo.push($f.path);
+            }
+        }
+    }
+}
+
 sub MAIN($out_dir = 'html') {
     for ('', <type language routine>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
     # TODO:  be recursive instead
-    my @source = dir('lib').grep(*.f).grep(rx{\.pod$});
+    my @source := recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
 
     my $tempfile = join '-', "tempfile", $*PID, (1..1000).pick ~ '.temp';
 
     for (@source) {
-        my $podname = .basename.subst(rx{\.pod$}, '').subst(:g, '/', '::');
+        my $podname = .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::');
         my $what = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$_.path() => $what/$podname";
         %names{$podname}{$what}.push: "/$what/$podname";
@@ -38,9 +54,9 @@ sub MAIN($out_dir = 'html') {
         for @chunks -> $chunk {
             my $name = $chunk[0].content[0].content[0];
             next if $name ~~ /\s/;
-            %names{$name}<routine>.push: "/type/$podname.html#$name";
-            %routines{$name}.push: $podname => $chunk;
-            %types<routine>{$name} = "/routine/$name";
+            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
+                %routines{$name}.push: $podname => $chunk;
+            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
         unlink $tempfile;
     }
@@ -81,7 +97,7 @@ sub pod-with-title($title, *@blocks) {
                     )
                 )
             ),
-            @blocks,
+            @blocks.flat,
         ]
     );
 }
@@ -142,12 +158,13 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
     say "Writing $out_dir/routine/$name.html";
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
-            following types:"));
-    $pod.content.push: @chunks.map(-> Pair (:key($type), :value($chunk)) {
+            following types:"),
+        @chunks.map(-> Pair (:key($type), :value($chunk)) {
             pod-heading($type),
             pod-block("From ", pod-link($type, "/type/{$type}#$name")),
             @$chunk
-        });
+        })
+    );
     my $file = open :w, "$out_dir/routine/$name.html";
     $file.print: pod2html($pod);
     $file.close;
