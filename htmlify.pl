@@ -140,7 +140,7 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
             following types:"));
     $pod.content.push: @chunks.map(-> Pair (:key($type), :value($chunk)) {
             pod-heading($type),
-            pod-block("From ", pod-link($type, "/type/$type/#$name")),
+            pod-block("From ", pod-link($type, "/type/$type/$name")),
             @$chunk
         });
     my $file = open :w, "$out_dir/routine/$name.html";
