@@ -9,13 +9,28 @@ my %names;
 my %types;
 my %routines;
 
+sub recursive-dir($dir) {
+    my @todo = $dir;
+    gather while @todo {
+        my $d = @todo.shift;
+        for dir($d) -> $f {
+            if $f.f {
+                take $f;
+            }
+            else {
+                @todo.push($f.path);
+            }
+        }
+    }
+}
+
 sub MAIN($out_dir = 'html') {
     for ('', <type language routine>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
     # TODO:  be recursive instead
-    my @source = dir('lib').grep(*.f).grep(rx{\.pod$});
+    my @source := recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
 
     my $tempfile = join '-', "tempfile", $*PID, (1..1000).pick ~ '.temp';
 
