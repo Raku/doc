@@ -1,6 +1,7 @@
 #!/usr/bin/env perl6
 use v6;
 use Pod::To::HTML;
+use URI::Escape;
 
 # this script isn't in bin/ because it's not meant
 # to be installed.
@@ -53,9 +54,9 @@ sub MAIN($out_dir = 'html') {
         for @chunks -> $chunk {
             my $name = $chunk[0].content[0].content[0];
             next if $name ~~ /\s/;
-            %names{$name}<routine>.push: "/type/$podname.html#$name";
-            %routines{$name}.push: $podname => $chunk;
-            %types<routine>{$name} = "/routine/$name";
+            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
+                %routines{$name}.push: $podname => $chunk;
+            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
         unlink $tempfile;
     }
