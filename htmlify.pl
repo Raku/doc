@@ -40,6 +40,7 @@ sub MAIN($out_dir = 'html') {
             next if $name ~~ /\s/;
             %names{$name}<routine>.push: "/type/$podname.html#$name";
             %routines{$name}.push: $podname => $chunk;
+            %types<routine>{$name} = "/routine/$name";
         }
         unlink $tempfile;
     }
@@ -125,6 +126,10 @@ sub write-index-file(:$out_dir!) {
         }),
         pod-heading('Types'),
         %types<type>.sort.map({
+            pod-item(pod-link(.key, .value))
+        }),
+        pod-heading('Routines'),
+        %types<routine>.sort.map({
             pod-item(pod-link(.key, .value))
         }),
     );
