@@ -82,50 +82,47 @@ sub pod-with-title($title, *@blocks) {
     );
 }
 
+sub pod-block(*@content) {
+    Pod::Block::Para.new(:@content);
+}
+
+sub pod-link($text, $url) {
+    Pod::FormattingCode.new(
+        type    => 'L',
+        content => [
+            join('|', $text, $url),
+        ],
+    );
+}
+
+sub pod-item(*@content, :$level = 1) {
+    Pod::Item.new(
+        :$level,
+        :@content,
+    );
+}
+
+sub pod-heading($name, :$level = 1) {
+    Pod::Heading.new(
+        :$level,
+        :content[pod-block($name)],
+    );
+}
+
 sub write-index-file($out_dir) {
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
         ),
         # TODO: add more
-        Pod::Heading.new(
-            level => 1,
-            content => Array.new(
-                Pod::Block::Para.new(content => ["Language Documentation"])
-            )
-        ),
+        pod-heading("Language Documentation"),
         %types<language>.pairs.sort.map({
-            Pod::Item.new(
-                level => 1,
-                content =>  [
-                    Pod::FormattingCode.new(
-                        type    => 'L',
-                        content => [
-                            .key ~ '|' ~ .value;
-                        ],
-                    ),
-                ],
-            );
+            pod-item( pod-link(.key, .value) )
         }),
-        Pod::Heading.new(
-            level => 1,
-            content => Array.new(
-                Pod::Block::Para.new(content => ["Types"])
-            )
-        ),
+        pod-heading('Types'),
         %types<type>.sort.map({
-            Pod::Item.new(
-                level => 1,
-                content =>  [
-                    Pod::FormattingCode.new(
-                        type    => 'L',
-                        content => [
-                            .key ~ '|' ~ .value;
-                        ],
-                    ),
-                ],
-            ),
-        })
+            pod-item(pod-link(.key, .value))
+        }),
     );
     my $file = open :w, "$out_dir/index.html";
     $file.print: pod2html($pod);
