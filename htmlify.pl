@@ -10,7 +10,7 @@ my %types;
 my %routines;
 
 sub MAIN($out_dir = 'html') {
-    for ('', <type language>) {
+    for ('', <type language routine>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
@@ -39,11 +39,14 @@ sub MAIN($out_dir = 'html') {
             my $name = $chunk[0].content[0].content[0];
             next if $name ~~ /\s/;
             %names{$name}<routine>.push: "/type/$podname.html#$name";
-            %routines{$name}.push: $chunk;
+            %routines{$name}.push: $podname => $chunk;
         }
         unlink $tempfile;
     }
-    write-index-file($out_dir);
+    write-index-file(:$out_dir);
+    for %routines.kv -> $name, @chunks {
+        write-routine-file(:$out_dir, :$name, :@chunks);
+    }
     # TODO: write per-routine docs
     # TODO: write top-level disambiguation files
 }
@@ -65,63 +68,82 @@ sub chunks-grep(:$from!, :&to!, *@elems) {
     }
 }
 
-sub write-index-file($out_dir) {
-    my $pod = Pod::Block::Named.new(
+sub pod-with-title($title, *@blocks) {
+    Pod::Block::Named.new(
         name => "pod",
-        content => Array.new(
+        content => [
             Pod::Block::Named.new(
                 name => "TITLE",
                 content => Array.new(
                     Pod::Block::Para.new(
-                        content => ["Perl 6 Documentation"],
+                        content => [$title],
                     )
                 )
             ),
-            Pod::Block::Para.new(
-                content => ['Official Perl 6 documentation'],
-            ),
-            # TODO: add more
-            Pod::Heading.new(
-                level => 1,
-                content => Array.new(
-                    Pod::Block::Para.new(content => ["Language Documentation"])
-                )
-            ),
-            %types<language>.pairs.sort.map({
-                Pod::Item.new(
-                    level => 1,
-                    content =>  [
-                        Pod::FormattingCode.new(
-                            type    => 'L',
-                            content => [
-                                .key ~ '|' ~ .value;
-                            ],
-                        ),
-                    ],
-                );
-            }),
-            Pod::Heading.new(
-                level => 1,
-                content => Array.new(
-                    Pod::Block::Para.new(content => ["Types"])
-                )
-            ),
-            %types<type>.sort.map({
-                Pod::Item.new(
-                    level => 1,
-                    content =>  [
-                        Pod::FormattingCode.new(
-                            type    => 'L',
-                            content => [
-                                .key ~ '|' ~ .value;
-                            ],
-                        ),
-                    ],
-                ),
-            }),
-        )
+            @blocks,
+        ]
+    );
+}
+
+sub pod-block(*@content) {
+    Pod::Block::Para.new(:@content);
+}
+
+sub pod-link($text, $url) {
+    Pod::FormattingCode.new(
+        type    => 'L',
+        content => [
+            join('|', $text, $url),
+        ],
+    );
+}
+
+sub pod-item(*@content, :$level = 1) {
+    Pod::Item.new(
+        :$level,
+        :@content,
+    );
+}
+
+sub pod-heading($name, :$level = 1) {
+    Pod::Heading.new(
+        :$level,
+        :content[pod-block($name)],
+    );
+}
+
+sub write-index-file(:$out_dir!) {
+    say "Writing $out_dir/index.html";
+    my $pod = pod-with-title('Perl 6 Documentation',
+        Pod::Block::Para.new(
+            content => ['Official Perl 6 documentation'],
+        ),
+        # TODO: add more
+        pod-heading("Language Documentation"),
+        %types<language>.pairs.sort.map({
+            pod-item( pod-link(.key, .value) )
+        }),
+        pod-heading('Types'),
+        %types<type>.sort.map({
+            pod-item(pod-link(.key, .value))
+        }),
     );
     my $file = open :w, "$out_dir/index.html";
     $file.print: pod2html($pod);
     $file.close;
 }
+
+sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
+    say "Writing $out_dir/routine/$name.html";
+    my $pod = pod-with-title("Documentation for routine $name",
+        pod-block("Documentation for routine $name, assembled from the
+            following types:"));
+    $pod.content.push: @chunks.map(-> Pair (:key($type), :value($chunk)) {
+            pod-heading($type),
+            pod-block("From ", pod-link($type, "/type/{$type}#$name")),
+            @$chunk
+        });
+    my $file = open :w, "$out_dir/routine/$name.html";
+    $file.print: pod2html($pod);
+    $file.close;
+} 
