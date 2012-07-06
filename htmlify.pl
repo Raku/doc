@@ -105,6 +105,7 @@ sub chunks-grep(:$from!, :&to!, *@elems) {
             if @current && ($c ~~ $from || to(@current[0], $c)) {
                 take [@current];
                 @current = ();
+                @current.push: $c if $c ~~ $from;
             }
             elsif @current or $c ~~ $from {
                 @current.push: $c;
