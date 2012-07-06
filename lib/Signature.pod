@@ -30,12 +30,16 @@ with a colon.
     my $sig = :($a, $b);
     #          ^^^^^^^^ signature
 
+=head2 Parameter Separators
+
 A signature consists of zero or more I<parameters>, separated by comma.
 As an exception the first parameter may be followed by a colon instead of
 a comma to mark the invocant of a method.
 
     :($a, @b, %c)       # comma-separted parameters
     :($a: @b, %c)       # first argument is the invocant
+
+=head2 Type Constraints
 
 Parameters can optionally have a type constraint (the default is L<Any>).
 Anonymous parameters are fine too.
@@ -44,11 +48,35 @@ Anonymous parameters are fine too.
     :($, @, %a)         # two anonymous and a "normal" parameter
     :(Int, Positional)  # just a type is also fine (two parameters)
 
+In addition to those I<nominal> types, addtional constraints can
+be placed on parameters in the form of code blocks which must return
+a true value to pass the type check
+
+    sub f(Real $x where { $x > 0 }, Real $y where { $y >= $x }) { }
+
+In fact it doesn't need to be a code block, anything on the right of the
+C<where>-block will be used to smart-match the argument against it.
+So you can also write
+
+    multi fact(Int $ where 0) { 1 }
+    multi fact(Int $x)        { $x * fact($x - 1) }
+
+The first of those can be shortened to
+
+    multi fact(0) { 1}
+
+ie you can use a literal directly as a type constraint on an anonymous
+parameter.
+
+=head2 Slurpy Parameters
+
 An array or hash parameter can be marked as I<slurpy> by a leading asterisk,
 which means they can bind to an arbitrary amount of arguments (zero or more).
 
     :($a, *@b)          # at least one argument, @b is slurpy
     :($a, @b)           # two arguments, the second one must be Positional
+
+=head2 Positional vs. Named
 
 A parameter can be I<postional> or I<named>. All parameters are positional,
 except those marked with a leading colon C<:>, and slurpy hash parameters.
@@ -57,6 +85,8 @@ except those marked with a leading colon C<:>, and slurpy hash parameters.
     :(:$a)              # a named parameter of name 'a'
     :(*@a)              # a slurpy positional parameter
     :(*%h)              # a slurpy named parameter
+
+=head2 Optional and Mandatory Parameters
 
 Named parameters are optional by default, and can be made mandatory with a
 trailing exclamation mark:
