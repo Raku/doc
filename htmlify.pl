@@ -6,9 +6,34 @@ use URI::Escape;
 # this script isn't in bin/ because it's not meant
 # to be installed.
 
+my $*DEBUG = False;
+
 my %names;
 my %types;
 my %routines;
+
+
+sub pod-gist(Pod::Block $pod, $level = 0) {
+    my $leading = ' ' x $level;
+    my %confs;
+    my @chunks;
+    for <config name level caption type> {
+        my $thing = $pod.?"$_"();
+        if $thing {
+            %confs{$_} = $thing ~~ Iterable ?? $thing.perl !! $thing.Str;
+        }
+    }
+    @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
+    for $pod.content.list -> $c {
+        if $c ~~ Pod::Block {
+            @chunks.push: pod-gist($c, $level + 2);
+        }
+        else {
+            @chunks.push: $c.indent($level + 2), "\n";
+        }
+    }
+    @chunks.join;
+}
 
 sub recursive-dir($dir) {
     my @todo = $dir;
@@ -25,7 +50,8 @@ sub recursive-dir($dir) {
     }
 }
 
-sub MAIN($out_dir = 'html') {
+sub MAIN($out_dir = 'html', Bool :$debug) {
+    $*DEBUG = $debug;
     for ('', <type language routine>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
@@ -47,12 +73,14 @@ sub MAIN($out_dir = 'html') {
         shell("perl6 -Ilib --doc=Serialization $_.path() > $tempfile");
         # assume just one pod block for now
         my ($pod) = eval slurp $tempfile;
+        say pod-gist($pod) if $*DEBUG;
         my @chunks = chunks-grep($pod.content,
                 :from({ $_ ~~ Pod::Heading and .level == 2}),
                 :to({ $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
             );
         for @chunks -> $chunk {
             my $name = $chunk[0].content[0].content[0];
+            say "$podname.$name" if $*DEBUG;
             next if $name ~~ /\s/;
             %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
                 %routines{$name}.push: $podname => $chunk;
@@ -61,10 +89,11 @@ sub MAIN($out_dir = 'html') {
         unlink $tempfile;
     }
     write-index-file(:$out_dir);
+    say "Writing per-routine files...";
     for %routines.kv -> $name, @chunks {
         write-routine-file(:$out_dir, :$name, :@chunks);
     }
-    # TODO: write per-routine docs
+    say "done writing per-routine files";
     # TODO: write top-level disambiguation files
 }
 
@@ -155,7 +184,7 @@ sub write-index-file(:$out_dir!) {
 }
 
 sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
-    say "Writing $out_dir/routine/$name.html";
+    say "Writing $out_dir/routine/$name.html" if $*DEBUG;
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
             following types:"),
