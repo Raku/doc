@@ -92,6 +92,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
     say "Writing per-routine files...";
     for %routines.kv -> $name, @chunks {
         write-routine-file(:$out_dir, :$name, :@chunks);
+        %routines.delete($name);
     }
     say "done writing per-routine files";
     # TODO: write top-level disambiguation files
