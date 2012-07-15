@@ -63,7 +63,6 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
-    # TODO:  be recursive instead
     my @source := recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
 
     my $tempfile = join '-', "tempfile", $*PID, (1..1000).pick ~ '.temp';
