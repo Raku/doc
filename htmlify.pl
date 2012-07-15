@@ -65,20 +65,17 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
 
     my @source := recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
 
-    my $tempfile = join '-', "tempfile", $*PID, (1..1000).pick ~ '.temp';
-
     for (@source) {
         my $podname = .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::');
         my $what = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$_.path() => $what/$podname";
         %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
-        shell("perl6 --doc=HTML $_.path() > $out_dir/$what/$podname.html");
+        my $pod  = eval slurp(.path) ~ "\n\$=pod";
+        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
         next if $what eq 'language';
+        $pod = $pod[0];
 
-        shell("perl6 -Ilib --doc=Serialization $_.path() > $tempfile");
-        # assume just one pod block for now
-        my ($pod) = eval slurp $tempfile;
         say pod-gist($pod) if $*DEBUG;
         my @chunks = chunks-grep($pod.content,
                 :from({ $_ ~~ Pod::Heading and .level == 2}),
@@ -92,7 +89,6 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                 %routines{$name}.push: $podname => $chunk;
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
-        unlink $tempfile;
     }
     write-index-file(:$out_dir);
     say "Writing per-routine files...";
