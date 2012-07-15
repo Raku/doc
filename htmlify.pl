@@ -6,6 +6,13 @@ use URI::Escape;
 # this script isn't in bin/ because it's not meant
 # to be installed.
 
+sub url-munge($_) {
+    return $_ if m{^ <[a..z]>+ '::/'};
+    return "/type/$_" if m/^<[A..Z]>/;
+    return "/routine/$_" if m/^<[a..z]>/;
+    return $_;
+}
+
 my $*DEBUG = False;
 
 my %names;
@@ -181,7 +188,7 @@ sub write-index-file(:$out_dir!) {
         }),
     );
     my $file = open :w, "$out_dir/index.html";
-    $file.print: pod2html($pod);
+    $file.print: pod2html($pod, :url(&url-munge));
     $file.close;
 }
 
@@ -197,6 +204,6 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
         })
     );
     my $file = open :w, "$out_dir/routine/$name.html";
-    $file.print: pod2html($pod);
+    $file.print: pod2html($pod, :url(&url-munge));
     $file.close;
 } 
