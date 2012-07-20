@@ -90,6 +90,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
     }
+    write-search-file(:$out_dir);
     write-index-file(:$out_dir);
     say "Writing per-routine files...";
     for %routines.kv -> $name, @chunks {
@@ -160,6 +161,25 @@ sub pod-heading($name, :$level = 1) {
         :$level,
         :content[pod-block($name)],
     );
+}
+
+sub write-search-file(:$out_dir!) {
+    say "Writing $out_dir/search.html";
+    my $template = slurp("search_template.html");
+    my @items;
+    my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
+    @items.push: %types<language>.pairs.sort.map({
+        "\{ label: \"Language: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    });
+    @items.push: %types<type>.sort.map({
+        "\{ label: \"Type: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    });
+    @items.push: %types<routine>.sort.map({
+        "\{ label: \"Routine: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    });
+
+    my $items = @items.join(",\n");
+    spurt("$out_dir/search.html", $template.subst("ITEMS", $items));
 }
 
 sub write-index-file(:$out_dir!) {
