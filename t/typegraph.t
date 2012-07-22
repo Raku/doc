@@ -10,4 +10,6 @@ ok $t.types<Array>.super.any eq 'List',
     'Array has List as a superclass';
 ok $t.types<List>.roles.any eq 'Positional',
     'List does positional';
+is $t.types<Str>.mro, 'Str Cool Any Mu', 'Str mro';
+is $t.types<Match>.mro, 'Match Capture Cool Any Mu', 'Match mro';
 done;
