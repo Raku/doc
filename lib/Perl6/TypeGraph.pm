@@ -52,6 +52,9 @@ class Perl6::TypeGraph {
             my $m = Decl.parse($l, :actions(Actions.new));
             my $t = $m<type>.ast;
             $t.packagetype = ~$m<package>;
+            if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {
+                $t.super.push: $get-type('Any');
+            }
         }
     }
 }
