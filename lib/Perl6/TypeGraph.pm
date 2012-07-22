@@ -1,6 +1,7 @@
 use Perl6::Type;
 class Perl6::TypeGraph {
     has %.types;
+    has @.sorted;
     my grammar Decl {
         token ident      { <.alpha> \w*                }
         token apostrophe { <[ ' \- ]>                  }
@@ -56,7 +57,19 @@ class Perl6::TypeGraph {
                 $t.super.push: $get-type('Any');
             }
         }
+        self!topo-sort;
     }
+    method !topo-sort {
+        my %seen;
+        sub visit($n) {
+            return if %seen{$n};
+            %seen{$n} = True;
+            visit($_) for $n.super, $n.roles;
+            @!sorted.push: $n;
+        }
+        visit($_) for %.types.values;
+    }
+
 }
 
 # vim: ft=perl6
