@@ -57,6 +57,13 @@ class Perl6::TypeGraph {
                 $t.super.push: $get-type('Any');
             }
         }
+        # roles that have a superclass actually apply that superclass
+        # to the class that does them, so mimic that here:
+        for %.types.values -> $t {
+            for $t.roles -> $r {
+                $t.super.push: $r.super if $r.super;
+            }
+        }
         self!topo-sort;
     }
     method !topo-sort {
