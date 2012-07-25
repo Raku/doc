@@ -21,6 +21,7 @@ my $*DEBUG = False;
 my %names;
 my %types;
 my %routines;
+my %methods-by-type;
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
     my $leading = ' ' x $level;
@@ -68,7 +69,6 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
     say 'Reading lib/ ...';
     my @source = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
     @source.=map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
-    say @source.perl;
     say '... done';
 
     say "Reading type graph ...";
@@ -87,8 +87,10 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
-        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
-        next if $what eq 'language';
+        if $what eq 'language' {
+            spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
+            next;
+        }
         $pod = $pod[0];
 
         say pod-gist($pod) if $*DEBUG;
@@ -100,10 +102,34 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
             my $name = $chunk[0].content[0].content[0];
             say "$podname.$name" if $*DEBUG;
             next if $name ~~ /\s/;
+            %methods-by-type{$podname}.push: $chunk;
             %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
                 %routines{$name}.push: $podname => $chunk;
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
+        if $tg.types{$podname} -> $t {
+            my @mro = $t.mro;
+            @mro.shift; # current type is already taken care of
+            for $t.roles -> $r {
+                next unless %methods-by-type{$r};
+                $pod.content.push:
+                    pod-heading("Methods supplied by role $r"),
+                    # TODO: make that a link to $r
+                    pod-block("$podname does role $r, which provides the following methods:"),
+                    %methods-by-type{$r}.list,
+                    ;
+            }
+            for @mro -> $c {
+                next unless %methods-by-type{$c};
+                $pod.content.push:
+                    pod-heading("Methods supplied by class $c"),
+                    # TODO: make that a link to $c
+                    pod-block("$podname inherits from class $c, which provides the following methods:"),
+                    %methods-by-type{$c}.list,
+                    ;
+            }
+        }
+        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
     }
     write-search-file(:$out_dir);
     write-index-file(:$out_dir);
