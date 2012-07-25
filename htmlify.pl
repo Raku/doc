@@ -1,10 +1,13 @@
 #!/usr/bin/env perl6
 use v6;
-use Pod::To::HTML;
-use URI::Escape;
 
 # this script isn't in bin/ because it's not meant
 # to be installed.
+
+use Pod::To::HTML;
+use URI::Escape;
+use lib 'lib';
+use Perl6::TypeGraph;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '::/'};
@@ -18,7 +21,6 @@ my $*DEBUG = False;
 my %names;
 my %types;
 my %routines;
-
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
     my $leading = ' ' x $level;
@@ -63,15 +65,28 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
-    my @source := recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
+    say 'Reading lib/ ...';
+    my @source = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
+    @source.=map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
+    say @source.perl;
+    say '... done';
+
+    say "Reading type graph ...";
+    my $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    {
+        my %h = $tg.sorted.kv.flat.reverse;
+        @source.=sort: { %h{.key} // -1 };
+    }
+    say "... done";
 
     for (@source) {
-        my $podname = .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::');
-        my $what = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
-        say "$_.path() => $what/$podname";
+        my $podname  = .key;
+        my $file     = .value;
+        my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
+        say "$file.path() => $what/$podname";
         %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
-        my $pod  = eval slurp(.path) ~ "\n\$=pod";
+        my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
         next if $what eq 'language';
         $pod = $pod[0];
