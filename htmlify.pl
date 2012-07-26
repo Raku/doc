@@ -22,6 +22,7 @@ my %names;
 my %types;
 my %routines;
 my %methods-by-type;
+my $footer;
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
     my $leading = ' ' x $level;
@@ -79,6 +80,9 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
     }
     say "... done";
 
+    $footer = footer-html;
+
+
     for (@source) {
         my $podname  = .key;
         my $file     = .value;
@@ -88,7 +92,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         if $what eq 'language' {
-            spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
+            spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
             next;
         }
         $pod = $pod[0];
@@ -129,7 +133,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                     ;
             }
         }
-        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge));
+        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
     }
     write-search-file(:$out_dir);
     write-index-file(:$out_dir);
@@ -244,7 +248,7 @@ sub write-index-file(:$out_dir!) {
         }),
     );
     my $file = open :w, "$out_dir/index.html";
-    $file.print: pod2html($pod, :url(&url-munge));
+    $file.print: pod2html($pod, :url(&url-munge), :$footer);
     $file.close;
 }
 
@@ -260,6 +264,21 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
         })
     );
     my $file = open :w, "$out_dir/routine/$name.html";
-    $file.print: pod2html($pod, :url(&url-munge));
+    $file.print: pod2html($pod, :url(&url-munge), :$footer);
     $file.close;
-} 
+}
+
+sub footer-html() {
+    qq[
+    <div id="footer">
+        <p>
+            Generated on {DateTime.now} from the sources at
+            <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
+        </p>
+        <p>
+            This is a work in progress to document Perl 6, and known to be
+            incomplete. Your contribution is appreciated.
+        </p>
+    </div>
+    ];
+}
