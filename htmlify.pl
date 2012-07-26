@@ -118,8 +118,11 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                 next unless %methods-by-type{$r};
                 $pod.content.push:
                     pod-heading("Methods supplied by role $r"),
-                    # TODO: make that a link to $r
-                    pod-block("$podname does role $r, which provides the following methods:"),
+                    pod-block(
+                        "$podname does role ",
+                        pod-link($r.name, "/type/$r"),
+                        ", which provides the following methods:",
+                    ),
                     %methods-by-type{$r}.list,
                     ;
             }
@@ -127,8 +130,11 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                 next unless %methods-by-type{$c};
                 $pod.content.push:
                     pod-heading("Methods supplied by class $c"),
-                    # TODO: make that a link to $c
-                    pod-block("$podname inherits from class $c, which provides the following methods:"),
+                    pod-block(
+                        "$podname inherits from class ",
+                        pod-link($c.name, "/type/$c"),
+                        ", which provides the following methods:",
+                    ),
                     %methods-by-type{$c}.list,
                     ;
             }
