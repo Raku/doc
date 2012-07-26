@@ -137,6 +137,20 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                     ),
                     %methods-by-type{$c}.list,
                     ;
+                for $c.roles -> $r {
+                    next unless %methods-by-type{$r};
+                    $pod.content.push:
+                        pod-heading("Methods supplied by role $r"),
+                        pod-block(
+                            "$podname inherits from class ",
+                            pod-link($c.name, "/type/$c"),
+                            ", which does role ",
+                            pod-link($r.name, "/type/$r"),
+                            ", which provides the following methods:",
+                        ),
+                        %methods-by-type{$r}.list,
+                        ;
+                }
             }
         }
         spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
