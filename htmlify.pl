@@ -10,7 +10,7 @@ use lib 'lib';
 use Perl6::TypeGraph;
 
 sub url-munge($_) {
-    return $_ if m{^ <[a..z]>+ '::/'};
+    return $_ if m{^ <[a..z]>+ '://'};
     return "/type/$_" if m/^<[A..Z]>/;
     return "/routine/$_" if m/^<[a..z]>/;
     return $_;
