@@ -53,15 +53,16 @@ class Perl6::TypeGraph {
             my $m = Decl.parse($l, :actions(Actions.new));
             my $t = $m<type>.ast;
             $t.packagetype = ~$m<package>;
-            if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {
-                $t.super.push: $get-type('Any');
-            }
         }
-        # roles that have a superclass actually apply that superclass
-        # to the class that does them, so mimic that here:
         for %.types.values -> $t {
+            # roles that have a superclass actually apply that superclass
+            # to the class that does them, so mimic that here:
             for $t.roles -> $r {
                 $t.super.push: $r.super if $r.super;
+            }
+            # non-roles default to superclass Any
+            if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {
+                $t.super.push: $get-type('Any');
             }
         }
         self!topo-sort;
