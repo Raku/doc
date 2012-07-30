@@ -75,7 +75,7 @@ class Perl6::TypeGraph {
             visit($_) for $n.super, $n.roles;
             @!sorted.push: $n;
         }
-        visit($_) for %.types.values;
+        visit($_) for %.types.values.sort(*.name);
     }
 
 }
