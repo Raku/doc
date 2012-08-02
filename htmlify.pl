@@ -65,7 +65,7 @@ sub recursive-dir($dir) {
 
 sub MAIN($out_dir = 'html', Bool :$debug) {
     $*DEBUG = $debug;
-    for ('', <type language routine svg>) {
+    for ('', <type language routine images>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
@@ -233,10 +233,11 @@ sub pod-heading($name, :$level = 1) {
 }
 
 sub write-type-graph-images(:$out_dir!) {
-    say "Writing type graph images to $out_dir/svg/";
+    say "Writing type graph images to $out_dir/images/";
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
-        $viz.to-svg-file("$out_dir/svg/type-graph-{$type}.svg");
+        $viz.to-file("$out_dir/images/type-graph-{$type}.svg", format => 'svg');
+        $viz.to-file("$out_dir/images/type-graph-{$type}.png", format => 'png');
     }
 }
 

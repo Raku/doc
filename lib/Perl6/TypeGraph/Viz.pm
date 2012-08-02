@@ -67,8 +67,8 @@ class Perl6::TypeGraph::Viz {
         spurt $file, self.as-dot;
     }
 
-    method to-svg-file ($file) {
-        my $pipe = open "dot -Tsvg -o$file", :w, :p;
+    method to-file ($file, :$format = 'svg') {
+        my $pipe = open "dot -T$format -o$file", :w, :p;
         $pipe.print: self.as-dot;
         close $pipe;
     }
