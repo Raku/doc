@@ -239,6 +239,58 @@ sub write-type-graph-images() {
         $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         $viz.to-file("html/images/type-graph-{$type}.png", format => 'png');
     }
+
+    say "Writing specialized visualizations to html/images/";
+    my %by-group = $tg.sorted.classify(&viz-group);
+    %by-group<Exception>.push: $tg.types< Exception Any Mu >;
+    %by-group<Metamodel>.push: $tg.types< Any Mu >;
+
+    for %by-group.kv -> $group, @types {
+        my $viz = Perl6::TypeGraph::Viz.new(:types(@types),
+                                            :dot-hints(viz-hints($group)),
+                                            :rank-dir('LR'));
+        $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
+        $viz.to-file("html/images/type-graph-{$group}.png", format => 'png');
+    }
+}
+
+sub viz-group ($type) {
+    return 'Metamodel' if $type.name ~~ /^ 'Perl6::Metamodel' /;
+    return 'Exception' if $type.name ~~ /^ 'X::' /;
+    return 'Any';
+}
+
+sub viz-hints ($group) {
+    return '' unless $group eq 'Any';
+
+    return '
+    subgraph "cluster: Mu children" {
+        rank=same;
+        style=invis;
+        "Any";
+        "Junction";
+    }
+    subgraph "cluster: Pod:: top level" {
+        rank=same;
+        style=invis;
+        "Pod::Config";
+        "Pod::Block";
+    }
+    subgraph "cluster: Date/time handling" {
+        rank=same;
+        style=invis;
+        "Date";
+        "DateTime";
+        "DateTime-local-timezone";
+    }
+    subgraph "cluster: Collection roles" {
+        rank=same;
+        style=invis;
+        "Positional";
+        "Associative";
+        "Baggy";
+    }
+';
 }
 
 sub write-search-file() {
