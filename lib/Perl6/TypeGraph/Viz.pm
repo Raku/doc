@@ -8,6 +8,8 @@ class Perl6::TypeGraph::Viz {
     has $.rank-dir    = 'BT';
     has $.role-color  = '#6666FF';
     has $.class-color = '#000000';
+    has $.node-soft-limit = 20;
+    has $.node-hard-limit = 50;
 
     method new-for-type ($type) {
         my $self = self.bless(*, :types([$type]));
@@ -16,6 +18,7 @@ class Perl6::TypeGraph::Viz {
     }
 
     method !add-neighbors {
+        # Add all ancestors (both class and role) to @.types
         sub visit ($n) {
             state %seen;
             return if %seen{$n}++;
@@ -23,11 +26,30 @@ class Perl6::TypeGraph::Viz {
             @!types.push: $n;
         }
 
-        for @.types -> $t {
-	    visit($_) for $t, $t.sub, $t.doers;
-        }
+        # Work out in all directions from @.types,
+        # trying to get a decent pool of type nodes
+        my @seeds = @.types, @.types>>.sub, @.types>>.doers;
+        while (@.types < $.node-soft-limit) {
+            # Remember our previous node set
+            my @prev = @.types;
 
-        @.types .= uniq;
+            # Add ancestors of all seeds to the pool nodes
+            visit($_) for @seeds;
+            @.types .= uniq;
+
+            # Find a new batch of seed nodes
+            @seeds = uniq(@seeds>>.sub, @seeds>>.doers);
+
+            # If we're not growing the node pool, stop trying
+            last if @.types <= @prev or !@seeds;
+
+            # If the pool got way too big, drop back to previous
+            # pool snapshot and stop trying
+            if @.types > $.node-hard-limit {
+                @.types = @prev;
+                last;
+            }
+        }
     }
 
     method as-dot () {
