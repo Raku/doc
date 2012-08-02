@@ -63,10 +63,10 @@ sub recursive-dir($dir) {
     }
 }
 
-sub MAIN($out_dir = 'html', Bool :$debug) {
+sub MAIN(Bool :$debug) {
     $*DEBUG = $debug;
     for ('', <type language routine images>) {
-        mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
+        mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
     say 'Reading lib/ ...';
@@ -94,7 +94,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         if $what eq 'language' {
-            spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
+            spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
             next;
         }
         $pod = $pod[0];
@@ -155,15 +155,15 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
                 }
             }
         }
-        spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
+        spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
     }
 
-    write-type-graph-images(:$out_dir);
-    write-search-file(:$out_dir);
-    write-index-file(:$out_dir);
+    write-type-graph-images();
+    write-search-file();
+    write-index-file();
     say "Writing per-routine files...";
     for %routines.kv -> $name, @chunks {
-        write-routine-file(:$out_dir, :$name, :@chunks);
+        write-routine-file(:$name, :@chunks);
         %routines.delete($name);
     }
     say "done writing per-routine files";
@@ -232,17 +232,17 @@ sub pod-heading($name, :$level = 1) {
     );
 }
 
-sub write-type-graph-images(:$out_dir!) {
-    say "Writing type graph images to $out_dir/images/";
+sub write-type-graph-images() {
+    say "Writing type graph images to html/images/";
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
-        $viz.to-file("$out_dir/images/type-graph-{$type}.svg", format => 'svg');
-        $viz.to-file("$out_dir/images/type-graph-{$type}.png", format => 'png');
+        $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
+        $viz.to-file("html/images/type-graph-{$type}.png", format => 'png');
     }
 }
 
-sub write-search-file(:$out_dir!) {
-    say "Writing $out_dir/search.html";
+sub write-search-file() {
+    say "Writing html/search.html";
     my $template = slurp("search_template.html");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
@@ -257,11 +257,11 @@ sub write-search-file(:$out_dir!) {
     });
 
     my $items = @items.join(",\n");
-    spurt("$out_dir/search.html", $template.subst("ITEMS", $items));
+    spurt("html/search.html", $template.subst("ITEMS", $items));
 }
 
-sub write-index-file(:$out_dir!) {
-    say "Writing $out_dir/index.html";
+sub write-index-file() {
+    say "Writing html/index.html";
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
@@ -280,13 +280,13 @@ sub write-index-file(:$out_dir!) {
             pod-item(pod-link(.key, .value))
         }),
     );
-    my $file = open :w, "$out_dir/index.html";
+    my $file = open :w, "html/index.html";
     $file.print: pod2html($pod, :url(&url-munge), :$footer);
     $file.close;
 }
 
-sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
-    say "Writing $out_dir/routine/$name.html" if $*DEBUG;
+sub write-routine-file(:$name!, :@chunks!) {
+    say "Writing html/routine/$name.html" if $*DEBUG;
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
             following types:"),
@@ -296,7 +296,7 @@ sub write-routine-file(:$name!, :$out_dir!, :@chunks!) {
             @$chunk
         })
     );
-    my $file = open :w, "$out_dir/routine/$name.html";
+    my $file = open :w, "html/routine/$name.html";
     $file.print: pod2html($pod, :url(&url-munge), :$footer);
     $file.close;
 }
