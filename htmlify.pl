@@ -8,6 +8,7 @@ use Pod::To::HTML;
 use URI::Escape;
 use lib 'lib';
 use Perl6::TypeGraph;
+use Perl6::TypeGraph::Viz;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -18,6 +19,7 @@ sub url-munge($_) {
 
 my $*DEBUG = False;
 
+my $tg;
 my %names;
 my %types;
 my %routines;
@@ -63,7 +65,7 @@ sub recursive-dir($dir) {
 
 sub MAIN($out_dir = 'html', Bool :$debug) {
     $*DEBUG = $debug;
-    for ('', <type language routine>) {
+    for ('', <type language routine svg>) {
         mkdir "$out_dir/$_" unless "$out_dir/$_".IO ~~ :e;
     }
 
@@ -73,7 +75,7 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
     say '... done';
 
     say "Reading type graph ...";
-    my $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     {
         my %h = $tg.sorted.kv.flat.reverse;
         @source.=sort: { %h{.key} // -1 };
@@ -155,6 +157,8 @@ sub MAIN($out_dir = 'html', Bool :$debug) {
         }
         spurt "$out_dir/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
     }
+
+    write-type-graph-images(:$out_dir);
     write-search-file(:$out_dir);
     write-index-file(:$out_dir);
     say "Writing per-routine files...";
@@ -226,6 +230,14 @@ sub pod-heading($name, :$level = 1) {
         :$level,
         :content[pod-block($name)],
     );
+}
+
+sub write-type-graph-images(:$out_dir!) {
+    say "Writing type graph images to $out_dir/svg/";
+    for $tg.sorted -> $type {
+        my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
+        $viz.to-svg-file("$out_dir/svg/type-graph-{$type}.svg");
+    }
 }
 
 sub write-search-file(:$out_dir!) {
