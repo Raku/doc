@@ -52,9 +52,10 @@ class Perl6::TypeGraph::Viz {
         }
     }
 
-    method as-dot () {
+    method as-dot (:$size) {
         my @dot;
         @dot.push: "digraph \"perl6-type-graph\" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n";
+        @dot.push: "    size=\"$size\"\n" if $size;
 
         if $.dot-hints {
             @dot.push: "\n    // Layout hints\n";
@@ -89,9 +90,9 @@ class Perl6::TypeGraph::Viz {
         spurt $file, self.as-dot;
     }
 
-    method to-file ($file, :$format = 'svg') {
+    method to-file ($file, :$format = 'svg', :$size) {
         my $pipe = open "dot -T$format -o$file", :w, :p;
-        $pipe.print: self.as-dot;
+        $pipe.print: self.as-dot(:$size);
         close $pipe;
     }
 }

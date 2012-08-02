@@ -237,7 +237,7 @@ sub write-type-graph-images() {
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$type}.png", format => 'png');
+        $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
     }
 
     say "Writing specialized visualizations to html/images/";
@@ -250,7 +250,7 @@ sub write-type-graph-images() {
                                             :dot-hints(viz-hints($group)),
                                             :rank-dir('LR'));
         $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$group}.png", format => 'png');
+        $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
     }
 }
 
