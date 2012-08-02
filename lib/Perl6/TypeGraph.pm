@@ -65,6 +65,11 @@ class Perl6::TypeGraph {
                 $t.super.push: $get-type('Any');
             }
         }
+        # Cache the inversion of all type relationships
+        for %.types.values -> $t {
+            $_.sub.push($t)   for $t.super;
+            $_.doers.push($t) for $t.roles;
+        }
         self!topo-sort;
     }
     method !topo-sort {
