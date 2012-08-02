@@ -3,7 +3,9 @@ use v6;
 class Perl6::Type {
     has Str $.name handles <Str>;
     has @.super;
+    has @.sub;
     has @.roles;
+    has @.doers;
     has $.packagetype is rw = 'class';
 
     has @.mro;
