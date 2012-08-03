@@ -33,7 +33,7 @@ with a colon:
     say @*INC.join: ':';
     
 Many operations that don't look like method calls (for example smart
-matching, interpolating an object into a string) results in method
+matching, interpolating an object into a string) result in method
 calls under the hood.
 
 Methods can return mutable containers, in which case you can assign
@@ -76,7 +76,114 @@ Subtype checking is done by smart-matching:
 
 =head1 Classes
 
-TODO: attributes, methods, object construction, inheritance
+Classes are declared using the C<class> keyword, typically followed by a
+name.
+
+    class Journey {
+    }
+
+This declaration results in a type object being created and installed in
+the current package and current lexical scope under the name C<Journey>.
+You can also declare classes lexically:
+
+    my class Journey {
+    }
+
+This restricts their visibility to the current lexical scope, which can
+be useful if the class is an implementation detail nested inside a module
+or another class.
+
+=head2 Attributes
+
+Attributes are variables that exist per instance of a class. They are where
+the state of an object is stored. In Perl 6, all attributes are private. They
+are typically declared using the C<has> declarator and using the C<!> twigil.
+
+    class Journey {
+        has $!origin;
+        has $!destination;
+        has @!travellers;
+        has $!notes;
+    }
+
+While there is no such thing as a public (or even protected) attribute, there
+is a way to have accessor methods generated automatically: replace the C<!>
+twigil with the C<.> twigil (the C<.> should remind you of method call).
+
+    class Journey {
+        has $.origin;
+        has $.destination;
+        has @!travellers;
+        has $.notes;
+    }
+
+This defaults to providing a read-only accessor. In order to allow changes to
+the attribute, add the C<rw> trait:
+
+    class Journey {
+        has $.origin;
+        has $.destination;
+        has @!travellers;
+        has $.notes is rw;
+    }
+
+Since classes inherit a default constructor from C<Mu> and we have requested
+that some accessor methods are generated for us, our class is already somewhat
+functional.
+
+    # Create a new instance of the class.
+    my $vacation = Journey.new(
+        origin      => 'Sweden',
+        destination => 'Switzerland',
+        notes       => 'Pack hiking gear!'
+    );
+    
+    # Use an accessor; this outputs Sweden.
+    say $vacation.origin;
+    
+    # Use an rw accessor to change the value.
+    $vacation.notes = 'Pack hiking gear and sunglasses!';
+
+Note that the default constructor will only set attributes that have an
+accessor method.
+
+=head2 Methods
+
+Methods are declared with the C<method> keyword inside of a class body.
+
+    class Journey {
+        has $.origin;
+        has $.destination;
+        has @!travellers;
+        has $.notes is rw;
+        
+        method add_traveller($name) {
+            if $name ne any(@!travellers) {
+                push @!travellers, $name;
+            }
+            else {
+                warn "$name is already going on the journey!";
+            }
+        }
+        
+        method describe() {
+            "From $!origin to $!destination"
+        }
+    }
+
+A method can have a signature, just like a subroutine. Attributes can be used
+in methods, and can always be used with the C<!> twigil, even if they are
+declared with the C<.> twigil. This is because really, the C<.> twigil declares
+an attribute with the C<!> twigil in its place, and then additionally generates
+an accessor method.
+
+There is a subtle but important difference between using, say, C<$!origin> and
+C<$.origin> in the method C<describe>. The first is always a simple lookup of
+the attribute. It is cheap, and you know that it is the attribute declared in
+this class. The latter is really a method call, and thus it may be overridden
+in a subclass. Only use C<$.origin> if you explicitly want to allow overriding.
+
+TODO: self, private methods, object construction, inheritance
 
 =head1 Roles
 
