@@ -217,7 +217,97 @@ certainly override them.
 
 TODO: example
 
-TODO: object construction, inheritance
+=head2 Inheritance
+
+Classes can have I<parent classes>.
+
+    class Child is Parent1 is Parent2 { }
+
+If a method is called on the child class, and the child class does not
+provide that method, the parents' method of the name is invoked instead,
+if it exists. The order by which parent classes are consulted is called the
+I<method resolution order> (mro). Perl 6 uses the
+L<C3 method resolution order|https://en.wikipedia.org/wiki/C3_linearization>.
+You can ask a type for its MRO through a call to its metaclass:
+
+
+    say Parcel.^mro;    # Parcel() Cool() Any() Mu()
+
+If a class does not specify a parent class, L<Any> is assumed by default. All
+classes directly or indirectly derive from L<Mu>, the root of the type
+hierarchy.
+
+All calls to public method are "virtual" in the C++ sense, wihch means that
+the actual type of an object determines which method to call, not the declared
+type.
+
+=head2 Object Construction
+
+Objects are generally created through methods calls, either on the type object
+or on another object of the same type.
+
+Class L<Mu> provides a constructor method called L<new>, which takes named
+arguments and uses them to initialize public attributes.
+
+    class Point {
+        has $.x;
+        has $.y = 2 * $!x;
+    }
+    my $p = Point.new( x => 1, y  => 2);
+    #             ^^^ inherited from class Mu
+
+Mu.new calls method L<bless> on its invocant, passing along all the named
+arguments. C<bless> creates the new object, and then calls method C<BUILDALL>
+on it. C<BUILDALL> walks all subclasses in reverse method resolution order
+(ie from L<Mu> to most derived classes), and in each class checks for
+existence of a method named C<BUILD>. If it exists, it is called, again
+passing all named arguments from method C<new> to it. If not, the public
+attributes from this class are initialized from named arguments of the same
+name. In either case, if neither C<BUILD> nor the default mechanism has
+initialized the attribute, default values are applied (the C<2 * $!x> in the
+example above).
+
+This object construction scheme has several implications for customized
+constructors. First, custom C<BUILD> methods should always be submethods,
+otherwise they break attribute initialization in subclasses. Second,
+C<BUILD> submethods can be used to run custom code at object construction
+time. They can also be used for creating aliases for attribute initialization:
+
+    class EncodedBuffer {
+        has $.enc;
+        has $.data;
+
+        submethod BUILD(:encoding(:$enc), :$data) {
+            $!enc :=  $enc;
+            $!data := $data;
+        }
+    }
+    my $b1 = EncodedBuffer.new( encoding => 'UTF-8', data => [64, 65] );
+    my $b2 = EncodedBuffer.new( enc      => 'UTF-8', data => [64, 65] );
+    #  both enc and encoding are allowed now
+
+Since passing arguments to a routine binds the argumenst to the parameters,
+a separate binding step is unnecessary if the attribute is used as parameter.
+So the example above yould also have been written as
+
+    submethod BUILD(:encoding(:$!enc), :$!data) {
+        # nothing to do here anymore, the signature binding
+        # does all the work for us.
+    }
+
+The third implication is that if you want a constructor that accepts positional
+arguments, you must write your own C<new> method:
+
+    class Point {
+        has $.x;
+        has $.y;
+        method new($x, $y) {
+            self.bless(*, :$x, :$y);
+        }
+    }
+
+However this is considered poor practise, because it makes correct
+initialization of objects from subclasses much harder.
 
 =head1 Roles
 
