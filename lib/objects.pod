@@ -311,7 +311,73 @@ initialization of objects from subclasses harder.
 
 =head1 Roles
 
-TODO: basics, conflicts, parameterized, difference between classes and roles
+Roles are in some ways similar to classes, in that they are a collection of
+attributes and methods. They differ in that roles are also meant for
+describing only parts of an object's behavior, and in how roles are applied to
+classes. Or to phrase it differently, classes are meant for managing
+instances, and roles are meant for managing behavior and code reuse.
+
+    role Serializable {
+        method serialize() {
+            self.perl; # very primitive serialization
+        }
+        method deserialization-code() {
+            &eval;     # reverse operation to .perl
+        }
+    }
+
+    class Point does Serializable {
+        has $.x;
+        has $.y;
+    }
+    my $p = Point.new(:x(1), :y(2));
+    my $serialized = $p.serialize;      # method provided by the role
+    my $clone-of-p = Point.deserialization-code()($serialized);
+    say $clone-of-p.x;      # 1
+
+Roles are immutable as soon as the compiler parses the closing bracket of the
+role declaration.
+
+=head2 Role Application
+
+Role application differs significantly from class inheritance. When a role
+is applied to a class, the methods of that role are copied into the class.
+If multiple roles are applied to the same class, conflicts (ie non-multi
+methods of the same name) cause a compile-time error, which can be solved
+by providing a method of the same name in the class.
+
+This is much safer than multiple inheritance, where conflicts are never
+detected by the compiler, but are instead simply resolved to the superclass
+that appears earlier in the MRO, which might or might not be what the
+programmer wanted.
+
+# TODO: example
+
+When a role is applied to a second role, the actual application is
+delayed until the second class is applied to a class, at which point both
+roles are applied to the class. Thus
+
+    role R1 {
+        # methods here
+    }
+    role R2 does R1 {
+        # methods here
+    }
+    class C does R2 { }
+
+produces the same class C<C> as
+
+    role R1 {
+        # methods here
+    }
+    role R2 {
+        # methods here
+    }
+    class C does R2 does R1 { }
+
+
+
+TODO:  parameterized roles
 
 =head1 Meta-Object Programming and Introspection
 
