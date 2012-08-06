@@ -118,6 +118,10 @@ sub MAIN(Bool :$debug) {
                 name    => 'Image',
                 content => [ "/images/type-graph-$podname.png"],
             );
+            $pod.content.push: pod-link(
+                'Full-size type graph image as SVG',
+                "/images/type-graph-$podname.svg",
+            );
             my @mro = $t.mro;
             @mro.shift; # current type is already taken care of
             for $t.roles -> $r {
