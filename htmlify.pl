@@ -241,12 +241,14 @@ sub pod-heading($name, :$level = 1) {
 }
 
 sub write-type-graph-images() {
-    say "Writing type graph images to html/images/";
+    print "Writing type graph images to html/images/ ";
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
+        print '.'
     }
+    say ' done.';
 
     say "Writing specialized visualizations to html/images/";
     my %by-group = $tg.sorted.classify(&viz-group);
