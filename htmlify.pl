@@ -114,6 +114,10 @@ sub MAIN(Bool :$debug) {
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
         }
         if $tg.types{$podname} -> $t {
+            $pod.content.push: Pod::Block::Named.new(
+                name    => 'Image',
+                content => [ "/images/type-graph-$podname.png"],
+            );
             my @mro = $t.mro;
             @mro.shift; # current type is already taken care of
             for $t.roles -> $r {
