@@ -63,7 +63,7 @@ sub recursive-dir($dir) {
     }
 }
 
-sub MAIN(Bool :$debug) {
+sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
     for ('', <type language routine images>) {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
@@ -83,6 +83,7 @@ sub MAIN(Bool :$debug) {
     say "... done";
 
     $footer = footer-html;
+
 
 
     for (@source) {
@@ -166,7 +167,7 @@ sub MAIN(Bool :$debug) {
         spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
     }
 
-    write-type-graph-images();
+    write-type-graph-images(:force($typegraph));
     write-search-file();
     write-index-file();
     say "Writing per-routine files...";
@@ -240,7 +241,19 @@ sub pod-heading($name, :$level = 1) {
     );
 }
 
-sub write-type-graph-images() {
+sub write-type-graph-images(:$force) {
+    unless $force {
+        my $dest = 'html/images/type-graph-Any.svg'.path;
+        say "cwd: ", cwd;
+        say 'type-graph.txt'.path.e;
+        if $dest.e && $dest.modified >= 'type-graph.txt'.path.modified {
+            say "Not writing type graph images, it seems to be up-to-date";
+            say "To force writing of type graph images, supply the --typegraph";
+            say "option at the command line, or delete";
+            say "file 'html/images/type-graph-Any.svg'";
+            return;
+        }
+    }
     print "Writing type graph images to html/images/ ";
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
