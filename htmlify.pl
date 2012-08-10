@@ -167,6 +167,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
     }
 
+    write-disambiguation-files();
     write-type-graph-images(:force($typegraph));
     write-search-file();
     write-index-file();
@@ -176,7 +177,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         %routines.delete($name);
     }
     say "done writing per-routine files";
-    # TODO: write top-level disambiguation files
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
@@ -244,8 +244,6 @@ sub pod-heading($name, :$level = 1) {
 sub write-type-graph-images(:$force) {
     unless $force {
         my $dest = 'html/images/type-graph-Any.svg'.path;
-        say "cwd: ", cwd;
-        say 'type-graph.txt'.path.e;
         if $dest.e && $dest.modified >= 'type-graph.txt'.path.modified {
             say "Not writing type graph images, it seems to be up-to-date";
             say "To force writing of type graph images, supply the --typegraph";
@@ -333,6 +331,30 @@ sub write-search-file() {
 
     my $items = @items.join(",\n");
     spurt("html/search.html", $template.subst("ITEMS", $items));
+}
+
+sub write-disambiguation-files() {
+    say "Writing disambiguation files";
+    for %names.kv -> $name, %w {
+        print '.';
+        my $pod = pod-with-title("Disambiguation file for '$name'");
+        if %w == 1 {
+            my ($what, $url) = %w.kv;
+            $pod.content.push:
+                pod-block(
+                    pod-link("'$name' is a $what", "/$what/$name")
+                );
+        }
+        else {
+            $pod.content.push:
+                pod-block("'$name' can be anything of the following"),
+                %w.pairs.map({
+                    pod-item( pod-link(.key, "/{.key}/$name") )
+                });
+        }
+        spurt "html/$name.html", pod2html($pod, :url(&url-munge), :$footer);
+    }
+    say "... done writing disambiguation files";
 }
 
 sub write-index-file() {
