@@ -371,7 +371,7 @@ sub write-disambiguation-files() {
     }
     for %names.kv -> $name, %w {
         print '.';
-        my $pod = pod-with-title("Disambiguation file for '$name'");
+        my $pod = pod-with-title("Disambiguation for '$name'");
         if %w == 1 {
             my ($what, $url) = %w.kv;
             $pod.content.push:
