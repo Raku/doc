@@ -186,12 +186,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-type-graph-images(:force($typegraph));
     write-search-file();
     write-index-file();
-    say "Writing per-routine files...";
+    say "Writing per-routine files";
     for %routines.kv -> $name, @chunks {
         write-routine-file(:$name, :@chunks);
         %routines.delete($name);
+        print '.'
     }
-    say "done writing per-routine files";
+    say "\ndone writing per-routine files";
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
