@@ -24,7 +24,12 @@ my %names;
 my %types;
 my %routines;
 my %methods-by-type;
+my %operators;
 my $footer;
+
+sub p2h($pod) {
+    pod2html($pod, :url(&url-munge), :$footer);
+}
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
     my $leading = ' ' x $level;
@@ -65,7 +70,8 @@ sub recursive-dir($dir) {
 
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
-    for ('', <type language routine images>) {
+    for '', <type language routine images op op/prefix op/postfix op/infix
+             op/circumfix op/postcircumfix> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -108,7 +114,10 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     my $what = ~$/;
                     my $operator = $heading.split(' ', 2)[1];
                     %names{$operator}{$what} = "/language/operators#$what%20" ~ uri_escape($operator);
-#                    %names{$operator}{$what} = "/op/$what/$operator;
+                    if %operators{$what}{$operator} {
+                        die "Operator $what $operator defined twice in lib/operators.pod";
+                    }
+                    %operators{$what}{$operator} = $chunk;
                 }
             }
             next;
@@ -179,10 +188,11 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 }
             }
         }
-        spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
+        spurt "html/$what/$podname.html", p2h($pod);
     }
 
     write-disambiguation-files();
+    write-operator-files();
     write-type-graph-images(:force($typegraph));
     write-search-file();
     write-index-file();
@@ -386,9 +396,26 @@ sub write-disambiguation-files() {
                     pod-item( pod-link(what-name(.key), url .key, $name ) )
                 });
         }
-        spurt "html/$name.html", pod2html($pod, :url(&url-munge), :$footer);
+        spurt "html/$name.html", p2h($pod);
     }
     say "... done writing disambiguation files";
+}
+
+sub write-operator-files() {
+    say "Writing operator files";
+    for %operators.kv -> $what, %ops {
+        for %ops.kv -> $op, $chunk {
+            my $pod = pod-with-title(
+                "$what.tclc() $op operator",
+                pod-block(
+                    "Documentation for $what $op, extracted from ",
+                    pod-link("the operators language documentation", "/language/operators")
+                ),
+                @$chunk
+            );
+            spurt "html/op/$what/$op.html", p2h($pod);
+        }
+    }
 }
 
 sub write-index-file() {
