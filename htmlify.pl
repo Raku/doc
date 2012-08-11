@@ -94,8 +94,23 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
+        $pod.=[0];
         if $what eq 'language' {
             spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
+            if $podname eq 'operators' {
+                my @chunks = chunks-grep($pod.content,
+                        :from({ $_ ~~ Pod::Heading and .level == 2}),
+                        :to({ $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                    );
+                for @chunks -> $chunk {
+                    my $heading = $chunk[0].content[0].content[0];
+                    next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix /;
+                    my $what = ~$/;
+                    my $operator = $heading.split(' ', 2)[1];
+                    %names{$operator}{$what} = "/language/operators/$operator";
+#                    %names{$operator}{$what} = "/op/$what/$operator;
+                }
+            }
             next;
         }
         $pod = $pod[0];
@@ -335,6 +350,24 @@ sub write-search-file() {
 
 sub write-disambiguation-files() {
     say "Writing disambiguation files";
+    my %op-name =
+        prefix          => 'prefix operator',
+        postfix         => 'postfix operator',
+        infix           => 'infix operator',
+        circumfix       => 'circumfix operator',
+        postcircumfix   => 'postcircumfix operator',
+        ;
+    sub what-name(Str $w) {
+        %op-name{$w} // $w;
+    }
+    sub url($what, $name) {
+        if %op-name.exists($what) {
+            "/language/operator/$what $name"
+        }
+        else {
+            "/$what/$name";
+        }
+    }
     for %names.kv -> $name, %w {
         print '.';
         my $pod = pod-with-title("Disambiguation file for '$name'");
@@ -342,14 +375,14 @@ sub write-disambiguation-files() {
             my ($what, $url) = %w.kv;
             $pod.content.push:
                 pod-block(
-                    pod-link("'$name' is a $what", "/$what/$name")
+                    pod-link("'$name' is a {what-name $what}", url $what, $name)
                 );
         }
         else {
             $pod.content.push:
                 pod-block("'$name' can be anything of the following"),
                 %w.pairs.map({
-                    pod-item( pod-link(.key, "/{.key}/$name") )
+                    pod-item( pod-link(what-name(.key), url .key, $name ) )
                 });
         }
         spurt "html/$name.html", pod2html($pod, :url(&url-munge), :$footer);
