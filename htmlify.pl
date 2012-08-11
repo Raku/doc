@@ -107,7 +107,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix /;
                     my $what = ~$/;
                     my $operator = $heading.split(' ', 2)[1];
-                    %names{$operator}{$what} = "/language/operators/$operator";
+                    %names{$operator}{$what} = "/language/operators#$what%20$operator";
 #                    %names{$operator}{$what} = "/op/$what/$operator;
                 }
             }
@@ -362,7 +362,7 @@ sub write-disambiguation-files() {
     }
     sub url($what, $name) {
         if %op-name.exists($what) {
-            "/language/operator/$what $name"
+            "/language/operators#$what%20$name"
         }
         else {
             "/$what/$name";
