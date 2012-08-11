@@ -25,7 +25,7 @@ my %types;
 my %routines;
 my %methods-by-type;
 my %operators;
-my $footer;
+my $footer = footer-html;
 
 sub p2h($pod) {
     pod2html($pod, :url(&url-munge), :$footer);
@@ -87,9 +87,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         @source.=sort: { %h{.key} // -1 };
     }
     say "... done";
-
-    $footer = footer-html;
-
 
 
     for (@source) {
