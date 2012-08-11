@@ -102,7 +102,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         $pod.=[0];
         if $what eq 'language' {
-            spurt "html/$what/$podname.html", pod2html($pod, :url(&url-munge), :$footer);
+            spurt "html/$what/$podname.html", p2h($pod);
             if $podname eq 'operators' {
                 my @chunks = chunks-grep($pod.content,
                         :from({ $_ ~~ Pod::Heading and .level == 2}),
@@ -438,9 +438,7 @@ sub write-index-file() {
             pod-item(pod-link(.key, .value))
         }),
     );
-    my $file = open :w, "html/index.html";
-    $file.print: pod2html($pod, :url(&url-munge), :$footer);
-    $file.close;
+    spurt 'html/index.html', p2h($pod);
 }
 
 sub write-routine-file(:$name!, :@chunks!) {
@@ -454,9 +452,7 @@ sub write-routine-file(:$name!, :@chunks!) {
             @$chunk
         })
     );
-    my $file = open :w, "html/routine/$name.html";
-    $file.print: pod2html($pod, :url(&url-munge), :$footer);
-    $file.close;
+    spurt "html/routine/$name.html", p2h($pod);
 }
 
 sub footer-html() {
