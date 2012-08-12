@@ -9,6 +9,7 @@ use URI::Escape;
 use lib 'lib';
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
+use Perl6::Documentable::Registry;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -88,6 +89,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     }
     say "... done";
 
+    my $dr = Perl6::Documentable::Registry.new;
 
     for (@source) {
         my $podname  = .key;
@@ -110,6 +112,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix /;
                     my $what = ~$/;
                     my $operator = $heading.split(' ', 2)[1];
+                    $dr.add-new(
+                        :kind<operator>,
+                        :subkind($what),
+                        :pod($chunk),
+                        :!pod-is-complete,
+                        :name($operator),
+                    );
                     %names{$operator}{$what} = "/language/operators#$what%20" ~ uri_escape($operator);
                     if %operators{$what}{$operator} {
                         die "Operator $what $operator defined twice in lib/operators.pod";
@@ -117,6 +126,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     %operators{$what}{$operator} = $chunk;
                 }
             }
+            $dr.add-new(
+                :kind<language>,
+                :name($podname),
+                :$pod,
+                :pod-is-complete,
+            );
+
             next;
         }
         $pod = $pod[0];
@@ -124,7 +140,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         say pod-gist($pod) if $*DEBUG;
         my @chunks = chunks-grep($pod.content,
                 :from({ $_ ~~ Pod::Heading and .level == 2}),
-                :to({ $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
             );
         for @chunks -> $chunk {
             my $name = $chunk[0].content[0].content[0];
