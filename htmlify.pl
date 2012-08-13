@@ -150,6 +150,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
             %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
                 %routines{$name}.push: $podname => $chunk;
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
+            $dr.add-new(
+                :kind<routine>,
+                # TODO: determine subkind, ie method/sub
+                :name($name),
+                :pod($chunk),
+                :!pod-is-complete,
+            );
         }
         if $tg.types{$podname} -> $t {
             $pod.content.push: Pod::Block::Named.new(
@@ -201,6 +208,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 }
             }
         }
+        $dr.add-new(
+            :kind<type>,
+            # TODO: subkind
+            :$pod,
+            :pod-is-complete,
+            :name($podname),
+        );
         spurt "html/$what/$podname.html", p2h($pod);
     }
 

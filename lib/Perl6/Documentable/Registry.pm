@@ -5,7 +5,7 @@ class Perl6::Documentable::Registry {
     has @.documentables;
     has Bool $.composed = False;
     has %!cache;
-    has %!grouped-by
+    has %!grouped-by;
     method add-new(*%args) {
         die "Cannot add something to a composed registry" if $.composed;
         @!documentables.push: Perl6::Documentable.new(|%args);
@@ -24,6 +24,6 @@ class Perl6::Documentable::Registry {
                 %!cache{$by}{$d."$by"()}.push: $d;
             }
         }
-        %!cache{$by}{$d};
+        %!cache{$by}{$what};
     }
 }
