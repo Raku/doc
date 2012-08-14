@@ -65,6 +65,13 @@ sub recursive-dir($dir) {
     }
 }
 
+sub first-code-block(@pod) {
+    if @pod[1] ~~ Pod::Block::Code {
+        return @pod[1].content.grep(Str).join;
+    }
+    '';
+}
+
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
     for '', <type language routine images op op/prefix op/postfix op/infix
@@ -195,10 +202,24 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
             say "$podname.$name" if $*DEBUG;
             next if $name ~~ /\s/;
             %methods-by-type{$podname}.push: $chunk;
+            # deterimine whether it's a sub or method
+            my Str $subkind;
+            {
+                my %counter;
+                for first-code-block($chunk).lines {
+                    if ms/^ 'multi'? (sub|method)»/ {
+                        %counter{$0}++;
+                    }
+                }
+                if %counter == 1 {
+                    ($subkind,) = %counter.keys;
+                }
+            }
+
             $dr.add-new(
                 :kind<routine>,
-                # TODO: determine subkind, ie method/sub
-                :name($name),
+                :$subkind,
+                :$name,
                 :pod($chunk),
                 :!pod-is-complete,
                 :origin($d),
@@ -372,7 +393,7 @@ sub write-search-file($dr) {
     });
     my %seen;
     @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
-        "\{ label: \"Routine: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
+        "\{ label: \"{ (.subkind // 'Routine').tclc }: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
 
     my $items = @items.join(",\n");
@@ -467,8 +488,13 @@ sub write-index-file($dr) {
 sub write-routine-file($dr, $name) {
     say "Writing html/routine/$name.html" if $*DEBUG;
     my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'routine');
-    my $pod = pod-with-title("Documentation for routine $name",
-        pod-block("Documentation for routine $name, assembled from the
+    my $subkind = 'routine';
+    {
+        my @subkinds = @docs>>.subkind;
+        $subkind = @subkinds[0] if all(@subkinds>>.defined) && [eq] @subkinds;
+    }
+    my $pod = pod-with-title("Documentation for $subkind $name",
+        pod-block("Documentation for $subkind $name, assembled from the
             following types:"),
         @docs.map({
             pod-heading(.origin.name ~ '.' ~ .name),
