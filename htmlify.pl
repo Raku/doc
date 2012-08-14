@@ -21,7 +21,6 @@ sub url-munge($_) {
 my $*DEBUG = False;
 
 my $tg;
-my %types;
 my %methods-by-type;
 my $footer = footer-html;
 
@@ -93,7 +92,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$file.path() => $what/$podname";
-        %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         $pod.=[0];
         if $what eq 'language' {
@@ -197,7 +195,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
             say "$podname.$name" if $*DEBUG;
             next if $name ~~ /\s/;
             %methods-by-type{$podname}.push: $chunk;
-            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
             $dr.add-new(
                 :kind<routine>,
                 # TODO: determine subkind, ie method/sub
@@ -215,7 +212,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-disambiguation-files($dr);
     write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
-    write-search-file();
+    write-search-file($dr);
     write-index-file($dr);
     say "Writing per-routine files";
     for $dr.lookup('routine', :by<kind>).list -> $d {
@@ -360,19 +357,20 @@ sub viz-hints ($group) {
 ';
 }
 
-sub write-search-file() {
+sub write-search-file($dr) {
     say "Writing html/search.html";
     my $template = slurp("search_template.html");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
-    @items.push: %types<language>.pairs.sort.map({
-        "\{ label: \"Language: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
+        "\{ label: \"Language: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
-    @items.push: %types<type>.sort.map({
-        "\{ label: \"Type: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
+        "\{ label: \"Type: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
-    @items.push: %types<routine>.sort.map({
-        "\{ label: \"Routine: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    my %seen;
+    @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
+        "\{ label: \"Routine: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
 
     my $items = @items.join(",\n");
