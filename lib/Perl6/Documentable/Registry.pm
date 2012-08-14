@@ -16,7 +16,7 @@ class Perl6::Documentable::Registry {
     }
     method grouped-by(Str $what) {
         die "You need to compose this registry first" unless $.composed;
-        %!grouped-by ||= @!documentables.classify(*."$what"());
+        %!grouped-by{$what} ||= @!documentables.classify(*."$what"());
     }
     method lookup(Str $what, Str :$by!) {
         unless %!cache.exists($by) {

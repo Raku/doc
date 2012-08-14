@@ -218,11 +218,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         spurt "html/$what/$podname.html", p2h($pod);
     }
 
-    write-disambiguation-files();
+    $dr.compose;
+
+    write-disambiguation-files($dr);
     write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file();
-    write-index-file();
+    write-index-file($dr);
     say "Writing per-routine files";
     for %routines.kv -> $name, @chunks {
         write-routine-file(:$name, :@chunks);
@@ -386,41 +388,23 @@ sub write-search-file() {
     spurt("html/search.html", $template.subst("ITEMS", $items));
 }
 
-sub write-disambiguation-files() {
+sub write-disambiguation-files($dr) {
     say "Writing disambiguation files";
-    my %op-name =
-        prefix          => 'prefix operator',
-        postfix         => 'postfix operator',
-        infix           => 'infix operator',
-        circumfix       => 'circumfix operator',
-        postcircumfix   => 'postcircumfix operator',
-        ;
-    sub what-name(Str $w) {
-        %op-name{$w} // $w;
-    }
-    sub url($what, $name) {
-        if %op-name.exists($what) {
-            "/language/operators#$what%20" ~ uri_escape($name)
-        }
-        else {
-            "/$what/$name";
-        }
-    }
-    for %names.kv -> $name, %w {
+    for $dr.grouped-by('name').kv -> $name, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
-        if %w == 1 {
-            my ($what, $url) = %w.kv;
+        if $p.elems == 1 {
+            $p.=[0] if $p ~~ Array;
             $pod.content.push:
                 pod-block(
-                    pod-link("'$name' is a {what-name $what}", url $what, $name)
+                    pod-link("'$name' is a $p.human-kind()", $p.url)
                 );
         }
         else {
             $pod.content.push:
                 pod-block("'$name' can be anything of the following"),
-                %w.pairs.map({
-                    pod-item( pod-link(what-name(.key), url .key, $name ) )
+                $p.map({
+                    pod-item( pod-link(.human-kind, .url) )
                 });
         }
         spurt "html/$name.html", p2h($pod);
@@ -445,7 +429,7 @@ sub write-operator-files($dr) {
     }
 }
 
-sub write-index-file() {
+sub write-index-file($dr) {
     say "Writing html/index.html";
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
@@ -453,16 +437,16 @@ sub write-index-file() {
         ),
         # TODO: add more
         pod-heading("Language Documentation"),
-        %types<language>.pairs.sort.map({
-            pod-item( pod-link(.key, .value) )
+        $dr.lookup('language', :by<kind>).sort(*.name).map({
+            pod-item( pod-link(.name, .url) )
         }),
         pod-heading('Types'),
-        %types<type>.sort.map({
-            pod-item(pod-link(.key, .value))
+        $dr.lookup('type', :by<kind>).sort(*.name).map({
+            pod-item(pod-link(.name, .url))
         }),
         pod-heading('Routines'),
-        %types<routine>.sort.map({
-            pod-item(pod-link(.key, .value))
+        $dr.lookup('routine', :by<kind>).sort(*.name).map({
+            pod-item(pod-link(.name, .url))
         }),
     );
     spurt 'html/index.html', p2h($pod);
