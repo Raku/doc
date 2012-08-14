@@ -469,7 +469,7 @@ sub write-routine-file($dr, $name) {
         pod-block("Documentation for routine $name, assembled from the
             following types:"),
         @docs.map({
-            pod-heading(.name),
+            pod-heading(.origin.name ~ '.' ~ .name),
             pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ .name)),
             .pod.list,
         })
