@@ -432,7 +432,6 @@ sub write-operator-files($dr) {
     say "Writing operator files";
     for $dr.lookup('operator', :by<kind>).list -> $doc {
         my $what  = $doc.subkind;
-        my $chunk = $doc.pod;
         my $op    = $doc.name;
         my $pod   = pod-with-title(
             "$what.tclc() $op operator",
@@ -440,7 +439,7 @@ sub write-operator-files($dr) {
                 "Documentation for $what $op, extracted from ",
                 pod-link("the operators language documentation", "/language/operators")
             ),
-            @$chunk
+            @($doc.pod),
         );
         spurt "html/op/$what/$op.html", p2h($pod);
     }
