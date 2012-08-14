@@ -215,7 +215,9 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-search-file($dr);
     write-index-file($dr);
     say "Writing per-routine files";
+    my %routine-seen;
     for $dr.lookup('routine', :by<kind>).list -> $d {
+        next if %routine-seen{$d.name}++;
         write-routine-file($dr, $d.name);
         print '.'
     }
