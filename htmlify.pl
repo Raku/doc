@@ -21,9 +21,7 @@ sub url-munge($_) {
 my $*DEBUG = False;
 
 my $tg;
-my %names;
 my %types;
-my %routines;
 my %methods-by-type;
 my %operators;
 my $footer = footer-html;
@@ -96,7 +94,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$file.path() => $what/$podname";
-        %names{$podname}{$what}.push: "/$what/$podname";
         %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         $pod.=[0];
@@ -119,7 +116,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                         :!pod-is-complete,
                         :name($operator),
                     );
-                    %names{$operator}{$what} = "/language/operators#$what%20" ~ uri_escape($operator);
                     if %operators{$what}{$operator} {
                         die "Operator $what $operator defined twice in lib/operators.pod";
                     }
@@ -206,8 +202,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
             say "$podname.$name" if $*DEBUG;
             next if $name ~~ /\s/;
             %methods-by-type{$podname}.push: $chunk;
-            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
-                %routines{$name}.push: $podname => $chunk;
             %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
             $dr.add-new(
                 :kind<routine>,
@@ -229,9 +223,8 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-search-file();
     write-index-file($dr);
     say "Writing per-routine files";
-    for %routines.kv -> $name, @chunks {
-        write-routine-file(:$name, :@chunks);
-        %routines.delete($name);
+    for $dr.lookup('routine', :by<kind>).list -> $d {
+        write-routine-file($dr, $d.name);
         print '.'
     }
     say "\ndone writing per-routine files";
@@ -476,15 +469,16 @@ sub write-index-file($dr) {
     spurt 'html/index.html', p2h($pod);
 }
 
-sub write-routine-file(:$name!, :@chunks!) {
+sub write-routine-file($dr, $name) {
     say "Writing html/routine/$name.html" if $*DEBUG;
+    my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'routine');
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
             following types:"),
-        @chunks.map(-> Pair (:key($type), :value($chunk)) {
-            pod-heading($type),
-            pod-block("From ", pod-link($type, "/type/{$type}#$name")),
-            @$chunk
+        @docs.map({
+            pod-heading(.name),
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ .name)),
+            .pod.list,
         })
     );
     spurt "html/routine/$name.html", p2h($pod);
