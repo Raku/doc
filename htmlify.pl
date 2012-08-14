@@ -23,7 +23,6 @@ my $*DEBUG = False;
 my $tg;
 my %types;
 my %methods-by-type;
-my %operators;
 my $footer = footer-html;
 
 sub p2h($pod) {
@@ -116,10 +115,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                         :!pod-is-complete,
                         :name($operator),
                     );
-                    if %operators{$what}{$operator} {
-                        die "Operator $what $operator defined twice in lib/operators.pod";
-                    }
-                    %operators{$what}{$operator} = $chunk;
                 }
             }
             $dr.add-new(
