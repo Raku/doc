@@ -9,6 +9,7 @@ use URI::Escape;
 use lib 'lib';
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
+use Perl6::Documentable::Registry;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -20,11 +21,7 @@ sub url-munge($_) {
 my $*DEBUG = False;
 
 my $tg;
-my %names;
-my %types;
-my %routines;
 my %methods-by-type;
-my %operators;
 my $footer = footer-html;
 
 sub p2h($pod) {
@@ -88,14 +85,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     }
     say "... done";
 
+    my $dr = Perl6::Documentable::Registry.new;
 
     for (@source) {
         my $podname  = .key;
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$file.path() => $what/$podname";
-        %names{$podname}{$what}.push: "/$what/$podname";
-        %types{$what}{$podname} =    "/$what/$podname";
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
         $pod.=[0];
         if $what eq 'language' {
@@ -110,13 +106,22 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix /;
                     my $what = ~$/;
                     my $operator = $heading.split(' ', 2)[1];
-                    %names{$operator}{$what} = "/language/operators#$what%20" ~ uri_escape($operator);
-                    if %operators{$what}{$operator} {
-                        die "Operator $what $operator defined twice in lib/operators.pod";
-                    }
-                    %operators{$what}{$operator} = $chunk;
+                    $dr.add-new(
+                        :kind<operator>,
+                        :subkind($what),
+                        :pod($chunk),
+                        :!pod-is-complete,
+                        :name($operator),
+                    );
                 }
             }
+            $dr.add-new(
+                :kind<language>,
+                :name($podname),
+                :$pod,
+                :pod-is-complete,
+            );
+
             next;
         }
         $pod = $pod[0];
@@ -124,17 +129,9 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         say pod-gist($pod) if $*DEBUG;
         my @chunks = chunks-grep($pod.content,
                 :from({ $_ ~~ Pod::Heading and .level == 2}),
-                :to({ $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
             );
-        for @chunks -> $chunk {
-            my $name = $chunk[0].content[0].content[0];
-            say "$podname.$name" if $*DEBUG;
-            next if $name ~~ /\s/;
-            %methods-by-type{$podname}.push: $chunk;
-            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
-                %routines{$name}.push: $podname => $chunk;
-            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
-        }
+
         if $tg.types{$podname} -> $t {
             $pod.content.push: Pod::Block::Named.new(
                 name    => 'Image',
@@ -185,18 +182,41 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 }
             }
         }
+        my $d = $dr.add-new(
+            :kind<type>,
+            # TODO: subkind
+            :$pod,
+            :pod-is-complete,
+            :name($podname),
+        );
+
+        for @chunks -> $chunk {
+            my $name = $chunk[0].content[0].content[0];
+            say "$podname.$name" if $*DEBUG;
+            next if $name ~~ /\s/;
+            %methods-by-type{$podname}.push: $chunk;
+            $dr.add-new(
+                :kind<routine>,
+                # TODO: determine subkind, ie method/sub
+                :name($name),
+                :pod($chunk),
+                :!pod-is-complete,
+                :origin($d),
+            );
+        }
         spurt "html/$what/$podname.html", p2h($pod);
     }
 
-    write-disambiguation-files();
-    write-operator-files();
+    $dr.compose;
+
+    write-disambiguation-files($dr);
+    write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
-    write-search-file();
-    write-index-file();
+    write-search-file($dr);
+    write-index-file($dr);
     say "Writing per-routine files";
-    for %routines.kv -> $name, @chunks {
-        write-routine-file(:$name, :@chunks);
-        %routines.delete($name);
+    for $dr.lookup('routine', :by<kind>).list -> $d {
+        write-routine-file($dr, $d.name);
         print '.'
     }
     say "\ndone writing per-routine files";
@@ -337,60 +357,62 @@ sub viz-hints ($group) {
 ';
 }
 
-sub write-search-file() {
+sub write-search-file($dr) {
     say "Writing html/search.html";
     my $template = slurp("search_template.html");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
-    @items.push: %types<language>.pairs.sort.map({
-        "\{ label: \"Language: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
+        "\{ label: \"Language: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
-    @items.push: %types<type>.sort.map({
-        "\{ label: \"Type: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
+        "\{ label: \"Type: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
-    @items.push: %types<routine>.sort.map({
-        "\{ label: \"Routine: {.key}\", value: \"{.key}\", url: \"{ fix-url(.value) }\" \}"
+    my %seen;
+    @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
+        "\{ label: \"Routine: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
 
     my $items = @items.join(",\n");
     spurt("html/search.html", $template.subst("ITEMS", $items));
 }
 
-sub write-disambiguation-files() {
+sub write-disambiguation-files($dr) {
     say "Writing disambiguation files";
-    my %op-name =
-        prefix          => 'prefix operator',
-        postfix         => 'postfix operator',
-        infix           => 'infix operator',
-        circumfix       => 'circumfix operator',
-        postcircumfix   => 'postcircumfix operator',
-        ;
-    sub what-name(Str $w) {
-        %op-name{$w} // $w;
-    }
-    sub url($what, $name) {
-        if %op-name.exists($what) {
-            "/language/operators#$what%20" ~ uri_escape($name)
-        }
-        else {
-            "/$what/$name";
-        }
-    }
-    for %names.kv -> $name, %w {
+    for $dr.grouped-by('name').kv -> $name, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
-        if %w == 1 {
-            my ($what, $url) = %w.kv;
-            $pod.content.push:
-                pod-block(
-                    pod-link("'$name' is a {what-name $what}", url $what, $name)
-                );
+        if $p.elems == 1 {
+            $p.=[0] if $p ~~ Array;
+            if $p.origin -> $o {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url),
+                        ' from ',
+                        pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                    );
+            }
+            else {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url)
+                    );
+            }
         }
         else {
             $pod.content.push:
                 pod-block("'$name' can be anything of the following"),
-                %w.pairs.map({
-                    pod-item( pod-link(what-name(.key), url .key, $name ) )
+                $p.map({
+                    if .origin -> $o {
+                        pod-item(
+                            pod-link(.human-kind, .url),
+                            ' from ',
+                            pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                        )
+                    }
+                    else {
+                        pod-item( pod-link(.human-kind, .url) )
+                    }
                 });
         }
         spurt "html/$name.html", p2h($pod);
@@ -398,55 +420,58 @@ sub write-disambiguation-files() {
     say "... done writing disambiguation files";
 }
 
-sub write-operator-files() {
+sub write-operator-files($dr) {
     say "Writing operator files";
-    for %operators.kv -> $what, %ops {
-        for %ops.kv -> $op, $chunk {
-            my $pod = pod-with-title(
-                "$what.tclc() $op operator",
-                pod-block(
-                    "Documentation for $what $op, extracted from ",
-                    pod-link("the operators language documentation", "/language/operators")
-                ),
-                @$chunk
-            );
-            spurt "html/op/$what/$op.html", p2h($pod);
-        }
+    for $dr.lookup('operator', :by<kind>).list -> $doc {
+        my $what  = $doc.subkind;
+        my $op    = $doc.name;
+        my $pod   = pod-with-title(
+            "$what.tclc() $op operator",
+            pod-block(
+                "Documentation for $what $op, extracted from ",
+                pod-link("the operators language documentation", "/language/operators")
+            ),
+            @($doc.pod),
+        );
+        spurt "html/op/$what/$op.html", p2h($pod);
     }
 }
 
-sub write-index-file() {
+sub write-index-file($dr) {
     say "Writing html/index.html";
+    my %routine-seen;
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
         ),
         # TODO: add more
         pod-heading("Language Documentation"),
-        %types<language>.pairs.sort.map({
-            pod-item( pod-link(.key, .value) )
+        $dr.lookup('language', :by<kind>).sort(*.name).map({
+            pod-item( pod-link(.name, .url) )
         }),
         pod-heading('Types'),
-        %types<type>.sort.map({
-            pod-item(pod-link(.key, .value))
+        $dr.lookup('type', :by<kind>).sort(*.name).map({
+            pod-item(pod-link(.name, .url))
         }),
         pod-heading('Routines'),
-        %types<routine>.sort.map({
-            pod-item(pod-link(.key, .value))
+        $dr.lookup('routine', :by<kind>).sort(*.name).map({
+            next if %routine-seen{.name}++;
+            pod-item(pod-link(.name, .url))
         }),
     );
     spurt 'html/index.html', p2h($pod);
 }
 
-sub write-routine-file(:$name!, :@chunks!) {
+sub write-routine-file($dr, $name) {
     say "Writing html/routine/$name.html" if $*DEBUG;
+    my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'routine');
     my $pod = pod-with-title("Documentation for routine $name",
         pod-block("Documentation for routine $name, assembled from the
             following types:"),
-        @chunks.map(-> Pair (:key($type), :value($chunk)) {
-            pod-heading($type),
-            pod-block("From ", pod-link($type, "/type/{$type}#$name")),
-            @$chunk
+        @docs.map({
+            pod-heading(.origin.name ~ '.' ~ .name),
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ .name)),
+            .pod.list,
         })
     );
     spurt "html/routine/$name.html", p2h($pod);
