@@ -8,8 +8,8 @@ class Perl6::Documentable::Registry {
     has %!grouped-by;
     method add-new(*%args) {
         die "Cannot add something to a composed registry" if $.composed;
-        @!documentables.push: Perl6::Documentable.new(|%args);
-        1;
+        @!documentables.push: my $d = Perl6::Documentable.new(|%args);
+        $d;
     }
     method compose() {
         $!composed = True;

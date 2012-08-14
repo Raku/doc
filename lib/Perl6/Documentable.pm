@@ -7,6 +7,9 @@ class Perl6::Documentable {
     has     $.pod;
     has Bool $.pod-is-complete;
 
+    # the Documentable that this one was extracted from, if any
+    has $.origin;
+
     method human-kind() {   # SCNR
         $.kind eq 'operator'
             ?? "$.subkind operator"

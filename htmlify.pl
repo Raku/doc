@@ -142,22 +142,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 :from({ $_ ~~ Pod::Heading and .level == 2}),
                 :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
             );
-        for @chunks -> $chunk {
-            my $name = $chunk[0].content[0].content[0];
-            say "$podname.$name" if $*DEBUG;
-            next if $name ~~ /\s/;
-            %methods-by-type{$podname}.push: $chunk;
-            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
-                %routines{$name}.push: $podname => $chunk;
-            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
-            $dr.add-new(
-                :kind<routine>,
-                # TODO: determine subkind, ie method/sub
-                :name($name),
-                :pod($chunk),
-                :!pod-is-complete,
-            );
-        }
+
         if $tg.types{$podname} -> $t {
             $pod.content.push: Pod::Block::Named.new(
                 name    => 'Image',
@@ -208,13 +193,31 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 }
             }
         }
-        $dr.add-new(
+        my $d = $dr.add-new(
             :kind<type>,
             # TODO: subkind
             :$pod,
             :pod-is-complete,
             :name($podname),
         );
+
+        for @chunks -> $chunk {
+            my $name = $chunk[0].content[0].content[0];
+            say "$podname.$name" if $*DEBUG;
+            next if $name ~~ /\s/;
+            %methods-by-type{$podname}.push: $chunk;
+            %names{$name}<routine>.push: "/type/$podname.html#" ~ uri_escape($name);
+                %routines{$name}.push: $podname => $chunk;
+            %types<routine>{$name} = "/routine/" ~ uri_escape( $name );
+            $dr.add-new(
+                :kind<routine>,
+                # TODO: determine subkind, ie method/sub
+                :name($name),
+                :pod($chunk),
+                :!pod-is-complete,
+                :origin($d),
+            );
+        }
         spurt "html/$what/$podname.html", p2h($pod);
     }
 
@@ -395,16 +398,35 @@ sub write-disambiguation-files($dr) {
         my $pod = pod-with-title("Disambiguation for '$name'");
         if $p.elems == 1 {
             $p.=[0] if $p ~~ Array;
-            $pod.content.push:
-                pod-block(
-                    pod-link("'$name' is a $p.human-kind()", $p.url)
-                );
+            if $p.origin -> $o {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url),
+                        ' from ',
+                        pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                    );
+            }
+            else {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url)
+                    );
+            }
         }
         else {
             $pod.content.push:
                 pod-block("'$name' can be anything of the following"),
                 $p.map({
-                    pod-item( pod-link(.human-kind, .url) )
+                    if .origin -> $o {
+                        pod-item(
+                            pod-link(.human-kind, .url),
+                            ' from ',
+                            pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                        )
+                    }
+                    else {
+                        pod-item( pod-link(.human-kind, .url) )
+                    }
                 });
         }
         spurt "html/$name.html", p2h($pod);
@@ -431,6 +453,7 @@ sub write-operator-files($dr) {
 
 sub write-index-file($dr) {
     say "Writing html/index.html";
+    my %routine-seen;
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
@@ -446,6 +469,7 @@ sub write-index-file($dr) {
         }),
         pod-heading('Routines'),
         $dr.lookup('routine', :by<kind>).sort(*.name).map({
+            next if %routine-seen{.name}++;
             pod-item(pod-link(.name, .url))
         }),
     );
