@@ -219,7 +219,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     }
 
     write-disambiguation-files();
-    write-operator-files();
+    write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file();
     write-index-file();
@@ -428,20 +428,21 @@ sub write-disambiguation-files() {
     say "... done writing disambiguation files";
 }
 
-sub write-operator-files() {
+sub write-operator-files($dr) {
     say "Writing operator files";
-    for %operators.kv -> $what, %ops {
-        for %ops.kv -> $op, $chunk {
-            my $pod = pod-with-title(
-                "$what.tclc() $op operator",
-                pod-block(
-                    "Documentation for $what $op, extracted from ",
-                    pod-link("the operators language documentation", "/language/operators")
-                ),
-                @$chunk
-            );
-            spurt "html/op/$what/$op.html", p2h($pod);
-        }
+    for $dr.lookup('operator', :by<kind>).list -> $doc {
+        my $what  = $doc.subkind;
+        my $chunk = $doc.pod;
+        my $op    = $doc.name;
+        my $pod   = pod-with-title(
+            "$what.tclc() $op operator",
+            pod-block(
+                "Documentation for $what $op, extracted from ",
+                pod-link("the operators language documentation", "/language/operators")
+            ),
+            @$chunk
+        );
+        spurt "html/op/$what/$op.html", p2h($pod);
     }
 }
 
