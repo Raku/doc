@@ -15,6 +15,10 @@ sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
     return "/type/$_" if m/^<[A..Z]>/;
     return "/routine/$_" if m/^<[a..z]>/;
+    # poor man's <identifier>
+    if m/ ^ '&'( \w <[[\w'-]>* ) $/ {
+        return "/routine/$0";
+    }
     return $_;
 }
 
