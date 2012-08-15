@@ -980,4 +980,63 @@ list:
                  '2a9', '2b9', '2c9',
                  '3a9', '3b9', '3c9'
 
+=head2 infix ...
+
+    multi sub infix:<...>(**@) is assoc<list>
+    multi sub infix:<...^>(**@) is assoc<list>
+
+The sequence operator is a generic operator to produce lazy lists.
+
+It can have initial elements and a generator on left-hand side, and an
+endpoint on the right-hand side.
+
+The sequence operator invokes the generator with as many arguments as
+necessary. The arguments are taken from the initial elements and the already
+generated elements.
+
+The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how
+the end points compare:
+
+    say 1 ... 4;        # 1 2 3 4
+    say 4 ... 1;        # 4 3 2 1
+    say 'a' ... 'e';    # a b c d e
+    say 'e' ... 'a';    # e d c b a
+
+An endpoint of C<*> (L<Whatever> generates an infinite sequence,
+with a default generator of *.succ
+
+    say (1 ... *)[^5];  # 1 2 3 4 5
+
+
+Custom generators are the last argument before the '...' operator.
+This one takes two arguments, and generates the Fibonacci numbers
+
+    say (1, 1, -> $a, $b { $a + $b } ... *)[^8];    # 1 1 2 3 5 8 13 21
+    # same but shorter
+    say (1, 1, *+* ... *)[^8];                      # 1 1 2 3 5 8 13 21
+
+Of course the generator can also take only one argument.
+
+    say 5, { $_ * 2 } ... 40;                       # 5 10 20 40
+
+There must be at least as many initial elements as arguments to the generator.
+
+Without a generator, and more than one initial element, and all initial
+elements numeric, the sequence operator tries to deduce the generator. It
+knows about arithmetic and geometric sequences.
+
+    say 2, 4, 6 ... 12;     # 2 4 6 8 10 12
+    say 1, 2, 4 ... 32;     # 1 2 4 8 16 32
+
+If the endpoint is not C<*>, it is smart-matched against each generated
+element, and the sequence is terminated when the smart-match succeeded.
+For the C<...> operator, the final element is included, for the C<...^>
+operator it is excluded.
+
+This allows you to write
+
+    say 1, 1, *+* ...^ *>= 100;
+
+To generate all Fibonacci numbers up to but excluding 100.
+
 =end pod
