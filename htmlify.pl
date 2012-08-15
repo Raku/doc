@@ -79,7 +79,7 @@ sub first-code-block(@pod) {
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
     for '', <type language routine images op op/prefix op/postfix op/infix
-             op/circumfix op/postcircumfix> {
+             op/circumfix op/postcircumfix op/listop> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -114,7 +114,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                     );
                 for @chunks -> $chunk {
                     my $heading = $chunk[0].content[0].content[0];
-                    next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix /;
+                    next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
                     my $what = ~$/;
                     my $operator = $heading.split(' ', 2)[1];
                     $dr.add-new(
