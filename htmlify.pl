@@ -399,6 +399,12 @@ sub write-search-file($dr) {
     @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
         "\{ label: \"{ (.subkind // 'Routine').tclc }: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
+    sub escape(Str $s) {
+        $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
+    }
+    @items.push: $dr.lookup('operator', :by<kind>).map({
+        qq[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
+    });
 
     my $items = @items.join(",\n");
     spurt("html/search.html", $template.subst("ITEMS", $items));
