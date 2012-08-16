@@ -12,7 +12,7 @@ ok $t.types<List>.roles.any eq 'Positional',
     'List does positional';
 is $t.types<Str>.mro, 'Str Cool Any Mu', 'Str mro';
 is $t.types<Match>.mro, 'Match Capture Cool Any Mu', 'Match mro';
-is $t.types<Stash>.super.any, 'Any', 'Any as default parent works';
+is $t.types<Exception>.super.any, 'Any', 'Any as default parent works';
 is $t.types<Any>.super, 'Mu', 'default-Any did not add a parent to Any';
 
 done;
