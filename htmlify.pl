@@ -235,6 +235,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $dr.compose;
 
     write-disambiguation-files($dr);
+    write-op-disambiguation-files($dr);
     write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
@@ -410,6 +411,8 @@ sub write-search-file($dr) {
     spurt("html/search.html", $template.subst("ITEMS", $items));
 }
 
+my %operator_disambiguation_file_written;
+
 sub write-disambiguation-files($dr) {
     say "Writing disambiguation files";
     for $dr.grouped-by('name').kv -> $name, $p is copy {
@@ -448,9 +451,58 @@ sub write-disambiguation-files($dr) {
                     }
                 });
         }
-        spurt "html/$name.html", p2h($pod);
+        my $html = p2h($pod);
+        spurt "html/$name.html", $html;
+        if all($p>>.kind) eq 'operator' {
+            spurt "html/op/$name.html", $html;
+            %operator_disambiguation_file_written{$p[0].name} = 1;
+        }
     }
     say "... done writing disambiguation files";
+}
+
+sub write-op-disambiguation-files($dr) {
+    say "Writing operator disambiguation files";
+    for $dr.lookup('operator', :by<kind>).classify(*.name).kv -> $name, @ops {
+        next unless %operator_disambiguation_file_written{$name};
+        my $pod = pod-with-title("Disambiguation for '$name'");
+        if @ops == 1 {
+            my $p = @ops[0];
+            if $p.origin -> $o {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url),
+                        ' from ',
+                        pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                    );
+            }
+            else {
+                $pod.content.push:
+                    pod-block(
+                        pod-link("'$name' is a $p.human-kind()", $p.url)
+                    );
+            }
+        }
+        else {
+            $pod.content.push:
+                pod-block("'$name' can be anything of the following"),
+                @ops.map({
+                    if .origin -> $o {
+                        pod-item(
+                            pod-link(.human-kind, .url),
+                            ' from ',
+                            pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
+                        )
+                    }
+                    else {
+                        pod-item( pod-link(.human-kind, .url) )
+                    }
+                });
+        }
+        my $html = p2h($pod);
+        spurt "html/$name.html", $html;
+    }
+
 }
 
 sub write-operator-files($dr) {
