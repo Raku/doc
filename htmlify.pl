@@ -218,6 +218,13 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
                 if %counter == 1 {
                     ($subkind,) = %counter.keys;
                 }
+                if %counter<method> {
+                    write-qualified-method-call(
+                        :$name,
+                        :pod($chunk),
+                        :type($podname),
+                    );
+                }
             }
 
             $dr.add-new(
@@ -565,6 +572,15 @@ sub write-routine-file($dr, $name) {
         })
     );
     spurt "html/routine/$name.html", p2h($pod);
+}
+
+sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
+    my $p = pod-with-title(
+        "Documentation for method $type.$name",
+        pod-block('From ', pod-link($type, "/type/{$type}#$name")),
+        @$pod,
+    );
+    spurt "html/{$type}.{$name}.html", p2h($p);
 }
 
 sub footer-html() {
