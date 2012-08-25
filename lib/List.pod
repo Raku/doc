@@ -110,6 +110,13 @@ Invokes C<&code> for each element and gathers the return values in another
 list and returns it. This happens lazily, ie C<&code> is only invoked when
 the return values are accessed.
 
+Examples:
+
+    > ('hello', 1, 22/7, 42, 'world').map: { .WHAT.perl }
+    Str Int Rat Int Str
+    > map *.Str.chars, 'hello', 1, 22/7, 42, 'world'
+    5 1 8 2 5
+
 =head2 grep
 
     multi sub    grep(Mu $matcher, *@elems) returns List:D
@@ -119,27 +126,46 @@ Returns a lazy list of elements against which C<$matcher> smart-matches.
 The elements are returned in the order in which they appear in the original
 list.
 
+Examples:
+
+    > ('hello', 1, 22/7, 42, 'world').grep: Int
+    1 42
+    > grep { .Str.chars > 3 }, 'hello', 1, 22/7, 42, 'world'
+    hello 3.142857 world
+
 =head2 first
 
     multi sub    first(Mu $matcher, *@elems)
     multi method first(List:D:  Mu $matcher)
 
-Returns the first item of the list which smart-matches against C<$matcher>.
+Returns the first item of the list which smart-matches against C<$matcher>,
+fails when no values match.
+
+Examples:
+
+    > (1, 22/7, 42).first: * > 5;
+    42
+    > $f = ('hello', 1, 22/7, 42, 'world').first: Complex; $f.perl;
+    Failure.new(exception => X::AdHoc.new(payload => "No values matched"))
 
 =head2 classify
 
     multi sub    classify(&mapper, *@values) returns Hash:D
     multi method classify(List:D: &mapper)   returns Hash:D
 
-C<classify> transforms a list or array of values into a hash
+Transforms a list of values into a hash
 representing the classification of those values according to a mapper;
 each hash key represents the classification for one or more of the
 incoming list values, and the corresponding hash value contains
 an array of those list values classified by the mapper into the category
-of the associated key. For example:
+of the associated key.
 
-  my @list = (1, 7, 6, 3, 2);
-  my %h = classify { $_ %% 2 ?? 'even' !! 'odd' }, @list;
+Example:
+
+    > classify { $_ %% 2 ?? 'even' !! 'odd' }, (1, 7, 6, 3, 2);
+    ("odd" => [1, 7, 3], "even" => [6, 2]).hash
+    > ('hello', 1, 22/7, 42, 'world').classify: { .Str.chars }
+    ("5" => ["hello", "world"], "1" => [1], "8" => [22/7], "2" => [42]).hash
 
 Creates the hash C<< { even => [6, 2], odd => [1, 7, 3] } >> in C<%h>.
 
@@ -165,14 +191,26 @@ Returns the number of elements in the list (same as C<.elems>).
 
 =head2 pick
 
+    multi sub    pick($count, *@list) returns List:D
     multi method pick(List:D: $count = 1)
 
 Returns C<$count> elements chosen at random and without repetition
-from the invocant. If C<*> is passed as C<$count>, all elements
+from the invocant. If C<*> is passed as C<$count>, or C<$count> is
+greater than or equal to the size of the list, then all elements
 from the invocant list are returned in a random sequence.
+
+Examples:
+
+    > <a b c d e>.pick;
+    b
+    > <a b c d e>.pick: 3;
+    c a e
+    > <a b c d e>.pick: *;
+    e d a b c
 
 =head2 roll
 
+    multi sub    roll($count, *@list) returns List:D
     multi method roll(List:D: $count = 1)
 
 Returns a lazy list of C<$count> elements, each randomly selected from the
@@ -181,6 +219,17 @@ where each die face is a list element.
 
 If C<*> is passed to C<$count>, returns a lazy, infinite list of randomly chosen
 elements from the original list.
+
+Examples:
+
+    > <a b c d e>.roll;
+    b
+    > <a b c d e>.roll: 3;
+    c c e
+    > roll 8, <a b c d e>;
+    b a e d a e b c
+    > my $random_digits := (^10).roll(*); $random_digits[^15];
+    3 8 7 6 0 1 3 2 0 8 8 5 8 0 5
 
 =head2 eager
 
@@ -200,12 +249,21 @@ Returns a list with the same elements in reverse order.
 Note that C<reverse> always refers to reversing elements of a list;
 to reverse the characters in a string, use L<flip>.
 
+Examples:
+
+    > <hello world!>.reverse
+    world! hello
+    > reverse ^10
+    9 8 7 6 5 4 3 2 1 0
+
 =head2 rotate
 
     multi sub    rotate(@list,  Int:D $n = 1) returns List:D
     multi method rotate(List:D: Int:D $n = 1) returns List:D
 
 Returns the list rotated by C<$n> elements.
+
+Examples:
 
     <a b c d e>.rotate(2);   # <c d e a b>
     <a b c d e>.rotate(-1);  # <e a b c d>
@@ -227,6 +285,15 @@ C<Order::Increase>, C<Order::Same> or C<Order::Decrease>.
 If C<&by> accepts only one argument, the list elements are sorted
 according to C<< by($a) cmp by($b) >>. The return values of C<&by> are
 cached, so that C<&by> is only called once per list element.
+
+Examples:
+
+    > (3, -4, 7, -1, 2, 0).sort
+    -4 -1 0 2 3 7
+    > (3, -4, 7, -1, 2, 0).sort: *.abs;
+    0 -1 2 3 -4 7
+    > (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a };
+    7 3 2 0 -4 -1
 
 =head2 reduce
 
