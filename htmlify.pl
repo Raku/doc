@@ -27,9 +27,14 @@ my $*DEBUG = False;
 my $tg;
 my %methods-by-type;
 my $footer = footer-html;
+my $head = q[
+<link rel="icon" href="/favicon.ico" type="favicon.ico" />
+<link rel="stylesheet" type="text/css" href="/style.css" media="screen" title="default" />
+];
+
 
 sub p2h($pod) {
-    pod2html($pod, :url(&url-munge), :$footer);
+    pod2html($pod, :url(&url-munge), :$footer, :$head);
 }
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
