@@ -66,22 +66,39 @@ Twigils influence the scoping of a variable
 =head2 *
 
 Dynamic variables are looked up through the caller, not through the outer
-scope.
+scope. For example:
 
-    my $l  = 23;
-    my $*d = 23;
+    my $lexical   = 1;
+    my $*dynamic1 = 10;
+    my $*dynamic2 = 100;
 
-    sub f() {
-        say $l;     # 23
-        say $*d;    # 42
+    sub say-all() {
+        say "$lexical, $*dynamic1, $*dynamic2";
     }
+
+    # prints 1, 10, 100
+    say-all();
 
     {
-        my $l  = 42;
-        my $*d = 42;
-        f();
+        my $lexical   = 2;
+        my $*dynamic1 = 11;
+        $*dynamic2    = 101;
+
+        # prints 1, 11, 101
+        say-all();
     }
 
+    # prints 1, 10, 101
+    say-all();
+
+The first time C<&say-all> is called, it prints "1, 10, 100" just as one would
+expect. The second time though, it prints "1, 11, 101". This is because
+C<$lexical> isn't looked up in the caller's scope but in the scope C<&say-all>
+was defined in. The two dynamic variables are looked up in the callers scope and
+therefore have the values 11 and 101. The third time C<&say-all> is called
+C<$*dynamic1> isn't 11 anymore, but C<$*dynamic2> is still 101. This stems from
+the fact that we declared a new dynamic variable C<$*dynamic1> in the block and
+did not assign to the old variable as we did with C<$*dynamic2>.
 
 =head1 Special Variables
 
