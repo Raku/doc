@@ -4,6 +4,8 @@ use v6;
 # this script isn't in bin/ because it's not meant
 # to be installed.
 
+BEGIN say 'Initializing ...';
+
 use Pod::To::HTML;
 use URI::Escape;
 use lib 'lib';
@@ -83,6 +85,8 @@ sub first-code-block(@pod) {
 
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
+
+    say 'Creating html/ subdirectories ...';
     for '', <type language routine images op op/prefix op/postfix op/infix
              op/circumfix op/postcircumfix op/listop> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
@@ -91,18 +95,17 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     say 'Reading lib/ ...';
     my @source = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
     @source.=map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
-    say '... done';
 
-    say "Reading type graph ...";
+    say 'Reading type graph ...';
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     {
         my %h = $tg.sorted.kv.flat.reverse;
         @source.=sort: { %h{.key} // -1 };
     }
-    say "... done";
 
     my $dr = Perl6::Documentable::Registry.new;
 
+    say 'Processing Pod files ...';
     for (@source) {
         my $podname  = .key;
         my $file     = .value;
@@ -244,6 +247,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         spurt "html/$what/$podname.html", p2h($pod);
     }
 
+    say 'Composing doc registry ...';
     $dr.compose;
 
     write-disambiguation-files($dr);
@@ -252,14 +256,16 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
     write-index-file($dr);
-    say "Writing per-routine files";
+    say 'Writing per-routine files ...';
     my %routine-seen;
     for $dr.lookup('routine', :by<kind>).list -> $d {
         next if %routine-seen{$d.name}++;
         write-routine-file($dr, $d.name);
         print '.'
     }
-    say "\ndone writing per-routine files";
+    say '';
+
+    say 'Processing complete.';
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
@@ -335,16 +341,16 @@ sub write-type-graph-images(:$force) {
             return;
         }
     }
-    print "Writing type graph images to html/images/ ";
+    say 'Writing type graph images to html/images/ ...';
     for $tg.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
         print '.'
     }
-    say ' done.';
+    say '';
 
-    say "Writing specialized visualizations to html/images/";
+    say 'Writing specialized visualizations to html/images/ ...';
     my %by-group = $tg.sorted.classify(&viz-group);
     %by-group<Exception>.push: $tg.types< Exception Any Mu >;
     %by-group<Metamodel>.push: $tg.types< Any Mu >;
@@ -398,7 +404,7 @@ sub viz-hints ($group) {
 }
 
 sub write-search-file($dr) {
-    say "Writing html/search.html";
+    say 'Writing html/search.html ...';
     my $template = slurp("search_template.html");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
@@ -426,7 +432,7 @@ sub write-search-file($dr) {
 my %operator_disambiguation_file_written;
 
 sub write-disambiguation-files($dr) {
-    say "Writing disambiguation files";
+    say 'Writing disambiguation files ...';
     for $dr.grouped-by('name').kv -> $name, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
@@ -470,11 +476,11 @@ sub write-disambiguation-files($dr) {
             %operator_disambiguation_file_written{$p[0].name} = 1;
         }
     }
-    say "... done writing disambiguation files";
+    say '';
 }
 
 sub write-op-disambiguation-files($dr) {
-    say "Writing operator disambiguation files";
+    say 'Writing operator disambiguation files ...';
     for $dr.lookup('operator', :by<kind>).classify(*.name).kv -> $name, @ops {
         next unless %operator_disambiguation_file_written{$name};
         my $pod = pod-with-title("Disambiguation for '$name'");
@@ -518,7 +524,7 @@ sub write-op-disambiguation-files($dr) {
 }
 
 sub write-operator-files($dr) {
-    say "Writing operator files";
+    say 'Writing operator files ...';
     for $dr.lookup('operator', :by<kind>).list -> $doc {
         my $what  = $doc.subkind;
         my $op    = $doc.name;
@@ -535,7 +541,7 @@ sub write-operator-files($dr) {
 }
 
 sub write-index-file($dr) {
-    say "Writing html/index.html";
+    say 'Writing html/index.html ...';
     my %routine-seen;
     my $pod = pod-with-title('Perl 6 Documentation',
         Pod::Block::Para.new(
@@ -560,7 +566,7 @@ sub write-index-file($dr) {
 }
 
 sub write-routine-file($dr, $name) {
-    say "Writing html/routine/$name.html" if $*DEBUG;
+    say 'Writing html/routine/$name.html ...' if $*DEBUG;
     my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'routine');
     my $subkind = 'routine';
     {
