@@ -1,8 +1,7 @@
 #!/usr/bin/env perl6
 use v6;
 
-# this script isn't in bin/ because it's not meant
-# to be installed.
+# This script isn't in bin/ because it's not meant to be installed.
 
 BEGIN say 'Initializing ...';
 
@@ -12,6 +11,17 @@ use lib 'lib';
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
+
+my $*DEBUG = False;
+
+my $tg;
+my %methods-by-type;
+my $footer = footer-html;
+my $head   = q[
+<link rel="icon" href="/favicon.ico" type="favicon.ico" />
+<link rel="stylesheet" type="text/css" href="/style.css" media="screen" title="default" />
+];
+
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -23,17 +33,6 @@ sub url-munge($_) {
     }
     return $_;
 }
-
-my $*DEBUG = False;
-
-my $tg;
-my %methods-by-type;
-my $footer = footer-html;
-my $head = q[
-<link rel="icon" href="/favicon.ico" type="favicon.ico" />
-<link rel="stylesheet" type="text/css" href="/style.css" media="screen" title="default" />
-];
-
 
 sub p2h($pod) {
     pod2html($pod, :url(&url-munge), :$footer, :$head);
@@ -93,14 +92,14 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     }
 
     say 'Reading lib/ ...';
-    my @source = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
-    @source.=map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
+    my @source  = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
+       @source .= map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
 
     say 'Reading type graph ...';
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     {
         my %h = $tg.sorted.kv.flat.reverse;
-        @source.=sort: { %h{.key} // -1 };
+        @source .= sort: { %h{.key} // -1 };
     }
 
     my $dr = Perl6::Documentable::Registry.new;
@@ -111,8 +110,10 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         say "$file.path() => $what/$podname";
+
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
-        $pod.=[0];
+           $pod .= [0];
+
         if $what eq 'language' {
             spurt "html/$what/$podname.html", p2h($pod);
             if $podname eq 'operators' {
