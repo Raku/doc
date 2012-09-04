@@ -115,137 +115,11 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
            $pod .= [0];
 
         if $what eq 'language' {
-            spurt "html/$what/$podname.html", p2h($pod);
-            if $podname eq 'operators' {
-                my @chunks = chunks-grep($pod.content,
-                        :from({ $_ ~~ Pod::Heading and .level == 2}),
-                        :to({ $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-                    );
-                for @chunks -> $chunk {
-                    my $heading = $chunk[0].content[0].content[0];
-                    next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
-                    my $what = ~$/;
-                    my $operator = $heading.split(' ', 2)[1];
-                    $dr.add-new(
-                        :kind<operator>,
-                        :subkind($what),
-                        :pod($chunk),
-                        :!pod-is-complete,
-                        :name($operator),
-                    );
-                }
-            }
-            $dr.add-new(
-                :kind<language>,
-                :name($podname),
-                :$pod,
-                :pod-is-complete,
-            );
-
-            next;
+            write-language-file(:$dr, :$what, :$pod, :$podname);
         }
-        $pod = $pod[0];
-
-        say pod-gist($pod) if $*DEBUG;
-        my @chunks = chunks-grep($pod.content,
-                :from({ $_ ~~ Pod::Heading and .level == 2}),
-                :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-            );
-
-        if $tg.types{$podname} -> $t {
-            $pod.content.push: Pod::Block::Named.new(
-                name    => 'Image',
-                content => [ "/images/type-graph-$podname.png"],
-            );
-            $pod.content.push: pod-link(
-                'Full-size type graph image as SVG',
-                "/images/type-graph-$podname.svg",
-            );
-            my @mro = $t.mro;
-            @mro.shift; # current type is already taken care of
-            for $t.roles -> $r {
-                next unless %methods-by-type{$r};
-                $pod.content.push:
-                    pod-heading("Methods supplied by role $r"),
-                    pod-block(
-                        "$podname does role ",
-                        pod-link($r.name, "/type/$r"),
-                        ", which provides the following methods:",
-                    ),
-                    %methods-by-type{$r}.list,
-                    ;
-            }
-            for @mro -> $c {
-                next unless %methods-by-type{$c};
-                $pod.content.push:
-                    pod-heading("Methods supplied by class $c"),
-                    pod-block(
-                        "$podname inherits from class ",
-                        pod-link($c.name, "/type/$c"),
-                        ", which provides the following methods:",
-                    ),
-                    %methods-by-type{$c}.list,
-                    ;
-                for $c.roles -> $r {
-                    next unless %methods-by-type{$r};
-                    $pod.content.push:
-                        pod-heading("Methods supplied by role $r"),
-                        pod-block(
-                            "$podname inherits from class ",
-                            pod-link($c.name, "/type/$c"),
-                            ", which does role ",
-                            pod-link($r.name, "/type/$r"),
-                            ", which provides the following methods:",
-                        ),
-                        %methods-by-type{$r}.list,
-                        ;
-                }
-            }
+        else {
+            write-type-file(:$dr, :$what, :$pod, :$podname);
         }
-        my $d = $dr.add-new(
-            :kind<type>,
-            # TODO: subkind
-            :$pod,
-            :pod-is-complete,
-            :name($podname),
-        );
-
-        for @chunks -> $chunk {
-            my $name = $chunk[0].content[0].content[0];
-            say "$podname.$name" if $*DEBUG;
-            next if $name ~~ /\s/;
-            %methods-by-type{$podname}.push: $chunk;
-            # deterimine whether it's a sub or method
-            my Str $subkind;
-            {
-                my %counter;
-                for first-code-block($chunk).lines {
-                    if ms/^ 'multi'? (sub|method)»/ {
-                        %counter{$0}++;
-                    }
-                }
-                if %counter == 1 {
-                    ($subkind,) = %counter.keys;
-                }
-                if %counter<method> {
-                    write-qualified-method-call(
-                        :$name,
-                        :pod($chunk),
-                        :type($podname),
-                    );
-                }
-            }
-
-            $dr.add-new(
-                :kind<routine>,
-                :$subkind,
-                :$name,
-                :pod($chunk),
-                :!pod-is-complete,
-                :origin($d),
-            );
-        }
-        spurt "html/$what/$podname.html", p2h($pod);
     }
 
     say 'Composing doc registry ...';
@@ -257,6 +131,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
     write-index-file($dr);
+
     say 'Writing per-routine files ...';
     my %routine-seen;
     for $dr.lookup('routine', :by<kind>).list -> $d {
@@ -267,6 +142,143 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     say '';
 
     say 'Processing complete.';
+}
+
+sub write-language-file(:$dr, :$what, :$pod, :$podname) {
+    spurt "html/$what/$podname.html", p2h($pod);
+    if $podname eq 'operators' {
+        my @chunks = chunks-grep($pod.content,
+                                 :from({ $_ ~~ Pod::Heading and .level == 2}),
+                                 :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                                );
+        for @chunks -> $chunk {
+            my $heading = $chunk[0].content[0].content[0];
+            next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
+            my $what = ~$/;
+            my $operator = $heading.split(' ', 2)[1];
+            $dr.add-new(
+                        :kind<operator>,
+                        :subkind($what),
+                        :name($operator),
+                        :pod($chunk),
+                        :!pod-is-complete,
+                       );
+        }
+    }
+    $dr.add-new(
+                :kind<language>,
+                :name($podname),
+                :$pod,
+                :pod-is-complete,
+               );
+}
+
+sub write-type-file(:$dr, :$what, :$pod, :$podname) {
+    $pod = $pod[0];
+    say pod-gist($pod) if $*DEBUG;
+
+    my @chunks = chunks-grep($pod.content,
+                             :from({ $_ ~~ Pod::Heading and .level == 2}),
+                             :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                            );
+
+    if $tg.types{$podname} -> $t {
+        $pod.content.push: Pod::Block::Named.new(
+            name    => 'Image',
+            content => [ "/images/type-graph-$podname.png"],
+        );
+        $pod.content.push: pod-link(
+            'Full-size type graph image as SVG',
+            "/images/type-graph-$podname.svg",
+        );
+
+        my @mro = $t.mro;
+           @mro.shift; # current type is already taken care of
+
+        for $t.roles -> $r {
+            next unless %methods-by-type{$r};
+            $pod.content.push:
+                pod-heading("Methods supplied by role $r"),
+                pod-block(
+                    "$podname does role ",
+                    pod-link($r.name, "/type/$r"),
+                    ", which provides the following methods:",
+                ),
+                %methods-by-type{$r}.list,
+                ;
+        }
+        for @mro -> $c {
+            next unless %methods-by-type{$c};
+            $pod.content.push:
+                pod-heading("Methods supplied by class $c"),
+                pod-block(
+                    "$podname inherits from class ",
+                    pod-link($c.name, "/type/$c"),
+                    ", which provides the following methods:",
+                ),
+                %methods-by-type{$c}.list,
+                ;
+            for $c.roles -> $r {
+                next unless %methods-by-type{$r};
+                $pod.content.push:
+                    pod-heading("Methods supplied by role $r"),
+                    pod-block(
+                        "$podname inherits from class ",
+                        pod-link($c.name, "/type/$c"),
+                        ", which does role ",
+                        pod-link($r.name, "/type/$r"),
+                        ", which provides the following methods:",
+                    ),
+                    %methods-by-type{$r}.list,
+                    ;
+            }
+        }
+    }
+    my $d = $dr.add-new(
+        :kind<type>,
+        # TODO: subkind
+        :$pod,
+        :pod-is-complete,
+        :name($podname),
+    );
+
+    for @chunks -> $chunk {
+        my $name = $chunk[0].content[0].content[0];
+        say "$podname.$name" if $*DEBUG;
+        next if $name ~~ /\s/;
+        %methods-by-type{$podname}.push: $chunk;
+        # determine whether it's a sub or method
+        my Str $subkind;
+        {
+            my %counter;
+            for first-code-block($chunk).lines {
+                if ms/^ 'multi'? (sub|method)»/ {
+                    %counter{$0}++;
+                }
+            }
+            if %counter == 1 {
+                ($subkind,) = %counter.keys;
+            }
+            if %counter<method> {
+                write-qualified-method-call(
+                    :$name,
+                    :pod($chunk),
+                    :type($podname),
+                );
+            }
+        }
+
+        $dr.add-new(
+            :kind<routine>,
+            :$subkind,
+            :$name,
+            :pod($chunk),
+            :!pod-is-complete,
+            :origin($d),
+        );
+    }
+
+    spurt "html/$what/$podname.html", p2h($pod);
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
