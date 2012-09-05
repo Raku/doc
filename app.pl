@@ -2,8 +2,7 @@
 
 use Mojolicious::Lite;
 
-my $app = $ENV{MOJO_APP};
-$app->{static}->root('html');
+app->static->root('html');
 
 get '(*dir)/:file' => sub {
     my $self = shift;
@@ -23,4 +22,4 @@ get '/' => sub {
     return $self->redirect_to('/index.html');
 };
 
-$app->start;
+app->start;
