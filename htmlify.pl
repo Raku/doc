@@ -118,7 +118,8 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
             write-language-file(:$dr, :$what, :$pod, :$podname);
         }
         else {
-            write-type-file(:$dr, :$what, :$pod, :$podname);
+            say pod-gist($pod[0]) if $*DEBUG;
+            write-type-file(:$dr, :$what, :pod($pod[0]), :$podname);
         }
     }
 
@@ -174,9 +175,6 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
 }
 
 sub write-type-file(:$dr, :$what, :$pod, :$podname) {
-    $pod = $pod[0];
-    say pod-gist($pod) if $*DEBUG;
-
     my @chunks = chunks-grep($pod.content,
                              :from({ $_ ~~ Pod::Heading and .level == 2}),
                              :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
