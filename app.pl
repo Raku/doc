@@ -2,7 +2,7 @@
 
 use Mojolicious::Lite;
 
-app->static->root('html');
+app->static->paths(['html']);
 
 get '(*dir)/:file' => sub {
     my $self = shift;
