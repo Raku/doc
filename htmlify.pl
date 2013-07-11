@@ -53,8 +53,16 @@ sub pod-gist(Pod::Block $pod, $level = 0) {
         if $c ~~ Pod::Block {
             @chunks.push: pod-gist($c, $level + 2);
         }
-        else {
+        elsif $c ~~ Str {
             @chunks.push: $c.indent($level + 2), "\n";
+        } elsif $c ~~ Positional {
+            @chunks.push: $c.map: {
+                if $_ ~~ Pod::Block {
+                    *.&pod-gist
+                } elsif $_ ~~ Str {
+                    $_
+                }
+            }
         }
     }
     @chunks.join;
