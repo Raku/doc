@@ -113,11 +113,11 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     my $dr = Perl6::Documentable::Registry.new;
 
     say 'Processing Pod files ...';
-    for (@source) {
+    for (0..* Z @source) -> $num, $_ {
         my $podname  = .key;
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
-        say "$file.path() => $what/$podname";
+        printf "% 4d/%d: % -40s => %s\n", $num, +@source, $file.path, "$what/$podname";
 
         my $pod  = eval slurp($file.path) ~ "\n\$=pod";
            $pod .= [0];
