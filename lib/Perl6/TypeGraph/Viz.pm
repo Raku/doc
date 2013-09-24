@@ -12,7 +12,7 @@ class Perl6::TypeGraph::Viz {
     has $.node-hard-limit = 50;
 
     method new-for-type ($type) {
-        my $self = self.bless(*, :types([$type]));
+        my $self = self.bless(:types([$type]));
         $self!add-neighbors;
         return $self;
     }

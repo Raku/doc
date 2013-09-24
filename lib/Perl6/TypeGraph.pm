@@ -26,7 +26,7 @@ class Perl6::TypeGraph {
     }
 
     method new-from-file($fn) {
-        my $n = self.bless(*);
+        my $n = self.bless;
         $n.parse-from-file($fn);
         $n;
     }
