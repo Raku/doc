@@ -91,8 +91,9 @@ class Perl6::TypeGraph::Viz {
     }
 
     method to-file ($file, :$format = 'svg', :$size) {
-        my $pipe = open "dot -T$format -o$file", :w, :p;
-        $pipe.print: self.as-dot(:$size);
-        close $pipe;
+        my $tmpfile = IO::Spec.tmpdir ~ '/p6-doc-graphviz-' ~ (^100_000).pick;
+        spurt $tmpfile, self.as-dot(:$size);
+        run 'dot', "-T$format", "-o$file", $tmpfile;
+        unlink $tmpfile;
     }
 }
