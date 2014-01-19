@@ -31,7 +31,7 @@ multi sub MAIN('index') {
 }
 multi sub MAIN('list') {
     if $index_file.IO ~~ :e {
-        my %data = eval slurp $index_file;
+        my %data = EVAL slurp $index_file;
         for %data.keys.sort -> $name {
             say $name
         #    my $newdoc = %data{$docee}[0][0] ~ "." ~ %data{$docee}[0][1];

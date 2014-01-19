@@ -119,7 +119,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         printf "% 4d/%d: % -40s => %s\n", $num, +@source, $file.path, "$what/$podname";
 
-        my $pod  = eval slurp($file.path) ~ "\n\$=pod";
+        my $pod  = EVAL slurp($file.path) ~ "\n\$=pod";
            $pod .= [0];
 
         if $what eq 'language' {
