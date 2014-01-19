@@ -19,7 +19,7 @@ class Perl6::Documentable::Registry {
         %!grouped-by{$what} ||= @!documentables.classify(*."$what"());
     }
     method lookup(Str $what, Str :$by!) {
-        unless %!cache.exists($by) {
+        unless %!cache{$by}:exists {
             for @!documentables -> $d {
                 %!cache{$by}{$d."$by"()}.push: $d;
             }
