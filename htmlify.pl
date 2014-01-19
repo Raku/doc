@@ -119,8 +119,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
         printf "% 4d/%d: % -40s => %s\n", $num, +@source, $file.path, "$what/$podname";
 
-        my $pod  = EVAL slurp($file.path) ~ "\n\$=pod";
-           $pod .= [0];
+        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
 
         if $what eq 'language' {
             write-language-file(:$dr, :$what, :$pod, :$podname);
@@ -456,7 +455,7 @@ sub write-disambiguation-files($dr) {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
         if $p.elems == 1 {
-            $p.=[0] if $p ~~ Array;
+            $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
                 $pod.content.push:
                     pod-block(
