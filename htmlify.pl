@@ -422,8 +422,8 @@ sub viz-hints ($group) {
 }
 
 sub write-search-file($dr) {
-    say 'Writing html/search.html ...';
-    my $template = slurp("search_template.html");
+    say 'Writing html/js/search.js ...';
+    my $template = slurp("search_template.js");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
@@ -444,7 +444,7 @@ sub write-search-file($dr) {
     });
 
     my $items = @items.join(",\n");
-    spurt("html/search.html", $template.subst("ITEMS", $items));
+    spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 
 my %operator_disambiguation_file_written;
