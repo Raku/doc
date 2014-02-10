@@ -580,7 +580,11 @@ sub write-index-file($dr) {
             pod-item(pod-link(.name, .url))
         }),
     );
-    spurt 'html/index.html', p2h($pod);
+    spurt 'html/index.html', p2h(
+		$pod,
+		head => slurp('index_head.html'),
+		header => slurp('index_header.html'),
+	);
 }
 
 sub write-routine-file($dr, $name) {
