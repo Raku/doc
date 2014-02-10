@@ -615,7 +615,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 sub footer-html() {
     state $dt = ~DateTime.now;
     qq[
-    <div id="footer">
+    <div class="FOOTER">
         <p>
             Generated on $dt from the sources at
             <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
