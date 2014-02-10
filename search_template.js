@@ -4,7 +4,7 @@ $(function(){
 ITEMS
     ],
     select: function (event, ui) {
-	  search_select(ui.item.url);
+      search_select(ui.item.url);
     }
   }).focus();
 });
