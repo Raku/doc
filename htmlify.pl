@@ -34,8 +34,8 @@ sub url-munge($_) {
     return $_;
 }
 
-sub p2h($pod, Str:D :$head = '') {
-    pod2html($pod, :url(&url-munge), :$footer, :head($OUTER::head ~ $head));
+sub p2h($pod, Str:D :$head = '', Str:D :$header = '') {
+    pod2html($pod, :url(&url-munge), :$footer, :head($OUTER::head ~ $head), :$header);
 }
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
