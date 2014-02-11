@@ -34,8 +34,8 @@ sub url-munge($_) {
     return $_;
 }
 
-sub p2h($pod) {
-    pod2html($pod, :url(&url-munge), :$footer, :$head);
+sub p2h($pod, Str:D :$head = '', Str:D :$header = '') {
+    pod2html($pod, :url(&url-munge), :$footer, :head($OUTER::head ~ $head), :$header);
 }
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
@@ -422,8 +422,8 @@ sub viz-hints ($group) {
 }
 
 sub write-search-file($dr) {
-    say 'Writing html/search.html ...';
-    my $template = slurp("search_template.html");
+    say 'Writing html/js/search.js ...';
+    my $template = slurp("search_template.js");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
@@ -444,7 +444,7 @@ sub write-search-file($dr) {
     });
 
     my $items = @items.join(",\n");
-    spurt("html/search.html", $template.subst("ITEMS", $items));
+    spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 
 my %operator_disambiguation_file_written;
@@ -580,7 +580,11 @@ sub write-index-file($dr) {
             pod-item(pod-link(.name, .url))
         }),
     );
-    spurt 'html/index.html', p2h($pod);
+    spurt 'html/index.html', p2h(
+        $pod,
+        head => slurp('index_head.html'),
+        header => slurp('index_header.html'),
+    );
 }
 
 sub write-routine-file($dr, $name) {
