@@ -583,7 +583,7 @@ sub write-index-file($dr) {
     spurt 'html/index.html', p2h(
         $pod,
         head => slurp('template/index_head.html'),
-        header => slurp('tempalte/index_header.html'),
+        header => slurp('template/index_header.html'),
     );
 }
 
