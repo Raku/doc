@@ -425,7 +425,10 @@ sub write-search-file($dr) {
     say 'Writing html/js/search.js ...';
     my $template = slurp("search_template.js");
     my @items;
-    my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
+    my sub fix-url ($raw) {
+        $raw ~~ /.(.*?)('#'.*)?/;
+        $0 ~ '.html' ~ ($1||'')
+    };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
         "\{ label: \"Language: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
     });
