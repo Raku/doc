@@ -423,7 +423,7 @@ sub viz-hints ($group) {
 
 sub write-search-file($dr) {
     say 'Writing html/js/search.js ...';
-    my $template = slurp("search_template.js");
+    my $template = slurp("template/search_template.js");
     my @items;
     my sub fix-url ($raw) { $raw.substr(1) ~ '.html' };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
@@ -582,8 +582,8 @@ sub write-index-file($dr) {
     );
     spurt 'html/index.html', p2h(
         $pod,
-        head => slurp('index_head.html'),
-        header => slurp('index_header.html'),
+        head => slurp('template/index_head.html'),
+        header => slurp('tempalte/index_header.html'),
     );
 }
 
