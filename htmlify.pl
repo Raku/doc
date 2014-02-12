@@ -426,7 +426,7 @@ sub write-search-file($dr) {
     my $template = slurp("search_template.js");
     my @items;
     my sub fix-url ($raw) {
-        $raw ~~ /.(.*?)('#'.*)?/;
+        $raw ~~ /^.(.*?)('#'.*)?$/;
         $0 ~ '.html' ~ ($1||'')
     };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
