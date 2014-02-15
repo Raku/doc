@@ -625,5 +625,5 @@ sub footer-html() {
             incomplete. Your contribution is appreciated.
         </p>
     ];
-	$footer.subst('CONTENT', $footer_content);
+    $footer.subst('CONTENT', $footer_content);
 }
