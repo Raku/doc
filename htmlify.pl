@@ -614,10 +614,8 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 
 sub footer-html() {
     state $dt = ~DateTime.now;
-    state $footer_file_content = slurp 'template/footer.html';
-    qq[
-    $footer_file_content
-    <div class="FOOTER">
+    my $footer = slurp 'template/footer_template.html';
+    my $footer_content = qq[
         <p>
             Generated on $dt from the sources at
             <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
@@ -626,6 +624,6 @@ sub footer-html() {
             This is a work in progress to document Perl 6, and known to be
             incomplete. Your contribution is appreciated.
         </p>
-    </div>
     ];
+	$footer.subst('CONTENT', $footer_content);
 }
