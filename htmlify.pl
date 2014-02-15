@@ -17,11 +17,8 @@ my $*DEBUG = False;
 my $tg;
 my %methods-by-type;
 my $footer = footer-html;
-my $head   = q[
-<link rel="icon" href="/favicon.ico" type="favicon.ico" />
-<link rel="stylesheet" type="text/css" href="/style.css" media="screen" title="default" />
-];
-
+my $head   = slurp 'template/head.html';
+my $header = slurp 'template/header.html';
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -34,8 +31,8 @@ sub url-munge($_) {
     return $_;
 }
 
-sub p2h($pod, Str:D :$head = '', Str:D :$header = '') {
-    pod2html($pod, :url(&url-munge), :$footer, :head($OUTER::head ~ $head), :$header);
+sub p2h($pod) {
+    pod2html($pod, :url(&url-munge), :$head, :$header, :$footer);
 }
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
@@ -426,8 +423,8 @@ sub write-search-file($dr) {
     my $template = slurp("template/search_template.js");
     my @items;
     my sub fix-url ($raw) {
-        $raw ~~ /^.(.*?)('#'.*)?$/;
-        $0 ~ '.html' ~ ($1||'')
+        $raw #~~ /^.(.*?)('#'.*)?$/;
+        #$0 ~ '.html' ~ ($1||'')
     };
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
         "\{ label: \"Language: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
@@ -564,7 +561,7 @@ sub write-operator-files($dr) {
 sub write-index-file($dr) {
     say 'Writing html/index.html ...';
     my %routine-seen;
-    my $pod = pod-with-title('Perl 6 Documentation',
+    my $pod = pod-with-title('Index',
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
         ),
@@ -583,11 +580,7 @@ sub write-index-file($dr) {
             pod-item(pod-link(.name, .url))
         }),
     );
-    spurt 'html/index.html', p2h(
-        $pod,
-        head => slurp('template/index_head.html'),
-        header => slurp('template/index_header.html'),
-    );
+    spurt 'html/index.html', p2h($pod);
 }
 
 sub write-routine-file($dr, $name) {
@@ -621,8 +614,8 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 
 sub footer-html() {
     state $dt = ~DateTime.now;
-    qq[
-    <div class="FOOTER">
+    my $footer = slurp 'template/footer_template.html';
+    my $footer_content = qq[
         <p>
             Generated on $dt from the sources at
             <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
@@ -631,6 +624,6 @@ sub footer-html() {
             This is a work in progress to document Perl 6, and known to be
             incomplete. Your contribution is appreciated.
         </p>
-    </div>
     ];
+	$footer.subst('CONTENT', $footer_content);
 }
