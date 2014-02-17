@@ -619,10 +619,11 @@ sub footer-html() {
         <p>
             Generated on $dt from the sources at
             <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
-        </p>
-        <p>
             This is a work in progress to document Perl 6, and known to be
             incomplete. Your contribution is appreciated.
+        </p>
+        <p>
+            The Camelia image is copyright 2009 by Larry Wall.
         </p>
     ];
     $footer.subst('CONTENT', $footer_content);
