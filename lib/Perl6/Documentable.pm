@@ -26,7 +26,7 @@ class Perl6::Documentable {
     }
     method url() {
         $.kind eq 'operator'
-            ?? "/language/operators#$.subkind+" ~ uri_escape($.name)
+            ?? "/language/operators#" ~ uri_escape("$.subkind $.name".subst(/\s+/, '_', :g))
             !! "/$.kind/$.name"
             ;
     }
