@@ -254,11 +254,12 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             my $what = ~$/;
             my $operator = $name.split(' ', 2)[1];
             $dr.add-new(
-                        :kind<operator>,
+                        :kind<routine>,
                         :subkind($what),
                         :name($operator),
                         :pod($chunk),
                         :!pod-is-complete,
+                        :origin($d),
             );
         } else {
             # determine whether it's a sub or method
@@ -439,21 +440,21 @@ sub write-search-file($dr) {
         $raw #~~ /^.(.*?)('#'.*)?$/;
         #$0 ~ '.html' ~ ($1||'')
     };
-    @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
-        "\{ label: \"Language: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
-    });
-    @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
-        "\{ label: \"Type: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
-    });
-    my %seen;
-    @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
-        "\{ label: \"{ (.subkind // 'Routine').tclc }: {.name}\", value: \"{.name}\", url: \"{ fix-url(.url) }\" \}"
-    });
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
+    @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
+        qc[\{ label: "Language: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+    });
+    @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
+        qc[\{ label: "Type: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+    });
+    my %seen;
+    @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
+        qc[\{ label: "{ (.subkind // 'Routine').tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
+    });
     @items.push: $dr.lookup('operator', :by<kind>).map({
-        qq[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
+        qc[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
     });
 
     my $items = @items.join(",\n");
