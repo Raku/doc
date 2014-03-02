@@ -110,7 +110,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     my $dr = Perl6::Documentable::Registry.new;
 
     say 'Processing Pod files ...';
-    for (0..* Z @source) -> $num, $_ {
+    for @source.kv -> $num, $_ {
         my $podname  = .key;
         my $file     = .value;
         my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
@@ -247,37 +247,50 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
     for @chunks -> $chunk {
         my $name = $chunk[0].content[0].content[0];
         say "$podname.$name" if $*DEBUG;
-        next if $name ~~ /\s/;
         %methods-by-type{$podname}.push: $chunk;
-        # determine whether it's a sub or method
-        my Str $subkind;
-        {
-            my %counter;
-            for first-code-block($chunk).lines {
-                if ms/^ 'multi'? (sub|method)»/ {
-                    %counter{$0}++;
+        # check if it's an operator
+        if $name ~~ /\s/ {
+            next unless $name ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
+            my $what = ~$/;
+            my $operator = $name.split(' ', 2)[1];
+            $dr.add-new(
+                        :kind<operator>,
+                        :subkind($what),
+                        :name($operator),
+                        :pod($chunk),
+                        :!pod-is-complete,
+            );
+        } else {
+            # determine whether it's a sub or method
+            my Str $subkind;
+            {
+                my %counter;
+                for first-code-block($chunk).lines {
+                    if ms/^ 'multi'? (sub|method)»/ {
+                        %counter{$0}++;
+                    }
+                }
+                if %counter == 1 {
+                    ($subkind,) = %counter.keys;
+                }
+                if %counter<method> {
+                    write-qualified-method-call(
+                        :$name,
+                        :pod($chunk),
+                        :type($podname),
+                    );
                 }
             }
-            if %counter == 1 {
-                ($subkind,) = %counter.keys;
-            }
-            if %counter<method> {
-                write-qualified-method-call(
-                    :$name,
-                    :pod($chunk),
-                    :type($podname),
-                );
-            }
-        }
 
-        $dr.add-new(
-            :kind<routine>,
-            :$subkind,
-            :$name,
-            :pod($chunk),
-            :!pod-is-complete,
-            :origin($d),
-        );
+            $dr.add-new(
+                :kind<routine>,
+                :$subkind,
+                :$name,
+                :pod($chunk),
+                :!pod-is-complete,
+                :origin($d),
+            );
+        }
     }
 
     spurt "html/$what/$podname.html", p2h($pod);
