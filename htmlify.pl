@@ -444,17 +444,17 @@ sub write-search-file($dr) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
-        qc[\{ label: "Language: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+        qq[\{ label: "Language: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
     });
     @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
-        qc[\{ label: "Type: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+        qq[\{ label: "Type: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
     });
     my %seen;
     @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
-        qc[\{ label: "{ (.subkind // 'Routine').tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
+        qq[\{ label: "{ (.subkind // 'Routine').tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
     });
     @items.push: $dr.lookup('operator', :by<kind>).map({
-        qc[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
+        qq[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
     });
 
     my $items = @items.join(",\n");
@@ -609,8 +609,8 @@ sub write-routine-file($dr, $name) {
         pod-block("Documentation for $subkind $name, assembled from the
             following types:"),
         @docs.map({
-            pod-heading(.origin.name ~ '.' ~ .name),
-            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ .name)),
+            pod-heading(.origin.name ~ '.' ~ .name), # TODO: better way to get link to origin
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkind ~~ /fix/ ?? .subkind~'_' !! '') ~ .name)),
             .pod.list,
         })
     );
