@@ -339,9 +339,8 @@ sub pod-block(*@content) {
 sub pod-link($text, $url) {
     Pod::FormattingCode.new(
         type    => 'L',
-        content => [
-            join('|', $text, $url),
-        ],
+        content => [$text],
+        meta    => [$url],
     );
 }
 
