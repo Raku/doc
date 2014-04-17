@@ -584,12 +584,20 @@ sub write-index-file($dr) {
             pod-item( pod-link(.name, .url) )
         }),
         pod-heading('Types'),
-        $dr.lookup('type', :by<kind>).sort(*.name).map({
+        $dr.lookup('type', :by<kind>).sort(*.name).grep({
+           $_.name !~~ /^ 'X::' /
+        }).map({
             pod-item(pod-link(.name, .url))
         }),
         pod-heading('Routines'),
         $dr.lookup('routine', :by<kind>).sort(*.name).map({
             next if %routine-seen{.name}++;
+            pod-item(pod-link(.name, .url))
+        }),
+        pod-heading('Exceptions'),
+        $dr.lookup('type', :by<kind>).sort(*.name).grep({
+           $_.name ~~ /^ 'X::' /
+        }).map({
             pod-item(pod-link(.name, .url))
         }),
     );
