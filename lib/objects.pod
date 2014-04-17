@@ -32,14 +32,28 @@ with a colon:
 
     say @*INC.join: ':';
 
+Finally, calling a method without arguments is done by putting an empty
+argument list directly after it (C<()>) or by leaving it out completely.
+
+Since you have to put a C<:> after the method if you want to pass arguments
+without parenthesis, a method call without a colon or parens is unambiguously
+a method call without an argument list:
+
+    $computation-result.say;
+
 Many operations that don't look like method calls (for example smart
 matching, interpolating an object into a string) result in method
 calls under the hood.
 
 Methods can return mutable containers, in which case you can assign
-to the return value of a method call.
+to the return value of a method call. This is how read-writable attributes
+to objects are used:
 
     $*IN.input-line-separator = "\r\n";
+
+Here, we are calling the method C<input-line-separator> on the C<$*IN> object,
+give it no arguments and assign to the container it returned with the C<=>
+operator.
 
 All objects support the methods from class L<Mu>, which is the root
 of the type hierarchy.
@@ -241,7 +255,23 @@ hierarchy.
 
 All calls to public method are "virtual" in the C++ sense, which means that
 the actual type of an object determines which method to call, not the declared
-type.
+type:
+
+    class Parent {
+        method frob {
+            say "the parent class frobs"
+        }
+    }
+    
+    class Child is Parent {
+        method frob {
+            say "the child's somewhat more fancy frob is called"
+        }
+    }
+    
+    my Parent $test;
+    $test = Child.new;
+    $test.frob;          # calls the frob method of Child rather than Parent
 
 =head2 Object Construction
 
@@ -257,6 +287,9 @@ arguments and uses them to initialize public attributes.
     }
     my $p = Point.new( x => 1, y => 2);
     #             ^^^ inherited from class Mu
+    my $p2 = Point.new( x => 5 );
+    # the given value for x is used to calculate the right
+    # value for y.
 
 Mu.new calls method L<bless> on its invocant, passing along all the named
 arguments. C<bless> creates the new object, and then calls method C<BUILDALL>
@@ -268,6 +301,11 @@ attributes from this class are initialized from named arguments of the same
 name. In either case, if neither C<BUILD> nor the default mechanism has
 initialized the attribute, default values are applied (the C<2 * $!x> in the
 example above).
+
+Due to the nature of the default behavior of C<BUILDALL> and custom C<BUILD>
+submethods, you named arguments to the constructor C<new> derived from C<Mu>
+can correspond directly to public attributes of any of the classes in the
+method resolution order, or to any named parameter to any C<BUILD> submethod.
 
 This object construction scheme has several implications for customized
 constructors. First, custom C<BUILD> methods should always be submethods,
@@ -313,6 +351,10 @@ arguments, you must write your own C<new> method:
 However this is considered poor practice, because it makes correct
 initialization of objects from subclasses harder.
 
+Another thing to note is, that the name C<new> is not special in Perl 6. It is
+merely a common convention. You can call C<bless> from any method at all, or
+use C<CREATE> to fiddle around with low-level workings.
+
 =head1 Roles
 
 Roles are in some ways similar to classes, in that they are a collection of
@@ -326,7 +368,7 @@ instances, and roles are meant for managing behavior and code reuse.
         method serialize() {
             self.perl; # very primitive serialization
         }
-        method deserialization-code($buf) {
+        method deserialize($buf) {
             EVAL $buf; # reverse operation to .perl
         }
     }
@@ -337,7 +379,7 @@ instances, and roles are meant for managing behavior and code reuse.
     }
     my $p = Point.new(:x(1), :y(2));
     my $serialized = $p.serialize;      # method provided by the role
-    my $clone-of-p = Point.deserialization-code()($serialized);
+    my $clone-of-p = Point.deserialize($serialized);
     say $clone-of-p.x;      # 1
     =end code
 
@@ -379,7 +421,7 @@ produces the same class C<C> as
     role R2 {
         # methods here
     }
-    class C does R2 does R1 { }
+    class C does R1 does R2 { }
 
 =head2 Stubs
 
@@ -533,5 +575,13 @@ a nested list is returned.
     say A.^parents(:all).perl;          # (B, C1, C2, D, Any, Mu)
     say A.^parents(:all, :tree).perl;
         # ([B, [C1, [D, [Any, [Mu]]]], [C2, [D, [Any, [Mu]]]]],)
+
+=head3 attributes
+
+Even though attributes are private to a class, you can ask a class for its
+attributes with C<$object.^attributes>. Each attribute is represented by an
+instance of the Attribute class and has attributes of its own. Of particular
+interest are C<name>, C<rw> and C<ro>, C<has_accessor>, C<type>,
+and C<package>.
 
 =end pod
