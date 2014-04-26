@@ -176,7 +176,7 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
     $dr.add-new(
                 :kind<language>,
                 :name($name),
-                :url($podname),
+                :url("/language/$podname"),
                 :$pod,
                 :pod-is-complete,
                );
