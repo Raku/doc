@@ -170,9 +170,12 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
                        );
         }
     }
+    my $name = $pod.content[0].name eq "TITLE"
+            ?? $pod.content[0].content[0].content[0]
+            !! $podname;
     $dr.add-new(
                 :kind<language>,
-                :name($podname),
+                :name($name),
                 :$pod,
                 :pod-is-complete,
                );
