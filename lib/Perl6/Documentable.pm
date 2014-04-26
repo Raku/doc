@@ -4,6 +4,7 @@ class Perl6::Documentable {
     has Str $.subkind;  # class/role/enum, sub/method, prefix/infix/...
 
     has Str $.name;
+    has Str $.url;
     has     $.pod;
     has Bool $.pod-is-complete;
 
@@ -25,7 +26,7 @@ class Perl6::Documentable {
             ;
     }
     method url() {
-        $.kind eq 'operator'
+        $!url //= $.kind eq 'operator'
             ?? "/language/operators#" ~ uri_escape("$.subkind $.name".subst(/\s+/, '_', :g))
             !! "/$.kind/$.name"
             ;
