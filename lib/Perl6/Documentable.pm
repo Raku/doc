@@ -7,6 +7,7 @@ class Perl6::Documentable {
     has Str $.url;
     has     $.pod;
     has Bool $.pod-is-complete;
+    has Str $.summary = '';
 
     # the Documentable that this one was extracted from, if any
     has $.origin;

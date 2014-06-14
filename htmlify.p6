@@ -230,7 +230,9 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
                              :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
                             );
 
+    my $subkind = 'class';
     if $tg.types{$podname} -> $t {
+        $subkind = $t.packagetype;
         $pod.content.push: Pod::Block::Named.new(
             name    => 'Image',
             content => [ "/images/type-graph-$podname.png"],
@@ -284,7 +286,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
     }
     my $d = $dr.add-new(
         :kind<type>,
-        # TODO: subkind
+        :$subkind,
         :$pod,
         :pod-is-complete,
         :name($podname),
@@ -402,6 +404,12 @@ sub pod-heading($name, :$level = 1) {
         :$level,
         :content[pod-block($name)],
     );
+}
+
+sub pod-table(@content) {
+    Pod::Block::Table.new(
+        :@content
+    )
 }
 
 sub write-type-graph-images(:$force) {
@@ -619,34 +627,39 @@ sub write-operator-files($dr) {
 
 sub write-index-files($dr) {
     say 'Writing html/index.html ...';
-    my %routine-seen;
-    my $pod = pod-with-title('Index',
-        Pod::Block::Para.new(
-            content => ['Official Perl 6 documentation'],
-        ),
-        pod-heading("Language Documentation"),
+    spurt 'html/index.html', $head ~ header-html() ~ slurp('template/index-content.html') ~ $footer;
+
+    say 'Writing html/language.html ...';
+    spurt 'html/language.html', p2h(pod-with-title(
+        'Perl 6 Language Documentation',
         $dr.lookup('language', :by<kind>).sort(*.name).map({
             pod-item( pod-link(.name, .url) )
-        }),
-        pod-heading('Types'),
-        $dr.lookup('type', :by<kind>).sort(*.name).grep({
-           $_.name !~~ /^ 'X::' /
-        }).map({
-            pod-item(pod-link(.name, .url))
-        }),
-        pod-heading('Routines'),
-        $dr.lookup('routine', :by<kind>).sort(*.name).map({
-            next if %routine-seen{.name}++;
-            pod-item(pod-link(.name, .url))
-        }),
-        pod-heading('Exceptions'),
-        $dr.lookup('type', :by<kind>).sort(*.name).grep({
-           $_.name ~~ /^ 'X::' /
-        }).map({
-            pod-item(pod-link(.name, .url))
-        }),
-    );
-    spurt 'html/index.html', $head ~ header-html ~ slurp('template/index-content.html') ~ $footer;
+        })
+    ), 'language');
+
+    sub list-of-all($what) {
+        pod-block 'This is a list of ', Pod::FormattingCode.new(:type<B>:content['all']),
+            " built-in $what that are documented here as part of the the Perl 6 language. ",
+            "Use the above menu to narrow it down topically."
+    }
+
+    say 'Writing html/type.html ...';
+    spurt 'html/type.html', p2h(pod-with-title(
+        'Perl 6 Types',
+        list-of-all('types'),
+        pod-table($dr.lookup('type', :by<kind>).sort(*.name).map({
+            [.subkind, pod-link(.name, .url), .summary]
+        }))
+    ), 'type');
+
+    say 'Writing html/routine.html ...';
+    spurt 'html/routine.html', p2h(pod-with-title(
+        'Perl 6 Routines',
+        list-of-all('routines'),
+        pod-table($dr.lookup('routine', :by<kind>).categorize(*.name).sort(*.key)>>.value.map({
+            [set(.map: {.subkind // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
+        }))
+    ), 'routine');
 }
 
 sub write-routine-file($dr, $name) {
