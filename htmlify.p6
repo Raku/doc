@@ -36,6 +36,8 @@ my @menu =
     ('module', 'Modules'   ) => (),
     ('formalities',''      ) => ();
         
+my $head   = slurp 'template/head.html';
+my $footer = footer-html;
 sub header-html ($current-selection = 'nothing selected') {
     state $header = slurp 'template/header.html';
 
@@ -72,8 +74,6 @@ sub header-html ($current-selection = 'nothing selected') {
 }
 
 sub p2h($pod, $selection = 'nothing selected') {
-    state $head   = slurp 'template/head.html';
-    state $footer = footer-html;
     pod2html($pod, :url(&url-munge), :$head, :header(header-html $selection), :$footer);
 }
 
@@ -177,7 +177,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
-    write-index-file($dr);
+    write-index-files($dr);
 
     say 'Writing per-routine files ...';
     my %routine-seen;
@@ -617,7 +617,7 @@ sub write-operator-files($dr) {
     }
 }
 
-sub write-index-file($dr) {
+sub write-index-files($dr) {
     say 'Writing html/index.html ...';
     my %routine-seen;
     my $pod = pod-with-title('Index',
@@ -646,7 +646,7 @@ sub write-index-file($dr) {
             pod-item(pod-link(.name, .url))
         }),
     );
-    spurt 'html/index.html', p2h($pod);
+    spurt 'html/index.html', $head ~ header-html ~ slurp('template/index-content.html') ~ $footer;
 }
 
 sub write-routine-file($dr, $name) {
