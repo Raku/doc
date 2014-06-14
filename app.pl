@@ -14,7 +14,7 @@ get '(*dir)/:file' => sub {
 get '(*dir)/' => sub {
     my $self = shift;
     my $dir  = $self->param('dir');
-    return $self->redirect_to("/$dir/index.html");
+    return $self->redirect_to("/$dir.html");
 };
 
 get '/' => sub {

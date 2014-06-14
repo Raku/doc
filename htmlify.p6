@@ -16,9 +16,6 @@ my $*DEBUG = False;
 
 my $tg;
 my %methods-by-type;
-my $footer = footer-html;
-my $head   = slurp 'template/head.html';
-my $header = slurp 'template/header.html';
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -31,8 +28,53 @@ sub url-munge($_) {
     return $_;
 }
 
-sub p2h($pod) {
-    pod2html($pod, :url(&url-munge), :$head, :$header, :$footer);
+# TODO: Generate menulist automatically
+my @menu =
+    ('language',''         ) => (),
+    ('type', 'Types'       ) => <basic composite domain-specific exception>,
+    ('routine', 'Routines' ) => <sub method term operator>,
+    ('module', 'Modules'   ) => (),
+    ('formalities',''      ) => ();
+        
+sub header-html ($current-selection = 'nothing selected') {
+    state $header = slurp 'template/header.html';
+
+    my $menu-items = [~]
+        q[<div class="menu-items dark-green">],
+        @menu>>.key.map({qq[
+            <a class="menu-item {.[0] eq $current-selection ?? "selected darker-green" !! ""}"
+                href="/{.[0]}">
+                { .[1] || .[0].wordcase }
+            </a>
+        ]}), #"
+        q[</div>];
+
+    my $sub-menu-items = '';
+    state %sub-menus = @menu>>.key>>[0] Z=> @menu>>.value;
+    if %sub-menus{$current-selection} -> $_ {
+        $sub-menu-items = [~] 
+            q[<div class="menu-items darker-green">],
+            .map({qq[
+                <a class="menu-item" href="/$current-selection\-$_">
+                    {.wordcase}
+                </a>
+            ]}),
+            q[</div>]
+    }
+
+    $header.subst('MENU', qq[
+        <div class="menu">
+        $menu-items
+        $sub-menu-items
+        </div>
+    ])
+
+}
+
+sub p2h($pod, $selection = 'nothing selected') {
+    state $head   = slurp 'template/head.html';
+    state $footer = footer-html;
+    pod2html($pod, :url(&url-munge), :$head, :header(header-html $selection), :$footer);
 }
 
 sub pod-gist(Pod::Block $pod, $level = 0) {
@@ -150,7 +192,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
 }
 
 sub write-language-file(:$dr, :$what, :$pod, :$podname) {
-    spurt "html/$what/$podname.html", p2h($pod);
+    spurt "html/$what/$podname.html", p2h($pod, $what);
     if $podname eq 'operators' {
         my @chunks = chunks-grep($pod.content,
                                  :from({ $_ ~~ Pod::Heading and .level == 2}),
@@ -298,7 +340,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
         }
     }
 
-    spurt "html/$what/$podname.html", p2h($pod);
+    spurt "html/$what/$podname.html", p2h($pod, $what);
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
@@ -504,7 +546,7 @@ sub write-disambiguation-files($dr) {
                     }
                 });
         }
-        my $html = p2h($pod);
+        my $html = p2h($pod, 'routine');
         spurt "html/$name.html", $html;
         if all($p>>.kind) eq 'operator' {
             spurt "html/op/$name.html", $html;
@@ -552,7 +594,7 @@ sub write-op-disambiguation-files($dr) {
                     }
                 });
         }
-        my $html = p2h($pod);
+        my $html = p2h($pod, 'routine');
         spurt "html/$name.html", $html;
     }
 
@@ -571,7 +613,7 @@ sub write-operator-files($dr) {
             ),
             @($doc.pod),
         );
-        spurt "html/op/$what/$op.html", p2h($pod);
+        spurt "html/op/$what/$op.html", p2h($pod, $what);
     }
 }
 
@@ -582,7 +624,6 @@ sub write-index-file($dr) {
         Pod::Block::Para.new(
             content => ['Official Perl 6 documentation'],
         ),
-        # TODO: add more
         pod-heading("Language Documentation"),
         $dr.lookup('language', :by<kind>).sort(*.name).map({
             pod-item( pod-link(.name, .url) )
@@ -625,7 +666,7 @@ sub write-routine-file($dr, $name) {
             .pod.list,
         })
     );
-    spurt "html/routine/$name.html", p2h($pod);
+    spurt "html/routine/$name.html", p2h($pod, 'routine');
 }
 
 sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
@@ -634,7 +675,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         pod-block('From ', pod-link($type, "/type/{$type}#$name")),
         @$pod,
     );
-    spurt "html/{$type}.{$name}.html", p2h($p);
+    spurt "html/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
 sub footer-html() {
