@@ -632,8 +632,10 @@ sub write-operator-files($dr) {
 }
 
 sub write-index-files($dr) {
-    say 'Writing html/index.html ...';
-    spurt 'html/index.html', $head ~ header-html() ~ slurp('template/index-content.html') ~ $footer;
+    # XXX: Main index file can't be generated properly until
+    # it is turned into a Pod file. For now, it's just static.
+    #say 'Writing html/index.html ...';
+    #spurt 'html/index.html', p2h slurp('template/index-content.html');
 
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
