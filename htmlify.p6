@@ -138,35 +138,41 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
-    say 'Reading lib/ ...';
-    my @source  = recursive-dir('lib').grep(*.f).grep(rx{\.pod$});
-       @source .= map: {; .path.subst('lib/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
+    my $dr = Perl6::Documentable::Registry.new;
+
+    say 'Reading lib/Language ...';
+    my @lang-doc-sources =
+        recursive-dir('lib/Language/')\
+        .map({; .path.subst('lib/Language/', '').subst(rx{\.pod$}, '') => $_ })\
+        .sort;
+
+    say 'Processing Language Pod files ...';
+    for @lang-doc-sources.kv -> $num, (:key($podname), :value($file)) {
+        printf "% 4d/%d: % -40s => %s\n", $num, +@lang-doc-sources, $file.path, "language/$podname";
+        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+        write-language-file(:$dr, :what<language>, :$pod, :$podname);
+    }
+
+    # TODO: Abstract this duplication
+    say 'Reading lib/Type ...';
+    my @type-doc-sources =
+        recursive-dir('lib/Type/').grep(*.f)\
+        .map: {; .path.subst('lib/Type/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
 
     say 'Reading type graph ...';
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     {
         my %h = $tg.sorted.kv.flat.reverse;
-        @source .= sort: { %h{.key} // -1 };
+        @type-doc-sources .= sort: { %h{.key} // -1 };
     }
 
-    my $dr = Perl6::Documentable::Registry.new;
-
-    say 'Processing Pod files ...';
-    for @source.kv -> $num, $_ {
-        my $podname  = .key;
-        my $file     = .value;
-        my $what     = $podname ~~ /^<[A..Z]> | '::'/  ?? 'type' !! 'language';
-        printf "% 4d/%d: % -40s => %s\n", $num, +@source, $file.path, "$what/$podname";
-
+    # TODO: Abstract this duplication as well
+    say 'Processing Type Pod files ...';
+    for @type-doc-sources.kv -> $num, (:key($podname), :value($file)) {
+        printf "% 4d/%d: % -40s => %s\n", $num, +@type-doc-sources, $file.path, "type/$podname";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-
-        if $what eq 'language' {
-            write-language-file(:$dr, :$what, :$pod, :$podname);
-        }
-        else {
-            say pod-gist($pod[0]) if $*DEBUG;
-            write-type-file(:$dr, :$what, :pod($pod[0]), :$podname);
-        }
+        say pod-gist($pod[0]) if $*DEBUG;
+        write-type-file(:$dr, :what<type>, :pod($pod[0]), :$podname);
     }
 
     say 'Composing doc registry ...';
