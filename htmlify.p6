@@ -172,7 +172,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
         printf "% 4d/%d: % -40s => %s\n", $num, +@type-doc-sources, $file.path, "type/$podname";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
         say pod-gist($pod[0]) if $*DEBUG;
-        write-type-file(:$dr, :what<type>, :pod($pod[0]), :$podname);
+        write-type-file(:$dr, :what<type>, :$pod, :$podname);
     }
 
     say 'Composing doc registry ...';
