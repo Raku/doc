@@ -1,7 +1,7 @@
 use URI::Escape;
 class Perl6::Documentable {
     has Str $.kind;     # type, language doc, routine, operator
-    has Str @.subkind;  # class/role/enum, sub/method, prefix/infix/...
+    has Str @.subkinds;  # class/role/enum, sub/method, prefix/infix/...
 
     has Str $.name;
     has Str $.url;
@@ -19,10 +19,10 @@ class Perl6::Documentable {
     }
     method human-kind() {   # SCNR
         $.kind eq 'operator'
-            ?? "@.subkind[] operator"
+            ?? "@.subkinds[] operator"
             !! $.kind eq 'language'
             ?? 'language documentation'
-            !! english-list @.subkind // $.kind;
+            !! english-list @.subkinds // $.kind;
     }
 
     method filename() {
@@ -33,7 +33,7 @@ class Perl6::Documentable {
     }
     method url() {
         $!url //= $.kind eq 'operator'
-            ?? "/language/operators#" ~ uri_escape("@.subkind[] $.name".subst(/\s+/, '_', :g))
+            ?? "/language/operators#" ~ uri_escape("@.subkinds[] $.name".subst(/\s+/, '_', :g))
             !! "/$.kind/$.name"
             ;
     }

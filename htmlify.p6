@@ -211,7 +211,7 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
             my $operator = $heading.split(' ', 2)[1];
             $dr.add-new(
                         :kind<operator>,
-                        :subkind($what),
+                        :subkinds($what),
                         :name($operator),
                         :pod($chunk),
                         :!pod-is-complete,
@@ -292,7 +292,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
     }
     my $d = $dr.add-new(
         :kind<type>,
-        :$subkind,
+        :subkinds($subkind),
         :$pod,
         :pod-is-complete,
         :name($podname),
@@ -309,7 +309,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             my $operator = $name.split(' ', 2)[1];
             $dr.add-new(
                         :kind<routine>,
-                        :subkind($what),
+                        :subkinds($what),
                         :name($operator),
                         :pod($chunk),
                         :!pod-is-complete,
@@ -317,7 +317,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             );
         } else {
             # determine whether it's a sub or method
-            my Str @subkind;
+            my Str @subkinds;
             {
                 my %counter;
                 for first-code-block($chunk).lines {
@@ -326,9 +326,9 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
                     }
                 }
                 if +%counter {
-                    @subkind = %counter.keys;
+                    @subkinds = %counter.keys;
                 } else {
-                    note "The subkind of routine $name in $podname.pod cannot be determined."
+                    note "The subkinds of routine $name in $podname.pod cannot be determined."
                 }
                 if %counter<method> {
                     write-qualified-method-call(
@@ -341,7 +341,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
 
             $dr.add-new(
                 :kind<routine>,
-                :@subkind,
+                :@subkinds,
                 :$name,
                 :pod($chunk),
                 :!pod-is-complete,
@@ -512,7 +512,7 @@ sub write-search-file($dr) {
     });
     my %seen;
     @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
-        do for .subkind // 'Routine' -> $subkind {
+        do for .subkinds // 'Routine' -> $subkind {
             qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
         }
     });
@@ -621,7 +621,7 @@ sub write-op-disambiguation-files($dr) {
 sub write-operator-files($dr) {
     say 'Writing operator files ...';
     for $dr.lookup('operator', :by<kind>).list -> $doc {
-        my $what  = $doc.subkind;
+        my $what  = $doc.subkinds;
         my $op    = $doc.name;
         my $pod   = pod-with-title(
             "$what.tclc() $op operator",
@@ -660,7 +660,7 @@ sub write-index-files($dr) {
         'Perl 6 Types',
         list-of-all('types'),
         pod-table($dr.lookup('type', :by<kind>).sort(*.name).map({
-            [.subkind, pod-link(.name, .url), .summary]
+            [.subkinds, pod-link(.name, .url), .summary]
         }))
     ), 'type');
 
@@ -669,7 +669,7 @@ sub write-index-files($dr) {
         'Perl 6 Routines',
         list-of-all('routines'),
         pod-table($dr.lookup('routine', :by<kind>).categorize(*.name).sort(*.key)>>.value.map({
-            [set(.map: {.subkind // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
+            [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
         }))
     ), 'routine');
 }
@@ -679,7 +679,7 @@ sub write-routine-file($dr, $name) {
     my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'routine');
     my $subkind = 'routine';
     {
-        my @subkinds = @docs>>.subkind;
+        my @subkinds = @docs>>.subkinds;
         $subkind = @subkinds[0] if all(@subkinds>>.defined) && [eq] @subkinds;
     }
     my $pod = pod-with-title("Documentation for $subkind $name",
@@ -687,7 +687,7 @@ sub write-routine-file($dr, $name) {
             following types:"),
         @docs.map({
             pod-heading(.origin.name ~ '.' ~ .name), # TODO: better way to get link to origin
-            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkind ~~ /fix/ ?? .subkind~'_' !! '') ~ .name)),
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds ~~ /fix/ ?? .subkinds~'_' !! '') ~ .name)),
             .pod.list,
         })
     );
