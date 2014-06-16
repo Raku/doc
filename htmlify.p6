@@ -651,27 +651,22 @@ sub write-index-files($dr) {
 
     sub list-of-all($what) {
         pod-block 'This is a list of ', Pod::FormattingCode.new(:type<B>:content['all']),
-            " built-in $what that are documented here as part of the the Perl 6 language. ",
+            " built-in {$what}s that are documented here as part of the the Perl 6 language. ",
             "Use the above menu to narrow it down topically."
     }
 
-    say 'Writing html/type.html ...';
-    spurt 'html/type.html', p2h(pod-with-title(
-        'Perl 6 Types',
-        list-of-all('types'),
-        pod-table($dr.lookup('type', :by<kind>).sort(*.name).map({
-            [.subkinds, pod-link(.name, .url), .summary]
-        }))
-    ), 'type');
+    sub main-index($kind) {
+        say "Writing html/$kind.html ...";
+        spurt "html/$kind.html", p2h(pod-with-title(
+            "Perl 6 {$kind.tc}s",
+            list-of-all($kind),
+            pod-table($dr.lookup($kind, :by<kind>).categorize(*.name).sort(*.key)>>.value.map({
+                [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
+            }))
+        ), $kind);
+    }
 
-    say 'Writing html/routine.html ...';
-    spurt 'html/routine.html', p2h(pod-with-title(
-        'Perl 6 Routines',
-        list-of-all('routines'),
-        pod-table($dr.lookup('routine', :by<kind>).categorize(*.name).sort(*.key)>>.value.map({
-            [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
-        }))
-    ), 'routine');
+    .&main-index for <type routine>;
 }
 
 sub write-routine-file($dr, $name) {
