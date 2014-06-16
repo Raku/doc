@@ -1,7 +1,8 @@
 use URI::Escape;
 class Perl6::Documentable {
-    has Str $.kind;     # type, language doc, routine, operator
-    has Str @.subkinds;  # class/role/enum, sub/method, prefix/infix/...
+    has Str $.kind;        # type, language doc, routine, module
+    has Str @.subkinds;    # class/role/enum, sub/method, prefix/infix/...
+    has Str @.categories;  # basic type, exception, operator...
 
     has Str $.name;
     has Str $.url;
@@ -36,5 +37,8 @@ class Perl6::Documentable {
             ?? "/language/operators#" ~ uri_escape("@.subkinds[] $.name".subst(/\s+/, '_', :g))
             !! "/$.kind/$.name"
             ;
+    }
+    method categories() {
+        @!categories //= @.subkinds
     }
 }

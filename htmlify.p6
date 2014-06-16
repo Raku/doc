@@ -220,6 +220,7 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
             $dr.add-new(
                         :kind<routine>,
                         :subkinds($what),
+                        :categories<operator>,
                         :name($operator),
                         :pod($chunk),
                         :origin($d)
@@ -309,6 +310,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             $dr.add-new(
                         :kind<routine>,
                         :subkinds($what),
+                        :category<operator>,
                         :name($operator),
                         :pod($chunk),
                         :!pod-is-complete,
@@ -602,12 +604,12 @@ sub write-index-files($dr) {
     }
 
     # XXX: Only handles normal routines, not types nor operators
-    sub write-sub-index($kind, $subkind) {
-        say "Writing html/$kind-$subkind.html ...";
-        spurt "html/$kind-$subkind.html", p2h(pod-with-title(
-            "Perl 6 {$subkind.tc} {$kind.tc}s",
+    sub write-sub-index($kind, $category) {
+        say "Writing html/$kind-$category.html ...";
+        spurt "html/$kind-$category.html", p2h(pod-with-title(
+            "Perl 6 {$category.tc} {$kind.tc}s",
             pod-table($dr.lookup($kind, :by<kind>)\
-                .grep({$subkind ⊆ .subkinds})\ # XXX
+                .grep({$category ⊆ .categories})\ # XXX
                 .categorize(*.name).sort(*.key)>>.value\
                 .map({
                     [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
@@ -617,7 +619,7 @@ sub write-index-files($dr) {
     }
 
     .&write-main-index for <type routine>;
-    write-sub-index 'routine', $_ for <sub method term>;
+    write-sub-index 'routine', $_ for <sub method term operator>;
 }
 
 sub write-routine-file($dr, $name) {
