@@ -342,6 +342,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             $dr.add-new(
                 :kind<routine>,
                 :@subkinds,
+                :categories(@subkinds),
                 :$name,
                 :pod($chunk),
                 :!pod-is-complete,
