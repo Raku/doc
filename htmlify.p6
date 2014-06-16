@@ -655,7 +655,7 @@ sub write-index-files($dr) {
             "Use the above menu to narrow it down topically."
     }
 
-    sub main-index($kind) {
+    sub write-main-index($kind) {
         say "Writing html/$kind.html ...";
         spurt "html/$kind.html", p2h(pod-with-title(
             "Perl 6 {$kind.tc}s",
@@ -666,7 +666,19 @@ sub write-index-files($dr) {
         ), $kind);
     }
 
-    .&main-index for <type routine>;
+    # XXX: Only handles normal routines, not types nor operators
+    sub write-sub-index($kind, $subkind) {
+        say "Writing html/$kind-$subkind.html ...";
+        spurt "html/$kind-$subkind.html", p2h(pod-with-title(
+            "Perl 6 {$subkind.tc} {$kind.tc}s",
+            pod-table($dr.lookup($kind, :by<kind>).grep({$subkind ⊆ .subkinds}).map({
+                [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.name, .url), .summary]
+            }))
+        ), $kind);
+    }
+
+    .&write-main-index for <type routine>;
+    write-sub-index 'routine', $_ for <sub method term>;
 }
 
 sub write-routine-file($dr, $name) {
