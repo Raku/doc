@@ -179,7 +179,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $dr.compose;
 
     write-disambiguation-files($dr);
-    write-op-disambiguation-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
     write-index-files($dr);
@@ -198,6 +197,16 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
 
 sub write-language-file(:$dr, :$what, :$pod, :$podname) {
     spurt "html/$what/$podname.html", p2h($pod, $what);
+    my $name = $pod.content[0].name eq "TITLE"
+            ?? $pod.content[0].content[0].content[0]
+            !! $podname;
+    my $d = $dr.add-new(
+                :kind<language>,
+                :name($name),
+                :url("/language/$podname"),
+                :$pod,
+                :pod-is-complete,
+               );
     if $podname eq 'operators' {
         my @chunks = chunks-grep($pod.content,
                                  :from({ $_ ~~ Pod::Heading and .level == 2}),
@@ -213,20 +222,11 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
                         :subkinds($what),
                         :name($operator),
                         :pod($chunk),
+                        :origin($d)
                         :!pod-is-complete,
                        );
         }
     }
-    my $name = $pod.content[0].name eq "TITLE"
-            ?? $pod.content[0].content[0].content[0]
-            !! $podname;
-    $dr.add-new(
-                :kind<language>,
-                :name($name),
-                :url("/language/$podname"),
-                :$pod,
-                :pod-is-complete,
-               );
 }
 
 sub write-type-file(:$dr, :$what, :$pod, :$podname) {
@@ -570,50 +570,6 @@ sub write-disambiguation-files($dr) {
     say '';
 }
 
-sub write-op-disambiguation-files($dr) {
-    say 'Writing operator disambiguation files ...';
-    for $dr.lookup('operator', :by<kind>).classify(*.name).kv -> $name, @ops {
-        next unless %operator_disambiguation_file_written{$name};
-        my $pod = pod-with-title("Disambiguation for '$name'");
-        if @ops == 1 {
-            my $p = @ops[0];
-            if $p.origin -> $o {
-                $pod.content.push:
-                    pod-block(
-                        pod-link("'$name' is a $p.human-kind()", $p.url),
-                        ' from ',
-                        pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
-                    );
-            }
-            else {
-                $pod.content.push:
-                    pod-block(
-                        pod-link("'$name' is a $p.human-kind()", $p.url)
-                    );
-            }
-        }
-        else {
-            $pod.content.push:
-                pod-block("'$name' can be anything of the following"),
-                @ops.map({
-                    if .origin -> $o {
-                        pod-item(
-                            pod-link(.human-kind, .url),
-                            ' from ',
-                            pod-link($o.human-kind() ~ ' ' ~ $o.name, $o.url),
-                        )
-                    }
-                    else {
-                        pod-item( pod-link(.human-kind, .url) )
-                    }
-                });
-        }
-        my $html = p2h($pod, 'routine');
-        spurt "html/$name.html", $html;
-    }
-
-}
-
 sub write-index-files($dr) {
     # XXX: Main index file can't be generated properly until
     # it is turned into a Pod file. For now, it's just static.
@@ -654,7 +610,7 @@ sub write-index-files($dr) {
                 .grep({$subkind ⊆ .subkinds})\ # XXX
                 .categorize(*.name).sort(*.key)>>.value\
                 .map({
-                    [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.name, .url), .summary]
+                    [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
                 })
             )
         ), $kind);
@@ -676,7 +632,7 @@ sub write-routine-file($dr, $name) {
         pod-block("Documentation for $subkind $name, assembled from the
             following types:"),
         @docs.map({
-            pod-heading(.origin.name ~ '.' ~ .name), # TODO: better way to get link to origin
+            pod-heading("{.name} in {.origin.name}"), # TODO: better way to get link to origin
             pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds ~~ /fix/ ?? .subkinds~'_' !! '') ~ .name)),
             .pod.list,
         })
