@@ -133,8 +133,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
 
     say 'Creating html/ subdirectories ...';
-    for '', <type language routine images op op/prefix op/postfix op/infix
-             op/circumfix op/postcircumfix op/listop> {
+    for '', <type language routine images> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -310,7 +309,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             $dr.add-new(
                         :kind<routine>,
                         :subkinds($what),
-                        :category<operator>,
+                        :categories<operator>,
                         :name($operator),
                         :pod($chunk),
                         :!pod-is-complete,
