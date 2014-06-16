@@ -512,7 +512,9 @@ sub write-search-file($dr) {
     });
     my %seen;
     @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
-        qq[\{ label: "{ (.subkind // 'Routine').tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
+        do for .subkind // 'Routine' -> $subkind {
+            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
+        }
     });
     @items.push: $dr.lookup('operator', :by<kind>).map({
         qq[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]

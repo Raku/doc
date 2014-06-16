@@ -12,12 +12,17 @@ class Perl6::Documentable {
     # the Documentable that this one was extracted from, if any
     has $.origin;
 
+    my sub english-list (*@l) {
+        @l > 1
+            ?? @l[0..*-2].join(', ') ~ " and @l[*-1]"
+            !! ~@l[0]
+    }
     method human-kind() {   # SCNR
         $.kind eq 'operator'
             ?? "@.subkind[] operator"
             !! $.kind eq 'language'
             ?? 'language documentation'
-            !! $.subkind // $.kind;
+            !! english-list @.subkind // $.kind;
     }
 
     method filename() {
