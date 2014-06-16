@@ -650,9 +650,13 @@ sub write-index-files($dr) {
         say "Writing html/$kind-$subkind.html ...";
         spurt "html/$kind-$subkind.html", p2h(pod-with-title(
             "Perl 6 {$subkind.tc} {$kind.tc}s",
-            pod-table($dr.lookup($kind, :by<kind>).grep({$subkind ⊆ .subkinds}).map({
-                [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.name, .url), .summary]
-            }))
+            pod-table($dr.lookup($kind, :by<kind>)\
+                .grep({$subkind ⊆ .subkinds})\ # XXX
+                .categorize(*.name).sort(*.key)>>.value\
+                .map({
+                    [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.name, .url), .summary]
+                })
+            )
         ), $kind);
     }
 
