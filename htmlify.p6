@@ -180,7 +180,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
 
     write-disambiguation-files($dr);
     write-op-disambiguation-files($dr);
-    write-operator-files($dr);
     write-type-graph-images(:force($typegraph));
     write-search-file($dr);
     write-index-files($dr);
@@ -210,7 +209,7 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
             my $what = ~$/;
             my $operator = $heading.split(' ', 2)[1];
             $dr.add-new(
-                        :kind<operator>,
+                        :kind<routine>,
                         :subkinds($what),
                         :name($operator),
                         :pod($chunk),
@@ -516,9 +515,6 @@ sub write-search-file($dr) {
             qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
         }
     });
-    @items.push: $dr.lookup('operator', :by<kind>).map({
-        qq[\{ label: "$_.human-kind() {escape .name}", value: "{escape .name}", url: "{ fix-url .url }"\}]
-    });
 
     my $items = @items.join(",\n");
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
@@ -616,23 +612,6 @@ sub write-op-disambiguation-files($dr) {
         spurt "html/$name.html", $html;
     }
 
-}
-
-sub write-operator-files($dr) {
-    say 'Writing operator files ...';
-    for $dr.lookup('operator', :by<kind>).list -> $doc {
-        my $what  = $doc.subkinds;
-        my $op    = $doc.name;
-        my $pod   = pod-with-title(
-            "$what.tclc() $op operator",
-            pod-block(
-                "Documentation for $what $op, extracted from ",
-                pod-link("the operators language documentation", "/language/operators")
-            ),
-            @($doc.pod),
-        );
-        spurt "html/op/$what/$op.html", p2h($pod, $what);
-    }
 }
 
 sub write-index-files($dr) {
