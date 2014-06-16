@@ -317,7 +317,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
             );
         } else {
             # determine whether it's a sub or method
-            my Str $subkind;
+            my Str @subkind;
             {
                 my %counter;
                 for first-code-block($chunk).lines {
@@ -325,8 +325,10 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
                         %counter{$0}++;
                     }
                 }
-                if %counter == 1 {
-                    ($subkind,) = %counter.keys;
+                if +%counter {
+                    @subkind = %counter.keys;
+                } else {
+                    note "The subkind of routine $name in $podname.pod cannot be determined."
                 }
                 if %counter<method> {
                     write-qualified-method-call(
@@ -339,7 +341,7 @@ sub write-type-file(:$dr, :$what, :$pod, :$podname) {
 
             $dr.add-new(
                 :kind<routine>,
-                :$subkind,
+                :@subkind,
                 :$name,
                 :pod($chunk),
                 :!pod-is-complete,
