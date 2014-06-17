@@ -184,46 +184,29 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
     for @pod-sources.kv -> $num, (:key($podname), :value($file)) {
         printf "% 4d/%d: % -40s => %s\n", $num, $total, $file.path, "$what/$podname";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-        process-pod-file($what, :$dr, :what($what), :$pod, :$podname);
+        process-pod-source $what, :$dr, :what($what), :$pod, :$podname;
     }
 }
 
-multi process-pod-file("language", :$dr, :$what, :$pod, :$podname) {
+multi process-pod-source("language", :$dr, :$what, :$pod, :$podname) {
+    my $name = $podname;
+    if $pod.content[0].name eq "TITLE" {
+        $name = $pod.content[0].content[0].content[0]
+    } else {
+        note "$podname does not have an =TITLE";
+    }
+    my $origin = $dr.add-new(
+        :kind<language>,
+        :name($name),
+        :url("/language/$podname"),
+        :$pod,
+        :pod-is-complete,
+    );
+    find-definitions :$dr, :$pod, :$origin;
     spurt "html/$what/$podname.html", p2h($pod, $what);
-    my $name = $pod.content[0].name eq "TITLE"
-            ?? $pod.content[0].content[0].content[0]
-            !! $podname;
-    my $d = $dr.add-new(
-                :kind<language>,
-                :name($name),
-                :url("/language/$podname"),
-                :$pod,
-                :pod-is-complete,
-               );
-    if $podname eq 'operators' {
-        my @chunks = chunks-grep($pod.content,
-                                 :from({ $_ ~~ Pod::Heading and .level == 2}),
-                                 :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-                                );
-        for @chunks -> $chunk {
-            my $heading = $chunk[0].content[0].content[0];
-            next unless $heading ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
-            my $what = ~$/;
-            my $operator = $heading.split(' ', 2)[1];
-            $dr.add-new(
-                        :kind<routine>,
-                        :subkinds($what),
-                        :categories<operator>,
-                        :name($operator),
-                        :pod($chunk),
-                        :origin($d)
-                        :!pod-is-complete,
-                       );
-        }
-    }
 }
 
-multi process-pod-file("type", :$dr, :$what, :$pod, :$podname) {
+multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
     my @chunks = chunks-grep($pod.content,
                              :from({ $_ ~~ Pod::Heading and .level == 2}),
                              :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
@@ -346,6 +329,49 @@ multi process-pod-file("type", :$dr, :$what, :$pod, :$podname) {
     }
 
     spurt "html/$what/$podname.html", p2h($pod, $what);
+}
+
+sub find-definitions (:$pod, :$origin, :$dr) {
+    my @chunks = chunks-grep($pod.content,
+                             :from({
+                                 $_ ~~ Pod::Heading and
+                                 .content[0].content[0] ~~ { $_ ~~ Str and .words.elems == 2 }
+                             }),
+                             :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+                            );
+    for @chunks -> $chunk {
+        my ($what, $name) = $chunk[0].content[0].content[0].words;
+        my $created;
+        my &add-new = { $created = $dr.add-new(
+            :$name,
+            :subkinds($what),
+            :pod($chunk),
+            :$origin,
+            :!pod-is-complete,
+            |%_
+        )}
+        given $what {
+            when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
+                add-new :kind<routine>
+                        :categories<operator>
+            }
+            when / sub | method / {
+                add-new :kind<routine>
+            }
+            when / routine / {
+                add-new :kind<routine>
+                        :subkinds<sub>
+            }
+            when / class | role / {
+                add-new :kind<type>
+            }
+            default {
+                next
+            }
+        }
+        say "Found definition of $what $name in $origin.name()";
+        $chunk[0].content[0] = pod-link "$what $name", $created.url;
+    }
 }
 
 sub chunks-grep(:$from!, :&to!, *@elems) {
