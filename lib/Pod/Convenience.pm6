@@ -37,24 +37,6 @@ sub first-code-block(@pod) is export {
     '';
 }
 
-sub chunks-grep(:$from!, :&to!, *@elems) is export {
-    my @current;
-
-    gather {
-        for @elems -> $c {
-            if @current && to(@current[0], $c) {
-                take [@current];
-                @current = ();
-                @current.push: $c if $c ~~ $from;
-            }
-            elsif @current or $c ~~ $from {
-                @current.push: $c;
-            }
-        }
-        take [@current] if @current;
-    }
-}
-
 sub pod-with-title($title, *@blocks) is export {
     Pod::Block::Named.new(
         name => "pod",

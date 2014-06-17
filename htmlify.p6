@@ -258,68 +258,96 @@ multi write-type-source($doc) {
     spurt "html/$what/$podname.html", p2h($pod, $what);
 }
 
-sub find-definitions (:$pod, :$origin, :$dr) {
-    my @chunks = chunks-grep($pod.content,
-        :from({
-            $_ ~~ Pod::Heading and
-            .content[0].content[0] ~~ { $_ ~~ Str and .words.elems == 2 }
-        }),
-        :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-    );
-    for @chunks -> $chunk {
-        my ($what, $name) = $chunk[0].content[0].content[0].words;
-        my $created;
-        my &add-new = { $created = $dr.add-new(
-            :$name,
-            :subkinds($what),
-            :pod($chunk),
-            :$origin,
+sub find-definitions (:$pod, :$*origin, :$dr) {
+    my $*old-level = Inf;
+    my $*created;
+
+    my sub add-new (*%_) {
+        $*created = $dr.add-new(
+            :$*name,
+            :subkinds($*what),
+            :$*origin,
+            :pod[],
             :!pod-is-complete,
             |%_
-        )}
-        given $what {
-            when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
-                add-new :kind<routine>
-                        :categories<operator>
-            }
-            when 'sub'|'method'|'term' {
-                add-new :kind<routine>
-                        :categories($what)
-            }
-            when 'routine' {
-                my Str @subkinds = first-code-block($chunk)\
-                    .match(:g,
-                        /:s ^ 'multi'? (sub|method)»/
-                    )>>[0]>>.Str.Set.list;
-                if !@subkinds {
-                    note "The subkinds of routine $name in $origin.name() cannot be determined."
+        );
+    }
+
+    # Run through the pod content, and look for headings.
+    # If a heading is a definition, like "class FooBar", process
+    # the class and slurp up the pod until the next heading at
+    # the same or lower level.
+    for $pod ~~ Positional ?? @$pod !! $pod.content -> $c {
+        if $c ~~ Pod::Heading and $c.level <= $*old-level {
+            # Finalize our new definition
+            chunk-finished if $*created;
+
+            # Is this new header a definition?
+            # If so, begin processing it.
+            # If not, skip to the next heading.
+            next unless $c.content[0].content[0] ~~ Str
+                    and 2 == my @words = $c.content[0].content[0].words;
+            my ($*what, $*name) = @words;
+            given $*what {
+                when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
+                    add-new :kind<routine>
+                            :categories<operator>
                 }
-                add-new :kind<routine>
-                        :@subkinds
-                        :categories(@subkinds)
+                when 'sub'|'method'|'term'|'routine' {
+                    add-new :kind<routine>
+                            :categories($*what)
+                }
+                when 'class'|'role' {
+                    add-new :kind<type>;
+                }
+                default {
+                    next
+                }
             }
-            when / class | role / {
-                add-new :kind<type>;
-                find-definitions :pod(pod-block($chunk[1..*])), :origin($created), :$dr;
-            }
-            default {
-                next
-            }
+            # We made it this far, so it's a valid definition
+            say "    Found definition of $*what $*name in $*origin.name().";
+            $*old-level = $c.level;
+
+            $c.content[0] = pod-link "$*what $*name",
+                $*created.url ~ "#$*origin.human-kind() $*origin.name()".subst(:g, /\s+/, '_');
+
+            $*created.pod.push: $c;
+        } elsif $*created {
+            # Slurp up pod content within the same level as our definition
+            $*created.pod.push: $c;
         }
+    }
+    # Finalize our new definition if we haven't already
+    chunk-finished if $*created;
 
-        say "    Found definition of $what $name in $origin.name().";
+    my sub chunk-finished () {
+        my $chunk = $*created.pod;
 
-        if $created.subkinds ∋ 'method' {
-            %methods-by-type{$origin.name}.push: $chunk;
+        if $*created.subkinds eq 'routine' {
+            # Determine proper subkinds
+            my Str @subkinds = first-code-block($chunk)\
+                .match(:g, /:s ^ 'multi'? (sub|method)»/)\
+                .>>[0]>>.Str.Set.list;
+
+            note "The subkinds of routine $*created.name() in $*origin.name() cannot be determined."
+                unless @subkinds;
+
+            $*created.subkinds   = @subkinds;
+            $*created.categories = @subkinds;
+        }
+        if $*created.subkinds ∋ 'method' {
+            %methods-by-type{$*origin.name}.push: $chunk;
             write-qualified-method-call(
-                :$name,
+                :name($*created.name),
                 :pod($chunk),
-                :type($origin.name),
+                :type($*origin.name),
             );
         }
 
-        $chunk[0].content[0] = pod-link "$what $name",
-            $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
+        find-definitions :pod($chunk[1..*]), :origin($*created), :$dr;
+
+        $*old-level = Inf;
+        undefine $*created;
     }
 }
 
