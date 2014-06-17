@@ -59,17 +59,21 @@ sub pod-with-title($title, *@blocks) is export {
     Pod::Block::Named.new(
         name => "pod",
         content => [
-            Pod::Block::Named.new(
-                name => "TITLE",
-                content => Array.new(
-                    Pod::Block::Para.new(
-                        content => [$title],
-                    )
-                )
-            ),
+            pod-title($title),
             @blocks.flat,
         ]
     );
+}
+
+sub pod-title($title) is export {
+    Pod::Block::Named.new(
+        name    => "TITLE",
+        content => Array.new(
+            Pod::Block::Para.new(
+                content => [$title],
+            )
+        )
+    )
 }
 
 sub pod-block(*@content) is export {

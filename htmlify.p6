@@ -196,6 +196,10 @@ multi write-type-source($doc) {
 
     say "Writing $what document for $podname ...";
 
+    if !$doc.pod-is-complete {
+        $pod = pod-with-title("$doc.subkinds() $podname", $pod[1..*])
+    }
+
     if $type {
         $pod.content.push: Pod::Block::Named.new(
             name    => 'Image',
