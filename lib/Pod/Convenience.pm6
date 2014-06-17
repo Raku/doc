@@ -42,7 +42,7 @@ sub chunks-grep(:$from!, :&to!, *@elems) is export {
 
     gather {
         for @elems -> $c {
-            if @current && ($c ~~ $from || to(@current[0], $c)) {
+            if @current && to(@current[0], $c) {
                 take [@current];
                 @current = ();
                 @current.push: $c if $c ~~ $from;

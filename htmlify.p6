@@ -109,7 +109,11 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     my %h = $tg.sorted.kv.flat.reverse;
 
     process-pod-dir 'Language', :$dr;
+    # XXX: Generalize
     process-pod-dir 'Type', :$dr :sorted-by{ %h{.key} // -1 };
+    for $dr.lookup("type", :by<kind>).list {
+        write-type-source $_;
+    }
 
     say 'Composing doc registry ...';
     $dr.compose;
@@ -148,11 +152,11 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
     for @pod-sources.kv -> $num, (:key($podname), :value($file)) {
         printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$what/$podname";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-        process-pod-source $what, :$dr, :what($what), :$pod, :$podname;
+        process-pod-source :$dr, :$what, :$pod, :$podname, :pod-is-complete;
     }
 }
 
-multi process-pod-source("language", :$dr, :$what, :$pod, :$podname) {
+multi process-pod-source(:$what where "language", :$dr, :$pod, :$podname, :$pod-is-complete) {
     my $name = $podname;
     if $pod.content[0].name eq "TITLE" {
         $name = $pod.content[0].content[0].content[0]
@@ -170,17 +174,27 @@ multi process-pod-source("language", :$dr, :$what, :$pod, :$podname) {
     spurt "html/$what/$podname.html", p2h($pod, $what);
 }
 
-multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
+multi process-pod-source(:$what where "type", :$dr, :$pod, :$podname, :$pod-is-complete) {
     my $type = $tg.types{$podname};
     my $origin = $dr.add-new(
         :kind<type>,
         :subkinds($type ?? $type.packagetype !! 'class'),
         :$pod,
-        :pod-is-complete,
+        :$pod-is-complete,
         :name($podname),
     );
 
     find-definitions :$dr, :$pod, :$origin;
+}
+
+# XXX: Generalize
+multi write-type-source($doc) {
+    my $pod     = $doc.pod;
+    my $podname = $doc.name;
+    my $type    = $tg.types{$podname};
+    my $what    = 'type';
+
+    say "Writing $what document for $podname ...";
 
     if $type {
         $pod.content.push: Pod::Block::Named.new(
@@ -281,7 +295,8 @@ sub find-definitions (:$pod, :$origin, :$dr) {
                         :categories(@subkinds)
             }
             when / class | role / {
-                add-new :kind<type>
+                add-new :kind<type>;
+                find-definitions :pod(pod-block($chunk[1..*])), :origin($created), :$dr;
             }
             default {
                 next
