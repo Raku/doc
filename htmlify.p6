@@ -38,7 +38,7 @@ my @menu =
         
 my $head   = slurp 'template/head.html';
 my $footer = footer-html;
-sub header-html ($current-selection = 'nothing selected') {
+sub header-html ($current-selection = 'nothing selected') is cached {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
@@ -139,40 +139,12 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
 
     my $dr = Perl6::Documentable::Registry.new;
 
-    say 'Reading lib/Language ...';
-    my @lang-doc-sources =
-        recursive-dir('lib/Language/')\
-        .map({; .path.subst('lib/Language/', '').subst(rx{\.pod$}, '') => $_ })\
-        .sort;
-
-    say 'Processing Language Pod files ...';
-    for @lang-doc-sources.kv -> $num, (:key($podname), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num, +@lang-doc-sources, $file.path, "language/$podname";
-        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-        write-language-file(:$dr, :what<language>, :$pod, :$podname);
-    }
-
-    # TODO: Abstract this duplication
-    say 'Reading lib/Type ...';
-    my @type-doc-sources =
-        recursive-dir('lib/Type/').grep(*.f)\
-        .map: {; .path.subst('lib/Type/', '').subst(rx{\.pod$}, '').subst(:g, '/', '::') => $_ };
-
     say 'Reading type graph ...';
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
-    {
-        my %h = $tg.sorted.kv.flat.reverse;
-        @type-doc-sources .= sort: { %h{.key} // -1 };
-    }
+    my %h = $tg.sorted.kv.flat.reverse;
 
-    # TODO: Abstract this duplication as well
-    say 'Processing Type Pod files ...';
-    for @type-doc-sources.kv -> $num, (:key($podname), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num, +@type-doc-sources, $file.path, "type/$podname";
-        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-        say pod-gist($pod[0]) if $*DEBUG;
-        write-type-file(:$dr, :what<type>, :$pod, :$podname);
-    }
+    process-pod-dir 'Language', :$dr;
+    process-pod-dir 'Type', :$dr :sorted-by{ %h{.key} // -1 };
 
     say 'Composing doc registry ...';
     $dr.compose;
@@ -194,7 +166,28 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     say 'Processing complete.';
 }
 
-sub write-language-file(:$dr, :$what, :$pod, :$podname) {
+sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
+    say "Reading lib/$dir ...";
+    my @pod-sources =
+        recursive-dir("lib/$dir/")\
+        .map({;
+            .path.subst("lib/$dir/", '')\
+                 .subst(rx{\.pod$},  '')\
+                 .subst(:g,    '/',  '::')
+            => $_
+        }).sort(&sorted-by);
+
+    say "Processing $dir Pod files ...";
+    my $total = +@pod-sources;
+    my $what  = $dir.lc;
+    for @pod-sources.kv -> $num, (:key($podname), :value($file)) {
+        printf "% 4d/%d: % -40s => %s\n", $num, $total, $file.path, "$what/$podname";
+        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+        process-pod-file($what, :$dr, :what($what), :$pod, :$podname);
+    }
+}
+
+multi process-pod-file("language", :$dr, :$what, :$pod, :$podname) {
     spurt "html/$what/$podname.html", p2h($pod, $what);
     my $name = $pod.content[0].name eq "TITLE"
             ?? $pod.content[0].content[0].content[0]
@@ -229,7 +222,7 @@ sub write-language-file(:$dr, :$what, :$pod, :$podname) {
     }
 }
 
-sub write-type-file(:$dr, :$what, :$pod, :$podname) {
+multi process-pod-file("type", :$dr, :$what, :$pod, :$podname) {
     my @chunks = chunks-grep($pod.content,
                              :from({ $_ ~~ Pod::Heading and .level == 2}),
                              :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
@@ -522,8 +515,6 @@ sub write-search-file($dr) {
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 
-my %operator_disambiguation_file_written;
-
 sub write-disambiguation-files($dr) {
     say 'Writing disambiguation files ...';
     for $dr.grouped-by('name').kv -> $name, $p is copy {
@@ -564,10 +555,6 @@ sub write-disambiguation-files($dr) {
         }
         my $html = p2h($pod, 'routine');
         spurt "html/$name.html", $html;
-        if all($p>>.kind) eq 'operator' {
-            spurt "html/op/$name.html", $html;
-            %operator_disambiguation_file_written{$p[0].name} = 1;
-        }
     }
     say '';
 }
@@ -634,8 +621,8 @@ sub write-routine-file($dr, $name) {
         pod-block("Documentation for $subkind $name, assembled from the
             following types:"),
         @docs.map({
-            pod-heading("{.name} in {.origin.name}"), # TODO: better way to get link to origin
-            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds ~~ /fix/ ?? .subkinds~'_' !! '') ~ .name)),
+            pod-heading("{.human-kind} {.name} defined in {.origin.human-kind} {.origin.name}"),
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name)),
             .pod.list,
         })
     );
@@ -648,7 +635,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         pod-block('From ', pod-link($type, "/type/{$type}#$name")),
         @$pod,
     );
-    spurt "html/{$type}.{$name}.html", p2h($p, 'routine');
+    spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
 sub footer-html() {

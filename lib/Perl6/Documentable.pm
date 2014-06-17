@@ -19,10 +19,10 @@ class Perl6::Documentable {
             !! ~@l[0]
     }
     method human-kind() {   # SCNR
-        $.kind eq 'operator'
-            ?? "@.subkinds[] operator"
-            !! $.kind eq 'language'
+        $.kind eq 'language'
             ?? 'language documentation'
+            !! @.categories eq 'operator'
+            ?? "@.subkinds[] operator"
             !! english-list @.subkinds // $.kind;
     }
 
