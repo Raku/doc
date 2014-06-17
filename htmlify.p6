@@ -33,8 +33,9 @@ my @menu =
     ('language',''         ) => (),
     ('type', 'Types'       ) => <basic composite domain-specific exception>,
     ('routine', 'Routines' ) => <sub method term operator>,
-    ('module', 'Modules'   ) => (),
-    ('formalities',''      ) => ();
+#    ('module', 'Modules'   ) => (),
+#    ('formalities',''      ) => ();
+;
         
 my $head   = slurp 'template/head.html';
 my $footer = footer-html;
@@ -45,7 +46,7 @@ sub header-html ($current-selection = 'nothing selected') is cached {
         q[<div class="menu-items dark-green">],
         @menu>>.key.map({qq[
             <a class="menu-item {.[0] eq $current-selection ?? "selected darker-green" !! ""}"
-                href="/{.[0]}">
+                href="/{.[0]}.html">
                 { .[1] || .[0].wordcase }
             </a>
         ]}), #"
@@ -57,7 +58,7 @@ sub header-html ($current-selection = 'nothing selected') is cached {
         $sub-menu-items = [~] 
             q[<div class="menu-items darker-green">],
             .map({qq[
-                <a class="menu-item" href="/$current-selection\-$_">
+                <a class="menu-item" href="/$current-selection\-$_.html">
                     {.wordcase}
                 </a>
             ]}),
