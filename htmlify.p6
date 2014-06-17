@@ -207,14 +207,18 @@ multi process-pod-source("language", :$dr, :$what, :$pod, :$podname) {
 }
 
 multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
-    my @chunks = chunks-grep($pod.content,
-                             :from({ $_ ~~ Pod::Heading and .level == 2}),
-                             :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-                            );
+    my $type = $tg.types{$podname};
+    my $origin = $dr.add-new(
+        :kind<type>,
+        :subkinds($type ?? $type.packagetype !! 'class'),
+        :$pod,
+        :pod-is-complete,
+        :name($podname),
+    );
 
-    my $subkind = 'class';
-    if $tg.types{$podname} -> $t {
-        $subkind = $t.packagetype;
+    find-definitions :$dr, :$pod, :$origin;
+
+    if $type {
         $pod.content.push: Pod::Block::Named.new(
             name    => 'Image',
             content => [ "/images/type-graph-$podname.png"],
@@ -224,10 +228,10 @@ multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
             "/images/type-graph-$podname.svg",
         );
 
-        my @mro = $t.mro;
+        my @mro = $type.mro;
            @mro.shift; # current type is already taken care of
 
-        for $t.roles -> $r {
+        for $type.roles -> $r {
             next unless %methods-by-type{$r};
             $pod.content.push:
                 pod-heading("Methods supplied by role $r"),
@@ -266,79 +270,18 @@ multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
             }
         }
     }
-    my $d = $dr.add-new(
-        :kind<type>,
-        :subkinds($subkind),
-        :$pod,
-        :pod-is-complete,
-        :name($podname),
-    );
-
-    for @chunks -> $chunk {
-        my $name = $chunk[0].content[0].content[0];
-        say "$podname.$name" if $*DEBUG;
-        %methods-by-type{$podname}.push: $chunk;
-        # check if it's an operator
-        if $name ~~ /\s/ {
-            next unless $name ~~ / ^ [in | pre | post | circum | postcircum ] fix | listop /;
-            my $what = ~$/;
-            my $operator = $name.split(' ', 2)[1];
-            $dr.add-new(
-                        :kind<routine>,
-                        :subkinds($what),
-                        :categories<operator>,
-                        :name($operator),
-                        :pod($chunk),
-                        :!pod-is-complete,
-                        :origin($d),
-            );
-        } else {
-            # determine whether it's a sub or method
-            my Str @subkinds;
-            {
-                my %counter;
-                for first-code-block($chunk).lines {
-                    if ms/^ 'multi'? (sub|method)»/ {
-                        %counter{$0}++;
-                    }
-                }
-                if +%counter {
-                    @subkinds = %counter.keys;
-                } else {
-                    note "The subkinds of routine $name in $podname.pod cannot be determined."
-                }
-                if %counter<method> {
-                    write-qualified-method-call(
-                        :$name,
-                        :pod($chunk),
-                        :type($podname),
-                    );
-                }
-            }
-
-            $dr.add-new(
-                :kind<routine>,
-                :@subkinds,
-                :categories(@subkinds),
-                :$name,
-                :pod($chunk),
-                :!pod-is-complete,
-                :origin($d),
-            );
-        }
-    }
 
     spurt "html/$what/$podname.html", p2h($pod, $what);
 }
 
 sub find-definitions (:$pod, :$origin, :$dr) {
     my @chunks = chunks-grep($pod.content,
-                             :from({
-                                 $_ ~~ Pod::Heading and
-                                 .content[0].content[0] ~~ { $_ ~~ Str and .words.elems == 2 }
-                             }),
-                             :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
-                            );
+        :from({
+            $_ ~~ Pod::Heading and
+            .content[0].content[0] ~~ { $_ ~~ Str and .words.elems == 2 }
+        }),
+        :to({  $^b ~~ Pod::Heading and $^b.level <= $^a.level}),
+    );
     for @chunks -> $chunk {
         my ($what, $name) = $chunk[0].content[0].content[0].words;
         my $created;
@@ -355,12 +298,22 @@ sub find-definitions (:$pod, :$origin, :$dr) {
                 add-new :kind<routine>
                         :categories<operator>
             }
-            when / sub | method / {
+            when 'method' {
                 add-new :kind<routine>
             }
-            when / routine / {
+            when 'sub' {
                 add-new :kind<routine>
-                        :subkinds<sub>
+            }
+            when 'routine' {
+                my Str @subkinds = first-code-block($chunk)\
+                    .match(:g,
+                        /:s ^ 'multi'? (sub|method)»/
+                    )>>[0].set.list;
+                if !@subkinds {
+                    note "The subkinds of routine $name in $origin.name() cannot be determined."
+                }
+                add-new :kind<routine>
+                        :@subkinds
             }
             when / class | role / {
                 add-new :kind<type>
@@ -369,7 +322,18 @@ sub find-definitions (:$pod, :$origin, :$dr) {
                 next
             }
         }
-        say "Found definition of $what $name in $origin.name()";
+
+        say "Found definition of $what $name in $origin.name().";
+
+        if $created.subkinds ∋ 'method' {
+            %methods-by-type{$origin.name}.push: $chunk;
+            write-qualified-method-call(
+                :$name,
+                :pod($chunk),
+                :type($origin.name),
+            );
+        }
+
         $chunk[0].content[0] = pod-link "$what $name", $created.url;
     }
 }
