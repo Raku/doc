@@ -465,8 +465,8 @@ sub write-index-files($dr) {
 
     my &summary = { 
         pod-block("(From ", $_>>.origin.map({
-            pod-link(.name, .url),", "
-        }),")")
+            pod-link(.name, .url)
+        }).reduce({$^a,", ",$^b}),")")
     }
 
     write-main-index :$dr :kind<routine> :&summary;
