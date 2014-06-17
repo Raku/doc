@@ -11,6 +11,7 @@ use lib 'lib';
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
+use Pod::Convenience;
 
 my $*DEBUG = False;
 
@@ -78,36 +79,6 @@ sub p2h($pod, $selection = 'nothing selected') {
     pod2html($pod, :url(&url-munge), :$head, :header(header-html $selection), :$footer);
 }
 
-sub pod-gist(Pod::Block $pod, $level = 0) {
-    my $leading = ' ' x $level;
-    my %confs;
-    my @chunks;
-    for <config name level caption type> {
-        my $thing = $pod.?"$_"();
-        if $thing {
-            %confs{$_} = $thing ~~ Iterable ?? $thing.perl !! $thing.Str;
-        }
-    }
-    @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-    for $pod.content.list -> $c {
-        if $c ~~ Pod::Block {
-            @chunks.push: pod-gist($c, $level + 2);
-        }
-        elsif $c ~~ Str {
-            @chunks.push: $c.indent($level + 2), "\n";
-        } elsif $c ~~ Positional {
-            @chunks.push: $c.map: {
-                if $_ ~~ Pod::Block {
-                    *.&pod-gist
-                } elsif $_ ~~ Str {
-                    $_
-                }
-            }
-        }
-    }
-    @chunks.join;
-}
-
 sub recursive-dir($dir) {
     my @todo = $dir;
     gather while @todo {
@@ -121,13 +92,6 @@ sub recursive-dir($dir) {
             }
         }
     }
-}
-
-sub first-code-block(@pod) {
-    if @pod[1] ~~ Pod::Block::Code {
-        return @pod[1].content.grep(Str).join;
-    }
-    '';
 }
 
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
@@ -182,7 +146,7 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
     my $total = +@pod-sources;
     my $what  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($podname), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num, $total, $file.path, "$what/$podname";
+        printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$what/$podname";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
         process-pod-source $what, :$dr, :what($what), :$pod, :$podname;
     }
@@ -338,73 +302,6 @@ sub find-definitions (:$pod, :$origin, :$dr) {
         $chunk[0].content[0] = pod-link "$what $name",
             $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
     }
-}
-
-sub chunks-grep(:$from!, :&to!, *@elems) {
-    my @current;
-
-    gather {
-        for @elems -> $c {
-            if @current && ($c ~~ $from || to(@current[0], $c)) {
-                take [@current];
-                @current = ();
-                @current.push: $c if $c ~~ $from;
-            }
-            elsif @current or $c ~~ $from {
-                @current.push: $c;
-            }
-        }
-        take [@current] if @current;
-    }
-}
-
-sub pod-with-title($title, *@blocks) {
-    Pod::Block::Named.new(
-        name => "pod",
-        content => [
-            Pod::Block::Named.new(
-                name => "TITLE",
-                content => Array.new(
-                    Pod::Block::Para.new(
-                        content => [$title],
-                    )
-                )
-            ),
-            @blocks.flat,
-        ]
-    );
-}
-
-sub pod-block(*@content) {
-    Pod::Block::Para.new(:@content);
-}
-
-sub pod-link($text, $url) {
-    Pod::FormattingCode.new(
-        type    => 'L',
-        content => [$text],
-        meta    => [$url],
-    );
-}
-
-sub pod-item(*@content, :$level = 1) {
-    Pod::Item.new(
-        :$level,
-        :@content,
-    );
-}
-
-sub pod-heading($name, :$level = 1) {
-    Pod::Heading.new(
-        :$level,
-        :content[pod-block($name)],
-    );
-}
-
-sub pod-table(@content) {
-    Pod::Block::Table.new(
-        :@content
-    )
 }
 
 sub write-type-graph-images(:$force) {
@@ -564,40 +461,56 @@ sub write-index-files($dr) {
         })
     ), 'language');
 
-    sub list-of-all($what) {
-        pod-block 'This is a list of ', Pod::FormattingCode.new(:type<B>:content['all']),
-            " built-in {$what}s that are documented here as part of the the Perl 6 language. ",
+    write-main-index :$dr :kind<type>;
+
+    my &summary = { 
+        pod-block("(From ", $_>>.origin.map({
+            pod-link(.name, .url),", "
+        }),")")
+    }
+
+    write-main-index :$dr :kind<routine> :&summary;
+
+    for <sub method term operator> -> $category {
+        write-sub-index :$dr :kind<routine> :$category :&summary;
+    }
+}
+
+sub write-main-index(:$dr, :$kind, :&summary = {Nil}) {
+    say "Writing html/$kind.html ...";
+    spurt "html/$kind.html", p2h(pod-with-title(
+        "Perl 6 {$kind.tc}s",
+        pod-block(
+            'This is a list of ', pod-bold('all'), ' built-in ' ~ $kind.tc ~
+            "s that are documented here as part of the the Perl 6 language. " ~
             "Use the above menu to narrow it down topically."
-    }
+        ),
+        pod-table($dr.lookup($kind, :by<kind>)\
+            .categorize(*.name).sort(*.key)>>.value\
+            .map({[
+                set(.map: {.subkinds // Nil}).list.join(', '),
+                pod-link(.[0].name, .[0].url),
+                .&summary
+            ]})
+        )
+    ), $kind);
+}
 
-    sub write-main-index($kind) {
-        say "Writing html/$kind.html ...";
-        spurt "html/$kind.html", p2h(pod-with-title(
-            "Perl 6 {$kind.tc}s",
-            list-of-all($kind),
-            pod-table($dr.lookup($kind, :by<kind>).categorize(*.name).sort(*.key)>>.value.map({
-                [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
-            }))
-        ), $kind);
-    }
-
-    # XXX: Only handles normal routines, not types nor operators
-    sub write-sub-index($kind, $category) {
-        say "Writing html/$kind-$category.html ...";
-        spurt "html/$kind-$category.html", p2h(pod-with-title(
-            "Perl 6 {$category.tc} {$kind.tc}s",
-            pod-table($dr.lookup($kind, :by<kind>)\
-                .grep({$category ⊆ .categories})\ # XXX
-                .categorize(*.name).sort(*.key)>>.value\
-                .map({
-                    [set(.map: {.subkinds // Nil}).list.join(', '), pod-link(.[0].name, .[0].url), .[0].summary]
-                })
-            )
-        ), $kind);
-    }
-
-    .&write-main-index for <type routine>;
-    write-sub-index 'routine', $_ for <sub method term operator>;
+# XXX: Only handles normal routines, not types nor operators
+sub write-sub-index(:$dr, :$kind, :$category, :&summary = {Nil}) {
+    say "Writing html/$kind-$category.html ...";
+    spurt "html/$kind-$category.html", p2h(pod-with-title(
+        "Perl 6 {$category.tc} {$kind.tc}s",
+        pod-table($dr.lookup($kind, :by<kind>)\
+            .grep({$category ⊆ .categories})\ # XXX
+            .categorize(*.name).sort(*.key)>>.value\
+            .map({[
+                set(.map: {.subkinds // Nil}).list.join(', '),
+                pod-link(.[0].name, .[0].url),
+                .&summary
+            ]})
+        )
+    ), $kind);
 }
 
 sub write-routine-file($dr, $name) {
