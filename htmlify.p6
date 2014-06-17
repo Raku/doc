@@ -269,6 +269,8 @@ multi process-pod-source("type", :$dr, :$what, :$pod, :$podname) {
                     ;
             }
         }
+    } else {
+        note "Type $podname not found in type-graph data";
     }
 
     spurt "html/$what/$podname.html", p2h($pod, $what);
@@ -298,22 +300,21 @@ sub find-definitions (:$pod, :$origin, :$dr) {
                 add-new :kind<routine>
                         :categories<operator>
             }
-            when 'method' {
+            when 'sub'|'method'|'term' {
                 add-new :kind<routine>
-            }
-            when 'sub' {
-                add-new :kind<routine>
+                        :categories($what)
             }
             when 'routine' {
                 my Str @subkinds = first-code-block($chunk)\
                     .match(:g,
                         /:s ^ 'multi'? (sub|method)»/
-                    )>>[0].set.list;
+                    )>>[0]>>.Str.Set.list;
                 if !@subkinds {
                     note "The subkinds of routine $name in $origin.name() cannot be determined."
                 }
                 add-new :kind<routine>
                         :@subkinds
+                        :categories(@subkinds)
             }
             when / class | role / {
                 add-new :kind<type>
@@ -323,7 +324,7 @@ sub find-definitions (:$pod, :$origin, :$dr) {
             }
         }
 
-        say "Found definition of $what $name in $origin.name().";
+        say "    Found definition of $what $name in $origin.name().";
 
         if $created.subkinds ∋ 'method' {
             %methods-by-type{$origin.name}.push: $chunk;
@@ -334,7 +335,8 @@ sub find-definitions (:$pod, :$origin, :$dr) {
             );
         }
 
-        $chunk[0].content[0] = pod-link "$what $name", $created.url;
+        $chunk[0].content[0] = pod-link "$what $name",
+            $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
     }
 }
 
@@ -612,7 +614,7 @@ sub write-routine-file($dr, $name) {
         pod-block("Documentation for $subkind $name, assembled from the
             following types:"),
         @docs.map({
-            pod-heading("{.human-kind} {.name} defined in {.origin.human-kind} {.origin.name}"),
+            pod-heading("{.origin.human-kind} {.origin.name}"),
             pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name)),
             .pod.list,
         })
