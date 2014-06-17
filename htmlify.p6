@@ -553,10 +553,8 @@ sub write-disambiguation-files($dr) {
 }
 
 sub write-index-files($dr) {
-    # XXX: Main index file can't be generated properly until
-    # it is turned into a Pod file. For now, it's just static.
-    #say 'Writing html/index.html ...';
-    #spurt 'html/index.html', p2h slurp('template/index-content.html');
+    say 'Writing html/index.html ...';
+    spurt 'html/index.html', p2h EVAL slurp('lib/HomePage.pod') ~ "\n\$=pod";
 
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
