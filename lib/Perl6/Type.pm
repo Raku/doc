@@ -7,6 +7,7 @@ class Perl6::Type {
     has @.roles;
     has @.doers;
     has $.packagetype is rw = 'class';
+    has @.categories;
 
     has @.mro;
     method mro(Perl6::Type:D:) {

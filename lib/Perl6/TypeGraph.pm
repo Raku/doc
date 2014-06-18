@@ -47,12 +47,21 @@ class Perl6::TypeGraph {
                 $*CURRENT_TYPE.roles.push:  $<longname>.ast;
             }
         }
+        my @categories;
         for $f.lines -> $l {
-            next if $l ~~ / ^ '#'   /;
-            next if $l ~~ / ^ \s* $ /;
+            next if $l ~~ / ^ '#' /;
+            if $l ~~ / ^ \s* $ / {
+                undefine @categories;
+                next;
+            }
+            if $l ~~ / :s ^ '[' (\S+) + ']' $/ {
+                @categories = @0>>.lc;
+                next;
+            }
             my $m = Decl.parse($l, :actions(Actions.new));
             my $t = $m<type>.ast;
             $t.packagetype = ~$m<package>;
+            $t.categories = @categories;
         }
         for %.types.values -> $t {
             # roles that have a superclass actually apply that superclass

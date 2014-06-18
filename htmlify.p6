@@ -32,7 +32,7 @@ sub url-munge($_) {
 # TODO: Generate menulist automatically
 my @menu =
     ('language',''         ) => (),
-    ('type', 'Types'       ) => <basic composite domain-specific exception>,
+    ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines' ) => <sub method term operator>,
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
@@ -179,6 +179,7 @@ multi process-pod-source(:$what where "type", :$dr, :$pod, :$podname, :$pod-is-c
     my $origin = $dr.add-new(
         :kind<type>,
         :subkinds($type ?? $type.packagetype !! 'class'),
+        :categories($type ?? $type.categories !! Nil),
         :$pod,
         :$pod-is-complete,
         :name($podname),
@@ -267,8 +268,6 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
     my int $i = 0;
 
     my sub add-new (:$name, :$subkinds, *%_) {
-        say "    Found definition of $subkinds $name in $origin.name().";
-
         my $created = $dr.add-new(
             :$origin,
             :pod[],
@@ -511,6 +510,10 @@ sub write-index-files($dr) {
     ), 'language');
 
     write-main-index :$dr :kind<type>;
+
+    for <basic composite domain-specific excpetion> -> $category {
+        write-sub-index :$dr :kind<type> :$category;
+    }
 
     my &summary = { 
         pod-block("(From ", $_>>.origin.map({
