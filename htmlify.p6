@@ -58,6 +58,7 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     if %sub-menus{$current-selection} -> $_ {
         $sub-menu-items = [~] 
             q[<div class="menu-items darker-green">],
+            qq[<a class="menu-item" href="/$current-selection.html">All</a>],
             .map({qq[
                 <a class="menu-item" href="/$current-selection\-$_.html">
                     {.wordcase}
