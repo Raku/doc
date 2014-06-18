@@ -76,7 +76,12 @@ sub header-html ($current-selection = 'nothing selected') is cached {
 }
 
 sub p2h($pod, $selection = 'nothing selected') {
-    pod2html($pod, :url(&url-munge), :$head, :header(header-html $selection), :$footer);
+    pod2html $pod,
+        :url(&url-munge),
+        :$head,
+        :header(header-html $selection),
+        :$footer,
+        :default-title("Perl 6 Documentation"),
 }
 
 sub recursive-dir($dir) {
@@ -511,7 +516,7 @@ sub write-index-files($dr) {
 
     write-main-index :$dr :kind<type>;
 
-    for <basic composite domain-specific excpetion> -> $category {
+    for <basic composite domain-specific exceptions> -> $category {
         write-sub-index :$dr :kind<type> :$category;
     }
 
