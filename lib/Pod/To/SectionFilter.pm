@@ -6,7 +6,7 @@ class Pod::To::SectionFilter {
         my $from;
         my $heading-level;
         for @blocks.kv -> $idx, $b {
-            if $b ~~ Pod::Heading && $b.content[0].content[0] eq $search_for {
+            if $b ~~ Pod::Heading && $b.content[0].content[0] ~~ m:i:s/^ [method|sub|routine] $search_for $/ {
                 $from = $idx;
                 $heading-level = $b.level;
             }
