@@ -258,97 +258,99 @@ multi write-type-source($doc) {
     spurt "html/$what/$podname.html", p2h($pod, $what);
 }
 
-sub find-definitions (:$pod, :$*origin, :$dr) {
-    my $*old-level = Inf;
-    my $*created;
-
-    my sub add-new (*%_) {
-        $*created = $dr.add-new(
-            :$*name,
-            :subkinds($*what),
-            :$*origin,
-            :pod[],
-            :!pod-is-complete,
-            |%_
-        );
-    }
-
+sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
     # Run through the pod content, and look for headings.
     # If a heading is a definition, like "class FooBar", process
-    # the class and slurp up the pod until the next heading at
-    # the same or lower level.
-    for $pod ~~ Positional ?? @$pod !! $pod.content -> $c {
-        if $c ~~ Pod::Heading and $c.level <= $*old-level {
-            # Finalize our new definition
-            chunk-finished if $*created;
+    # the class and give the rest of the pod to find-definitions,
+    # which will return how far the definition of "class FooBar" extends.
+    my @c     := $pod ~~ Positional ?? @$pod !! $pod.content;
+    my int $i = 0;
 
-            # Is this new header a definition?
-            # If so, begin processing it.
-            # If not, skip to the next heading.
-            next unless $c.content[0].content[0] ~~ Str
-                    and 2 == my @words = $c.content[0].content[0].words;
-            my ($*what, $*name) = @words;
-            given $*what {
-                when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
-                    add-new :kind<routine>
-                            :categories<operator>
-                }
-                when 'sub'|'method'|'term'|'routine' {
-                    add-new :kind<routine>
-                            :categories($*what)
-                }
-                when 'class'|'role' {
-                    add-new :kind<type>;
-                }
-                default {
-                    next
-                }
-            }
-            # We made it this far, so it's a valid definition
-            say "    Found definition of $*what $*name in $*origin.name().";
-            $*old-level = $c.level;
+    my sub add-new (:$name, :$subkinds, *%_) {
+        say "    Found definition of $subkinds $name in $origin.name().";
 
-            $c.content[0] = pod-link "$*what $*name",
-                $*created.url ~ "#$*origin.human-kind() $*origin.name()".subst(:g, /\s+/, '_');
+        my $created = $dr.add-new(
+            :$origin,
+            :pod[],
+            :!pod-is-complete,
+            :$name,
+            :$subkinds,
+            |%_
+        );
 
-            $*created.pod.push: $c;
-        } elsif $*created {
-            # Slurp up pod content within the same level as our definition
-            $*created.pod.push: $c;
-        }
-    }
-    # Finalize our new definition if we haven't already
-    chunk-finished if $*created;
+        # Preform sub-parse, checking for definitions elsewhere in the pod
+        # And updating $i to be after the places we've already searched
+        my int $new-i = $i + find-definitions :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
 
-    my sub chunk-finished () {
-        my $chunk = $*created.pod;
+        @c[$i].content[0] = pod-link "$subkinds $name",
+            $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
 
-        if $*created.subkinds eq 'routine' {
+        my $chunk = $created.pod.push: @c[$i..$new-i];
+
+        $i = $new-i;
+        
+        if $subkinds eq 'routine' {
             # Determine proper subkinds
             my Str @subkinds = first-code-block($chunk)\
                 .match(:g, /:s ^ 'multi'? (sub|method)»/)\
                 .>>[0]>>.Str.Set.list;
 
-            note "The subkinds of routine $*created.name() in $*origin.name() cannot be determined."
+            note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
                 unless @subkinds;
 
-            $*created.subkinds   = @subkinds;
-            $*created.categories = @subkinds;
+            $created.subkinds   = @subkinds;
+            $created.categories = @subkinds;
         }
-        if $*created.subkinds ∋ 'method' {
-            %methods-by-type{$*origin.name}.push: $chunk;
+        if $subkinds ∋ 'method' {
+            %methods-by-type{$origin.name}.push: $chunk;
             write-qualified-method-call(
-                :name($*created.name),
+                :$name,
                 :pod($chunk),
-                :type($*origin.name),
+                :type($origin.name),
             );
         }
-
-        find-definitions :pod($chunk[1..*]), :origin($*created), :$dr;
-
-        $*old-level = Inf;
-        undefine $*created;
     }
+
+    my int $len = +@c;
+    while $i < $len {
+        my $c := @c[$i];
+        if $c ~~ Pod::Heading {
+            return $i if $c.level <= $min-level;
+
+            # Is this new header a definition?
+            # If so, begin processing it.
+            # If not, skip to the next heading.
+            $i = $i + 1 and next unless $c.content[0].content[0] ~~ Str
+                                    and 2 == my @words = $c.content[0].content[0].words;
+
+            my ($what, $name) = @words;
+            given $what {
+                when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
+                    add-new :kind<routine>
+                            :$name
+                            :subkinds($what)
+                            :categories<operator>
+                }
+                when 'sub'|'method'|'term'|'routine' {
+                    add-new :kind<routine>
+                            :$name
+                            :subkinds($what)
+                            :categories($what)
+                }
+                when 'class'|'role' {
+                    add-new :kind<type>
+                            :$name
+                            :subkinds($what)
+                }
+                default {
+                    $i = $i + 1 and next
+                }
+            }
+            # We made it this far, so it's a valid definition
+        }
+        $i = $i + 1;
+    }
+    return $i;
 }
 
 sub write-type-graph-images(:$force) {
