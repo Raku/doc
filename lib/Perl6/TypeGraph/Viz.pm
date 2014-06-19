@@ -4,7 +4,7 @@ use Perl6::TypeGraph;
 class Perl6::TypeGraph::Viz {
     has @.types;
     has $.dot-hints;
-    has $.url-base    = '../type/';
+    has $.url-base    = '/type/';
     has $.rank-dir    = 'BT';
     has $.role-color  = '#6666FF';
     has $.class-color = '#000000';
