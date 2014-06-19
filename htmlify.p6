@@ -164,15 +164,22 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
 
 multi process-pod-source(:$what where "language", :$dr, :$pod, :$podname, :$pod-is-complete) {
     my $name = $podname;
-    if $pod.content[0].name eq "TITLE" {
+    my $summary = '';
+    if $pod.content[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
         $name = $pod.content[0].content[0].content[0]
     } else {
         note "$podname does not have an =TITLE";
+    }
+    if $pod.content[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "DESCRIPTION"} {
+        $summary = $pod.content[1].content[0].content[0];
+    } else {
+        note "$podname does not have an =DESCRIPTION";
     }
     my $origin = $dr.add-new(
         :kind<language>,
         :name($name),
         :url("/language/$podname"),
+        :$summary,
         :$pod,
         :pod-is-complete,
     );
@@ -501,9 +508,10 @@ sub write-index-files($dr) {
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
-        $dr.lookup('language', :by<kind>).sort(*.name).map({
-            pod-item( pod-link(.name, .url) )
-        })
+        pod-table($dr.lookup('language', :by<kind>).sort(*.name).map({[
+            pod-link(.name, .url),
+            .summary
+        ]}))
     ), 'language');
 
     write-main-index :$dr :kind<type>;
@@ -537,7 +545,7 @@ sub write-main-index(:$dr, :$kind, :&summary = {Nil}) {
         pod-table($dr.lookup($kind, :by<kind>)\
             .categorize(*.name).sort(*.key)>>.value\
             .map({[
-                set(.map: {.subkinds // Nil}).list.join(', '),
+                .map({.subkinds // Nil}).uniq.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
@@ -554,7 +562,7 @@ sub write-sub-index(:$dr, :$kind, :$category, :&summary = {Nil}) {
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value\
             .map({[
-                set(.map: {.subkinds // Nil}).list.join(', '),
+                .map({.subkinds // Nil}).uniq.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
