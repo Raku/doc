@@ -290,7 +290,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
         @c[$i].content[0] = pod-link "$subkinds $name",
             $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
 
-        my $chunk = $created.pod.push: @c[$i..$new-i];
+        my $chunk = $created.pod.push: pod-lower-headings(@c[$i..$new-i], :to($created.kind eq 'type' ?? 0 !! 2));
 
         $i = $new-i;
         
@@ -298,7 +298,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             # Determine proper subkinds
             my Str @subkinds = first-code-block($chunk)\
                 .match(:g, /:s ^ 'multi'? (sub|method)»/)\
-                .>>[0]>>.Str.Set.list;
+                .>>[0]>>.Str.uniq;
 
             note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
                 unless @subkinds;
