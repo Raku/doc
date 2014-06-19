@@ -270,52 +270,8 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
     # If a heading is a definition, like "class FooBar", process
     # the class and give the rest of the pod to find-definitions,
     # which will return how far the definition of "class FooBar" extends.
-    my @c     := $pod ~~ Positional ?? @$pod !! $pod.content;
+    my @c := $pod ~~ Positional ?? @$pod !! $pod.content;
     my int $i = 0;
-
-    my sub add-new (:$name, :$subkinds, *%_) {
-        my $created = $dr.add-new(
-            :$origin,
-            :pod[],
-            :!pod-is-complete,
-            :$name,
-            :$subkinds,
-            |%_
-        );
-
-        # Preform sub-parse, checking for definitions elsewhere in the pod
-        # And updating $i to be after the places we've already searched
-        my int $new-i = $i + find-definitions :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
-
-        @c[$i].content[0] = pod-link "$subkinds $name",
-            $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
-
-        my $chunk = $created.pod.push: pod-lower-headings(@c[$i..$new-i], :to($created.kind eq 'type' ?? 0 !! 2));
-
-        $i = $new-i;
-        
-        if $subkinds eq 'routine' {
-            # Determine proper subkinds
-            my Str @subkinds = first-code-block($chunk)\
-                .match(:g, /:s ^ 'multi'? (sub|method)»/)\
-                .>>[0]>>.Str.uniq;
-
-            note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
-                unless @subkinds;
-
-            $created.subkinds   = @subkinds;
-            $created.categories = @subkinds;
-        }
-        if $subkinds ∋ 'method' {
-            %methods-by-type{$origin.name}.push: $chunk;
-            write-qualified-method-call(
-                :$name,
-                :pod($chunk),
-                :type($origin.name),
-            );
-        }
-    }
-
     my int $len = +@c;
     while $i < $len {
         my $c := @c[$i];
@@ -328,30 +284,65 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             $i = $i + 1 and next unless $c.content[0].content[0] ~~ Str
                                     and 2 == my @words = $c.content[0].content[0].words;
 
-            my ($what, $name) = @words;
-            given $what {
+            my ($subkinds, $name) = @words;
+            my %attr;
+            given $subkinds {
                 when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
-                    add-new :kind<routine>
-                            :$name
-                            :subkinds($what)
-                            :categories<operator>
+                    %attr = :kind<routine>,
+                            :categories<operator>,
                 }
                 when 'sub'|'method'|'term'|'routine' {
-                    add-new :kind<routine>
-                            :$name
-                            :subkinds($what)
-                            :categories($what)
+                    %attr = :kind<routine>,
+                            :categories($subkinds),
                 }
                 when 'class'|'role' {
-                    add-new :kind<type>
-                            :$name
-                            :subkinds($what)
+                    %attr = :kind<type>,
                 }
                 default {
                     $i = $i + 1 and next
                 }
             }
             # We made it this far, so it's a valid definition
+            my $created = $dr.add-new(
+                :$origin,
+                :pod[],
+                :!pod-is-complete,
+                :$name,
+                :$subkinds,
+                |%attr
+            );
+
+            # Preform sub-parse, checking for definitions elsewhere in the pod
+            # And updating $i to be after the places we've already searched
+            my int $new-i = $i + find-definitions :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
+
+            @c[$i].content[0] = pod-link "$subkinds $name",
+                $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
+
+            my $chunk = $created.pod.push: pod-lower-headings(@c[$i..$new-i], :to(%attr<kind> eq 'type' ?? 0 !! 2));
+
+            $i = $new-i;
+            
+            if $subkinds eq 'routine' {
+                # Determine proper subkinds
+                my Str @subkinds = first-code-block($chunk)\
+                    .match(:g, /:s ^ 'multi'? (sub|method)»/)\
+                    .>>[0]>>.Str.uniq;
+
+                note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
+                    unless @subkinds;
+
+                $created.subkinds   = @subkinds;
+                $created.categories = @subkinds;
+            }
+            if $subkinds ∋ 'method' {
+                %methods-by-type{$origin.name}.push: $chunk;
+                write-qualified-method-call(
+                    :$name,
+                    :pod($chunk),
+                    :type($origin.name),
+                );
+            }
         }
         $i = $i + 1;
     }
