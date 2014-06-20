@@ -40,7 +40,7 @@ Multiple arguments just require a comma between them:
 
 =for code :allow<B L>
 my @words = "Abe", "Lincoln";
-@words.L<push>("said"B<,> $formatted-text.comb(L</\w+/|regexes>));
+@words.L<push>("said"B<,> $formatted-text.L<comb>(L</\w+/|/language/regexes>));
 
 Another method call syntax separates the method name and the argument list
 with a colon:
@@ -410,7 +410,7 @@ arguments, you must write your own C<new> method:
 However this is considered poor practice, because it makes correct
 initialization of objects from subclasses harder.
 
-Another thing to note is, that the name C<new> is not special in Perl 6. It is
+Another thing to note is that the name C<new> is not special in Perl 6. It is
 merely a common convention. You can call C<bless> from any method at all, or
 use C<CREATE> to fiddle around with low-level workings.
 
@@ -422,17 +422,17 @@ describing only parts of an object's behavior, and in how roles are applied to
 classes. Or to phrase it differently, classes are meant for managing
 instances, and roles are meant for managing behavior and code reuse.
 
-    =begin code
+    =begin code :allow<B L>
     role Serializable {
         method serialize() {
-            self.perl; # very primitive serialization
+            self.L<perl>; # very primitive serialization
         }
         method deserialize($buf) {
-            EVAL $buf; # reverse operation to .perl
+            L<EVAL> $buf; # reverse operation to .perl
         }
     }
 
-    class Point does Serializable {
+    class Point B<does> Serializable {
         has $.x;
         has $.y;
     }
@@ -458,7 +458,62 @@ detected by the compiler, but are instead simply resolved to the superclass
 that appears earlier in the MRO, which might or might not be what the
 programmer wanted.
 
-# TODO: example
+For example, if you've discovered an effecient method to ride cows, and
+are trying to market it as a new form of popular transportation, you
+might have a class C<Bull>, for all the bulls you keep around the house,
+and a class C<Automobile>, for things that you can drive.
+
+    class Bull {
+        has Bool $.castrated = False;
+        method steer {
+            # Turn your bull into a steer
+            $!castrated = True;
+            return self;
+        }
+    }
+    class Automobile {
+        has $.direction;
+        method steer ($!direction) { }
+    }
+    class Taurus is Bull is Automobile { }
+
+    my $t = Taurus.new;
+    $t.steer; # Castrates $t
+
+With this set-up, your poor customers will find themselves unable to
+turn their Taurus, and you won't be able to make more of your product!
+In this case, it may have been better to use roles:
+
+    role Bull-Like {
+        has Bool $.castrated = False;
+        method steer {
+            # Turn your bull into a steer
+            $!castrated = True;
+            return self;
+        }
+    }
+    role Steerable {
+        has Real $.direction;
+        method steer (Real $d = 0) {
+            $!direction += $d;
+        }
+    }
+    class Taurus does Bull-Like does Steerable { }
+
+This code will die with something like:
+
+    ===SORRY!===
+    Method 'steer' must be resolved by class Taurus because it exists in
+    multiple roles (Steerable, Bull-Like)
+
+This check will save you and your customers a lot of headaches, and you
+can simply define your class instead as:
+
+    class Taurus does Bull-Like does Steerable {
+        method steer ($direction?) {
+            self.Steerable::steer($direction?)
+        }
+    }
 
 When a role is applied to a second role, the actual application is
 delayed until the second class is applied to a class, at which point both
@@ -488,9 +543,9 @@ When a role contains a stubbed method, a non-stubbed version of a method
 of the same name must be supplied at the time the role is applied to a class.
 This allows you to create roles that act as abstract interfaces.
 
-    =begin code
+    =begin code :allow<B L>
     role AbstractSerializable {
-        method serialize() { ... }  # literal ... here marks the
+        method serialize() { B<L<...>> }  # literal ... here marks the
                                     # method as a stub
     }
 
