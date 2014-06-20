@@ -8,14 +8,14 @@ Built-in class for strings. Objects of type C<Str> are immutable.
 
 =head1 Methods
 
-=head2 routine  chop
+=head2 routine chop
 
     multi sub    chop(Str:D)  returns Str:D
-    multi method chop(Str:D:) returns Str:D
+    multi method chop(Str:D: $chars = 1) returns Str:D
 
-Returns the string with one character removed from the end.
+Returns the string with C<$chars> characters removed from the end.
 
-=head2 routine  chomp
+=head2 routine chomp
 
     multi sub    chomp(Str:D ) returns Str:D
     multi method chomp(Str:D:) returns Str:D
@@ -56,7 +56,7 @@ Does a Unicode "titlecase" operation, that is changes the first character in
 the string to title case, or to upper case if the character has no title case
 mapping
 
-(Not implemented in Rakudo and Niecza)
+(Not implemented in Niecza)
 
 =head2 routine tclc
 
@@ -80,35 +80,33 @@ case
 
 =head2 routine wordcase
 
-    multi sub    wordcase(Str:D  :&filter = &lc, :%exceptions = set()) returns Str
-    multi method wordcase(Str:D: :&filter = &lc, :%exceptions = set()) returns Str
+=for code :allow<L>
+multi sub    wordcase(Cool $x)  returns Str
+multi sub    wordcase(Str:D $x) returns Str
+multi method wordcase(Str:D: :&filter = &L<tclc>, Mu :$where = True) returns Str
 
-Performs a Unicode titlecase operation on the first character of
-each word of the string (as defined by a regex C<«> boundary),
-and forces the rest of the letters through a filter that defaults
-to L<lc>.  After this operation, if any exceptions are supplied and
-if the word is found in the set of exceptions, the first character is also
-forced through the filter.  Note that the exceptions must be spelled with
-an initial titlecase, such as "By" or "And", to produce "by" or "and".
+Returns a string in which C<&filter> has been applied to all the words
+that match C<$where>. By default, this means that the first letter of
+every word is capitalized, and all the other letters lowercased.
 
-(Not implemented in Rakudo and Niecza)
-
-=head2 method lcfirst (DEPRECATED)
+=head2 method lcfirst
 
 Perl 6 does not have a C<lcfirst> function.
 
-=head2 method ucfirst (DEPRECATED)
+=head2 method ucfirst
 
 Perl 6 does not have a C<ucfirst> function.  See L<tc>.
 
-=head2 method length (FORBIDDEN)
+=head2 method length
 
 Perl 6 does not have a C<length> function.  See L<chars> or L<elems>.
 
 =head2 routine chars
 
-    multi sub    chars(Str:D ) returns Int:D
-    multi method chars(Str:D:) returns Int:D
+    multi sub    chars(Cool $x)  returns Int:D
+    multi sub    chars(Str:D $x) returns Int:D
+    multi sub    chars(str $x)   returns int
+    multi method chars(Str:D:)   returns Int:D
 
 Returns the number of characters in the string in the current
 (lexically scoped) idea of what a normal character is, usually graphemes.
@@ -124,8 +122,8 @@ C<$str.encode('ISO-8859-1')> a C<buf8>.
 
 =head2 routine index
 
-    multi sub    index(Str:D, Str:D $needle, Int $startpos = 0) returns StrPos
-    multi method index(Str:D: Str:D $needle, Int $startpos = 0) returns StrPos
+    multi sub    index(Cool $s, Str:D $needle, Cool $startpos = 0) returns Int
+    multi method index(Cool $needle, Cool $startpos = 0) returns Int
 
 Searches for C<$needle> in the string starting from C<$startpos>. It returns
 the offset into the string where C<$needle> was found, and an undefined value
@@ -455,6 +453,22 @@ Returns the codepoint number of the first character of the string
 
 Returns a list of codepoint numbers, one for each character in the string.
 
+=head2 method indent
+
+    proto method indent($)
+    multi method indent(Int $steps where { $_ == 0 } )
+    multi method indent(Int $steps where { $_ > 0  } )
+    multi method indent($steps where { .isa(Whatever) || .isa(Int) && $_ < 0 )
+
+Indents each line of the string by C<$steps>, if C<$steps> is positive,
+or dedents it by C<-$steps> if C<$steps> is negative. if C<$steps> is
+L<C<*>|*>, then the string is dedented to the margin:
+
+    =begin code
+    "  indented by 2 spaces\n    indented even more".indent(*)
+        eq "indented by 2 spaces\n  indented even more"
+    =end code
+
 =head2 method trim
 
     method trim(Str:D:) returns Str
@@ -482,6 +496,12 @@ Remove the whitespace characters from the end of a string. See also L<trim>.
 =head2 method trim-leading
 
 Remove the whitespace characters from the beginning of a string. See also L<trim>.
+
+=head2 method ACCEPTS
+
+    multi method ACCEPTS(Str:D: $other)
+
+Returns C<True> if the string is L<the same as|eq> C<$other>.
 
 =end pod
 
