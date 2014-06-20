@@ -31,6 +31,8 @@ Examples:
     my @array  = 1, 2, 3;   # Array variable with three elements
     my %hash   = London => 'UK', Berlin => 'Germany';
 
+=head2 Item and List Assignment
+
 There are two types of assignment, I<item assignment> and I<list assignment>.
 Both use the equal sign C<=> as operator. The distinction whether an C<=>
 means item or list assignment is based on the syntax of the left-hand side.
@@ -47,7 +49,25 @@ to item assignment, it means that the type of the variable on the left always
 stays C<Array>, regardless of the type of the right-hand side.
 
 Note that the item assignment has tighter precedence than list assignment, and
-also tighter than the comma. See L<operators> for more details.
+also tighter than the comma. This means that:
+
+    my @array = my $num = 42, "str";
+
+Assigns C<42> to C<$num>, and both C<42> and C<"str"> to C<@array>.
+See L<operators> for more details.
+
+=head2 Sigilless variables
+
+It is possible to create "variables" in Perl 6 that do not have sigils:
+
+    my \degrees = pi / 180;
+    my \θ       = 15 * degrees;
+
+Note, however, that these do not create L<containers>. That means that
+C<degrees> and C<θ> above actually directly represent C<Int>s. To
+illustrate, just try assigning to one after you've defined it:
+
+    θ = 3; # Dies with the error "Cannot modify an immutable Int"
 
 =head1 Twigils
 
@@ -72,7 +92,7 @@ depends on the $.
 
 =end table
 
-=head2 C<*>
+=head2 The C<*> Sigil
 
 Dynamic variables are looked up through the caller, not through the outer
 scope. For example:
@@ -111,7 +131,7 @@ C<$*dynamic1> isn't 11 anymore, but C<$*dynamic2> is still 101. This stems from
 the fact that we declared a new dynamic variable C<$*dynamic1> in the block and
 did not assign to the old variable as we did with C<$*dynamic2>.
 
-=head2 C<!>
+=head2 The C<!> Sigil
 
 Attributes are variables that exists per instance of a class. They may be
 directly accessed from within the class via C<!>:
@@ -133,7 +153,7 @@ private and can be directly accessed within the class by using
 C<$!attribute-name>. Perl 6 may automatically generate accessor methods for you
 though. For more details on objects, classes and their attributes see L<objects>.
 
-=head2 C<?>
+=head2 The C<?> Sigil
 
 Compile-time "constants" may be addressed via the C<?> twigil. They are known to
 the compiler and may not be modified after being compiled in. A popular example
@@ -150,7 +170,7 @@ such constants.
 
 For a list of those special variables see L<Compile-time "constants">.
 
-=head2 C<.>
+=head2 The C<.> Sigil
 
 The C<.> twigil isn't really for variables at all. In fact, something along the
 lines of
@@ -186,12 +206,12 @@ following is possible too.
 For more details on objects, classes and their attributes and methods see
 L<objects>.
 
-=head2 <
+=head2 The C«<» Sigil
 
 The C<< < >> twigil is just an alias for C<< $/<...> >> where C<$/> is the match
 variable. For more information on the match variable see L<$/>.
 
-=head2 C<^>
+=head2 The C<^> Sigil
 
 The C<^> twigil declares a formal positional parameter to blocks or subroutines.
 Variables of the form C<$^variable> are a type of placeholder variables. They
@@ -225,7 +245,7 @@ Placeholder variables syntactically cannot have any type constraints. Be also
 aware that one can not have placeholder variables with a single upper-case
 letter. This is disallowed in favor of being to able to catch some Perl 5-isms.
 
-=head2 C<:>
+=head2 The C<:> Sigil
 
 The C<:> twigil declares a formal named parameter to a block or subroutine.
 Variables declared using this form are a type of placeholder variables too.
@@ -235,7 +255,7 @@ therefore not ordered using Unicode order, of course).
 
 See L<^> for more details about placeholder variables.
 
-=head2 C<=>
+=head2 The C<=> Sigil
 
 The C<=> twigil is used to access Pod variables. Every Pod block in the current
 file can be accessed via a Pod object, such as C<$=data>, C<$=SYNOPSIS> or
@@ -256,7 +276,7 @@ data structure through C<$=pod>.
 Note that all those C<$=someBlockName> support the C<Positional> and the
 C<Associative> role.
 
-=head2 C<~>
+=head2 The C<~> Sigil
 
 The C<~> twigil is for referring to sublanguages (called slangs). The following
 are useful:
@@ -319,7 +339,19 @@ Calling a method on C<$_> can be shortened by leaving off the variable name:
     .say;                   # same as $_.say
 
 C<m/regex/> and C</regex/> regex matches and C<s/regex/subst/> substitutions
-work on C<$_>.
+work on C<$_>:
+
+    say "Looking for strings with non-alphabetic characters...";
+    for <ab:c d$e fgh ij*> {
+        .say if m/<!alpha>/;
+    }
+
+This outputs:
+
+    Looking for strings with non-alphabetic characters...
+    ab:c
+    d$e
+    ij*
 
 =head3 C<$/>
 
@@ -349,6 +381,7 @@ the block to the caught exception.
 
 =head2 Compile-time "constants"
 
+=for table
     $?FILE      Which file am I in?
     $?LINE      Which line am I at?
     &?ROUTINE   Which routine am I in?
@@ -357,11 +390,7 @@ the block to the caught exception.
 
 Other compile-time constants:
 
-    $?KERNEL    Which kernel am I compiled for?
-    $?DISTRO    Which OS distribution am I compiling under
-    $?VM        Which virtual machine am I compiling under
-    $?XVM       Which virtual machine am I cross-compiling for
-    $?PERL      Which Perl am I compiled for?
+=for table
     $?SCOPE     Which lexical scope am I in?
     $?PACKAGE   Which package am I in?
     $?MODULE    Which module am I in?
@@ -374,22 +403,39 @@ Other compile-time constants:
 
 =head2 Dynamic variables
 
-    $*ARGFILES  Magic command-line input handle.
-    @*ARGS      Arguments from the command line.
-    $*IN        Standard input filehandle.
-    $*OUT       Standard output filehandle.
-    $*ERR       Standard error filehandle.
-    $*TZ        The system's local timezone.
-    $*CWD       The Current Working Directory.
+=comment There should be a better way get this table to be formatted
+    properly, but if there is, Rakudo doesn't support it at the moment.
 
-=head2 Other variables
-
+=for table
+    $*ARGFILES         Magic command-line input handle.
+    ==
+    @*ARGS             Arguments from the command line.
+    ==
+    $*IN               Standard input filehandle.
+    ==
+    $*OUT              Standard output filehandle.
+    ==
+    $*ERR              Standard error filehandle.
+    ==
+    $*TZ               The system's local timezone.
+    ==
+    $*CWD              The Current Working Directory.
+    ==
+    $*KERNEL           Which kernel am I compiled for?
+    ==
+    $*DISTRO           Which OS distribution am I compiling under
+    ==
+    $*VM               Which virtual machine am I compiling under
+    ==
+    $*PERL             Which Perl am I compiled for?
+    ==
+    $*PID              Process ID of the current process.
+    ==
     $*PROGRAM_NAME     Path to the current executable as it was typed in on the
                        command line, or C<-e> if perl was invoked with the -e flag.
-    $*PID              Process ID of the current process.
-    $*OS               Which Operating System am I compiling under (e.g. Linux).
-    $*OSVER            Version of the current Operating System.
+    ==
     $*EXECUTABLE       Absolute path of the perl executable that is currently running.
+    ==
     $*EXECUTABLE_NAME  The name of the perl executable that is currently running.
                        (e.g. perl6-p, perl6-m, Niecza.exe)
                        Favor $*EXECUTABLE because it is not guaranteed that the perl
