@@ -304,6 +304,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                 }
                 when 'class'|'role' {
                     %attr = :kind<type>,
+                            :categories($tg.types{$name}.?categories//''),
                 }
                 default {
                     $i = $i + 1 and next
