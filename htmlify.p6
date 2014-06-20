@@ -21,7 +21,7 @@ my %methods-by-type;
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
     return "/type/{uri_escape $_}" if m/^<[A..Z]>/;
-    return "/routine/{uri_escape $_}" if m/^<[a..z]>/;
+    return "/routine/{uri_escape $_}" if m/^<[a..z]>|^<-alpha>*$/;
     # poor man's <identifier>
     if m/ ^ '&'( \w <[[\w'-]>* ) $/ {
         return "/routine/{uri_escape $0}";
