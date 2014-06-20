@@ -13,13 +13,15 @@ result is interesting and, at times, useful.
 
     =begin code
     class Task {
-        has      &.callback;
-        has Task @.dependencies;
+        has      &!callback;
+        has Task @!dependencies;
         has Bool $.done;
 
         method new(&callback, *@dependencies) {
             return self.bless(:&callback, :@dependencies);
         }
+
+        submethod BUILD(:&!callback, :@!dependencies) { }
 
         method add-dependency(Task $dependency) {
             push @!dependencies, $dependency;
@@ -27,8 +29,8 @@ result is interesting and, at times, useful.
 
         method perform() {
             unless $!done {
-                .perform() for @.dependencies;
-                &.callback.();
+                .perform() for @!dependencies;
+                &!callback();
                 $!done = True;
             }
         }
@@ -252,6 +254,21 @@ the parameters are dependent C<Task> instances.  The constructor captures these
 into the C<@dependencies> slurpy array and passes them as named parameters to
 C<bless> (note that C<:&callback> uses the name of the variable--minus the
 sigil--as the name of the parameter).
+
+X<|BUILD>
+
+Private attributes really are private. This means that C<bless> is not allowed
+to bind things to C<&!callback> and C<@!dependencies> directly. To do this, we
+override the C<BUILD> submethod, which is called on the brand new object by
+C<bless>:
+
+    submethod BUILD(:&!callback, :@!dependencies) { }
+
+Since C<BUILD> runs in the context of the newly created C<Task> object, it is
+allowed to manipulate those private attributes. The trick here is that the
+private attributes (C<&!callback> and C<&!dependencies>) are being used as the
+bind targets for C<BUILD>'s parameters. Zero-boilerplate initialization! See
+L<objects|/language/objects#Object Construction> for more information.
 
 =head1 Consuming our class
 
