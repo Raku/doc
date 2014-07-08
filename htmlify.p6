@@ -170,10 +170,10 @@ multi process-pod-source(:$what where "language", :$dr, :$pod, :$podname, :$pod-
     } else {
         note "$podname does not have an =TITLE";
     }
-    if $pod.content[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "DESCRIPTION"} {
+    if $pod.content[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
         $summary = $pod.content[1].content[0].content[0];
     } else {
-        note "$podname does not have an =DESCRIPTION";
+        note "$podname does not have an =SUBTITLE";
     }
     my $origin = $dr.add-new(
         :kind<language>,
