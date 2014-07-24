@@ -5,6 +5,7 @@ $(function(){
       source: [
 ITEMS
       ],
-      select: function (event, ui) { window.location.href = ui.item.url; }
+      select: function (event, ui) { window.location.href = ui.item.url; },
+      autoFocus: true
   });
 });
