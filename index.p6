@@ -24,7 +24,6 @@ multi sub MAIN('index') {
 			#if $row ~~ /^\=(item|head\d) \s+ X\<(.*)\> \s*$/ {
 			if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
 				$section = $1.Str;
-				$section.=subst(/\|/,"",:g);
 				%words{$section}.push([$pod, $section]);
 			}
 			if $row ~~ /X\<(.*?)\>/ and $section {
