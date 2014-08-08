@@ -221,7 +221,7 @@ multi write-type-source($doc) {
         );
         $pod.content.push: pod-link(
             'Full-size type graph image as SVG',
-            "/images/type-graph-$podname.svg",
+            "/images/type-graph-{uri_escape $podname}.svg",
         );
 
         my @mro = $type.mro;
@@ -233,7 +233,7 @@ multi write-type-source($doc) {
                 pod-heading("Methods supplied by role $r"),
                 pod-block(
                     "$podname does role ",
-                    pod-link($r.name, "/type/$r"),
+                    pod-link($r.name, "/type/{uri_escape ~$r}"),
                     ", which provides the following methods:",
                 ),
                 %methods-by-type{$r}.list,
@@ -245,7 +245,7 @@ multi write-type-source($doc) {
                 pod-heading("Methods supplied by class $c"),
                 pod-block(
                     "$podname inherits from class ",
-                    pod-link($c.name, "/type/$c"),
+                    pod-link($c.name, "/type/{uri_escape ~$c}"),
                     ", which provides the following methods:",
                 ),
                 %methods-by-type{$c}.list,
@@ -256,9 +256,9 @@ multi write-type-source($doc) {
                     pod-heading("Methods supplied by role $r"),
                     pod-block(
                         "$podname inherits from class ",
-                        pod-link($c.name, "/type/$c"),
+                        pod-link($c.name, "/type/{uri_escape ~$c}"),
                         ", which does role ",
-                        pod-link($r.name, "/type/$r"),
+                        pod-link($r.name, "/type/{uri_escape ~$r}"),
                         ", which provides the following methods:",
                     ),
                     %methods-by-type{$r}.list,
