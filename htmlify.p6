@@ -540,7 +540,7 @@ sub write-main-index(:$dr, :$kind, :&summary = {Nil}) {
         "Perl 6 {$kind.tc}s",
         pod-block(
             'This is a list of ', pod-bold('all'), ' built-in ' ~ $kind.tc ~
-            "s that are documented here as part of the the Perl 6 language. " ~
+            "s that are documented here as part of the Perl 6 language. " ~
             "Use the above menu to narrow it down topically."
         ),
         pod-table($dr.lookup($kind, :by<kind>)\
