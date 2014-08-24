@@ -51,6 +51,55 @@ So the correct way to write method double is
 
 which operates on the attributes directly.
 
+=head2 BUILD prevents automatic attribute initialization from constructor arguments
+
+When you define your own C<BUILD> submethod, you must take care of
+initializing all attributes yourself. For example
+
+    use v6;
+    class A {
+        has $.x;
+        has $.y;
+        submethod BUILD {
+            $!y = 18;
+        }
+    }
+
+    say A.new(x => 42).x;       # Any
+
+leaves C<$!x> uninitialized, because the custom C<BUILD> doesn't initialize
+it. And the custom BUILD
+
+One possible remedy is to explicitly initialize the attribute in C<BUILD>:
+
+        submethod BUILD(:$x) {
+            $!y = 18;
+            $!x := $x;
+        }
+
+which can be shortened to
+
+        submethod BUILD(:$!x) {
+            $!y = 18;
+        }
+
+Another, more general approach is to leave C<BUILD> alone, and hook into the
+C<BUILDALL> mechanism instead:
+
+    use v6;
+    class A {
+        has $.x;
+        has $.y;
+        method BUILDALL(|c) {
+            nextsame;
+            $!y = 18;
+        }
+    }
+
+    say A.new(x => 42).x;       # 42
+
+
+
 =head1 Regexes
 
 =head2 Whitespace in Regexes does not match literally
