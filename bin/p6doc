@@ -9,9 +9,12 @@ my class X::P6doc is Exception {
 }
 
 constant DEBUG = %*ENV<P6DOC_DEBUG>;
+
 sub findbin() returns Str {
     $*PROGRAM_NAME.subst(rx{<-[/\\]>+$}, '');
 }
+
+constant INDEX = findbin() ~ 'index.data';
 
 sub tempfile() {
     my $tempfile = %*ENV<TEMP> // %*ENV<TMP> // '/tmp';
@@ -69,8 +72,8 @@ multi sub MAIN() {
 
 multi sub MAIN($docee) {
     return MAIN($docee, :f) if defined $docee.index('.') ;
-    if 'index.data'.IO ~~ :e {
-        my %data = EVAL slurp 'index.data';
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
         if %data{$docee} {
             my $newdoc = %data{$docee}[0][0];
             return MAIN($newdoc);
@@ -82,8 +85,8 @@ multi sub MAIN($docee) {
 multi sub MAIN($docee, Bool :$f!) {
     my ($package, $method) = $docee.split('.');
     unless $method {
-      if 'index.data'.IO ~~ :e {
-        my %data = EVAL slurp 'index.data';
+      if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
         my $ndocee = "method "~$docee;
         if %data{$ndocee} {
           my $newdoc = %data{$ndocee}[0][0] ~ "." ~ $docee;
