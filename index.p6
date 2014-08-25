@@ -2,10 +2,18 @@
 use v6;
 use File::Find;
 
-my $index_file = "index.data";
+# XXX this script probably should be refactored into p6doc itself
+
+sub findbin() returns Str {
+    $*PROGRAM_NAME.subst(rx{<-[/\\]>+$}, '');
+}
+
+constant INDEX = findbin() ~ 'index.data';
+
 multi sub MAIN() {
-    say "Usage: $*PROGRAM_NAME index     to index the docs";
-    say "Usage: $*PROGRAM_NAME list      to list  the names";
+    say "Usage: $*PROGRAM_NAME index        to index the docs";
+    say "Usage: $*PROGRAM_NAME list         to list  the names";
+    say "Usage: $*PROGRAM_NAME lookup <key> to display module name containing key";
 }
 
 multi sub MAIN('index') {
@@ -36,14 +44,14 @@ multi sub MAIN('index') {
         }
     }
 
-    my $out = open($index_file, :w);
+    my $out = open(INDEX, :w);
     $out.print(%words.perl);
     $out.close;
 }
 
 multi sub MAIN('list') {
-    if $index_file.IO ~~ :e {
-        my %data = EVAL slurp $index_file;
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
         for %data.keys.sort -> $name {
             say $name
         #    my $newdoc = %data{$docee}[0][0] ~ "." ~ %data{$docee}[0][1];
@@ -56,8 +64,8 @@ multi sub MAIN('list') {
 }
 
 multi sub MAIN('lookup', $key) {
-    if $index_file.IO ~~ :e {
-        my %data = EVAL slurp $index_file;
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
         die "not found" unless %data{$key};
         say %data{$key}.split(" ").[0];
     } else {
