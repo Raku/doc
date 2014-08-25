@@ -12,6 +12,8 @@ windows), a directory, and a basename.
 C<IO::Path> supports both purely textual operations, and operations that
 access the file system.
 
+The current working directory is available as an IO::Path object in C<$*CWD>.
+
 The behavior of C<IO::Path> is dependent on the operating system it runs on;
 to get reproducible behavior across operating systems, you can use one of its
 subclasses instead: L<IO::Path::Unix>, L<IO::Path::Win32>,
@@ -20,10 +22,11 @@ L<IO::Path::Cygwin>, L<IO::Path::QNX>.
 The rest of this document silently assumes Unix semantics in its examples,
 unless when stated otherwise.
 
+
 =for TODO
 
 document the following methods: is-absolute, is-relative, absolute,
-relative, parent, child, copy, chmod, contents
+relative, parent, child, copy,
 
 =end for
 
@@ -101,5 +104,37 @@ as the L<open> function accepts.
 
 Watches the path for modifications. Only implemented in Rakudo with the MoarVM
 backend at the moment.
+
+=head2 method contents
+
+    method contents(IO::Path:D: Mu :$test = none('.', '..'))
+
+Tries to interpret the path as a directory, and returns a lazy list of
+C<IO::Path> objects that match the C<$test> smart-matcher.
+
+By default, the C<.> and C<..> entries (current directory, and parent
+directory) are filtered out. To get a list of all files and directories,
+simply pass a smart-matcher that always matches, like C<True>:
+C<$path.contents(:test(True))>, or shorter: C<$path.contents(:test)>.
+
+An example that lists all files and directories recursively:
+
+    sub MAIN($dir = '.') {
+        my @todo = $dir.path;
+        while @todo {
+            for @todo.pop.contents -> $path {
+                say $path.Str;
+                @todo.push: $path if $path.d;
+            }
+        }
+    }
+
+=head2 method chmod
+
+    method chmod(IO::Path:D: Int:D $mode)
+
+Changes the POSIX permissions of a file to C<$mode>.
+
+    $*CWD.chmod(0o700);
 
 =end POD
