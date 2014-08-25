@@ -11,13 +11,15 @@ sub findbin() returns Str {
 constant INDEX = findbin() ~ 'index.data';
 
 multi sub MAIN() {
-    say "Usage: $*PROGRAM_NAME index        to index the docs";
-    say "Usage: $*PROGRAM_NAME list         to list  the names";
+    say "Usage: $*PROGRAM_NAME index        to index the docs for use with 'p6doc -f'";
+    say "Usage: $*PROGRAM_NAME list         to list the names";
     say "Usage: $*PROGRAM_NAME lookup <key> to display module name containing key";
 }
 
 multi sub MAIN('index') {
     my %words;
+
+    # XXX p6doc probably uses another path to @*INC which is probably incomplete
 
     for ( @*INC ) -> $lib_path is copy {
 
