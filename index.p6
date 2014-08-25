@@ -9,33 +9,38 @@ multi sub MAIN() {
 }
 
 multi sub MAIN('index') {
-	my %words;
+    my %words;
 
-  my @files :=  find(:dir('lib'),:type('file')); 
+    for ( @*INC ) -> $lib_path is copy {
 
-	for @files -> $f {
-    my $file = $f.path;
-		next if $file !~~ /\.pod$/;
-		my $pod = substr($file.Str, 0 , $file.Str.chars -4);
-		$pod.=subst(/lib\//,"");
-		$pod.=subst(/\//,'::',:g);
-		my $section = '';
-		for open( $file.Str).lines -> $row {
-			#if $row ~~ /^\=(item|head\d) \s+ X\<(.*)\> \s*$/ {
-			if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
-				$section = $1.Str;
-				%words{$section}.push([$pod, $section]);
-			}
-			if $row ~~ /X\<(.*?)\>/ and $section {
-				my $x = $0.Str;
-				%words{$x}.push([$pod, $section]);
-			}
-		}
-	}
-	my $out = open($index_file, :w);
-	$out.print(%words.perl);
-	$out.close;
+        $lib_path = $lib_path.Str;
+        my @files :=  find(:dir($lib_path),:type('file')); 
+
+        for @files -> $f {
+            my $file = $f.path;
+            next if $file !~~ /\.pod$/;
+            my $pod = substr($file.Str, 0 , $file.Str.chars -4);
+            $pod.=subst(/$lib_path\//,"");
+            $pod.=subst(/\//,'::',:g);
+            my $section = '';
+            for open( $file.Str).lines -> $row {
+                if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
+                    $section = $1.Str;
+                    %words{$section}.push([$pod, $section]);
+                }
+                if $row ~~ /X\<(.*?)\>/ and $section {
+                    my $x = $0.Str;
+                    %words{$x}.push([$pod, $section]);
+                }
+            }
+        }
+    }
+
+    my $out = open($index_file, :w);
+    $out.print(%words.perl);
+    $out.close;
 }
+
 multi sub MAIN('list') {
     if $index_file.IO ~~ :e {
         my %data = EVAL slurp $index_file;
