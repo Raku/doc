@@ -100,6 +100,13 @@ sub recursive-dir($dir) {
     }
 }
 
+sub svg-for-file($file) {
+    my $handle = open $file;
+    my $str = join "\n", grep { /^'<svg'/ ff False }, $handle.lines;
+    $handle.close;
+    $str;
+}
+
 sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
 
@@ -115,6 +122,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     my %h = $tg.sorted.kv.flat.reverse;
 
     process-pod-dir 'Language', :$dr;
+    write-type-graph-images(:force($typegraph));
     # XXX: Generalize
     process-pod-dir 'Type', :$dr :sorted-by{ %h{.key} // -1 };
     for $dr.lookup("type", :by<kind>).list {
@@ -125,7 +133,6 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $dr.compose;
 
     write-disambiguation-files($dr);
-    write-type-graph-images(:force($typegraph));
     write-search-file($dr);
     write-index-files($dr);
 
@@ -216,13 +223,14 @@ multi write-type-source($doc) {
     }
 
     if $type {
-        $pod.content.push: Pod::Block::Named.new(
-            name    => 'Image',
-            content => [ "/images/type-graph-$podname.png"],
-        );
-        $pod.content.push: pod-link(
-            'Full-size type graph image as SVG',
-            "/images/type-graph-{uri_escape $podname}.svg",
+        my $tg-preamble = qq[<h1>Type graph</h1>\n<p>Below you should see
+        an imgage showing the type relations for $podname. If not, try the <a
+        href="/images/type-graph-{uri_escape $podname}.png">PNG
+        version</a>.</p>];
+        $pod.content.push: Pod::Raw.new(
+            target => 'html',
+            content => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
+
         );
 
         my @mro = $type.mro;
