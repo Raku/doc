@@ -145,6 +145,7 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
     say "Reading lib/$dir ...";
     my @pod-sources =
         recursive-dir("lib/$dir/")\
+        .grep({.path ~~ / '.pod' $/})\
         .map({;
             .path.subst("lib/$dir/", '')\
                  .subst(rx{\.pod$},  '')\
