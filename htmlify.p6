@@ -173,13 +173,13 @@ sub process-pod-dir($dir, :$dr, :&sorted-by = &[cmp]) {
 multi process-pod-source(:$what where "language", :$dr, :$pod, :$podname, :$pod-is-complete) {
     my $name = $podname;
     my $summary = '';
-    if $pod.content[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
-        $name = $pod.content[0].content[0].content[0]
+    if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
+        $name = $pod.contents[0].contents[0].contents[0]
     } else {
         note "$podname does not have an =TITLE";
     }
-    if $pod.content[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
-        $summary = $pod.content[1].content[0].content[0];
+    if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
+        $summary = $pod.contents[1].contents[0].contents[0];
     } else {
         note "$podname does not have an =SUBTITLE";
     }
@@ -227,9 +227,9 @@ multi write-type-source($doc) {
         an imgage showing the type relations for $podname. If not, try the <a
         href="/images/type-graph-{uri_escape $podname}.png">PNG
         version</a>.</p>];
-        $pod.content.push: Pod::Raw.new(
+        $pod.contents.push: Pod::Raw.new(
             target => 'html',
-            content => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
+            contents => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
 
         );
 
@@ -238,7 +238,7 @@ multi write-type-source($doc) {
 
         for $type.roles -> $r {
             next unless %methods-by-type{$r};
-            $pod.content.push:
+            $pod.contents.push:
                 pod-heading("Methods supplied by role $r"),
                 pod-block(
                     "$podname does role ",
@@ -250,7 +250,7 @@ multi write-type-source($doc) {
         }
         for @mro -> $c {
             next unless %methods-by-type{$c};
-            $pod.content.push:
+            $pod.contents.push:
                 pod-heading("Methods supplied by class $c"),
                 pod-block(
                     "$podname inherits from class ",
@@ -261,7 +261,7 @@ multi write-type-source($doc) {
                 ;
             for $c.roles -> $r {
                 next unless %methods-by-type{$r};
-                $pod.content.push:
+                $pod.contents.push:
                     pod-heading("Methods supplied by role $r"),
                     pod-block(
                         "$podname inherits from class ",
@@ -286,7 +286,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
     # If a heading is a definition, like "class FooBar", process
     # the class and give the rest of the pod to find-definitions,
     # which will return how far the definition of "class FooBar" extends.
-    my @c := $pod ~~ Positional ?? @$pod !! $pod.content;
+    my @c := $pod ~~ Positional ?? @$pod !! $pod.contents;
     my int $i = 0;
     my int $len = +@c;
     while $i < $len {
@@ -297,8 +297,8 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             # Is this new header a definition?
             # If so, begin processing it.
             # If not, skip to the next heading.
-            $i = $i + 1 and next unless $c.content[0].content[0] ~~ Str
-                                    and 2 == my @words = $c.content[0].content[0].words;
+            $i = $i + 1 and next unless $c.contents[0].contents[0] ~~ Str
+                                    and 2 == my @words = $c.contents[0].contents[0].words;
 
             my ($subkinds, $name) = @words;
             my %attr;
@@ -333,7 +333,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             # And updating $i to be after the places we've already searched
             my int $new-i = $i + find-definitions :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
 
-            @c[$i].content[0] = pod-link "$subkinds $name",
+            @c[$i].contents[0] = pod-link "$subkinds $name",
                 $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
 
             my $chunk = $created.pod.push: pod-lower-headings(@c[$i..$new-i], :to(%attr<kind> eq 'type' ?? 0 !! 2));
@@ -475,7 +475,7 @@ sub write-disambiguation-files($dr) {
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
-                $pod.content.push:
+                $pod.contents.push:
                     pod-block(
                         pod-link("'$name' is a $p.human-kind()", $p.url),
                         ' from ',
@@ -483,14 +483,14 @@ sub write-disambiguation-files($dr) {
                     );
             }
             else {
-                $pod.content.push:
+                $pod.contents.push:
                     pod-block(
                         pod-link("'$name' is a $p.human-kind()", $p.url)
                     );
             }
         }
         else {
-            $pod.content.push:
+            $pod.contents.push:
                 pod-block("'$name' can be anything of the following"),
                 $p.map({
                     if .origin -> $o {

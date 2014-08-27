@@ -2,11 +2,11 @@ use Pod::To::Text;
 class Pod::To::SectionFilter {
     method render(@pod) {
         my $search_for = %*ENV<PERL6_POD_HEADING> // die 'env var missing';
-        my @blocks := @pod[0].content;
+        my @blocks := @pod[0].contents;
         my $from;
         my $heading-level;
         for @blocks.kv -> $idx, $b {
-            if $b ~~ Pod::Heading && $b.content[0].content[0] ~~ m:i:s/^ [method|sub|routine] $search_for $/ {
+            if $b ~~ Pod::Heading && $b.contents[0].contents[0] ~~ m:i:s/^ [method|sub|routine] $search_for $/ {
                 $from = $idx;
                 $heading-level = $b.level;
             }

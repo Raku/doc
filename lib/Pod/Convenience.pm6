@@ -11,7 +11,7 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
         }
     }
     @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-    for $pod.content.list -> $c {
+    for $pod.contents.list -> $c {
         if $c ~~ Pod::Block {
             @chunks.push: pod-gist($c, $level + 2);
         }
@@ -32,7 +32,7 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
 
 sub first-code-block(@pod) is export {
     if @pod[1] ~~ Pod::Block::Code {
-        return @pod[1].content.grep(Str).join;
+        return @pod[1].contents.grep(Str).join;
     }
     '';
 }
@@ -40,7 +40,7 @@ sub first-code-block(@pod) is export {
 sub pod-with-title($title, *@blocks) is export {
     Pod::Block::Named.new(
         name => "pod",
-        content => [
+        contents => [
             pod-title($title),
             @blocks.flat,
         ]
@@ -50,37 +50,37 @@ sub pod-with-title($title, *@blocks) is export {
 sub pod-title($title) is export {
     Pod::Block::Named.new(
         name    => "TITLE",
-        content => Array.new(
+        contents => Array.new(
             Pod::Block::Para.new(
-                content => [$title],
+                contents => [$title],
             )
         )
     )
 }
 
-sub pod-block(*@content) is export {
-    Pod::Block::Para.new(:@content);
+sub pod-block(*@contents) is export {
+    Pod::Block::Para.new(:@contents);
 }
 
 sub pod-link($text, $url) is export {
     Pod::FormattingCode.new(
-        type    => 'L',
-        content => [$text],
-        meta    => [$url],
+        type     => 'L',
+        contents => [$text],
+        meta     => [$url],
     );
 }
 
 sub pod-bold($text) is export {
     Pod::FormattingCode.new(
-        type    => 'B',
-        content => [$text],
+        type     => 'B',
+        contents => [$text],
     );
 }
 
-sub pod-item(*@content, :$level = 1) is export {
+sub pod-item(*@contents, :$level = 1) is export {
     Pod::Item.new(
         :$level,
-        :@content,
+        :@contents,
     );
 }
 
@@ -91,9 +91,9 @@ sub pod-heading($name, :$level = 1) is export {
     );
 }
 
-sub pod-table(@content) is export {
+sub pod-table(@contents) is export {
     Pod::Block::Table.new(
-        :@content
+        :@contents
     )
 }
 
@@ -103,7 +103,7 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     return @content unless $by > $to;
     for @content {
         @new-content.push($_ ~~ Pod::Heading
-            ?? Pod::Heading.new :level(.level - $by + $to) :content[.content]
+            ?? Pod::Heading.new :level(.level - $by + $to) :contents[.contents]
             !! $_
         );
     }
