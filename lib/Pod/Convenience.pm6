@@ -87,7 +87,7 @@ sub pod-item(*@contents, :$level = 1) is export {
 sub pod-heading($name, :$level = 1) is export {
     Pod::Heading.new(
         :$level,
-        :content[pod-block($name)],
+        :contents[pod-block($name)],
     );
 }
 
