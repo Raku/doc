@@ -530,7 +530,7 @@ sub write-disambiguation-files($dr) {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/$name.subst(/<[:/\]>/,'_').html", $html;
+        spurt "html/$name.subst(/<[:/\\]>/,'_',:g).html", $html;
     }
     say '';
 }
