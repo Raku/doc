@@ -297,26 +297,26 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             # Is this new header a definition?
             # If so, begin processing it.
             # If not, skip to the next heading.
-            my $header := $c.contents[0].contents;
+            my @header := $c.contents[0].contents;
             my @words;
-            given $header {
-                when :(Str $ where /^(\w+) \s (\S+)$/) {
-                    # Infix Foo
-                    @words = ~$0, ~$1;
-                }
-                when :(Str $ where /^The \s (\S+) \s (\w+)$/) {
+            given @header {
+                when :(Str $ where /^The \s \S+ \s \w+$/) {
                     # The Foo Infix
-                    @words = ~$1, ~$0;
+                    @words = .[0].words[2,1];
                 }
-                when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                    # infix C<Foo>
-                    @words = ~$0, $header[1].contents[0];
+                when :(Str $ where {m/^(\w+) \s (\S+)$/}) {
+                    # Infix Foo
+                    @words = .[0].words[0,1];
                 }
                 when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                     # The C<Foo> infix
-                    @words = ~$0, $header[1].contents[0];
+                    @words = .[2].words[0], .[1].contents[0];
                 }
-                default { .perl.say; $i = $i + 1; next }
+                when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
+                    # infix C<Foo>
+                    @words = .[0].words[0], .[1].contents[0];
+                }
+                default { $i = $i + 1; next }
             }
 
             my ($subkinds, $name) = @words;
@@ -335,6 +335,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                             :categories($tg.types{$name}.?categories//''),
                 }
                 when 'variable'|'sigil'|'twigil'|'declarator' {
+                    # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
                 }
@@ -466,23 +467,23 @@ sub write-search-file($dr) {
     say 'Writing html/js/search.js ...';
     my $template = slurp("template/search_template.js");
     my @items;
-    my sub fix-url ($raw) {
-        $raw #~~ /^.(.*?)('#'.*)?$/;
-        #$0 ~ '.html' ~ ($1||'')
-    };
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
     @items.push: $dr.lookup('language', :by<kind>).sort(*.name).map({
-        qq[\{ label: "Language: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+        qq[\{ label: "Language: {.name}", value: "{.name}", url: "{.url}" \}]
     });
     @items.push: $dr.lookup('type', :by<kind>).sort(*.name).map({
-        qq[\{ label: "Type: {.name}", value: "{.name}", url: "{ fix-url(.url) }" \}]
+        qq[\{ label: "Type: {.name}", value: "{.name}", url: "{.url}" \}]
     });
-    my %seen;
-    @items.push: $dr.lookup('routine', :by<kind>).grep({!%seen{.name}++}).sort(*.name).map({
+    @items.push: $dr.lookup('routine', :by<kind>).uniq(:as{.name}).sort(*.name).map({
         do for .subkinds // 'Routine' -> $subkind {
-            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{ fix-url(.url) }" \}]
+            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
+        }
+    });
+    @items.push: $dr.lookup('syntax', :by<kind>).sort(*.name).map({
+        do for .subkinds // 'Syntax' -> $subkind {
+            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
         }
     });
 
