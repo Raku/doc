@@ -297,12 +297,31 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             # Is this new header a definition?
             # If so, begin processing it.
             # If not, skip to the next heading.
-            $i = $i + 1 and next unless $c.contents[0].contents[0] ~~ Str
-                                    and 2 == my @words = $c.contents[0].contents[0].words;
+            my $header := $c.contents[0].contents;
+            my @words;
+            given $header {
+                when :(Str $ where /^(\w+) \s (\S+)$/) {
+                    # Infix Foo
+                    @words = ~$0, ~$1;
+                }
+                when :(Str $ where /^The \s (\S+) \s (\w+)$/) {
+                    # The Foo Infix
+                    @words = ~$1, ~$0;
+                }
+                when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
+                    # infix C<Foo>
+                    @words = ~$0, $header[1].contents[0];
+                }
+                when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
+                    # The C<Foo> infix
+                    @words = ~$0, $header[1].contents[0];
+                }
+                default { .perl.say; $i = $i + 1; next }
+            }
 
             my ($subkinds, $name) = @words;
             my %attr;
-            given $subkinds {
+            given $subkinds.lc {
                 when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
                     %attr = :kind<routine>,
                             :categories<operator>,
@@ -314,6 +333,10 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                 when 'class'|'role' {
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
+                }
+                when 'variable'|'sigil'|'twigil'|'declarator' {
+                    %attr = :kind<syntax>,
+                            :categories($subkinds),
                 }
                 default {
                     $i = $i + 1 and next
