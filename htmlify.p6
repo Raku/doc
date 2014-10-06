@@ -111,7 +111,7 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $*DEBUG = $debug;
 
     say 'Creating html/ subdirectories ...';
-    for '', <type language routine images> {
+    for '', <type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -137,10 +137,15 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     write-index-files($dr);
 
     say 'Writing per-routine files ...';
-    my %routine-seen;
-    for $dr.lookup('routine', :by<kind>).list -> $d {
-        next if %routine-seen{$d.name}++;
+    for $dr.lookup('routine', :by<kind>).uniq(:as{.name}) -> $d {
         write-routine-file($dr, $d.name);
+        print '.'
+    }
+    say '';
+
+    say 'Writing per-syntactic-feature files ...';
+    for $dr.lookup('syntax', :by<kind>).uniq(:as{.name}).list -> $d {
+        write-syntax-file($dr, $d.name);
         print '.'
     }
     say '';
@@ -530,7 +535,7 @@ sub write-disambiguation-files($dr) {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/$name.subst(/<[:/\\]>/,'_',:g).html", $html;
+        spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
     }
     say '';
 }
@@ -622,6 +627,25 @@ sub write-routine-file($dr, $name) {
         })
     );
     spurt "html/routine/$name.html", p2h($pod, 'routine');
+}
+
+sub write-syntax-file($dr, $name) {
+    say 'Writing html/syntax/$name.html ...' if $*DEBUG;
+    my @docs = $dr.lookup($name, :by<name>).grep(*.kind eq 'syntax');
+    my $subkind = 'syntactic feature';
+    {
+        my @subkinds = @docs>>.subkinds;
+        $subkind = @subkinds[0] if all(@subkinds>>.defined) && [eq] @subkinds;
+    }
+    my $pod = pod-with-title("Documentation for $subkind $name",
+        pod-block("Documentation for $subkind $name"),
+        @docs.map({
+            pod-heading("{.origin.human-kind} {.origin.name}"),
+            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name)),
+            .pod.list,
+        })
+    );
+    spurt "html/syntax/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, 'syntax');
 }
 
 sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
