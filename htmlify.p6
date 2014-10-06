@@ -305,6 +305,10 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
             my @header := $c.contents[0].contents;
             my @words;
             given @header {
+                when :("", Pod::FormattingCode $, "") {
+                    proceed unless .[1].type eq "X";
+                    @words = .[1].meta[0][0,1]; # XXX Multiple definitions
+                }
                 when :(Str $ where /^The \s \S+ \s \w+$/) {
                     # The Foo Infix
                     @words = .[0].words[2,1];
@@ -339,7 +343,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator' {
+                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
