@@ -295,42 +295,45 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
     my int $i = 0;
     my int $len = +@c;
     while $i < $len {
+        NEXT {$i = $i + 1}
         my $c := @c[$i];
-        if $c ~~ Pod::Heading {
-            return $i if $c.level <= $min-level;
+        next unless $c ~~ Pod::Heading;
+        return $i if $c.level <= $min-level;
 
-            # Is this new header a definition?
-            # If so, begin processing it.
-            # If not, skip to the next heading.
-            my @header := $c.contents[0].contents;
-            my @words;
-            given @header {
-                when :("", Pod::FormattingCode $, "") {
-                    proceed unless .[1].type eq "X";
-                    @words = .[1].meta[0][0,1]; # XXX Multiple definitions
-                }
-                when :(Str $ where /^The \s \S+ \s \w+$/) {
-                    # The Foo Infix
-                    @words = .[0].words[2,1];
-                }
-                when :(Str $ where {m/^(\w+) \s (\S+)$/}) {
-                    # Infix Foo
-                    @words = .[0].words[0,1];
-                }
-                when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
-                    # The C<Foo> infix
-                    @words = .[2].words[0], .[1].contents[0];
-                }
-                when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                    # infix C<Foo>
-                    @words = .[0].words[0], .[1].contents[0];
-                }
-                default { $i = $i + 1; next }
+        # Is this new header a definition?
+        # If so, begin processing it.
+        # If not, skip to the next heading.
+        my @header := $c.contents[0].contents;
+        my @definitions; # [subkind, name]
+        given @header {
+            when :("", Pod::FormattingCode $, "") {
+                proceed unless .[1].type eq "X";
+                @definitions = .[1].meta[];
             }
+            when :(Str $ where /^The \s \S+ \s \w+$/) {
+                # The Foo Infix
+                @definitions = [.[0].words[2,1]];
+            }
+            when :(Str $ where {m/^(\w+) \s (\S+)$/}) {
+                # Infix Foo
+                @definitions = [.[0].words[0,1]];
+            }
+            when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
+                # The C<Foo> infix
+                @definitions = [.[2].words[0], .[1].contents[0]];
+            }
+            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
+                # infix C<Foo>
+                @definitions = [.[0].words[0], .[1].contents[0]];
+            }
+            default { next }
+        }
 
-            my ($subkinds, $name) = @words;
+        my int $new-i = $i;
+        for @definitions -> [$sk, $name] {
+            my $subkinds = $sk.lc;
             my %attr;
-            given $subkinds.lc {
+            given $subkinds {
                 when / ^ [in | pre | post | circum | postcircum ] fix | listop / {
                     %attr = :kind<routine>,
                             :categories<operator>,
@@ -349,9 +352,10 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                             :categories($subkinds),
                 }
                 default {
-                    $i = $i + 1 and next
+                    last
                 }
             }
+
             # We made it this far, so it's a valid definition
             my $created = $dr.add-new(
                 :$origin,
@@ -364,14 +368,19 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
 
             # Preform sub-parse, checking for definitions elsewhere in the pod
             # And updating $i to be after the places we've already searched
-            my int $new-i = $i + find-definitions :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
+            once {
+                $new-i = $i + find-definitions
+                    :pod(@c[$i+1..*]), :origin($created), :$dr, :min-level(@c[$i].level);
+            }
 
-            @c[$i].contents[0] = pod-link "$subkinds $name",
-                $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_');
-
-            my $chunk = $created.pod.push: pod-lower-headings(@c[$i..$new-i], :to(%attr<kind> eq 'type' ?? 0 !! 2));
-
-            $i = $new-i;
+            my $new-head = Pod::Heading.new(
+                :level(@c[$i].level),
+                :contents[pod-link "$subkinds $name",
+                    $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_')
+                ]
+            );
+            my @orig-chunk = $new-head, @c[$i ^.. $new-i];
+            my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
             
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
@@ -394,7 +403,7 @@ sub find-definitions (:$pod, :$origin, :$dr, :$min-level = -1) {
                 );
             }
         }
-        $i = $i + 1;
+        $i = $new-i + 1;
     }
     return $i;
 }
