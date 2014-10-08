@@ -5,8 +5,8 @@
     class Signature { ... }
 
 A signature is a static description of the parameter list of a code object.
-That is, it describes what and how many arguments you need to pass to it
-for invocation.
+That is, it describes what and how many arguments you need to pass to
+the code or function in order to call it.
 
 Passing arguments to a signature I<binds> the arguments the parameters,
 and (loosely speaking) to the signature.
@@ -14,39 +14,71 @@ and (loosely speaking) to the signature.
 =head1 Signature Literals
 
 Signatures appear in parenthesis after subroutine and method names, on
-blocks after a C<< -> >> or C<< <-> >> arrow, or as a separate term starting
-with a colon.
+blocks after a C<< -> >> or C<< <-> >> arrow, as the input to
+L<variable declarators|language/variables.html#Variable_Declarators_and_Scope>
+like L<C<my>>, or as a separate term starting with a colon.
 
-    sub f($x) { }
-    #    ^^^^ signature
-    method x() { }
-    #       ^^ signature
-    my $s = sub (*@a) { }
-    #           ^^^^^ signature
+=begin code :allow<B L>
+sub fB<($x)> { }
+#    ^^^^ Signature of sub f
+method xB<()> { }
+#       ^^ Signature of a method
+my $s = sub B<(*@a)> { }
+#           ^^^^^ Signature of an anonymous function
 
-    for @list -> $x { }
-    #            ^^   signature
+for @list -> B<$x> { }
+#            ^^   Signature of a L<block|Block>
 
-    my $sig = :($a, $b);
-    #          ^^^^^^^^ signature
+my B<($a, @b)> = 5, (6,7,8);
+#  ^^^^^^^^ Signature of a variable declarator
+
+my $sig = B<:($a, $b)>;
+#          ^^^^^^^^ Standalone Signature object
+=end code
 
 =head2 Parameter Separators
 
-A signature consists of zero or more I<parameters>, separated by comma.
-As an exception the first parameter may be followed by a colon instead of
-a comma to mark the invocant of a method.
+A signature consists of zero or more I<L<parameters|Parameter>>, separated by comma.
 
-    :($a, @b, %c)       # comma-separated parameters
-    :($a: @b, %c)       # first argument is the invocant
+=for code :allow<B>
+:($aB<,> @bB<,> %c)
+sub add ($aB<,> $b) { $a + $b }
+
+As an exception the first parameter may be followed by a colon instead
+of a comma to mark the invocant of a method (the invocant is that
+thing that's bound to L<C<self>>, but by specifying it in the
+signature, you can change what it's bound to).
+
+=begin code :allow<B L>
+:(B<$a:> @b, %c)       # first argument is the invocant
+
+L<class> Foo {
+    method whoami (B<$me:>) {
+        "Well I'm class B<$me>.^L<name>(), of course!"
+    }
+}
+say Foo.whoami; # => Well I'm class Foo, of course!
+=end code
 
 =head2 Type Constraints
 
-Parameters can optionally have a type constraint (the default is L<Any>).
-Anonymous parameters are fine too.
+Parameters can optionally have a type constraint (the default is L<C<Any>>).
+These can be used to restrict the allowed input to a function.
 
-    :(Int $a, Str $b)   # type constraints
-    :($, @, %a)         # two anonymous and a "normal" parameter
-    :(Int, Positional)  # just a type is also fine (two parameters)
+=begin code :allow<B L>
+:(B<L<Int>> $a, B<L<Str>> $b)
+
+sub divisors (B<L<Int>> $n) { $_ if $n L<%%> $_ for 1..$n }
+divisors 2.5; # !!! Calling 'divisors' will never work with argument types (L<Rat>)
+=end code
+
+Anonymous parameters are fine too, if a parameter is only needed for
+its type constraint.
+
+=for code :allow<B L>
+:(B<$>, B<@>, %a)         # two anonymous and a "normal" parameter
+:(B<L<Int>>, B<L<Positional>>)  # just a type is also fine (two parameters)
+sub baz (B<L<Str>>) { "Got passed a Str" }
 
 In addition to those I<nominal> types, additional constraints can
 be placed on parameters in the form of code blocks which must return
@@ -58,8 +90,8 @@ In fact it doesn't need to be a code block, anything on the right of the
 C<where>-block will be used to smart-match the argument against it.
 So you can also write
 
-    multi fact(Int $ where 0) { 1 }
-    multi fact(Int $x)        { $x * fact($x - 1) }
+    multi factorial(Int $ where 0) { 1 }
+    multi factorial(Int $x)        { $x * fact($x - 1) }
 
 The first of those can be shortened to
 
@@ -68,18 +100,40 @@ The first of those can be shortened to
 i.e., you can use a literal directly as a type and value constraint 
 on an anonymous parameter.
 
-=head2 Slurpy Parameters
+=head2 Slurpy (A.K.A. Variadic) Parameters
 
 An array or hash parameter can be marked as I<slurpy> by a leading asterisk,
-which means they can bind to an arbitrary amount of arguments (zero or more).
+which means it can bind to an arbitrary amount of arguments (zero or more).
 
-    :($a, *@b)          # at least one argument, @b is slurpy
-    :($a, @b)           # two arguments, the second one must be Positional
+These are called "slurpy" because they slurp up any remaining arguments
+to a function, like someone slurping up noodles.
+
+=for code :allow<B L>
+:($a, @b)           # exactly two arguments, where the second one must be Positional
+:($a, B<*@b>)          # at least one argument, where @b is slurpy
+:(B<*%h>)              # no positional arguments, but any number of named arguments
+
+=for code :allow<B L>
+sub one-arg (@) { }
+sub slurpy (B<*@>) { }
+one-arg (5, 6, 7); # ok
+slurpy  (5, 6, 7); # ok
+one-arg 5, 6, 7; # !!! too many arguments
+slurpy  5, 6, 7; # ok
+
+=for code :allow<B L>
+sub named-names (B<*%named-args>) { %named-args.L<keys> }
+say named-names :foo(42) :bar<baz> # => foo bar
+
+Note that positional parameters aren't allowed after slurpy
+parameters.
+
+    :(*@args, $last) # !!! Cannot put required parameter after variadic parameters
 
 =head2 Positional vs. Named
 
 A parameter can be I<positional> or I<named>. All parameters are positional,
-except those marked with a leading colon C<:>, and slurpy hash parameters.
+except slurpy hash parameters and parameters marked with a leading colon C<:>.
 
     :($a)               # a positional parameter
     :(:$a)              # a named parameter of name 'a'
@@ -101,12 +155,13 @@ mapping arguments to parameters
 It is possible to have a different name for a named parameter than the
 variable name:
 
-    sub named(:official($private) { }   # parameter name is 'official'
+    sub named(:official($private) { "Official business!" if $private }
+    named :official;
 
 Aliases are also possible that way:
 
-    sub paint( :color(:colour($c)) )    # 'color' and 'colour' are both OK
-    sub paint( :color(:$colour) )       # same API for the caller
+    sub paint( :color(:colour($c)) ) { }    # 'color' and 'colour' are both OK
+    sub paint( :color(:$colour) ) { }      # same API for the caller
 
 
 =head2 Optional and Mandatory Parameters
@@ -138,14 +193,14 @@ read-only. One can change that with traits on the parameter.
 The C<is copy> trait causes the argument to be copied, and allows it
 to be modified inside the routine
 
-    sub c($x is copy) {
+    sub count-up ($x is copy) {
         $x = Inf if $x ~~ Whatever;
         .say for 1..$x;
     }
 
-The C<is rw> trait makes the parameter only bind to a variable (or other
-writable container)N<this does not work yet in Rakudo>. Assigning to the
-parameter changes the value of the variable at the caller side
+The C<is rw> trait makes the parameter only bind to a variable (or
+other writable container). Assigning to the parameter changes the
+value of the variable at the caller side
 
     sub swap($x is rw, $y is rw) {
         ($x, $y) = ($y, $x);
@@ -165,20 +220,47 @@ remaining positional and named arguments.
 
     method params(Signature:D:) returns Positional
 
-Returns the list of L<Parameter> objects that make up the signature.
+Returns the list of L<C<Parameter>> objects that make up the signature.
 
 =head2 method arity
 
     method arity(Signature:D:) returns Int:D
 
-Returns the minimal number of positional arguments required to satisfy
+Returns the I<minimal> number of positional arguments required to satisfy
 the signature.
 
 =head2 method count
 
     method count(Signature:D:) returns Real:D
 
-Returns the maximal number of positional arguments which can be bound
+Returns the I<maximal> number of positional arguments which can be bound
 to the signature. Returns C<Inf> if there is a slurpy positional parameter.
+
+=head2 method returns
+
+Whatever the Signature's return constraint is:
+
+    :($a, $b --> Int).returns # Int
+
+=head2 method ACCEPTS
+
+=for code :allow<B L>
+multi method ACCEPTS(Signature:D: L<Capture> $topic)
+multi method ACCEPTS(Signature:D: @topic)
+multi method ACCEPTS(Signature:D: %topic)
+multi method ACCEPTS(Signature:D: Signature $topic)
+
+The first three see if the argument could be bound to the capture,
+i.e., if a function with that C<Signature> would be able to be called
+with the C<$topic>:
+
+    (1,2, :foo) ~~ :($a, $b, :foo($bar))    # True
+    <a b c d> ~~ :(Int $a)                  # False
+
+The last returns C<True> if anything accepted by C<$topic> would also
+be accepted by the C<Signature>.
+
+    :($a, $b) ~~ :($foo, $bar, $baz?)   # True
+    :(Int $n) ~~ :(Str)                 # False
 
 =end pod
