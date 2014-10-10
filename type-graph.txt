@@ -54,7 +54,6 @@ class Junction                      is Mu
 class Any                           is Mu
 class Scalar                        is Any
 class Proxy                         is Any
-class LazyScalar                    is Proxy
 class Cool                          is Any
 class Bool                          is Cool
 
@@ -68,6 +67,7 @@ class Sub                           is Routine
 class Method                        is Routine
 class Submethod                     is Routine
 class Macro                         is Routine
+class ForeignCode                   does Callable
 
 [Basic]
 class Whatever
@@ -80,6 +80,7 @@ class Signature
 class AST
 class ObjAt
 class Version
+class Label
 
 [Domain-specific]
 # Regex and Grammars
@@ -109,7 +110,6 @@ class FatRat                        is Cool        does Rational[Int, Int]
 [Basic]
 # Time
 role  Dateish
-class DateTime-local-timezone                      does Callable
 class DateTime                                     does Dateish
 class Date                                         does Dateish
 class Duration                      is Cool        does Real
@@ -119,8 +119,9 @@ class Instant                       is Cool        does Real
 # IO
 role  IO
 role  IO::FileTestable                             does IO
-class IO::Handle                                   does IO::FileTestable
-class IO::Path                      is Cool        does IO::FileTestable
+role  IO::Special
+class IO::Handle                                   does IO
+class IO::Path                      is Cool
 class IO::Path::Unix                is IO::Path
 class IO::Path::Win32               is IO::Path
 class IO::Path::Cygwin              is IO::Path
@@ -128,7 +129,14 @@ class IO::Path::QNX                 is IO::Path
 class IO::ArgFiles                  is IO::Handle
 role  IO::Socket                                   does IO
 class IO::Socket::INET                             does IO::Socket
+class IO::Socket::Async
 class IO::Spec
+class IO::Spec::Unix                is IO::Spec
+class IO::Spec::Win32               is IO::Spec::Unix
+class IO::Spec::Cygwin              is IO::Spec::Unix
+class IO::Spec::QNX                 is IO::Spec::Unix
+class IO::Notification
+class Proc::Status
 
 [Domain-Specific]
 # Pod
@@ -144,6 +152,33 @@ class Pod::FormattingCode           is Pod::Block
 class Pod::Heading                  is Pod::Block
 class Pod::Item                     is Pod::Block
 
+[Domain-specific]
+# CompUnit
+class CompUnit
+class CompUnitRepo
+role CompUnitRepo::Locally
+class CompUnitRepo::Local::File does CompUnitRepo::Locally
+class CompUnitRepo::Local::Installation does CompUnitRepo::Locally
+
+[Domain-specific]
+# S17 / Concurrency
+role Scheduler
+class CurrentThreadScheduler    does Scheduler
+class ThreadPoolScheduler       does Scheduler
+class Promise
+class Promise::Vow
+# enum PromiseStatus
+class PromiseStatus             is Int
+class Channel
+class Tap
+role Supply
+class SupplyOperations
+# enum Signal
+class Signal                    is Int
+class Semaphore
+class Lock
+class Proc::Async
+class Thread
 
 ### COLLECTIONS
 
@@ -151,15 +186,18 @@ class Pod::Item                     is Pod::Block
 # Collections: Iteration
 class Iterable                      is Any
 class Iterator                      is Iterable
-class Nil                           is Iterator
+# Nil maybe should be a Basic type?
+class Nil                           is Iterator is Cool
 class GatherIter                    is Iterator
 class ListIter                      is Iterator
 class MapIter                       is Iterator
+class HashIter                      is Iterator
 
 [Composite]
 # Collections: Positional
 role  Positional[::T = Mu]
-class Buf                                          does Positional
+role  Blob[::T = uint8]             does Positional[T] does Stringy
+role  Buf[::T = uint8]              does Blob[T]
 class Capture
 class Parcel                        is Cool        does Positional
 class Range                         is Iterable is Cool does Positional
@@ -201,6 +239,8 @@ class Failure
 class Exception
 class Backtrace                     is List
 class Backtrace::Frame
+class Deprecation
+class Obsolete                      is Str
 
 [Exceptions]
 # Exceptions: Misc
