@@ -433,6 +433,89 @@ Captures can be nested, in which case they are numbered per level
         say "Inner: $0[0] and $0[1]"; # Inner: b and c
     }
 
+=head2 Named Captures
+
+Instead of numbering captures, you can also give them names. The generic,
+and slightly verbose way of giving out names is like this:
+
+    if 'abc' ~~ / $<myname> = [ \w+ ] / {
+        say ~$<myname>      # abc
+    }
+
+The access to the named capture, C<< $<myname> >>, is a shortcut for indexing
+the match object as a hash, so C<$/{ 'myname' }> or C<< $/<myname> >>.
+
+Coercing the match object to a hash gives you easy programmatic access to all
+named captures:
+
+    if 'count=23' ~~ / $<variable>=\w+ '=' $<value>=\w+ / {
+        my %h = $/.hash;
+        say %h.keys.sort.join: ', ';        # value, variable
+        say %h.values.sort.join: ', ';      # 23, count
+        for %h.kv -> $k, $v {
+            say "Found value '$v' with key '$k'";
+            # outputs two lines:
+            #   Found value 'count' with key 'variable'
+            #   Found value '23' with key 'value'
+        }
+    }
+
+But there is a more convenient way to get named captures, discussed in the
+next section.
+
+=head1 Subrules
+
+Just like you can put pieces of code into subroutines, so you can also put
+pieces of regex into named rules.
+
+    my regex line { \N*\n }
+    if "abc\ndef" ~~ /<line> def/ {
+        say "First line: ", $<line>.chomp;      # first line: abc
+    }
+
+A named regex can be declared with C<my regex thename { body here }>, and
+called with C<< <thename> >>. At the same time, calling a named regex
+installs a named capture with the same name.
+
+If the capture should be of a different name, that can be achieved with the
+syntax C<< <capturename=regexname> >>. If no capture at all is desired, a
+leading dot will surpress it: C<< <.regexname> >>.
+
+Here is a bit more complete (yet still fairly limited) code for parsing ini
+files:
+
+    my regex header { \s* '[' (\w+) ']' \h* \n+ }
+    my regex identifier  { \w+ }
+    my regex kvpair { \s* <key=identifier> '=' <value=identifier> \n+ }
+    my regex section {
+        <header>
+        <kvpair>*
+    }
+
+    my $contents = q:to/EOI/;
+        [passwords]
+            jack=password1
+            joy=muchmoresecure123
+        [quotas]
+            jack=123
+            joy=42
+    EOI
+
+    my %config;
+    if $contents ~~ /<section>*/ {
+        for $<section>.list -> $section {
+            my %section;
+            for $section<kvpair>.list -> $p {
+                say $p<value>;
+                %section{ $p<key> } = ~$p<value>;
+            }
+            %config{ $section<header>[0] } = %section;
+        }
+    }
+    say %config.perl;
+    # ("passwords" => {"jack" => "password1", "joy" => "muchmoresecure123"},
+    #    "quotas" => {"jack" => "123", "joy" => "42"}).hash
+
 =head1 Adverbs
 
 TODO
