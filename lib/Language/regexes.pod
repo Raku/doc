@@ -518,9 +518,99 @@ files:
 
 =head1 Adverbs
 
-TODO
+Adverbs modify how regexes work, and give very convenient shortcuts for
+certain kinds of recurring tasks.
 
-=head2 Sigspace
+There are two kinds of adverbs: regex adverbs apply at the point where a regex
+is defined, and matching adverbs apply at the point that a regex matches
+against a string.
+
+This distinction often blurs, because matching and declaration are often
+textually close, but using the method form of matching makes the distiction
+clear.
+
+C<'abc' ~~ /../> is roughly equvalent to C<'abc'.match(/../)>, or even more
+clearly written in separate lines:
+
+    my $regex = /../;           # definition
+    if 'abc'.match($regex) {    # matching
+        say "'abc' has at least two characters";
+    }
+
+Regex adverbs like C<:i> go into the definition line, and matching adverbs
+like C<:overlap> go along with the matching:
+
+    my $regex = /:i . a/;
+    for 'baA'.match($regex, :overlap) -> $m {
+        say ~$m;
+    }
+    # output:
+    #     ba
+    #     aA
+
+
+=head2 Regex Adverbs
+
+Adverbs that appear at the time of a regex declaration  are part of the actual regex,
+and influences how the Perl 6 compiler translates the regex into binary code.
+
+For example the C<:ignorecase> or short C<:i> adverb tells the compiler to
+ignore the distinction between upper case, lower case and title case letters.
+
+So C<'a' ~~~ /A/> is false, but C<'a' ~~ /:i A/> is a successful match.
+
+Regex adverbs can come before or inside a regex declaration, and only affect
+the part of the regex that comes afterwards, lexically.
+
+These two regexes are equivalent:
+
+    my $rx1 = rx:i/a/;      # before
+    my $rx2 = rx/:i a/;     # inside
+
+Whereas these two are not:
+
+    my $rx3 = rx/a :i b/;   # matches only the b case insensitively
+    my $rx4 = rx/:i a b/;   # matches completly case insensitively
+
+Brackets and parenthesis limit the scope of an adverb:
+
+    / (:i a b) c /          # matches 'ABc' but not 'ABC'
+    / [:i a b] c /          # matches 'ABc' but not 'ABC'
+
+=head3 Ratchet
+
+The C<:ratchet> or C<:r> adverb causes the regex engine not to backtrack.
+
+Without that adverb, parts of a regex will try different ways to match a
+string, in order to make it possible for other parts of the regex to match.
+For example in C<'abc' ~~ /\w+ ./>, the C<\w+> first eats up the whole string,
+C<abc>, but then the C<.> fails. Thus C<\w+> gives up a character, matching
+only C<ab>, and the C<.> can successfully match the string C<c>. This process
+of giving up characters (or in the case of alternations, trying a different
+branch) is known as backtracking.
+
+    say so 'abc' ~~ / \w+ . /;      # True
+    say so 'abc' ~~ / :r \w+ . /;   # False
+
+Ratcheting can be an optimization, because backtracking is costly. But more
+importantly, it closely corresponds to how humans parse a text. If you have a
+regex C<my regex identifier { \w+ }> and
+C<my regex keyword { if | else | endif }, you intuitively expect the
+C<identifier> to gobble up a
+whole rule, and not have it give up its end to the next rule, if the next rule
+otherwise fails. You don't expect the word C<motif> to be parsed as the
+identifier C<mot> followed by the keyword C<if>; rather you expect C<motif> to
+be parsed as one identifier, and if the parser expects and C<if> afterwards,
+rather have it fail than parse the input in a way you don't expect.
+
+Since ratcheting behavior is so often desirable in parsers, there is a shortcut
+to declaring ratcheting regex:
+
+    my token thing { .... }
+    # short for
+    my regex thing { :r ... }
+
+=head3 Sigspace
 
 The B<C<:sigspace>> or B<C<:s>> adverb makes whitespace significant in a regex.
 
@@ -533,5 +623,43 @@ The B<C<:sigspace>> or B<C<:s>> adverb makes whitespace significant in a regex.
 C<m:s/ photo shop /> acts just the same as if one had written C<m/ photo <ws>
 shop <ws> />. By default, C<< <ws> >> makes sure that words are seperated, so
 C<a    b> and C<^&> will match C<< <ws> >> in the middle, but C<ab> won't.
+
+If a regex is declared with the C<rule> keyword, the C<:sigspace> adverb and
+C<:ratchet> are implied
+
+=head2 Matching Adverbs
+
+In contrast to regex adverbs, which are tied to the declaration of a regex,
+matching adverbs only make sense while matching a string against a regex.
+
+They can never appear inside a regex, only on the outside - either as part of
+an C<m/.../> match, or as arguments to a match method.
+
+=head3 Continue
+
+The C<:continue> or short C<:c> adverb takes an argument. The argument is the
+position where the regex should start to search. By default, it searches from
+the start of the string, but C<:c> overrides that.
+
+    given 'a1xa2' {
+        say ~m/a./;         # a1
+        say ~m:c(2)/a./;    # a2
+    }
+
+=head3 Exhaustive
+
+TODO
+
+=head2 Global
+
+TODO
+
+=head3 Pos
+
+TODO
+
+=head3 Overlap
+
+TODO
 
 =end pod
