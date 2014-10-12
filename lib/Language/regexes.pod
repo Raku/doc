@@ -744,20 +744,21 @@ TODO
 
 TODO
 
-=head1 Best Practices
+=head1 Best Practices and Gotchas
 
 Regexes and L<grammars|/language/grammars> are a whole programming paradigm
 that you have to learn (if you don't already know it very well).
 
 To help you write robust regexes and grammars, here are some best practices
 that the authors have found useful. These range from small-scale code layout
-issues to what actually to match.
+issues to what actually to match, and help to avoid common pitfalls and
+writing unreadable code.
 
 =head2 Code Layout
 
 Without the C<:sigspace> adverb, whitespace is not signfiicant in Perl 6
 regexes. Use that to your own advantage, and insert whitespace where it
-increases readability. Also insert comments where necessary
+increases readability. Also insert comments where necessary.
 
 Compare the very compact
 
@@ -873,5 +874,75 @@ A pragmatic compromise would be
 
 and then, in the post-processing, strip leading and trailing spaces and tabs
 from the section header.
+
+=head2 Matching Whitespace
+
+The C<:sigspace> adverb (or using the C<rule> declarator instead of C<token>
+or C<regex>) is very handy for implicitly parsing whitespace than can appear in
+many places.
+
+Going back to the example of parsing ini files, we have
+
+    my regex kvpair { \s* <key=identifier> '=' <value=identifier> \n+ }
+
+which is probably not as liberal as we want it to be. If the user might put
+spaces around the equals sign, it should rather read
+
+    my regex kvpair { \s* <key=identifier> \s* '=' \s* <value=identifier> \n+ }
+
+That's growing unwildly pretty quickly. So instead one can write
+
+    my rule kvpair { <key=identifier> '=' <value=identifier> \n+ }
+
+But wait! The implicit whitespace matching after the value uses up all
+whitespace, including newline characters, so the C<\n+> doesn't have anything
+left to match (and C<rule> also disables backtracking, so no luck here).
+
+Therefore it is important redefine your definition of implicit whitespace
+to whitespace that is not significant in the input format.
+
+This works by redefining token C<ws>, but it only works in
+L<grammers|/language/grammars>:
+
+    grammar IniFormat {
+        token ws { <!ww> \h* }
+        rule header { '[' (\w+) ']' \n+ }
+        token identifier  { \w+ }
+        rule kvpair { \s* <key=identifier> '=' <value=identifier> \n+ }
+        token section {
+            <header>
+            <kvpair>*
+        }
+
+        token TOP {
+            <section>*
+        }
+    }
+
+    my $contents = q:to/EOI/;
+        [passwords]k
+            jack = password1
+            joy = muchmoresecure123
+        [quotas]
+            jack = 123
+            joy = 42
+    EOI
+    say so IniFormat.parse($contents);
+
+Besides stuffing all regexes into a grammar, and turning them into tokens
+(because they don't need to backtrack anyway), the interesting new bit is
+
+        token ws { <!ww> \h* }
+
+which gets called for implicit whitespace parsing. It matches when it is not
+between two word characters (C<< <!ww> >>, negated "within word" assertion),
+and zero or more horizontal space characters. The limitation to horizontal
+whitespace is important, because newlines (which are vertical whitespace)
+delimit records, and shouldn't be matched implicitly.
+
+Still there is some whitespace-related trouble lurking.
+The regex C<\n+> won't match a string like C<"\n \n">, because there is a
+blank between two newlines. To allow such input strings, replace C<\n+>
+by C<\n\s*>.
 
 =end pod
