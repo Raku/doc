@@ -107,7 +107,9 @@ sub svg-for-file($file) {
     $str;
 }
 
-sub MAIN(Bool :$debug, Bool :$typegraph = False) {
+# --sparse=5: only process 1/5th of the files
+# mostly useful for performance optimizations, profiling etc.
+sub MAIN(Bool :$debug, Bool :$typegraph = False, Int :$sparse) {
     $*DEBUG = $debug;
 
     say 'Creating html/ subdirectories ...';
@@ -121,10 +123,10 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     my %h = $tg.sorted.kv.flat.reverse;
 
-    process-pod-dir 'Language';
+    process-pod-dir 'Language', :$sparse;
     write-type-graph-images(:force($typegraph));
     # XXX: Generalize
-    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 };
+    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
     }
@@ -151,9 +153,12 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False) {
     say '';
 
     say 'Processing complete.';
+    if $sparse {
+        say "This is a sparse run. DO NOT SYNC WITH doc.perl6.org!";
+    }
 }
 
-sub process-pod-dir($dir, :&sorted-by = &[cmp]) {
+sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     say "Reading lib/$dir ...";
     my @pod-sources =
         recursive-dir("lib/$dir/")\
@@ -164,6 +169,9 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp]) {
                  .subst(:g,    '/',  '::')
             => $_
         }).sort(&sorted-by);
+    if $sparse {
+        @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
+    }
 
     say "Processing $dir Pod files ...";
     my $total = +@pod-sources;
