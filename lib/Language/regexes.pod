@@ -596,6 +596,8 @@ files:
     # ("passwords" => {"jack" => "password1", "joy" => "muchmoresecure123"},
     #    "quotas" => {"jack" => "123", "joy" => "42"}).hash
 
+Named regexes can and should be grouped in L<grammers|/language/grammars>.
+
 =head1 Adverbs
 
 Adverbs modify how regexes work, and give very convenient shortcuts for
@@ -741,5 +743,135 @@ TODO
 =head3 Overlap
 
 TODO
+
+=head1 Best Practices
+
+Regexes and L<grammars|/language/grammars> are a whole programming paradigm
+that you have to learn (if you don't already know it very well).
+
+To help you write robust regexes and grammars, here are some best practices
+that the authors have found useful. These range from small-scale code layout
+issues to what actually to match.
+
+=head2 Code Layout
+
+Without the C<:sigspace> adverb, whitespace is not signfiicant in Perl 6
+regexes. Use that to your own advantage, and insert whitespace where it
+increases readability. Also insert comments where necessary
+
+Compare the very compact
+
+    my regex float { <[+-]>?\d*'.'\d+[e<[+-]>?\d+]? }
+
+to the more readable
+
+    my regex float {
+         <[+-]>?        # optional sign
+         \d*            # leading digits, optional
+         '.'
+         \d+
+         [              # optional exponent
+            e <[+-]>?  \d+
+         ]?
+    }
+As a rule of thumb, use whitespace around atoms and inside of groups.
+Put quantifiers directly after the atom, without inserint a blank.
+Vertically align opening and closing brackets and parenethesis.
+
+When you use a lister of alternations inside a parenthesis or brackets, align
+the vertical bars:
+
+    my regex example {
+        <preabmle>
+        [
+        || <choice_1>
+        || <choice_2>
+        || <choice_3>
+        ]+
+        <postamble>
+    }
+
+=head2 Keep it small
+
+Regexes come with very little boilerplate, so they are often more compact than
+regular code.
+Thus it is important to keep regexes short.
+
+When you can come up with name for a part of regexes, it is usually best to
+put it into a separate, named regex.
+
+For example you could take the float regex from earlier:
+
+    my regex float {
+         <[+-]>?        # optional sign
+         \d*            # leading digits, optional
+         '.'
+         \d+
+         [              # optional exponent
+            e <[+-]>?  \d+
+         ]?
+    }
+
+And decompose it into parts:
+
+    my token sign { <[+-]> }
+    my token decimal { \d+ }
+    my token exponent { 'e' <sign>? <decimal> }
+    my regex float {
+        <sign>?
+        <decimal>?
+        '.'
+        <decimal>
+        <exponent>?
+    }
+
+That helps especially when the regex becomes more complicated. For example you
+might want to make the comma optional if an exponent is there.
+
+    my regex float {
+        <sign>?
+        [
+        || <decimal>?  '.' <decimal> <exponent>?
+        || <decimal> <exponent>
+        ]
+    }
+
+=head2 What to match
+
+Often the input data format has no clear-cut specification, or the
+specification is not known to the programmer.
+Then it is good to be liberal in what you expect, but only as long as
+there are no ambiguties possible.
+
+For example in ini files:
+
+    [section]
+    key=value
+
+what can be inside the section header? Allowing only word might be too
+restrictive, sombody might write C<[two words]>, or use dashes, or so.
+Instead of asking what's allowed on the inside, it might be worth asking
+instead: I<what's not allowed?>
+
+Clearly closing brackets not allowed, because C<[a]b]> would be rather
+ambiguous.
+By the same argument, opening brackets should be forbidden.
+This leaves us with
+
+    token header { '[' <-[ \[\] ]>+ ']' }
+
+which is fine if you are only processing one line. But if you're processing a
+whole file, suddenly the regexes parses
+
+    [with a
+    newline inbetween]
+
+which might not be a good idea.
+A pragmatic compromise would be
+
+    token header { '[' <-[ \[\] \n ]>+ ']' }
+
+and then, in the post-processing, strip leading and trailing spaces and tabs
+from the section header.
 
 =end pod
