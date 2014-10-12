@@ -345,6 +345,81 @@ characters, followed by zero or more spaces, followed by the equals sign C<=>,
 followed again by optional whitespace, followed by another string of
 non-whitespace characters.
 
+=head1 Anchors
+
+The regex engine tries to find a match inside a string, by searching from left
+to right.
+
+    say so 'properly' ~~ / perl/;   # True
+    #          ^^^^
+
+But sometimes this is not what you want, and you want to match the whole
+string, or a whole line, or one or several whole words.
+I<Anchors> or I<assertions> can help you with that, by limiting where they
+match.
+
+Anchors need to match successfully in order for the whole regex to match, but
+they do not use up characters while matching.
+
+=head2 C<^>, Start of String
+
+The C<^> assertion only matches at the start of the string.
+
+    say so 'properly' ~~ /perl/;        # True
+    say so 'properly' ~~ /^ perl/;      # False
+    say so 'perly'    ~~ /^ perl/;      # True
+    say so 'perl'     ~~ /^ perl/;      # True
+
+=head2 C<^^>, Start of Line and C<$$>, End of Line
+
+The C<^^> assertion matches at the start of a logical line. That is, either at
+the start of the string, or after a newline character.
+
+C<$$> matches only at the end of a logical line, that is, before a
+newline character, or at the end of the string when the last character is not
+a newline character.
+
+(To understand the following example, it is important to know that the
+C<q:to/EOS/...EOS> "heredoc" syntax removes leading indention to the
+same level as the C<EOS> marker, so that first, second and last lines have no
+leading space, and the third and fourth lines have two leading spaces each).
+
+    my $str = q:to/EOS/;
+        There was a young man of Japan
+        Whose limericks never would scan.
+          When asked why this was,
+          He replied "It's because
+        I always try to fit as many syllables into the last line as ever I possibly can."
+        EOS
+    say so $str ~~ /^^ There/;          # True  (start of string)
+    say so $str ~~ /^^ limericks/;      # False (not at the start of a line)
+    say so $str ~~ /^^ I/;              # True  (start of the last line)
+    say so $str ~~ /^^ When/;           # False (there are blanks between
+                                        #        start of line and the "When")
+
+    say so $str ~~ / Japan $$/;         # True  (end of first line)
+    say so $str ~~ / scan $$/;          # False (there is a . between "scan"
+                                        #        and the end of line)
+    say so $str ~~ / '."' $$/;          # True  (at the last line)
+
+=head2 C<<< << >>> and C<<< >> >>>, left and right word boundary
+
+C<<< << >>> matches a left word boundary, so positions where at the left there
+a non-word character (or the start of the string), and to the right there is a
+word character.
+
+C<<< >> >>> matches a right word boundary, so positions where at the left
+there is a word character, and at the right there is a non-word character, or
+the end of the string.
+
+    my $str = 'The quick brown fox';
+    say so $str ~~ /br/;                # True
+    say so $str ~~ /<< br/;             # True
+    say so $str ~~ /br >>/;             # False
+    say so $str ~~ /own/;               # True
+    say so $str ~~ /<< own/;            # False
+    say so $str ~~ /own >>/;            # True
+
 =head1 Grouping and Capturing
 
 In regular (non-regex) Perl 6, you can use parenthesis to group things
