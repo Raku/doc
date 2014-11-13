@@ -313,10 +313,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         # If not, skip to the next heading.
         my @header := $c.contents[0].contents;
         my @definitions; # [subkind, name]
+        my $unambiguous = False;
         given @header {
             when :("", Pod::FormattingCode $, "") {
                 proceed unless .[1].type eq "X";
                 @definitions = .[1].meta[];
+                $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
                 # The Foo Infix
@@ -354,12 +356,18 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator'|'quote'|'syntax' {
+                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
                 }
+                when $unambiguous {
+                    # Index anything from an X<>
+                    %attr = :kind<syntax>,
+                            :categories($subkinds),
+                }
                 default {
+                    # No clue, probably not meant to be indexed
                     last
                 }
             }

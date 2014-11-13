@@ -91,14 +91,58 @@ C<where>-block will be used to smart-match the argument against it.
 So you can also write
 
     multi factorial(Int $ where 0) { 1 }
-    multi factorial(Int $x)        { $x * fact($x - 1) }
+    multi factorial(Int $x)        { $x * factorial($x - 1) }
 
 The first of those can be shortened to
 
-    multi fact(0) { 1 }
+    multi factorial(0) { 1 }
 
 i.e., you can use a literal directly as a type and value constraint 
 on an anonymous parameter.
+
+=head3 X<Constraining Defined and Undefined Values|
+         type constraint,:D;type constraint,:U;type constraint,:_>
+
+Normally, a type constraint only checks whether the value passed is of the
+correct type.
+
+=for code :allow<B L>
+sub limit-lines (Str $s, Int $limit) {
+    my @lines = $s.lines;
+    @lines[0 .. min @lines.elems, $limit].join("\n") 
+}
+say (limit-lines "a \n b \n c \n d \n", 3).perl; # "a \n b \n c "
+say limit-lines Str,      3;  # Uh-oh. Dies with "Cannot call 'lines';"
+say limit-lines "a \n b", Int # Always returns the max number of lines
+
+In this case, we really only want to deal with defined strings. To do this, we
+use the C<:D> type constraint.
+
+=for code :allow<B L>
+sub limit-lines (StrB<:D> $s, Int $limit) {
+    ...
+}
+# Dies with "Parameter '$s' requires an instance, but a type object was passed
+#   in sub limit-lines"
+say limit-lines Str, 3;
+
+This is much better than the way the program failed before, since here the
+reason for failure is clearer.
+
+It's also possible undefined types are the only ones that make sense for a
+routine to accept. This can be constrained with the C<:U> type constraint. For
+example, we can turn the C<&limit-lines> into a multi function to make use of
+the C<:U> constraint.
+
+=for code :allow<B L>
+multi limit-lines (Str $s, Int:D $limit) {
+    ...
+}
+multi limit-lines (Str $s, IntB<:U> $) { $s }
+say limit-lines "a \n b \n c", Int; # "a \n b \n c"
+
+For explicitly indicating the normal behaviour, C<:_> can be used, but this is
+unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
 
 =head2 Slurpy (A.K.A. Variadic) Parameters
 
