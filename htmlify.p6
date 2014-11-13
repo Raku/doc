@@ -354,7 +354,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
+                when 'variable'|'sigil'|'twigil'|'declarator'|'quote'|'syntax' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
