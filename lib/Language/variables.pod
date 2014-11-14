@@ -496,8 +496,8 @@ This outputs:
 
 =head3 The C<$/> Variable
 
-C<$/> is the match variable. It stores the result of each regex match, and
-usually contains objects of type L<Match>.
+C<$/> is the match variable. It stores the result of the last L<Regex|regex> match, and
+so usually contains objects of type L<Match>.
 
     'abc 12' ~~ /\w+/;  # sets $/ to a Match object
     say $/.Str;         # abc
@@ -505,11 +505,47 @@ usually contains objects of type L<Match>.
 The C<Grammar.parse> method also sets the caller's C<$/> to the resulting
 L<Match> object.
 
-Other match variables are aliases to elements of C<$/>:
+    use XML;
+    XML.parse(slurp "filename.xml")
+    say $/;
 
-    $0          # same as $/[0]
-    $1          # same as $/[1]
-    $<named>    # same as $/<named>
+=head4 X«Positional Attributes|variable,$0;variable,$1;variable,@()»
+
+C<$/> can have positional attributes if the L<Regex|regex> had capture-groups in
+it, which are just formed with parenthesis.
+
+    'abbbbbcdddddeffg' ~~ / a (b+) c (d+ef+) g /;
+    say $/[0]; # ｢bbbbb｣
+    say $/[1]; # ｢dddddeff｣
+
+These can also be accessed by the shortcuts C<$0>, C<$1>, C<$2>, etc.
+
+    say $0; # ｢bbbbb｣
+    say $1; # ｢dddddeff｣
+
+To get all of the positional attributes, any of C<$/.list>, C<@$/>, or C<@()>
+can be used.
+
+    say @().join; # bbbbbdddddeff
+
+=head4 X«Named Attributes|variable,$<named>;variable,%()»
+
+C<$/> can have named attributes if the L<Regex|regex> had named capture-groups
+in it, or if the Regex called out to another Regex.
+
+    'I.... see?' ~~ / \w+ <punctuation=-[\w\s]> \s* $<final-word> = [ \w+ . ] /
+    say $/<punctuation>; # ｢....｣
+    say $/<final-word>;  # ｢see?｣
+
+These can also be accessed by the shortcut C«$<named>».
+
+    say $<punctuation>; # ｢....｣
+    say $<final-word>;  # ｢see?｣
+
+To get all of the named attributes, any of C<$/.hash>, C<%$/>, or C<%()> can be
+used.
+
+    say %().join; "....see?"
 
 =head3 The C<$!> Variable
 
