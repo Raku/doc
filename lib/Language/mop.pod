@@ -4,7 +4,44 @@
 
 =SUBTITLE Introspection and the Perl 6 Object System
 
-TODO
+Perl 6 is built on a meta object layer. That means that there are objects (the
+I<meta objects>) that control how various object-oriented constructs (such as
+classes, roles, methods, attributes, enums, ...) behave.
+
+To get a feeling for the meta object for C<class>, here is the same example
+twice: once as normal declarations in Perl 6, and once expressed through the
+meta model:
+
+    class A {
+        method x() { say 42 }
+    }
+
+    A.x();
+
+corresponds to:
+
+    constant A := Metamodel::ClassHOW.new_type( name => 'A' );  # class A {
+    A.^add_method('x', my method x(A:) { say 42 });             # method x() .. .
+    A.^compose;                                                 # }
+
+    A.x();
+
+(except that the declarative form runs at comple time, and the latter form
+does not).
+
+The meta object behind
+an object can be obtained with C<$obj.HOW>, where HOW stands for Higher Order
+Workings (or, I<HOW the *%@$ does this work?>).
+
+Here the calls with C<.^> are calls to the meta object, so C<A.^compose> is a
+shortcut for C<A.HOW.compose(A)>. The invocant is passed along in the
+parameter list as well, to make it possible to support prototype-style type
+systems, where there is just one meta object (and not one meta object per
+type, as standard Perl 6 does it).
+
+As the example above demonstrates, all object oriented features are available
+to the user, not just to the compiler. In fact the compiler also just emits
+call to the meta objects.
 
 =head1 Metamethods
 
@@ -24,9 +61,12 @@ quotes around the method name to call it indirectly:
 
 The type object of the type.
 
+For example C<42.WHAT> returns the C<Int> type object.
+
 =head2 X<WHICH|syntax,WHICH>
 
-The object's identity value.
+The object's identity value. This can be used for hashing and identity
+comparison, and is how the C<===> infix operator is implemented.
 
 =head2 X<WHO|syntax,WHO>
 
@@ -34,7 +74,9 @@ The package supporting the object.
 
 =head2 X<WHERE|syntax,WHERE>
 
-The memory address of the object.
+The memory address of the object. Note that this is not stable in
+implementations with moving/compacting garbage collectors. Use C<WHICH> for a
+stable identity indicator.
 
 =head2 X<HOW|syntax,HOW>
 
@@ -47,6 +89,7 @@ The attached Pod value.
 =head2 X<DEFINITE|syntax,DEFINITE>
 
 The object has a valid concrete representation.
+Returns C<True> for instances and C<False> for type objects.
 
 =head2 X<VAR|syntax,VAR>
 
