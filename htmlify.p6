@@ -109,7 +109,13 @@ sub svg-for-file($file) {
 
 # --sparse=5: only process 1/5th of the files
 # mostly useful for performance optimizations, profiling etc.
-sub MAIN(Bool :$debug, Bool :$typegraph = False, Int :$sparse) {
+sub MAIN(
+    Bool :$debug,
+    Bool :$typegraph = False,
+    Int  :$sparse,
+    Bool :$disambiguation = True,
+    Bool :$search-file = True,
+) {
     $*DEBUG = $debug;
 
     say 'Creating html/ subdirectories ...';
@@ -134,8 +140,8 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False, Int :$sparse) {
     say 'Composing doc registry ...';
     $*DR.compose;
 
-    write-disambiguation-files;
-    write-search-file;
+    write-disambiguation-files if $disambiguation;
+    write-search-file          if $search-file;
     write-index-files;
 
     say 'Writing per-routine files ...';
@@ -153,8 +159,8 @@ sub MAIN(Bool :$debug, Bool :$typegraph = False, Int :$sparse) {
     say '';
 
     say 'Processing complete.';
-    if $sparse {
-        say "This is a sparse run. DO NOT SYNC WITH doc.perl6.org!";
+    if $sparse || !$search-file || !$disambiguation {
+        say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
 }
 
