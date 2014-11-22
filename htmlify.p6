@@ -210,10 +210,17 @@ multi process-pod-source(:$what where "language", :$pod, :$podname, :$pod-is-com
 
 multi process-pod-source(:$what where "type", :$pod, :$podname, :$pod-is-complete) {
     my $type = $tg.types{$podname};
+    my $summary = '';
+    if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
+        $summary = $pod.contents[1].contents[0].contents[0];
+    } else {
+        note "$podname does not have an =SUBTITLE";
+    }
     my $origin = $*DR.add-new(
         :kind<type>,
         :subkinds($type ?? $type.packagetype !! 'class'),
         :categories($type ?? $type.categories !! Nil),
+        :$summary,
         :$pod,
         :$pod-is-complete,
         :name($podname),
@@ -582,10 +589,10 @@ sub write-index-files () {
         ]}))
     ), 'language');
 
-    write-main-index :kind<type>;
+    write-main-index :kind<type> :summary(*.[0].summary);
 
     for <basic composite domain-specific exceptions> -> $category {
-        write-sub-index :kind<type> :$category;
+        write-sub-index :kind<type> :$category :summary(*.[0].summary);
     }
 
     my &summary = { 
