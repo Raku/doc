@@ -602,13 +602,19 @@ sub write-index-files () {
         ]}))
     ), 'language');
 
-    write-main-index :kind<type> :summary(*.[0].summary);
+    my &summary;
+    &summary = {
+        .[0].subkinds[0] ne 'role' ?? .[0].summary !!
+            Pod::FormattingCode.new(:type<I>, contents => [.[0].summary]);
+    }
+    
+    write-main-index :kind<type> :&summary;
 
     for <basic composite domain-specific exceptions> -> $category {
-        write-sub-index :kind<type> :$category :summary(*.[0].summary);
+        write-sub-index :kind<type> :$category :&summary;
     }
 
-    my &summary = { 
+    &summary = { 
         pod-block("(From ", $_>>.origin.map({
             pod-link(.name, .url)
         }).reduce({$^a,", ",$^b}),")")
