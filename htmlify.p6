@@ -366,8 +366,15 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                             :categories($subkinds),
                 }
                 when 'class'|'role' {
+                    my $summary = '';
+                    if @c[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
+                        $summary = @c[$i+1].contents[0].contents[0];
+                    } else {
+                        note "$name does not have an =SUBTITLE";
+                    }
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
+                            :$summary,
                 }
                 when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
