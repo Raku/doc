@@ -366,8 +366,15 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                             :categories($subkinds),
                 }
                 when 'class'|'role' {
+                    my $summary = '';
+                    if @c[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
+                        $summary = @c[$i+1].contents[0].contents[0];
+                    } else {
+                        note "$name does not have an =SUBTITLE";
+                    }
                     %attr = :kind<type>,
                             :categories($tg.types{$name}.?categories//''),
+                            :$summary,
                 }
                 when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
@@ -595,13 +602,19 @@ sub write-index-files () {
         ]}))
     ), 'language');
 
-    write-main-index :kind<type> :summary(*.[0].summary);
+    my &summary;
+    &summary = {
+        .[0].subkinds[0] ne 'role' ?? .[0].summary !!
+            Pod::FormattingCode.new(:type<I>, contents => [.[0].summary]);
+    }
+    
+    write-main-index :kind<type> :&summary;
 
     for <basic composite domain-specific exceptions> -> $category {
-        write-sub-index :kind<type> :$category :summary(*.[0].summary);
+        write-sub-index :kind<type> :$category :&summary;
     }
 
-    my &summary = { 
+    &summary = { 
         pod-block("(From ", $_>>.origin.map({
             pod-link(.name, .url)
         }).reduce({$^a,", ",$^b}),")")
