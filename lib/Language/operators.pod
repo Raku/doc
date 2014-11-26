@@ -218,6 +218,21 @@ The operator for calling one method, C<$invocant.method>.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+=head2 postfix C«.=»
+
+A mutating method call. C<$invocant.=method> desugars to
+C<$invocant = $invocant.method>, similar to L<C<op=>>.
+
+Technically this is not an operator, but syntax special-cased in the compiler.
+
+=head2 postfix C«.^»
+
+A meta-method call. C<$invocant.^method> calls C<method> on C<$invocant>'s
+metaclass. It desugars to C<$invocant.HOW.method($invocant, ...)>. See L<C<HOW>>
+for more information.
+
+Technically this is not an operator, but syntax special-cased in the compiler.
+
 =head2 postfix C«.?»
 
 Potential method calls. C<$invocant.?method> calls method C<method> on
@@ -240,7 +255,50 @@ L<Parcel> is returned.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
-# TODO: .= .^ .:: .() .[] .{} .<>
+=head2 X«postfix C<.postfix>
+    |postfix,.postfix;postcircumfix,.( );postcircumfix,.[ ];postcircumfix,.{ };postcircumfix,.< >»
+
+In most cases, a dot may be placed before a postfix or postcircumfix:
+
+    @a[1, 2, 3];
+    @a.[1, 2, 3]; # Same
+
+This can be useful for visual clarity or brevity. For example, if an object's
+attribute is a function, putting a pair of paretheses after the attribute name
+will become part of the method call. So either two pairs of paretheses must be
+used, or a dot has to come before the parentheses to seperate it from the method
+call.
+
+    class Operation {
+        has $.symbol;
+        has &.function;
+    }
+    my $addition = Operation.new(:symbol<+>, :function{ $^a + $^b });
+    say $addition.function()(1, 2); # 3
+    # OR
+    say $addition.function.(1,2); # 3
+
+If the postfix is an identifier, however, it will be interpreted as a normal
+method call.
+
+    1.i # No such method 'i' for invocant of type 'Int'
+
+Technically this is not an operator, but syntax special-cased in the compiler.
+
+=head2 postfix C«.:<prefix>»
+
+A prefix can be called like a method using colonpair notation. For example:
+
+    my $a = 1;
+    say ++$a;     # 2
+    say $a.:<++>; # 3
+
+Technically this is not an operator, but syntax special-cased in the compiler.
+
+=head2 postfix C«.::»
+
+A class-qualified method call, used to call a method as defined in a parent
+class or role, even after it has been redefined in the child class.
 
 =head1 Autoincrement Precedence
 
