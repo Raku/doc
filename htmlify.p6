@@ -145,14 +145,14 @@ sub MAIN(
     write-index-files;
 
     say 'Writing per-routine files ...';
-    for $*DR.lookup('routine', :by<kind>).uniq(:as{.name}) -> $d {
+    for $*DR.lookup('routine', :by<kind>).unique(:as{.name}) -> $d {
         write-routine-file($d.name);
         print '.'
     }
     say '';
 
     say 'Writing per-syntactic-feature files ...';
-    for $*DR.lookup('syntax', :by<kind>).uniq(:as{.name}).list -> $d {
+    for $*DR.lookup('syntax', :by<kind>).unique(:as{.name}).list -> $d {
         write-syntax-file($d.name);
         print '.'
     }
@@ -422,7 +422,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 # Determine proper subkinds
                 my Str @subkinds = first-code-block($chunk)\
                     .match(:g, /:s ^ 'multi'? (sub|method)»/)\
-                    .>>[0]>>.Str.uniq;
+                    .>>[0]>>.Str.unique;
 
                 note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
                     unless @subkinds;
@@ -446,8 +446,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
 
 sub write-type-graph-images(:$force) {
     unless $force {
-        my $dest = 'html/images/type-graph-Any.svg'.path;
-        if $dest.e && $dest.modified >= 'type-graph.txt'.path.modified {
+        my $dest = 'html/images/type-graph-Any.svg'.IO;
+        if $dest.e && $dest.modified >= 'type-graph.txt'.IO.modified {
             say "Not writing type graph images, it seems to be up-to-date";
             say "To force writing of type graph images, supply the --typegraph";
             say "option at the command line, or delete";
@@ -530,7 +530,7 @@ sub write-search-file () {
     @items.push: $*DR.lookup('type', :by<kind>).sort(*.name).map({
         qq[\{ label: "Type: {.name}", value: "{.name}", url: "{.url}" \}]
     });
-    @items.push: $*DR.lookup('routine', :by<kind>).uniq(:as{.name}).sort(*.name).map({
+    @items.push: $*DR.lookup('routine', :by<kind>).unique(:as{.name}).sort(*.name).map({
         do for .subkinds // 'Routine' -> $subkind {
             qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
         }
@@ -639,7 +639,7 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
         pod-table($*DR.lookup($kind, :by<kind>)\
             .categorize(*.name).sort(*.key)>>.value\
             .map({[
-                .map({.subkinds // Nil}).uniq.join(', '),
+                .map({.subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
@@ -656,7 +656,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value\
             .map({[
-                .map({.subkinds // Nil}).uniq.join(', '),
+                .map({.subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
