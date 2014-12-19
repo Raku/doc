@@ -17,6 +17,32 @@ combining promises, and waiting for results.
     say $p.status;              # Planned
     $p.result;                  # waits for the computation to finish
 
+There are two typical scenarios for using promises. The first is to use a
+factory method (C<start>, C<in>, C<anyof>, C<allof>) on the type object; those
+will take care the that promise is automatically kept or broken for you, and
+you can't call C<break> or C<keep> on these promises yourself.
+
+The second is to create your promises yourself with C<Promise.new>. If you
+want to ensure that only your code can keep or break the promise, you can use
+the C<vow> method to get a unique handle, and call C<keep> or C<break> on that
+promise:
+
+    sub async-get-with-promise($user-agent, $url) {
+        my $p = Promise.new;
+        my $v = $p.vow;
+
+        # do an asynchronous call on a fictive user agent
+        # call, return the promise:
+        $user-agent.async-get($url,
+                on-error => -> $error {
+                    $v.break($error);
+                },
+                on-success => -> $response {
+                    $v.keep($response);
+                }
+        );
+        return $p;
+    }
 
 =head1 Methods
 
@@ -72,7 +98,15 @@ Returns a new promise that will be kept when the any of the promises passed as
 arguments are kept, and will be broken when all of the argument promises are
 broken.
 
-(TODO: example)
+You can use this to wait at most a number of seconds for a promise:
+
+    my $timeout = 5;
+    await Promise.anyof(
+        Promise.in($timeout),
+        start {
+            # do a potentially long-running calculation here
+        },
+    );
 
 =head2 method then
 
