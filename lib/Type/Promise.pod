@@ -1,0 +1,179 @@
+=begin pod
+
+=TITLE class Promise
+
+=SUBTITLE Container for results from asynchronous computations
+
+    my enum PromiseStatus (:Planned(0), :Kept(1), :Broken(2));
+    class Promise { ... }
+
+A I<Promise> is used to handle the result of a computation that might not have
+finished. It allows the user to execute code once the computation is done
+(with the C<then> method), execution after a time delay (with C<in>),
+combining promises, and waiting for results.
+
+    my $p = Promise.start({ sleep 2; 42});
+    $p.then({ say .result });   # will print 42 once the block finished
+    say $p.status;              # Planned
+    $p.result;                  # waits for the computation to finish
+
+
+=head1 Methods
+
+=head2 method start
+
+    sub start(&code);
+    method start(Promise:U: &code, :$scheduler = $*SCHEDULER) returns Promise:D
+
+Creates a new Promise that runs the given code object. The promise will be
+kept when the code terminates normally, or broken if it throws an exception.
+The return value or exception can be inspected with the C<result> method.
+
+The scheduler that handles this promise can be passed as a named argument.
+
+    # these two are equivalent:
+    my $p1 = Promise.start({ do something here });
+    my $p2 = start { do something here };
+
+=head2 method in
+
+    method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER) returns Promise:D
+
+Creates a new Promise that will be kept in C<$seconds> seconds, or later.
+
+    my $p = Promise.in(5).then({ say "5 seconds later" });
+    # do other stuff here
+
+    await $p;   # wait here until the 5 seconds are over
+
+=head2 method allof
+
+    method allof(Promise:U: *@promises) returns Promise:D
+
+Returns a new promise that will be kept when all he promises passed as
+arguments are keept, and that will be broken as soon as any of the argument
+promises is broken.
+
+    my @promises;
+    for 1..5 -> $t {
+        push @promises, start {
+            sleep $t;
+            die "OH NOEZ" if rand < 0.2;
+        };
+    }
+    my $all-successful = Promise.allof(@promises);
+    await $all-successful;
+
+=head2 method anyof
+
+    method anyof(Promise:U: *@promises) returns Promise:D
+
+Returns a new promise that will be kept when the any of the promises passed as
+arguments are kept, and will be broken when all of the argument promises are
+broken.
+
+(TODO: example)
+
+=head2 method then
+
+    method then(Promise:D: &code)
+
+Schedules a piece of code to be run after the invocant has been kept or
+broken, and returns a new promise for this computation. In other words,
+creates a chained promise.
+
+    my $timer = Promise.in(2);
+    my $after = $timer.then({ say "2 seconds are over!"; 'result' });
+    say $after.result;  # 2 seconds are over
+                        # result
+
+=head2 method keep
+
+    multi method keep(Promise:D:);
+    multi method keep(Promise:D: \result);
+
+Keeps a promise, optionally setting the result. If no result is passed, the
+result will be C<True>.
+
+Throws an exception  of type X::Promise::Vowed if a vow has already been
+taken. See method C<vow> for more information.
+
+    my $p = Promise.new;
+
+    if Bool.pick {
+        $p.keep;
+    }
+    else {
+         $p.break;
+    }
+
+=head2 method break
+
+    multi method break(Promise:D:);
+    multi method break(Promise:D: \result);
+
+Breaks a promise, optionally setting the result. If no result is passed, the
+result will be C<False>.
+
+Throws an exception  of type X::Promise::Vowed if a vow has already been
+taken. See method C<vow> for more information.
+
+    my $p = Promise.new;
+
+    $p.break('sorry');
+    say $p.status;          # Broken
+    say $p.cause;           # sorry
+
+=head2 method result
+
+    method result(Promise:D)
+
+Waits for the promise to be kept or broken. If it is kept, returns the result;
+otherwise throw the result as an exception.
+
+=head2 method cause
+
+    method cause(Promise:D)
+
+If the promise was broken, returns the result (or exception). Otherwise, throws
+an exception of type C<X::Promise::CauseOnlyValidOnBroken>.
+
+=head2 method Bool
+
+    multi method Bool(Promise:D:)
+
+Returns C<True> for a kept or broken promise, and C<False> for one in state
+C<Planned>.
+
+=head2 method status
+
+
+    method status(Promise:D) returns PromiseStatus
+
+Returns the current state of a promise, so C<Kept>, C<Broken> or C<Planned>.
+
+=head2 method scheduler
+
+    method scheduler(Promise:D:)
+
+Returns the scheduler that manages the promise.
+
+=head2 method vow
+
+    my class Vow {
+        has Promise $.promise;
+        method keep() { ... }
+        method break() { ... }
+    }
+    method vow(Promise:D:)
+
+Returns an object that holds the sole authority over keeping or breaking a
+promise. Calling C<keep> or C<break> on a promise that has vow taken throws an
+exception of type C<X::Promise::Vowed>.
+
+    my $p   = Promise.new;
+    my $vow = $p.vow;
+    $vow.keep;
+    say $p.status;          # Kept
+
+=end pod
