@@ -2,7 +2,7 @@
 
 =TITLE class Promise
 
-=SUBTITLE Container for results from asynchronous computations
+=SUBTITLE Container for the result of an asynchronous computation
 
     my enum PromiseStatus (:Planned(0), :Kept(1), :Broken(2));
     class Promise { ... }
@@ -16,23 +16,23 @@ combining promises, and waiting for results.
     $p.then({ say .result });   # will print 42 once the block finished
     say $p.status;              # Planned
     $p.result;                  # waits for the computation to finish
+    say $p.status;              # Kept
 
 There are two typical scenarios for using promises. The first is to use a
 factory method (C<start>, C<in>, C<anyof>, C<allof>) on the type object; those
-will take care the that promise is automatically kept or broken for you, and
+will make sure that the promise is automatically kept or broken for you, and
 you can't call C<break> or C<keep> on these promises yourself.
 
 The second is to create your promises yourself with C<Promise.new>. If you
 want to ensure that only your code can keep or break the promise, you can use
-the C<vow> method to get a unique handle, and call C<keep> or C<break> on that
-promise:
+the C<vow> method to get a unique handle, and call C<keep> or C<break> on it:
 
     sub async-get-with-promise($user-agent, $url) {
         my $p = Promise.new;
         my $v = $p.vow;
-
-        # do an asynchronous call on a fictive user agent
-        # call, return the promise:
+    
+        # do an asynchronous call on a fictive user agent,
+        # and return the promise:
         $user-agent.async-get($url,
                 on-error => -> $error {
                     $v.break($error);
@@ -69,15 +69,15 @@ Creates a new Promise that will be kept in C<$seconds> seconds, or later.
 
     my $p = Promise.in(5).then({ say "5 seconds later" });
     # do other stuff here
-
+    
     await $p;   # wait here until the 5 seconds are over
 
 =head2 method allof
 
     method allof(Promise:U: *@promises) returns Promise:D
 
-Returns a new promise that will be kept when all he promises passed as
-arguments are keept, and that will be broken as soon as any of the argument
+Returns a new promise that will be kept when all the promises passed as
+arguments are kept, and that will be broken as soon as any of the argument
 promises is broken.
 
     my @promises;
@@ -94,8 +94,8 @@ promises is broken.
 
     method anyof(Promise:U: *@promises) returns Promise:D
 
-Returns a new promise that will be kept when the any of the promises passed as
-arguments are kept, and will be broken when all of the argument promises are
+Returns a new promise that will be kept as soon as any of the promises passed as
+arguments is kept, and will be broken when all of the argument promises are
 broken.
 
 You can use this to wait at most a number of seconds for a promise:
@@ -133,7 +133,7 @@ Throws an exception  of type X::Promise::Vowed if a vow has already been
 taken. See method C<vow> for more information.
 
     my $p = Promise.new;
-
+    
     if Bool.pick {
         $p.keep;
     }
@@ -153,7 +153,7 @@ Throws an exception  of type X::Promise::Vowed if a vow has already been
 taken. See method C<vow> for more information.
 
     my $p = Promise.new;
-
+    
     $p.break('sorry');
     say $p.status;          # Broken
     say $p.cause;           # sorry
@@ -163,7 +163,7 @@ taken. See method C<vow> for more information.
     method result(Promise:D)
 
 Waits for the promise to be kept or broken. If it is kept, returns the result;
-otherwise throw the result as an exception.
+otherwise throws the result as an exception.
 
 =head2 method cause
 
@@ -181,10 +181,9 @@ C<Planned>.
 
 =head2 method status
 
-
     method status(Promise:D) returns PromiseStatus
 
-Returns the current state of a promise, so C<Kept>, C<Broken> or C<Planned>.
+Returns the current state of the promise: C<Kept>, C<Broken> or C<Planned>.
 
 =head2 method scheduler
 
