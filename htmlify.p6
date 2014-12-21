@@ -723,6 +723,8 @@ sub footer-html() {
             incomplete. Your contribution is appreciated.
         </p>
         <p>
+            This documentation is provided under the terms of the Artistic
+            License 2.0.
             The Camelia image is copyright 2009 by Larry Wall.
         </p>
     ];
