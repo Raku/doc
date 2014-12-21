@@ -35,10 +35,10 @@ class Perl6::TypeGraph::Viz {
 
             # Add ancestors of all seeds to the pool nodes
             visit($_) for @seeds;
-            @.types .= uniq;
+            @.types .= unique;
 
             # Find a new batch of seed nodes
-            @seeds = uniq(@seeds>>.sub, @seeds>>.doers);
+            @seeds = unique(@seeds>>.sub, @seeds>>.doers);
 
             # If we're not growing the node pool, stop trying
             last if @.types <= @prev or !@seeds;
