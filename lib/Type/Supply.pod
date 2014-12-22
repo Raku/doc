@@ -105,4 +105,102 @@ Returns a L<Promise|/type/Promise> object for the next value. That means the
 promise is kept when there is a next value, and broken when the supply is done
 or quit before a value arrived.
 
+=head2 method close
+
+    method close(Supply:D: Tap:D $t)
+
+Closes the given tap, this is, calls its C<close> callback (if any), and
+prevents it from getting any more events.
+
+=head2 method tappers
+
+    method tappers(Supply:D:) returns List:D
+
+=head2 method live
+
+    method live(Supply:D:) returns Bool:D
+
+Returns C<True> if the supply is "live", that is, events are emitted to taps
+as soon as they arrive. Always returns C<True> in the default C<Supply>.
+
+=head2 method wait
+
+    method wait(Supply:D:)
+
+Waits until the supply is done (in which case it returns C<True>) or C<quit>
+(in which case it will throw the exception that was passed to C<quit>).
+
+=head2 method list
+
+    method list(Supply:D:) returns List:D
+
+Waits until the supply is done, and returns a list of all items emitted
+since the C<list> call.
+
+=head2 method interval
+
+    method interval(Supply:U: $interval, $offset = 0)
+
+Creates a new interval that fires an event every C<$interval> seconds,
+starting C<$offset> seconds from the call. The event payload is an integer,
+starting from 0 at the first event, and is increment by one for each event.
+
+=head2 method grep
+
+    method grep(Supply:D: Mu $test) returns Supply:D
+
+Creates a new supply that only receives those events from the original supply
+that smart-match against C<$test>.
+
+    my $all  = Supply.new;
+    my $ints = $all.grep(Int);
+    $ints.tap(&say);
+    $all.emit($_) for 1, 'a string', 3.14159;   # prints only 1
+
+=head2 method map
+
+    method map(Supply:D: &mapper)
+
+Returns a new supply that receives the same elements as the original one, but
+with the element transformed through C<&mapper>;
+
+    my $all    = Supply.new;
+    my $double = $all.map(-> $value { $value * 2 };
+    $double.tap(&say);
+    $all.emit(4);           # 8
+
+=head2 method schedule_on
+
+    method schedule_on(Supply:D: $scheduler)
+
+Runs the emit, done and quit callbacks on the specified scheduler.
+
+This is useful for GUI toolkits that require certain actions to be run from
+the GUI thread.
+
+=head2 method start
+
+    method start(Supply:D: &startee)
+
+Returns a supply of supplies. For each event in the original supply, the code
+object is scheduled on another thread, and returns a supply either of a single
+value (if the code succeeds), or one that quits without a value (if the code
+fails).
+
+This is useful for asynchronously starting work that you don't block on.
+
+Use C<migrate> to join the values into a single Supply again.
+
+=head2 method migrate
+
+    method migrate(Supply:D:) returns Supply:D
+
+Produces a continuous supply from a supply of supplies.
+
+=begin comment
+
+TODO: methods for, on_demand, flat
+
+=end comment
+
 =end pod
