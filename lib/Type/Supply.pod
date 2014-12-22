@@ -1,0 +1,108 @@
+=begin pod
+
+=TITLE role Supply
+
+=SUBTITLE An asynchronous data stream with multiple subscribers
+
+    role Supply is SuperClass { ... }
+
+A supply is a thread-safe, asynchronous data stream like a
+L<Channel|/type/Channel>, but it can have multiple subscribers
+(I<taps>) that all get the same events.
+
+It is central in supporting reactive programming in Perl 6.
+
+C<Supply> is a role, but can be used directly too.
+
+    my $s = Supply.new;
+
+    # print even numbers directly
+    $s.grep(* %% 2).tap(&say);
+
+    $s.tap: -> $v { say "Got $v" },         # print everything
+        closing => { say "finished!" },     # announce closing
+        quit    => { say "finished with error." },
+        ;
+
+    $s.emit(23);
+    $s.emit(42);
+
+    $s.close;
+
+Prints
+
+    Got 23
+    42
+    Got 42
+    finished!
+
+=head1 Methods
+
+=head2 method tap
+
+    method tap(Supply:D: &emit=-> $_ { },
+            :&done,
+            :&quit={ die $_ },
+            :&closing,
+        ) returns Tap:D
+
+Creates a new subscription / tap, in addition to all existing taps. The first
+positional argument is a piece of code that will be called when a new value
+becomes available through the C<emit> call.
+
+The C<&done> callback is called when the C<done> method on the supply is
+called, indicating the end of life of the channel.
+
+The C<&quit> callback is called when the C<quit> method on the supply is
+called, indicating an erroneous termination of the supply.
+
+The C<&closing> callback is called when somebody closes the tap (which
+terminates that subscription, but keeps the supply as a whole in tact).
+
+Method C<tap> returns an object of type C<Tap>, on which you can call the
+C<close> method to cancle the subscription.
+
+=head2 method emit
+
+    method emit(Supply:D: \msg)
+
+Sends the C<msg> to all taps (that is, to all subscriptions).
+
+=head2 method done
+
+    method done(Supply:D:)
+
+Calls the C<done> callback on all taps that have one.
+
+=head2 method quit
+
+    method quit(Supply:D: $ex)
+
+Calls the C<quit> callback on the taps that have one, passing the exception to
+them.
+
+This is meant for shutting down a supply with an error.
+
+=head2 method taps
+
+    method taps(Supply:D:) returns Int:D
+
+Returns the number of taps.
+
+=head2 method Channel
+
+    method Channel(Supply:D:) returns Channel:D
+
+Returns a L<Channel|/type/Channel> object that will receive all future values
+from the supply, and will be C<close>d when the Supply is done, and quit (shut
+down with error) when the supply is quit.
+
+=head2 method Promise
+
+    method Promise(Supply:D:) returns Promise:D
+
+Returns a L<Promise|/type/Promise> object for the next value. That means the
+promise is kept when there is a next value, and broken when the supply is done
+or quit before a value arrived.
+
+=end pod
