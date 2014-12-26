@@ -62,11 +62,32 @@ terminates that subscription, but keeps the supply as a whole in tact).
 Method C<tap> returns an object of type L<Tap|/type/Tap>, on which you can
 call the C<close> method to cancle the subscription.
 
+    my $s = Supply.interval(1);
+    my $t = $s.tap(-> $v { say $v }, done => { say "no more ticks" };
+    sleep 5;
+    $s.done;
+
+Produces:
+
+    0
+    1
+    2
+    3
+    4
+    5
+    no more ticks
+
+
 =head2 method emit
 
     method emit(Supply:D: \msg)
 
 Sends the C<msg> to all taps (that is, to all subscriptions).
+
+    my $s = Supply.new;
+    $s.tap(&say);
+    $s.emit(42);    # triggers the &say from the previous line
+    $s.done;
 
 =head2 method done
 
@@ -89,6 +110,11 @@ This is meant for shutting down a supply with an error.
 
 Returns the number of taps.
 
+    my $s = Supply.new;
+    say $s.taps;    # 0
+    $s.tap(&sqrt);
+    say $s.taps;    # 1
+
 =head2 method Channel
 
     method Channel(Supply:D:) returns Channel:D
@@ -105,6 +131,12 @@ Returns a L<Promise|/type/Promise> object for the next value. That means the
 promise is kept when there is a next value, and broken when the supply is done
 or quit before a value arrived.
 
+    my $s = Supply.new;
+    my $p = $s.Promise;
+    $p.then(-> $v { say "got $v.result()" });
+    $s.emit('cha');         # got cha
+
+
 =head2 method close
 
     method close(Supply:D: Tap:D $t)
@@ -116,12 +148,17 @@ prevents it from getting any more events.
 
     method tappers(Supply:D:) returns List:D
 
+Returns a list of taps as L<Tap|/type/Tap> objects.
+
 =head2 method live
 
     method live(Supply:D:) returns Bool:D
 
 Returns C<True> if the supply is "live", that is, events are emitted to taps
-as soon as they arrive. Always returns C<True> in the default C<Supply>.
+as soon as they arrive. Always returns C<True> in the default C<Supply> (but
+for example on the supply returned from C<Supply.from-list> it's C<False>).
+
+    say Supply.new.live;    # True
 
 =head2 method wait
 
@@ -129,6 +166,20 @@ as soon as they arrive. Always returns C<True> in the default C<Supply>.
 
 Waits until the supply is done (in which case it returns C<True>) or C<quit>
 (in which case it will throw the exception that was passed to C<quit>).
+
+    my $s = Supply.new;
+    $s.tap(&say);
+    my $p = Promise.allof((^10).pick(*).map: -> $v {
+        start {
+            $s.emit($v)
+        }
+    });
+    $p.then({ $s.done });
+
+    $s.wait;
+    say "Done";
+    await $p;
+
 
 =head2 method list
 
