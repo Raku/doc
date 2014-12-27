@@ -1,0 +1,74 @@
+=begin pod
+
+=TITLE class Grammar
+
+=SUBTITLE Class with help methods for grammars
+
+    class Grammar is Cursor { ... }
+
+Every type declared with C<grammar> (which doesn't explicitly states its
+superclass) becomes a subclass of I<Grammar>.
+
+    grammar Thingy {
+        token TOP {
+            <a> <b>
+        }
+        token a { a }
+        token b { b }
+    }
+    say Thingy ~~ Grammar;      # True
+    my $match = Thingy.parse('ab');
+    say so $match;              # True
+    say ~$match<a>;             # a
+
+More L<documentation on grammars|/language/grammars> is available.
+
+=head1 Methods
+
+=head2 method parse
+
+    method parse($target, :$rule = 'TOP', Parcel :$args = (), Mu :$actions, *%opts)
+
+Parses the C<$target> (which will be coerced to L<Str|/type/Str> if it isn't
+one), using C<$rule> as the starting rule. Additional C<$args> will be given
+to the starting rule if provided.
+
+If the C<action> named argument is provided, it will be used as an action
+object, that is, for each successful regex match, a method of the same name
+(if it exists) is called on the action object, passing the match object as the
+sole positional argument.
+
+Additional named arguments are used as options for matching, so you can
+specify things like C<:c(4)> to start parsing from the fourth character. All
+L<matching adverbs|/language/regexes#Adverbs> are allowed.
+
+Method C<parse> only succeeds if the cursor has arrived at the end of the
+target string when the match is over. Use L<method subparse|/routine/subparse>
+if you want to be able to stop in the middle.
+
+Returns a L<Match object|/type/Match> on success, and L<Nil|/type/Nil> on
+failure.
+
+=head2 method subparse
+
+    method subparse($target, :$rule = 'TOP', Parcel :$args = (), Mu :$actions, *%opts)
+
+Does exactly the same as L<method parse|/routine/parse>, except that cursor
+doesn't have to reach the end of the string to succeed. (That is, it doesn't
+have to match the whole string).
+
+    grammar A {
+        token as { a+ };
+    }
+    my $match = A.subparse('aaab', :rule<as>);
+    say ~$match;        # aaa
+    say $match.to;      # 3
+
+=head2 method parsefile
+
+    method parsefile(Cool $filename, *%opts);
+
+Reads file C<$filename>, and parses it. All named arguments are passsed on to
+L<method parse|/routine/parse>.
+
+=end pod
