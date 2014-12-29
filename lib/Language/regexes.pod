@@ -697,17 +697,69 @@ to declaring ratcheting regex:
 The B<C<:sigspace>> or B<C<:s>> adverb makes whitespace significant in a regex.
 
     =begin code :allow<B>
-    say so "I used Photoshop®"  ~~ m:i/   photo shop /; # True
-    say so "I used a photo shop ~~ m:iB<:s>/ photo shop /; # True
-    say so "I used Photoshop®"  ~~ m:iB<:s>/ photo shop /; # False
+    say so "I used Photoshop®"   ~~ m:i/   photo shop /; # True
+    say so "I used a photo shop" ~~ m:iB<:s>/ photo shop /; # True
+    say so "I used Photoshop®"   ~~ m:iB<:s>/ photo shop /; # False
     =end code
 
 C<m:s/ photo shop /> acts just the same as if one had written C<m/ photo <ws>
 shop <ws> />. By default, C<< <ws> >> makes sure that words are seperated, so
 C<a    b> and C<^&> will match C<< <ws> >> in the middle, but C<ab> won't.
 
-If a regex is declared with the C<rule> keyword, the C<:sigspace> adverb and
-C<:ratchet> are implied
+Where whitespace in a regex turns into C«<ws>» depends on what comes before the
+whitespace. In the above example, whitespace in the beginning of a regex
+doesn't turn into C«<ws>», but whitespace after characters does. In general,
+the rule is that if a term might match something, whitespace after it will turn
+into C«<ws>».
+
+In addition, if whitespace comes after a term, but I<before> a quantifier
+(C<+>, C<*>, or C<?>), C«<ws>» will be matched against after every match of the
+term, so C<foo +> becomes C«[ foo <.ws> ]+». On the other hand, whitespace
+I<after> a quantifier acts as normal significant whitespace, e.g., "C<foo+ >"
+becomes C«foo+ <.ws>».
+
+In all, this code:
+
+    =begin code :allow<B>
+    rx :s {
+        ^^
+        {
+            say "No sigspace after this";
+        }
+        <.assertion_and_then_ws>
+        characters_with_ws_after+
+        ws_separated_characters *
+        [
+        | some "stuff" .. .
+        | $$
+        ]
+        :my $foo = "no ws after this";
+        $foo
+    }
+    =end code
+
+Becomes:
+
+    =begin code :allow<B>
+    rx {
+        ^^ B«<.ws>»
+        {
+            say "No space after this";
+        }
+        <.assertion_and_then_ws> B«<.ws>»
+        characters_with_ws_after+ B«<.ws>»
+        [ws_separated_characters B«<.ws>»]* B«<.ws>»
+        [
+        | some B«<.ws>» "stuff" B«<.ws>» .. B«<.ws>» . B«<.ws>»
+        | $$ B«<.ws>»
+        ] B«<.ws>»
+        :my $foo = "no ws after this";
+        $foo B«<.ws>»
+    }
+    =end code
+
+If a regex is declared with the C<rule> keyword, both the C<:sigspace> and
+C<:ratchet> adverbs are implied.
 
 =head2 Matching Adverbs
 
