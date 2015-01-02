@@ -262,8 +262,12 @@ multi write-type-source($doc) {
         my @mro = $type.mro;
            @mro.shift; # current type is already taken care of
 
-        for $type.roles -> $r {
+        my @roles-todo = $type.roles;
+        my %roles-seen;
+        while @roles-todo.shift -> $r {
             next unless %methods-by-type{$r};
+            next if %roles-seen{$r}++;
+            @roles-todo.push: $r.roles;
             $pod.contents.push:
                 pod-heading("Methods supplied by role $r"),
                 pod-block(
