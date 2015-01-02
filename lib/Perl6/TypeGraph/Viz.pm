@@ -57,15 +57,15 @@ class Perl6::TypeGraph::Viz {
         @dot.push: "digraph \"perl6-type-graph\" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n";
         @dot.push: "    size=\"$size\"\n" if $size;
 
-        if $.dot-hints {
+        if $.dot-hints -> $hints {
             @dot.push: "\n    // Layout hints\n";
-            @dot.push: $.dot-hints;
+            @dot.push: $hints;
         }
 
         @dot.push: "\n    // Types\n";
         for @.types -> $type {
             my $color = $type.packagetype eq 'role' ?? $.role-color !! $.class-color;
-            @dot.push: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name ~ '.html' }\"];\n";
+            @dot.push: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name ~ '.html' }\", fontname=\"FreeSans\"];\n";
         }
 
         @dot.push: "\n    // Superclasses\n";
