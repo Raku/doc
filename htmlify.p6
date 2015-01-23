@@ -346,6 +346,10 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 # Infix Foo
                 @definitions = [.[0].words[0,1]];
             }
+            when :(Str $ where {m/^trait\s+(\S+\s\S+)$/}) {
+                # Infix Foo
+                @definitions = [.split(/\s+/, 2)]
+            }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
                 @definitions = [.[2].words[0], .[1].contents[0]];
@@ -366,7 +370,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     %attr = :kind<routine>,
                             :categories<operator>,
                 }
-                when 'sub'|'method'|'term'|'routine' {
+                when 'sub'|'method'|'term'|'routine'|'trait' {
                     %attr = :kind<routine>,
                             :categories($subkinds),
                 }
