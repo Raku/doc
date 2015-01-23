@@ -249,10 +249,11 @@ multi write-type-source($doc) {
     }
 
     if $type {
-        my $tg-preamble = qq[<h1>Type graph</h1>\n<p>Below you should see
-        an image showing the type relations for $podname. If not, try the <a
-        href="/images/type-graph-{uri_escape $podname}.png">PNG
-        version</a>.</p>];
+        my $tg-preamble = qq[<h1>Type graph</h1>\n<p>Below you should see a
+        clickable image showing the type relations for $podname that links
+        to the documentation pages for the related types. If not, try the
+        <a href="/images/type-graph-{uri_escape $podname}.png">PNG
+        version</a> instead.</p>];
         $pod.contents.push: Pod::Raw.new(
             target => 'html',
             contents => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
