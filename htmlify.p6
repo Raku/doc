@@ -33,7 +33,7 @@ sub url-munge($_) {
 my @menu =
     ('language',''         ) => (),
     ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
-    ('routine', 'Routines' ) => <sub method term operator trait>,
+    ('routine', 'Routines' ) => <sub method term operator>,
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
