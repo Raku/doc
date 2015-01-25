@@ -29,15 +29,27 @@ This produces the following output:
     Output: foo bar
     Done.
 
+An example that opens an external program for writing:
+
+    use v6;
+    my $prog = Proc::Async.new(:w, 'hexdump', '-C');
+    my $promise = $prog.start;
+    $prog.write(Buf.new(12, 42));
+    $prog.close-stdin;
+    await $promise;
 
 =head1 Methods
 
 =head2 method new
 
-    method new(:$path, *@args) returns Proc::Async:D
+    method new(:$path, *@args, :$w) returns Proc::Async:D
 
 Creates a new C<Proc::Async> object with externa program name or path C<$path>
 and the command line arguments C<@args>.
+
+If C<:w> is passed to C<new>, then a pipe to the external program's standard
+input stream (stdin) is opened, to which you can write with C<write> and
+C<say>.
 
 =head2 method stdout
 
@@ -99,9 +111,30 @@ thrown.
 Returns the name and/or path of the external program that was passed to the
 C<new> method as first argument.
 
+=head2 method args
+
+    method args(Proc::Async:D:) returns Positional:D
+
+Returns the command line arguments for the external programs, as passed to the
+C<new> method.
+
+=head2 method write
+
+    method write(Proc::Async:D: Blob:D $b, :$scheduler = $*SCHEDULER)
+
+Write the binary data in C<$b> to the standard input stream of the external
+program.
+
+The C<Proc::Async> object must be created for writing (with
+C<Proc::Async.new(:w, $path, @args)>). Otherwise an
+L<X::Proc::Async::OpenForWriting> exception will the thrown.
+
+C<start> must have been called before calling method write, otherwise an
+L<X::Proc::Async::MustBeStarted> exception is thrown.
+
 =begin comment
 
-TODO: various exceptions, @.args, print, say, write, close-stdin, kill
+TODO: various exceptions, print, say, close-stdin, kill
 
 =end comment
 
