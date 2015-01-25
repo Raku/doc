@@ -2,6 +2,9 @@
 
 An HTML version of this documentation can be found at http://doc.perl6.org/.
 
+(If you are browsing this repository via github, it will not display most
+files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
+
 With a Rakudo `perl6` executable in `PATH`, try
 
     ./bin/p6doc Type::Str
