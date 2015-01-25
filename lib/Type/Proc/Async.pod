@@ -1,0 +1,103 @@
+=begin pod
+
+=TITLE class Proc::Async
+
+=SUBTITLE Class for asynchronously launching external programs
+
+    class Proc::Async { ... }
+
+C<Proc::Async> allows you to run external commands asynchronously, capturing
+standard input and output handles, and optionally write to its standard input.
+
+    # command with arguments
+    my $proc = Proc::Async.new('echo', 'foo', 'bar');
+
+    # subscribe to new output from out and err handles:
+    $proc.stdout.tap(-> $v { print "Output: $v" });
+    $proc.stderr.tap(-> $v { print "Error:  $v" });
+
+    say "Starting...";
+    my $promise = $proc.start;
+
+    # wait for the external program to terminate
+    await $promise;
+    say "Done.";
+
+This produces the following output:
+
+    Starting...
+    Output: foo bar
+    Done.
+
+
+=head1 Methods
+
+=head2 method new
+
+    method new(:$path, *@args) returns Proc::Async:D
+
+Creates a new C<Proc::Async> object with externa program name or path C<$path>
+and the command line arguments C<@args>.
+
+=head2 method stdout
+
+    method stdout(Proc::Async:D:, :$bin) returns Supply:D
+
+Returns the L<Supply|/type/Supply> for the external program's standard output
+stream. If C<:bin> is passed, the standard output is passed along in  binary as
+L<Blob|/type/Blob>, otherwise it is interpreted as UTF-8, decoded, and passed
+along as L<Str|/type/Str>.
+
+    $proc.stdout.tap( -> $str {
+        say "Got output '$str' from the external program";
+    });
+
+You must call C<stdout> before you call L<#method start>. Otherwise an
+exception of class L<X::Proc::Async::TapBeforeSpawn|/type/X::Proc::Async::TapBeforeSpawn> is
+thrown.
+
+If C<stdout> is not called, the external program's standard output is not
+captured at all.
+
+=head2 method stderr
+
+    method stderr(Proc::Async:D:, :$bin) returns Supply:D
+
+Returns the L<Supply|/type/Supply> for the external program's standard error
+stream. If C<:bin> is passed, the standard error is passed along in  binary as
+L<Blob|/type/Blob>, otherwise it is interpreted as UTF-8, decoded, and passed
+along as L<Str|/type/Str>.
+
+    $proc.stderr.tap( -> $str {
+        say "Got error '$str' from the external program";
+    });
+
+You must call C<stderr> before you call L<#method start>. Otherwise an
+exception of class L<X::Proc::Async::TapBeforeSpawn|/type/X::Proc::Async::TapBeforeSpawn> is
+thrown.
+
+If C<stderr> is not called, the external program's standard error stream is not
+captured at all.
+
+=head2 method start
+
+    method start(Proc::Async:D:, :$scheduler = $*SCHEDULER) returns Promise:D
+
+Initiates spawning of the external program. Returns a promise that will be
+kept with a L<Proc::Status|/type/Proc::Status> object once the external
+program exits, and that will be broken if the program cannot be started.
+
+=head2 method path
+
+    method path(Proc::Async:D:)
+
+Returns the name and/or path of the external program that was passed to the
+C<new> method as first argument.
+
+=begin comment
+
+TODO: various exceptions, @.args, print, say, write, close-stdin, kill
+
+=end comment
+
+=end pod
