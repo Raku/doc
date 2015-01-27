@@ -38,7 +38,8 @@ class Perl6::TypeGraph::Viz {
             @.types .= unique;
 
             # Find a new batch of seed nodes
-            @seeds = uniq(@seeds>>.sub, @seeds>>.doers);
+            @seeds = unique
+            (@seeds>>.sub, @seeds>>.doers);
 
             # If we're not growing the node pool, stop trying
             last if @.types <= @prev or !@seeds;
