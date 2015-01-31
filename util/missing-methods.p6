@@ -26,9 +26,9 @@ from outside.
 
 =end pod
 
-my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
+my $type_graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
-for $t.sorted -> $type {
+for $type_graph.sorted -> $type {
     for methods-in-type($type) -> $method {
         show-undoc-method($type.name ~ '.' ~ $method.name);
     }
