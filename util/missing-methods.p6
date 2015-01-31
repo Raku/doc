@@ -12,7 +12,7 @@ use Perl6::TypeGraph;
 
 =head1 SYNOPSIS
 
-    $ perl6 util/missing-methods.p6
+    $ perl6 util/missing-methods.p6 [--type_name=<Str>]
 
 =head1 DESCRIPTION
 
@@ -26,11 +26,15 @@ from outside.
 
 =end pod
 
-my $type_graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
+sub MAIN(Str :$type_name) {
+    my $type_graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    my @types_to_search = $type_name ?? $type_graph.types{$type_name}
+                                     !! $type_graph.sorted;
 
-for $type_graph.sorted -> $type {
-    for methods-in-type($type) -> $method {
-        show-undoc-method($type.name ~ '.' ~ $method.name);
+    for @types_to_search -> $type {
+        for methods-in-type($type) -> $method {
+            show-undoc-method($type.name ~ '.' ~ $method.name);
+        }
     }
 }
 
