@@ -37,7 +37,7 @@ my @menu =
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
-        
+
 my $head   = slurp 'template/head.html';
 my $footer = footer-html;
 sub header-html ($current-selection = 'nothing selected') is cached {
@@ -56,7 +56,7 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     my $sub-menu-items = '';
     state %sub-menus = @menu>>.key>>[0] Z=> @menu>>.value;
     if %sub-menus{$current-selection} -> $_ {
-        $sub-menu-items = [~] 
+        $sub-menu-items = [~]
             q[<div class="menu-items darker-green">],
             qq[<a class="menu-item" href="/$current-selection.html">All</a>],
             .map({qq[
@@ -426,7 +426,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
             );
             my @orig-chunk = $new-head, @c[$i ^.. $new-i];
             my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
-            
+
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
                 my Str @subkinds = first-code-block($chunk)\
@@ -616,14 +616,14 @@ sub write-index-files () {
         .[0].subkinds[0] ne 'role' ?? .[0].summary !!
             Pod::FormattingCode.new(:type<I>, contents => [.[0].summary]);
     }
-    
+
     write-main-index :kind<type> :&summary;
 
     for <basic composite domain-specific exceptions> -> $category {
         write-sub-index :kind<type> :$category :&summary;
     }
 
-    &summary = { 
+    &summary = {
         pod-block("(From ", $_>>.origin.map({
             pod-link(.name, .url)
         }).reduce({$^a,", ",$^b}),")")
