@@ -27,6 +27,8 @@ Here are some ways to help us:
  * add missing documentation for classes, roles, methods or operators
  * add usage examples to existing documentation
  * proofread and correct the documentation
+ * tell us about missing documentation, either by adding it to the WANTED
+   file, or by opening issues on github.
 
 The file `WANTED` has a list of particular documents that are known to be
 missing.
