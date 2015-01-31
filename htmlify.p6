@@ -739,3 +739,5 @@ sub footer-html() {
     ];
     $footer.subst('CONTENT', $footer_content);
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6

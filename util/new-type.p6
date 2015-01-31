@@ -40,3 +40,5 @@ sub MAIN($typename, :$kind='class') {
     say "'$path' written";
     say "(remeber to 'git add $path')";
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6
