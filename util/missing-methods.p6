@@ -29,12 +29,15 @@ from outside.
 my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted -> $type {
-    my $type_name = ::($type.name);
-    my @methods = $type_name.^methods(:local);
-    for @methods -> $method {
+    for methods-for-type($type) -> $method {
         my $qualified_method_name = $type.name ~ '.' ~ $method.name;
         show-undoc-method($qualified_method_name);
     }
+}
+
+sub methods-for-type($type) {
+    my $type_name = ::($type.name);
+    return $type_name.^methods(:local);
 }
 
 sub show-undoc-method(Str $qualified_method_name) {
