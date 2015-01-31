@@ -30,8 +30,7 @@ my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted -> $type {
     for methods-for-type($type) -> $method {
-        my $qualified_method_name = $type.name ~ '.' ~ $method.name;
-        show-undoc-method($qualified_method_name);
+        show-undoc-method($type.name ~ '.' ~ $method.name);
     }
 }
 
