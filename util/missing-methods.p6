@@ -33,9 +33,13 @@ for $t.sorted -> $type {
     my @methods = $type_name.^methods(:local);
     for @methods -> $method {
         my $qualified_method_name = $type.name ~ '.' ~ $method.name;
-        my $doc_output = qqx{PAGER=cat ./bin/p6doc -f $qualified_method_name};
-        say "$qualified_method_name" if $doc_output ~~ m:s/No documentation found/;
+        show-undoc-method($qualified_method_name);
     }
+}
+
+sub show-undoc-method(Str $qualified_method_name) {
+    my $doc_output = qqx{PAGER=cat ./bin/p6doc -f $qualified_method_name};
+    say "$qualified_method_name" if $doc_output ~~ m:s/No documentation found/;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
