@@ -362,6 +362,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         }
 
         my int $new-i = $i;
+        note @definitions.perl;
         for @definitions -> [$sk, $name] {
             my $subkinds = $sk.lc;
             my %attr;
