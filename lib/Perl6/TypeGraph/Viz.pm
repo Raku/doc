@@ -98,3 +98,5 @@ class Perl6::TypeGraph::Viz {
         unlink $tmpfile;
     }
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6

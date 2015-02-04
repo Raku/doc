@@ -24,3 +24,5 @@ class Pod::To::SectionFilter {
         Pod::To::Text.render(@blocks[$from..$to]);
     }
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6

@@ -27,3 +27,5 @@ class Perl6::Documentable::Registry {
         %!cache{$by}{$what};
     }
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6
