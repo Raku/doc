@@ -519,12 +519,13 @@ sub write-search-file () {
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
-    my $items = <language type routine syntax>.map({
-        $*DR.lookup($_, :by<kind>).unique(:as{.name}).sort({.name})
-    }).flat.map({
-        .subkinds.map: -> $subkind {
-            qq[\{ label: "{$subkind.wordcase}: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
-        }
+    my $items = <language type routine syntax>.map(-> $kind {
+        $*DR.lookup($kind, :by<kind>).categorize({escape .name})\
+            .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
+                qq[[\{ label: "{
+                    ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
+                }: $name", value: "$name", url: "{@docs.[0].url}" \}]] #"
+            }
     }).join(",\n");
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
