@@ -361,7 +361,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     %attr = :kind<routine>,
                             :categories($subkinds),
                 }
-                when 'class'|'role' {
+                when 'class'|'role'|'enum' {
                     my $summary = '';
                     if @c[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
                         $summary = @c[$i+1].contents[0].contents[0];
