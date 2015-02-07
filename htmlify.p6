@@ -45,10 +45,10 @@ sub header-html ($current-selection = 'nothing selected') is cached {
 
     my $menu-items = [~]
         q[<div class="menu-items dark-green">],
-        @menu>>.key.map({qq[
-            <a class="menu-item {.[0] eq $current-selection ?? "selected darker-green" !! ""}"
-                href="/{.[0]}.html">
-                { .[1] || .[0].wordcase }
+        @menu>>.key.map(-> ($dir, $name) {qq[
+            <a class="menu-item {$dir eq $current-selection ?? "selected darker-green" !! ""}"
+                href="/$dir.html">
+                { $name || $dir.wordcase }
             </a>
         ]}), #"
         q[</div>];
@@ -67,13 +67,13 @@ sub header-html ($current-selection = 'nothing selected') is cached {
             q[</div>]
     }
 
-    $header.subst('MENU', qq[
-        <div class="menu">
-        $menu-items
-        $sub-menu-items
-        </div>
-    ])
+    state $menu-pos = ($header ~~ /MENU/).from;
+    $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
+}
 
+sub footer-html() {
+    my $footer = slurp 'template/footer.html';
+    $footer.subst('DATETIME', ~DateTime.now);
 }
 
 sub p2h($pod, $selection = 'nothing selected') {
@@ -719,25 +719,6 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
-}
-
-sub footer-html() {
-    state $dt = ~DateTime.now;
-    my $footer = slurp 'template/footer_template.html';
-    my $footer_content = qq[
-        <p>
-            Generated on $dt from the sources at
-            <a href="https://github.com/perl6/doc">perl6/doc on github</a>.
-            This is a work in progress to document Perl 6, and known to be
-            incomplete. Your contribution is appreciated.
-        </p>
-        <p>
-            This documentation is provided under the terms of the Artistic
-            License 2.0.
-            The Camelia image is copyright 2009 by Larry Wall.
-        </p>
-    ];
-    $footer.subst('CONTENT', $footer_content);
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
