@@ -132,12 +132,17 @@ sub MAIN(
 
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
-    for $*DR.lookup("type", :by<kind>).list {
-        write-type-source $_;
-    }
 
     say 'Composing doc registry ...';
     $*DR.compose;
+
+    for $*DR.lookup("language", :by<kind>).list {
+        say "Writing language document for {.name} ...";
+        spurt "html/language/{.filename}.html", p2h(.pod, 'language');
+    }
+    for $*DR.lookup("type", :by<kind>).list {
+        write-type-source $_;
+    }
 
     write-disambiguation-files if $disambiguation;
     write-search-file          if $search-file;
@@ -170,55 +175,48 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
 
     say "Processing $dir Pod files ...";
     my $total = +@pod-sources;
-    my $what  = $dir.lc;
-    for @pod-sources.kv -> $num, (:key($podname), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$what/$podname";
+    my $kind  = $dir.lc;
+    for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
+        printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
         my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
-        process-pod-source :$what, :$pod, :$podname, :pod-is-complete;
+        process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
     }
 }
 
-multi process-pod-source(:$what where "language", :$pod, :$podname, :$pod-is-complete) {
-    my $name = $podname;
+sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
-    if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
-        $name = $pod.contents[0].contents[0].contents[0]
-    } else {
-        note "$podname does not have an =TITLE";
+    my $name = $filename;
+    if $kind eq "language" {
+        if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
+            $name = $pod.contents[0].contents[0].contents[0]
+        }
+        else {
+            note "$filename does not have an =TITLE";
+        }
     }
     if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
         $summary = $pod.contents[1].contents[0].contents[0];
     } else {
-        note "$podname does not have an =SUBTITLE";
+        note "$filename does not have an =SUBTITLE";
     }
-    my $origin = $*DR.add-new(
-        :kind<language>,
-        :name($name),
-        :url("/language/$podname"),
-        :$summary,
-        :$pod,
-        :pod-is-complete,
-    );
-    find-definitions :$pod, :$origin;
-    spurt "html/$what/$podname.html", p2h($pod, $what);
-}
 
-multi process-pod-source(:$what where "type", :$pod, :$podname, :$pod-is-complete) {
-    my $type = $tg.types{$podname};
-    my $summary = '';
-    if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
-        $summary = $pod.contents[1].contents[0].contents[0];
-    } else {
-        note "$podname does not have an =SUBTITLE";
+    my %type-info;
+    if $kind eq "type" {
+        if $tg.types{$name} -> $type {
+            %type-info = :subkinds($type.packagetype), :categories($type.categories);
+        } else {
+            %type-info = :subkinds<class>;
+        }
     }
     my $origin = $*DR.add-new(
-        :kind<type>,
-        :subkinds($type ?? $type.packagetype !! 'class'),
-        :categories($type ?? $type.categories !! Nil),
-        :$summary,
+        :$kind,
+        :$name,
         :$pod,
+        :url("/$kind/$filename"),
+        :$filename,
+        :$summary,
         :$pod-is-complete,
-        :name($podname),
+        |%type-info,
     );
 
     find-definitions :$pod, :$origin;

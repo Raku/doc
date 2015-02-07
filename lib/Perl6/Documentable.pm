@@ -6,6 +6,7 @@ class Perl6::Documentable {
 
     has Str $.name;
     has Str $.url;
+    has Str $.filename;
     has     $.pod;
     has Bool $.pod-is-complete;
     has Str $.summary = '';
@@ -27,10 +28,9 @@ class Perl6::Documentable {
     }
 
     method filename() {
-        $.kind eq 'operator'
+        $!filename //= $.kind eq 'operator'
             ?? "html/language/operators.html"
-            !! "html/$.kind/$.name.html"
-            ;
+            !! "html/$.kind/$.name.html";
     }
     method url() {
         $!url //= $.kind eq 'operator'
