@@ -128,10 +128,9 @@ sub MAIN(
     say 'Reading type graph ...';
     $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
     my %h = $tg.sorted.kv.flat.reverse;
+    write-type-graph-images(:force($typegraph));
 
     process-pod-dir 'Language', :$sparse;
-    write-type-graph-images(:force($typegraph));
-    # XXX: Generalize
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -144,19 +143,9 @@ sub MAIN(
     write-search-file          if $search-file;
     write-index-files;
 
-    say 'Writing per-routine files ...';
-    for $*DR.lookup('routine', :by<kind>).unique(:as{.name}) -> $d {
-        write-routine-file($d.name);
-        print '.'
+    for <routine syntax> -> $kind {
+        write-kind $kind;
     }
-    say '';
-
-    say 'Writing per-syntactic-feature files ...';
-    for $*DR.lookup('syntax', :by<kind>).unique(:as{.name}).list -> $d {
-        write-syntax-file($d.name);
-        print '.'
-    }
-    say '';
 
     say 'Processing complete.';
     if $sparse || !$search-file || !$disambiguation {
@@ -673,43 +662,29 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
     ), $kind);
 }
 
-sub write-routine-file($name) {
-    say 'Writing html/routine/$name.html ...' if $*DEBUG;
-    my @docs = $*DR.lookup($name, :by<name>).grep(*.kind eq 'routine');
-    my $subkind = 'routine';
-    {
-        my @subkinds = @docs>>.subkinds;
-        $subkind = @subkinds[0] if all(@subkinds>>.defined) && [eq] @subkinds;
-    }
-    my $pod = pod-with-title("Documentation for $subkind $name",
-        pod-block("Documentation for $subkind $name, assembled from the
-            following types:"),
-        @docs.map({
-            pod-heading("{.origin.human-kind} {.origin.name}"),
-            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name)),
-            .pod.list,
-        })
-    );
-    spurt "html/routine/$name.html", p2h($pod, 'routine');
-}
-
-sub write-syntax-file($name) {
-    say 'Writing html/syntax/$name.html ...' if $*DEBUG;
-    my @docs = $*DR.lookup($name, :by<name>).grep(*.kind eq 'syntax');
-    my $subkind = 'syntactic feature';
-    {
-        my @subkinds = @docs>>.subkinds;
-        $subkind = @subkinds[0] if all(@subkinds>>.defined) && [eq] @subkinds;
-    }
-    my $pod = pod-with-title("Documentation for $subkind $name",
-        pod-block("Documentation for $subkind $name"),
-        @docs.map({
-            pod-heading("{.origin.human-kind} {.origin.name}"),
-            pod-block("From ", pod-link(.origin.name, .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name)),
-            .pod.list,
-        })
-    );
-    spurt "html/syntax/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, 'syntax');
+sub write-kind($kind) {
+    say "Writing per-$kind files ...";
+    $*DR.lookup($kind, :by<kind>)\
+        .categorize({.name})\
+        .kv.map: -> $name, @docs {
+            my @subkinds = @docs.map({.subkinds}).unique;
+            my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
+            my $pod = pod-with-title(
+                "Documentation for $subkind $name",
+                pod-block("Documentation for $subkind $name, assembled from the following types:"),
+                @docs.map({
+                    pod-heading("{.origin.human-kind} {.origin.name}"),
+                    pod-block("From ",
+                        pod-link(.origin.name,
+                            .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name),
+                    ),
+                    .pod.list,
+                })
+            );
+            print '.';
+            spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
+        }
+    say '';
 }
 
 sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
