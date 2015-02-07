@@ -138,7 +138,7 @@ sub MAIN(
 
     for $*DR.lookup("language", :by<kind>).list {
         say "Writing language document for {.name} ...";
-        spurt "html/language/{.filename}.html", p2h(.pod, 'language');
+        spurt "html{.url}.html", p2h(.pod, 'language');
     }
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -213,9 +213,9 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         :$name,
         :$pod,
         :url("/$kind/$filename"),
-        :$filename,
         :$summary,
         :$pod-is-complete,
+        :subkinds($kind),
         |%type-info,
     );
 
@@ -516,28 +516,16 @@ sub viz-hints ($group) {
 sub write-search-file () {
     say 'Writing html/js/search.js ...';
     my $template = slurp("template/search_template.js");
-    my @items;
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
-    @items.push: $*DR.lookup('language', :by<kind>).sort(*.name).map({
-        qq[\{ label: "Language: {.name}", value: "{.name}", url: "{.url}" \}]
-    });
-    @items.push: $*DR.lookup('type', :by<kind>).sort(*.name).map({
-        qq[\{ label: "Type: {.name}", value: "{.name}", url: "{.url}" \}]
-    });
-    @items.push: $*DR.lookup('routine', :by<kind>).unique(:as{.name}).sort(*.name).map({
-        do for .subkinds // 'Routine' -> $subkind {
-            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
+    my $items = <language type routine syntax>.map({
+        $*DR.lookup($_, :by<kind>).unique(:as{.name}).sort({.name})
+    }).flat.map({
+        .subkinds.map: -> $subkind {
+            qq[\{ label: "{$subkind.wordcase}: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
         }
-    });
-    @items.push: $*DR.lookup('syntax', :by<kind>).sort(*.name).map({
-        do for .subkinds // 'Syntax' -> $subkind {
-            qq[\{ label: "{ $subkind.tclc }: {escape .name}", value: "{escape .name}", url: "{.url}" \}]
-        }
-    });
-
-    my $items = @items.join(",\n");
+    }).join(",\n");
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 

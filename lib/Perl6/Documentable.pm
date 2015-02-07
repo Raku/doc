@@ -6,7 +6,6 @@ class Perl6::Documentable {
 
     has Str $.name;
     has Str $.url;
-    has Str $.filename;
     has     $.pod;
     has Bool $.pod-is-complete;
     has Str $.summary = '';
@@ -27,11 +26,6 @@ class Perl6::Documentable {
             !! english-list @.subkinds // $.kind;
     }
 
-    method filename() {
-        $!filename //= $.kind eq 'operator'
-            ?? "html/language/operators.html"
-            !! "html/$.kind/$.name.html";
-    }
     method url() {
         $!url //= $.kind eq 'operator'
             ?? "/language/operators#" ~ uri_escape("@.subkinds[] $.name".subst(/\s+/, '_', :g))
