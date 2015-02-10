@@ -518,7 +518,7 @@ Instead, use a C<NEXT> block within the body of the loop.
 
 =head2 Regular Expressions ( Regex / Regexp )
 
-=item 1. Change C<=~> and C<!~> to C<~~> and C<!~~> .
+=head3 Change C<=~> and C<!~> to C<~~> and C<!~~> .
 
 In Perl 5, matches and substitutions are done against a variable using the
 C<=~> regexp-binding op.
@@ -537,7 +537,7 @@ In Perl 6, the C<~~> smartmatch op is used instead.
 Alternately, the new C<.match> and C<.subst> methods can be used. Note that
 C<.subst> is non-mutating. See L<S05/Substitution>
 
-=item 2. Move modifiers
+=head3 Move modifiers
 
 Move any modifiers from the end of the regex to the beginning. This may
 require you to add the optional C<m> on a plain match like C«/abc/».
@@ -545,7 +545,7 @@ require you to add the optional C<m> on a plain match like C«/abc/».
     next if $line =~    /static/i ; # Perl 5
     next if $line ~~ m:i/static/  ; # Perl 6
 
-=item 3. Add P5 or translate
+=head3 Add :P5 or :Perl5 adverb
 
 If the actual regex is complex, you may want to use it as-is, by adding the C<P5> modifier.
 
@@ -553,13 +553,52 @@ If the actual regex is complex, you may want to use it as-is, by adding the C<P5
     next if $line ~~ m:P5/[aeiou]/   ; # Perl 6, using P5 modifier
     next if $line ~~ m/  <[aeiou]> / ; # Perl 6, native new syntax
 
-If you do not want to leave your regex in its legacy form, here are the
-rules for its translation.
+=head3 Special matchers generally fall under the <> syntax
 
-XXX Add those rules here. Use C<translate_regex.pl> from Blue Tiger in the meantime.
+There are many cases of special matching syntax that Perl 5 regexes
+support. They won't all be listed here, but often instead of being
+surrounded by C<()>, the assertions will be surrouned by C«<>».
 
+For character classes, this means that:
 
+=item C<[abc]> becomes C«<[abc]>»
 
+=item C<[^abc]> becomes C«<-[abc]>»
+
+=item C<[a-zA-Z]> becomes C«<[a..zA..Z]>»
+
+=item C<[[:upper:]]> becomes C«<:Upper>»
+
+=item C<[abc[:upper:]]> becomes C«<[abc]+:Upper>»
+
+For look-around assertions:
+
+=item C<(?=[abc])> becomes C«<?[abc]>»
+
+=item C<(?=ar?bitrary* pattern)> becomes C«<before ar?bitrary pattern>»
+
+=item C<(?!=[abc])> becomes C«<![abc]>»
+
+=item C<(?!=ar?bitrary* pattern)> becomes C«<!before ar?bitrary pattern>»
+
+=item C«(?<=ar?bitrary* pattern)» becomes C«<after ar?bitrary pattern>»
+
+=item C«(?<!ar?bitrary* pattern)» becomes C«<!after ar?bitrary pattern>»
+
+(Unrelated to <> syntax, the "lookaround" C</foo\Kbar/> becomes C</foo <( bar /> )>
+
+=item C<(?(?{condition))yes-pattern|no-pattern)> becomes C«[ <?{condition}> yes-pattern | no-pattern ]»
+
+=head3 Longest token matching (LTM) displaces alternation
+
+In Perl 6 regexen, C<|> does LTM, which decides which alternation wins
+an ambiguous match based off of a set of rules, rather than about which
+was written first.
+
+The simplest way to deal with this is just to change any C<|> in your
+Perl 5 regex to a C<||>.
+
+TODO more rules. Use C<translate_regex.pl> from Blue Tiger in the meantime.
 
 =head2 Pragmas
 
