@@ -1,0 +1,951 @@
+=begin pod
+
+=TITLE Perl 5 to Perl 6 Translation
+
+=SUBTITLE How do I do what I used to do?
+
+This article indexes the changes in syntax from Perl 5 to Perl 6.
+Whatever worked in Perl 5, that *must* now be written differently in Perl 6, should be listed here.
+
+B<NOTE>: Automated translation might be faster than searching here, even
+though this document is optimized for your searches.
+See the L<Automated Translation> section at the bottom.
+
+
+
+
+=head2 CPAN
+
+See L<http://modules.perl6.org/> .
+
+If the module that you were using has not been converted to Perl 6, and no
+alternative is listed in this document, then its use under Perl 6 may not
+have been addressed yet.
+
+We hope that soon, the Perl 6 compilers will support the C<use> of Perl 5
+modules directly within Perl 6 code.
+
+
+
+
+
+=head2 Syntax
+
+=head3 Whitespace
+
+Perl 5 allows a surprising amount of flexibility in the use of whitespace.
+This is sometimes abused by humans, reducing readability, and causing
+surprises for programmers trying to read each others code. More
+importantly, it requires a convoluted (and difficult to maintain)
+lexer/parser in the source of Perl itself.
+
+    # Perl 5
+    perl -wE '$z+=$_ for@ARGV;say$z;' 4 5 16
+    25
+    perl -wE '$z = [ 1, 5, 25 ]; say $z
+            ->
+        [2]
+    '
+    25
+
+Perl 6 has stricter (and more regular) rules about whitespace.
+
+If you have translated your Perl 5 code into Perl 6 by hand, and a compile error is thrown where you expect it to work, examine your use of whitespace.
+
+See the S03/"Minimal whitespace DWIMmery" and the last paragraph of S04/"Statement parsing".
+
+
+=head3 Sigils
+
+In Perl 5, arrays and hashes used changing sigils according to how they were being read:
+
+C<$> for scalars or single elements of an array or a hash.
+
+C<@> for entire arrays  or   slices of an array or a hash.
+
+C<%> for entire hashes.
+
+In Perl 6, sigils are invariant, no matter how the variable is being used.
+
+See also L<Dereferencing>.
+
+=head4 C<$> Scalar
+
+Unchanged.
+
+=head4 C<@> Array
+
+    # Retrieving a single element
+    say $months[2]; # Perl 5
+    say @months[2]; # Perl 6; $ became @
+
+    # Retrieving multiple elements (a "slice")
+    say join ',', @months[ 6, 8..11 ]; # Perl 5
+    say join ',', @months[ 6, 8..11 ]; # Perl 6; no change
+
+=head4 C<%> Hash
+
+    # Retrieving a single element
+    say $calories{'apple'}; # Perl 5
+    say %calories{'apple'}; # Perl 6; $ became %
+
+    # Retrieving multiple elements (a "slice")
+    say join ',', @calories{'pear', plum'}; # Perl 5
+    say join ',', %calories{'pear', plum'}; # Perl 6; @ became %
+
+=head4 C<&> Sub
+
+In Perl 5, using an ampersand as a sigil on a sub call turns off prototype
+checking for that call. This is a subtle behavior that is very rarely
+needed.
+
+    # This call will respect the sub's prototype, if it has one.
+    read_the_meter($customer_number);
+    # This call will ignore the sub's prototype, if it has one.
+    &read_the_meter($customer_number); # Probably not what the coder really meant to do!
+
+However, prototypes themselves are rarely used in Perl 5, so such use of
+the ampersand is often harmless, and commonly seen in code in the wild,
+even though such use is incorrect and to be strongly discouraged.
+
+In Perl 6, the ampersand sigil is used to distinguish verb from noun; that
+is, the sub being invoked as a call, versus a simple reference to the sub's
+code.
+
+    my $result =  read_all_meters(); # Perl 5; correct
+    my $result =  read_all_meters(); # Perl 6; identical
+    my $result = &read_all_meters(); # INCORRECT; it does not always work in Perl 5, and it is a error in Perl 6.
+
+    my $subref = \&read_all_meters; # Perl 5
+    my $subref =  &read_all_meters; # Perl 6
+
+=head4 C<*> Glob
+
+In Perl 5, the C<*> sigil referred to the GLOB structure that Perl uses to
+store non-lexical variables, file handles, subs, and formats.
+
+(This should not be confused with the Perl 5 built-in C<glob()> function,
+which reads filenames from a directory).
+
+You are most likely to encounter a GLOB in code written on a early Perl
+version that does not support lexical filehandles, when a filehandle needed
+to be passed into a sub.
+
+    # Perl 5 - ancient method
+    sub read_2 {
+        local (*H) = @_;
+        return scalar(<H>), scalar(<H>);
+    }
+    open FILE, '<', $path or die;
+    my ($line1, $line2) = read_2(*FILE);
+
+You should refactor your Perl 5 code to remove the need for the GLOB,
+before translating into Perl 6.
+
+    # Perl 5 - modern use of lexical filehandles
+    sub read_2 {
+        my ($fh) = @_;
+        return scalar(<$fh>), scalar(<$fh>);
+    }
+    open my $in_file, '<', $path or die;
+    my ($line1, $line2) = read_2($in_file);
+
+=head3 Reference creation
+
+In Perl 5, references to anonymous arrays and hashes and subs are returned
+during their creation. References to existing named variables and subs were
+generated with the C<\> operator.
+
+In Perl 6, anonymous arrays and hashes and subs still return their
+reference during creation. References to named subs are generated by
+preceding the sub name with a C<&> sigil. References to existing named
+variables are generated by C<item> context.
+
+    my $aref = [ 1, 2, 9 ];          # Both Perl 5&6
+    my $href = { A => 98, Q => 99 }; # Both Perl 5&6
+
+    my $aref =     \@aaa  ; # Perl 5
+    my $aref = item(@aaa) ; # Perl 6
+
+    my $href =     \%hhh  ; # Perl 5
+    my $href = item(%hhh) ; # Perl 6
+
+    my $sref =     \&foo  ; # Perl 5
+    my $sref =      &foo  ; # Perl 6
+
+=head3 Dereferencing
+
+In Perl 5, the syntax for dereferencing an entire reference is the
+type-sigil and curly braces, with the reference inside the curly braces.
+
+In Perl 6, the curly braces are changed to parentheses.
+
+    # Perl 5
+        say      ${$scalar_ref};
+        say      @{$arrayref  };
+        say keys %{$hashref   };
+        say      &{$subref    };
+
+    # Perl 6
+        say      $($scalar_ref);
+        say      @($arrayref  );
+        say keys %($hashref   );
+        say      &($subref    );
+
+Note that in both Perl 5 and Perl 6, the surrounding braces or parens can
+often be omitted, though the omission can reduce readability.
+
+In Perl 5, the arrow operator, C«->» , is used for single access to a
+composite's reference, or to call a sub through it's reference. In Perl 6,
+we now use the dot operator C<.> for those task.
+
+    # Perl 5
+        say $arrayref->[7];
+        say $hashref->{'fire bad'};
+        say $subref->($foo, $bar);
+
+    # Perl 6
+        say $arrayref.[7];
+        say $hashref.{'fire bad'};
+        say $subref.($foo, $bar);
+
+In recent versions of Perl 5, a new feature allows the use of the arrow op
+to for entire references. See
+L<http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#Experimental_Postfix_Dereferencing>
+That new feature corresponds Perl 6 C<.list> and C<.hash> methods:
+
+    # Perl 5.20
+        my @a = $arrayref->@;
+        my %h = $hashref->%;
+
+    # Perl 6
+        my @a = $arrayref.list;
+        my %h = $hashref.hash;
+
+See S32/Containers
+
+=head3 C«$object->$methodname»
+
+To call a method whose name is not known until runtime:
+
+    $object->$methodname(@args);  # Perl 5
+    $object."$methodname"(@args); # Perl 6
+
+If you leave out the quotes, then Perl 6 expects C<$methodname> to contain
+a reference to the method itself (which is a Method object), instead of the
+simple string name of the method.
+
+=head2 Operators
+
+See S03-operators for full details on all operators.
+
+Unchanged:
+
+=item C<,> List Separator
+=item C<+> Numeric Addition
+=item C<-> Numeric Subtraction
+=item C<*> Numeric Multiplication
+=item C</> Numeric Division
+=item C<%> Numeric Modulus
+=item C<**> Numeric Exponentiation
+=item C<++> Numeric Increment
+=item C<--> Numeric Decrement
+=item C<! && || ^> Booleans, high-precedence
+=item C<not and or xor> Booleans, low-precedence
+=item C«== != < > <= >=»   Numeric comparisons
+=item C<eq ne lt gt le ge>  String comparisons
+
+=head3 C«<=> cmp» Three-way comparisons
+
+In Perl 5, these operators returned -1, 0, or 1.
+In Perl 6, they return C<Order::Less>, C<Order::Same>, or C<Order::More>.
+
+C«cmp» is now named C«leg»; it forces string context for the comparison.
+
+C«<=>» still forces numeric context.
+
+C«cmp» in Perl 6 does either C«<=>» or C<leg>, depending on the
+pre-existing context of its arguments.
+
+=head3 C<~~> Smart-match operator
+
+While the operator has not changed, the rules for what exactly is matched
+depends on the types of both arguments, and those rules are far from
+identical in Perl 5 and Perl 6. See L<S03/Smart matching>
+
+=head3 C<& | ^> String Bitwise ops
+=head3 C<& | ^> Numeric Bitwise ops
+=head3 C<& | ^> Boolean ops
+
+In Perl 5, C<& | ^> were invoked according to the contents of its
+arguments. For example, C<31 | 33> returns a different result than C<"31" |
+"33">.
+
+In Perl 6, those single-character ops have been removed, and replaced by
+two-character ops which coerce their arguments to the needed context.
+
+    # Infix ops (two arguments; one on each side of the op)
+    +&  +|  +^  And Or Xor: Numeric
+    ~&  ~|  ~^  And Or Xor: String
+    ?&  ?|  ?^  And Or Xor: Boolean
+
+    # Prefix ops (one argument, after the op)
+    +^  Not: Numeric
+    ~^  Not: String
+    ?^  Not: Boolean (same as the ! op)
+
+=head3 C«<< >>» Numeric shift left|right ops
+
+Replaced by C«+<» and C«+>» .
+
+    say 42 << 3; # Perl 5
+    say 42 +< 3; # Perl 6
+
+=head3 C«=>» Fat comma
+
+In Perl 5, C«=>» acted just like a comma, but also quoted its left-hand
+side.
+
+In Perl 6, C«=>» is the Pair operator, which is quite different in
+principle, but works the same in many situations.
+
+If you were using C«=>» in hash initialization, or in passing arguments to
+a sub that expects a hashref, then the usage is likely identical.
+
+    # Works in Perl 5 and Perl 6
+    my %hash = ( AAA => 1, BBB => 2 );
+    get_the_loot( 'diamonds', { quiet_level => 'very', quantity => 9 }); # Note the curly braces
+
+If you were using C«=>» as a convenient shortcut to not have to quote part
+of a list, or in passing arguments to a sub that expects a flat list of
+KEY, VALUE, KEY, VALUE, then continuing to use C«=>» may break your code.
+The easiest workaround is to change the fat comma to a regular comma, and
+manually add quotes to its left-hand side. Or, you can change the sub's API
+to slurp a hash. A better long-term solution is to change the sub's API to
+expect Pairs. However, this requires you to change all sub calls at once.
+
+    # Perl 5
+    sub get_the_loot {
+        my $loot = shift;
+        my %options = @_;
+        # ...
+    }
+    # Note: no curly braces in this sub call
+    get_the_loot( 'diamonds', quiet_level => 'very', quantity => 9 );
+    # Perl 6, original API
+    sub get_the_loot ( $loot, *%options ) { # The * means to slurp everything
+        ...
+    }
+    get_the_loot( 'diamonds', quiet_level => 'very', quantity => 9 ); # Note: no curly braces in this API
+
+    # Perl 6, API changed to specify valid options
+    # The colon before the sigils means to expect a Pair,
+    # with the key having the same name as the variable.
+    sub get_the_loot ( $loot, :$quiet_level?, :$quantity = 1 ) {
+        # This version will check for unexpected arguments!
+        ...
+    }
+    get_the_loot( 'diamonds', quietlevel => 'very' ); # Throws error for mis-spelled parameter name
+
+
+=head3 C<? :> Ternary operator
+
+Now spelled with two question marks instead of one question mark, and two exclamation points instead of one colon.
+
+    my $result = ( $score > 60 )  ? 'Pass'  : 'Fail'; # Perl 5
+    my $result = ( $score > 60 ) ?? 'Pass' !! 'Fail'; # Perl 6
+
+=head3 C«->» (Arrow op) Method call, or dereferencing of arrayref|hashref|coderef
+
+Replaced by the dot op.
+
+    $object->method($argument); # Perl 5
+    $object.method($argument);  # Perl 6
+
+=head3 C<.> (Dot op) Concatenation
+
+Replaced by the tilde.
+
+Mnemonic: think of "stitching" together the two strings with needle and thread.
+
+    $food = 'grape' . 'fruit'; # Perl 5
+    $food = 'grape' ~ 'fruit'; # Perl 6
+
+=head3 C<x> List Repeat op or String Repeat op
+
+In Perl 5, C<x> was the Repetition operator.
+
+In scalar content, C<x> would repeat a string. In Perl 6, C<x> repeats
+strings in any context.
+
+In list content, C<x> would repeat a list. In Perl 6, the new C<xx> op
+repeats lists in any context.
+
+Mnemonic: x is short and xx is long, so xx is the one used for lists.
+
+    # Perl 5
+        print '-' x 80;             # Print row of dashes
+        @ones = (1) x 80;           # A list of 80 1's
+        @ones = (5) x @ones;        # Set all elements to 5
+    # Perl 6
+        print '-' x 80;             # Unchanged
+        @ones = 1 xx 80;            # Parens no longer needed
+        @ones = 5 xx @ones;         # Parens no longer needed
+
+
+=head3 C<..> C<...> Two Dots or Three Dots, Range op or Flipflop op
+
+In Perl 5, C<..> was one of two completely different operators, depending
+on context.
+
+In list context, C<..> is the familiar range operator. Range has many new
+wrinkles in Perl 6, but ranges from Perl 5 code should not B<require>
+translation.
+
+In scalar context, C<..> and C<...> were the little-known Flipflop
+operators. They have been replaced by C<ff> and C<fff>.
+
+
+
+
+=head2 Compound Statements
+
+=head3 Conditionals
+
+=head4 C<if> C<elsif> C<else> C<unless>
+
+Unchanged; parens around the conditions are now optional.
+
+=head4 C<given> C<when>
+
+XXX TODO
+
+See also the warnings on the smart-match op above.
+
+=head3 Loops
+
+=head4 C<while> C<until>
+
+Unchanged; parens around the conditions are now optional.
+
+Note that reading line-by-line from a filehandle has changed.
+
+In Perl 5, it was done in a C<while> loop using the diamond operator. Using
+C<for> instead of C<while> was a common bug, because the C<for> causes the
+whole file to be sucked in at once, swamping the program's memory usage.
+
+In Perl 6, C<for> statement is B<lazy>, so we read line-by-line in a C<for>
+loop using the C<.lines> method.
+
+    while (<IN_FH>)  { } # Perl 5
+    for $IN_FH.lines { } # Perl 6
+
+=head4 C<for> C<foreach>
+
+Note first this common misunderstanding about the C<for> and C<foreach>
+keywords. Many programmers think that they distinguish between the C-style
+three-expression form and the list-iterator form; they do not! In fact,
+they keywords are interchangeable; the Perl 5 compiler looks for the
+semi-colons within the parens to determine which type of loop to parse.
+
+The C-style three-factor form now uses the C<loop> keyword, and is
+otherwise unchanged. The parens *are* still required.
+
+    for  ( my $i = 1; $i <= 10; $i++ ) { ... } # Perl 5
+    loop ( my $i = 1; $i <= 10; $i++ ) { ... } # Perl 6
+
+
+The loop-iterator form of C<for> or C<foreach> is named C<for> in Perl 6.
+C<foreach> is no longer a keyword.
+Parens are optional.
+
+The iteration variable, if any, has been moved from before the list, to
+after the list and an added arrow operator.
+
+The iteration variable is now always lexical; C<my> is neither needed nor allowed.
+
+In Perl 5, the iteration variable is a read-write alias to the current list element.
+
+In Perl 6, that alias is read-only (for safety), unless you change C«->» to C«->».
+When translating, inspect the use of the loop variable to decide if read-write is needed.
+
+    for my $car (@cars)  {...} # Perl 5; read-write
+    for @cars  -> $car   {...} # Perl 6; read-only
+    for @cars <-> $car   {...} # Perl 6; read-write
+
+If no the default topic C<$_> is being used, but needs to be read-write,
+then just use C«<->» and explicitly specify C«$_».
+
+    for (@cars)      {...} # Perl 5; default topic
+    for @cars        {...} # Perl 6; $_ is read-only
+    for @cars <-> $_ {...} # Perl 6; $_ is read-write
+
+
+
+=head3 Flow Control statements
+
+Unchanged:
+
+=item C<next>
+=item C<last>
+=item C<redo>
+
+=head4 C<continue>
+
+There is no longer a C<continue> block.
+Instead, use a C<NEXT> block within the body of the loop.
+
+    # Perl 5
+        my $str = '';
+        for (1..5) {
+            next if $_ % 2 == 1;
+            $str .= $_;
+        }
+        continue {
+            $str .= ':'
+        }
+    # Perl 6
+        my $str = '';
+        for 1..5 {
+            next if $_ % 2 == 1;
+            $str ~= $_;
+            NEXT {
+                $str ~= ':'
+            }
+        }
+
+
+
+=head2 Regular Expressions ( Regex / Regexp )
+
+=head3 Change C<=~> and C<!~> to C<~~> and C<!~~> .
+
+In Perl 5, matches and substitutions are done against a variable using the
+C<=~> regexp-binding op.
+
+In Perl 6, the C<~~> smartmatch op is used instead.
+
+    next if $line  =~ /static/  ; # Perl 5
+    next if $line  ~~ /static/  ; # Perl 6
+
+    next if $line  !~ /dynamic/ ; # Perl 5
+    next if $line !~~ /dynamic/ ; # Perl 6
+
+    $line =~ s/abc/123/;          # Perl 5
+    $line ~~ s/abc/123/;          # Perl 6
+
+Alternately, the new C<.match> and C<.subst> methods can be used. Note that
+C<.subst> is non-mutating. See L<S05/Substitution>
+
+=head3 Move modifiers
+
+Move any modifiers from the end of the regex to the beginning. This may
+require you to add the optional C<m> on a plain match like C«/abc/».
+
+    next if $line =~    /static/i ; # Perl 5
+    next if $line ~~ m:i/static/  ; # Perl 6
+
+=head3 Add :P5 or :Perl5 adverb
+
+If the actual regex is complex, you may want to use it as-is, by adding the C<P5> modifier.
+
+    next if $line =~    m/[aeiou]/   ; # Perl 5
+    next if $line ~~ m:P5/[aeiou]/   ; # Perl 6, using P5 modifier
+    next if $line ~~ m/  <[aeiou]> / ; # Perl 6, native new syntax
+
+=head3 Special matchers generally fall under the <> syntax
+
+There are many cases of special matching syntax that Perl 5 regexes
+support. They won't all be listed here, but often instead of being
+surrounded by C<()>, the assertions will be surrouned by C«<>».
+
+For character classes, this means that:
+
+=item C<[abc]> becomes C«<[abc]>»
+
+=item C<[^abc]> becomes C«<-[abc]>»
+
+=item C<[a-zA-Z]> becomes C«<[a..zA..Z]>»
+
+=item C<[[:upper:]]> becomes C«<:Upper>»
+
+=item C<[abc[:upper:]]> becomes C«<[abc]+:Upper>»
+
+For look-around assertions:
+
+=item C<(?=[abc])> becomes C«<?[abc]>»
+
+=item C<(?=ar?bitrary* pattern)> becomes C«<before ar?bitrary pattern>»
+
+=item C<(?!=[abc])> becomes C«<![abc]>»
+
+=item C<(?!=ar?bitrary* pattern)> becomes C«<!before ar?bitrary pattern>»
+
+=item C«(?<=ar?bitrary* pattern)» becomes C«<after ar?bitrary pattern>»
+
+=item C«(?<!ar?bitrary* pattern)» becomes C«<!after ar?bitrary pattern>»
+
+(Unrelated to <> syntax, the "lookaround" C</foo\Kbar/> becomes C</foo <( bar /> )>
+
+=item C<(?(?{condition))yes-pattern|no-pattern)> becomes C«[ <?{condition}> yes-pattern | no-pattern ]»
+
+=head3 Longest token matching (LTM) displaces alternation
+
+In Perl 6 regexen, C<|> does LTM, which decides which alternation wins
+an ambiguous match based off of a set of rules, rather than about which
+was written first.
+
+The simplest way to deal with this is just to change any C<|> in your
+Perl 5 regex to a C<||>.
+
+TODO more rules. Use C<translate_regex.pl> from Blue Tiger in the meantime.
+
+=head2 Pragmas
+
+=head4 C<strict>
+
+Strict mode is now on by default.
+
+(XXX C<no strict> will work someday, but NYI?)
+
+=head4 C<warnings>
+
+Warnings are now on by default.
+
+(XXX C<no warnings> will work someday, but NYI?)
+
+=head4 C<autodie>
+
+The functions which were altered by C<autodie> to throw exceptions on
+error, now throw exceptions by default.
+
+    # Perl 5
+    open my $i_fh, '<', $input_path;  # Fails silently on error
+    use autodie;
+    open my $o_fh, '>', $output_path; # Throws exception on error
+
+    # Perl 6
+    my $i_fh = open $input_path,  :r; # Throws exception on error
+    my $o_fh = open $output_path, :w; # Throws exception on error
+
+=head4 C<base>
+=head4 C<parent>
+
+Both C<use base> and C<use parent> have been replaced in Perl 6 by the
+C<is> keyword, in the class declaration.
+
+    # Perl 5
+    package Cat;
+    use base qw(Animal);
+
+    # Perl 6
+    class Cat is Animal;
+
+=head4 C<bigint> C<bignum> C<bigrat>
+
+No longer relevant.
+
+Perl 6 now transparently upgrades Int Num Rat to their Big versions as needed.
+
+=head4 C<constant>
+
+In Perl 6, C<constant> is a declarator for variables, just like C<my>,
+except the variable is permanently locked to the result of its
+initialization expression (evaluated at compile time).
+
+So, change the C«=>» to C<=> , and add a sigil.
+
+    use constant DEBUG => 0; # Perl 5
+    constant $DEBUG = 0;     # Perl 6
+
+    use constant pi => 4 * atan2(1, 1); # Perl 5
+    # pi, e, i are built-in constants in  Perl 6
+
+encoding - allows you to write your script in non-ascii or non-utf8
+integer - Perl pragma to use integer arithmetic instead of floating point
+lib - manipulate @INC at compile time
+
+=head4 C<mro>
+
+No longer relevant.
+
+In Perl 6, method calls now always use the C3 method resolution order.
+
+=head4 C<utf8>
+
+No longer relevant.
+
+In Perl 6, source code is expected to be in utf8 encoding.
+
+=head4 C<vars>
+
+Discouraged in Perl 5. See L<http://perldoc.perl.org/vars.html>.
+
+You should refactor your Perl 5 code to remove the need for C<use vars>,
+before translating into Perl 6.
+
+
+
+=head2 Command-line flags
+
+See L<S19-commandline>
+
+Unchanged:
+
+-c -e -h -I -n -p -S -T -v -V
+
+=head4 C<-a>
+
+Unchanged in the Spec, but not yet implemented in Rakudo.
+
+For now, change your code to use C<.split> manually.
+
+=head4 C<-F>
+
+Unchanged in the Spec, but not yet implemented in Rakudo.
+
+For now, change your code to use C<.split> manually.
+
+=head4 C<-l>
+
+This is now the default behavior.
+
+=head4 C<-M> C<-m>
+
+Replaced by C<--use>.
+
+=head4 C<-E>
+
+Since all features are already enabled, just use lowercase C<-e> .
+
+=head4 C<-d>, C<-dt>, C<-d:foo>, C<-D>, etc.
+
+Replaced with the C<++BUG> metasyntactic option.
+
+=head4 -s
+
+Switch parsing is now done by the parameter list of the C<MAIN> subroutine.
+
+    # Perl 5
+        #!/usr/bin/perl -s
+        if ($xyz) { print "$xyz\n" }
+    ./example.pl -xyz=5
+    5
+
+    # Perl 6
+        sub MAIN ( Int :$xyz ) {
+            say $xyz if $xyz.defined;
+        }
+    perl6 example.p6 --xyz=5
+    5
+    perl6 example.p6 -xyz=5
+    5
+
+=item C<-t>
+
+Taint warnings are not yet specified.
+
+=item C<-P> C<-u> C<-U> C<-W> C<-X>
+
+Removed. See S19.
+
+=item C<-w>
+
+This is now the default behavior.
+
+
+
+
+=head2 Misc.
+
+=head3 C<dump>
+
+Gone.
+
+The Perl 6 design allows for automatic transparent saving-and-loading of
+compiled bytecode.
+
+No Perl 6 compiler supports it yet.
+
+
+
+
+=head2 Core modules
+
+=head4 C<Data::Dumper>
+
+In Perl 5, the L<Data::Dumper> module was used for serialization, and for
+debugging views of program data structures by the programmer.
+
+In Perl 6, these tasks are accomplished with the C<.perl> method, which
+every object has.
+
+    # Given:
+        my @array_of_hashes = (
+            { NAME => 'apple',   type => 'fruit' },
+            { NAME => 'cabbage', type => 'no, please no' },
+        );
+    # Perl 5
+        use Data::Dumper;
+        $Data::Dumper::Useqq = 1;
+        print Dumper \@array_of_hashes; # Note the backslash.
+    # Perl 6
+        say @array_of_hashes.perl; # .perl on the array, not on its reference.
+
+In Perl 5, Data::Dumper has a more complex optional calling convention,
+which allows for naming the VARs.
+
+In Perl 6, placing a colon in front of the variable's sigil turns it into a
+Pair, with a key of the var name, and a value of the var value.
+
+    # Given:
+        my ( $foo, $bar ) = ( 42, 44 );
+        my @baz = ( 16, 32, 64, 'Hike!' );
+    # Perl 5
+        use Data::Dumper;
+        print Data::Dumper->Dump(
+            [     $foo, $bar, \@baz   ],
+            [ qw(  foo   bar   *baz ) ],
+        );
+    # Output
+        $foo = 42;
+        $bar = 44;
+        @baz = (
+                 16,
+                 32,
+                 64,
+                 'Hike!'
+               );
+    # Perl 6
+        say [ :$foo, :$bar, :@baz ].perl;
+    # Output
+        ["foo" => 42, "bar" => 44, "baz" => [16, 32, 64, "Hike!"]]
+
+
+=head4 C<Getopt::Long>
+
+Switch parsing is now done by the parameter list of the C<MAIN> subroutine.
+
+    # Perl 5
+        use 5.010;
+        use Getopt::Long;
+        GetOptions(
+            'length=i' => \( my $length = 24       ), # numeric
+            'file=s'   => \( my $data = 'file.dat' ), # string
+            'verbose'  => \( my $verbose           ), # flag
+        ) or die;
+        say $length;
+        say $data;
+        say 'Verbosity ', ($verbose ? 'on' : 'off') if defined $verbose;
+    perl example.pl
+        24
+        file.dat
+    perl example.pl --file=foo --length=42 --verbose
+        42
+        foo
+        Verbosity on
+
+    perl example.pl --length=abc
+        Value "abc" invalid for option length (number expected)
+        Died at c.pl line 3.
+
+    # Perl 6
+        sub MAIN ( Int :$length = 24, :file($data) = 'file.dat', Bool :$verbose ) {
+            say $length if $length.defined;
+            say $data   if $data.defined;
+            say 'Verbosity ', ($verbose ?? 'on' !! 'off');
+        }
+    perl6 example.p6
+        24
+        file.dat
+        Verbosity off
+    perl6 example.p6 --file=foo --length=42 --verbose
+        42
+        foo
+        Verbosity on
+    perl6 example.p6 --length=abc
+        Usage:
+          c.p6 [--length=<Int>] [--file=<Any>] [--verbose]
+
+Note that Perl 6 auto-generates a full usage message on error in
+command-line parsing.
+
+
+
+
+=head2 Automated Translation
+
+A quick way to find the Perl 6 version of a Perl 5 construct, is to run it
+through an automated translator.
+
+B<NOTE:> None of these translators are yet complete.
+
+=head3 Blue Tiger
+
+This project is dedicated to automated modernization of Perl code. It does
+not (yet) have a web front-end, and so must be locally installed to be
+useful. It also contains a separate program to translate Perl 5 regexes
+into Perl 6.
+
+L<https://github.com/Util/Blue_Tiger/>
+
+=head3 Perlito
+
+Online Translator!
+
+This project is a suite of Perl cross-compilers, including Perl 5-to-6
+translation. It has a web front-end, and so can be used without
+installation. It only supports a subset of Perl 5 syntax so far.
+
+L<http://www.perlito.org/perlito/perlito5to6.html>
+
+=head3 MAD
+
+Larry Wall's own code for translating Perl 5 to Perl 6 has bit-rotted, and
+is not (currently) viable on recent releases of Perl 5.
+
+MAD (Misc Attribute Definition) is an configuration option when building
+Perl from a source distribution. The `perl` executable analyses and
+translates your Perl sourcecode into an op-tree, and then executes the
+program by walking the op-tree. Normally, most of the details from the
+analysis are thrown away during this process. When MAD is enabled, the
+`perl` executable will save those details to an XML file, which can then be
+read and further processed into Perl 6 code by a MAD parser.
+
+Please consult #perl6 to find out the best release of Perl 5 to use for
+your MAD science experiments.
+
+=head2 Other sources of translation knowledge
+
+=item L<http://perlgeek.de/en/article/5-to-6>
+=item L<https://github.com/Util/Blue_Tiger/>
+=item L<https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/>
+=item L<http://www.perlfoundation.org/perl6/index.cgi?perl_6_delta_tablet>
+
+=end pod
+
+=begin comments
+
+### Guidelines for contributions:
+
+Headers should contain the text that a Perl 5 user might search for, since
+those headings will be in the Table of Contents generated for the top of
+the document.
+
+We use POD =item instead of =head3 or =head4 for unchanged bits that need
+not appear in the TOC.
+
+This article does not describe the additions to syntax, nor details of
+possible improvements. For example, C<0 + $string> still works, even though
+we would write it as C<+$string> now. (Blue Tiger will offer a Perl
+Modernization guide, with step-by-step procedures for translation, along
+with details of new idioms and "better ways to do it")
+
+Example code and links to other documents should be favored over long
+explanations of details better found elsewhere.
+
+Finally, if a real user asks a P5->P6 question not answered here, please
+add it to the document, even if we don't have a good answer yet. That will
+be better than losing the information about a real need.
+
+=end comments

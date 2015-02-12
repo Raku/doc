@@ -49,7 +49,7 @@ An example that opens an external program for writing:
 
     method new(:$path, *@args, :$w) returns Proc::Async:D
 
-Creates a new C<Proc::Async> object with externa program name or path C<$path>
+Creates a new C<Proc::Async> object with external program name or path C<$path>
 and the command line arguments C<@args>.
 
 If C<:w> is passed to C<new>, then a pipe to the external program's standard
@@ -58,7 +58,7 @@ C<say>.
 
 =head2 method stdout
 
-    method stdout(Proc::Async:D:, :$bin) returns Supply:D
+    method stdout(Proc::Async:D: :$bin) returns Supply:D
 
 Returns the L<Supply|/type/Supply> for the external program's standard output
 stream. If C<:bin> is passed, the standard output is passed along in  binary as
@@ -76,9 +76,13 @@ thrown.
 If C<stdout> is not called, the external program's standard output is not
 captured at all.
 
+Note that you cannot call C<stdout> both with and without C<:bin> on the same
+object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
+you try.
+
 =head2 method stderr
 
-    method stderr(Proc::Async:D:, :$bin) returns Supply:D
+    method stderr(Proc::Async:D: :$bin) returns Supply:D
 
 Returns the L<Supply|/type/Supply> for the external program's standard error
 stream. If C<:bin> is passed, the standard error is passed along in  binary as
@@ -96,6 +100,18 @@ thrown.
 If C<stderr> is not called, the external program's standard error stream is not
 captured at all.
 
+Note that you cannot call C<stderr> both with and without C<:bin> on the same
+object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
+you try.
+
+=head2 method w
+
+    method w(Proc::Async:D:)
+
+Returns a true value if C<:w> as passed to the constructor, that is, if the
+external program is started with its input stream made available to input from
+the program through C<print>, C<say> and C<write>.
+
 =head2 method start
 
     method start(Proc::Async:D:, :$scheduler = $*SCHEDULER) returns Promise:D
@@ -108,6 +124,12 @@ If C<start> is called on a Proc::Async object on which it has already been
 called before, an exception of L<type
 X::Proc::Async::AlreadyStarted|/type/X::Proc::Async::AlreadyStarted> is
 thrown.
+
+=head2 method started
+
+    method started(Proc::Async:D:) returns Bool:D
+
+Returns C<False> before C<.start> has been called, and C<True> afterwards.
 
 =head2 method path
 
@@ -159,9 +181,10 @@ L<X::Proc::Async::MustBeStarted> exception is thrown.
 
 =head2 method say
 
-    method say(Proc::Async:D: Str(Any) $str, :$scheduler = $*SCHEDULER)
+    method say(Proc::Async:D: $output, :$scheduler = $*SCHEDULER)
 
-Write the text data in C<$str> and a newline to the standard input stream of the external
+Calls method C<gist> on the C<$output>, adds a newline, encodes it as UTF-8,
+and sends it to the standard input stream of the external
 program, encoding it as UTF-8.
 
 Returns a L<Promise|/type/Promise> that will be kept once the data has fully

@@ -3,6 +3,13 @@ use Test;
 use lib 'lib';
 use Perl6::TypeGraph;
 
+plan 8;
+
+if $*VM.name eq 'parrot' {
+    skip_rest 'segfaults on parrot';
+    exit;
+}
+
 my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 ok $t, 'Could parse the file';
 ok $t.types<Array>, 'has type Array';
@@ -16,3 +23,5 @@ is $t.types<Exception>.super.any, 'Any', 'Any as default parent works';
 is $t.types<Any>.super, 'Mu', 'default-Any did not add a parent to Any';
 
 done;
+
+# vim: expandtab shiftwidth=4 ft=perl6

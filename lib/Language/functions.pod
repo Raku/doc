@@ -4,7 +4,18 @@
 
 =SUBTITLE Functions and Functional Programming in Perl 6
 
-TODO
+Routines are the smallest means of code reuse in Perl 6. They come in several
+forms, most notably methods, which belong in classes and roles and are
+associated with an object, and functions, also called I<subroutines> or short
+I<sub>s, which exist independently of objects.
+
+Subroutines default to lexical (C<my>) scoping, and calls to them are
+generally resolved at compile time.
+
+Subroutines can have a L<signature|/type/Signature>, also called I<parameter
+list>, which specifies which, if any, arguments the signature expects. It can
+specify (or leave open) both the number and types of arguments, and also the
+return value.
 
 =head1 Defining/Creating/Using Functions
 
@@ -19,7 +30,7 @@ subroutine using the C<sub> declarator:
     my-func;
 
 To have the subroutine take arguments, a L<signature|Signature> goes
-between the subroutine's name and its body, in parenthesis:
+between the subroutine's name and its body, in parentheses:
 
     =for code :allow<B L>
     sub exclaim B<($phrase)> {
@@ -29,7 +40,7 @@ between the subroutine's name and its body, in parenthesis:
 
 By default, subroutines are L<lexically scoped|my>. That is
 C<sub foo {...}> is the same as C<my sub foo {...}> and is only
-defined in the current scope.
+defined within the current scope.
 
 =begin code :allow<L>
 sub escape ($str) {
@@ -58,7 +69,7 @@ Subroutines don't have to be named; in this case they're called anonymous.
 
     say sub ($a, $b) { $a ** 2 + $b ** 2 }(3, 4) # 25
 
-But in this case, it's often desirable to use the more succint L<block|Block>
+But in this case, it's often desirable to use the more succinct L<block|Block>
 syntax.
 
 =head2 X«Blocks and Lambdas|syntax,->»
@@ -74,7 +85,7 @@ L<Block> syntax. It's used after every C<if>, C<for>, C<while>, etc.
     12
     34
 
-But they can also be used on their own as anonymous blocks of code.
+They can also be used on their own as anonymous blocks of code.
 
     say { $^a ** 2 + $^b ** 2}(3, 4) # 25
 
@@ -96,8 +107,28 @@ L<documentation on the C<Signature> class|Signature>.
 
 =head2 Arguments
 
-TODO
-=comment prefix:<|>, pair-chaining, \()
+When calling a function, positional arguments should be supplied
+in the same order as the function's signature.  Named arguments
+may be supplied in any order, but it is considered good form to
+place named arguments after positional arguments.  Inside the
+argument list of a function call, some special syntax is supported:
+
+    f :named(35)     # A named argument (in "adverb" form.)
+    f named => 35    # Also a named argument.
+    f :35named       # A named argument using abbreviated adverb form
+    f 'named' => 35  # Not a named argument, a Pair in a positional argument
+    f |$c            # Merge the contents of Capture $c as if they were supplied
+
+Arguments passed to a function are conceptually first collected in a
+C<Capture> container.  Details about the syntax and use of these
+containers can be found in the L<documentation on the C<Capture> class|Capture>.
+
+When using named arguments, note that normal List "pair-chaining" allows
+one to skip commas between named arguments.
+
+    f :dest</tmp/foo> :src</tmp/bar> :lines(512)
+    f :32x :50y :110z   # This flavor of "adverb" works, too
+    f :a:b:c            # The spaces are also optional.
 
 =head2 Multi-dispatch
 
@@ -129,19 +160,99 @@ type:
 
 =head1 Functions are First-Class Objects
 
-TODO
-=comment e.g. `@list.sort :&as`, closures, lexical subs
+Functions and other code objects can be passed around as values, just like any
+other object.
 
-=comment return from sub and return from block
+There are several ways to get hold of a code object. You can assign it to a
+variable at the point of declaration:
 
-=comment method invoke { ... }
+=begin code
+my $square = sub (Numeric $x) { $x * $x }
+# and then use it:
+say $square(6);    # 36
+=end code
+
+Or you can reference an existing named function by using the C<&> in front of
+it.
+
+=begin code
+sub square ($x) { $x * $x };
+
+# get hold of a reference to the function:
+my $func = &square
+=end code
+
+This is very useful for I<higher order functions>, that is, functions that
+take other functions as input. A simple one is L<map|/type/List#routine_map>,
+which applies a function to each input element:
+
+    sub square ($x) { $x * $x };
+    my @squared = map &square,  1..5;
+    say join ', ', @squared;        # 1, 4, 9, 16, 25
+
+
+=head2 Closures
+
+All code objects in Perl 6 are I<closures>, which means they can reference
+lexical variables from an outer scope.
+
+=begin code
+sub generate-sub($x) {
+    my $y = 2 * $x;
+    return sub { say $y };
+    #      ^^^^^^^^^^^^^^  inner sub, uses $y
+}
+my $generated = generate-sub(21);
+$generated();           # 42
+=end code
+
+Here C<$y> is a lexical variable inside C<generate-sub>, and the inner
+subroutine that is returned uses it. By the time that the inner sub is called,
+C<generate-sub> has already exited. Yet the inner sub can still use C<$y>,
+because it I<closed> over the variable.
+
+A less obvious but useful example for closures is using L<map|/type/List#routine map>
+to multiply a list of numbers:
+
+    my $multiply-by = 5;
+    say join ', ', map { $_ * $multiply-by }, 1..5;     # 5, 10, 15, 20, 25
+
+Here the block passed to C<map> references the variable C<$multiply-by> from
+the outer scope, making the block a closure.
+
+Languages without closures cannot easily provide higher-order functions that
+are as easy to use and powerful as C<map>.
 
 =head2 Routines
 
-TODO
-=comment Important ones: candidates, wrap, unwrap, assuming, arity, count
+Routines are code objects that conform to L<type Routine|/type/Routine>, most
+notably L<Sub|/type/Sub>, L<Method|/type/Method>, L<Regex|/type/Regex> and
+L<Submethod|/type/Submethod>.
 
-=comment link to Routine documentation (?)
+They carry additional functionality in addition to what L<Block|/type/Block>
+supplies: they can come as L<multis|#Multi-dispatch>,
+you can L<wrap|/type/Routine#method wrap> them, and exit early with C<return>:
+
+=begin code :allow<B>
+my $keywords = set <if for unless while for>;
+
+sub has-keyword(*@words) {
+    for @words -> $word {
+        B<return> True if $word (elem) $keywords;
+    }
+    False;
+}
+
+say has-keyword 'not', 'one', 'here';       # False
+say has-keyword 'but', 'here', 'for';       # True
+=end code
+
+Here C<return> does not just leave the block inside which it was called, but
+the whole routine. In general, blocks are transparent to C<return>, they
+attach to the outer routine.
+
+
+=comment Important ones: candidates, wrap, unwrap, assuming, arity, count
 
 =head1 Defining Operators
 
@@ -152,9 +263,41 @@ TODO
 TODO
 =comment trait-mods, tighter, equiv, etc.
 
-=head1 Trait-mods
+=head1 Traits
 
-TODO
-=comment cached, hidden_from_backtrace, pure, export, rw, DEPRECATED
+I<Traits> are subroutines are run at compile time to modify the behavior of a
+type, variable, routine, attribute, or other language object.
+
+Examples of traits are:
+
+    class ChildClass is ParentClass { ... }
+    #                ^^ trait, with argument ParentClass
+    has $.attrib is rw;
+    #            ^^^^^  trait with name 'rw'
+    class SomeClass does AnotherRole { ... }
+    #               ^^^^ trait
+    has $another-attribute handles <close>;
+    #                      ^^^^^^^ trait
+
+Traits are subs of the form C<< trait_mod<VERB> >>, where C<VERB> stands for the
+name like C<is>, C<does> or C<handles>. It receives the modified thing as
+argument, and the name as a named argument.
+
+=begin code
+multi sub trait_mod:<is>(Routine $r, :$doubles!) {
+    $r.wrap({
+        2 * callsame;
+    });
+}
+
+sub square($x) is doubles {
+    $x * $x;
+}
+
+say square 3;       # 18
+=end code
+
+See L<type Routine|/type/Routine> for the documentation of built-in routine
+traits.
 
 =end pod

@@ -59,4 +59,115 @@ Returns C<True> if the routine is a stub
     say (sub f() { ... }).yada      # True
     say (sub g() { 1;  }).yada      # False
 
+=head2 trait is cached
+
+    multi sub trait_mod:<is>(Routine $r, :$cached!)
+
+Caches the return value of a routine, which means that when several calls with
+the same argument lists are performed, only the first one actually calls the
+routine, and subsequent calls retrieve the return value from the cache.
+
+This makes only sense for routines that retrieve value types ase arguments.
+
+=begin code
+use v6;
+
+sub nth-prime(Int:D $x where * > 0) is cached {
+    say "Calculating {$x}th prime";
+    return (2..*).grep(*.is-prime)[$x - 1];
+}
+
+say nth-prime(43);
+say nth-prime(43);
+say nth-prime(43);
+=end code
+
+produces this output:
+
+=begin code
+Calculating 43th prime
+191
+191
+191
+=end code
+
+=head2 trait is pure
+
+    multi sub trait_mod:<is>(Routine $r, :!$pure)
+
+Marks a subroutine as I<pure>, that is, it asserts that for the same input, it
+will always produce the same output without any additional side effects.
+
+This is a hint to the compiler that it can constant-fold calls to such
+functions when the arguments are known at compile time.
+
+    sub double(Numeric:D $x) is pure {
+        2 * $x;
+    }
+
+=head2 trait is rw
+
+    multi sub trait_mod:<is>(Routine $r, :!$rw)
+
+When a routine is modifies with this trait, its return value will be writable.
+This is useful when returning variables or writable elements of hashes or
+arrays, for example:
+
+=begin code
+sub walk(\thing, *@keys) is rw {
+    my $current := thing;
+    for @keys -> $k {
+        if $k ~~ Int {
+            $current := $current[$k];
+        }
+        else {
+            $current := $current{$k};
+        }
+    }
+    $current;
+}
+
+my %hash;
+walk(%hash, 'some', 'key', 1, 2) = 'autovivified';
+
+say %hash.perl;
+=end code
+
+produces
+
+=begin code
+("some" => {"key" => [Any, [Any, Any, "autovivified"]]}).hash
+=end code
+
+Note that C<return> marks return values as read only; if you need an early
+exit from an C<is rw> routine, you have to use C<return-rw> instead.
+
+=head2 trait is export
+
+    multi sub trait_mod:<is>(Routine $r, :$export!)
+
+Marks a routine as exported to the rest of the world
+
+=begin code :allow<B>
+module Foo {
+    sub double($x) B<is export> {
+        2 * $x
+    }
+}
+
+import Foo;         # makes sub double available
+say double 21;      # 42
+=end code
+
+From inside another file you'd say C<use Foo;> to load a module and import the
+exported functions.
+
+
+=begin comment
+
+TODO: explain export tags
+TODO: traits hidden_from_backtrace, DEPRECATED
+
+=end comment
+
 =end pod

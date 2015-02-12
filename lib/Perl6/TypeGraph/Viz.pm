@@ -38,7 +38,7 @@ class Perl6::TypeGraph::Viz {
             @.types .= unique;
 
             # Find a new batch of seed nodes
-            @seeds = uniq(@seeds>>.sub, @seeds>>.doers);
+            @seeds = (@seeds>>.sub, @seeds>>.doers).unique;
 
             # If we're not growing the node pool, stop trying
             last if @.types <= @prev or !@seeds;
@@ -97,3 +97,5 @@ class Perl6::TypeGraph::Viz {
         unlink $tmpfile;
     }
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6

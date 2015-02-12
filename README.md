@@ -27,6 +27,8 @@ Here are some ways to help us:
  * add missing documentation for classes, roles, methods or operators
  * add usage examples to existing documentation
  * proofread and correct the documentation
+ * tell us about missing documentation, either by adding it to the WANTED
+   file, or by opening issues on github.
 
 The file `WANTED` has a list of particular documents that are known to be
 missing.
@@ -61,8 +63,9 @@ missing.
 ## Vision
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 type or routine (be it
-> method, sub or operator). I want it to be useful to every Perl 6 programmer.
+> when you want to know something about a Perl 6 feature, be it from the
+> language, or built-in types and routines. I want it to be useful to every
+> Perl 6 programmer.
 >
 >    -- moritz
 

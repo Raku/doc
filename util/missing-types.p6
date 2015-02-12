@@ -12,3 +12,5 @@ for $t.sorted  -> $type {
     say $type.name unless $filename.IO.e;
     CATCH { default { } }
 }
+
+# vim: expandtab shiftwidth=4 ft=perl6

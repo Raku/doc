@@ -4,9 +4,9 @@
 
 =SUBTITLE Introspection and the Perl 6 Object System
 
-Perl 6 is built on a meta object layer. That means that there are objects (the
-I<meta objects>) that control how various object-oriented constructs (such as
-classes, roles, methods, attributes, enums, ...) behave.
+Perl 6 is built on a meta object layer. That means that there are objects
+(the I<meta objects>) that control how various object-oriented constructs
+(such as classes, roles, methods, attributes, enums, ...) behave.
 
 To get a feeling for the meta object for C<class>, here is the same example
 twice: once as normal declarations in Perl 6, and once expressed through the
@@ -29,32 +29,35 @@ corresponds to:
 (except that the declarative form runs at comple time, and the latter form
 does not).
 
-The meta object behind
-an object can be obtained with C<$obj.HOW>, where HOW stands for Higher Order
-Workings (or, I<HOW the *%@$ does this work?>).
+The meta object behind an object can be obtained with C<$obj.HOW>, where HOW
+stands for Higher Order Workings (or, I<HOW the *%@$ does this work?>).
 
-Here the calls with C<.^> are calls to the meta object, so C<A.^compose> is a
-shortcut for C<A.HOW.compose(A)>. The invocant is passed along in the
-parameter list as well, to make it possible to support prototype-style type
-systems, where there is just one meta object (and not one meta object per
-type, as standard Perl 6 does it).
+Here, the calls with C<.^> are calls to the meta object, so C<A.^compose> is
+a shortcut for C<A.HOW.compose(A)>. The invocant is passed in the parameter
+list as well, to make it possible to support prototype-style type systems,
+where there is just one meta object (and not one meta object per type, as
+standard Perl 6 does it).
 
-As the example above demonstrates, all object oriented features are available
-to the user, not just to the compiler. In fact the compiler also just emits
-call to the meta objects.
+As the example above demonstrates, all object oriented features are
+available to the user, not just to the compiler. In fact the compiler just
+uses such calls to meta objects.
 
 =head1 Metamethods
 
 These are introspective macros that resemble method calls.
 
-Note that if you want to call a method by the same name of an object, use
-quotes around the method name to call it indirectly:
+Metamethods are generally named with ALLCAPS, and it is considered good
+style to avoid using your own methods with ALLCAPS names.  This will avoid
+conflicts with any metamethods that may appear in future versions of the
+language.  Note that if you really must use a method which has an ALLCAPS
+name, use quotes around the method name to safely call it indirectly:
 
+    #| THIS IS A CLASS FOR SHOUTING THINGS
     class MY-CLASSES-ARE-ALL-CAPS {
         method WHY { "I DON'T KNOW" }
     }
     my $c = MY-CLASSES-ARE-ALL-CAPS.new;
-    say $c.WHY      # "(MY-CLASSES-ARE-ALL-CAPS)"
+    say $c.WHY      # "THIS IS A CLASS FOR SHOUTING THINGS"
     say $c."WHY"()  # "I DON'T KNOW"
 
 =head2 X<WHAT|syntax,WHAT>
@@ -75,12 +78,12 @@ The package supporting the object.
 =head2 X<WHERE|syntax,WHERE>
 
 The memory address of the object. Note that this is not stable in
-implementations with moving/compacting garbage collectors. Use C<WHICH> for a
-stable identity indicator.
+implementations with moving/compacting garbage collectors. Use C<WHICH> for
+a stable identity indicator.
 
 =head2 X<HOW|syntax,HOW>
 
-The metaclass object: "Higher Order Workings"
+The metaclass object: "Higher Order Workings".
 
 =head2 X<WHY|syntax,WHY>
 
@@ -89,6 +92,7 @@ The attached Pod value.
 =head2 X<DEFINITE|syntax,DEFINITE>
 
 The object has a valid concrete representation.
+
 Returns C<True> for instances and C<False> for type objects.
 
 =head2 X<VAR|syntax,VAR>
@@ -106,34 +110,69 @@ The presence of a C<Scalar> object indicates that the object is "itemized".
 
 B<Note:> this documentation largely reflects the meta object system as
 implemented by the L<Rakudo Perl 6 compiler|http://rakudo.org/>, since the
-L<design document|http://design.perl6.org/> are very light on details.
+L<design documents|http://design.perl6.org/> are very light on details.
 
-For each type declarator key word, such as C<class>, C<role>, C<enum>,
+For each type declarator keyword, such as C<class>, C<role>, C<enum>,
 C<module>, C<package>, C<grammar> or C<subset>, there is a separate meta
 class in the C<Metamodel::> namespace. (Rakudo implements them in the
 C<Perl6::Metamodel::> namespace, and then maps C<Perl6::Metamodel> to
 C<Metamodel>).
 
-Many of the these meta classes share common functionality. For example roles,
-grammars and classes can all contain methods and attributes, and can do roles.
-This shared functionality is implemented in roles which are composed into the
-appropriate meta classes. For example
-L<role Metamodel::RoleContainer|/type/Metamodel::RoleContainer> implements the
-functionality that a type can hold roles, and
+Many of the these meta classes share common functionality. For example
+roles, grammars and classes can all contain methods and attributes, as well
+as being able to do roles.  This shared functionality is implemented in
+roles which are composed into the appropriate meta classes. For example
+L<role Metamodel::RoleContainer|/type/Metamodel::RoleContainer> implements
+the functionality that a type can hold roles and
 L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>, which is the meta class
 behind the C<class> keyword, does this role.
 
 =head2 Bootstrapping concerns
 
-You might wonder how C<Metamodel::ClassHOW> can be a class, when being a class
-is defined in terms of C<Metamodel::ClassHOW>, or how the roles responsible
-for role handling can be roles. The answer is I<by magic>.
+You might wonder how C<Metamodel::ClassHOW> can be a class, when being a
+class is defined in terms of C<Metamodel::ClassHOW>, or how the roles
+responsible for role handling can be roles. The answer is I<by magic>.
 
 Just kidding. Bootstrapping is implementation specific. Rakudo does it by
-using the object system of the language in which itself is implemented, which
-happens to be (nearly) a subset of Perl 6: NQP, Not Quite Perl. NQP has a
-primitive, class-like kind called C<knowhow>, which is used to bootstrap its
-own classes and roles implementation. C<knowhow> is built on primitives that
-the virtual machine under NQP provides.
+using the object system of the language in which itself is implemented,
+which happens to be (nearly) a subset of Perl 6: NQP, Not Quite Perl. NQP
+has a primitive, class-like kind called C<knowhow>, which is used to
+bootstrap its own classes and roles implementation. C<knowhow> is built on
+primitives that the virtual machine under NQP provides.
+
+=head2 Composition time and static reasoning
+
+In Perl 6, a type is constructed as it is parsed, so in the beginning, it must
+be mutable. However if all types were always mutable, all reasoning about them
+would get invalidated at any modification of a type. For example the list of
+parent types and thus the result of type checking can change during that time.
+
+So to get the best of
+both worlds, there is a time when a type transitions from mutable to
+immutable. This is called I<composition>, and for syntactically declared
+types, it happens when the type declaration is fully parsed (so usually when
+the closing curly brace is parsed).
+
+If you create types through the meta-object system directly, you must call
+C<.^compose> on them before they become fully functional.
+
+Most meta classes also use composition time to calculate some properties like
+the method resolution order, publish a method cache, and other house-keeping
+tasks. Meddling with types after they have been composed is sometimes
+possible, but usually a recipe for disaster. Don't do it.
+
+=head2 Power and Responsibility
+
+The meta object protocol offers much power that regular Perl 6 code
+intentionally limits, such as calling private methods on classes that don't
+trust you, peeking into private attributes, and other things that usually
+simply aren't done.
+
+Regular Perl 6 code has many safety checks in place; not so the meta model. It
+is close to the underlying virtual machine, and violating the contracts with
+the VM can lead to all sorts of strange behaviors that, in normal code, would
+obviously be bugs.
+
+So be extra careful and thoughtful when writing meta types.
 
 =end pod

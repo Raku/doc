@@ -1,0 +1,26 @@
+#!/bin/bash
+# this script is used on hack.p6c.org as the 'doc.perl6.org' user to update
+# the website.
+source /home/rakudobrew/.rakudobrew-bash
+set -e
+set -x
+cd ~/doc
+git fetch
+before=$(git rev-parse HEAD)
+git checkout origin/master
+after=$(git rev-parse HEAD)
+if [ "$before" = "$after" ]
+then
+	echo "nothing to do"
+else
+    LOGDIR=$HOME/doc/html/build-log
+    mkdir -p "$LOGDIR"
+    DATE=$(date --iso-8601=minutes)
+    LOGFILE="$LOGDIR/build-$DATE.log";
+    echo "Writing logs to $LOGFILE";
+    exec >$LOGFILE 2>&1
+    # if the htmilfy fails, sync the build log.
+    # since sync-build-log returns false, not the whole thing is synced
+	./htmlify.p6 || ./util/sync-build-log
+	./util/sync
+fi
