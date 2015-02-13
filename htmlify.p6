@@ -116,6 +116,7 @@ sub MAIN(
     Int  :$sparse,
     Bool :$disambiguation = True,
     Bool :$search-file = True,
+    Bool :$no-highlight = False,
 ) {
     $*DEBUG = $debug;
 
@@ -134,7 +135,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
-    pygmentize-code-blocks;
+    pygmentize-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
