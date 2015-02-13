@@ -687,34 +687,35 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 }
 
 sub pygmentize-code-blocks {
-    if ("/usr/bin/pygmentize".IO.e) {
-        say "pygmentize found; code blocks will be highlighted";
-        %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
-            my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
-            my $fh = $tmp_fname.IO.open(:w);
-            spurt $fh, node2inline($node.contents);
-            $fh.close;
-            my $command = "pygmentize -l perl6 -f html < $tmp_fname";
-            return qqx{$command};
-        }
-        multi sub node2inline(Pod::FormattingCode $node) returns Str {
-            return node2inline($node.contents);
-        }
-
-        multi sub node2inline($node) returns Str {
-            return $node.contents;
-        }
-
-        multi sub node2inline(Positional $node) returns Str {
-            return $node.map({ node2inline($_) }).join;
-        }
-
-        multi sub node2inline(Str $node) returns Str {
-            return $node;
-        }
-    }
-    else {
+    my $pyg-version = try qx/pygmentize -V/;
+    note $pyg-version.perl;
+    unless $pyg-version && $pyg-version ~~ /^'Pygments version'/ {
         say "pygmentize not found; code blocks will not be highlighted";
+        return;
+    }
+    say "pygmentize found; code blocks will be highlighted";
+    %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
+        my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
+        my $fh = $tmp_fname.IO.open(:w);
+        spurt $fh, node2inline($node.contents);
+        $fh.close;
+        my $command = "pygmentize -l perl6 -f html < $tmp_fname";
+        return qqx{$command};
+    }
+    multi sub node2inline(Pod::FormattingCode $node) returns Str {
+        return node2inline($node.contents);
+    }
+
+    multi sub node2inline($node) returns Str {
+        return $node.contents;
+    }
+
+    multi sub node2inline(Positional $node) returns Str {
+        return $node.map({ node2inline($_) }).join;
+    }
+
+    multi sub node2inline(Str $node) returns Str {
+        return $node;
     }
 }
 
