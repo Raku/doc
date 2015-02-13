@@ -695,27 +695,16 @@ sub pygmentize-code-blocks {
     }
     say "pygmentize found; code blocks will be highlighted";
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
+        for @($node.contents) -> $c {
+            if $c !~~ Str {
+                # some nested formatting code => we can't hilight this
+                return default($node);
+            }
+        }
         my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
-        my $fh = $tmp_fname.IO.open(:w);
-        spurt $fh, node2inline($node.contents);
-        $fh.close;
+        spurt $tmp_fname, $node.contents.join;
         my $command = "pygmentize -l perl6 -f html < $tmp_fname";
         return qqx{$command};
-    }
-    multi sub node2inline(Pod::FormattingCode $node) returns Str {
-        return node2inline($node.contents);
-    }
-
-    multi sub node2inline($node) returns Str {
-        return $node.contents;
-    }
-
-    multi sub node2inline(Positional $node) returns Str {
-        return $node.map({ node2inline($_) }).join;
-    }
-
-    multi sub node2inline(Str $node) returns Str {
-        return $node;
     }
 }
 
