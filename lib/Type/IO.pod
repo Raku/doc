@@ -11,6 +11,113 @@ particular object relates to input/output.
 
 =head1 Routines
 
+=head2 sub open
+
+    my $fh = open($path as IO, *%opts);
+
+Opens the C<$path> as an C<IO> object with the given options, returning an
+L<IO::Handle> object.
+
+=head3 File mode options
+
+=item read-only mode, C<:r>
+
+Open the file as read only, e.g.:
+
+    my $fh = open("path/to/file", :r);
+
+This is the default mode for C<open>.
+
+Write-related methods on the returned C<IO::Handle> object will fail in this
+mode:
+
+    my $fh = open("test");   # the file "test" already exists
+    spurt $fh, "new text\n";
+    Failed to write bytes to filehandle: bad file descriptor
+
+=item write-only mode, C<:w>
+
+Open the file for writing, creating it if it doesn't exist or overwriting
+the file if it does exist, e.g.:
+
+    my $fh = open("path/to/file", :w);
+
+Read-related methods will fail in this mode:
+
+    my $fh = open("test", :w);
+    spurt $fh, "stuff\n";
+    spurt $fh, "more stuff\n";
+    $fh.seek(0, 0);   # return to the start of the file
+    $fh.get();        # Reading from filehandle failed: bad file descriptor
+
+=item read-write mode, C<:rw>
+
+Open the file for reading and writing, creating the file if it doesn't
+exist or overwriting the file if it already exists.
+
+    my $fh = open("path/to/file", :w);
+
+=item append mode, C<:a>
+
+Open the file for appending.  If the file does not exist, create it.  If the
+file already exists, append data to it.
+
+    my $fh = open("path/to/file", :a);
+
+=head3 Encoding options
+
+=item binary mode, C<:bin>
+
+Open the file in binary mode (byte mode):
+
+    my $fh = open("path/to/file", :bin);
+
+A file opened with C<:bin> may still be processed line-by-line, but IO will
+be in terms of L<Buf|/type/Buf> rather than L<Str|/type/Str> types.  Default
+is C<False>, implying text semantics.
+
+=item text mode encoding, C<:enc>
+
+Encoding to use if opened in text mode.
+
+    # open explicitly as utf8
+    my $fh = open("path/to/file", enc => "utf8");
+    my $fh = open("path/to/file", enc => "utf-8");  # this form also works
+    # open with latin1 encoding
+    my $fh = open("path/to/file", enc => "latin1");
+
+Defaults to "Unicode", which implies figuring out which actual UTF is in
+use, either from a BOM or other heuristics.  If heuristics are inconclusive,
+UTF-8 will be assumed.  (No 8-bit encoding will ever be picked implicitly.)
+There exists no valid option with the name "Unicode", so the following will
+result in an error:
+
+    my $fh = open("path/to/file", enc => "Unicode");
+
+This is because one needs to specify a specific unicode encoding, e.g.
+"utf8".
+
+=head3 Newline options
+
+=item end-of-line (EOL) marker, C<:nl>
+
+The marker used to indicate the end of a line of text.  Only used in text
+mode.  Defaults to "EOL", which implies accepting any combination of C<"\n">,
+C<"\r\n"> or C<"\r"> or any other Unicode character that has the C<Zl>
+(Separator, Line) property.
+
+    # explicitly use CR-LF as EOL character
+    my $fh = open("path/to/file", nl => "\r\n");
+
+=item chomp mode, C<:chomp>
+
+Whether or not to remove newline characters from text obtained with
+C<.lines> and C<.get>.  Defaults to C<True>.
+
+    # don't remove newline characters from input
+    my $fh = open("path/to/file", chomp => False);
+    say $fh.get();     # returns line including newline char
+
 =head2 sub prompt
 
     sub prompt($msg)
