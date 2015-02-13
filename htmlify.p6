@@ -17,6 +17,7 @@ my $*DEBUG = False;
 
 my $tg;
 my %methods-by-type;
+my %*POD2HTML-CALLBACKS;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -132,6 +133,8 @@ sub MAIN(
 
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
+
+    pygmentize-code-blocks;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -681,6 +684,38 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
+}
+
+sub pygmentize-code-blocks {
+    if ("/usr/bin/pygmentize".IO.e) {
+        say "pygmentize found; code blocks will be highlighted";
+        %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
+            my $tmp_fname = "/tmp/pod_to_pyg.pod";
+            my $fh = $tmp_fname.IO.open(:w);
+            spurt $fh, node2inline($node.contents);
+            $fh.close;
+            my $command = "pygmentize -l perl6 -f html < $tmp_fname";
+            return qqx{$command};
+        }
+        multi sub node2inline(Pod::FormattingCode $node) returns Str {
+            return node2inline($node.contents);
+        }
+
+        multi sub node2inline($node) returns Str {
+            return $node.contents;
+        }
+
+        multi sub node2inline(Positional $node) returns Str {
+            return $node.map({ node2inline($_) }).join;
+        }
+
+        multi sub node2inline(Str $node) returns Str {
+            return $node;
+        }
+    }
+    else {
+        say "pygmentize not found; code blocks will not be highlighted";
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
