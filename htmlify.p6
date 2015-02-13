@@ -690,7 +690,7 @@ sub pygmentize-code-blocks {
     if ("/usr/bin/pygmentize".IO.e) {
         say "pygmentize found; code blocks will be highlighted";
         %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
-            my $tmp_fname = "/tmp/pod_to_pyg.pod";
+            my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
             my $fh = $tmp_fname.IO.open(:w);
             spurt $fh, node2inline($node.contents);
             $fh.close;
