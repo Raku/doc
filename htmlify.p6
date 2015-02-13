@@ -688,12 +688,19 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 
 sub pygmentize-code-blocks {
     my $pyg-version = try qx/pygmentize -V/;
-    note $pyg-version.perl;
-    unless $pyg-version && $pyg-version ~~ /^'Pygments version'/ {
+    if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
+        if Version.new(~$0) ~~ v2.0+ {
+            say "pygmentize $0 found; code blocks will be highlighted";
+        }
+        else {
+            say "pygmentize $0 is too old; need at least 2.0";
+            return;
+        }
+    }
+    else {
         say "pygmentize not found; code blocks will not be highlighted";
         return;
     }
-    say "pygmentize found; code blocks will be highlighted";
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
