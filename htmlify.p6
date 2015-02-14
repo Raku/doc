@@ -17,6 +17,7 @@ my $*DEBUG = False;
 
 my $tg;
 my %methods-by-type;
+my %*POD2HTML-CALLBACKS;
 
 sub url-munge($_) {
     return $_ if m{^ <[a..z]>+ '://'};
@@ -115,6 +116,7 @@ sub MAIN(
     Int  :$sparse,
     Bool :$disambiguation = True,
     Bool :$search-file = True,
+    Bool :$no-highlight = False,
 ) {
     $*DEBUG = $debug;
 
@@ -132,6 +134,8 @@ sub MAIN(
 
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
+
+    pygmentize-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -681,6 +685,35 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
+}
+
+sub pygmentize-code-blocks {
+    my $pyg-version = try qx/pygmentize -V/;
+    if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
+        if Version.new(~$0) ~~ v2.0+ {
+            say "pygmentize $0 found; code blocks will be highlighted";
+        }
+        else {
+            say "pygmentize $0 is too old; need at least 2.0";
+            return;
+        }
+    }
+    else {
+        say "pygmentize not found; code blocks will not be highlighted";
+        return;
+    }
+    %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
+        for @($node.contents) -> $c {
+            if $c !~~ Str {
+                # some nested formatting code => we can't hilight this
+                return default($node);
+            }
+        }
+        my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
+        spurt $tmp_fname, $node.contents.join;
+        my $command = "pygmentize -l perl6 -f html < $tmp_fname";
+        return qqx{$command};
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
