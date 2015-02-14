@@ -2,6 +2,7 @@
 use v6;
 
 # This script isn't in bin/ because it's not meant to be installed.
+# for syntax hilighting, needs pygmentize version 2.0 or newer installed
 
 BEGIN say 'Initializing ...';
 
