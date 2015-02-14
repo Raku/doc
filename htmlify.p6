@@ -313,14 +313,14 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
     my int $len = +@c;
     while $i < $len {
         NEXT {$i = $i + 1}
-        my $c := @c[$i];
-        next unless $c ~~ Pod::Heading;
-        return $i if $c.level <= $min-level;
+        my $pod-element := @c[$i];
+        next unless $pod-element ~~ Pod::Heading;
+        return $i if $pod-element.level <= $min-level;
 
         # Is this new header a definition?
         # If so, begin processing it.
         # If not, skip to the next heading.
-        my @header := $c.contents[0].contents;
+        my @header := $pod-element.contents[0].contents;
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
