@@ -712,8 +712,10 @@ sub pygmentize-code-blocks {
                 return default($node);
             }
         }
-        my $tmp_fname = "$*TMPDIR/pod_to_pyg.pod";
+        my $basename = join '-', %*ENV<USER> // 'u', (^100_000).pick, 'pod_to_pyg.pod';
+        my $tmp_fname = "$*TMPDIR/$basename";
         spurt $tmp_fname, $node.contents.join;
+        LEAVE try unlink $tmp_fname;
         my $command = "pygmentize -l perl6 -f html < $tmp_fname";
         return qqx{$command};
     }
