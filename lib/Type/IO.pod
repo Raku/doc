@@ -281,6 +281,63 @@ directory.
     # read entire file as Buf
     my $binary_contents = slurp "path/to/file", :bin;
 
+=head2 sub spurt
+
+    sub spurt ($where, $what,
+        Str  :$enc        = $*ENC,
+        Bool :append      = False,
+        Bool :$createonly = False,
+        --> Bool ) is export
+
+Writes the indicated contents (2nd positional parameter, C<$what>) to the
+location indicated by the first positional parameter, C<$where> (which can
+either be a string, an C<IO::Path> object, or an already opened
+C<IO::Handle> object).
+
+If a file needs to be opened for writing, it will also be C<close>d.  Returns
+True on success, or the appropriate C<Failure> if something went wrong.
+
+These named parameters are optional and only have meaning if the first
+positional parameter was B<not> an C<IO::Handle>:
+
+=head3 Options
+
+=item :enc
+
+The encoding with which the contents will be written.
+
+=item :append
+
+Boolean indicating whether to append to a (potentially) existing file.  If
+the file did not exist yet, it will be created.  Defaults to C<False>.
+
+=item :createonly
+
+Boolean indicating whether to fail if the file already exists.  Defaults to
+C<False>.
+
+=head3 Examples
+
+    # write directly to a file
+    spurt "path/to/file", "default text, directly written";
+
+    # write to an IO::Handle
+    my $fh = "path/to/file", :w;
+    spurt $fh, "default text, written via IO::Handle";
+    $fh.close;
+
+    # write directly with a non-Unicode encoding
+    spurt "path/to/latin1_file", "latin1 text: äöüß", enc => "latin1";
+
+    # append to a pre-existing file
+    spurt "file_already_exists", "some text";
+    spurt "file_already_exists", "new text", :append;
+    slurp "file_already_exists";   # some text␤new text
+
+    # fail when writing to a pre-existing file
+    spurt "file_already_exists", "new text", :createonly;
+    File 'test' already exists, and :createonly was specified
+
 =head2 sub mkdir
 
     multi sub mkdir(Int:D $mode, *@dirnames, :$CWD = $*CWD);
