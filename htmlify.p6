@@ -308,12 +308,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
     # If a heading is a definition, like "class FooBar", process
     # the class and give the rest of the pod to find-definitions,
     # which will return how far the definition of "class FooBar" extends.
-    my @c := $pod ~~ Positional ?? @$pod !! $pod.contents;
+    my @all-pod-elements := $pod ~~ Positional ?? @$pod !! $pod.contents;
     my int $i = 0;
-    my int $len = +@c;
+    my int $len = +@all-pod-elements;
     while $i < $len {
         NEXT {$i = $i + 1}
-        my $pod-element := @c[$i];
+        my $pod-element := @all-pod-elements[$i];
         next unless $pod-element ~~ Pod::Heading;
         return $i if $pod-element.level <= $min-level;
 
@@ -367,8 +367,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 }
                 when 'class'|'role'|'enum' {
                     my $summary = '';
-                    if @c[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
-                        $summary = @c[$i+1].contents[0].contents[0];
+                    if @all-pod-elements[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
+                        $summary = @all-pod-elements[$i+1].contents[0].contents[0];
                     } else {
                         note "$name does not have an =SUBTITLE";
                     }
@@ -406,16 +406,18 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
             # And updating $i to be after the places we've already searched
             once {
                 $new-i = $i + find-definitions
-                    :pod(@c[$i+1..*]), :origin($created), :min-level(@c[$i].level);
+                    :pod(@all-pod-elements[$i+1..*]),
+                    :origin($created),
+                    :min-level(@all-pod-elements[$i].level);
             }
 
             my $new-head = Pod::Heading.new(
-                :level(@c[$i].level),
+                :level(@all-pod-elements[$i].level),
                 :contents[pod-link "$subkinds $name",
                     $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_')
                 ]
             );
-            my @orig-chunk = $new-head, @c[$i ^.. $new-i];
+            my @orig-chunk = $new-head, @all-pod-elements[$i ^.. $new-i];
             my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
 
             if $subkinds eq 'routine' {
