@@ -15,7 +15,7 @@ use Pod::Convenience;
 
 my $*DEBUG = False;
 
-my $tg;
+my $type-graph;
 my %methods-by-type;
 my %*POD2HTML-CALLBACKS;
 
@@ -128,8 +128,8 @@ sub MAIN(
     my $*DR = Perl6::Documentable::Registry.new;
 
     say 'Reading type graph ...';
-    $tg = Perl6::TypeGraph.new-from-file('type-graph.txt');
-    my %h = $tg.sorted.kv.flat.reverse;
+    $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    my %h = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph));
 
     process-pod-dir 'Language', :$sparse;
@@ -206,7 +206,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
 
     my %type-info;
     if $kind eq "type" {
-        if $tg.types{$name} -> $type {
+        if $type-graph.types{$name} -> $type {
             %type-info = :subkinds($type.packagetype), :categories($type.categories);
         } else {
             %type-info = :subkinds<class>;
@@ -230,7 +230,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
 multi write-type-source($doc) {
     my $pod     = $doc.pod;
     my $podname = $doc.name;
-    my $type    = $tg.types{$podname};
+    my $type    = $type-graph.types{$podname};
     my $what    = 'type';
 
     say "Writing $what document for $podname ...";
@@ -373,7 +373,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                         note "$name does not have an =SUBTITLE";
                     }
                     %attr = :kind<type>,
-                            :categories($tg.types{$name}.?categories//''),
+                            :categories($type-graph.types{$name}.?categories//''),
                             :$summary,
                 }
                 when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
@@ -458,7 +458,7 @@ sub write-type-graph-images(:$force) {
         }
     }
     say 'Writing type graph images to html/images/ ...';
-    for $tg.sorted -> $type {
+    for $type-graph.sorted -> $type {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
@@ -467,9 +467,9 @@ sub write-type-graph-images(:$force) {
     say '';
 
     say 'Writing specialized visualizations to html/images/ ...';
-    my %by-group = $tg.sorted.classify(&viz-group);
-    %by-group<Exception>.push: $tg.types< Exception Any Mu >;
-    %by-group<Metamodel>.push: $tg.types< Any Mu >;
+    my %by-group = $type-graph.sorted.classify(&viz-group);
+    %by-group<Exception>.push: $type-graph.types< Exception Any Mu >;
+    %by-group<Metamodel>.push: $type-graph.types< Any Mu >;
 
     for %by-group.kv -> $group, @types {
         my $viz = Perl6::TypeGraph::Viz.new(:types(@types),
