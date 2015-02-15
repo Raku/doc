@@ -191,7 +191,8 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
 sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
     my $name = $filename;
-    if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
+    my $first = $pod.contents[0];
+    if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
         $name = $pod.contents[0].contents[0].contents[0];
         if $kind eq "type" {
             $name = $name.split(/\s+/)[*-1];
