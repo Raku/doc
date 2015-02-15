@@ -1,0 +1,216 @@
+=begin pod
+
+=TITLE Testing
+
+=SUBTITLE Writing and running tests in Perl 6
+
+Testing code is an integral part of software development.  For instance, how
+can one be sure the code works if there isn't some way to verify it behaves
+as desired?  This is the role of tests: to provide automated, repeatable
+verifications of code behaviour.
+
+In Perl 6, the C<Test> module provides a testing framework similar to the
+traditional Perl 5 L<Test::More|http://perldoc.perl.org/Test/More.html>
+module.  Thus, anyone familiar with C<Test::More> (and friends) should be
+comfortable with Perl 6's C<Test> module.  The C<Test> module is the testing
+module used by the official spectest suite.
+
+The testing functions emit output conforming to the L<Test Anything
+Protocol|http://testanything.org>.
+
+=head1 Writing tests
+
+As with any Perl project, the tests live under the C<t> directory in the
+project's base directory.
+
+A typical test file looks something like this:
+
+    use v6;
+    use Test;
+    use lib 'lib';
+
+    plan $num-tests;
+
+    # .... tests
+
+We ensure that we're using Perl 6, via the C<use v6> pragma, then we load
+the C<Test> module and specify where our libraries are.  We then specify how
+many tests we I<plan> to run (such that the testing framework can tell us if
+more or fewer tests were run than we expected) and when finished with the
+tests, we tell the framework that we are I<done> testing.
+
+=head1 Running tests
+
+One can run tests individually by specifying the test filename on the
+command line:
+
+    $ perl6 t/test-filename.t
+
+Or via the L<prove|http://perldoc.perl.org/prove.html> command from Perl 5,
+where one specifies C<perl6> as the executable to run the tests:
+
+    $ prove --exec perl6 -r t
+
+=head1 Test plans
+
+=item plan
+
+Specify the total number of tests, usually specified at the beginning of a
+test file.
+
+    plan 15;   # expect to have run 15 tests
+
+In L<subtest>s, C<plan> is used to specify the total number of tests within
+the subtest.
+
+If a C<plan> is used, it is not necessary to denote the end of testing with
+C<done>.
+
+=item done
+
+Specify that testing has finished.  Use this function when you do not as yet
+have a L<plan> for the number of tests to run.  A C<plan> is thus not
+required when using C<done>.
+
+=head1 Test functions
+
+The C<Test> module exports the following functions to aid in structuring and
+organising tests:
+
+=head2 Unconditional passing/failing/notification
+
+=item pass($description?), flunk($description?)
+
+The C<pass> function marks a test as passed.  C<flunk> marks a test as
+B<not> passed.  Both functions accept an optional test C<$description>.
+
+    pass "Actually, this test has passed";
+
+    flunk "But this one hasn't passed";
+
+As the Perl 5 documentation for C<Test::More> notes, such constructs are
+used when one has a complicated test condition.  As such, they should be
+used very, very sparingly.
+
+=item diag($message);
+
+Display diagnostic information in a TAP-compatible manner on the standard
+error stream.  It is usually used when a particular test has failed to
+provide information that the test itself did not provide.  Or it can be used
+to provide visual markers on how the testing of a test-file is progressing
+(which can be important when doing stress testing).
+
+    diag "Yay!  The tests got to here!";
+
+=head2 Skipping tests
+
+Sometimes tests just aren't ready to be run, for instance a feature might
+not yet be implemented, in which case tests can be marked as L<todo>.  It
+could be the case that a given feature only works on a particular platform.
+In which case one can L<skip> tests.
+
+=item todo($reason, $count = 1)
+
+Mark the following C<$count> tests as TODO, giving a C<$reason> as to why.
+By default only one test following a call to C<todo> will be marked TODO.
+
+    todo "Fromble not yet implemented";  # mark the next test TODO
+    is(fromble(), "frombled");           # fromble() won't be tested
+
+=item skip($reason, $count = 1)
+
+Skip the following C<$count> tests, giving a C<$reason> as to why.  By
+default only one test following a call to C<skip> will be skipped.  Use such
+functionality when a test (or tests) would die if run.
+
+    skip "Can't use forward slashes on Windows", 2;
+    is(num_forward_slashes("/a/b"), 2);
+    is(num_forward_slashes(normalize("/a//b")), 2);
+
+=item skip_rest($reason?)
+
+Skip the remaining tests.  If the remainder of the tests in the test file
+would all fail due to some condition, use this function to skip them,
+providing an optional C<$reason> as to why.
+
+    unless $location ~~ "Wimbledon Common" {
+	skip_rest "We can't womble, the remaining tests will fail";
+	exit;
+    }
+
+    # tests requiring functional wombling
+    ok(womble());
+    # ...
+
+Note that C<skip_rest> requires a C<plan> to be set, otherwise the
+C<skip_rest> call will throw an error.
+
+=head2 Evaluation of test conditions in boolean context
+
+=item ok($condition, $description?), nok($condition, $description?)
+
+The C<ok> function marks a test as passed if the given C<$condition>
+evaluates to C<True>.  The C<nok> function marks a test as passed if the
+given condition evaluates to C<False>.
+
+    plan 2;
+
+    my $pi = 3;
+    ok($pi == 3, 'The variable $pi equals 3');
+    nok(pi == 3, 'The constant pi does not equal 3');
+
+=head2 Comparison of expected and actual output
+
+=item is($obtained, $expected, $description?)
+
+Marks a test as passed if the C<$obtained> and C<$expected> values are equal
+(i.e., they compare as equal when using the C<'eq'> operator).  The function
+accepts an optional C<$description> of the test.
+
+    my $pi = 3;
+    is($pi, 3, 'The variable $pi equals 3');
+
+=item isnt($obtained, $expected, $description?)
+
+Marks a test as passed if the C<$obtained> and C<$expected> values are
+B<not> equal (i.e., they compare as B<not> equal when using the C<'eq'>
+operator).  The function accepts an optional C<$description> of the test.
+
+    isnt(pi, 3, 'The constant π is not equal to 3');
+
+=item cmp_ok($obtained, $comparison, $expected, $description?)
+
+The C<cmp_ok()> function compares the C<$obtained> and C<$expected> values
+with the given C<$comparison> operator and passes the test if the comparison
+yields a C<True> value.  For ease of use, operators may be passed as
+strings, such as C<'=='> or C<'~~'>.
+
+    cmp_ok('my spelling is apperling', '~~', /perl/, "bad speller");
+
+=head2 Structural comparison with C<< infix:<eqv> >>
+
+=item is_deeply
+
+=head2 Numeric comparison within a tolerance of 1e-5
+
+=item is_approx
+
+=head2 Class membership testing
+
+=item isa_ok
+
+=head2 Grouping tests
+
+The result of a group of subtests is only C<ok> if all subtests are C<ok>.
+
+=item subtest
+
+=head2 Exception testing
+
+=item dies_ok
+=item lives_ok
+=item eval_dies_ok
+=item eval_lives_ok
+=item throws_like
+
+=end pod
