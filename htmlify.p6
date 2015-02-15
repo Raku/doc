@@ -191,13 +191,13 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
 sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
     my $name = $filename;
-    if $kind eq "language" {
-        if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
-            $name = $pod.contents[0].contents[0].contents[0]
+    if $pod.contents[0] ~~ {$_ ~~ Pod::Block::Named and .name eq "TITLE"} {
+        $name = $pod.contents[0].contents[0].contents[0];
+        if $kind eq "type" {
+            $name = $name.split(/\s+/)[*-1];
         }
-        else {
-            note "$filename does not have an =TITLE";
-        }
+    } else {
+        note "$filename does not have an =TITLE";
     }
     if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
         $summary = $pod.contents[1].contents[0].contents[0];
