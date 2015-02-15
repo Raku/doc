@@ -60,7 +60,7 @@ test file.
 
     plan 15;   # expect to have run 15 tests
 
-In L<subtest>s, C<plan> is used to specify the total number of tests within
+In C<subtest>s, C<plan> is used to specify the total number of tests within
 the subtest.
 
 If a C<plan> is used, it is not necessary to denote the end of testing with
@@ -69,7 +69,7 @@ C<done>.
 =item done
 
 Specify that testing has finished.  Use this function when you do not as yet
-have a L<plan> for the number of tests to run.  A C<plan> is thus not
+have a C<plan> for the number of tests to run.  A C<plan> is thus not
 required when using C<done>.
 
 =head1 Test functions
@@ -105,9 +105,9 @@ to provide visual markers on how the testing of a test-file is progressing
 =head2 Skipping tests
 
 Sometimes tests just aren't ready to be run, for instance a feature might
-not yet be implemented, in which case tests can be marked as L<todo>.  It
+not yet be implemented, in which case tests can be marked as C<todo>.  It
 could be the case that a given feature only works on a particular platform.
-In which case one can L<skip> tests.
+In which case one can C<skip> tests.
 
 =item todo($reason, $count = 1)
 
@@ -189,28 +189,129 @@ strings, such as C<'=='> or C<'~~'>.
 
 =head2 Structural comparison with C<< infix:<eqv> >>
 
-=item is_deeply
+=item is_deeply($obtained, $expected, $description?)
+
+Marks a test as passed if the C<$obtained> and C<$expected> values are
+C<eqv>.  This is the best way to check for equality of (deep) data
+structures.  The function accepts an optional C<$description> of the test.
+
+TODO: add an example
 
 =head2 Numeric comparison within a tolerance of 1e-5
 
-=item is_approx
+=item is_approx($obtained, $expected, $description?)
+
+Marks a test as passed if the C<$obtained> and C<$expected> numerical values
+are within C<1e-5> of each other.  The function accepts an optional
+C<$description> of the test.
+
+    my $eulers_constant_approx = 2.71828;
+    is_approx($eulers_constant_approx, e, "approximate Euler's constant");
 
 =head2 Class membership testing
 
-=item isa_ok
+=item isa_ok($object, $type, $description?)
+
+Marks a test as passed if the given C<$object> is, or inherits from, the
+given C<$type>.  For convenience, types may also be specified as a string.
+The function accepts an optional C<$description> of the test.
+
+    class Womble {}
+    class GreatUncleBulgaria is Womble {}
+
+    my $womble = GreatUncleBulgaria.new;
+    isa_ok($womble, Womble, "Great Uncle Bulgaria is a womble");
+    isa_ok($womble, 'Womble');     # equivalent
 
 =head2 Grouping tests
 
 The result of a group of subtests is only C<ok> if all subtests are C<ok>.
 
-=item subtest
+=item subtest(&subtests, $description?)
+
+The C<subtest> function executes the given block, consisting of usually more
+than one test, possibly including a C<plan> or C<done>.  It will pass the
+test only if B<all> tests in the block, pass.  The function accepts an
+optional C<$description> of the test.
+
+    class Womble {}
+
+    class GreatUncleBulgaria is Womble {
+	has $.location = "Wimbledon Common";
+	has $.spectacles = True;
+    }
+
+    subtest {
+	my $womble = GreatUncleBulgaria.new;
+	isa_ok($womble, Womble, "Great Uncle Bulgaria is a womble");
+	is($womble->location, "Wimbledon Common", "Correct location");
+	ok($womble->spectacles, "Wears spectacles");
+    }, "Check Great Uncle Bulgaria";
 
 =head2 Exception testing
 
-=item dies_ok
-=item lives_ok
-=item eval_dies_ok
+=item dies_ok($code, $description?)
+
+Marks the test as passed if the given C<$code> throws an exception.
+
+The function accepts an optional C<$description> of the test.
+
+    sub saruman(Bool :$ents-destroy-isengard) {
+	die "Killed by Wormtongue" if $ents-destroy-isengard;
+    }
+
+    dies_ok { saruman(ents-destroy-isengard => True) }, "Saruman dies";
+
+=item lives_ok($code, $description?)
+
+Marks the test as passed if the given C<$code> B<does not> throw an
+exception.
+
+The function accepts an optional C<$description> of the test.
+
+    sub frodo(Bool :$destroys-ring) {
+	die "Oops, that wasn't supposed to happen" unless $destroys-ring;
+    }
+
+    lives_ok { frodo(destroys-ring => True) }, "Frodo survivies";
+
+=item eval_dies_ok($code, $description?)
+
+Marks the test as passed if the given C<eval>ed C<$code> throws an
+exception.
+
+The function accepts an optional C<$description> of the test.
+
+    eval_dies_ok q[my $joffrey = "nasty";
+                   die "bye bye Ned" if $joffrey ~~ /nasty/],
+	"Ned Stark dies";
+
 =item eval_lives_ok
-=item throws_like
+
+Marks the test as passed if the given C<eval>ed C<$code> throws an
+exception.
+
+The function accepts an optional C<$description> of the test.
+
+    eval_lives_ok q[my $daenerys_burns = False;
+		    die "Oops, Khaleesi now ashes" if $daenerys_burns],
+	"Dany is blood of the dragon";
+
+=item throws_like($code, $description?)
+
+The C<throws_like> function checks whether the given C<$code> (specified as
+either something C<Callable>, or as a something to be C<EVAL>led) throws a
+specific exception (either specified as a Type object, or as a string).  If
+an exception was thrown, it will also try to match the matcher hash, in
+which the key is the name of the method to be called on the exception, and
+the value is the value it should have to pass.
+
+The function accepts an optional C<$description> of the test.
+
+Please note that you can only use the C<EVAL> form if you are not referencing
+any symbols in the surrounding scope.  If you are, you should encapsulate
+your string with a block and an EVAL.  For instance:
+
+    throws_like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
 
 =end pod
