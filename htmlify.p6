@@ -13,6 +13,7 @@ use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
 use Pod::Convenience;
+use Inline::Python;
 
 my $*DEBUG = False;
 
@@ -708,6 +709,18 @@ sub pygmentize-code-blocks {
         say "pygmentize not found; code blocks will not be highlighted";
         return;
     }
+
+    my $py = Inline::Python.new();
+    $py.run(q{
+import pygments.lexers
+import pygments.formatters
+p6lexer = pygments.lexers.get_lexer_by_name("perl6")
+htmlformatter = pygments.formatters.get_formatter_by_name("html")
+
+def p6format(code):
+    return pygments.highlight(code, p6lexer, htmlformatter)
+});
+
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
@@ -715,12 +728,7 @@ sub pygmentize-code-blocks {
                 return default($node);
             }
         }
-        my $basename = join '-', %*ENV<USER> // 'u', (^100_000).pick, 'pod_to_pyg.pod';
-        my $tmp_fname = "$*TMPDIR/$basename";
-        spurt $tmp_fname, $node.contents.join;
-        LEAVE try unlink $tmp_fname;
-        my $command = "pygmentize -l perl6 -f html < $tmp_fname";
-        return qqx{$command};
+        return $py.call('__main__', 'p6format', $node.contents.join);
     }
 }
 
