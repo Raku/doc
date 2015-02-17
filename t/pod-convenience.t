@@ -50,6 +50,17 @@ subtest {
     is($pod.meta[0], "link", "link matches input");
 }, "pod-link";
 
+subtest {
+    plan 4;
+    eval_dies_ok('use Pod::Convenience; pod-bold()', "text argument required");
+
+    my $pod = pod-bold("text");
+    isa_ok($pod, Pod::FormattingCode);
+
+    is($pod.type, "B", "is a bold type");
+    is($pod.contents[0], "text", "text matches input");
+}, "pod-bold";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
