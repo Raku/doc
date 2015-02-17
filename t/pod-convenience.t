@@ -21,6 +21,22 @@ subtest {
     is($pod.contents[0].contents, $title, "title contents set correctly");
 }, "pod-title";
 
+subtest {
+    plan 5;
+    my $pod = pod-block('');
+    isa_ok($pod, Pod::Block::Para);
+    ok(pod-block(), "empty argument ok");
+
+    $pod = pod-block("hello");
+    is($pod.contents, "hello", "simple contents match input");
+
+    $pod = pod-block("hello", "there");
+    is($pod.contents, "hello there", "multi-argument input");
+
+    $pod = pod-block(qw{hello there world});
+    is($pod.contents, 'hello there world', "array argument input");
+}, "pod-block";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
