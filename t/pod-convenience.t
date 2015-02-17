@@ -37,6 +37,19 @@ subtest {
     is($pod.contents, 'hello there world', "array argument input");
 }, "pod-block";
 
+subtest {
+    plan 6;
+    eval_dies_ok('use Pod::Conenience; pod-link()', "text argument required");
+    eval_dies_ok('use Pod::Conenience; pod-link("text")', "link argument required");
+
+    my $pod = pod-link("text", "link");
+    isa_ok($pod, Pod::FormattingCode);
+
+    is($pod.type, "L", "is a link type");
+    is($pod.contents[0], "text", "text matches input");
+    is($pod.meta[0], "link", "link matches input");
+}, "pod-link";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
