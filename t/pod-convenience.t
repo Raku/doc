@@ -61,6 +61,20 @@ subtest {
     is($pod.contents[0], "text", "text matches input");
 }, "pod-bold";
 
+subtest {
+    plan 6;
+    ok(pod-item(), "empty argument ok");
+    ok(pod-item(''), "empty string argument ok");
+
+    my $pod = pod-item(qw{hello there});
+    isa_ok($pod, Pod::Item);
+    is($pod.level, 1, "default level correct");
+    is($pod.contents, "hello there", "contents matches input");
+
+    $pod = pod-item(qw{hello there}, level => 5);
+    is($pod.level, 5, "level matches input");
+}, "pod-item";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
