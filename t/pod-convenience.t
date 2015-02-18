@@ -75,6 +75,20 @@ subtest {
     is($pod.level, 5, "level matches input");
 }, "pod-item";
 
+subtest {
+    plan 6;
+    eval_dies_ok('use Pod::Convenience; pod-heading()', "name argument required");
+
+    my $pod = pod-heading("name");
+    isa_ok($pod, Pod::Heading);
+    is($pod.contents[0].contents, "name", "heading name matches input");
+    is($pod.level, 1, "level matches default value");
+
+    $pod = pod-heading("heading name", level => 3);
+    is($pod.contents[0].contents, "heading name", "heading name matches input");
+    is($pod.level, 3, "level matches input");
+}, "pod-heading";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
