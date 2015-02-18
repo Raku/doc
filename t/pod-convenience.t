@@ -99,6 +99,53 @@ subtest {
     is($pod.contents, "table data", "table data matches input");
 }, "pod-table";
 
+subtest {
+    eval_dies_ok('use Pod::Convenience; pod-lower-headings();', "content argument required");
+
+    # should probably die, currently throws an internal error
+    #eval_dies_ok('use Pod::Convenience; pod-lower-headings(qw{foo bar});',
+    #"plain content array not acceptable");
+
+    my $lowered-pod = pod-lower-headings([pod-heading("A head 1 heading")]);
+    isa_ok($lowered-pod, Array);
+    is($lowered-pod[0].level, 1, "single POD heading lowered from 1 to 1");
+    is($lowered-pod[0].contents[0].contents, "A head 1 heading", "lowered heading contents match input");
+
+    # if first heading is equal to default level to be lowered to, then don't lower
+    {
+        my @pod;
+        @pod.push(pod-heading("heading head1"));
+        @pod.push(pod-block(qw{"pod block}));
+        @pod.push(pod-heading("heading head2", level => 2));
+        $lowered-pod = pod-lower-headings(@pod);
+        is($lowered-pod[0].level, 1, "heading head1 stays at level 1");
+        is($lowered-pod[2].level, 2, "heading head2 stays at level 2");
+    }
+
+    # if first heading is equal to level to be lowered to, then don't lower
+    {
+        my @pod;
+        @pod.push(pod-heading("heading head2", level => 2));
+        @pod.push(pod-block(qw{"pod block}));
+        @pod.push(pod-heading("heading head3", level => 3));
+        $lowered-pod = pod-lower-headings(@pod, to => 2);
+        is($lowered-pod[0].level, 2, "heading head2 stays at level 2");
+        is($lowered-pod[2].level, 3, "heading head3 stays at level 3");
+    }
+
+    # if first heading is "higher" than level to be lowered to, then lower to level
+    {
+        my @pod;
+        @pod.push(pod-heading("heading head3", level => 3));
+        @pod.push(pod-block(qw{"pod block}));
+        @pod.push(pod-heading("heading head4", level => 4));
+        $lowered-pod = pod-lower-headings(@pod, to => 2);
+        is($lowered-pod[0].level, 2, "heading head3 lowered to level 2");
+        is($lowered-pod[2].level, 3, "heading head4 lowered to level 3");
+    }
+    done;
+}, "pod-lower-headings";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
