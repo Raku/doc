@@ -89,6 +89,16 @@ subtest {
     is($pod.level, 3, "level matches input");
 }, "pod-heading";
 
+subtest {
+    plan 4;
+    eval_dies_ok('use Pod::Convenience; pod-table();', "contents argument required");
+    eval_dies_ok('use Pod::Convenience; pod-table("");', "fails with empty string argument");
+
+    my $pod = pod-table(qw{table data});
+    isa_ok($pod, Pod::Block::Table);
+    is($pod.contents, "table data", "table data matches input");
+}, "pod-table";
+
 done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
