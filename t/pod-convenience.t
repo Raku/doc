@@ -3,7 +3,21 @@ use Test;
 use lib 'lib';
 use Pod::Convenience;
 
-plan 9;
+plan 10;
+
+subtest {
+    eval_dies_ok('use Pod::Convenience; first-code-block();', "pod argument required");
+    eval_dies_ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
+
+    is(first-code-block(["text"]), '', "non-code POD returns empty string");
+
+    my @code-blocks;
+    @code-blocks.push(Pod::Block::Code.new(contents => ['my $first-block']));
+    @code-blocks.push(Pod::Block::Code.new(contents => ['my @second-block']));
+
+    # XXX: why does this return the *second* block??
+    is(first-code-block(@code-blocks), 'my @second-block', "first code block returned");
+}, "first-code-block";
 
 subtest {
     plan 7;
