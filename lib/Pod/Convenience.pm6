@@ -98,9 +98,9 @@ sub pod-table(@contents) is export {
 }
 
 sub pod-lower-headings(@content, :$to = 1) is export {
-    my @new-content;
     my $by = @content.first(Pod::Heading).level;
     return @content unless $by > $to;
+    my @new-content;
     for @content {
         @new-content.push($_ ~~ Pod::Heading
             ?? Pod::Heading.new :level(.level - $by + $to) :contents[.contents]
