@@ -4,6 +4,28 @@ use lib 'lib';
 use Pod::Convenience;
 
 subtest {
+    plan 7;
+    eval_dies_ok('use Pod::Convenience; pod-with-title();', "title argument required");
+    my $pod = pod-with-title("title text");
+    isa_ok($pod, Pod::Block::Named);
+    is($pod.name, "pod", "block name correct");
+    # XXX: why do we have to dig so far to get to the title here?
+    is($pod.contents[0].contents[0].contents[0], "title text", "title matches input");
+    # XXX: what to do when $got is Nil in Test.pm?
+    # XXX: this next line gives a warning, however should probably handle
+    #      situation more robustly
+    is($pod.contents[1], Nil, "empty blocks argument gives Nil content");
+
+    $pod = pod-with-title("title text", "block text");
+    is($pod.contents[1], "block text", "simple block text matches input");
+
+    my @block_text = [ "a block of text", "another block of text" ];
+    $pod = pod-with-title("title text", @block_text);
+    is($pod.contents[1], "a block of text another block of text",
+        "array block text matches input");
+}, "pod-with-title";
+
+subtest {
     plan 6;
     my $title = "Pod document title";
     my $pod = pod-title($title);
