@@ -3,6 +3,8 @@ use Test;
 use lib 'lib';
 use Pod::Convenience;
 
+plan 9;
+
 subtest {
     plan 7;
     eval_dies_ok('use Pod::Convenience; pod-with-title();', "title argument required");
@@ -167,7 +169,5 @@ subtest {
     }
     done;
 }, "pod-lower-headings";
-
-done;
 
 # vim: expandtab shiftwidth=4 ft=perl6
