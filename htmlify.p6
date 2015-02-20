@@ -2,7 +2,7 @@
 use v6;
 
 # This script isn't in bin/ because it's not meant to be installed.
-# for syntax hilighting, needs pygmentize version 2.0 or newer installed
+# For syntax highlighting, needs pygmentize version 2.0 or newer installed
 
 BEGIN say 'Initializing ...';
 
@@ -126,7 +126,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
-    pygmentize-code-blocks unless $no-highlight;
+    highlight-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -683,7 +683,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
-sub pygmentize-code-blocks {
+sub highlight-code-blocks {
     my $pyg-version = try qx/pygmentize -V/;
     if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
         if Version.new(~$0) ~~ v2.0+ {
