@@ -2,7 +2,7 @@ use v6;
 use Test;
 use lib 'lib';
 
-plan 2;
+plan 3;
 
 use_ok('Pod::Htmlify');
 use Pod::Htmlify;
@@ -21,5 +21,10 @@ subtest {
     is(url-munge("infix<+>"), "/routine/infix%3C%2B%3E", "operator input");
     is(url-munge('$*VAR'), '$*VAR', "sigil/twigil input");
 }, "url-munge";
+
+subtest {
+    plan 1;
+    isnt(footer-html(), "", "footer text isn't empty");
+}, "footer-html";
 
 # vim: expandtab shiftwidth=4 ft=perl6

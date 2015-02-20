@@ -63,11 +63,6 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
 }
 
-sub footer-html() {
-    my $footer = slurp 'template/footer.html';
-    $footer.subst('DATETIME', ~DateTime.now);
-}
-
 sub p2h($pod, $selection = 'nothing selected') {
     pod2html $pod,
         :url(&url-munge),
