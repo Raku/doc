@@ -13,23 +13,13 @@ use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
 use Pod::Convenience;
+use Pod::Htmlify;
 
 my $*DEBUG = False;
 
 my $type-graph;
 my %methods-by-type;
 my %*POD2HTML-CALLBACKS;
-
-sub url-munge($_) {
-    return $_ if m{^ <[a..z]>+ '://'};
-    return "/type/{uri_escape $_}" if m/^<[A..Z]>/;
-    return "/routine/{uri_escape $_}" if m/^<[a..z]>|^<-alpha>*$/;
-    # poor man's <identifier>
-    if m/ ^ '&'( \w <[[\w'-]>* ) $/ {
-        return "/routine/{uri_escape $0}";
-    }
-    return $_;
-}
 
 # TODO: Generate menulist automatically
 my @menu =
