@@ -6,6 +6,7 @@ use Pod::Convenience;
 plan 10;
 
 subtest {
+    plan 4;
     eval_dies_ok('use Pod::Convenience; first-code-block();', "pod argument required");
     eval_dies_ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
 
