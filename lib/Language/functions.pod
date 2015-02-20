@@ -277,14 +277,66 @@ sub postfix:<!>(Int $x where { $x >= 0 }) { [*] 1..$x };
 say 6!;                     # 720
 =end code
 
-=begin comment
-TODO: elaborate on (post)circumfix ops
-=end comment
+The operator declaration becomes available as soon as possible, so you can
+even recurse into a just-defined operator, if you really want to:
+
+=begin code
+sub postfix:<!>(Int $x where { $x >= 0 }) {
+    $x == 0 ?? 1 !! $x * ($x - 1)!
+}
+say 6!;                     # 720
+=end code
+
+Circumfix and postcircumfix operators are made of two delimiters, one opening
+and one closing.
+
+=begin code
+sub circumfix:<START END>(*@elems) {
+    "start", @elems, "end"
+}
+
+say START 'a', 'b', 'c' END;        # start a b c end
+=end code;
+
+Postcircumfixes also receive the the term after which they are parsed as
+an argument:
+
+=begin code
+sub postcircumfix:<!! !!>($left, $inside) {
+    "$left -> ( $inside )"
+}
+say 42!! 1 !!;      # 42 -> ( 1 )
+=end code
 
 =head2 Precedence
 
-TODO
-=comment trait-mods, tighter, equiv, etc.
+Operator precedence in Perl 6 is specified relatively to existing operators.
+With C<is tighter(&other-operator)> you can squeeze in an operator with a
+tighter precedence than the one you specified, but looser than the
+next-tighter precedence level.
+
+For example C<< infix:<*> >> has a tighter precedence than C<<< infix:<+> >>,
+and squeezinge one in between works like this:
+
+=begin code
+sub infix:<!!>($a, $b) is tighter(&infix:<+>) {
+    2 * ($a + $b)
+}
+
+say 1 + 2 * 3 !! 4;     # 29
+=end code
+
+Here the C<1 + 2 * 3 !! 4> is parsed as C<1 + ((2 * 3) !! 4)>, because the
+precedence of the new C<!!> operator is between that of C<+> and C<*>.
+
+The same effect could have been achieved with
+
+    sub infix:<!!>($a, $b) is looser(&infix:<*>) { ... }
+
+To put a new operator on the same precedence level as an existing operator,
+use C<is equiv(&other-operator)> instead.
+
+=comment TODO: is assoc
 
 =head1 Traits
 
