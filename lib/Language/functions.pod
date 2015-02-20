@@ -336,7 +336,59 @@ The same effect could have been achieved with
 To put a new operator on the same precedence level as an existing operator,
 use C<is equiv(&other-operator)> instead.
 
-=comment TODO: is assoc
+
+=head2 Associativity
+
+When the same operator appears several times in a row, there are multiple
+possible interpretation. For example
+
+    1 + 2 + 3
+
+could be parsed as
+
+    (1 + 2) + 3         # left associative
+
+or as
+
+    1 + (2 + 3)         # right associative
+
+or as single call to an operator with three operands
+
+    infix:<+>(1, 2, 3); # list associative
+
+For addition of real numbers, the distinction is somewhat moot, because C<+> is
+L<mathematically associative|https://en.wikipedia.org/wiki/Associative_property>.
+
+But for other operators it matters a great deal. For example for the
+exponentation/power operator, C<< infix:<**> >>:
+
+    say 2 ** (2 ** 3);      # 256
+    say (2 ** 3) ** 3;      # 64
+
+Perl 6 has the following possible associativity configurations:
+
+=begin table
+
+    A   Assoc     Meaning of $a ! $b ! $c
+    =   =====     =======================
+    L   left      ($a ! $b) ! $c
+    R   right     $a ! ($b ! $c)
+    N   non       ILLEGAL
+    C   chain     ($a ! $b) and ($b ! $c)
+    X   list      infix:<!>($a; $b; $c)
+
+=end table
+
+You can specify the associativity of an operator with the C<is assoc> trait,
+where C<left> is the default associativity.
+
+=begin code
+sub infix:<§>(*@a) is assoc<list> {
+    '(' ~ @a.join('|') ~ ')';
+}
+
+say 1 § 2 § 3;      # (1|2|3)
+=end code
 
 =head1 Traits
 
@@ -353,6 +405,9 @@ Examples of traits are:
     #               ^^^^ trait
     has $another-attribute handles <close>;
     #                      ^^^^^^^ trait
+
+... and also C<is tighter>, C<is looser>, C<is equiv> and C<is assoc> from the previous
+section.
 
 Traits are subs of the form C<< trait_mod<VERB> >>, where C<VERB> stands for the
 name like C<is>, C<does> or C<handles>. It receives the modified thing as
