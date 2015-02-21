@@ -4,8 +4,19 @@ use v6;
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
 #
-# Build logs of this script for docs.perl6.org can be found here:
-# http://doc.perl6.org/build-log/
+# for doc.perl6.org, the build process goes like this:
+# * a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
+# It looks like this:
+#
+# */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
+#
+# util/update-and-sync is under version control in the perl6/doc repo (same as
+# this file), and it first updtes the git repository. If something changed, it
+# run htmlify, captures the output, and on success, syncs both the generated
+# files and the logs. In case of failure, only the logs are synchronized.
+#
+# The build logs are available at http://doc.perl6.org/build-log/
+#
 
 BEGIN say 'Initializing ...';
 
@@ -106,6 +117,7 @@ sub MAIN(
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
+    Bool :$no-inline-python = False,
 ) {
     $*DEBUG = $debug;
 
@@ -124,7 +136,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
-    highlight-code-blocks unless $no-highlight;
+    highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -681,7 +693,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks {
+sub highlight-code-blocks(:$use-inline-python = True) {
     my $pyg-version = try qx/pygmentize -V/;
     if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
         if Version.new(~$0) ~~ v2.0+ {
@@ -697,7 +709,7 @@ sub highlight-code-blocks {
         return;
     }
 
-    my $py = try {
+    my $py = $use-inline-python && try {
         require Inline::Python;
         my $py = ::('Inline::Python').new();
         $py.run(q{
@@ -711,7 +723,7 @@ def p6format(code):
 });
         $py;
     }
-    if defined $py {
+    if $py {
         say "Using syntax hilight using Inline::Python";
     }
 
@@ -722,7 +734,7 @@ def p6format(code):
                 return default($node);
             }
         }
-        if defined $py {
+        if $py {
             return $py.call('__main__', 'p6format', $node.contents.join);
         }
         else {
