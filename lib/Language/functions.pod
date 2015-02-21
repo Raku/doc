@@ -504,4 +504,37 @@ multi a(Int $x) {
 a 1;        # Int 1\n Any 1
 =end code
 
+As mentioned earlier, multi subs are not the only situation in which
+C<callwith>, C<callsame>, C<nextwith> and C<nextsame> can be helpful.
+One is is for dispatching to wrapped routines:
+
+=begin code
+# enable wrapping:
+use soft;
+
+# function to be wrapped:
+sub square-root($x) { $x.sqrt }
+
+&square-root.wrap(-> $num {
+   nextsame if $num >= 0;
+   1i * callwith(abs($num));
+});
+
+say square-root(4);     # 2
+say square-root(-4);    # 0+2i
+=end code
+
+The final use case is to re-dispatch to methods from parent classes.
+
+=begin code
+class LoggedVersion is Version {
+    method new(|c) {
+        note "New version object created with argumets " ~ c.perl;
+        nextsame;
+    }
+}
+
+say LoggedVersion.new('1.0.2');
+=end code
+
 =end pod
