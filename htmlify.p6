@@ -4,8 +4,19 @@ use v6;
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
 #
-# Build logs of this script for docs.perl6.org can be found here:
-# http://doc.perl6.org/build-log/
+# for doc.perl6.org, the build process goes like this:
+# * a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
+# It looks like this:
+#
+# */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
+#
+# util/update-and-sync is under version control in the perl6/doc repo (same as
+# this file), and it first updtes the git repository. If something changed, it
+# run htmlify, captures the output, and on success, syncs both the generated
+# files and the logs. In case of failure, only the logs are synchronized.
+#
+# The build logs are available at http://doc.perl6.org/build-log/
+#
 
 BEGIN say 'Initializing ...';
 
