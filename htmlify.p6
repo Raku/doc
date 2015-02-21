@@ -106,6 +106,7 @@ sub MAIN(
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
+    Bool :$no-inline-python = False,
 ) {
     $*DEBUG = $debug;
 
@@ -124,7 +125,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
-    highlight-code-blocks unless $no-highlight;
+    highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -681,7 +682,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks {
+sub highlight-code-blocks(:$use-inline-python = True) {
     my $pyg-version = try qx/pygmentize -V/;
     if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
         if Version.new(~$0) ~~ v2.0+ {
@@ -697,7 +698,7 @@ sub highlight-code-blocks {
         return;
     }
 
-    my $py = try {
+    my $py = $use-inline-python && try {
         require Inline::Python;
         my $py = ::('Inline::Python').new();
         $py.run(q{
@@ -711,7 +712,7 @@ def p6format(code):
 });
         $py;
     }
-    if defined $py {
+    if $py {
         say "Using syntax hilight using Inline::Python";
     }
 
@@ -722,7 +723,7 @@ def p6format(code):
                 return default($node);
             }
         }
-        if defined $py {
+        if $py {
             return $py.call('__main__', 'p6format', $node.contents.join);
         }
         else {
