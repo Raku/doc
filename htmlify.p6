@@ -3,6 +3,9 @@ use v6;
 
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
+#
+# Build logs of this script for docs.perl6.org can be found here:
+# http://doc.perl6.org/build-log/
 
 BEGIN say 'Initializing ...';
 
