@@ -472,13 +472,13 @@ the role declaration.
 
 Role application differs significantly from class inheritance. When a role
 is applied to a class, the methods of that role are copied into the class.
-If multiple roles are applied to the same class, conflicts (e.g. non-multi
+If multiple roles are applied to the same class, conflicts (e.g. attributes or non-multi
 methods of the same name) cause a compile-time error, which can be solved by
 providing a method of the same name in the class.
 
 This is much safer than multiple inheritance, where conflicts are never
 detected by the compiler, but are instead simply resolved to the superclass
-that appears earlier in the MRO, which might or might not be what the
+that appears earlier in the method resolution order, which might or might not be what the
 programmer wanted.
 
 For example, if you've discovered an efficient method to ride cows, and are
@@ -591,8 +591,83 @@ This allows you to create roles that act as abstract interfaces.
 The implementation of the stubbed method may also be provided by another
 role.
 
+=head2 Role Punning
 
-TODO:  parameterized roles
+Any attempt to instantiate (and many other kinds of usage) a role will
+automatically create a class with the same name as the role, making it
+possible to transparently use a role as if it were a class.
+
+=begin code
+role Point {
+    has $.x;
+    has $.y;
+    method abs { sqrt($.x * $.x + $.y * $.y) }
+}
+say Point.new(x => 6, y => 8).abs;
+=end code
+
+We call this automatic creating of classes I<punning>, and the generated class
+a I<pun>.
+
+=head2 Parameterized Roles
+
+Roles can be parameterized, by giving them a signature in square brackets:
+
+=begin code
+role BinaryTree[::Type] {
+    has BinaryTree[Type] $.left;
+    has BinaryTree[Type] $.right;
+    has Type $.node;
+
+    method visit-preorder(&cb) {
+        cb $.node;
+        for $.left, $.right -> $branch {
+            $branch.visit-preorder(&cb) if defined $branch;
+        }
+    }
+    method visit-postorder(&cb) {
+        for $.left, $.right -> $branch {
+            $branch.visit-postorder(&cb) if defined $branch;
+        }
+        cb $.node;
+    }
+    method new-from-list(::?CLASS:U: *@el) {
+        my $middle-index = @el.elems div 2;
+        my @left         = @el[0 .. $middle-index - 1];
+        my $middle       = @el[$middle-index];
+        my @right        = @el[$middle-index + 1 .. *];
+        self.new(
+            node    => $middle,
+            left    => @left  ?? self.new-from-list(@left)  !! self,
+            right   => @right ?? self.new-from-list(@right) !! self,
+        );
+    }
+}
+
+my $t = BinaryTree[Int].new-from-list(4, 5, 6);
+$t.visit-preorder(&say);    # 5 \n 4 \n 6
+$t.visit-postorder(&say);   # 4 \n 6 \n 5
+=end code
+
+Here the signature consists only of a type capture, but any signature will do:
+
+=begin code
+use v6;
+
+enum Severity <debug info warn error critical>;
+
+role Logging[$filehandle = $*ERR] {
+    method log(Severity $sev, $message) {
+        $filehandle.print("[{uc $sev}] $message\n");
+    }
+}
+
+Logging[$*OUT].log(debug, 'here we go');        # [DEBUG] here we go
+=end code
+
+You can have multiple roles of the same name, but with different signatures;
+the normal rules of multi dispatch apply for chosing multi candidates.
+
 
 =head1 Meta-Object Programming and Introspection
 
