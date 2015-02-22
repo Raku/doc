@@ -44,7 +44,8 @@ sub methods-in-type($type) {
 }
 
 sub show-undoc-method(Str $qualified_method_name) {
-    my $doc_output = qqx{PAGER=cat ./bin/p6doc -f $qualified_method_name};
+    my $doc-lookup-command = "PAGER=cat ./bin/p6doc -f \'$qualified_method_name\'";
+    my $doc_output = qqx{$doc-lookup-command};
     say "$qualified_method_name" if $doc_output ~~ m:s/No documentation found/;
 }
 
