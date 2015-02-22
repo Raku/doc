@@ -26,12 +26,12 @@ from outside.
 
 =end pod
 
-sub MAIN(Str :$type_name) {
-    my $type_graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
-    my @types_to_search = $type_name ?? $type_graph.types{$type_name}
-                                     !! $type_graph.sorted;
+sub MAIN(Str :$type-name) {
+    my $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    my @types-to-search = $type-name ?? $type-graph.types{$type-name}
+                                     !! $type-graph.sorted;
 
-    for @types_to_search -> $type {
+    for @types-to-search -> $type {
         for methods-in-type($type) -> $method {
             show-undoc-method($type.name ~ '.' ~ $method.name);
         }
@@ -39,14 +39,14 @@ sub MAIN(Str :$type_name) {
 }
 
 sub methods-in-type($type) {
-    my $type_name = ::($type.name);
-    return $type_name.^methods(:local);
+    my $type-name = ::($type.name);
+    return $type-name.^methods(:local);
 }
 
-sub show-undoc-method(Str $qualified_method_name) {
-    my $doc-lookup-command = "PAGER=cat ./bin/p6doc -f \'$qualified_method_name\'";
-    my $doc_output = qqx{$doc-lookup-command};
-    say "$qualified_method_name" if $doc_output ~~ m:s/No documentation found/;
+sub show-undoc-method(Str $qualified-method-name) {
+    my $doc-lookup-command = "PAGER=cat ./bin/p6doc -f \'$qualified-method-name\'";
+    my $doc-output = qqx{$doc-lookup-command};
+    say "$qualified-method-name" if $doc-output ~~ m:s/No documentation found/;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
