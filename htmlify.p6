@@ -197,12 +197,14 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         if $kind eq "type" {
             $name = $name.split(/\s+/)[*-1];
         }
-    } else {
+    }
+    else {
         note "$filename does not have a =TITLE";
     }
     if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
         $summary = $pod.contents[1].contents[0].contents[0];
-    } else {
+    }
+    else {
         note "$filename does not have a =SUBTITLE";
     }
 
@@ -210,7 +212,8 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     if $kind eq "type" {
         if $type-graph.types{$name} -> $type {
             %type-info = :subkinds($type.packagetype), :categories($type.categories);
-        } else {
+        }
+        else {
             %type-info = :subkinds<class>;
         }
     }
@@ -298,7 +301,8 @@ multi write-type-source($doc) {
                     ;
             }
         }
-    } else {
+    }
+    else {
         note "Type $podname not found in type-graph data";
     }
 
@@ -374,7 +378,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     my $summary = '';
                     if @pod-section[$i+1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
                         $summary = @pod-section[$i+1].contents[0].contents[0];
-                    } else {
+                    }
+                    else {
                         note "$name does not have an =SUBTITLE";
                     }
                     %attr = :kind<type>,
