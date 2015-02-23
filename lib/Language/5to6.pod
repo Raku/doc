@@ -4,12 +4,15 @@
 
 =SUBTITLE How do I do what I used to do?
 
-This article indexes the changes in syntax from Perl 5 to Perl 6.
-Whatever worked in Perl 5, that *must* now be written differently in Perl 6, should be listed here.
+This page attempts to index the changes in syntax and semantics from
+Perl 5 to Perl 6. Whatever worked in Perl 5 and must be written differently
+in Perl 6, should be listed here.
 
-B<NOTE>: Automated translation might be faster than searching here, even
-though this document is optimized for your searches.
-See the C<Automated Translation> section at the bottom.
+It should not be mistaken for a beginner tutorial or a promotional
+overview of Perl 6; it is intended as a technical reference for Perl 6
+learners with a strong Perl 5 background and for anyone porting Perl 5 code
+to Perl 6 (though note that L<#Automated Translation> might be more
+convenient).
 
 
 
@@ -22,9 +25,19 @@ If the module that you were using has not been converted to Perl 6, and no
 alternative is listed in this document, then its use under Perl 6 may not
 have been addressed yet.
 
-We hope that soon, the Perl 6 compilers will support the C<use> of Perl 5
-modules directly within Perl 6 code.
+There are multiple projects aiming to make it possible to C<use> Perl 5
+modules directly from Perl 6 code:
 
+=defn  L<v5|https://github.com/rakudo-p5/v5/>
+A slang that lets Rakudo itself parse blocks of Perl 5 code, and compile
+them to the same bytecode that it compiles Perl 6 code to.
+
+=defn  L<Inline::Perl5|https://github.com/niner/Inline-Perl5/>
+Uses an embedded instance of the C<perl> interpreter to run Perl 5 code
+called from your Perl 6 script.
+
+Of these, Inline::Perl5 is currently the furthest along and the most
+promising.
 
 
 
@@ -33,91 +46,192 @@ modules directly within Perl 6 code.
 
 =head3 Whitespace
 
-Perl 5 allows a surprising amount of flexibility in the use of whitespace.
-This is sometimes abused by humans, reducing readability, and causing
-surprises for programmers trying to read each others code. More
-importantly, it requires a convoluted (and difficult to maintain)
-lexer/parser in the source of Perl itself.
+Perl 5 allows a surprising amount of flexibility in the use of whitespace,
+even with strict mode and warnings turned on:
+
+    # unidiomatic but valid Perl 5
+    say"Hello ".ucfirst  ($people
+        [$ i]
+        ->
+        name)."!"if$greeted[$i]<1;
+
+Perl 6 also endorses programmer freedom and creativity, but balances
+syntactic flexibility against the goal of having a consistent,
+deterministic, extensible grammar that supports single-pass parsing and
+helpful error messages, integrates features like custom operators cleanly,
+and doesn't lead programmers to accidentally misstate their intent.
+
+As a result, there are various places in the syntax where whitespace is
+optional in Perl 5, but is either mandatory or forbidden in Perl 6. Many of
+those restrictions are unlikely to concern much real-life Perl code (e.g.
+whitespace being disallowed between the sigil and name of a variable), but
+there are a few that will unfortunately conflict with some Perl hackers'
+habitual coding styles:
+
+=begin item
+I<No space allowed before the opening parenthesis of an argument list.>
+
+    substr ($s, 4, 1); # Perl 5 (in Perl 6 this would try to pass a single
+                       #         argument of type List to substr)
+    substr($s, 4, 1);  # Perl 6
+    substr $s, 4, 1;   # Perl 6 - alternative, parentheses-less style
+=end item
+
+=begin item
+I<No space allowed before the opening bracket of an array/hash subscript, or around the method call operator.>
+
+    $people [0] -> name; # Perl 5
+    @people[0].name      # Perl 6
+=end item
+
+=begin item
+I<No space allowed after a prefix (or before a postfix/postcircumfix)
+operator.>
+
+    $i ++; # Perl 5
+    $i++;  # Perl 6
+=end item
+
+=begin item
+I<Space required after (before) an infix operator, if it would otherwise
+conflict with an existing prefix (postfix/postcircumfix) operator.>
+
+    $n<1;   # Perl 5 (in Perl 6 this would conflict with postcircumfix < >)
+    $n < 1; # Perl 6
+=end item
+
+However, note that you can use L<unspace|http://design.perl6.org/S02.html#Unspaces>
+to add whitespace in Perl 6 code in places where it is otherwise not
+allowed:
 
     # Perl 5
-    perl -wE '$z+=$_ for@ARGV;say$z;' 4 5 16
-    25
-    perl -wE '$z = [ 1, 5, 25 ]; say $z
-            ->
-        [2]
-    '
-    25
+    my @books = $xml->parse_file($file)           # some comment
+                    ->findnodes("/library/book");
+        
+    # Perl 6
+    my @books = $xml.parse-file($file)\          # some comment
+                    .findnodes("/library/book");
 
-Perl 6 has stricter (and more regular) rules about whitespace.
-
-If you have translated your Perl 5 code into Perl 6 by hand, and a compile error is thrown where you expect it to work, examine your use of whitespace.
-
-See the S03/"Minimal whitespace DWIMmery" and the last paragraph of S04/"Statement parsing".
+See also L<S03#Minimal whitespace DWIMmery|http://design.perl6.org/S03.html#Minimal_whitespace_DWIMmery> and L<S04#Statement parsing|http://design.perl6.org/S04.html#Statement_parsing> in the Perl 6 design docs.
 
 
 =head3 Sigils
 
-In Perl 5, arrays and hashes used changing sigils according to how they were being read:
-
-C<$> for scalars or single elements of an array or a hash.
-
-C<@> for entire arrays  or   slices of an array or a hash.
-
-C<%> for entire hashes.
-
-In Perl 6, sigils are invariant, no matter how the variable is being used.
+In Perl 5, arrays and hashes use changing sigils depending on how they are being accessed. In Perl 6 the sigils are invariant, no matter how the variable is being used - you can think of them as part of the variable's name.
 
 See also L<Dereferencing>.
 
 =head4 C<$> Scalar
 
-Unchanged.
+In Perl 6, the C<$> sigil is always used with "item" variables (e.g.
+C<$name>), and no longer for:
+
+=begin item
+I<Indexing an array variable>
+
+    say $months[2]; # Perl 5
+    say @months[2]; # Perl 6 - $ becomes @
+=end item
+
+=begin item
+I<Indexing a hash variable>
+
+    say $calories{apple}; # Perl 5
+    say %calories<apple>; # Perl 6 - $ becomes %
+=end item
 
 =head4 C<@> Array
 
-    # Retrieving a single element
-    say $months[2]; # Perl 5
-    say @months[2]; # Perl 6; $ became @
+In Perl 6, the C<@> sigil is always used with "array" variables
+(e.g. C<@months>, C<@months[2]>), including for:
 
-    # Retrieving multiple elements (a "slice")
-    say join ',', @months[ 6, 8..11 ]; # Perl 5
-    say join ',', @months[ 6, 8..11 ]; # Perl 6; no change
+=begin item
+I<Value-slicing an array variable>
+
+    say join ',', @months[6, 8..11]; # Perl 5 and Perl 6
+=end item
+
+But no longer for:
+
+=begin item
+I<Value-slicing a hash variable>
+
+    say join ',', @calories{'pear', 'plum'}; # Perl 5
+    say join ',', %calories<pear plum>;      # Perl 6 - @ becomes %
+=end item
 
 =head4 C<%> Hash
 
-    # Retrieving a single element
-    say $calories{'apple'}; # Perl 5
-    say %calories{'apple'}; # Perl 6; $ became %
+In Perl 6, the C<%> sigil is always used with "hash" variables
+(e.g. C<%calories>, C<%calories<apple>>), including for:
 
-    # Retrieving multiple elements (a "slice")
-    say join ',', @calories{'pear', plum'}; # Perl 5
-    say join ',', %calories{'pear', plum'}; # Perl 6; @ became %
+=begin item
+I<Key/value-slicing a hash variable>
+
+    say join ',', %calories{'pear', 'plum'}; # Perl 5
+    say join ',', %calories<pear plum>:kv;   # Perl 6 - slice controlled by adverb
+=end item
+
+But no longer for:
+
+=begin item
+I<Key/value-slicing an array variable>
+
+    say join ',', %months[6, 8..11];    # Perl 5
+    say join ',', @months[6, 8..11]:kv; # Perl 6 - % becomes @; slice controlled by adverb
+=end item
 
 =head4 C<&> Sub
 
-In Perl 5, using an ampersand as a sigil on a sub call turns off prototype
-checking for that call. This is a subtle behavior that is very rarely
-needed.
+In Perl 6, the C<&> sigil is used consistently (and without the help of
+a backslash) to refer to the function object of a named subroutine/operator
+without invoking it, i.e. to use the name as a "noun" instead of a "verb":
 
-    # This call will respect the sub's prototype, if it has one.
-    read_the_meter($customer_number);
-    # This call will ignore the sub's prototype, if it has one.
-    &read_the_meter($customer_number); # Probably not what the coder really meant to do!
+    my $sub = \&foo; # Perl 5
+    my $sub = &foo;  # Perl 6
 
-However, prototypes themselves are rarely used in Perl 5, so such use of
-the ampersand is often harmless, and commonly seen in code in the wild,
-even though such use is incorrect and to be strongly discouraged.
+    callback => sub { say $_ }  # Perl 5 - can't pass built-in sub directly
+    callback => &say            # Perl 6 - & gives "noun" form of any sub
 
-In Perl 6, the ampersand sigil is used to distinguish verb from noun; that
-is, the sub being invoked as a call, versus a simple reference to the sub's
-code.
+Since Perl 6 does not allow adding/removing symbols in a lexical scope once
+it has finished compiling, there is no equivalent to Perl 5's
+C<undef &foo;>, and the closest equivalent to Perl 5's C<defined &foo>
+would be C<defined &::("foo")> (which uses the "dynamic symbol lookup"
+syntax). However, you can declare a mutable named subroutine with
+C<my &foo;> and then change its meaning at runtime by assigning to C<&foo>.
 
-    my $result =  read_all_meters(); # Perl 5; correct
-    my $result =  read_all_meters(); # Perl 6; identical
-    my $result = &read_all_meters(); # INCORRECT; it does not always work in Perl 5, and it is a error in Perl 6.
+In Perl 5, the ampersand sigil can additionally be used to call subroutines
+in special ways with subtly different behavior compared to normal sub
+calls. In Perl 6 these special forms are no longer available:
 
-    my $subref = \&read_all_meters; # Perl 5
-    my $subref =  &read_all_meters; # Perl 6
+=begin item
+C<&foo(...)> I<for circumventing a function prototype>
+
+In Perl 6 there are no prototypes, and it no longer
+makes a difference whether you, say, pass a literal code block or a
+variable holding a code object as an argument:
+
+    # Perl 5:
+    first_index { $_ > 5 } @values;
+    &first_index($coderef, @values); # (disabling the prototype that parses a
+                                     # literal block as the first argument)
+    # Perl 6:
+    first-index { $_ > 5 }, @values;
+    first-index $coderef, @values;
+=end item
+
+=begin item
+C<&foo;> I<and> C<goto &foo;> I<for re-using the caller's argument list / replacing the caller in the call stack>
+
+    sub foo { say "before"; &bar;     say "after" } # Perl 5
+    sub foo { say "before"; bar(|@_); say "after" } # Perl 6 - have to be explicit
+    
+    # TODO: Suggest .callsame once it has been implemented in Rakudo.
+
+    sub foo { say "before"; goto &bar } # Perl 5
+    
+    # TODO: Suggest .nextsame and .nextwith once they've been implemented in Rakudo.
+=end item
 
 =head4 C<*> Glob
 
@@ -264,8 +378,8 @@ C«cmp» is now named C«leg»; it forces string context for the comparison.
 
 C«<=>» still forces numeric context.
 
-C«cmp» in Perl 6 does either C«<=>» or C<leg>, depending on the
-pre-existing context of its arguments.
+C«cmp» in Perl 6 does either C«<=>» or C<leg>, depending on the existing
+type of its arguments.
 
 =head3 C<~~> Smart-match operator
 
