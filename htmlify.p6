@@ -302,7 +302,8 @@ multi write-type-source($doc) {
         note "Type $podname not found in type-graph data";
     }
 
-    spurt "html/$what/$podname.html", p2h($pod, $what);
+    my $html-filename = "html" ~ $doc.url ~ ".html";
+    spurt $html-filename, p2h($pod, $what);
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
