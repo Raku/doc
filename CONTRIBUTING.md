@@ -10,7 +10,7 @@ guidelines.
   directly related to Perl 6 (like the math that our routines implement)
 * Duplicate small pieces of information rather than rely on linking
 * Be explicit about routine signatures. If a method accepts a `*%args`,
-  but treats some of them special, list them separately.
+  but treats some of them specially, list them separately.
 
 ## Documenting types
 
@@ -39,7 +39,7 @@ the skeleton for you):
         MyFunnyRole.do-it(2);   # example output
 
 
-When documeting a pair of a sub and a method which both do the same thing,
+When documenting a pair of a sub and a method which both do the same thing,
 the heading should be `=head2 routine do-it`, and the next thing should be two
 or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
