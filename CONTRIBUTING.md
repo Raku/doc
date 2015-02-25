@@ -3,6 +3,9 @@ Your patches to perl6/doc are very welcome.
 They are even more welcome if you stick to our style and formatting
 guidelines.
 
+If you have any questions regarding contributing to this project, please ask
+in the [#perl6 IRC channel](http://perl6.org/community/irc).
+
 ## General principles
 
 * Please use the present tense.
