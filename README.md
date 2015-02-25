@@ -29,6 +29,8 @@ Here are some ways to help us:
  * proofread and correct the documentation
  * tell us about missing documentation, either by adding it to the WANTED
    file, or by opening issues on github.
+ * Do a `git grep TODO` in this repository, and replease the TODO items by
+   actual documentation.
 
 The file [WANTED](WANTED) has a list of particular documents that are known to be
 missing and [CONTRIBUTING](CONTRIBUTING.md) explains briefly how to get started contributing documentation.
