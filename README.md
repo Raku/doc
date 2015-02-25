@@ -33,6 +33,8 @@ Here are some ways to help us:
 The file `WANTED` has a list of particular documents that are known to be
 missing.
 
+To get started editing the documentation, see CONTRIBUTING.md.
+
 --------
 
 ## Some notes:
