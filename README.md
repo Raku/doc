@@ -35,8 +35,6 @@ Here are some ways to help us:
 The file [WANTED](WANTED) has a list of particular documents that are known to be
 missing and [CONTRIBUTING](CONTRIBUTING.md) explains briefly how to get started contributing documentation.
 
-To get started editing the documentation, see CONTRIBUTING.md.
-
 --------
 
 ## Some notes:
