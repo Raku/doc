@@ -30,8 +30,8 @@ Here are some ways to help us:
  * tell us about missing documentation, either by adding it to the WANTED
    file, or by opening issues on github.
 
-The file `WANTED` has a list of particular documents that are known to be
-missing.
+The file [WANTED](WANTED) has a list of particular documents that are known to be
+missing and [CONTRIBUTING](CONTRIBUTING.md) explains briefly how to get started contributing documentation.
 
 --------
 
@@ -55,7 +55,7 @@ missing.
 
 **Q:** Which license is this stuff under?<br>
 **A:** Both code and documentation are available under the Artistic License 2.0
-       as published by The Perl Foundation. See the `LICENSE` file for the full
+       as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
        text.
 
 --------
