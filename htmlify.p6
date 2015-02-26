@@ -141,9 +141,10 @@ sub MAIN(
     say 'Composing doc registry ...';
     $*DR.compose;
 
-    for $*DR.lookup("language", :by<kind>).list {
-        say "Writing language document for {.name} ...";
-        spurt "html{.url}.html", p2h(.pod, 'language');
+    for $*DR.lookup("language", :by<kind>).list -> $doc {
+        $doc.pod.contents.push: doc-source-reference($doc);
+        say "Writing language document for {$doc.name} ...";
+        spurt "html{$doc.url}.html", p2h($doc.pod, 'language');
     }
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -301,6 +302,7 @@ multi write-type-source($doc) {
                     ;
             }
         }
+        $pod.contents.push: doc-source-reference($doc);
     }
     else {
         note "Type $podname not found in type-graph data";
@@ -753,6 +755,21 @@ def p6format(code):
 
         }
     }
+}
+
+#| Append a section to the pod document referencing the source on GitHub
+#| Note that we link to the raw source since GitHub isn't always able to
+#| render Pod6 properly.
+sub doc-source-reference($doc) {
+    # XXX: it would be nice to have a filename attribute for pod documents
+    my $pod-filename = $doc.url.split(/\//)[*-1] ~ '.pod';
+    my $kind = $doc.kind.tclc;
+    my @doc-source-ref-pod =
+        pod-block("This documentation was generated from ",
+            pod-link("$pod-filename","https://github.com/perl6/doc/raw/master/lib/$kind/$pod-filename"),
+            ".");
+
+    return @doc-source-ref-pod;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
