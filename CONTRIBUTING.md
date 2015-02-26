@@ -140,16 +140,16 @@ Perl 6 code was added in version 2.0, so you need at least this version if
 you wish to produced syntax highlighted documentation on your local
 computer.
 
-If you use Debian/Jessie, you can simply install `pygmentize` via the
-package manager:
+If you use Debian/Jessie, you can install `pygmentize` via the
+`python-pygments` package:
 
-    $ aptitude install pygmentize
+    $ aptitude install python-pygments
 
-On Ubuntu install the package python-pygments:
+On Ubuntu install the package `python-pygments`:
 
     $ sudo apt-get install python-pygments
 
-On Fedora the package is also named python-pygments:
+On Fedora the package is also named `python-pygments`:
 
     $ sudo yum install python-pygments
 
