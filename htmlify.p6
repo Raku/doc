@@ -730,13 +730,13 @@ def p6format(code):
         $py;
     }
     if $py {
-        say "Using syntax hilight using Inline::Python";
+        say "Using syntax highlighting via Inline::Python";
     }
 
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
-                # some nested formatting code => we can't hilight this
+                # some nested formatting code => we can't highlight this
                 return default($node);
             }
         }
