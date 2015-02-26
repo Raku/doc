@@ -47,3 +47,114 @@ the heading should be `=head2 routine do-it`, and the next thing should be two
 or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 `postcircumfix`, `term`.
+
+## Building the documentation
+
+Assuming that you have already forked and cloned the
+[perl6/doc](http://github.com/perl6/doc) repository, one of the first things
+you probably want to do is to build the documentation on your local
+computer.  To do this you will need:
+
+  - Rakudo (the Rakudo Perl 6 implementation)
+  - Panda (the installer for third party Perl 6 modules)
+  - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
+  - Mojolicious (a web framework; it runs the web app to display the docs)
+  - pygmentize (optional; a program to add syntax highlighting to code
+    examples)
+  - `Inline::Python` (optional; run Python code from within Perl 6,
+    necessary for faster execution of pygmentize)
+
+### Dependency installation
+
+#### Rakudo
+
+Install Rakudo via [rakudobrew](http://github.com/tadzik/rakudobrew).
+
+Clone the `rakudobrew` repository
+
+    $ git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
+
+and add `rakudobrew` to your `PATH` (also add this line to e.g. `~/.profile`):
+
+    $ export PATH=~/.rakudobrew/bin:$PATH
+
+To build the Rakudo Perl 6 implementation with the MoarVM backend, simply
+run
+
+    $ rakudobrew build moar
+
+If everything is set up correctly, the executable `perl6` should be in your
+`PATH`.  As a simple test, run `perl6` and see if the
+[REPL](http://en.wikipedia.org/wiki/Read-eval-print_loop) prompt appears:
+
+    $ perl6
+    >
+
+Exit the REPL by pressing `Ctrl-d` or typing `exit` at the prompt.
+
+#### Panda
+
+After `rakudobrew` is installed, installing `panda` is very easy:
+
+    $ rakudobrew build-panda
+
+Now the `panda` command should be available.
+
+#### Pod::To::HTML
+
+The program which builds the HTML version of the documentation
+(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod structures into HTML.
+Install `Pod::To::HTML` like so:
+
+    $ panda install Pod::To::HTML
+
+#### Mojolicious
+
+This is a Perl 5 web framework which is used to run the web application
+which renders and displays the HTML documentation in a web browser.  It is
+written in Perl 5, so assuming that you use
+[`cpanm`](http://search.cpan.org/~miyagawa/App-cpanminus-1.7027/lib/App/cpanminus.pm),
+install this now:
+
+    $ cpanm Mojolicious
+
+#### pygmentize
+
+This program adds syntax highlighting to the code examples.  Highlighting of
+Perl 6 code was added in version 2.0, so you need at least this version if
+you wish to produced syntax highlighted documentation on your local
+computer.
+
+If you use Debian/Jessie, you can simply install `pygmentize` via the
+package manager:
+
+    $ aptitude install pygmentize
+
+Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
+(the Python package installer):
+
+    $ pip install pygmentize
+
+#### Inline::Python
+
+`Inline::Python` is optional, however will speed up documentation builds
+using syntax highlighting.  It can simply be installed via `panda`
+
+    $ panda install Inline::Python
+
+### Build and view the documentation
+
+To actually build the documentation all you now need to do is run
+`htmlify.p6`:
+
+    $ perl6 htmlify.p6
+
+This takes a while, but be patient!
+
+After the build has completed, you can start the web application which will
+render the HTML documentation
+
+    $ perl app.pl daemon   # note!  Perl 5 *not* Perl 6 here
+
+Now point your web browser to http://localhost:3000 to view the
+documentation.
