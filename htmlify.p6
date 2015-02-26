@@ -261,43 +261,43 @@ multi write-type-source($doc) {
 
         my @roles-todo = $type.roles;
         my %roles-seen;
-        while @roles-todo.shift -> $r {
-            next unless %methods-by-type{$r};
-            next if %roles-seen{$r}++;
-            @roles-todo.push: $r.roles;
+        while @roles-todo.shift -> $role {
+            next unless %methods-by-type{$role};
+            next if %roles-seen{$role}++;
+            @roles-todo.push: $role.roles;
             $pod.contents.push:
-                pod-heading("Methods supplied by role $r"),
+                pod-heading("Methods supplied by role $role"),
                 pod-block(
                     "$podname does role ",
-                    pod-link($r.name, "/type/{uri_escape ~$r}"),
+                    pod-link($role.name, "/type/{uri_escape ~$role}"),
                     ", which provides the following methods:",
                 ),
-                %methods-by-type{$r}.list,
+                %methods-by-type{$role}.list,
                 ;
         }
-        for @mro -> $c {
-            next unless %methods-by-type{$c};
+        for @mro -> $class {
+            next unless %methods-by-type{$class};
             $pod.contents.push:
-                pod-heading("Methods supplied by class $c"),
+                pod-heading("Methods supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
-                    pod-link($c.name, "/type/{uri_escape ~$c}"),
+                    pod-link($class.name, "/type/{uri_escape ~$class}"),
                     ", which provides the following methods:",
                 ),
-                %methods-by-type{$c}.list,
+                %methods-by-type{$class}.list,
                 ;
-            for $c.roles -> $r {
-                next unless %methods-by-type{$r};
+            for $class.roles -> $role {
+                next unless %methods-by-type{$role};
                 $pod.contents.push:
-                    pod-heading("Methods supplied by role $r"),
+                    pod-heading("Methods supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
-                        pod-link($c.name, "/type/{uri_escape ~$c}"),
+                        pod-link($class.name, "/type/{uri_escape ~$class}"),
                         ", which does role ",
-                        pod-link($r.name, "/type/{uri_escape ~$r}"),
+                        pod-link($role.name, "/type/{uri_escape ~$role}"),
                         ", which provides the following methods:",
                     ),
-                    %methods-by-type{$r}.list,
+                    %methods-by-type{$role}.list,
                     ;
             }
         }
