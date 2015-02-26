@@ -1,7 +1,9 @@
+## Contributing
+
 Your patches to perl6/doc are very welcome.
 
-They are even more welcome if you stick to our style and formatting
-guidelines.
+This document describes how to get started and helps to provide documentation
+that adheres to the common style and formatting guidelines.
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](http://perl6.org/community/irc).
@@ -17,8 +19,21 @@ in the [#perl6 IRC channel](http://perl6.org/community/irc).
 
 ## Documenting types
 
-Types should be documented like this (the tool `util/new-type.p6` can create
-the skeleton for you):
+The POD documentation of types is located in the `lib/Type` directory and
+subdirectories of this repository. For example the POD of `X::Bind::Slice`
+lives in `lib/Type/X/Bind/Slice.pod`.
+
+To start contributing fork and checkout the repository, find the document
+you want to improve, commit your changes, and create a pull request. Should
+questions come up in the process feel free to ask in
+[#perl6 IRC channel](http://perl6.org/community/irc).
+
+If the documentation for a type does not exist create the skeleton of the doc
+with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
+
+    $ perl6 util/new-type.p6 MyFunnyRole
+
+Fill the documentation file `lib/Type/MyFunnyRole.pod` like this:
 
     =TITLE role MyFunnyRole
 
@@ -129,6 +144,14 @@ If you use Debian/Jessie, you can simply install `pygmentize` via the
 package manager:
 
     $ aptitude install pygmentize
+
+On Ubuntu install the package python-pygments:
+
+    $ sudo apt-get install python-pygments
+
+On Fedora the package is also named python-pygments:
+
+    $ sudo yum install python-pygments
 
 Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
 (the Python package installer):
