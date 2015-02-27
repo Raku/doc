@@ -4,7 +4,7 @@ use lib 'lib';
 
 plan 3;
 
-use_ok('Pod::Htmlify');
+use-ok('Pod::Htmlify');
 use Pod::Htmlify;
 
 subtest {
