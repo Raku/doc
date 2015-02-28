@@ -28,10 +28,7 @@ subtest {
     is($pod.name, "pod", "block name correct");
     # XXX: why do we have to dig so far to get to the title here?
     is($pod.contents[0].contents[0].contents[0], "title text", "title matches input");
-    # XXX: what to do when $got is Nil in Test.pm?
-    # XXX: this next line gives a warning, however should probably handle
-    #      situation more robustly
-    is($pod.contents[1], Nil, "empty blocks argument gives Nil content");
+    nok($pod.contents[1].defined, "empty blocks argument gives undefined content");
 
     $pod = pod-with-title("title text", "block text");
     is($pod.contents[1], "block text", "simple block text matches input");
