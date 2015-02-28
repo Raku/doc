@@ -2,10 +2,12 @@ use v6;
 use Test;
 use lib 'lib';
 
-unless (try require URI::Escape) {
-    warn "URI::Escape required to run these tests";
-    plan 0;
-    exit;
+BEGIN {
+    unless (try require URI::Escape) {
+        warn "URI::Escape required to run these tests";
+        plan 0;
+        exit;
+    }
 }
 
 plan 3;
