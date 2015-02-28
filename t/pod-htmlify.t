@@ -2,6 +2,19 @@ use v6;
 use Test;
 use lib 'lib';
 
+BEGIN {
+    try {
+        EVAL "use URI::Escape";
+        CATCH {
+            default {
+                warn "URI::Escape required to run these tests";
+                plan 0;
+                exit;
+            }
+        }
+    }
+}
+
 plan 3;
 
 use-ok('Pod::Htmlify');
