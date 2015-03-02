@@ -23,6 +23,15 @@ L<Any|/type/Any>.
 
 Returns C<False> on the type object, and C<True> otherwise.
 
+    say Int.defined;                # False
+    say 42.defined;                 # True
+
+Very few types (like L<Failure|/type/Failure>) override C<defined> to return
+C<False> even for instances:
+
+    sub fails() { fail 'oh noe' };
+    say fails().defined;            # False
+
 =head2 routine Bool
 
     multi sub    Bool(Mu) returns Bool:D
@@ -30,12 +39,24 @@ Returns C<False> on the type object, and C<True> otherwise.
 
 Returns C<False> on the type object, and C<True> otherwise.
 
+Many built-in types override this to be C<False> for empty collections, the
+empty L<string|/type/Str> or numerical zeros
+
+    say Mu.Bool;                    # False
+    say Mu.new.Bool;                # True
+    say [1, 2, 3].Bool;             # True
+    say [].Bool;                    # False
+    say { 'hash' => 'full'}.Bool;   # True
+    say {}.Bool;                    # False
+
 =head2 method Str
 
     multi method Str()   returns Str
 
 Returns a string representation of the invocant, intended to be machine
-readable.
+readable. Method C<Str> warns on type objects, and produces the empty string.
+
+    say Mu.Str;                     #!> use of uninitialized value of type Mu in string context
 
 =head2 routine gist
 
@@ -45,8 +66,16 @@ readable.
 Returns a string representation of the invocant, optimized for
 fast recognition by humans.
 
-The default C<gist> method in C<Mu> re-dispatches to the C<perl> method,
-but many built-in classes override it to something more specific.
+The default C<gist> method in C<Mu> re-dispatches to the L<perl> method for
+defined invocants, and returns the type name in parenthesis for type object
+invocants.
+Many built-in classes override the case of instances to something more specific.
+
+C<gist> is the method that L<say> calls implicitly, so C<say $something> and
+C<say $something.gist> generally produce the same output.
+
+    say Mu.gist;        # (Mu)
+    say Mu.new.gist;    # Mu.new()
 
 =head2 routine perl
 
@@ -54,7 +83,9 @@ but many built-in classes override it to something more specific.
     multi method perl()   returns Str
 
 Returns a Perlish representation of the object (i.e., can usually
-be re-parsed to regenerate the object).
+be re-evaluated with L<EVAL> to regenerate the object). The exact output of
+C<perl> is implementation specific, since there are generally many ways to
+write a Perl expression that produces a particular value
 
 =head2 method clone
 
@@ -63,6 +94,20 @@ be re-parsed to regenerate the object).
 Creates a shallow clone of the invocant. If named arguments are passed
 to it, their values are used in every place where an attribute name matches
 the name of a named argument.
+
+=begin code
+class Point2D {
+    has ($.x, $.y);
+    multi method gist(Point2D:D:) {
+        "Point($.x, $.y)";
+    }
+}
+
+my $p = Point2D.new(x => 2, y => 3);
+
+say $p;                     # Point(2, 3)
+say $p.clone(y => -5);      # Point(2, -5)
+=end code
 
 =head2 method new
 
@@ -73,6 +118,11 @@ of a class. This method expects only named arguments which are then
 used to initialize attributes with accessors of the same name.
 
 Classes may provide their own C<new> method to override this default.
+
+C<new> triggers an object construction mechanism that calls submethods named
+C<BUILD> in each class of an inheritance hierarchy, if they exist. See
+L<the documentation on object construction|/language/objects#Object
+Construction> for more information.
 
 =head2 method bless
 
@@ -105,12 +155,16 @@ subclassing harder).
 Allocates a new object of the same type as the invocant, without
 initializing any attributes.
 
+    say Mu.CREATE.defined;  # True
+
 =head2 method print
 
     multi method print() returns Bool:D
 
 Prints value to C<$*OUT> after stringification using C<.Str> method without
-newline at end.
+adding a newline at end.
+
+    "abc\n".print;          # abc
 
 =head2 method say
 
@@ -119,15 +173,25 @@ newline at end.
 Prints value to C<$*OUT> after stringification using C<.gist> method with
 newline at end.
 
+    say 42;                 # 42
+
 =head2 method ACCEPTS
 
     multi method ACCEPTS(Mu:U: $other)
 
-Performs a type check. Returns C<True> if C<$other> conforms to the invocant
+C<ACCEPTS> is the method that smart matching with the L<infix ~~|routine:~~>
+operator and given/when invokes on the right-hand side (the matcher).
+
+The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms to the invocant
 (which is always a type object or failure).
 
-This is the method that is triggered on smart-matching against type objects,
-for example in C<if $var ~~ Int { ... }>.
+    say 42 ~~ Mu;           # True
+    say 42 ~~ Int;          # True
+    say 42 ~~ Str;          # False
+
+Note that there is no multi for defined invocants; this is to allow
+autothreading of L<junctions|/type/Junction>, which happens as a fallback
+mechanism when no direct candidate is available to dispatch to.
 
 =head2 method WHICH
 
@@ -136,6 +200,8 @@ for example in C<if $var ~~ Int { ... }>.
 Returns an object of type L<ObjAt> which uniquely identifies the object.
 Value types override this method which makes sure that two equivalent objects
 return the same return value from C<WHICH>.
+
+    say 42.WHICH eq 42.WHICH;       # True
 
 =head2 method WHERE
 
