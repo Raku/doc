@@ -762,7 +762,7 @@ def p6format(code):
 #| render Pod6 properly.
 sub doc-source-reference($doc) {
     # XXX: it would be nice to have a filename attribute for pod documents
-    my $pod-filename = $doc.url.split(/\//)[*-1].subst('::', '/') ~ '.pod';
+    my $pod-filename = $doc.url.split(/\//)[*-1].subst('::', '/', :g) ~ '.pod';
     my $kind = $doc.kind.tclc;
     my @doc-source-ref-pod =
         pod-block("This documentation was generated from ",
