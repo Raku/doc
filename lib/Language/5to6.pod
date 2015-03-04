@@ -6,9 +6,10 @@
 
 This page attempts to index the changes in syntax and semantics from
 Perl 5 to Perl 6. Whatever worked in Perl 5 and must be written differently
-in Perl 6, should be listed here.
+in Perl 6, should be listed here (whereas many I<new> Perl 6 features and
+idioms won't be).
 
-It should not be mistaken for a beginner tutorial or a promotional
+Hence this should not be mistaken for a beginner tutorial or a promotional
 overview of Perl 6; it is intended as a technical reference for Perl 6
 learners with a strong Perl 5 background and for anyone porting Perl 5 code
 to Perl 6 (though note that L<#Automated Translation> might be more
@@ -164,74 +165,32 @@ name.
 
 =head4 C<$> Scalar
 
-In Perl 6, the C<$> sigil is always used with "item" variables (e.g.
-C<$name>), and no longer for:
-
-=begin item
-I<Indexing an array variable>
-
-    say $months[2]; # Perl 5
-    say @months[2]; # Perl 6 - $ becomes @
-=end item
-
-=begin item
-I<Indexing a hash variable>
-
-    say $calories{apple}; # Perl 5
-    say %calories<apple>; # Perl 6 - $ becomes %
-=end item
+The C<$> sigil is now always used with "item" variables (e.g. C<$name>),
+and no longer for L<array indexing|#[]_Array_indexing/slicing> and L<Hash
+indexing|#{}_hash_indexing/slicing>.
 
 =head4 C<@> Array
 
-In Perl 6, the C<@> sigil is always used with "array" variables
-(e.g. C<@months>, C<@months[2]>), including for:
-
-=begin item
-I<Value-slicing an array variable>
-
-    say join ',', @months[6, 8..11]; # Perl 5 and Perl 6
-=end item
-
-But no longer for:
-
-=begin item
-I<Value-slicing a hash variable>
-
-    say join ',', @calories{'pear', 'plum'}; # Perl 5
-    say join ',', %calories<pear plum>;      # Perl 6 - @ becomes %
-=end item
+The C<@> sigil is now always used with "array" variables (e.g. C<@months>,
+C<@months[2]>, C<@months[2, 4]>), and no longer for L<value-slicing
+hashes|#{}_Hash_indexing/slicing>.
 
 =head4 C<%> Hash
 
-In Perl 6, the C<%> sigil is always used with "hash" variables
-(e.g. C<%calories>, C<%calories<apple>>), including for:
-
-=begin item
-I<Key/value-slicing a hash variable>
-
-    say join ',', %calories{'pear', 'plum'}; # Perl 5
-    say join ',', %calories<pear plum>:kv;   # Perl 6 - slice controlled by adverb
-=end item
-
-But no longer for:
-
-=begin item
-I<Key/value-slicing an array variable>
-
-    say join ',', %months[6, 8..11];    # Perl 5
-    say join ',', @months[6, 8..11]:kv; # Perl 6 - % becomes @; slice controlled by adverb
-=end item
+The C<%> sigil is now always used with "hash" variables (e.g. C<%calories>,
+C<%calories<apple>>, C<%calories<pear plum>>), and no longer for
+L<key/value-slicing arrays|#[]_Array_indexing/slicing>.
 
 =head4 C<&> Sub
 
-In Perl 6, the C<&> sigil is used consistently (and without the help of
-a backslash) to refer to the function object of a named subroutine/operator
+The C<&> sigil is now used consistently (and without the help of a
+backslash) to refer to the function object of a named subroutine/operator
 without invoking it, i.e. to use the name as a "noun" instead of a "verb":
 
     my $sub = \&foo; # Perl 5
     my $sub = &foo;  # Perl 6
 
-    callback => sub { say $_ }  # Perl 5 - can't pass built-in sub directly
+    callback => sub { say @_ }  # Perl 5 - can't pass built-in sub directly
     callback => &say            # Perl 6 - & gives "noun" form of any sub
 
 Since Perl 6 does not allow adding/removing symbols in a lexical scope once
@@ -243,7 +202,7 @@ C<my &foo;> and then change its meaning at runtime by assigning to C<&foo>.
 
 In Perl 5, the ampersand sigil can additionally be used to call subroutines
 in special ways with subtly different behavior compared to normal sub
-calls. In Perl 6 these special forms are no longer available:
+calls. In Perl 6 those special forms are no longer available:
 
 =begin item
 C<&foo(...)> I<for circumventing a function prototype>
@@ -317,6 +276,78 @@ And here's just one possible Perl 6 translation:
     }
     my $in-file = open $path or die;
     my ($line1, $line2) = read-n($in-file, 2);
+
+=head3 [] Array indexing/slicing
+
+Index and slice operations on arrays no longer inflect the variable's
+L<sigil|#@_Array>, and adverbs can be used to control the type of slice:
+
+=begin item
+I<Indexing>
+
+    say $months[2]; # Perl 5
+    say @months[2]; # Perl 6 - @ instead of $
+=end item
+
+
+=begin item
+I<Value-slicing>
+
+    say join ',', @months[6, 8..11]; # Perl 5 and Perl 6
+=end item
+
+
+=begin item
+I<Key/value-slicing>
+
+    say join ',', %months[6, 8..11];    # Perl 5
+    say join ',', @months[6, 8..11]:kv; # Perl 6 - @ instead of %; use :kv adverb
+=end item
+
+Also note that the subscripting brackets are now a normal postcircumfix
+operator rather than a special syntactic form, and thus L<checking for
+existence of elements|#exists> and L<unsetting elements|#delete> is done
+with adverbs.
+
+=head3 {} Hash indexing/slicing
+
+Index and slice operations on hashes no longer inflect the variable's
+L<sigil|#%_Hash>, and adverbs can be used to control the type of slice.
+Also, single-word subscripts are no longer magically autoquoted inside the
+curly braces; instead, the new angle-brackets version is available which
+always autoquotes its contents (using the same rules as the C<qw//> quoting
+construct):
+
+=begin item
+I<Indexing>
+
+    say $calories{"apple"}; # Perl 5
+    say %calories{"apple"}; # Perl 6 - % instead of $
+
+    say $calories{apple}; # Perl 5
+    say %calories<apple>; # Perl 6 - angle brackets; % instead of $
+=end item
+
+=begin item
+I<Value-slicing>
+
+    say join ',', @calories{'pear', 'plum'}; # Perl 5
+    say join ',', %calories{'pear', 'plum'}; # Perl 6 - % instead of @
+    say join ',', %calories<pear plum>;      # Perl 6 (prettier version)
+=end item
+
+=begin item
+I<Key/value-slicing>
+
+    say join ',', %calories{'pear', 'plum'};    # Perl 5
+    say join ',', %calories{'pear', 'plum'}:kv; # Perl 6 - use :kv adverb
+    say join ',', %calories<pear plum>:kv;      # Perl 6 (prettier version)
+=end item
+
+Also note that the subscripting braces are now a normal postcircumfix
+operator rather than a special syntactic form, and thus L<checking for
+existence of keys|#exists> and L<removing keys|#delete> is done with
+adverbs.
 
 =head3 Reference creation
 
@@ -524,13 +555,6 @@ exclamation points instead of one colon.
     my $result = ( $score > 60 )  ? 'Pass'  : 'Fail'; # Perl 5
     my $result = ( $score > 60 ) ?? 'Pass' !! 'Fail'; # Perl 6
 
-=head3 C«->» (Arrow op) Method call, or dereferencing of arrayref|hashref|coderef
-
-Replaced by the dot op.
-
-    $object->method($argument); # Perl 5
-    $object.method($argument);  # Perl 6
-
 =head3 C<.> (Dot op) Concatenation
 
 Replaced by the tilde.
@@ -574,31 +598,6 @@ translation.
 In scalar context, C<..> and C<...> were the little-known Flipflop
 operators. They have been replaced by C<ff> and C<fff>.
 
-=head2 Data Structures
-
-=head3 Arrays and Lists
-
-=head3 Hashes
-
-As mentioned above in the section on L<#Sigils>, hashes in Perl 6 are always
-prefixed with a C<%>.
-
-Some functions for manipulating hashes and querying hash values have been
-turned into adverbs:
-
-=begin item
-I<Checking for element existence in a hash>
-
-    say "element exists" if exists $hash{$key};  # Perl 5
-    say "element exists" if %hash{$key}:exists;  # Perl 6 - exists controlled by adverb
-=end item
-
-=begin item
-I<Deleting an element in a hash>
-
-    my $deleted_value = delete $hash{$key};  # Perl 5
-    my $deleted_value = %hash{$key}:delete;  # Perl 6 - delete controlled by adverb
-=end item
 
 =head2 Compound Statements
 
@@ -728,6 +727,35 @@ Instead, use a C<NEXT> block within the body of the loop.
             }
         }
 
+
+=head2 Functions
+
+=comment NOTE FOR EDITORS: When adding functions, please place them in
+                           alphabetical order.
+
+=head3 C<delete>
+
+Turned into an adverb of the
+L<C<{}> hash subscripting|#{}_Hash_indexing/slicing>
+and L<C<[]> array subscripting|#[]_Array_indexing/slicing> operators.
+
+    my $deleted_value = delete $hash{$key};  # Perl 5
+    my $deleted_value = %hash{$key}:delete;  # Perl 6 - use :delete adverb
+    
+    my $deleted_value = delete $array[$i];  # Perl 5
+    my $deleted_value = %array[$i]:delete;  # Perl 6 - use :delete adverb
+
+=head3 C<exists>
+
+Turned into an adverb of the
+L<C<{}> hash subscripting|#{}_Hash_indexing/slicing>
+and L<C<[]> array subscripting|#[]_Array_indexing/slicing> operators.
+
+    say "element exists" if exists $hash{$key};  # Perl 5
+    say "element exists" if %hash{$key}:exists;  # Perl 6 - use :exists adverb
+    
+    say "element exists" if exists $array[$i];  # Perl 5
+    say "element exists" if @array[$i]:exists;  # Perl 6 - use :exists adverb
 
 
 =head2 Regular Expressions ( Regex / Regexp )
