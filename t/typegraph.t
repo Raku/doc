@@ -5,11 +5,6 @@ use Perl6::TypeGraph;
 
 plan 8;
 
-if $*VM.name eq 'parrot' {
-    skip_rest 'segfaults on parrot';
-    exit;
-}
-
 my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 ok $t, 'Could parse the file';
 ok $t.types<Array>, 'has type Array';
