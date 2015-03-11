@@ -32,7 +32,7 @@ use Pod::Htmlify;
 my $*DEBUG = False;
 
 my $type-graph;
-my %methods-by-type;
+my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
 
 # TODO: Generate menulist automatically
@@ -263,32 +263,32 @@ multi write-type-source($doc) {
         my @roles-todo = $type.roles;
         my %roles-seen;
         while @roles-todo.shift -> $role {
-            next unless %methods-by-type{$role};
+            next unless %routines-by-type{$role};
             next if %roles-seen{$role}++;
             @roles-todo.push: $role.roles;
             $pod.contents.push:
-                pod-heading("Methods supplied by role $role"),
+                pod-heading("Routines supplied by role $role"),
                 pod-block(
                     "$podname does role ",
                     pod-link($role.name, "/type/{uri_escape ~$role}"),
                     ", which provides the following methods:",
                 ),
-                %methods-by-type{$role}.list,
+                %routines-by-type{$role}.list,
                 ;
         }
         for @mro -> $class {
-            next unless %methods-by-type{$class};
+            next unless %routines-by-type{$class};
             $pod.contents.push:
-                pod-heading("Methods supplied by class $class"),
+                pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
                     pod-link($class.name, "/type/{uri_escape ~$class}"),
                     ", which provides the following methods:",
                 ),
-                %methods-by-type{$class}.list,
+                %routines-by-type{$class}.list,
                 ;
             for $class.roles -> $role {
-                next unless %methods-by-type{$role};
+                next unless %routines-by-type{$role};
                 $pod.contents.push:
                     pod-heading("Methods supplied by role $role"),
                     pod-block(
@@ -298,7 +298,7 @@ multi write-type-source($doc) {
                         pod-link($role.name, "/type/{uri_escape ~$role}"),
                         ", which provides the following methods:",
                     ),
-                    %methods-by-type{$role}.list,
+                    %routines-by-type{$role}.list,
                     ;
             }
         }
@@ -444,8 +444,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 $created.subkinds   = @subkinds;
                 $created.categories = @subkinds;
             }
-            if $subkinds ∋ 'method' {
-                %methods-by-type{$origin.name}.push: $chunk;
+            if %attr<kind> eq 'routine' {
+                %routines-by-type{$origin.name}.push: $chunk;
                 write-qualified-method-call(
                     :$name,
                     :pod($chunk),
@@ -698,6 +698,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         pod-block('From ', pod-link($type, "/type/{$type}#$name")),
         @$pod,
     );
+    return if $name ~~ / '/' /;
     spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
 }
 
