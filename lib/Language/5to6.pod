@@ -1065,6 +1065,99 @@ compiled bytecode.
 
 Rakudo supports this only for modules so far.
 
+=head3 Importing specific functions from a module
+
+In Perl 5 it is possible to selectively import functions from a given module
+like so:
+
+    use ModuleName qw{foo bar baz};
+
+In Perl 6 one specifies the functions which are to be exported by using the
+C<is export> role on the relevant subs and I<all> subs with this role are
+then exported.  Hence, the following module C<Bar> exports the subs C<foo>
+and C<bar> but not C<baz>:
+
+    module Bar;
+
+    sub foo($a) is export { say "foo $a" }
+    sub bar($b) is export { say "bar $b" }
+    sub baz($z) { say "baz $z" }
+
+To use this module, simply C<use Bar> and the functions C<foo> and C<bar>
+will be available
+
+    use Bar;
+    foo(1);    #=> "foo 1"
+    bar(2);    #=> "bar 2"
+
+If one tries to use C<baz> an "Undeclared routine" error is raised at compile time.
+
+So, how does one recreate the Perl 5 behaviour of being able to selectively
+import functions?  For this one needs to define an C<EXPORT> sub inside the
+module which specifies the functions to be exported and (in the current
+implementation of Rakudo (2015.03)) remove the C<module Bar> statement.
+(Please note that not having the C<module> statement isn't consistent with
+Synopsis 11, however it works.)
+
+The module C<Bar> now is merely a file called C<Bar.pm> with the following contents:
+
+    use v6;
+
+    sub EXPORT(*@import-list) {
+        my %exportable-subs =
+            '&foo' => &foo,
+            '&bar' => &bar,
+            ;
+        my %subs-to-export;
+        for @import-list -> $import {
+            if grep $sub-name, %exportable-subs.keys {
+                %subs-to-export{$sub-name} = %exportable-subs{$sub-name};
+            }
+        }
+        return %subs-to-export;
+    }
+
+    sub foo($a, $b, $c) { say "foo, $a, $b, $c" }
+    sub bar($a) { say "bar, $a" }
+    sub baz($z) { say "baz, $z" }
+
+Note that the subs are no longer explicitly exported via the C<is export>
+role.  We are defining an C<EXPORT> sub which specifies the subs in the
+module we want to be available for export and then we are populating a hash
+containing the subs which will actually be exported.  The C<@import-list> is
+set by the C<use> statement in the calling code thus allowing us to
+selectively import the subs made available by the module.
+
+So, to import only the C<foo> routine, we do the following in the calling code:
+
+    use Bar <foo>;
+    foo(1);       #=> "foo 1"
+
+Here we see that even though C<bar> is able to be exported, if we don't
+explicitly import it, it's not available for use.  Hence this causes an
+"Undeclared routine" error at compile time:
+
+    use Bar <foo>;
+    foo(1);
+    bar(5);       #!> "Undeclared routine: bar used at line 3"
+
+however, this will work
+
+    use Bar <foo bar>;
+    foo(1);       #=> "foo 1"
+    bar(5);       #=> "bar 5"
+
+Note also that C<baz> remains unimportable even if specified in the C<use>
+statement:
+
+    use Bar <foo bar baz>;
+    baz(3);       #!> "Undeclared routine: baz used at line 2"
+
+In order to get this to work, one obviously has to jump through many hoops.
+In the standard use-case where one specifies the functions to be exported
+via the C<is export> role, Perl6 automatically creates the C<EXPORT> sub in
+the correct manner for you, so one should consider very carefully whether or
+not writing one's own C<EXPORT> routine is worthwhile.
 
 =head2 Core modules
 
