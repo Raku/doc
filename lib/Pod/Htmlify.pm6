@@ -13,9 +13,11 @@ sub url-munge($_) is export {
     return $_;
 }
 
-sub footer-html() is export {
+sub footer-html is export {
     my $footer = slurp 'template/footer.html';
-    $footer.subst('DATETIME', ~DateTime.now);
+    $footer.subst-mutate(/DATETIME/, ~DateTime.now);
+
+    return $footer;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
