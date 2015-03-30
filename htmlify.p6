@@ -143,7 +143,8 @@ sub MAIN(
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         $doc.pod.contents.push: doc-source-reference($doc);
         say "Writing language document for {$doc.name} ...";
-        spurt "html{$doc.url}.html", p2h($doc.pod, 'language');
+        my $pod-filename = 'language/' ~ pod-filename-from-url($doc.url);
+        spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-filename);
     }
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -770,6 +771,12 @@ sub doc-source-reference($doc) {
             ".");
 
     return @doc-source-ref-pod;
+}
+
+sub pod-filename-from-url($url) {
+    my $pod-filename = $url.split(/\//)[*-1].subst('::', '/', :g) ~ '.pod';
+
+    return $pod-filename;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
