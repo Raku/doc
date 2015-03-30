@@ -143,7 +143,7 @@ sub MAIN(
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         $doc.pod.contents.push: doc-source-reference($doc);
         say "Writing language document for {$doc.name} ...";
-        my $pod-filename = 'language/' ~ pod-filename-from-url($doc.url);
+        my $pod-filename = pod-filename-from-url($doc.url);
         spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-filename);
     }
     for $*DR.lookup("type", :by<kind>).list {
@@ -774,7 +774,7 @@ sub doc-source-reference($doc) {
 }
 
 sub pod-filename-from-url($url) {
-    my $pod-filename = $url.split(/\//)[*-1].subst('::', '/', :g) ~ '.pod';
+    my $pod-filename = $url.subst('::', '/', :g) ~ '.pod';
 
     return $pod-filename;
 }
