@@ -775,6 +775,7 @@ sub doc-source-reference($doc) {
 
 sub pod-filename-from-url($url) {
     my $pod-filename = $url.subst('::', '/', :g) ~ '.pod';
+    $pod-filename.subst-mutate(/^\//, '');  # trim leading slash from path
 
     return $pod-filename;
 }
