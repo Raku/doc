@@ -594,7 +594,9 @@ sub write-disambiguation-files () {
 
 sub write-index-files () {
     say 'Writing html/index.html ...';
-    spurt 'html/index.html', p2h EVAL slurp('lib/HomePage.pod') ~ "\n\$=pod";
+    spurt 'html/index.html',
+        p2h(EVAL(slurp('lib/HomePage.pod') ~ "\n\$=pod"),
+            pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
