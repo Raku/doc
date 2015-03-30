@@ -309,7 +309,8 @@ multi write-type-source($doc) {
     }
 
     my $html-filename = "html" ~ $doc.url ~ ".html";
-    spurt $html-filename, p2h($pod, $what);
+    my $pod-path = pod-path-from-url($doc.url);
+    spurt $html-filename, p2h($pod, $what, $pod-path);
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
