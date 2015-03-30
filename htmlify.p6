@@ -45,7 +45,6 @@ my @menu =
 ;
 
 my $head   = slurp 'template/head.html';
-my $footer = footer-html;
 sub header-html ($current-selection = 'nothing selected') is cached {
     state $header = slurp 'template/header.html';
 
@@ -82,7 +81,7 @@ sub p2h($pod, $selection = 'nothing selected') {
         :url(&url-munge),
         :$head,
         :header(header-html $selection),
-        :$footer,
+        :footer(footer-html),
         :default-title("Perl 6 Documentation"),
 }
 
