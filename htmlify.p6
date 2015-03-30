@@ -76,12 +76,12 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
 }
 
-sub p2h($pod, $selection = 'nothing selected', $pod-filename = 'unknown') {
+sub p2h($pod, $selection = 'nothing selected', $pod-path = 'unknown') {
     pod2html $pod,
         :url(&url-munge),
         :$head,
         :header(header-html $selection),
-        :footer(footer-html($pod-filename)),
+        :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
 }
 
@@ -143,8 +143,8 @@ sub MAIN(
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         $doc.pod.contents.push: doc-source-reference($doc);
         say "Writing language document for {$doc.name} ...";
-        my $pod-filename = pod-filename-from-url($doc.url);
-        spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-filename);
+        my $pod-path = pod-path-from-url($doc.url);
+        spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-path);
     }
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -773,11 +773,11 @@ sub doc-source-reference($doc) {
     return @doc-source-ref-pod;
 }
 
-sub pod-filename-from-url($url) {
-    my $pod-filename = $url.subst('::', '/', :g) ~ '.pod';
-    $pod-filename.subst-mutate(/^\//, '');  # trim leading slash from path
+sub pod-path-from-url($url) {
+    my $pod-path = $url.subst('::', '/', :g) ~ '.pod';
+    $pod-path.subst-mutate(/^\//, '');  # trim leading slash from path
 
-    return $pod-filename;
+    return $pod-path;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
