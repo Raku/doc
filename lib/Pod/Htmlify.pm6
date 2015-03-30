@@ -16,7 +16,14 @@ sub url-munge($_) is export {
 sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';
     $footer.subst-mutate(/DATETIME/, ~DateTime.now);
-    $footer.subst-mutate(/SOURCEPATH/, $pod-path, :g);
+    my $pod-url;
+    if $pod-path eq "unknown" {
+        $pod-url = "the sources at <a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>";
+    }
+    else {
+        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/lib/$pod-path'>$pod-path\</a\>";
+    }
+    $footer.subst-mutate(/SOURCEURL/, $pod-url);
 
     return $footer;
 }
