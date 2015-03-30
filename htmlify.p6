@@ -141,7 +141,6 @@ sub MAIN(
     $*DR.compose;
 
     for $*DR.lookup("language", :by<kind>).list -> $doc {
-        $doc.pod.contents.push: doc-source-reference($doc);
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
         spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-path);
@@ -302,7 +301,6 @@ multi write-type-source($doc) {
                     ;
             }
         }
-        $pod.contents.push: doc-source-reference($doc);
     }
     else {
         note "Type $podname not found in type-graph data";
@@ -759,21 +757,7 @@ def p6format(code):
     }
 }
 
-#| Append a section to the pod document referencing the source on GitHub
-#| Note that we link to the raw source since GitHub isn't always able to
-#| render Pod6 properly.
-sub doc-source-reference($doc) {
-    # XXX: it would be nice to have a filename attribute for pod documents
-    my $pod-filename = $doc.url.split(/\//)[*-1].subst('::', '/', :g) ~ '.pod';
-    my $kind = $doc.kind.tclc;
-    my @doc-source-ref-pod =
-        pod-block("This documentation was generated from ",
-            pod-link("$pod-filename","https://github.com/perl6/doc/raw/master/lib/$kind/$pod-filename"),
-            ".");
-
-    return @doc-source-ref-pod;
-}
-
+#| Determine path to source POD from the POD object's url attribute
 sub pod-path-from-url($url) {
     my $pod-path = $url.subst('::', '/', :g) ~ '.pod';
     $pod-path.subst-mutate(/^\//, '');  # trim leading slash from path
