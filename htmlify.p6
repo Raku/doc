@@ -76,7 +76,7 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
 }
 
-sub p2h($pod, $selection = 'nothing selected', $pod-path = 'unknown') {
+sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
     pod2html $pod,
         :url(&url-munge),
         :$head,
@@ -143,7 +143,8 @@ sub MAIN(
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
-        spurt "html{$doc.url}.html", p2h($doc.pod, 'language', $pod-path);
+        spurt "html{$doc.url}.html",
+            p2h($doc.pod, 'language', pod-path => $pod-path);
     }
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
@@ -308,7 +309,7 @@ multi write-type-source($doc) {
 
     my $html-filename = "html" ~ $doc.url ~ ".html";
     my $pod-path = pod-path-from-url($doc.url);
-    spurt $html-filename, p2h($pod, $what, $pod-path);
+    spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
