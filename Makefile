@@ -7,7 +7,7 @@ html-nohighlight:
 	perl6 htmlify.p6 --no-highlight
 
 sparse:
-	perl6 htmlify.p6 --no-highlight --sparse=5
+	perl6 htmlify.p6 --no-highlight --sparse=10
 
 test:
 	prove --exec perl6 -r t
