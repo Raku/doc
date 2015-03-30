@@ -13,9 +13,10 @@ sub url-munge($_) is export {
     return $_;
 }
 
-sub footer-html is export {
+sub footer-html($pod-filename) is export {
     my $footer = slurp 'template/footer.html';
     $footer.subst-mutate(/DATETIME/, ~DateTime.now);
+    $footer.subst-mutate(/SOURCEFILE/, $pod-filename);
 
     return $footer;
 }

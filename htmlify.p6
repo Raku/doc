@@ -76,12 +76,12 @@ sub header-html ($current-selection = 'nothing selected') is cached {
     $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
 }
 
-sub p2h($pod, $selection = 'nothing selected') {
+sub p2h($pod, $selection = 'nothing selected', $pod-filename = 'unknown') {
     pod2html $pod,
         :url(&url-munge),
         :$head,
         :header(header-html $selection),
-        :footer(footer-html),
+        :footer(footer-html($pod-filename)),
         :default-title("Perl 6 Documentation"),
 }
 
