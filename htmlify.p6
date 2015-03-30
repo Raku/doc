@@ -761,6 +761,7 @@ def p6format(code):
 sub pod-path-from-url($url) {
     my $pod-path = $url.subst('::', '/', :g) ~ '.pod';
     $pod-path.subst-mutate(/^\//, '');  # trim leading slash from path
+    $pod-path = $pod-path.tc;
 
     return $pod-path;
 }
