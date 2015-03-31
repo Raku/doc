@@ -32,7 +32,7 @@ subtest {
 
 subtest {
     plan 1;
-    isnt(footer-html(), "", "footer text isn't empty");
+    isnt(footer-html("/home/camelia/this_text.pod"), "", "footer text isn't empty");
 }, "footer-html";
 
 # vim: expandtab shiftwidth=4 ft=perl6
