@@ -103,7 +103,7 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     my @new-content;
     for @content {
         @new-content.push($_ ~~ Pod::Heading
-            ?? Pod::Heading.new :level(.level - $by + $to) :contents[.contents]
+            ?? Pod::Heading.new: :level(.level - $by + $to) :contents[.contents]
             !! $_
         );
     }
