@@ -1,0 +1,340 @@
+=begin pod
+
+=TITLE Syntax
+
+=SUBTITLE General rules of Perl 6 syntax
+
+Perl 6 borrows many concepts from human language. Which is not surprising,
+considering it was designed by a linguist.
+
+It reuses common elements in different contexts, has the notion of nouns
+(terms) and verbs (operators), is context-sensitive (in the every day sense, not
+necessarily in the Computer Science interpretation), so a symbol can have a
+different meaning depending on whether a noun or a verb is expected.
+
+It is also self-clocking, so that the parser can detect most of the common
+errors and give good error messages.
+
+=head1 Lexical Conventions
+
+Perl 6 code is Unicode text, current implementations support UTF-8 as the
+input encoding.
+
+=head2 Free Form
+
+It is free-form, in the sense that you are mostly free to
+chose the amount of whitespace you chose, though in some cases, the presence
+or absensce of whitespace carries meaning.
+
+So you can write
+
+=begin code
+if True {
+    say "Hello";
+}
+=end code
+
+or
+
+=begin code
+    if True {
+say "Hello";
+        }
+=end code
+
+or
+
+=begin code
+if True { say "Hello" }
+=end code
+
+or even
+
+=begin code
+if True {say "Hello"}
+=end code
+
+though you can't leave out any of the remaining whitespace.
+
+=head2 Separating Statements
+
+A Perl 6 program is a list of statements, separated by semicolons C<;>.
+A semicolon after the final statement (or after the final statement inside a
+block) is optional, though it's good form to include it.
+
+A closing curling brace followed by a newline character implies a statement
+separator, which is why you don't need to write a semicolon before the last
+line in the code
+
+=begin code
+if True {
+    say "Hello";
+}
+say "world";
+=end code
+
+Both semicolons are optional here, but leaving them out increases the chance
+of syntax errors when adding more lines later.
+
+=head2 Comments
+
+Comments are parts of the program text only intended for human readers, and
+the Perl 6 compilers does not evaluate them as program text.
+
+Comments count as whitespace in places where the absence of presence of
+whitespace disambiguates possible parses.
+
+=head3 Single-line comments
+
+The most common form of comments in Perl 6 starts with a single hash character
+C<#> and goes until the end of the line.
+
+=begin code
+
+if $age > 250 {     # catch obvious outliers
+    # this is another comment!
+    die "That doesn't look right"
+}
+=end code
+
+=head3 Embedded comments
+
+Embedded comments start with a hash character, followed by a backticket, and
+then some opening bracketing character, and end with the matching closing
+bracketing character.
+
+    if #`( why would I ever write an inline comment here? ) True {
+        say "something stupid";
+    }
+
+Brackets inside the comment can be nested, so in C<#`{ a { b } c }>, the
+comment goes until the very end of the string.
+
+=head3 Multiline comments
+
+Pod syntax can be used for multi-line comments
+
+=begin code
+say "this is code";
+
+=begin comment
+
+Here are several
+lines
+of comment
+
+=end comment
+
+say 'code again';
+=end code
+
+=comment TODO: identifiers
+
+=head1 Statements and Expressions
+
+Perl 6 programs are made of lists of statements. A special case of a statement
+is an I<expression>, which returns a value. For example C<if True { say 42 }>
+is syntactically a statement, but not an expression, whereas C<1 + 2> is an
+expression (and thus also a statement).
+
+The C<do> prefix turns statements into expressions. So while
+
+    my $x = if True { 42 };     # Syntax error!
+
+is an error,
+
+   my $x = do if True { 42; };
+
+assigns the return value of the if statement (here C<42>) to the variable
+C<$x>.
+
+
+=head1 Terms
+
+Terms are the basic nouns that, optionally together with operators, can form
+expressions. Examples for terms are variables (C<$x>), barewords such as type
+names (C<Int>), literals (C<42>), declarations (C<sub f() { }>) and calls
+(C<f()>).
+
+For example, in the expression C<2 * $salary>, C<2> and C<$salary> are two
+terms (an L<integer|/type/Int> literal and a L<variable|/language/variables>).
+
+=head2 Variables
+
+Variables typically start with a special character called the I<sigil>, and
+are followed by an identifier. Variables must be declared before you can use
+them.
+
+    # declaration:
+    my $number = 21;
+    # usage:
+    say $number * 2;
+
+See the L<documentation on variables|/language/variables> for more details.
+
+
+=head2 Barewords (Constants, Type Names)
+
+Pre-declared identifiers can be terms on their own. Those are typically type
+names or constants, but also the term C<self> which refers to an objectt that
+a method was called on (see L<objects|/language/objects>), and sigilles
+variables:
+
+    say Int;                # (Int)
+    #   ^^^ type name (built in)
+
+    constant answer = 42;
+    say answer;
+    #   ^^^^^^ constant
+
+    class Meta {
+        method type-name {
+            self.^name;
+          # ^^^^ built-in term 'self'
+        }
+    }
+    say Meta.type-name;     # Meta
+    #   ^^^^ type name
+
+
+=head2 Literals
+
+A L<literal|https://en.wikipedia.org/wiki/Literal_%28computer_programming%29>
+is a representation of a constant value in source code. Perl 6 has literals
+for several built-in types, like L<strings|/type/Str>, several numeric types,
+L<pairs|/type/Pair> and more.
+
+
+=head3 String literals
+
+String literals are surrounded by quotes:
+
+    say 'a string literal';
+    say "a string literal\nthat interprets escape sequences";
+
+See L<quoting|/language/quoting> for many more options.
+
+=head3 Blob literals
+
+Binary data of L<type Blob|/type/Blob> can be written as C<:base{data}>, so
+
+    :16<DE AD BE EF>
+
+=head3 Number literals
+
+Number literals are generally specified in base ten, unless a prefix like
+C<0x> (heB<x>ademcimal, base 16), C<0o> (B<o>ctal, base 8) or C<0b>
+(B<b>inary, base 2) or an explicit base in adverbial notation like
+C<< :16<A0> >> specifies it otherwise. Unlike other programming languages,
+leading zeros do I<not> indicate base 8; instea a compile-time warning is
+issued
+
+In all literal formats, you can use underscores to group digits;
+they don't carry any semantic; the following literals all evaluate to the same
+number:
+
+    1000000
+    1_000_000  
+    10_0000
+    10_00_00
+
+=head4 L<Int|/type/Int> literals
+
+    -2
+    12345
+    0xBEEF      # base 16
+    0o755       # base 8
+
+=comment TODO adverbial bases with :20<...>
+
+=head4 L<Rat|/type/Rat> literals
+
+    1.0
+    3.14159
+    -2.5
+
+=comment TODO adverbial bases with :20<...>
+
+=head4 L<Num|/type/Num> literals
+
+Scientific notation with an exponent to base ten after an C<e> produces
+L<floating point number|/type/Num>:
+
+    1e0
+    6.022e23
+    1e-9
+    -2e48
+
+=head4 L<Complex|/type/Complex> literals
+
+L<Complex|/type/Complex> numbers are written either as an imaginary number
+(which is just a rational number with postfix C<i> appended), or as a sum of
+a real and an imaginary number:
+
+    1+2i
+    6.123e5i
+
+
+=head3 Pair literals
+
+Pairs are made of a key and a value, and there are two basic forms for
+constructing them: C<< key => 'value' >> and C<:key('value')>.
+
+=head4 Arrow pairs
+
+Arrow pairs can have an expression or an identifier on the left-hand side:
+
+    identifer => 42
+    "identifier" => 42
+    ('a' ~ 'b') => 1
+
+=head4 Adverbial pairs (colon pairs)
+
+Short forms without explicit values:
+
+    my $thing = 42;
+    :$thing                 # same as  thing => $thing
+    :thing                  # same as  thing => True
+    :!thing                 # same as  thing => False
+
+The variable form also works with other sigils, like C<:&callback> or
+C<:@elements>.
+
+Long forms with explicit values:
+
+    :thing($value)              # same as  thing => $value
+    :thing<quoted list>         # same as  thing => <quoted list>
+    :thing['some', 'values']    # same as  thing => ['some', 'values']
+    :thing{a => 'b'}            # same as  thing => { a => 'b' }
+
+=begin comment
+
+=head3 Array literals
+
+TODO
+
+=head3 Hash literals
+
+TODO
+
+=head3 Regex literals
+
+TODO
+
+=head2 Declarations
+
+TODO
+
+=head2 Subroutine calls
+
+TODO
+
+=head1 Operators
+
+TODO: link to language/operators
+
+=head1 
+
+=end comment
+
+=end pod

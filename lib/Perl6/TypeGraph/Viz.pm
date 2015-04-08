@@ -65,7 +65,7 @@ class Perl6::TypeGraph::Viz {
         @dot.push: "\n    // Types\n";
         for @.types -> $type {
             my $color = $type.packagetype eq 'role' ?? $.role-color !! $.class-color;
-            @dot.push: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name ~ '.html' }\", fontname=\"FreeSans\"];\n";
+            @dot.push: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name }\", fontname=\"FreeSans\"];\n";
         }
 
         @dot.push: "\n    // Superclasses\n";
