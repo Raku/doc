@@ -1,0 +1,108 @@
+=begin pod
+
+=TITLE Exceptions
+
+=SUBTITLE Using exceptions in Perl 6
+
+Exceptions in Perl 6 are a special kind of object used to signify when
+something has gone wrong, for instance, unexpected data was received, a
+network connection is no longer available, or a file is missing which was
+expected to exist.
+
+All built-in exceptions inherit from L<Exception>, which provides some basic
+behavior, such as storing a backtrace and providing an interface for the
+backtrace printer.
+
+=head2 Ad-hoc exceptions
+
+Ad-hoc exceptions work just like in traditional Perl 5, one can simply use
+C<die> with a message as to what went wrong:
+
+    die "oops, something went wrong";
+    #!> oops, something went wrong in block <unit> at /tmp/0IeSX_XSWO:1
+
+=head2 Typed exceptions
+
+Typed exceptions provide more information about the kind of error that
+occured within the exception object itself.  For instance, if while
+executing C<.zompie copy> on an object the path C<foo/bar> is unavailable
+(and was expected to be available), then one could raise an
+L<X::IO::DoesNotExist> exception like so:
+
+    die X::IO::DoesNotExist.new(:path("foo/bar"), :trying("zombie copy"))
+    #!> Failed to find 'foo/bar' while trying to do '.zombie copy'
+    #!> in block <unit> at /tmp/BgTfZOotgc:1
+
+Note how the object has provided the backtrace with information about what
+went wrong so that hopefully the user of the code can find and correct the
+issue more easily.
+
+=head2 Catching exceptions
+
+It is possible to handle exceptional circumstances by supplying a C<CATCH> block:
+
+    die X::IO::DoesNotExist.new(:path("foo/bar"), :trying("zombie copy"));
+    CATCH {
+        when X::IO { say "some kind of IO exception was caught!" }
+    }
+    #!> some kind of IO exception was caught!
+
+Here, we are saying that if any exception of type C<X::IO> occurs, then the
+message C<some kind of IO exception was caught!> will be displayed.
+
+A C<CATCH> block uses smart matching similarly to how C<given/when> smart
+matches on options, thus it is possible to catch various categories of
+exceptions and handle them appropriately inside a C<when> block.
+
+=head2 Throwing exceptions
+
+One can also explicitly throw exceptions via the C<.throw> method on an
+C<Exception> object.
+
+This example throws an C<AdHoc> exception, catching it and allowing the code
+to continue from the point of the exception.
+
+    {
+        X::AdHoc.new(:payload<foo>).throw;
+        "OHAI".say;
+        CATCH {
+            when X::AdHoc { $_.resume }
+        }
+    }
+    "OBAI".say;
+    #-> OHAI
+    #-> OBAI
+
+If the C<CATCH> block doesn't match the exception thrown, then the
+exception's payload is passed on to the backtrace printing mechanism.
+
+    {
+        X::AdHoc.new(:payload<foo>).throw;
+        "OHAI".say;
+        CATCH {  }
+    }
+    "OBAI".say;
+    #!> foo
+    #!> in block <unit> at /tmp/FbtB60dxVO:1
+
+This example doesn't resume from the point of the exception, however
+continues after the enclosing block, since the exception was caught and
+control continues after the C<CATCH> block.
+
+    {
+        X::AdHoc.new(:payload<foo>).throw;
+        "OHAI".say;
+        CATCH {
+            when X::AdHoc { }
+        }
+    }
+    "OBAI".say;
+    #-> OBAI
+
+C<throw> can be viewed as the method form of C<die>, just that in this
+particular case, the sub and method forms of the routine have different
+names.
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
