@@ -16,12 +16,12 @@
 
 =end comment
 
-=head2 given/when/default
+=head2 given
 
-The C<given> statement is Perl 6's topicalizing keyword in the same way that
-C<switch> topicalizes in languages such as C.  The keyword for individual
-cases is C<when> and C<default> for the default case.  The usual idiom
-looks like this:
+The C<given> statement is Perl 6's topicalizing keyword in a similar way that
+C<switch> topicalizes in languages such as C.  In other words, C<given>
+sets C<$_> inside the following block.  The keywords for individual cases
+are C<when> and C<default>.  The usual idiom looks like this:
 
     given EXPR {
         when EXPR { ... }
@@ -29,20 +29,43 @@ looks like this:
         default { ... }
     }
 
-The C<when> expressions C<EXPR> are smart matched against the given value
-such that it is possible to check against values, regular expressions, and
-types when specifying a match.
+The C<given> statement is often used alone:
+
+    given EXPR { .say; .Numeric; }
+
+This is a lot more understandable than:
+
+    { .say; .Numeric; }(EXPR)
+
+
+=head3 default and when
+
+A block containing a C<default> statement will be left immediately
+when the sub-block after the C<default> statement is left.  It is
+as though the rest of the statements in the block are skipped.
 
     given 42 {
-        when Int { .say }
-        default  { say "how did I get here?" }
+        "This says".say;
+        $_ == 42 and ( default { "This says, too".say; 43; } );
+        "This never says".say;
     }
-    #-> 42
+    # The above block evaluates to 43
+
+A C<when> statement will also do this.
+
+In addition, C<when> statements C<smartmatch> the topic (C<$_>) against
+a supplied expression such that it is possible to check against values,
+regular expressions, and types when specifying a match.
+
+    for 42, 43, "foo", 44 {
+        when Int { .say }
+        default  { say "Not an Int" }
+    }
+    #-> 42 43 Not an Int 44
 
 In this form, the C<given>/C<when> construct acts much like a set of
-C<if>/C<elsif>/C<else> statements.  Thus it is necessary to be careful
-with the order of the C<when> statements.  The following code says
-C<"Int"> not C<42>.
+C<if>/C<elsif>/C<else> statements.  Be careful with the order of the
+C<when> statements.  The following code says C<"Int"> not C<42>.
 
     given 42 {
         when Int { say "Int" }
@@ -51,9 +74,23 @@ C<"Int"> not C<42>.
     }
     #-> Int
 
-To enter multiple when blocks one can use the C<proceed> and C<succeed>
-statements.  C<proceed> will match once more after a successful
-match, like so:
+=head3 proceed and succeed
+
+Both C<proceed> and C<succeed> are meant to be used only from inside C<when>
+or C<default> blocks.
+
+The C<proceed> statement will immediately leave the C<when> or C<default>
+block, skipping the rest of the statements, and resuming after the block.
+This prevents the C<when> or C<default> from exiting the outer block.
+
+    default {
+        proceed;
+        "This never says".say
+    }
+    "This says".say;
+
+This is most often used to enter multiple C<when> blocks.  C<proceed> will
+resume matching after a successful match, like so:
 
     given 42 {
         when Int   { say "Int"; proceed }
@@ -80,17 +117,18 @@ the C<given> value once more, consider this code:
     #-> Int
     #-> 42
 
-which matches the C<Int>, skips C<43> since the value doesn't match, matches
+...which matches the C<Int>, skips C<43> since the value doesn't match, matches
 C<42> since this is the next positive match, but doesn't enter the
-C<default> block since the C<when 42> block doesn't contain a C<proceeds>.
+C<default> block since the C<when 42> block doesn't contain a C<proceed>.
 
 By contrast, the C<succeed> keyword shortcircuits execution and exits the
-C<given> block at that point.
+entire C<given> block at that point.  It may also take an argument to
+specify a final value for the block.
 
     given 42 {
         when Int {
             say "Int";
-            succeed;
+            succeed "Found";
             say "never this!";
         }
         when 42 { say 42 }
