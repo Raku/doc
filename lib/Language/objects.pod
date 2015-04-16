@@ -471,6 +471,48 @@ class MyClass {
 
 =comment TODO: better example for BUILDALL overriding
 
+=head2 Object Cloning
+
+The C<Mu> parent class, from which all classes inherit, supplies a
+method named L<clone> which is somewhat magical, in that it can copy
+values from an instance's private attributes to create a new instance.
+This cloning is shallow, in that it only binds attributes to
+the same values they contained in the original instance; it does
+not make copies of those contained values.
+
+As with C<new>, one may provide initial values for public attributes.
+These override values received from the original instance.  (See
+the documentation for Mu's L<clone> for an example.)
+
+Note that since C<clone> is not a C<submethod>, a class which provides
+its own C<clone> method will replace the C<Mu> method.  There is no
+automatic mechanism like C<BUILDALL> for cloning.  For example, if one
+wished to make clone deeper for a particular class, one would will
+probably want to use C<callwith> or C<nextwith> to push the deeper
+copies to superclasses:
+
+    class A {
+        has $.a;
+        #...
+        method clone {
+            nextwith(:a($.a.clone))
+        }
+    }
+
+This works well for simple classes, but in some cases one might need
+to follow C<BUILDALL>'s lead and work in reverse method resolution
+order:
+
+    class B is A {
+        has $.b;
+        #...
+        method clone {
+            my $obj = callsame;
+            $obj.b = $!b.clone(:seed($obj.a.generate_seed));
+            $obj
+        }
+    }
+
 =head1 X<Roles|declarator,role>
 
 Roles are in some ways similar to classes, in that they are a collection of
