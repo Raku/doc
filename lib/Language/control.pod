@@ -4,9 +4,62 @@
 
 =SUBTITLE Statements used to control the flow of execution
 
-=begin comment
+=head2 blocks
+
+Like many languages, Perl6 uses C<blocks> delimited by C<{> and C<}> 
+to compartmentalize code.  When a block stands alone as a statement,
+it will be entered immediately after the statement before it finishes,
+and the statements inside it will be executed.  Otherwise, a block
+simply creates a closure, which may be executed at a later time:
+
+    say "We get here"; { say "then here." }; { say "not here"; 0; } or die;
+
+In the above example, after running the first statement, the first
+block stands alone as a second statement, so we run the statement inside
+it.  The second block does not stand alone as a statement, so it instantiates
+an object of type C<Block>, but does not run it.  Since any object instance
+is true, the code does not die, even though that block would evaluate to 0,
+were it to be executed.
+
+Most of the flow control constructs covered below are just ways to
+tell perl6 when, how, and how many times, to enter blocks like that
+second block.
 
 =head2 do
+
+The simplest way to run a block where it cannot be a stand-alone statement
+is by writing C<do> before it:
+
+    # This dies half of the time
+    do { say "Heads I win, tails I die."; Bool.pick } or die; say "I win."
+
+Note that you need a space between the do and the block.
+
+The whole C<do {...}> evaluates to the final value of the block.  The block
+will be run when that value needed in order to evaluate the rest of the
+expression.  So:
+
+    False and do { 42.say };
+
+...will not say 42.  However, the block is only evaluated once each time
+the expression it is contained in is evaluated:
+
+    # This says "..1 ..2 ..3" not "..1 ...2 ....3"
+    my $f = "."; say do { $f ~= "." } X~ 1,2,3;
+
+In other words, it follows the same reification rules as everything else.
+
+Technically, C<do> is a loop which runs exactly one iteration.
+
+The C<do> may actually also be used on a statement (i.e. without brackets)
+but this is mainly just useful for avoiding the syntactical need to
+parenthesize a statement if it is the last thing in an expression:
+
+    1, do if (1) { 2 }  ; #-> 1, 2
+    1,   (if (1) { 2 }) ; #-> 1, 2
+    1,    if (1) { 2 }  ; # Syntax error
+
+=begin comment
 
 =head2 if/elsif/else
 
