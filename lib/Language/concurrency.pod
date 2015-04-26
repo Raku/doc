@@ -60,6 +60,53 @@ to be useful directly in user code.
 
 =head2 Schedulers
 
+The next level of the concurrency API is that supplied by classes that
+provide the interface defined by the role L<Scheduler>.  The intent
+of the scheduler interface is to provide a mechanism to determine which
+resources to use to run a particular task and when to run it. The majority
+of the higher level concurrency APIs are built upon a scheduler and it
+may not be necessary for user code to use them at all, although some
+methods such as those found in L<Proc::Async>, L<Promise> and L<Supply>
+allow you to explicitly supply a scheduler.
+
+The current default global scheduler is available in the variable
+C<$*SCHEDULER>.
+
+The primary interface of a scheduler (indeed the only method required
+by the L<Scheduler> interface) is the C<cue> method:
+
+     method cue(:&code, Instant :$at, :$in, :$every, :$times = 1; :&catch)
+
+This will schedule the L<Callable> in C<&code> to be executed in the
+manner determined by the adverbs (as documented in L<Scheduler>) using
+the execution scheme as implemented by the scheduler. For example:
+
+     my $i = 0;
+     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
+     sleep 20;
+
+Assuming that the C<$*SCHEDULER> hasn't been changed from the default,
+will print the numbers 0 to 10 approximately (i.e with operating system
+scheduling tolerances) every two seconds.  In this case the code will
+be scheduled to run until the program ends normally, however the method
+returns a L<Cancellation> object which can be used to cancel the scheduled
+execution before normal completion:
+
+     my $i = 0;
+     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
+     sleep 10;
+     $cancellation.cancel;
+     sleep 10;
+
+should only output 0 to 5,
+
+
+
+
+=head3 ThreadPoolScheduler
+
+=head3 CurrentThreadScheduler
+
 =begin comment
 
 =head2 promises
