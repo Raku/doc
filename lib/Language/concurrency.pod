@@ -5,13 +5,15 @@
 =SUBTITLE Concurrency and Asynchronous Programming
 
 In common with most modern programming languages Perl 6 is designed
-to support concurrency (allowing more than one thing to happen at the
+to L<support concurrency|http://en.wikipedia.org/wiki/Concurrent_computing>
+(allowing more than one thing to happen at the
 same time,) and asynchronous programming (sometime called event driven
 or reactive programming - that is an event or change in some part of a
 program may lead to an event or change in some other part of the program
 asynchronously to the program flow. )
 
-The aim of the Perl concurrency design is to provide a consistent
+The aim of the Perl concurrency design is to provide a high-level,
+composable, consistent
 interface regardless of how a virtual machine may implement it for a
 particular operating system, through layers of facilities as described
 below.
@@ -26,129 +28,45 @@ hyper-operators, autothreading junctions?
 
 Additionally certain Perl features may implicitly operate in am asynchronous
 fashion, so in order to ensure predictable interoperation with these features
-user code should, where possible, avoid the lower level concurrency APIs 
+user code should, where possible, avoid the lower level concurrency APIs
 (i.e. L<Thread> and L<Scheduler> ) and use the higher-level interfaces.
 
-=head2 Threads
-
-The lowest level interface for concurrency is provided by L<Thread>. A
-thread can be thought of as a piece of code that may eventually be run
-on a processor, the arrangement for which is made almost entirely by the
-virtual machine and/or operating system. Threads should be considered,
-for all intents, largely un-managed and their direct use should be
-avoided in user code.
-
-A thread can either be created and then actually run later:
-
-    my $thread = Thread.new(code => { for  1 .. 10  -> $v { say $v }});
-    # ...
-    $thread.run;
-
-Or can be created and run at a single invocation:
-
-    my $thread = Thread.start({ for  1 .. 10  -> $v { say $v }});
-
-In both cases the completion of the code encapsulated by the L<Thread>
-object can be waited on with the C<finish> method which will block until
-the thread completes:
-
-    $thread.finish;
-
-Beyond that there are  no further facilities for synchronization or resource
-sharing which is largely why it should be emphasised that threads are unlikely
-to be useful directly in user code.
-
-
-=head2 Schedulers
-
-The next level of the concurrency API is that supplied by classes that
-provide the interface defined by the role L<Scheduler>.  The intent
-of the scheduler interface is to provide a mechanism to determine which
-resources to use to run a particular task and when to run it. The majority
-of the higher level concurrency APIs are built upon a scheduler and it
-may not be necessary for user code to use them at all, although some
-methods such as those found in L<Proc::Async>, L<Promise> and L<Supply>
-allow you to explicitly supply a scheduler.
-
-The current default global scheduler is available in the variable
-C<$*SCHEDULER>.
-
-The primary interface of a scheduler (indeed the only method required
-by the L<Scheduler> interface) is the C<cue> method:
-
-     method cue(:&code, Instant :$at, :$in, :$every, :$times = 1; :&catch)
-
-This will schedule the L<Callable> in C<&code> to be executed in the
-manner determined by the adverbs (as documented in L<Scheduler>) using
-the execution scheme as implemented by the scheduler. For example:
-
-     my $i = 0;
-     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
-     sleep 20;
-
-Assuming that the C<$*SCHEDULER> hasn't been changed from the default,
-will print the numbers 0 to 10 approximately (i.e with operating system
-scheduling tolerances) every two seconds.  In this case the code will
-be scheduled to run until the program ends normally, however the method
-returns a L<Cancellation> object which can be used to cancel the scheduled
-execution before normal completion:
-
-     my $i = 0;
-     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
-     sleep 10;
-     $cancellation.cancel;
-     sleep 10;
-
-should only output 0 to 5,
-
-Despite the apparent advantage the L<Scheduler> interface provides over
-that of L<Thread> all of functionality is available through higher level
-interfaces and it shouldn't be necessary to use a scheduler directly,
-except perhaps in the cases mentioned above where a scheduler can be
-supplied explicitly to certain methods.
-
-A library may wish to provide an alternative scheduler implementation if
-it has special requirements, for instance a UI library may want all code
-to be run within a single UI thread, or some custom priority mechanism
-may be required, however the implementations provided as standard and
-described below should suffice for most user code.
-
-=head3 ThreadPoolScheduler
-
-The L<ThreadPoolScheduler> is the default scheduler, it maintains a pool
-of threads that are allocated on demand, creating new ones as necessary up
-to maximum number given as a parameter when the scheduler object was created
-(the default is 16.)  If the maximum is exceeded then C<cue> may queue the
-code until such time as a thread becomes available.
-
-Rakudo allows the maximum number of threads allowed in the default scheduler
-to be set by the environment variable C<RAKUDO_MAX_THREADS> at the time
-the program is started.
-
-=head3 CurrentThreadScheduler
-
-The L<CurrentThreadScheduler> is a very simple scheduler that will always
-schedule code to be run straight away on the current thread. The implication
-is that C<cue> on this scheduler will block until the code finishes
-execution, limiting its utility to certain special cases such as testing.
+=head1 High-level APIs
 
 =head2 Promises
 
-A L<Promise> can be thought of as encapsulating the result of the execution
-of some code that may not have completed or even started at the time the
-promise is obtained.  They provide much of the functionality that user code
-will need to operate in a concurrent or asynchronous manner.
+A L<Promise|/type/Promise> (also called I<future> in other programming
+environments) encapsulates the result of a computation
+that may not have completed or even started at the time the
+promise is obtained.  It provides much of the functionality that user code
+needs to operate in a concurrent or asynchronous manner.
 
-At simplest promises can be thought of as a mechanism for asynchronously
-chaining the results of various callable code:
+=begin code
+my $p1 = Promise.new;
+say $p1.status;         # Planned;
+$p1.keep('result');
+say $p1.status;         # Kept
+say $p1.result;         # result
 
-     my $promise1 = Promise.new();
-     my $promise2 = $promise1.then(-> $v { say $v.result; "Second Result"});
-     $promise1.keep("First Result");
-     say $promise2.result;
+my $p2 = Promise.new;
+$p2.break('oh no');
+say $p2.status;         # Broken
+say $p2.result;         # dies with "oh no"
+=end code
 
-Here the C<then> schedules code to be executed when the first L<Promise>
-is kept or broken, itself returning a new L<Promise> which will be kept
+Promises gain much of their power by being composable, for example by
+chaining:
+
+    my $promise1 = Promise.new();
+    my $promise2 = $promise1.then(
+        -> $v { say $v.result; "Second Result"}
+    );
+    $promise1.keep("First Result");
+    say $promise2.result;   # First Result \n Second Result
+
+Here the L<then|/type/Promise#method_then> schedules code to be executed
+when the first L<Promise> is kept or broken, itself returning a new
+L<Promise> which will be kept
 with the result of the code when it is executed (or broken if the code
 fails.)  C<keep> changes the status of the promise to C<Kept> setting
 the result to the positional argument. C<result> blocks the current
@@ -161,7 +79,7 @@ latter behaviour is illustrated with:
     my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
     $promise1.break("First Result");
     try $promise2.result;
-    say $promise2.cause;
+    say $promise2.cause;        # Handled but : \n First Result
 
 Here the C<break> will cause the code block of the C<then> to throw an
 exception when it calls the C<result> method on the original promise
@@ -301,12 +219,6 @@ events. Calling C<done> on the supply object will similarly call the
 C<done> callback that may be specified for any taps but will not prevent any
 further events being emitted to the stream, or taps receiving them.
 
-=begin comment
-
-I couldn't think of a non-contrived but succinct example for a use-case
-
-=end comment
-
 The method C<interval> will return a new supply which will automatically
 emit a new event at the specified interval, the data that is emitted will
 be an integer starting at 0 that will be incremented for each event. The
@@ -355,6 +267,119 @@ to the C<map> will be emitted:
          $supply.emit($_);
      }
 
+
+
+=head1 Low-level APIs
+
+=head2 Threads
+
+The lowest level interface for concurrency is provided by L<Thread>. A
+thread can be thought of as a piece of code that may eventually be run
+on a processor, the arrangement for which is made almost entirely by the
+virtual machine and/or operating system. Threads should be considered,
+for all intents, largely un-managed and their direct use should be
+avoided in user code.
+
+A thread can either be created and then actually run later:
+
+    my $thread = Thread.new(code => { for  1 .. 10  -> $v { say $v }});
+    # ...
+    $thread.run;
+
+Or can be created and run at a single invocation:
+
+    my $thread = Thread.start({ for  1 .. 10  -> $v { say $v }});
+
+In both cases the completion of the code encapsulated by the L<Thread>
+object can be waited on with the C<finish> method which will block until
+the thread completes:
+
+    $thread.finish;
+
+Beyond that there are  no further facilities for synchronization or resource
+sharing which is largely why it should be emphasised that threads are unlikely
+to be useful directly in user code.
+
+
+
+=head2 Schedulers
+
+The next level of the concurrency API is that supplied by classes that
+provide the interface defined by the role L<Scheduler>.  The intent
+of the scheduler interface is to provide a mechanism to determine which
+resources to use to run a particular task and when to run it. The majority
+of the higher level concurrency APIs are built upon a scheduler and it
+may not be necessary for user code to use them at all, although some
+methods such as those found in L<Proc::Async>, L<Promise> and L<Supply>
+allow you to explicitly supply a scheduler.
+
+The current default global scheduler is available in the variable
+C<$*SCHEDULER>.
+
+The primary interface of a scheduler (indeed the only method required
+by the L<Scheduler> interface) is the C<cue> method:
+
+     method cue(:&code, Instant :$at, :$in, :$every, :$times = 1; :&catch)
+
+This will schedule the L<Callable> in C<&code> to be executed in the
+manner determined by the adverbs (as documented in L<Scheduler>) using
+the execution scheme as implemented by the scheduler. For example:
+
+     my $i = 0;
+     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
+     sleep 20;
+
+Assuming that the C<$*SCHEDULER> hasn't been changed from the default,
+will print the numbers 0 to 10 approximately (i.e with operating system
+scheduling tolerances) every two seconds.  In this case the code will
+be scheduled to run until the program ends normally, however the method
+returns a L<Cancellation> object which can be used to cancel the scheduled
+execution before normal completion:
+
+     my $i = 0;
+     my $cancellation = $*SCHEDULER.cue({ say $i++}, every => 2 );
+     sleep 10;
+     $cancellation.cancel;
+     sleep 10;
+
+should only output 0 to 5,
+
+Despite the apparent advantage the L<Scheduler> interface provides over
+that of L<Thread> all of functionality is available through higher level
+interfaces and it shouldn't be necessary to use a scheduler directly,
+except perhaps in the cases mentioned above where a scheduler can be
+supplied explicitly to certain methods.
+
+A library may wish to provide an alternative scheduler implementation if
+it has special requirements, for instance a UI library may want all code
+to be run within a single UI thread, or some custom priority mechanism
+may be required, however the implementations provided as standard and
+described below should suffice for most user code.
+
+=head3 ThreadPoolScheduler
+
+The L<ThreadPoolScheduler> is the default scheduler, it maintains a pool
+of threads that are allocated on demand, creating new ones as necessary up
+to maximum number given as a parameter when the scheduler object was created
+(the default is 16.)  If the maximum is exceeded then C<cue> may queue the
+code until such time as a thread becomes available.
+
+Rakudo allows the maximum number of threads allowed in the default scheduler
+to be set by the environment variable C<RAKUDO_MAX_THREADS> at the time
+the program is started.
+
+=head3 CurrentThreadScheduler
+
+The L<CurrentThreadScheduler> is a very simple scheduler that will always
+schedule code to be run straight away on the current thread. The implication
+is that C<cue> on this scheduler will block until the code finishes
+execution, limiting its utility to certain special cases such as testing.
+
+=begin comment
+
+I couldn't think of a non-contrived but succinct example for a use-case
+
+=end comment
 
 
 =begin comment
