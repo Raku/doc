@@ -158,11 +158,11 @@ then it will return the result (that is the value passed to C<keep>, )
 or it will throw an exception based on the value passed to C<break>. The 
 latter behaviour is illustrated with:
 
-	my $promise1 = Promise.new();
-	my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
-	$promise1.break("First Result");
-	try $promise2.result;
-	say $promise2.cause;
+    my $promise1 = Promise.new();
+    my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
+    $promise1.break("First Result");
+    try $promise2.result;
+    say $promise2.cause;
 
 Here the C<break> will cause the code block of the C<then> to throw an
 exception when it calls the C<result> method on the original promise
@@ -174,9 +174,9 @@ L<X::Promise::CauseOnlyValidOnBroken> exception.
 
 A L<Promise> can also be scheduled to be automatically kept at a future time:
 
-	my $promise1 = Promise.in(5);
-	my $promise2 = $promise1.then(-> $v { say $v.status; 'Second Result' });
-	say $promise2.result;
+    my $promise1 = Promise.in(5);
+    my $promise2 = $promise1.then(-> $v { say $v.status; 'Second Result' });
+    say $promise2.result;
 
 The method C<in> creates a new promise and schedules a new task to call
 C<keep> on it no earlier than the supplied number of seconds, returning
@@ -188,60 +188,80 @@ be executed as soon as possible and obtain a promise that will be kept
 (or broken) when the code completes (or throws an exception,) this is
 performed by the method C<start> :
 
-	my $promise = Promise.start({ my $i = 0; for 1 .. 10 { $i += $_ }; $i});
-	say $promise.result;
+    my $promise = Promise.start({ my $i = 0; for 1 .. 10 { $i += $_ }; $i});
+    say $promise.result;
 
 Here the C<result> of the promise returned is the value returned from
 the code.  Similarly if the code fails (and the promise is thus broken,)
 then C<cause> will be the L<Exception> object that was thrown:
 
-	my $promise = Promise.start({ die "Broken Promise" });
-	try $promise.result;
-	say $promise.cause;
+    my $promise = Promise.start({ die "Broken Promise" });
+    try $promise.result;
+    say $promise.cause;
 
 This is considered to be such a commonly required pattern that it is
 provided as subroutines:
 
-	my $result = await start {
-    	                        my $i = 0;
-                            	for 1 .. 10 {
-                                	$i += $_
-                            	}
-                            	$i
+    my $result = await start {
+                                my $i = 0;
+                                for 1 .. 10 {
+                                    $i += $_
+                                }
+                                $i
                         }
-	say $result;
+    say $result;
 
 C<await> is almost equivalent to calling C<result> on the promise object
 returned by C<start> but it will also take a list of promises and return
 the result of each:
 
-	my $result = await start({
-                            	my $i = 0;
-                            	for 1 .. 10 {
-                                	$i += $_
-                            	}
-                            	$i
-                    	}),
-                    	start({
-                            	my $i = 0;
-                            	for 1 .. 10 {
-                                	$i -= $_
-                            	}
-                            	$i
-                    	});
-	say $result;
+    my $result = await start({
+                                my $i = 0;
+                                for 1 .. 10 {
+                                    $i += $_
+                                }
+                                $i
+                        }),
+                        start({
+                                my $i = 0;
+                                for 1 .. 10 {
+                                    $i -= $_
+                                }
+                                $i
+                        });
+    say $result;
 
+In addition to C<await> two methods are provided that will combine a set pf
+L<Promise> objects into a new promise: C<allof> which returns a promise that
+is kept when all the original promises are kept or broken when one of them
+is broken:
 
+    my $promise = Promise.allof(
+                                 Promise.in(2),
+                                 Promise.in(3)    
+                               );
 
+    await $promise;
+    say "All done"; # Should be no less than three seconds later
 
+And C<anyof> which returns a new promise that will be kept when any of the
+original promises is kept or broken when any of them is broken:
 
+    my $promise = Promise.anyof(
+                                  Promise.in(3),
+                                  Promise.in(8600)
+                               );
 
+    await $promise;
+    say "All done"; # Should be about 3 seconds later
+
+unlike C<await> however the results of the original kept promises are not
+available without referring to the original, so these are more useful
+when the completion or otherwise of the tasks is more important to the
+consumer than the actual results, or the results have been collected by
+other means.
 
 =begin comment
-
-=head3 start
-
-=head3 await
 
 =head2 supplies
 
