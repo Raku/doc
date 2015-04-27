@@ -11,9 +11,10 @@ or reactive programming - that is an event or change in some part of a
 program may lead to an event or change in some other part of the program
 asynchronously to the program flow. )
 
-The aim of the Perl concurrency design is to provide a consistent interface
-regardless of how a virtual may machine may implement it for a particular
-operating system, through layers of facilities as described below.
+The aim of the Perl concurrency design is to provide a consistent
+interface regardless of how a virtual machine may implement it for a
+particular operating system, through layers of facilities as described
+below.
 
 =begin comment
 
@@ -34,7 +35,8 @@ The lowest level interface for concurrency is provided by L<Thread>. A
 thread can be thought of as a piece of code that may eventually be run
 on a processor, the arrangement for which is made almost entirely by the
 virtual machine and/or operating system. Threads should be considered,
-for all intents, largely un-managed and should be avoided in user code.
+for all intents, largely un-managed and their direct use should be
+avoided in user code.
 
 A thread can either be created and then actually run later:
 
@@ -153,7 +155,85 @@ fails.)  C<keep> changes the status of the promise to C<Kept> setting
 the result to the positional argument. C<result> blocks the current
 thread of execution until the promise is kept or broken, if it was kept
 then it will return the result (that is the value passed to C<keep>, )
-or it will throw an exception based on the value passed to C<break>.
+or it will throw an exception based on the value passed to C<break>. The 
+latter behaviour is illustrated with:
+
+	my $promise1 = Promise.new();
+	my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
+	$promise1.break("First Result");
+	try $promise2.result;
+	say $promise2.cause;
+
+Here the C<break> will cause the code block of the C<then> to throw an
+exception when it calls the C<result> method on the original promise
+that was passed as an argument which will subsequently cause the second
+promise to be broken, raising an exception in turn when its result
+is taken.  The actual L<Exception> object will then be available from
+C<cause>. If the promise had not been broken C<cause> would raise a
+L<X::Promise::CauseOnlyValidOnBroken> exception.
+
+A L<Promise> can also be scheduled to be automatically kept at a future time:
+
+	my $promise1 = Promise.in(5);
+	my $promise2 = $promise1.then(-> $v { say $v.status; 'Second Result' });
+	say $promise2.result;
+
+The method C<in> creates a new promise and schedules a new task to call
+C<keep> on it no earlier than the supplied number of seconds, returning
+the new L<Promise> object. This is almost directly equivalent to calling
+C<Scheduler.cue> with a code block that will C<keep> the returned promise.
+
+Possibly the most frequent requirement would be to schedule some code to
+be executed as soon as possible and obtain a promise that will be kept
+(or broken) when the code completes (or throws an exception,) this is
+performed by the method C<start> :
+
+	my $promise = Promise.start({ my $i = 0; for 1 .. 10 { $i += $_ }; $i});
+	say $promise.result;
+
+Here the C<result> of the promise returned is the value returned from
+the code.  Similarly if the code fails (and the promise is thus broken,)
+then C<cause> will be the L<Exception> object that was thrown:
+
+	my $promise = Promise.start({ die "Broken Promise" });
+	try $promise.result;
+	say $promise.cause;
+
+This is considered to be such a commonly required pattern that it is
+provided as subroutines:
+
+	my $result = await start {
+    	                        my $i = 0;
+                            	for 1 .. 10 {
+                                	$i += $_
+                            	}
+                            	$i
+                        }
+	say $result;
+
+C<await> is almost equivalent to calling C<result> on the promise object
+returned by C<start> but it will also take a list of promises and return
+the result of each:
+
+	my $result = await start({
+                            	my $i = 0;
+                            	for 1 .. 10 {
+                                	$i += $_
+                            	}
+                            	$i
+                    	}),
+                    	start({
+                            	my $i = 0;
+                            	for 1 .. 10 {
+                                	$i -= $_
+                            	}
+                            	$i
+                    	});
+	say $result;
+
+
+
+
 
 
 
