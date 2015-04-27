@@ -35,10 +35,10 @@ user code should, where possible, avoid the lower level concurrency APIs
 =head2 Promises
 
 A L<Promise|/type/Promise> (also called I<future> in other programming
-environments) encapsulates the result of a computation
-that may not have completed or even started at the time the
-promise is obtained.  It provides much of the functionality that user code
-needs to operate in a concurrent or asynchronous manner.
+environments) encapsulates the result of a computation that may not
+have completed or even started at the time the promise is obtained.
+It provides much of the functionality that user code needs to operate
+in a concurrent or asynchronous manner.
 
 =begin code
 my $p1 = Promise.new;
@@ -63,16 +63,16 @@ chaining:
     $promise1.keep("First Result");
     say $promise2.result;   # First Result \n Second Result
 
-Here the L<then|/type/Promise#method_then> schedules code to be executed
-when the first L<Promise> is kept or broken, itself returning a new
-L<Promise> which will be kept
-with the result of the code when it is executed (or broken if the code
-fails.)  C<keep> changes the status of the promise to C<Kept> setting
-the result to the positional argument. C<result> blocks the current
-thread of execution until the promise is kept or broken, if it was kept
-then it will return the result (that is the value passed to C<keep>, )
-or it will throw an exception based on the value passed to C<break>. The 
-latter behaviour is illustrated with:
+Here the L<then|/type/Promise#method_then> schedules code to be
+executed when the first L<Promise> is kept or broken, itself returning
+a new L<Promise> which will be kept with the result of the code when
+it is executed (or broken if the code fails.)  C<keep> changes the
+status of the promise to C<Kept> setting the result to the positional
+argument. C<result> blocks the current thread of execution until the
+promise is kept or broken, if it was kept then it will return the
+result (that is the value passed to C<keep>, ) or it will throw an
+exception based on the value passed to C<break>. The latter behaviour
+is illustrated with:
 
     my $promise1 = Promise.new();
     my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
@@ -94,13 +94,14 @@ A L<Promise> can also be scheduled to be automatically kept at a future time:
     my $promise2 = $promise1.then(-> $v { say $v.status; 'Second Result' });
     say $promise2.result;
 
-The L<method in|/type/Promise#method_in> creates a new promise and schedules a new task to call
-C<keep> on it no earlier than the supplied number of seconds, returning
-the new L<Promise> object.
+The L<method in|/type/Promise#method_in> creates a new promise and
+schedules a new task to call C<keep> on it no earlier than the supplied
+number of seconds, returning the new L<Promise> object.
 
 A very frequent use of promises is to run a piece of code, and keep the
 promise once it returns successfully, or break it when the code dies.
-The L<start method|/type/Promise#method_start> provides a shortcut for that:
+The L<start method|/type/Promise#method_start> provides a shortcut
+for that:
 
     my $promise = Promise.start(
         { my $i = 0; for 1 .. 10 { $i += $_ }; $i}
@@ -179,6 +180,33 @@ when the completion or otherwise of the tasks is more important to the
 consumer than the actual results, or the results have been collected by
 other means.
 
+If you are creating a promise that you intend to keep or break yourself
+then you probably don't want any code that might receive the promise to
+inadvertently (or otherwise,) keep or break the promise before you do.
+For this purpose there is the L<method vow|/type/Promise#method_vow>, which
+returns a L<Vow> object which becomes the only mechanism by the promise
+can be kept or broken.  If an attempt to keep or break the Promise is made
+directly then the exception L<X::Promise::Vowed> will be thrown, as long
+as the vow object is kept private, the status of the promise is safe:
+
+    sub get_promise {
+        my $promise = Promise.new;
+        my $vow = $promise.vow;
+        Promise.in(10).then({$vow.keep});
+        $promise;
+    }
+
+    my $promise = get_promise();
+
+    # Will throw an exception
+    # "Access denied to keep/break this Promise; already vowed"
+    $promise.keep;
+
+The methods that return a promise that will be kept or broken
+automatically such as C<in> or C<start> will do this, so it is not
+necessary to do it for these.
+
+
 
 =head2 Supplies
 
@@ -212,18 +240,18 @@ interested in the events:
     $tap.close; # Will trigger the closing callback
     $supply.emit("Won't trigger the tap");
 
-Calling C<close> on the L<Tap> object (or calling C<close> on the supply
-object with the tap object as an argument,) triggers the callback
+Calling C<close> on the L<Tap> object (or calling C<close> on the
+supply object with the tap object as an argument,) triggers the callback
 specified by C<closing> if present and stop further events being sent to
 the tap callback but otherwise leave the supply intact to receive further
-events. Calling C<done> on the supply object similarly calls the
-C<done> callback that may be specified for any taps, but does not prevent any
+events. Calling C<done> on the supply object similarly calls the C<done>
+callback that may be specified for any taps, but does not prevent any
 further events being emitted to the stream, or taps receiving them.
 
-The method C<interval> returns a new supply which peridically
-emits a new event at the specified interval. The data that is emitted
-is an integer starting at 0 that is incremented for each event. The
-following code outputs 0 .. 5 :
+The method C<interval> returns a new supply which peridically emits
+a new event at the specified interval. The data that is emitted is an
+integer starting at 0 that is incremented for each event. The following
+code outputs 0 .. 5 :
 
 	my $supply = Supply.interval(2);
 	$supply.tap(-> $v { say $v });
