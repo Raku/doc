@@ -302,7 +302,42 @@ to the C<map> is emitted:
 
 A L<Channel> is a thread-safe queue that can have multiple readers and
 writers that could be considered to be similar in operation to a "fifo" or
-named pipe except it does not enable inter-process communication.
+named pipe except it does not enable inter-process communication. It should
+be noted that, being a true queue, each value sent to the L<Channel> will only
+be available to a single reader on a first read, first served basis: if you
+want multiple readers to be able to receive every item sent you probably
+want to consider a L<Supply>.
+
+An item is queued onto the L<Channel> with the
+L<method send|/type/Channel#method_send>, and the L<method
+receive|/type/Channel#method_receive> removes an item from the queue
+and returns it, blocking until a new item is sent if the queue is empty:
+
+    my $channel = Channel.new;
+    $channel.send('Channel One');
+    say $channel.receive;  # 'Channel One'
+
+If the channel has been closed with the L<method
+close|/type/Channel#method_close> then any C<send> will cause the
+exception L<X::Channel::SendOnClosed> to be thrown, and a C<receive>
+will throw a L<X::Channel::ReceiveOnClose> if there are no more items
+on the queue.
+
+The L<method list|/type/Channel#method_list> returns all the items on
+the L<Channel> and will block until further items are queued unless the
+channel is closed:
+
+    my $channel = Channel.new;
+    await (^10).map: -> $r {
+        start {
+            sleep $r;
+            $channel.send($r);
+        }
+    }
+    $channel.close;
+    for $channel.list -> $r {
+        say $r;
+    }
 
 =head1 Low-level APIs
 
