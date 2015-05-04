@@ -100,6 +100,7 @@ sub recursive-dir($dir) {
     }
 }
 
+#| Return the SVG for the given file, without its XML header
 sub svg-for-file($file) {
     my $handle = open $file;
     my $str = join "\n", grep { /^'<svg'/ ff False }, $handle.lines;
