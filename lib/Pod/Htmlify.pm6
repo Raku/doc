@@ -28,4 +28,12 @@ sub footer-html($pod-path) is export {
     return $footer;
 }
 
+#| Return the SVG for the given file, without its XML header
+sub svg-for-file($file) is export {
+    my $handle = open $file;
+    my $str = join "\n", grep { /^'<svg'/ ff False }, $handle.lines;
+    $handle.close;
+    $str;
+}
+
 # vim: expandtab shiftwidth=4 ft=perl6
