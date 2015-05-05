@@ -100,13 +100,6 @@ sub recursive-dir($dir) {
     }
 }
 
-sub svg-for-file($file) {
-    my $handle = open $file;
-    my $str = join "\n", grep { /^'<svg'/ ff False }, $handle.lines;
-    $handle.close;
-    $str;
-}
-
 # --sparse=5: only process 1/5th of the files
 # mostly useful for performance optimizations, profiling etc.
 sub MAIN(

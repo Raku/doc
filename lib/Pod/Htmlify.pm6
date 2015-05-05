@@ -2,6 +2,7 @@ module Pod::Htmlify;
 
 use URI::Escape;
 
+#| Escape special characters in URLs if necessary
 sub url-munge($_) is export {
     return $_ if m{^ <[a..z]>+ '://'};
     return "/type/{uri_escape $_}" if m/^<[A..Z]>/;
@@ -13,6 +14,7 @@ sub url-munge($_) is export {
     return $_;
 }
 
+#| Return the footer HTML for each page
 sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';
     $footer.subst-mutate(/DATETIME/, ~DateTime.now);
@@ -26,6 +28,11 @@ sub footer-html($pod-path) is export {
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
 
     return $footer;
+}
+
+#| Return the SVG for the given file, without its XML header
+sub svg-for-file($file) is export {
+    join "\n", grep { /^'<svg'/ ff False }, $file.IO.lines;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
