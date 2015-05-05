@@ -398,8 +398,54 @@ a simpler functional syntax to do this:
     $channel.close;
     await $p;
 
-C<earliest> takes one or more channels and for the first one which has an item
-available it will be passed to the C<more> block.
+C<earliest> takes one or more channels and for the first one which has
+an item available it will be passed to the C<more> block that matches
+the channel, or to the "wildcard" block if there isn't a specific
+match. Similarly, if any channel is found to be closed then control
+is passed to the matching ( or wildcard ) C<done> block, the statement
+will return the value of the called block. Typically C<earliest> will
+be called in a loop with some control to exit the loop when one or more
+of the channels is closed as in the above example.
+
+It is also possible to obtain a L<Channel> from a L<Supply> using the
+L<Supply method|/type/Supply#method_Channel> which returns a L<Channel>
+which is fed by a C<tap> on the L<Supply>:
+
+    my $supply  = Supply.new;
+    my $channel = $supply.Channel;
+
+    my @channels;
+    @channels.push($channel);
+
+    $supply.tap(-> $v {say "via Supply : $v" });
+
+    my $p = start {
+        loop {
+            earliest @channels {
+                more * -> $item {
+                    say "via Channel: $item";
+                }
+                done * {
+                    last;
+                }
+            }
+        }
+    }
+
+    await (^10).map: -> $r {
+        start {
+            sleep $r;
+            $supply.emit($r);
+        }
+    }
+
+    $supply.done;
+    await $p;
+
+C<Channel> will return a different L<Channel> fed with the same data
+each time it is called.  This could be used, for instance, to fan-out a
+L<Supply> to one or more L<Channel>s to provide for different interfaces
+in a program.
 
 =head1 Low-level APIs
 
