@@ -540,8 +540,6 @@ Beyond that there are  no further facilities for synchronization or resource
 sharing which is largely why it should be emphasised that threads are unlikely
 to be useful directly in user code.
 
-
-
 =head2 Schedulers
 
 The next level of the concurrency API is that supplied by classes that
@@ -615,23 +613,39 @@ schedule code to be run straight away on the current thread. The implication
 is that C<cue> on this scheduler will block until the code finishes
 execution, limiting its utility to certain special cases such as testing.
 
-=begin comment
+=head2 Locks
 
-I couldn't think of a non-contrived but succinct example for a use-case
+The class L<Lock> provides the low level mechanism that protects
+shared data in a concurrent environment and is thus key to supporting
+thread-safety in the high level API, this is sometimes known as a
+"Mutex" in other programming languages.  Because the higher level classes
+(L<Promise>, L<Supply> andL<Channel>,) use a L<Lock> where required it
+is unlikey that user code will need to use a L<Lock> directly.
 
-=end comment
+The primary interface to L<Lock> is the method
+L<protect|/type/Lock#method_protect> which ensures that a block of code
+(commonly called a "critical section",) is only executed in one thread
+at a time:
 
+    my $lock = Lock.new;
 
-=begin comment
+    my $a = 0;
 
-=head3 tap
+    await (^10).map: {
+        start {
+                $lock.protect({
+                    my $r = rand;
+                    sleep $r;
+                    $a++;
+                });
+        }
+    }
 
-=head3 emit
+    say $a; # 10
 
-=head2 channels
+C<protect> returns whatever the code block returns.
 
-=end comment
-
-
+Because C<protect> will block any threads that are waiting to execute
+the critical section the code should be as quick as possible.
 
 =end pod
