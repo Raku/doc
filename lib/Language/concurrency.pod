@@ -398,8 +398,116 @@ a simpler functional syntax to do this:
     $channel.close;
     await $p;
 
-C<earliest> takes one or more channels and for the first one which has an item
-available it will be passed to the C<more> block.
+C<earliest> takes one or more channels and for the first one which has
+an item available it will be passed to the C<more> block that matches
+the channel, or to the "wildcard" block if there isn't a specific
+match. Similarly, if any channel is found to be closed then control
+is passed to the matching ( or wildcard ) C<done> block, the statement
+will return the value of the called block. Typically C<earliest> will
+be called in a loop with some control to exit the loop when one or more
+of the channels is closed as in the above example.
+
+It is also possible to obtain a L<Channel> from a L<Supply> using the
+L<Supply method|/type/Supply#method_Channel> which returns a L<Channel>
+which is fed by a C<tap> on the L<Supply>:
+
+    my $supply  = Supply.new;
+    my $channel = $supply.Channel;
+
+    my @channels;
+    @channels.push($channel);
+
+    $supply.tap(-> $v {say "via Supply : $v" });
+
+    my $p = start {
+        loop {
+            earliest @channels {
+                more * -> $item {
+                    say "via Channel: $item";
+                }
+                done * {
+                    last;
+                }
+            }
+        }
+    }
+
+    await (^10).map: -> $r {
+        start {
+            sleep $r;
+            $supply.emit($r);
+        }
+    }
+
+    $supply.done;
+    await $p;
+
+C<Channel> will return a different L<Channel> fed with the same data
+each time it is called.  This could be used, for instance, to fan-out a
+L<Supply> to one or more L<Channel>s to provide for different interfaces
+in a program.
+
+=head2 Proc::Async
+
+L<Proc::Async> builds on the facilities described to run and interact with
+an external program asynchronously:
+
+    my $proc = Proc::Async.new('echo', 'foo', 'bar');
+
+    $proc.stdout.tap(-> $v { print "Output: $v" });
+    $proc.stderr.tap(-> $v { print "Error:  $v" });
+
+    say "Starting...";
+    my $promise = $proc.start;
+
+    await $promise;
+    say "Done.";
+
+    # Output:
+    # Starting...
+    # Output: foo bar
+    # Done.
+
+The path to the command and any arguments are supplied to
+the constructor but the program will not be started until
+L<start|/type/Proc::Async#method_start> is called, which will return
+a L<Promise> that will be kept when the program exits. The standard
+output and standard error of the program are available as L<Supply>
+objects from the methods L<stdout|/type/Proc::Async#method_stdout>
+and L<stderr|/type/Proc::Async#method_stderr> respectively which can be
+tapped as required.
+
+If you want to write to the standard input of the program
+you can supply the C<:w> adverb to the constructor and use
+the methods L<write|/type/Proc::Async#method_write>,
+L<print|/type/Proc::Async#method_print> or
+L<say|/type/Proc::Async#method_say> to write to the opened pipe once
+the program has been started:
+
+    my $proc = Proc::Async.new(:w, 'grep', 'foo');
+
+    $proc.stdout.tap(-> $v { print "Output: $v" });
+
+    say "Starting...";
+    my $promise = $proc.start;
+
+    $proc.say("this line has foo");
+    $proc.say("this one doesn't");
+
+    $proc.close-stdin;
+    await $promise;
+    say "Done.";
+
+    # Output:
+    # Starting...
+    # Output: this line has foo
+    # Done.
+
+Some programs (such as C<grep> without a file argument in this
+example, ) won't exit until their standard input is closed so
+L<close-stdin|/type/Proc::Async#method_close-stdin> can be called when
+you are finished writing to allow the L<Promise> returned by C<start>
+to be kept.
 
 =head1 Low-level APIs
 
@@ -431,8 +539,6 @@ the thread completes:
 Beyond that there are  no further facilities for synchronization or resource
 sharing which is largely why it should be emphasised that threads are unlikely
 to be useful directly in user code.
-
-
 
 =head2 Schedulers
 
@@ -507,23 +613,39 @@ schedule code to be run straight away on the current thread. The implication
 is that C<cue> on this scheduler will block until the code finishes
 execution, limiting its utility to certain special cases such as testing.
 
-=begin comment
+=head2 Locks
 
-I couldn't think of a non-contrived but succinct example for a use-case
+The class L<Lock> provides the low level mechanism that protects
+shared data in a concurrent environment and is thus key to supporting
+thread-safety in the high level API, this is sometimes known as a
+"Mutex" in other programming languages.  Because the higher level classes
+(L<Promise>, L<Supply> andL<Channel>,) use a L<Lock> where required it
+is unlikey that user code will need to use a L<Lock> directly.
 
-=end comment
+The primary interface to L<Lock> is the method
+L<protect|/type/Lock#method_protect> which ensures that a block of code
+(commonly called a "critical section",) is only executed in one thread
+at a time:
 
+    my $lock = Lock.new;
 
-=begin comment
+    my $a = 0;
 
-=head3 tap
+    await (^10).map: {
+        start {
+                $lock.protect({
+                    my $r = rand;
+                    sleep $r;
+                    $a++;
+                });
+        }
+    }
 
-=head3 emit
+    say $a; # 10
 
-=head2 channels
+C<protect> returns whatever the code block returns.
 
-=end comment
-
-
+Because C<protect> will block any threads that are waiting to execute
+the critical section the code should be as quick as possible.
 
 =end pod
