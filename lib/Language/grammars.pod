@@ -70,106 +70,11 @@ into effect for the Regex:
 
 =SUBTITLE Group of named regexes that form a formal grammar
 
-    class Grammar is Cursor { }
-
-C<Grammar> is the superclass that classes automatically get when they are
-declared with the C<grammar> keyword instead of C<class>. Grammars should
-only be used to parse text; if you wish to extract complex data, an L<action
-object|/language/grammars#Action_Objects> is recommended to be used in
+L<Grammar|/type/Grammar> is the superclass that classes automatically get when
+they are declared with the C<grammar> keyword instead of C<class>. Grammars
+should only be used to parse text; if you wish to extract complex data, an
+L<action object|/language/grammars#Action_Objects> is recommended to be used in
 conjunction with the grammar.
-
-    =begin code :allow<B L>
-    B<grammar> CSV {
-        token TOP { [ <line> \n? ]+ }
-        token line {
-            ^^            # Beginning of a line
-            <value>* % \, # Any number of <value>s with commas in between them
-            $$            # End of a line
-        }
-        token value {
-            [
-            | <-[",\n]>     # Anything not a double quote, comma or newline
-            | <quoted-text> # Or some quoted text
-            ]*              # Any number of times
-        }
-        token quoted-text {
-            \"
-            [
-            | <-["\\]> # Anything not a " or \
-            | '\"'     # Or \", an escaped quotation mark
-            ]*         # Any number of times
-            \"
-        }
-    }
-
-    say "Valid CSV file!" if CSV.L<parse>( q:to/EOCSV/ );
-        Year,Make,Model,Length
-        1997,Ford,E350,2.34
-        2000,Mercury,Cougar,2.38
-        EOCSV
-    =end code
-
-=head2 Methods
-
-=head3 method parse
-
-    method parse($str, :$rule = 'TOP', :$actions) returns Match:D
-
-Matches the grammar against C<$str>, using C<$rule> as the starting rule,
-optionally applying C<$actions> as its actions object.
-
-This will fail if the grammar does not parse the I<entire> string. If a
-parse of only a part of the string is desired, use L<subparse>.
-
-The method returns the resulting L<Match> object and also sets the caller's
-C<$/> variable to the Match object.
-
-    =begin code :allow<B>
-    say CSVB<.parse>( q:to/EOCSV/ );
-        Year,Make,Model,Length
-        1997,Ford,E350,2.34
-        2000,Mercury,Cougar,2.38
-        EOCSV
-    =end code
-
-This outputs:
-
-    ｢Year,Make,Model,Length
-    1997,Ford,E350,2.34
-    2000,Mercury,Cougar,2.38
-    ｣
-     line => ｢Year,Make,Model,Length｣
-      value => ｢Year｣
-      value => ｢Make｣
-      value => ｢Model｣
-      value => ｢Length｣
-     line => ｢1997,Ford,E350,2.34｣
-      value => ｢1997｣
-      value => ｢Ford｣
-      value => ｢E350｣
-      value => ｢2.34｣
-     line => ｢2000,Mercury,Cougar,2.38 ｣
-      value => ｢2000｣
-      value => ｢Mercury｣
-      value => ｢Cougar｣
-      value => ｢2.38 ｣
-
-=head3 method subparse
-
-    method subparse($str, :$rule = 'TOP', :$actions) returns Match:D
-
-Matches the grammar against C<$str>, using C<$rule> as the starting rule,
-optionally applying C<$actions> as its actions object.
-
-Unlike L<parse>, C<subparse> will allow the grammar to match only part of
-the supplied string.
-
-=head3 method parsefile
-
-    method parsefile(Str(Cool) $filename, *%opts) returns Match:D
-
-Parses the contents of the file C<$filename> with the L<parse> method,
-passing any named options in C<%opts>.
 
 =head1 Action Objects
 
