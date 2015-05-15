@@ -114,7 +114,7 @@ sub MAIN(
     $*DEBUG = $debug;
 
     say 'Creating html/ subdirectories ...';
-    for '', <type language routine images syntax> {
+    for flat '', <type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
