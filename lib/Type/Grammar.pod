@@ -27,7 +27,7 @@ More L<documentation on grammars|/language/grammars> is available.
 
 =head2 method parse
 
-    method parse($target, :$rule = 'TOP', Parcel :$args = (), Mu :$actions, *%opts)
+    method parse($target, :$rule = 'TOP',  Parcel :$args = (), Mu :$actions = Mu, *%opt) {
 
 Parses the C<$target> (which will be coerced to L<Str|/type/Str> if it isn't
 one), using C<$rule> as the starting rule. Additional C<$args> will be given
@@ -49,9 +49,58 @@ if you want to be able to stop in the middle.
 Returns a L<Match object|/type/Match> on success, and L<Nil|/type/Nil> on
 failure.
 
+    grammar CSV {
+        token TOP { [ <line> \n? ]+ }
+        token line {
+            ^^            # Beginning of a line
+            <value>* % \, # Any number of <value>s with commas in between them
+            $$            # End of a line
+        }
+        token value {
+            [
+            | <-[",\n]>     # Anything not a double quote, comma or newline
+            | <quoted-text> # Or some quoted text
+            ]*              # Any number of times
+        }
+        token quoted-text {
+            \"
+            [
+            | <-["\\]> # Anything not a " or \
+            | '\"'     # Or \", an escaped quotation mark
+            ]*         # Any number of times
+            \"
+        }
+    }.parse( q:to/EOCSV/ ).say;
+        Year,Make,Model,Length
+        1997,Ford,E350,2.34
+        2000,Mercury,Cougar,2.38
+        EOCSV
+
+This outputs:
+
+    ｢Year,Make,Model,Length
+    1997,Ford,E350,2.34
+    2000,Mercury,Cougar,2.38
+    ｣
+     line => ｢Year,Make,Model,Length｣
+      value => ｢Year｣
+      value => ｢Make｣
+      value => ｢Model｣
+      value => ｢Length｣
+     line => ｢1997,Ford,E350,2.34｣
+      value => ｢1997｣
+      value => ｢Ford｣
+      value => ｢E350｣
+      value => ｢2.34｣
+     line => ｢2000,Mercury,Cougar,2.38 ｣
+      value => ｢2000｣
+      value => ｢Mercury｣
+      value => ｢Cougar｣
+      value => ｢2.38 ｣
+
 =head2 method subparse
 
-    method subparse($target, :$rule = 'TOP', Parcel :$args = (), Mu :$actions, *%opts)
+    method subparse($target, :$rule = 'TOP', Parcel :$args = (),  Mu :$actions = Mu, *%opt) {
 
 Does exactly the same as L<method parse|/routine/parse>, except that cursor
 doesn't have to reach the end of the string to succeed. (That is, it doesn't
@@ -66,9 +115,9 @@ have to match the whole string).
 
 =head2 method parsefile
 
-    method parsefile(Cool $filename, *%opts);
+    method parsefile(Str(Cool) $filename, :$enc, *%opts) {
 
-Reads file C<$filename>, and parses it. All named arguments are passsed on to
+Reads file C<$filename>, and parses it. All named arguments are passed on to
 L<method parse|/routine/parse>.
 
 =end pod
