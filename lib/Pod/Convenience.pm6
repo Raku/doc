@@ -1,4 +1,4 @@
-module Pod::Convenience;
+unit module Pod::Convenience;
 
 sub pod-gist(Pod::Block $pod, $level = 0) is export {
     my $leading = ' ' x $level;

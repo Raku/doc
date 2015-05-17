@@ -1,4 +1,4 @@
-module Pod::Htmlify;
+unit module Pod::Htmlify;
 
 use URI::Escape;
 
