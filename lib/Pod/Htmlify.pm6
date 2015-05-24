@@ -19,11 +19,12 @@ sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';
     $footer.subst-mutate(/DATETIME/, ~DateTime.now);
     my $pod-url;
+    my $gh-link = q[<a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>];
     if $pod-path eq "unknown" {
-        $pod-url = "the sources at <a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>";
+        $pod-url = "the sources at $gh-link";
     }
     else {
-        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/lib/$pod-path'>$pod-path\</a\>";
+        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/lib/$pod-path'>$pod-path\</a\> from $gh-link";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
 
