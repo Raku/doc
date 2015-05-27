@@ -19,7 +19,7 @@ use Pod::Htmlify;
 subtest {
     plan 7;
 
-    eval_dies_ok('use Pod::Htmlify; url-munge();', "requires an argument");
+    eval-dies-ok('use Pod::Htmlify; url-munge();', "requires an argument");
     is(url-munge("http://www.example.com"), "http://www.example.com",
         "plain url string with explicit protocol");
     is(url-munge("Class::Something"), "/type/Class%3A%3ASomething",

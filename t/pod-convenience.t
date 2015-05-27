@@ -7,8 +7,8 @@ plan 10;
 
 subtest {
     plan 4;
-    eval_dies_ok('use Pod::Convenience; first-code-block();', "pod argument required");
-    eval_dies_ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
+    eval-dies-ok('use Pod::Convenience; first-code-block();', "pod argument required");
+    eval-dies-ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
 
     is(first-code-block(["text"]), '', "non-code POD returns empty string");
 
@@ -22,9 +22,9 @@ subtest {
 
 subtest {
     plan 7;
-    eval_dies_ok('use Pod::Convenience; pod-with-title();', "title argument required");
+    eval-dies-ok('use Pod::Convenience; pod-with-title();', "title argument required");
     my $pod = pod-with-title("title text");
-    isa_ok($pod, Pod::Block::Named);
+    isa-ok($pod, Pod::Block::Named);
     is($pod.name, "pod", "block name correct");
     # XXX: why do we have to dig so far to get to the title here?
     is($pod.contents[0].contents[0].contents[0], "title text", "title matches input");
@@ -44,8 +44,8 @@ subtest {
     my $title = "Pod document title";
     my $pod = pod-title($title);
 
-    isa_ok($pod, Pod::Block::Named);
-    eval_dies_ok('use Pod::Convenience; pod-title()', "title argument required");
+    isa-ok($pod, Pod::Block::Named);
+    eval-dies-ok('use Pod::Convenience; pod-title()', "title argument required");
 
     $pod = pod-title('');
     ok($pod, "empty title is ok");
@@ -53,14 +53,14 @@ subtest {
     $pod = pod-title($title);
     is($pod.name, "TITLE", "is a title element");
 
-    isa_ok($pod.contents, Array);
+    isa-ok($pod.contents, Array);
     is($pod.contents[0].contents, $title, "title contents set correctly");
 }, "pod-title";
 
 subtest {
     plan 5;
     my $pod = pod-block('');
-    isa_ok($pod, Pod::Block::Para);
+    isa-ok($pod, Pod::Block::Para);
     ok(pod-block(), "empty argument ok");
 
     $pod = pod-block("hello");
@@ -75,11 +75,11 @@ subtest {
 
 subtest {
     plan 6;
-    eval_dies_ok('use Pod::Conenience; pod-link()', "text argument required");
-    eval_dies_ok('use Pod::Conenience; pod-link("text")', "link argument required");
+    eval-dies-ok('use Pod::Conenience; pod-link()', "text argument required");
+    eval-dies-ok('use Pod::Conenience; pod-link("text")', "link argument required");
 
     my $pod = pod-link("text", "link");
-    isa_ok($pod, Pod::FormattingCode);
+    isa-ok($pod, Pod::FormattingCode);
 
     is($pod.type, "L", "is a link type");
     is($pod.contents[0], "text", "text matches input");
@@ -88,10 +88,10 @@ subtest {
 
 subtest {
     plan 4;
-    eval_dies_ok('use Pod::Convenience; pod-bold()', "text argument required");
+    eval-dies-ok('use Pod::Convenience; pod-bold()', "text argument required");
 
     my $pod = pod-bold("text");
-    isa_ok($pod, Pod::FormattingCode);
+    isa-ok($pod, Pod::FormattingCode);
 
     is($pod.type, "B", "is a bold type");
     is($pod.contents[0], "text", "text matches input");
@@ -103,7 +103,7 @@ subtest {
     ok(pod-item(''), "empty string argument ok");
 
     my $pod = pod-item(qw{hello there});
-    isa_ok($pod, Pod::Item);
+    isa-ok($pod, Pod::Item);
     is($pod.level, 1, "default level correct");
     is($pod.contents, "hello there", "contents matches input");
 
@@ -113,10 +113,10 @@ subtest {
 
 subtest {
     plan 6;
-    eval_dies_ok('use Pod::Convenience; pod-heading()', "name argument required");
+    eval-dies-ok('use Pod::Convenience; pod-heading()', "name argument required");
 
     my $pod = pod-heading("name");
-    isa_ok($pod, Pod::Heading);
+    isa-ok($pod, Pod::Heading);
     is($pod.contents[0].contents, "name", "heading name matches input");
     is($pod.level, 1, "level matches default value");
 
@@ -127,23 +127,23 @@ subtest {
 
 subtest {
     plan 4;
-    eval_dies_ok('use Pod::Convenience; pod-table();', "contents argument required");
-    eval_dies_ok('use Pod::Convenience; pod-table("");', "fails with empty string argument");
+    eval-dies-ok('use Pod::Convenience; pod-table();', "contents argument required");
+    eval-dies-ok('use Pod::Convenience; pod-table("");', "fails with empty string argument");
 
     my $pod = pod-table(qw{table data});
-    isa_ok($pod, Pod::Block::Table);
+    isa-ok($pod, Pod::Block::Table);
     is($pod.contents, "table data", "table data matches input");
 }, "pod-table";
 
 subtest {
-    eval_dies_ok('use Pod::Convenience; pod-lower-headings();', "content argument required");
+    eval-dies-ok('use Pod::Convenience; pod-lower-headings();', "content argument required");
 
     # should probably die, currently throws an internal error
-    #eval_dies_ok('use Pod::Convenience; pod-lower-headings(qw{foo bar});',
+    #eval-dies-ok('use Pod::Convenience; pod-lower-headings(qw{foo bar});',
     #"plain content array not acceptable");
 
     my $lowered-pod = pod-lower-headings([pod-heading("A head 1 heading")]);
-    isa_ok($lowered-pod, Array);
+    isa-ok($lowered-pod, Array);
     is($lowered-pod[0].level, 1, "single POD heading lowered from 1 to 1");
     is($lowered-pod[0].contents[0].contents, "A head 1 heading", "lowered heading contents match input");
 
