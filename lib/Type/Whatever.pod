@@ -11,9 +11,9 @@ its semantic from other routines that accept C<Whatever>-objects as markers
 to do something special. The C<*> literal in term position creates a
 C<Whatever> object.
 
-Another source of speciality is that the compiler turns
-combinations of C<*> in term position and many operators into closures.
-This process is called I<Whatever-currying>.
+Much of C<*>'s charm comes from I<Whatever-currying>. When C<*> is used in term
+position in combination with most operators, the compiler will transform the
+expression into a closure of type L<WhateverCode>.
 
     my $c = * + 2;          # same as   -> $x { $x + 2 };
     say $c(4);              # 6
@@ -22,17 +22,17 @@ Multiple C<*> in one expression generate closures with as many arguments:
 
     my $c = * + *;          # same as   -> $x, $y { $x + $y }
 
-C<*> in complex expressions also generate closures:
+Using C<*> in complex expressions will also generate closures:
 
     my $c = 4 * * + 5;      # same as   -> $x { 4 * $x + 5 }
 
-Calling a method on C<*> also create a closure:
+Calling a method on C<*> also creates a closure:
 
-    say <a b c>.map: *.uc;  # A B C
+    <a b c>.map: *.uc;      # same as	<a b c>.map: -> $char { $char.uc }
 
-Those closure are of type L<WhateverCode>.
-
-Not all operators and syntactic constructs curry Whatever-stars.
+As mentioned  before, not all operators and syntactic constructs curry C<*> (or
+C<Whatever>-stars) to C<WhateverCode>. In the following cases, C<*> will remain
+a C<Whatever> object.
 
 =begin table
 
@@ -58,14 +58,33 @@ This allow all these constructs to work:
 
     .say for 1..*;          # infinite loop
     my @a = 1..4;
-    say @a[1..*];           # 2 3 4
-    say @a[1..*-2];         # 2 3
+    say @a[0..*];           # 1 2 3 4
+    say @a[0..*-2];         # 1 2 3
 
-The currying is purely syntactic.
+Because I<Whatever-currying> is a purely syntactic compiler transform, you will get no
+runtime currying of stored C<Whatever>-stars into C<WhateverCode>s.
 
     my $x = *;
     $x + 2;                 # not a closure, dies because
                             # it can't coerce $x to Numeric
+
+The use cases for stored C<Whatever>-stars are involve those curry-exception
+cases mentioned above. For example, if you want an infinite series by default.
+
+	my $max    = potential-upper-limit() // *;
+	my $series = known-lower-limit() ... $max;
+
+A stored C<*> will also result in the generation of a C<WhateverCode> in the specific
+case of smart match.
+
+	my $constraint = find-constraint() // *;
+	my $maybe-always-matcher = * ~~ $constraint;
+
+If this hypothetical C<find-constraint> were to have found no constraint, C<$maybe-always-matcher>
+would return to C<True> for anything.
+
+	$maybe-always-matcher(555);      # True
+	$maybe-always-matcher(Any);      # True
 
 =head1 Methods
 
