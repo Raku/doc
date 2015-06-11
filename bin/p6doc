@@ -102,29 +102,37 @@ multi sub MAIN($docee, Bool :$f!) {
                 }
             }
 
-            say "\nWe have multiple matches for '$method'\n";
-            my %options;
-            for %hits.keys -> $key {
-                my $pref = $key.split(' ')[0];
-                say "\t'$method' {$pref}s";
-
-                %options{$key}.push: %hits{$key}>>.subst(/^'Type::'/, '');
-                say "\t\t" ~ %options{$key}.join("\n\t\t") ~ "\n";
-            }
-
-            my %prefixes = do for %options.values -> @o { @o.map( *.comb[0].lc ) X=> @o };
-
             my $final-docee;
-            while prompt("Narrow your choice ({ %prefixes.keys.join(', ') }, or ! to quit): ").words -> $word {
-                if $word  ~~ '!' {
-                    exit 1;
-                } elsif my $choice = $word ~~ rx:i/ @(%prefixes.keys) / {
-                    $final-docee = %prefixes{ $choice.lc };
-                    say "Loading $final-docee...";
-                    last;
-                } else {
-                    say "$word is not a valid choice.\n";
-                    next;
+            my $total-hits = [+] %hits.values.map( *.elems );
+            if ! $total-hits {
+                say "No matches for '$method'";
+                exit 2;
+            } elsif $total-hits == 1 {
+                $final-docee = %hits.values[0];
+            } else {
+                say "\nWe have multiple matches for '$method'\n";
+                my %options;
+                for %hits.keys -> $key {
+                    my $pref = $key.split(' ')[0];
+                    say "\t'$method' {$pref}s";
+    
+                    %options{$key}.push: %hits{$key}>>.subst(/^'Type::'/, '');
+                    say "\t\t" ~ %options{$key}.join("\n\t\t") ~ "\n";
+                }
+    
+                my %prefixes = do for %options.values -> @o { @o.map( *.comb[0].lc ) X=> @o };
+    
+                while prompt("Narrow your choice ({ %prefixes.keys.join(', ') }, or ! to quit): ").words -> $word {
+                    if $word  ~~ '!' {
+                        exit 1;
+                    } elsif my $choice = $word ~~ rx:i/ @(%prefixes.keys) / {
+                        $final-docee = %prefixes{ $choice.lc };
+                        say "Loading $final-docee...";
+                        last;
+                    } else {
+                        say "$word is not a valid choice.\n";
+                        next;
+                    }
                 }
             }
 
