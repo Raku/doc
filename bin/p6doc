@@ -70,7 +70,9 @@ multi sub MAIN() {
     say 'What documentation do you want to read?';
     say "Examples: $me Type::Str";
     say "          $me Type::Str.split";
-    say "          $me functions";
+
+    say "\nYou can also look up specific method/routine defintions:";
+    say "          $me -f push";
 }
 
 multi sub MAIN($docee) {
@@ -87,25 +89,58 @@ multi sub MAIN($docee) {
 
 multi sub MAIN($docee, Bool :$f!) {
     my ($package, $method) = $docee.split('.');
-    unless $method {
+    if ! $method {
+        my %hits;
+        $method = $package;
         if INDEX.IO ~~ :e {
             my %data = EVAL slurp INDEX;
             for <routine method> -> $pref {
                 my $ndocee = $pref ~ " " ~ $docee;
+
                 if %data{$ndocee} {
-                    my $newdoc = %data{$ndocee}[0][0] ~ "." ~ $docee;
-                    return MAIN($newdoc, :f);
+                    %hits{$ndocee}.push: %data{$ndocee}.values>>.grep(/^Type/) X~ "." ~ $method;
                 }
             }
-            show-docs(locate-module($docee));
+
+            say "\nWe have multiple matches for '$method'\n";
+            my %options;
+            for %hits.keys -> $key {
+                my $pref = $key.split(' ')[0];
+                say "\t'$method' {$pref}s";
+
+                %options{$key}.push: %hits{$key}>>.subst(/^'Type::'/, '');
+                say "\t\t" ~ %options{$key}.join("\n\t\t") ~ "\n";
+            }
+
+            my %prefixes = do for %options.values -> @o { @o.map( *.comb[0].lc ) X=> @o };
+
+            my $final-docee;
+            while prompt("Narrow your choice ({ %prefixes.keys.join(', ') }, or ! to quit): ").words -> $word {
+                if $word  ~~ '!' {
+                    exit 1;
+                } elsif my $choice = $word ~~ rx:i/ @(%prefixes.keys) / {
+                    $final-docee = %prefixes{ $choice.lc };
+                    say "Loading $final-docee...";
+                    last;
+                } else {
+                    say "$word is not a valid choice.\n";
+                    next;
+                }
+            }
+
+            ($package, $method) = $final-docee.split('.');
+            my $m = locate-module($package);
+            show-docs($m, :section($method));
+        } else {
+            say 'In order to use unqualified sub and method names like "p6doc -f say"';
+            say 'you will need to run "p6doc-index build" to build index.data.';
+            say 'Otherwise use "p6doc -f Str.split" instead of "p6doc -f split" for now.';
+            exit 2;
         }
-        say 'In order to use unqualified sub and method names like "p6doc -f say"';
-        say 'you will need to run "p6doc-index build" to build index.data.';
-        say 'Otherwise use "p6doc -f Str.split" instead of "p6doc -f split" for now.';
-        exit 2;
+    } else {
+        my $m = locate-module($package);
+        show-docs($m, :section($method));
     }
-    my $m = locate-module($package);
-    show-docs($m, :section($method));
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
