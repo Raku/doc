@@ -98,14 +98,15 @@ multi sub MAIN($docee, Bool :$f!) {
                 my $ndocee = $pref ~ " " ~ $docee;
 
                 if %data{$ndocee} {
-                    %hits{$ndocee}.push: %data{$ndocee}.values>>.grep(/^Type/) X~ "." ~ $method;
+                    my @types = %data{$ndocee}.values>>.grep({ $^v ~~ /^ 'Type' / and not $^v ~~ / 'Cool' $ / });
+                    %hits{$ndocee}.push: @types X~ "." ~ $method;
                 }
             }
 
             my $final-docee;
             my $total-hits = [+] %hits.values.map( *.elems );
             if ! $total-hits {
-                say "No matches for '$method'";
+                say "No documentation found for a method or subroutine named '$method'";
                 exit 2;
             } elsif $total-hits == 1 {
                 $final-docee = %hits.values[0];
@@ -119,24 +120,25 @@ multi sub MAIN($docee, Bool :$f!) {
                     %options{$key}.push: %hits{$key}>>.subst(/^'Type::'/, '');
                     say "\t\t" ~ %options{$key}.join("\n\t\t") ~ "\n";
                 }
-    
+
                 my %prefixes = do for %options.values -> @o { @o.map( *.comb[0].lc ) X=> @o };
     
-                while prompt("Narrow your choice ({ %prefixes.keys.join(', ') }, or ! to quit): ").words -> $word {
-                    if $word  ~~ '!' {
+                while prompt("Narrow your choice? ({ %prefixes.keys.join(', ') }, or !{"/" ~ "q " if !%prefixes<q>} to quit): ").words -> $word {
+                    if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>)  {
                         exit 1;
-                    } elsif my $choice = $word ~~ rx:i/ @(%prefixes.keys) / {
-                        $final-docee = %prefixes{ $choice.lc };
-                        say "Loading $final-docee...";
+                    } elsif $word ~~ /:i $<choice> = [ @(%prefixes.keys) ] / {
+                        $final-docee = %prefixes{ $<choice>.lc };
                         last;
                     } else {
-                        say "$word is not a valid choice.\n";
+                        say "$word doesn't seem to apply here.\n";
                         next;
                     }
                 }
             }
 
+            say "Loading $final-docee...";
             ($package, $method) = $final-docee.split('.');
+
             my $m = locate-module($package);
             show-docs($m, :section($method));
         } else {
