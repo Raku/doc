@@ -48,6 +48,8 @@ sub locate-module(Str $modulename) {
 
 sub show-docs(Str $path, :$section) {
     my $pager = %*ENV<PAGER> // ($*DISTRO.name eq 'mswin32' ?? 'more' !! 'less');
+    my $which-fmt = qq:x{which fmt}.chomp;
+    my $fmt-string = $which-fmt.IO.e ?? "| $which-fmt -w 80 " !! "";
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ )  {
         say "No Pod found in $path";
         return;
@@ -55,11 +57,11 @@ sub show-docs(Str $path, :$section) {
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
-        say "launching '$*EXECUTABLE_NAME -I$i --doc=SectionFilter $path | $pager'" if DEBUG;
-        shell "$*EXECUTABLE_NAME -I$i --doc=SectionFilter $path | fmt -w 80 | $pager";
+        say "launching '$*EXECUTABLE_NAME -I$i --doc=SectionFilter $path $fmt-string | $pager'" if DEBUG;
+        shell "$*EXECUTABLE_NAME -I$i --doc=SectionFilter $path $fmt-string | $pager";
     }
     else {
-        shell "$*EXECUTABLE_NAME --doc $path | fmt -w 80 | $pager";
+        shell "$*EXECUTABLE_NAME --doc $path $fmt-string | $pager";
     }
 
 }
