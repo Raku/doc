@@ -139,13 +139,21 @@ sub disambiguate-f-search( $docee, %data ) {
         for %found.keys -> $key {
             %options{$key}.push: %found{$key}>>.subst(/^'Type::'/, '');
         }
-        say "\t" ~ %options.values.map({ @($^a) }).join("\n\t") ~ "\n";
 
         # 's' => Type::Supply.grep, ... | and we specifically want the %found values,
         #                               | not the presentation-versions in %options
         if INTERACT {
+            my $idx = 0;
+            my $total-elems = [+] %found.values.map({ +@^o });
+            if +%found.keys < $total-elems {
+                my @prefixes = (1..$total-elems) X~ ") ";
+                say "\t" ~ ( @prefixes Z~ %options.values.map({ @($^a) }) ).join("\n\t") ~ "\n";
+            } else {
+                say "\t" ~ %options.values.map({ @($^a) }).join("\n\t") ~ "\n";
+            }
             $final-docee = prompt-with-options( %options, %found );
         } else {
+            say "\t" ~ %options.values.map({ @($^a) }).join("\n\t") ~ "\n";
             exit 1;
         }
     }
@@ -156,7 +164,17 @@ sub prompt-with-options( %options, %found ) {
     my $final-docee;
 
     my %prefixes = do for %options.kv -> $k,@o { @o.map(*.comb[0].lc) X=> %found{$k} };
-    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.join(', ') }, or !{'/' ~ 'q' if !%prefixes<q>} to quit): ";
+
+    if %prefixes.values.grep( -> @o { +@o > 1 }) {
+        my (%indexes,$base-idx);
+        $base-idx = 0;
+        for %options.kv -> $k,@o {
+            %indexes.push: @o>>.map({ ++$base-idx}) Z=> @(%found{$k});
+        }
+        %prefixes = %indexes;
+    }
+
+    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.sort.join(', ') }, or !{'/' ~ 'q' if !%prefixes<q>} to quit): ";
 
     while prompt( $prompt-text ).words -> $word {
         if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>)  {
