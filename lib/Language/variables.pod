@@ -52,17 +52,26 @@ themselves. Contrary to item assignment, it means that the type of the
 variable on the left always stays C<Array>, regardless of the type of the
 right-hand side.
 
-The type of assignment (item or list) is decided by the first sigil
-seen in the current expression or declarator.
+The type of assignment (item or list) is decided by the first context
+seen in the current expression or declarator:
 
-Note that item assignment has tighter precedence than list assignment and
-also tighter than the comma.
+    my $foo = 5;            # item assignment
+    say $foo.perl;          # 5
+
+    my @bar = 7, 9;         # list assignment
+    say @bar.WHAT;          # Array
+    say @bar.perl;          # [7, 9]<>
+
+    (my $baz) = 11, 13;     # list assignment
+    say $baz.WHAT;          # Parcel
+    say $baz.perl;          # (11, 13)
 
 Thus, the behavior of an assignment contained within a list assignment depends
 on the expression or declarator that contains it.
 
 For instance, if the internal assignment is a declarator, item assignment
-is used, which has tighter precedence than the comma:
+is used, which has tighter precedence than both the comma and the list
+assignment:
 
     my @array;
     @array = my $num = 42, "str";   # item assignment: uses declarator
@@ -70,24 +79,30 @@ is used, which has tighter precedence than the comma:
     say $num.perl;                  # 42 (a Num)
 
 Similarly, if the internal assignment is an expression that is being
-used as an initializer for a declarator, item assignment is also used:
+used as an initializer for a declarator, the context of the internal
+expression determines the type of assignment:
 
     my $num;
     my @array = $num = 42, "str";    # item assignment: uses expression
     say @array.perl;                 # [42, "str"]<> (an Array)
     say $num.perl;                   # 42 (a Num)
 
+    my ( @foo, $bar );
+    @foo = ($bar) = 42, "str";       # list assignment: uses parens
+    say @foo.perl;                   # [42, "str"]<> (an Array)
+    say $bar.perl;                   # $(42, "str")  (a Parcel)
+
 However, if the internal assignment is neither a declarator nor an
-expression, but is part of a larger expression, the type of assignment
-depends on the first sigil in the larger expression:
+expression, but is part of a larger expression, the context of the
+larger expression determines the type of assignment:
 
     my ( @array, $num );
-    @array = $num = 42, "str";    # list assignment: first sigil is @
+    @array = $num = 42, "str";    # list assignment
     say @array.perl;              # [42, "str"]<> (an Array)
     say $num.perl;                # [42, "str"]<> (an Array)
 
-This is because the whole expression is C<@array = $num = 42, "str">, but
-C<$num = 42> is not is own expression.
+This is because the whole expression is C<@array = $num = 42, "str">, while
+C<$num = 42> is not is own separate expression.
 
 See L<operators|Language/operators> for more details on precedence.
 
