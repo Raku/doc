@@ -39,7 +39,7 @@ L<sigilless variables|#Sigilless variables>.
 There are two types of assignment, I<item assignment> and I<list
 assignment>.  Both use the equal sign C<=> as operator. The distinction
 whether an C<=> means item or list assignment is based on the syntax of the
-left-hand side.  (TODO: explain in detail, or do that in L<operators>).
+left-hand side.
 
 Item assignment places the value from the right-hand side into the variable
 (container) on the left.
@@ -52,13 +52,44 @@ themselves. Contrary to item assignment, it means that the type of the
 variable on the left always stays C<Array>, regardless of the type of the
 right-hand side.
 
+The type of assignment (item or list) is decided by the first sigil
+seen in the current expression or declarator.
+
 Note that item assignment has tighter precedence than list assignment and
-also tighter than the comma. Thus:
+also tighter than the comma.
 
-    my @array = my $num = 42, "str";
+Thus, the behavior of an assignment contained within a list assignment depends
+on the expression or declarator that contains it.
 
-assigns C<42> to C<$num>, and both C<42> and C<"str"> to C<@array>.  See
-L<operators> for more details.
+For instance, if the internal assignment is a declarator, item assignment
+is used, which has tighter precedence than the comma:
+
+    my @array;
+    @array = my $num = 42, "str";   # item assignment: uses declarator
+    say @array.perl;                # [42, "str"]<> (an Array)
+    say $num.perl;                  # 42 (a Num)
+
+Similarly, if the internal assignment is an expression that is being
+used as an initializer for a declarator, item assignment is also used:
+
+    my $num;
+    my @array = $num = 42, "str";    # item assignment: uses expression
+    say @array.perl;                 # [42, "str"]<> (an Array)
+    say $num.perl;                   # 42 (a Num)
+
+However, if the internal assignment is neither a declarator nor an
+expression, but is part of a larger expression, the type of assignment
+depends on the first sigil in the larger expression:
+
+    my ( @array, $num );
+    @array = $num = 42, "str";    # list assignment: first sigil is @
+    say @array.perl;              # [42, "str"]<> (an Array)
+    say $num.perl;                # [42, "str"]<> (an Array)
+
+This is because the whole expression is C<@array = $num = 42, "str">, but
+C<$num = 42> is not is own expression.
+
+See L<operators|Language/operators> for more details on precedence.
 
 =head2 Sigilless variables
 
