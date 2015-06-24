@@ -128,19 +128,33 @@ Returns a new C<IO::Path> object that is an absolute path, based on C<$base>.
 
 Returns a new C<IO::Path> object relative to the C<$base> path.
 
-=head2 method dir
+=head2 routine dir
 
+    sub    dir(Cool $path = '.', Mu :$test = none('.', '..'))
     method dir(IO::Path:D: Mu :$test = none('.', '..'))
 
-Tries to interpret the path as a directory, and returns a lazy list of
-C<IO::Path> objects that match the C<$test> smart-matcher.
+Returns the contents of a directory as a lazy list of C<IO::Path> objects representing relative paths, filtered by L<smart-matching|
+/language/operators#infix_~~> their names against the C<:test> parameter.
 
-By default, the C<.> and C<..> entries (current directory, and parent
-directory) are filtered out. To get a list of all files and directories,
-simply pass a smart-matcher that always matches, like C<True>:
-C<$path.contents(:test(True))>, or shorter: C<$path.contents(:test)>.
+Examples:
 
-An example that lists all files and directories recursively:
+    # To iterate over the contents of the current directory:
+    for dir() -> $file {
+        say $file;
+    }
+
+    # As before, but include even '.' and '..' which are filtered out by
+    # the default :test matcher:
+    for dir(test => *) -> $file {
+        say $file;
+    }
+
+    # To get the names of all .jpg and .jpeg files in ~/Downloads:
+    my @jpegs = "%*ENV<HOME>/Downloads".IO.dir(test => /:i '.' jpe?g $/)».Str;
+
+=comment TODO: Turn the following into a FAQ entry, and link to it from here.
+
+An example program that lists all files and directories recursively:
 
     sub MAIN($dir = '.') {
         my @todo = $dir.IO;
@@ -151,6 +165,32 @@ An example that lists all files and directories recursively:
             }
         }
     }
+
+=head2 routine mkdir
+
+    multi sub mkdir(Int:D $mode, *@dirnames --> @success-dirnames);
+    multi sub mkdir($path, $mode = 0o777 --> Bool);
+    method    mkdir(IO::Path:D: $mode 0o777 --> Bool)
+
+Creates one or more directories with the L<permissions|
+http://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>
+specified as an integer (thought still subject to L<umask|
+http://en.wikipedia.org/wiki/Umask>).
+
+Throws an exception of type L<X::IO::Mkdir|/type/X::IO::Mkdir> if the
+directory cannot be created, except for the C<*@dirnames> form which
+returns the names of the directories that were successfully created.
+
+=head2 routine rmdir
+
+    sub    rmdir($dir as IO --> Bool)
+    method rmdir(IO::Path:D: --> Bool)
+
+Remove the given directory if it is empty.
+
+Returns C<True> on success.  Throws an exception of type
+L<X::IO::Rmdir|/type/X::IO::Rmdir> if the directory cannot be removed (e.g.
+the directory is not empty, or the path is not a directory).
 
 =head2 routine chmod
 
@@ -165,7 +205,7 @@ mode was successful. The method form returns True on success, and otherwise a
 C<Failure> (wrapping an C<X::IO::Chmod> exception).
 
 The mode is expected as an integer following the L<standard numeric notation|
-https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>, and is
+http://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>, and is
 best written as an octal number:
 
     chmod 0o755, "myfile1", "myfile2"; # make two files executable by the owner
