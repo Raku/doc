@@ -2,9 +2,148 @@
 
 =TITLE Modules
 
-=SUBTITLE How to create and distribute Perl 6 modules
+=SUBTITLE How to create, use and distribute Perl 6 modules
 
-=head1 Creating and Distributing Modules
+=head1 Creating and Using Modules
+
+A module is usually a source file or set of source filesN<Technically
+a module is a set of I<compunits> which are usually files but could
+come from anywhere as long as there is a I<compunit repository> that
+can provide it. See L<S11|http://design.perl6.org/S11.html>.> that
+expose Perl 6 constructs to the loader of the module. These are
+typically packages (L<classes|/language/objects#Classes>,
+L<roles|/language/objects#Roles>, L<grammars|Grammar>),
+L<subroutines|/language/functions>, and sometimes
+L<variables|/language/variables>. In Perl 6 I<module> can also refer
+to a type of package declared with the C<module> keyword (see example
+below) but here we mostly mean "module" as a set of useful source
+files in a well defined namespace.
+
+When a module is loaded, the packages declared within will be
+available in the loading block's scope. They will be present
+regardless of whether the module is loaded with C<use> (load & import)
+or C<need> (just load). Subroutines and variables are exported by
+marking them with the L<is export> trait.
+
+    =begin code
+    # lib/MyModule.pm
+
+    unit module MyModule;
+    #everything following in MyModule package namespace
+
+    our $var = 3 is export;
+
+    sub foo is export { ... }
+
+    #a module inside a module! -- not commonly used
+    module MyModule::Submodule {
+        sub bar is export { ... }
+    }
+
+    class MyModule::Class { ... }
+
+    role MyModule::Role { ... }
+    =end code
+
+    =begin code
+    # main.pl
+    use lib 'lib';
+    use MyModule;
+
+    $var = 5;
+    foo();
+    say &foo.package; #MyModule
+    bar();
+    say &bar.package; #MyModule::Submodule
+
+    my $obj = MyModule::Class.new does MyModule::Role;
+    =end code
+
+C<is export> can be passed parameters to specify when the subroutines
+should be exported, then the importer can select which group of
+symbols it wants to import.
+
+    =begin code
+    # lib/MyModule.pm
+    sub pants      is export(:MANDATORY) { ... }
+    sub sunglasses is export(:day)       { ... }
+    sub torch      is export(:night)     { ... }
+    sub underpants is export(:ALL)       { ... }
+    =end code
+
+    =begin code
+    # main.pl
+    use MyModule;        #pants
+    use MyModule :day;   #pants, sunglasses
+    use MyModule :night; #pants, torch
+    use MyModule :ALL;   #pants, sunglasses, torch, underpants
+    =end code
+
+=head2 EXPORT
+
+Using an C<EXPORT> subroutine a module can arbitrarily define the symbols
+it exports. C<EXPORT> should return a L<EnumMap>, where the keys are
+the symbol names and the values are the symbol values. The names
+should include the sigil (if any) for the associated type. For example:
+
+    =begin code
+    # lib/MyModule.pm
+
+    class MyModule::Class { ... }
+
+    sub EXPORT {
+        {
+         '$var'   => 'one',
+         '@array' => <one two three>,
+         '%hash'  => { one => 'two', three => 'four' },
+         '&doit'   => sub { ... },
+         'ShortName' => MyModule::Class
+        }
+    }
+    =end code
+
+    =begin code
+    # main.pl
+    say $var;
+    say @array;
+    say %hash;
+    doit();
+    say ShortName.new(); #MyModule::Class
+    =end code
+
+Note, that C<EXPORT> can't be declared inside a package because
+presently rakudo (2015.06) seems to treat C<EXPORT> as part of the
+compunit rather than the package.
+
+C<EXPORT> gets passed positional arguments passed to
+C<use>. However if C<use> is passed an argument the module will no
+longer export default items.
+
+    =begin code
+    # lib/MyModule
+
+    class MyModule::Class {}
+
+    sub EXPORT($short_name?) {
+        {
+          do $short_name => MyModule::Class if $short_name
+        }
+    }
+
+    sub always is export(:MANDATORY) { say "works" }
+
+    sub shy is export { say "need :ALL to use me" }
+    =end code
+
+    =begin code
+    # main.pl
+    use MyModule 'foo';
+    say foo.new(); #MyModule::Class.new
+    always();      #is imported
+    shy();         #won't be imported
+    =end code
+
+=head1 Distributing Modules
 
 If you've written a Perl 6 module and would like to share it with the
 community, we'd be delighted to have it listed in the L<Perl 6 modules
