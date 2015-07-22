@@ -73,7 +73,8 @@ computer.  To do this you will need:
   - Rakudo (the Rakudo Perl 6 implementation)
   - Panda (the installer for third party Perl 6 modules)
   - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
-  - Mojolicious (a web framework; it runs the web app to display the docs)
+  - Mojolicious (optional; a Perl 5 web framework; it allows you to run a web
+    app locally to display the docs)
   - pygmentize (optional; a program to add syntax highlighting to code
     examples)
   - `Inline::Python` (optional; run Python code from within Perl 6,
