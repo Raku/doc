@@ -10,61 +10,66 @@ A module is usually a source file or set of source filesN<Technically
 a module is a set of I<compunits> which are usually files but could
 come from anywhere as long as there is a I<compunit repository> that
 can provide it. See L<S11|http://design.perl6.org/S11.html>.> that
-expose Perl 6 constructs to the loader of the module. These are
-typically packages (L<classes|/language/objects#Classes>,
+expose Perl 6 constructs. These are typically packages
+(L<classes|/language/objects#Classes>,
 L<roles|/language/objects#Roles>, L<grammars|Grammar>),
 L<subroutines|/language/functions>, and sometimes
 L<variables|/language/variables>. In Perl 6 I<module> can also refer
 to a type of package declared with the C<module> keyword (see example
-below) but here we mostly mean "module" as a set of useful source
-files in a well defined namespace.
+below) but here we mostly mean "module" as a set of source
+files in a namespace.
 
-When a module is loaded, the packages declared within will be
-available in the loading block's scope. They will be present
-regardless of whether the module is loaded with C<use> (load & import)
-or C<need> (just load). Subroutines and variables are exported by
-marking them with the L<is export> trait.
+=head2 Loading and Basic Importing
 
-    =begin code
-    # lib/MyModule.pm
+Loading a module makes the packages declared within available in the
+package scope of the loader. Importing from a module makes the symbols
+exported available in the current lexical scope.
 
-    unit module MyModule;
-    #everything following in MyModule package namespace
+    # loads at compile time
+    need MyModule;
 
-    our $var = 3 is export;
-
-    sub foo is export { ... }
-
-    #a module inside a module! -- not commonly used
-    module MyModule::Submodule {
-        sub bar is export { ... }
-    }
-
-    class MyModule::Class { ... }
-
-    role MyModule::Role { ... }
-    =end code
-
-    =begin code
-    # main.pl
-    use lib 'lib';
+    # loads and imports default symbols at compile time
     use MyModule;
 
-    $var = 5;
-    foo();
-    say &foo.package; #MyModule
-    bar();
-    say &bar.package; #MyModule::Submodule
+    # imports default symbols at compile time
+    import MyModule;
 
-    my $obj = MyModule::Class.new does MyModule::Role;
+    # loads module at runtime
+    require MyModule;
+
+    #declares &foo at compile time in the lexical scope
+    #loads module at runtime
+    #binds &foo at runtime to the exported symbol
+    require MyModule <&foo>
+
+    #the same but with the module name in runtime variable
+    my $var = 'MyModule';
+    require ::($var) <&foo>;
+
+=head2 Exporting and Selective Importing
+
+Subroutines, variables, constants and enums are exported by marking
+them with the L<is export> trait.
+
+    =begin code
+    unit module MyModule;
+    our $var is export = 3;
+    sub foo is export { ... };
+    constant $FOO is export = "foobar";
+    enum FooBar is export (:baz(1));
+
+    #'is export' is not for packages
+    class MyModule::Class {}
     =end code
 
-C<is export> can be passed parameters to specify when the subroutines
-should be exported, then the importer can select which group of
-symbols it wants to import.
+You can pass parameters to C<is export> to group symbols for exporting
+then the importer can pick and choose. There are three predefined
+tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
 
     =begin code
     # lib/MyModule.pm
+    unit module MyModule;
+    sub bag        is export             { ... }
     sub pants      is export(:MANDATORY) { ... }
     sub sunglasses is export(:day)       { ... }
     sub torch      is export(:night)     { ... }
@@ -73,18 +78,20 @@ symbols it wants to import.
 
     =begin code
     # main.pl
-    use MyModule;        #pants
-    use MyModule :day;   #pants, sunglasses
-    use MyModule :night; #pants, torch
-    use MyModule :ALL;   #pants, sunglasses, torch, underpants
+    use lib 'lib';
+    use MyModule;          #pants, bag
+    use MyModule :DEFAULT; #the same
+    use MyModule :day;     #pants, sunglasses
+    use MyModule :night;   #pants, torch
+    use MyModule :ALL;     #pants, sunglasses, torch, underpants
     =end code
 
 =head2 EXPORT
 
-Using an C<EXPORT> subroutine a module can arbitrarily define the symbols
-it exports. C<EXPORT> should return a L<EnumMap>, where the keys are
-the symbol names and the values are the symbol values. The names
-should include the sigil (if any) for the associated type. For example:
+You can export arbitrary symbols with an C<EXPORT> sub. C<EXPORT>
+must return a L<EnumMap>, where the keys are the symbol names and
+the values are the desired values. The names should include the sigil
+(if any) for the associated type.
 
     =begin code
     # lib/MyModule.pm
@@ -104,20 +111,23 @@ should include the sigil (if any) for the associated type. For example:
 
     =begin code
     # main.pl
+    use lib 'lib';
+    use MyModule;
     say $var;
     say @array;
     say %hash;
     doit();
-    say ShortName.new(); #MyModule::Class
+    say ShortName.new; #MyModule::Class.new
     =end code
 
-Note, that C<EXPORT> can't be declared inside a package because
+Note, C<EXPORT> can't be declared inside a package because
 presently rakudo (2015.06) seems to treat C<EXPORT> as part of the
 compunit rather than the package.
 
-C<EXPORT> gets passed positional arguments passed to
-C<use>. However if C<use> is passed an argument the module will no
-longer export default items.
+If you pass positional parameters to C<use> they will be passed to
+C<EXPORT>. The module no longer exports default symbols if a
+positional is passed, however you may still import them explicitly by
+passing :C<DEFAULT> to C<use>.
 
     =begin code
     # lib/MyModule
@@ -132,15 +142,17 @@ longer export default items.
 
     sub always is export(:MANDATORY) { say "works" }
 
-    sub shy is export { say "need :ALL to use me" }
+    #import with :ALL or :DEFAULT to get
+    sub shy is export { say "you found me!" }
     =end code
 
     =begin code
     # main.pl
+    use lib 'lib';
     use MyModule 'foo';
     say foo.new(); #MyModule::Class.new
-    always();      #is imported
-    shy();         #won't be imported
+    always();      #OK   - is imported
+    shy();         #FAIL - won't be imported
     =end code
 
 =head1 Distributing Modules
