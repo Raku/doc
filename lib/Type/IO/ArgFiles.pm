@@ -37,6 +37,39 @@ Here's the same thing via the C<slurp> method:
 
     say $argfiles.slurp;
 
+=head1 Variables
+
+=head2 C<$*ARGFILES>
+
+This class is the magic behind the C<$*ARGFILES> variable.  This variable
+provides a way to iterate over files passed in to the program on the command
+line.  Thus the examples above can be simplified like so:
+
+    use v6;
+
+    .say for $*ARGFILES.lines;
+
+    # or
+    while ! $*ARGFILES.eof {
+        say $*ARGFILES.get;
+    }
+
+    # or
+    say $*ARGFILES.slurp;
+
+Save one of the variations in a file, say C<argfiles.p6>.  Then create
+another file (named, say C<sonnet18.txt> with the contents:
+
+    Shall I compare thee to a summer's day?
+
+Running the command
+
+    $ perl6 argfiles.p6 sonnet18.txt
+
+will then give the output
+
+    Shall I compare thee to a summer's day?
+
 =head1 Methods
 
 =head2 method eof
