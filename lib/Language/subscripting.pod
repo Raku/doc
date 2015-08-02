@@ -1,0 +1,600 @@
+=begin pod
+
+=TITLE Subscripting
+
+=SUBTITLE Accessing data structure elements by index or key
+
+Often one wants to refer to a specific element (or specific slice of elements)
+of a collection or data structure. Borrowing from mathematical notation where
+one would use I<v₁, v₂, v₃> to refer to the components of a vercor I<v>, this
+concept is called "subscripting" (or "indexing") in Perl 6.
+
+=head1 Basics
+
+Perl 6 provides two universal subscripting interfaces:
+
+=begin table
+         elements are            interface      supported by
+         identified by           name           
+    ===  ======================  =============  ============================
+    [ ]  zero-based indices      Positional     Array, List, Buf, Match, ...
+    { }  string or object keys   Associative    Hash, Bag, Mix, Match, ...
+=end table
+
+...
+=comment TODO: Provide a basic intro to subscripting. Don't forget to mention:
+    - .<> as syntactic sugar for .{}
+    - .[] on non-positionals being treated like a list of 1 element
+
+
+=head1 From the end
+
+...
+=comment TODO: Explain the [*-1] syntax.
+
+
+=head1 Slicing
+
+...
+=comment TODO: Explain slice subscripts. Don't forget to mention:
+    - that it happens based on the type rather than .elems of the subscript
+    - that range subscripts auto-truncate
+
+=head1 Multiple dimensions
+
+...
+=comment TODO: Explain multi-dim subscripts. It's probably best to wait for
+               jnthn's ongoing refactor to finish before writing this section.
+
+
+=head1 Autovivification
+
+Subscripts participate in "autovivification", i.e. the process by which arrays
+and hashes automatically spring into existence when needed, so that you can
+build nested data structures without having to pre-declare the collection type
+at each level:
+
+    my $beatles;
+    
+    $beatles{"White Album"}[0] = "Back in the U.S.S.R.";  # autovivification!
+    
+    say $beatles.perl;  #-> {"White Album" => ["Back in the U.S.S.R."]}
+
+C<$beatles> started out undefined, but became a L<Hash> object because it was
+subscripted with C<{ }> in the assignment. Similarly, C<$beatles{"White Album"}>
+became an L<Array> object due to being subscripted with C<[ ]> in the
+assignment.
+
+Note that the subscripting itself does not cause autovivification: It only
+happens when the result of the subscripting chain is I<assigned> to (or
+otherwise mutated).
+
+=comment TODO: Add expanded documentation on autovivification (which affects
+               more than just subscripts, i.e. also routines like `push`), at
+               /language/datastructures.html, and link to it from here.
+
+
+=head1 Binding
+
+A subscripting expression may also be used as the left-hand-side of a binding
+statement. If supported by the subscripted collection's type, this replaces
+whatever value container would be naturally found at that "slot" of the
+collection, with the specified container.
+
+The built-in L<Array> and L<Hash> types support this in order to allow
+building complex linked data structures:
+
+    my @a = 10, 11, 12, 13;
+    my $x = 1;
+
+    @a[2] := $x;  # binding! (@a[2] and $x refer to the same container now.)
+
+    $x++; @a[2]++;
+
+    dd @a;  #-> [10, 11, 3, 13]<>
+    dd $x;  #-> 3
+
+=comment TODO: Come up with a more practical/motivational example snippet.
+
+=comment TODO: Add expanded documentation on building complex data structures
+               at /language/datastructures.html, and link to it from here.
+
+See L<#method BIND-POS> and L<#method BIND-KEY> for the underlying mechanism.
+
+
+=head1 Adverbs
+
+The return value and possible side-effect of a subscripting operation can be
+controlled using adverbs.
+
+Beware of the relatively loose precedence of operator adverbs, which may
+require you to add parens in compound expressions:
+
+    if $foo || %hash<key>:exists { ... }    # WRONG, tries to adverb the || op
+    if $foo || (%hash<key>:exists) { ... }  # correct
+
+The supported adverbs are:
+
+=head2 X<:exists|subscript adverb,:exists>
+
+Return whether or not the requested element exists, instead of returning the
+element's actual value. This can be used to distinguish between elements with
+an undefined value, and elements that aren't part of the collection at all:
+
+    my @foo = Any, 10;
+    dd @foo[0].defined;    #-> False
+    dd @foo[0]:exists;     #-> True
+    dd @foo[2]:exists;     #-> False
+    dd @foo[0, 2]:exists;  #-> (True, False)
+    
+    my %fruit = apple => Any, orange => 10;
+    dd %fruit<apple>.defined;       #-> False
+    dd %fruit<apple>:exists;        #-> True
+    dd %fruit<banana>:exists;       #-> False
+    dd %fruit<apple banana>:exists; #-> (True, False)
+
+May also be negated to test for non-existence:
+
+    dd %fruit<apple banana>:!exists; #-> (False, True)
+
+To check if I<all> elements of a slice exist, use an L<all> junction:
+
+    if all %fruit<apple orange banana>:exists { ... }
+
+C<:exists> can be combined with the L<#:delete> and L<#:p>/L<#:kv> adverbs -
+in which case the behavior is determined by those adverbs, except that any
+returned element I<value> is replaced with the corresponsing L<Bool> indicating
+element I<existence>.
+
+See L<#method EXISTS-POS> and L<#method EXISTS-KEY> for the underlying
+mechanism.
+
+=head2 X<:delete|subscript adverb,:delete>
+
+Delete the element from the collection, in addition to returning its value.
+
+    my @tens = 0, 10, 20, 30, 40;
+    dd @tens[1]:delete;     #-> 10
+    dd @tens[2, 4]:delete;  #-> (20, 40)
+    dd @tens;               #-> [0, 20]<>
+    
+    my %fruit = apple => 5, orange => 10;
+    dd %fruit<apple>:delete;  #-> 5
+    dd %fruit;                #-> {orange => 10}<>
+
+With the negated form of the adverb, the element is not actually deleted. This
+means you can pass a flag to make it conditional:
+
+    dd %fruit<apple> :delete($flag);  # deletes the element only if $flag is
+                                      # true, but always returns the value.
+
+Can be combined with the L<#:exists> and L<#:p>/L<#:kv>/L<#:k>/L<#:v> adverbs -
+in which case the return value will be determined by those adverbs, but the
+element will at the same time also be deleted.
+
+See L<#method DELETE-POS> and L<#method DELETE-KEY> for the underlying
+mechanism.
+
+=head2 X<:p|subscript adverb,:p>
+
+Return both the index/key and the value of the element, in the form of a
+L<Pair>, and silently skip nonexistent elements:
+
+    my @tens = 0, 10, 20, 30;
+    dd @tens[1]:p;        #-> 1 => 10
+    dd @tens[0, 4, 2]:p;  #-> (0 => 0, 2 => 20)
+
+    my %month = Jan => 1, Feb => 2, Mar => 3;
+    dd %month<Feb>:p;          #-> "Feb" => 2
+    dd %month<Jan Foo Mar>:p;  #-> ("Jan" => 1, "Mar" => 3)
+
+If you I<don't> want to skip nonexistent elements, use the negated form:
+
+    dd %month<Jan Foo Mar>:!p;  #-> ("Jan" => 1, "Foo" => Any, "Mar" => 3)
+
+Can be combined with the L<#:exists> and L<#:delete> adverbs.
+
+See also the L<pairs> routine.
+
+=head2 X<:kv|subscript adverb,:kv>
+
+Return both the index/key and the value of the element, in the form of a
+L<List>, and silently skip nonexistent elements. When used on a
+L<slice|#Slicing>, the return value is a single flat list of interleaved keys
+and values:
+
+    my @tens = 0, 10, 20, 30;
+    dd @tens[1]:kv;        #-> (1, 10)
+    dd @tens[0, 4, 2]:kv;  #-> (0, 0, 2, 20)
+
+    my %month = Jan => 1, Feb => 2, Mar => 3;
+    dd %month<Feb>:kv;          #-> ("Feb", 2)
+    dd %month<Jan Foo Mar>:kv;  #-> ("Jan", 1, "Mar", 3)
+
+If you I<don't> want to skip nonexistent elements, use the negated form:
+
+    dd %month<Jan Foo Mar>:!kv;  #-> ("Jan", 1, "Foo", Any, "Mar", 3)
+
+This adverb is commonly used to iterate over slices:
+
+    for %month<Feb Mar>:kv -> $month, $i {
+        say "$month had {Date.new(2015, $i, 1).days-in-month} days in 2015"
+    }
+
+Can be combined with the L<#:exists> and L<#:delete> adverbs.
+
+See also the L<kv> routine.
+
+=head2 X<:k|subscript adverb,:k>
+
+Return only the index/key of the element, rather than its value, and silently
+skip nonexistent elements:
+
+    my @tens = 0, 10, 20, 30;
+    dd @tens[1]:k;        #-> 1
+    dd @tens[0, 4, 2]:k;  #-> (0, 2)
+
+    my %month = Jan => 1, Feb => 2, Mar => 3;
+    dd %month<Feb>:k;          #-> "Feb"
+    dd %month<Jan Foo Mar>:k;  #-> ("Jan", "Mar")
+
+If you I<don't> want to skip nonexistent elements, use the negated form:
+
+    dd %month<Jan Foo Mar>:!k;  #-> ("Jan", "Foo", "Mar")
+
+See also the L<keys> routine.
+
+=head2 X<:v|subscript adverb,:v>
+
+Return the bare value of the element (rather than potentially returning a
+mutable value container), and silently skip nonexistent elements:
+
+    my @tens = 0, 10, 20, 30;
+    dd @tens[1]:v;        #-> 10
+    dd @tens[0, 4, 2]:v;  #-> (0, 20)
+    @tens[3] = 31;        # OK
+    @tens[3]:v = 31;      # ERROR, cannot assign to immutable integer value
+
+    my %month = Jan => 1, Feb => 2, Mar => 3;
+    dd %month<Feb>:v;          #-> 2
+    dd %month<Jan Foo Mar>:v;  #-> (1, 3)
+
+If you I<don't> want to skip nonexistent elements, use the negated form:
+
+    dd %month<Jan Foo Mar>:!v;  #-> (1, Any, 3)
+
+See also the L<values> routine.
+
+=head1 Custom types
+
+The subscripting interfaces described on this page are not meant to be
+exclusive to Perl 6's built-in collection types - you can (and should)
+reuse them for any custom type that wants to provide access to data by
+index or key.
+
+You don't have to manually overload the L<C<postcircumfix [ ]>|
+/routine/[ ]#postcircumfix_[_]> and L<C<postcircumfix { }>|
+/routine/{ }#postcircumfix_{_}> operators and re-implement all their magic,
+to achieve that - instead, you can rely on the fact that their standard
+implementation dispatches to a well-defined set of low-level methods behind
+the scenes. For example:
+
+=table
+    when you write:    this gets called behind the scenes:
+    ===============    ==============================================
+    %foo<aa>           %foo.AT-KEY("aa")
+    %foo<aa>:delete    %foo.DELETE-KEY("aa")
+    @foo[3,4,5]        @foo.AT-POS(3), @foo.AT-POS(4), @foo.AT-POS(5)
+    @foo[*-1]          @foo.AT-POS(@foo.elems - 1)
+
+So in order to make subscripting work, you only have to implement or
+delegate those low-level methods (L<detailed below
+|#Methods_to_implement_for_positional_subscripting>) for your custom type.
+
+If you do, you should also let your type compose the L<C<Positional>|
+/type/Positional> or L<C<Associative>|/type/Associative> role,
+respectively. This doesn't add any functionality per se, but announces (and
+may be used to check) that the type implements the corresponding
+subscripting interface.
+
+=head2 Custom type example
+
+=comment TODO: Maybe factor this out into a tutorial page
+
+Imagine a HTTP::Header type which, despite being a custom class with special
+behavior, can be indexed like a hash:
+
+    my $request = HTTP::Request.new(GET => "perl6.org");
+    say $request.header.WHAT;  #-> (HTTP::Header)
+    
+    $request.header<Accept> = "text/plain";
+    $request.header{'Accept-' X~ <Charset Encoding Language>} = <utf-8 gzip en>;
+    $request.header.push('Accept-Language' => "fr");  # like .push on a Hash
+    
+    say $request.header<Accept-Language>.perl;  #-> ["en", "fr"]
+    
+    my $rawheader = $request.header.Str;  # stringify according to HTTP spec
+
+The simplest way to implement this class, would be to give it an attribute of
+type L<Hash>, and delegate all subscripting and iterating related functionality
+to that attribute (using a custom type constraint to make sure users don't
+insert anything invalid into it):
+
+    class HTTP::Header does Associative is Iterable {
+        subset StrOrArrayOfStr where Str | ( Array & {.all ~~ Str} );
+        
+        has %!fields of StrOrArrayOfStr
+                     handles <AT-KEY EXISTS-KEY DELETE-KEY push
+                              iterator list kv keys values>;
+        
+        method Str { #`[not shown, for brevity] }
+    }
+
+However, HTTP header field names are supposed to be case-insensitive (and
+preferred in camel-case). We can accomodate this by taking the C<*-KEY>
+and C<push> methods out of the C<handles> list, and implementing them
+separately like this:
+
+    method AT-KEY     ($key) is rw { %!fields{normalize-key $key}        }
+    method EXISTS-KEY ($key)       { %!fields{normalize-key $key}:exists }
+    method DELETE-KEY ($key)       { %!fields{normalize-key $key}:delete }
+    method push (*@_) { #`[not shown, for brevity] }
+    
+    sub normalize-key ($key) { $key.subst(/\w+/, *.tc, :g) }
+
+Note that subscripting C<%!fields> returns an appropriate rw container, which
+our C<AT-KEY> can simply pass on.
+
+However, we may prefer to be less strict about user input and instead take
+care of sanitizing the field values ourselves. In that case, we can remove
+the C<StrOrArrayOfStr> type constraint on C<%!fields>, and replace our
+C<AT-KEY> implementation with one that returns a custom C<Proxy> container
+which takes care of sanitising values on assignment:
+
+    multi method AT-KEY (::?CLASS:D: $key) is rw {
+        my $element := %!fields{normalize-key $key};
+        
+        Proxy.new(
+            FETCH => method () { $element },
+            
+            STORE => method ($value) {
+                $element = do given $value».split(/',' \s+/).flat {
+                    when 1  { .[0] }    # a single value is stored as a string
+                    default { .Array }  # multiple values are stored as an array
+                }
+            }
+        );
+    }
+
+Note that declaring the method as C<multi> and restricting it to C<:D> (defined
+invocants) makes sure that the undefined case is passed through to the default
+implementation provided by C<Any> (which is involved in auto-vivification).
+
+=head2 Methods to implement for positional subscripting
+
+In order to make index-based subscripting via L<C<postcircumfix [ ]>|
+/routine/[ ]#postcircumfix_[_]> work for your custom type, you should
+implement at least C<elems>, C<AT-POS> and C<EXISTS-POS> - and optionally
+others as detailed below.
+
+=head3 method elems
+
+    multi method elems (::?CLASS:D:)
+
+Expected to return a number indicating how many subscriptable elements
+there are in the object. May be called by users directly, and is also
+called by L<C<postcircumfix [ ]>|/routine/[ ]#postcircumfix_[_]> when
+indexing elements from the end, as in C<@foo[*-1]>.
+
+If not implemented, your type will inherit the default implementation from
+C<Any> that always returns C<1> for defined invocants - which is most
+likely not what you want. So if the number of elements cannot be known for
+your positional type, add an implementation that L<fail>s or L<die>s, to
+avoid silently doing the wrong thing.
+
+=head3 method AT-POS
+
+=comment When modifying this section, please also adapt the AT-KEY
+         section accordingly as they are very similar.
+
+    multi method AT-POS (::?CLASS:D: $index)
+
+=comment TODO: Cover the case of multi-dim indices (also for all the other
+               methods below), after jnthn's ongoing refactor is finished.
+
+Expected to return the element at position C<$index>. This is what
+L<C<postcircumfix [ ]>|/routine/[ ]#postcircumfix_[_]> normally calls.
+
+If you want an element to be mutable (like they are for the built-in
+L<Array> type), you'll have to make sure to return it in the form of an
+item container that evaluates to the element's value when read, and updates
+it when assigned to. (Remember to use C<return-rw> or the C<is rw> routine
+trait to make that work; see the L<example
+|/language/subscripting#Custom_type_example>.)
+
+=head3 method EXISTS-POS
+
+=comment When modifying this section, please also adapt the EXISTS-KEY
+         section accordingly as they are very similar.
+
+    multi method EXISTS-POS (::?CLASS:D: $index)
+
+Expected to return a Bool indicating whether or not there is an element at
+position C<$index>. This is what L<C<postcircumfix [ ]>|
+/routine/[ ]#postcircumfix_[_]> calls when invoked like C<@foo[42]:exists>.
+
+What "existence" of an element means, is up to your type.
+
+If you don't implement this, your type will inherit the default
+implementation from C<Any>, which returns True for 0 and False for any
+other index - which is probably not what you want. So if checking for
+element existence cannot be done for your type, add an implementation that
+L<fail>s or L<die>s, to avoid silently doing the wrong thing.
+
+=head3 method DELETE-POS
+
+=comment When modifying this section, please also adapt the DELETE-KEY
+         section accordingly as they are very similar.
+
+    multi method DELETE-POS (::?CLASS:D: $index)
+
+Expected to delete the element at position C<$index>, and return the value
+it had. This is what L<C<postcircumfix [ ]>|/routine/[ ]#postcircumfix_[_]>
+calls when invoked like C<@foo[42]:delete>.
+
+What "deleting" an element means, is up to your type.
+
+Implementing this method is optional; if you don't, users trying to delete
+elements from an object of this type will get an appropriate error message.
+
+=head3 method ASSIGN-POS
+
+=comment When modifying this section, please also adapt the ASSIGN-KEY
+         section accordingly as they are very similar.
+
+    multi method ASSIGN-POS (::?CLASS:D: $index, $new)
+
+Expected to set the element at position C<$index> to the value C<$new>.
+Implementing this is entirely optional; if you don't, C<self.AT-POS($index)
+= $new> is used instead, and if you do, you should make sure it has the
+same effect.
+
+This is meant as an opt-in performance optimization, so that simple
+assignments like C<@numbers[5] = "five"> can operate without having to call
+C<AT-POS> (which would have to create and return a potentially expensive
+container object).
+
+Note that implementing C<ASSIGN-POS> does I<not> relieve you from making
+C<AT-POS> an C<rw> method though, because less trivial
+assignments/modifications such as C<@numbers[5]++> will still use
+C<AT-POS>.
+
+=head3 method BIND-POS
+
+=comment When modifying this section, please also adapt the BIND-KEY
+         section accordingly as they are very similar.
+
+    multi method BIND-POS (::?CLASS:D: $index, \new)
+
+Expected to bind the value or container C<new> to the slot at position
+C<$index>, replacing any container that would be naturally found there.
+This is what is called when you write:
+
+    my $x = 10;
+    @numbers[5] := $x;
+
+The generic L<Array> class supports this in order to allow building complex
+linked data structures, but for more domain-specific types it may not make
+sense, so don't feel compelled to implement it. If you don't, users will
+get an appropriate error message when they try to bind to a positional slot
+of an object of this type.
+
+
+=head2 Methods to implement for associative subscripting
+
+In order to make key-based subscripting via L<C<postcircumfix { }>|
+/routine/{ }#postcircumfix_{_}> work for your custom type, you should
+implement at least C<AT-KEY> and C<EXISTS-KEY> - and optionally
+others as detailed below.
+
+=head3 method AT-KEY
+
+=comment When modifying this section, please also adapt the AT-POS
+         section accordingly as they are very similar.
+
+    multi method AT-KEY (::?CLASS:D: $key)
+
+Expected to return the element associated with C<$key>. This is what
+L<C<postcircumfix { }>|/routine/{ }#postcircumfix_{_}> normally calls.
+
+If you want an element to be mutable (like they are for the built-in
+L<Hash> type), you'll have to make sure to return it in the form of an item
+container that evaluates to the element's value when read, and updates it
+when assigned to. (Remember to use C<return-rw> or the C<is rw> routine
+trait to make that work; see the L<example
+|/language/subscripting#Custom_type_example>.)
+
+On the other hand if you want your collection to be read-only, feel free
+to return non-container values directly.
+
+=head3 method EXISTS-KEY
+
+=comment When modifying this section, please also adapt the EXISTS-POS
+         section accordingly as they are very similar.
+
+    multi method EXISTS-KEY (::?CLASS:D: $key)
+
+Expected to return a Bool indicating whether or not there is an element
+associated with C<$key>. This is what L<C<postcircumfix { }>
+|/routine/{ }#postcircumfix_{_}> calls when invoked like
+C<%foo<aa>:exists>.
+
+What "existence" of an element means, is up to your type.
+
+If you don't implement this, your type will inherit the default
+implementation from C<Any>, which always returns False - which is probably
+not what you want. So if checking for element existence cannot be done for
+your type, add an implementation that L<fail>s or L<die>s, to avoid
+silently doing the wrong thing.
+
+=head3 method DELETE-KEY
+
+=comment When modifying this section, please also adapt the DELETE-POS
+         section accordingly as they are very similar.
+
+    multi method DELETE-KEY (::?CLASS:D: $key)
+
+Expected to delete the element associated with C<$key>, and return the
+value it had. This is what L<C<postcircumfix { }>
+|/routine/{ }#postcircumfix_{_}> calls when invoked like
+C<%foo<aa>:delete>.
+
+What "deleting" an element means, is up to your type - though it should
+usually cause C<EXISTS-KEY> to become C<False> for that key.
+
+Implementing this method is optional; if you don't, users trying to delete
+elements from an object of this type will get an appropriate error message.
+
+=head3 method ASSIGN-KEY
+
+=comment When modifying this section, please also adapt the ASSIGN-POS
+         section accordingly as they are very similar.
+
+    multi method ASSIGN-KEY (::?CLASS:D: $key, $new)
+
+Expected to set the element associated with C<$key> to the value C<$new>.
+Implementing this is entirely optional; if you don't, C<self.AT-KEY($key) =
+$new> is used instead, and if you do, you should make sure it has the same
+effect.
+
+This is meant as an opt-in performance optimization, so that simple
+assignments C<%age<Claire> = 29> can operate without having to call
+C<AT-KEY> (which would have to create and return a potentially expensive
+container object).
+
+Note that implementing C<ASSIGN-KEY> does I<not> relieve you from making
+C<AT-KEY> an C<rw> method though, because less trivial
+assignments/modifications such as C<%age<Claire>++> will still use
+C<AT-KEY>.
+
+=head3 method BIND-KEY
+
+=comment When modifying this section, please also adapt the BIND-POS
+         section accordingly as they are very similar.
+
+    multi method BIND-POS (::?CLASS:D: $key, \new)
+
+Expected to bind the value or container C<new> to the slot associated with
+C<$key>, replacing any container that would be naturally found there.
+This is what is called when you write:
+
+    my $x = 10;
+    %age<Claire> := $x;
+
+The generic L<Hash> class supports this in order to allow building complex
+linked data structures, but for more domain-specific types it may not make
+sense, so don't feel compelled to implement it. If you don't, users will
+get an appropriate error message when they try to bind to an associative
+slot of an object of this type.
+
+=end pod
