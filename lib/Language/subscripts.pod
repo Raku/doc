@@ -4,9 +4,9 @@
 
 =SUBTITLE Accessing data structure elements by index or key
 
-Often one wants to refer to a specific element (or specific slice of elements)
+Often one needs to refer to a specific element (or specific slice of elements)
 of a collection or data structure. Borrowing from mathematical notation where
-one would use I<v₁, v₂, v₃> to refer to the components of a vector I<v>, this
+the components of a vector I<v> would be referred to as I<v₁, v₂, v₃>, this
 concept is called "subscripting" (or "indexing") in Perl 6.
 
 =head1 Basics
@@ -14,18 +14,71 @@ concept is called "subscripting" (or "indexing") in Perl 6.
 Perl 6 provides two universal subscripting interfaces:
 
 =begin table
-         elements are            interface      supported by
-         identified by           name           
-    ===  ======================  =============  ============================
-    [ ]  zero-based indices      Positional     Array, List, Buf, Match, ...
-    { }  string or object keys   Associative    Hash, Bag, Mix, Match, ...
+             elements are        interface      supported by
+             identified by       name           
+    =======  ==================  =============  ============================
+    [ ]      zero-based indices  Positional     Array, List, Buf, Match, ...
+    { } < >  unique keys         Associative    Hash, Bag, Mix, Match, ...
 =end table
 
-...
-=comment TODO: Provide a basic intro to subscripting. Don't forget to mention:
-    - .<> as syntactic sugar for .{}
-    - .[] on non-positionals being treated like a list of 1 element
+=begin item1
+B<Positional> subscripting (via L<C<postcircumfix [ ]>|
+/language/operators#postcircumfix_[_]>) addresses elements of an ordered collection by their
+position. Index 0 refers to the first element, index 1 to the second, and so on:
 
+    my @chores = "buy groceries", "feed dog", "wash car";
+    say @chores[0];  #-> buy groceries
+    say @chores[1];  #-> feed dog
+    say @chores[2];  #-> wash car
+=end item1
+
+=begin item1
+B<Associative> subscripting (via L<C<postcircumfix { }>|
+/language/operators#postcircumfix_{_}>), does not require the collection to keep its elements in any particular
+order - instead, it uses a unique key to address each value. The nature of the
+keys depends on the collection in question: For example a standard L<Hash> uses
+string keys, whereas a L<Mix> allows arbitrary objects as keys, etc.:
+
+    my %grade = Lea => "C", Benicio => "B+"
+    say %grade{"Lea"};      #-> C
+    say %grade{"Benicio"};  #-> B+
+    say %grade<Lea>;        #-> C
+    say %grade<Benicio>;    #-> B+
+    
+    my $stats = ( Date.new(2015,  4,  5) => 17.253 ,
+                  Date.new(2015, 12, 24) =>  4.18  ).Mix;
+    say $stats{ Date.new(2015, 4, 5) }; #-> 17.253
+
+L«C«postcircumfix < >»|/language/operators#postcircumfix_<_>» is merely
+syntactic sugar for passing single-word string keys to C<{ }>. That is,
+$foo<bar baz> is simply turned into C<$foo{ <bar baz> }> at compile time. (See
+L<word quoting| http://doc.perl6.org/language/quoting#Word_quoting%3A_qw>, and
+L<#Slicing>.)
+=end item1
+
+Subscripts can be applied to any expression that returns a subscriptable
+object, not just to variables:
+
+    say "foo_bar_baz".match(/ foo_(.*)_baz /)[0];   #-> ｢bar｣
+    say "foo_bar_baz".match(/ foo_(.*)_baz /).[0];  # same, in method notation
+
+If a subscript is applied to an object that does not support it, a run-time
+error is thrown. However, as a special convenience (provided by class L<Any>),
+applying a I<positional> subscript to a non-positional object treats it as a
+single-element list:
+
+    say 42<foo>;  # ERROR: postcircumfix:<{ }> not defined for type Int
+    say 42[0];    #-> 42
+
+What happens when a nonexistent element is addressed by a subscript, is up to
+the collection type in question. Standard L<Array> and L<Hash> collections
+return the type object of their L<value type constraint|of> (which, by default,
+is C<Any>), but other collections may react differently:
+
+    say {a => 1, b => 2}<c>;  #-> (Any)
+    say [0, 10, 20][3];       #-> (Any)
+    say (0, 10, 20)[3];       #-> Nil
+    say bag(<a a b b b>)<c>;  #-> 0
 
 =head1 From the end
 
@@ -159,7 +212,7 @@ Delete the element from the collection, in addition to returning its value.
     
     my %fruit = apple => 5, orange => 10, banana => 4, peach => 17;
     dd %fruit<apple>:delete;         #-> 5
-    dd %fruit<peach orange>:delete;  #-> 17 10
+    dd %fruit<peach orange>:delete;  #-> (17, 10)
     dd %fruit;                       #-> {banana => 4}<>
 
 With the negated form of the adverb, the element is not actually deleted. This
