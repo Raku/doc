@@ -44,18 +44,24 @@ allows arbitrary objects as keys, etc.:
     my %grade = Zoe => "C", Ben => "B+";
     say %grade{"Zoe"};  #-> C
     say %grade{"Ben"};  #-> B+
+    
+    my $stats = ( Date.today => 4.18, Date.new(2015,  4,  5) => 17.253 ).Mix;
+    say $stats{ Date.new(2015, 4, 5) };  #-> 17.253
+
+For passing single-word string keys to C<{ }>, you can also use the
+L<angle-bracketed word quoting constructs|/language/quoting#Word_quoting:_qw>
+as if they were postcircumfix operators:
+
     say %grade<Zoe>;    #-> C
     say %grade<Ben>;    #-> B+
-    
-    my $stats = ( Date.new(2015,  4,  5) => 17.253 ,
-                  Date.new(2015, 12, 24) =>  4.18  ).Mix;
-    say $stats{ Date.new(2015, 4, 5) }; #-> 17.253
 
-L«C«postcircumfix < >»|/language/operators#postcircumfix_<_>» is merely
-syntactic sugar for passing single-word string keys to C<{ }>. That is,
-$foo<bar baz> is simply turned into C<$foo{ <bar baz> }> at compile time. (See
-L<word quoting| http://doc.perl6.org/language/quoting#Word_quoting%3A_qw>, and
-L<#Slicing>.)
+This is really just syntactic sugar that gets turned into the corresponding
+C<{ }> form at compile-time:
+
+    %hash<foo bar>;     # same as %hash{ <foo bar> }
+    %hash«foo $var»;    # same as %hash{ «foo $var» }
+    %hash<<foo $var>>;  # same as %hash{ <<foo $var>> }
+
 =end item1
 
 Subscripts can be applied to any expression that returns a subscriptable
@@ -65,31 +71,41 @@ object, not just to variables:
     say "__Hello__".match(/__(.*)__/).[0];  # same, in method notation
 
 Positional and associative subscripting are not mutually exclusive - for
-example, C<Match> objects support both to access different sets of data. Also,
-to make list munging more convenient, class L<Any> provides a fallback
-implementation for positional subscripts which simply treats the left operand
-as a list of one element (whereas there's no such fallback for associative
-subscripts, so they throw a run-time error when applied to an object that does
-not implement support for them):
+example, L<Match> objects support both (each accessing a different set of
+data). Also, to make list processing more convenient, class L<Any> provides a
+fallback implementation for positional subscripts which simply treats the
+incovant as a list of one element. (But there's no such fallback for
+associative subscripts, so they throw a run-time error when applied to an
+object that does not implement support for them.)
 
     say 42[0];    #-> 42
     say 42<foo>;  # ERROR: postcircumfix { } not defined for type Int
 
+=head1 Nonexistent elements
+
 What happens when a I<nonexistent> element is addressed by a subscript, is up
 to the collection type in question. Standard L<Array> and L<Hash> collections
 return the type object of their L<value type constraint|of> (which, by default,
-is C<Any>), but other collections may react differently:
+is L<Any>):
 
-    say {a => 1, b => 2}<c>;  #-> (Any)
-    say [0, 10, 20][3];       #-> (Any)
+    my @array1;     say @array1[10];  #-> (Any)
+    my Int @array2; say @array2[10];  #-> (Int)
+    
+    my %hash1;      say %hash1<foo>;  #-> (Any)
+    my Int %hash2;  say %hash2<foo>;  #-> (Int)
+
+However, other types of collections may react differently to subscripts that
+address nonexistent elements:
+
     say (0, 10, 20)[3];       #-> Nil
     say bag(<a a b b b>)<c>;  #-> 0
 
 =head1 From the end
 
-Positional indices are counted from the start of the collection, but sometimes
-you'll want to refer to elements by their position relative to the end. You can
-do that using the following notation:
+Positional indices are counted from the start of the collection, but there's
+also a notation for addressing elements by their position relative to the end: 
+C<*-1> refers to the last element, C<*-2> to the second-to-last element, and so
+on.
 
     my @alphabet = 'A' .. 'Z';
     say @alphabet[*-1];  #-> Z
