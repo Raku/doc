@@ -150,34 +150,49 @@ For associative slices, the angle-brackets form often comes in handy:
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     dd %color{"cherry", "kiwi"};  #-> ("red", "green")
     dd %color<cherry kiwi>;       #-> ("red", "green")
+    dd %color{*};                 #-> ("green", "red", "yellow")
 
-Be aware that whether a slice is returned, depends on the I<type> of what is
-passed to the subscript, not its length. As long as the outer object passed to
-(L<one dimension of|#Multiple dimensions>) the subscript is a L<Positional>, it
-causes a slice to be returned:
+Be aware that slices are controlled by the I<type> of what is passed to
+(L<one dimension of|#Multiple dimensions>) the subscript, not its length:
 
-    # an Int, which is non-Positional:
-    dd @alphabet[2];   #-> "c"
+=begin table
+    subscript                        result
+    -------------------------------  -----------------------------------------
+    any Positional object not        normal slice
+    covered below
     
-    # a Parcel, which is Positional:
+    a Range or infinite sequence     truncating slice (only for positional
+                                     subscripts)  
+    
+    * (Whatever-star)                full slice (as if all keys/indices were
+                                     specified)
+    
+    any other object                 single-element access rather than a slice
+    
+    empty                            Zen slice
+=end table
+
+=comment TODO: Revisit the above table after the GLR, when slicing will
+               probably be based on Iterable rather than Positional, and
+               truncating based on "known infiniteness".
+
+So even a one-element list returns a slice, whereas a bare scalar value doesn't:
+
     dd @alphabet[2,];  #-> ("c",)
-    dd @alphabet[()];  #-> ()
+    dd @alphabet[2];   #-> "c"
 
-=comment TODO: Revisit the above paragraph and code listing after the GLR, when
-               slicing will probably be based on Iterable rather than
-               Positional.
-
-(The angle-brackets form for associative subscripts works out because
+(The angle-bracket form for associative subscripts works out because
 L<word quoting|/language/quoting#Word_quoting:_qw> conveniently returns a
 L<Str> in case of a single word, but a L<Parcel> in case of multiple words.)
 
 =comment TODO: Revisit the above paragraph after the GLR, when it will probably
                be a List instead of a Parcel.
 
-The content of (L<each dimension of|#Multiple dimensions>) a slice subscript is
-I<flattened> before its members are interpreted as indices/keys:
+For a normal slice, the content of (L<the current dimension of|#Multiple
+dimensions>) the subscript is I<flattened> before its members are interpreted
+as indices/keys:
 
-    dd @alphabet[0, (1..2, 3))];  #-> ("a", "b", "c", "d")
+    dd @alphabet[0, (1..2, (3,)))];  #-> ("a", "b", "c", "d")
 
 =head2 Truncating slices
 
@@ -205,6 +220,31 @@ infinite ranges and sequences:
 
 If you I<don't> want to specify your slice as a range/sequence but still want
 to silently skip nonexistent elements, you can use the L<#:v> adverb.
+
+=head2 Zen slices
+
+If you write a subscript without specifying any indices/keys at all, it simply
+returns the subscripted object itself. Since it is empty but returns
+everything, it is known as a "Zen slice".
+
+It is different both from passing a Whatever-star (which, like a normal slice,
+always returns a Parcel of elements no matter the type of the original object)
+and from passing an empty list (which returns an empty slice):
+
+=comment TODO: Revisit the above paragraph after the GLR, when it will probably
+               be a List instead of a Parcel.
+
+    my %bag := ("orange" => 1, "apple" => 3).Bag;
+    dd %bag<>;    #-> ("orange"=>1,"apple"=>3).Bag
+    dd %bag{};    #-> ("orange"=>1,"apple"=>3).Bag
+    dd %bag{*};   #-> (1, 3)
+    dd %bag{()};  #-> ()
+
+It is usually used to L<interpolate|/language/quoting#Interpolation:_qq>
+entire arrays / hashes into strings:
+
+    my @words = "cruel", "world";
+    say "Hello, @words[]!"  #-> Hello, cruel world!
 
 =head1 Multiple dimensions
 
