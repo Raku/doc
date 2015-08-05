@@ -100,6 +100,9 @@ address nonexistent elements:
     say (0, 10, 20)[3];       #-> Nil
     say bag(<a a b b b>)<c>;  #-> 0
 
+To silently skip nonexistent elements in a subscripting operation, see
+L<#Truncating slices> and the L<#:v> adverb.
+
 =head1 From the end
 
 Positional indices are counted from the start of the collection, but there's
@@ -125,16 +128,83 @@ words, C<@alphabet[*-1]> becomes C<@alphabet[@alphabet.elems - 1]>.
 This means that you can use arbitrary expressions which depend on the size of
 the collection:
 
-    @array[* div 2];  # select the middlemost element
-    @array[$i % *];   # wrap around a given index ("modular arithmetic")
-    @array[ -> $size { $i % $size } ];  # same as previous, with explicit block
+    say @array[* div 2];  # select the middlemost element
+    say @array[$i % *];   # wrap around a given index ("modular arithmetic")
+    say @array[ -> $size { $i % $size } ];  # same as previous
 
-=head1 Slicing
+=head1 Slices
 
-...
-=comment TODO: Explain slice subscripts. Don't forget to mention:
-    - that it happens based on the type rather than .elems of the subscript
-    - that range subscripts auto-truncate
+When multiple elements of a collection need to be accessed, there's a shortcut
+to doing multiple separate subscripting operations: Simply specify a I<list> of
+indices/keys in the subscript, to get back a I<list> of elements - also called
+a "slice" - in the same order.
+
+For positional slices, you can mix normal indices with ones 
+L<from-the-end|#From the end> ones:
+
+    my @alphabet = 'a' .. 'z';
+    dd @alphabet[15, 4, *-9, 11];  #-> ("p", "e", "r", "l")
+
+For associative slices, the angle-brackets form often comes in handy:
+
+    my %color = kiwi => "green", banana => "yellow", cherry => "red";
+    dd %color{"cherry", "kiwi"};  #-> ("red", "green")
+    dd %color<cherry kiwi>;       #-> ("red", "green")
+
+Be aware that whether a slice is returned, depends on the I<type> of what is
+passed to the subscript, not its length. As long as the outer object passed to
+(L<one dimension of|#Multiple dimensions>) the subscript is a L<Positional>, it
+causes a slice to be returned:
+
+    # an Int, which is non-Positional:
+    dd @alphabet[2];   #-> "c"
+    
+    # a Parcel, which is Positional:
+    dd @alphabet[2,];  #-> ("c",)
+    dd @alphabet[()];  #-> ()
+
+=comment TODO: Revisit the above paragraph and code listing after the GLR, when
+               slicing will probably be based on Iterable rather than
+               Positional.
+
+(The angle-brackets form for associative subscripts works out because
+L<word quoting|/language/quoting#Word_quoting:_qw> conveniently returns a
+L<Str> in case of a single word, but a L<Parcel> in case of multiple words.)
+
+=comment TODO: Revisit the above paragraph after the GLR, when it will probably
+               be a List instead of a Parcel.
+
+The content of (L<each dimension of|#Multiple dimensions>) a slice subscript is
+I<flattened> before its members are interpreted as indices/keys:
+
+    dd @alphabet[0, (1..2, 3))];  #-> ("a", "b", "c", "d")
+
+=head2 Truncating slices
+
+Normally, referring to nonexistent elements in a slice subscript causes the
+output list to contain undefined values (or L<whatever else|
+#Nonexistent elements> the collection in question chooses to return for
+nonexistent elements). However if the outer object passed to
+(L<one dimension of|#Multiple dimensions>) of a positional subscript is a
+L<Range> or an infinite list constructed with the sequence operator, it will be
+automatically truncated to the actual size of the collection:
+
+    my @letters = <a b c d e f>;
+    dd @letters[3, 4, 5, 6, 7];  #-> ("d", "e", "f", Any, Any)
+    dd @letters[3 .. 7];         #-> ("d", "e", "f")
+
+L<From-the-end|#From the end> indices are allowed as range end-points, as are
+infinite ranges and sequences:
+
+    say @array[*-3 .. *];       # select the last three elements
+    say @array[0, 2, 4 ... *];  # select all elements with even indices
+
+=comment TODO: Revisit this whole section after the GLR, when truncating will
+               probably be restricted to "known infinite" objects rather that
+               to ranges/sequences
+
+If you I<don't> want to specify your slice as a range/sequence but still want
+to silently skip nonexistent elements, you can use the L<#:v> adverb.
 
 =head1 Multiple dimensions
 
@@ -142,6 +212,7 @@ the collection:
 =comment TODO: Explain multi-dim subscripts. It's probably best to wait for
                jnthn's ongoing refactor to finish before writing this section.
 
+=head1 Modifying elements
 
 =head1 Autovivification
 
