@@ -157,29 +157,77 @@ in list context.
 
 =head1 Method Postfix Precedence
 
+=head2 postcircumfix C«[ ]»
+
+    sub postcircumfix:<[ ]>(@container, **@index,
+                            :$k, :$v, :$kv, :$p, :$exists, :$delete)
+
+Universal interface for positional access to zero or more elements of a
+@container, a.k.a. "array indexing operator".
+
+    my @alphabet = 'a' .. 'z';
+    say @alphabet[0];                   #-> a
+    say @alphabet[1];                   #-> b
+    say @alphabet[*-1];                 #-> z
+    say @alphabet[100]:exists;          #-> False
+    say @alphabet[15, 4, 17, 11].join;  #-> perl
+    say @alphabet[23 .. *].perl;        #-> ("x", "y", "z")
+    
+    @alphabet[1, 2] = "B", "C";
+    say @alphabet[0..3].perl            #-> ("a", "B", "C", "d")
+
+See L<Subscripts|/language/Subscripts> for a more detailed explanation of this
+operator's behavior, and how to implement support for it in custom types.
+
 =head2 postcircumfix C«{ }»
 
-The hash indexing postcircumfix. Fail on type L<Any>, and on L<EnumMap>,
-L<Hash> and related types it allows lookup of hash elements by key.
+    sub postcircumfix:<{ }>(%container, **@key,
+                            :$k, :$v, :$kv, :$p, :$exists, :$delete)
 
-    my %h = a => 1, b => 2;
-    say %h{'a'};        # 1
-    say %h{'a', 'b'};   # 1, 2
+Universal interface for associative access to zero or more elements of a
+%container, a.k.a. "hash indexing operator".
+
+    my %color = kiwi => "green", banana => "yellow", cherry => "red";
+    say %color{"banana"};               #-> yellow
+    say %color{"cherry", "kiwi"}.perl;  #-> ("red", "green")
+    say %color{"strawberry"}:exists;    #-> False
+    
+    %color{"banana", "lime"} = "yellowish", "green";
+    %color{"cherry"}:delete;
+    say %color;  #-> banana => yellowish, kiwi => green, lime => green
+
+See L«C«postcircumfix < >»|/routine/[ ]#postcircumfix_<_>» and
+L<C<postcircumfix « »>|/routine/[ ]#postcircumfix_«_»> for convenient
+shortcuts, and L<Subscripts|/language/Subscripts> for a more detailed
+explanation of this operator's behavior, and how to implement support for it
+in custom types.
 
 =head2 postcircumfix C«< >»
 
-The hash indexing quote-words operator. Interprets the argument list
-as a list of words, just like C<< circumfix < > >>, and then calls
-C<< postcircumfix:<{ }> >>, i.e. the hash indexing operator.
+Shortcut for L<C<postcircumfix { }>|/routine/[ ]#postcircumfix_{_}> that quotes
+its argument using the same rules as the L«quote-words operator|
+/routine/< >#circumfix_<_>» of the same name.
 
-Thus you can write
+    my %color = kiwi => "green", banana => "yellow", cherry => "red";
+    say %color<banana>;             #-> yellow
+    say %color<cherry kiwi>.perl;   #-> ("red", "green")
+    say %color<strawberry>:exists;  #-> False
 
-    my %h = a => 1, b => 2;
-    say %h<a>;          # 1
-    say %h<b a>;        # 2, 1
+This is not a real operator, just syntactic sugar that is turned into the
+C<{ }> postcircumfix operator at compile-time.
 
-This is not a real operator, just a syntactic desugaring to the C<{ }>
-postcircumfix operator
+=head2 postcircumfix C<« »>
+
+Shortcut for L<C<postcircumfix { }>|/routine/[ ]#postcircumfix_{_}> that quotes
+its argument using the same rules as the L<interpolating quote-words operator|
+/routine/« »#circumfix_«_»> of the same name.
+
+    my %color = kiwi => "green", banana => "yellow", cherry => "red";
+    my $fruit = "kiwi";
+    say %color«cherry $fruit».perl;   #-> ("red", "green")
+
+This is not a real operator, just syntactic sugar that is turned into the
+C<{ }> postcircumfix operator at compile-time.
 
 =head2 postcircumfix C«( )»
 
@@ -191,34 +239,6 @@ subroutine call.
 
 If you want your objects to respond to the call operator, you need to
 implement a C<< method postcircumfix:<( )> >>.
-
-=head2 postcircumfix C«[ ]»
-
-The array indexing operator. Treats the invocant as a L<Positional> and
-indexes it by position.
-
-    my @a = 'a' .. 'z';
-    say @a[0];                      # a
-
-Lists of indexes produce list of results as if they were all indexed
-separately.
-
-    my @a = 'a' .. 'z';
-    say @a[15, 4, 17, 11].join;     # perl
-
-L<Callable> indexes are invoked with the number of elements as arguments.
-
-This lets you write
-
-    my @a[*-1];                     # z
-
-to index lists and arrays from the end.
-
-Non-L<Positional> invocants are interpreted as a one-list element of the object.
-
-See L<Positional|/type/Positional> for a more detailed description, and a list
-of low-level methods that this operator calls, and which types that want to
-offer an API similar to the built-in types can implement.
 
 =head2 postfix C«.»
 
