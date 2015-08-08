@@ -1122,7 +1122,163 @@ C<$condition ?? $true !! $false> evaluates and returns the expression from the
 C<$true> branch if C<$condition> is a true value. Otherwise it evaluates and
 returns the C<$false> branch.
 
-# TODO: ff, ^ff, ff^, ^ff^, fff, ^fff, fff^, ^fff^
+=head2 infix C«ff»
+
+    sub infix:<ff>(Mu $a, Mu $b)
+
+Flipflop operator.
+
+Compares both arguments to C<$_> (that is, C<$_ ~~ $a> and C<$_ ~~
+$b>). Evaluates to C<False> until the left-hand smartmatch is C<True>, at which
+point it evaluates to C<True> until the right-hand smartmatch is C<True>.
+
+In effect, the left-hand argument is the "start" condition, and the right-hand
+is the "stop" condition. This construct is typically used to pick up only a
+certain section of lines. For example:
+
+=begin code :allow<B V>
+    my $excerpt = q:to/END/;
+    Here's some unimportant text.
+    V<=>begin code
+        This code block is what we're after.
+        We'll use 'ff' to get it.
+    V<=>end code
+    More unimportant text.
+    END
+
+    my @codelines = gather for $excerpt.lines {
+        take $_ if B<"=begin code" ff "=end code">
+    }
+
+    # this will print four lines, starting with "=begin code" and ending with
+    # "=end code"
+    say @codelines.join("\n");
+=end code
+
+After matching the start condition, the operator will then match the same C<$_>
+to the stop condition, and act accordingly if successful. In this example, only
+the first element is printed:
+
+    for <AB C D B E F> {
+        say $_ if /A/ ff /B/;  # prints only "AB"
+    }
+
+For the sed-like version, which does I<not> try C<$_> on the stop condition
+after succeeding on the start condition, see L<C<fff>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«^ff»
+
+    sub infix:<^ff>(Mu $a, Mu $b)
+
+Works like L<C<ff>>, except it does not return C<True> for items matching the
+start condition (including items also matching the stop condition).
+
+A comparison:
+
+    my @list = <A B C>;
+    say $_ if /A/ ff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ ^ff /C/ for @list; # prints B and C
+
+The sed-like version can be found in L<C<^fff>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«ff^»
+
+    sub infix:<ff^>(Mu $a, Mu $b)
+
+Works like L<C<ff>>, except it does not return C<True> for items matching the
+stop condition (including items that first matched the start condition).
+
+    my @list = <A B C>;
+    say $_ if /A/ ff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ ff^ /C/ for @list; # prints A and B
+
+The sed-like version can be found in L<C<fff^>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«^ff^»
+
+    sub infix:<^ff^>(Mu $a, Mu $b)
+
+Works like L<C<ff>>, except it does not return C<True> for items matching either
+the stop or start condition (or both).
+
+    my @list = <A B C>;
+    say $_ if /A/ ff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ ^ff^ /C/ for @list; # prints B
+
+The sed-like version can be found in L<C<^fff^>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«fff»
+
+    sub infix:<fff>(Mu $a, Mu $b)
+
+Performs a sed-like flipflop operation, wherein it returns C<False> until the
+left argument smartmatches against C<$_>, and after that returns C<True> until
+the right argument smartmatches against C<$_>.
+
+Works similarly to L<C<ff>>, except that it only tries one argument per
+invocation. That is, if C<$_> smartmatches the left argument, C<fff> will B<not>
+then try to match that same C<$_> against the right argument.
+
+    for <AB C D B E F> {
+        say $_ if /A/ fff /B/;  # Prints "AB", "C", "D", and "B"
+    }
+
+The non-sed-like flipflop (which after succesfully matching the left argument
+against C<$_> will try that same C<$_> against the right argument and act
+accordingly), see L<C<ff>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«^fff»
+
+    sub infix:<^fff>(Mu $a, Mu $b)
+
+Like L<C<fff>>, except it does not return true for matches to the left argument.
+
+    my @list = <A B C>;
+    say $_ if /A/ fff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ ^fff /C/ for @list; # prints B and C
+
+For the non-sed version, see L<C<^ff>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«fff^»
+
+    sub infix:<fff^>(Mu $a, Mu $b)
+
+Like L<C<fff>>, except it does not return true for matches to the right argument.
+
+    my @list = <A B C>;
+    say $_ if /A/ fff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ fff^ /C/ for @list; # prints A and B
+
+For the non-sed version, see L<C<ff^>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
+
+=head2 infix C«^fff^»
+
+    sub infix:<^fff^>(Mu $a, Mu $b)
+
+Like L<C<fff>>, except it does not return true for matches to either the left or
+right argument.
+
+    my @list = <A B C>;
+    say $_ if /A/ fff /C/ for @list;  # prints A, B, and C
+    say $_ if /A/ ^fff^ /C/ for @list; # prints B
+
+For the non-sed version, see L<C<^ff^>>.
+
+This operator cannot be overloaded, as it is handled specially by the compiler.
 
 =head1 Item Assignment Precedence
 
