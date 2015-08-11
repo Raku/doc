@@ -8,7 +8,7 @@
 
 A supply is a thread-safe, asynchronous data stream like a
 L<Channel|/type/Channel>, but it can have multiple subscribers
-(I<taps>) that all get the same events.
+(I<taps>) that all get the same values flowing through the supply.
 
 It is a thread-safe implementation of the
 L<Observer Pattern|https://en.wikipedia.org/wiki/Observer_pattern>,
@@ -39,16 +39,17 @@ Prints
     finished!
 
 There are two types of Supplies: C<live> and C<on demand>. When tapping into a
-C<live> supply, the tap will only see values that are pumped B<after> the tap
-has been created. Such supplies are normally infinite in nature, such as mouse
-movements. Closing the tap does not stop events from occurring, it just means
-nobody is listening. All tappers see the same stream.
+C<live> supply, the tap will only see values that are flowing through the
+supplyB<after> the tap has been created. Such supplies are normally infinite
+in nature, such as mouse movements. Closing such a tap does not stop mouse
+events from occurring, it just means that the values will go by unseen. All
+tappers see the same flow of values.
 
 A tap on an C<on demand> supply will initiate the production of values, and
 tapping the supply again may result in a new set of values. For example,
 C<Supply.interval> produces a fresh timer with the appropriate interval each
-time it is tapped. If the tap is closed, the timer stops pushing out new
-values.
+time it is tapped. If the tap is closed, the timer simply stops emitting values
+to that tap.
 
 C<Supply> as a punned class (that is, used directly as C<Supply.new>) is a
 live supply, as are the supplies that are transformations of a live supply,
@@ -68,9 +69,9 @@ tend to return I<on demand> supplies.
             :&closing,
         ) returns Tap:D
 
-Creates a new subscription / tap, in addition to all existing taps. The first
-positional argument is a piece of code that will be called when a new value
-becomes available through the C<emit> call.
+Creates a new tap (a kind of subscription if you will), in addition to all
+existing taps. The first positional argument is a piece of code that will be
+called when a new value becomes available through the C<emit> call.
 
 The C<&done> callback is called when the C<done> method on the supply is
 called, indicating the end of life of the channel.
@@ -79,7 +80,7 @@ The C<&quit> callback is called when the C<quit> method on the supply is
 called, indicating an erroneous termination of the supply.
 
 The C<&closing> callback is called when somebody closes the tap (which
-terminates that subscription, but keeps the supply as a whole in tact).
+terminates that "subscription", but keeps the supply as a whole in tact).
 
 Method C<tap> returns an object of type L<Tap|/type/Tap>, on which you can
 call the C<close> method to cancel the subscription.
@@ -99,12 +100,11 @@ Produces:
     5
     no more ticks
 
-
 =head2 method emit
 
-    method emit(Supply:D: \msg)
+    method emit(Supply:D: \value)
 
-Sends the C<msg> to all taps (that is, to all subscriptions).
+Sends the given C<value> to all taps (that is, to all subscriptions).
 
     my $s = Supply.new;
     $s.tap(&say);
@@ -164,7 +164,7 @@ or quit before a value arrived.
     method close(Supply:D: Tap:D $t)
 
 Closes the given tap, this is, calls its C<close> callback (if any), and
-prevents it from getting any more events.
+prevents it from getting any more values flowing through the supply.
 
 =head2 method tappers
 
@@ -176,7 +176,7 @@ Returns a list of taps as L<Tap|/type/Tap> objects.
 
     method live(Supply:D:) returns Bool:D
 
-Returns C<True> if the supply is "live", that is, events are emitted to taps
+Returns C<True> if the supply is "live", that is, values are emitted to taps
 as soon as they arrive. Always returns C<True> in the default C<Supply> (but
 for example on the supply returned from C<Supply.from-list> it's C<False>).
 
@@ -206,22 +206,22 @@ Waits until the supply is done (in which case it returns C<True>) or C<quit>
 
     method list(Supply:D:) returns List:D
 
-Waits until the supply is done, and returns a list of all items emitted
+Waits until the supply is done, and returns a list of all values emitted
 since the C<list> call.
 
 =head2 method interval
 
     method interval(Supply:U: $interval, $delay = 0)
 
-Creates a supply that fires an event every C<$interval> seconds,
-starting C<$delay> seconds from the call. The event payload is an integer,
-starting from 0 at the first event, and is increment by one for each event.
+Creates a supply that emits a value every C<$interval> seconds, starting
+C<$delay> seconds from the call. The value is an integer, starting from 0 at
+the interval tock, and is incremented by one for each value emitted.
 
 =head2 method grep
 
     method grep(Supply:D: Mu $test) returns Supply:D
 
-Creates a new supply that only receives those events from the original supply
+Creates a new supply that only emits those values from the original supply
 that smart-match against C<$test>.
 
     my $all  = Supply.new;
@@ -233,8 +233,8 @@ that smart-match against C<$test>.
 
     method map(Supply:D: &mapper)
 
-Returns a new supply that receives the same events as the original one, but
-with each event transformed through C<&mapper>;
+Returns a new supply that maps each value of the given supply through
+C<&mapper> and emits it to the new supply.
 
     my $all    = Supply.new;
     my $double = $all.map(-> $value { $value * 2 };
@@ -245,16 +245,16 @@ with each event transformed through C<&mapper>;
 
     method batch(Supply:D: :$elems, :$seconds)
 
-Creates a new supply that batches the values of the given Supply by either
-the number of events (using :elems) or the maximum number of seconds
-(using the :seconds) or both.  Remaining values are batched into a final
-emission when the supply is done.
+Creates a new supply that batches the values of the given supply by either
+the number of elemnts in the batch (using :elems) or the maximum number of
+seconds (using the :seconds) or both.  Any remaining values are emitted in
+a final batch when the supply is done.
 
 =head2 method elems
 
     method elems(Supply:D: $seconds?)
 
-Creates a new supply in which changes to the number of events seen are
+Creates a new supply in which changes to the number of values seen are
 emitted.  It optionally also takes an interval (in seconds) if you only want
 to be updated every so many seconds.
 
@@ -268,16 +268,17 @@ Creates a "rotoring" supply with the same semantics as List.rotor.
 
     method delayed(Supply:D: $seconds)
 
-Creates a new supply in which all values are emitted with the given delay in
-seconds.
+Creates a new supply in which all values flowing through the given supply
+are emitted, but with the given delay in seconds.
 
 =head2 method stable
 
     method stable(Supply:D: $seconds, :$scheduler)
 
-Creates a new supply that only passes on a value if it wasn't superseded by
-another value in the given time (in seconds).  Optionally uses another
-scheduler than the default scheduler, using the :scheduler parameter.
+Creates a new supply that only passes on a value flowing through the given
+supply if it wasn't superseded by another value in the given time (in seconds).
+Optionally uses another scheduler than the default scheduler, using the
+:scheduler parameter.
 
 =head2 method reduce
 
@@ -314,26 +315,27 @@ the GUI thread.
 
     method start(Supply:D: &startee)
 
-Returns a supply of supplies. For each event in the original supply, the code
+Creates a supply of supplies. For each value in the original supply, the code
 object is scheduled on another thread, and returns a supply either of a single
 value (if the code succeeds), or one that quits without a value (if the code
 fails).
 
 This is useful for asynchronously starting work that you don't block on.
 
-Use C<migrate> to join the values into a single Supply again.
+Use C<migrate> to join the values into a single supply again.
 
 =head2 method migrate
 
     method migrate(Supply:D:) returns Supply:D
 
-Produces a continuous supply from a supply of supplies.
+Creates a supply that acts like the last supply emitted to the given supply
+of supplies (usually created with C<start>.
 
 =head2 method from-list
 
-    method from-list(Supply:U: *@elems) returns Supply:D
+    method from-list(Supply:U: *@values) returns Supply:D
 
-Creates an on-demand supply from the items passed to this method.
+Creates an on-demand supply from the values passed to this method.
 
     my $s = Supply.from-list(1, 2, 3);
     $s.tap(&say);           # 1\n2\n3\n
