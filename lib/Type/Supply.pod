@@ -59,7 +59,35 @@ The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
 tend to return I<on demand> supplies.
 
-=head1 Methods
+=head1 Methods that affect a Supply
+
+=head2 method emit
+
+    method emit(Supply:D: \value)
+
+Sends the given C<value> to all taps (that is, to all subscriptions).
+
+    my $s = Supply.new;
+    $s.tap(&say);
+    $s.emit(42);    # triggers the &say from the previous line
+    $s.done;
+
+=head2 method done
+
+    method done(Supply:D:)
+
+Calls the C<done> callback on all taps that have one.
+
+=head2 method quit
+
+    method quit(Supply:D: $ex)
+
+Calls the C<quit> callback on the taps that have one, passing the exception to
+them.
+
+This is meant for shutting down a supply with an error.
+
+=head1 Methods that return Taps
 
 =head2 method tap
 
@@ -100,31 +128,15 @@ Produces:
     5
     no more ticks
 
-=head2 method emit
+=head2 method act
 
-    method emit(Supply:D: \value)
+    method act(Supply:D: &act) returns Tap:D
 
-Sends the given C<value> to all taps (that is, to all subscriptions).
+Creates a tap on the given supply with the given code.  Differently from
+C<tap>, the given code is guaranteed to be only executed by one thread at
+a time.
 
-    my $s = Supply.new;
-    $s.tap(&say);
-    $s.emit(42);    # triggers the &say from the previous line
-    $s.done;
-
-=head2 method done
-
-    method done(Supply:D:)
-
-Calls the C<done> callback on all taps that have one.
-
-=head2 method quit
-
-    method quit(Supply:D: $ex)
-
-Calls the C<quit> callback on the taps that have one, passing the exception to
-them.
-
-This is meant for shutting down a supply with an error.
+=head1 Utility methods
 
 =head2 method taps
 
@@ -158,7 +170,6 @@ or quit before a value arrived.
     $p.then(-> $v { say "got $v.result()" });
     $s.emit('cha');         # got cha
 
-
 =head2 method close
 
     method close(Supply:D: Tap:D $t)
@@ -181,6 +192,17 @@ as soon as they arrive. Always returns C<True> in the default C<Supply> (but
 for example on the supply returned from C<Supply.from-list> it's C<False>).
 
     say Supply.new.live;    # True
+
+=head2 method schedule-on
+
+    method schedule-on(Supply:D: $scheduler)
+
+Runs the emit, done and quit callbacks on the specified scheduler.
+
+This is useful for GUI toolkits that require certain actions to be run from
+the GUI thread.
+
+=head1 Methods that wait until the supply is done
 
 =head2 method wait
 
@@ -209,21 +231,6 @@ Waits until the supply is done (in which case it returns C<True>) or C<quit>
 Waits until the supply is done, then returns a list of all values emitted
 since the C<list> call.
 
-=head2 method flat
-
-    method flat(Supply:D:) returns Supply:D
-
-Creates a supply on which all of the values seen in the given supply are
-flattened before being emitted again.
-
-=head2 method do
-
-    method do(Supply:D: &do) returns Supply:D
-
-Creates a supply to which all values seen in the given supply, are emitted
-again.  The given code, executed for its side-effects only, is guaranteed
-to be only executed by one thread at a time.
-
 =head2 method grab
 
     method grab(Supply:D: &process ) returns Supply:D
@@ -246,6 +253,33 @@ values seen are emitted in reverse order.
 Waits until the given supply is done, then creates a supply to which all
 values seen are emitted in sorted order.  Optionally accepts a comparator
 C<Block|/type/Block>.
+
+=head1 Methods that return another Supply
+
+=head2 method from-list
+
+    method from-list(Supply:U: *@values) returns Supply:D
+
+Creates an on-demand supply from the values passed to this method.
+
+    my $s = Supply.from-list(1, 2, 3);
+    $s.tap(&say);           # 1\n2\n3\n
+    $s.done;
+
+=head2 method flat
+
+    method flat(Supply:D:) returns Supply:D
+
+Creates a supply on which all of the values seen in the given supply are
+flattened before being emitted again.
+
+=head2 method do
+
+    method do(Supply:D: &do) returns Supply:D
+
+Creates a supply to which all values seen in the given supply, are emitted
+again.  The given code, executed for its side-effects only, is guaranteed
+to be only executed by one thread at a time.
 
 =head2 method interval
 
@@ -340,14 +374,51 @@ True.
 Creates a supply that will emit the characters coming in word for word from a
 supply that's usually created by some asynchronous I/O operation.
 
-=head2 method schedule-on
+=head2 method unique
 
-    method schedule-on(Supply:D: $scheduler)
+    method unique(Supply:D: :$as({$_}), :$with(&[===]), :$expires) returns Supply:D
 
-Runs the emit, done and quit callbacks on the specified scheduler.
+Creates a supply that only provides unique values, as defined by the optional
+:as and :with parameters (same as with List.unique).  The optional :expires
+parameter how long to wait (in seconds) before "resetting" and not considering
+a value to have been seen, even if it's the same as an old value.
 
-This is useful for GUI toolkits that require certain actions to be run from
-the GUI thread.
+=head2 method squish
+
+    method squish(Supply:D: :$as({$_}), :$with(&[===]), :$expires) returns Supply:D
+
+Creates a supply that only provides unique values, as defined by the optional
+:as and :with parameters (same as with List.squish).  The optional :expires
+parameter how long to wait (in seconds) before "resetting" and not considering
+a value to have been seen, even if it's the same as an old value.
+
+=head2 method max
+
+    method max(Supply:D: &by = &infix:<cmp>) returns Supply:D
+
+Creates a supply that only emits values from the given supply if they are
+larger than any value seen before.  In other words, from a continuously
+ascending supply it will emit all the values.  From a continuously descending
+supply it will only emit the first value.  The optional parameter specifies
+the comparator, just as with Any.max.
+
+=head2 method min
+
+    method min(Supply:D: &by = &infix:<cmp>) returns Supply:D
+
+Creates a supply that only emits values from the given supply if they are
+smaller than any value seen before.  In other words, from a continuously
+descending supply it will emit all the values.  From a continuously ascending
+supply it will only emit the first value.  The optional parameter specifies
+the comparator, just as with Any.max.
+
+=head2 method minmax
+
+    method minmax(Supply:D: &by = &infix:<cmp>) returns Supply:D
+
+Creates a supply that emits a Range every time a new minimum or maximum
+values is seen from the given supply.  The optional parameter specifies
+the comparator, just as with Any.max.
 
 =head2 method start
 
@@ -369,23 +440,40 @@ Use C<migrate> to join the values into a single supply again.
 Creates a supply that acts like the last supply emitted to the given supply
 of supplies (usually created with C<start>.
 
-=head2 method from-list
+=head1 Methods that combine supplies
 
-    method from-list(Supply:U: *@values) returns Supply:D
+=head2 method merge
 
-Creates an on-demand supply from the values passed to this method.
+    method merge(Supply @*supplies) returns Supply:D
 
-    my $s = Supply.from-list(1, 2, 3);
-    $s.tap(&say);           # 1\n2\n3\n
-    $s.done;
+Creates a supply to which any value seen from the given supplies, is emitted.
+The resulting supply is done Only when all given supplies are done.  Can also
+be called as a class method.
 
-=head2 method act
+=head2 method zip
 
-    method act(Supply:D: &act) returns Tap:D
+    method zip(Supply @*supplies, :&with = &[,]) returns Supply:D
 
-Creates a tap on the given supply with the given code.  Differently from
-C<tap>, the given code is guaranteed to be only executed by one thread at
-a time.
+Creates a supply that emits combined values as soon as there is a new value
+seen on B<all> of the supplies.  By default, C<Parcels|/type/Parcel> are
+created, but this can be changed by specifying your own combiner with the
+:with parameter.  The resulting supply is done as soon as B<any> of the given
+supplies are done.  Can also be called as a class method.
+
+=head2 method zip-latest
+
+    method zip(Supply @*supplies, :&with = &[,], :$initial) returns Supply:D
+
+Creates a supply that emits combined values as soon as there is a new value
+seen on B<any> of the supplies.  By default, C<Parcels|/type/Parcel> are
+created, but this can be changed by specifing your own combiner with the
+:with parameter.  The optional :initial parameter can be used to indicate
+the inital state of the combined values.  By default, all supplies have to
+have at least one value emitted on them before the first combined values is
+emitted on the resulting supply.  The resulting supply is done as soon as
+B<any> of the given supplies are done.  Can also be called as a class method.
+
+=head1 I/O features exposed as supplies
 
 =head2 sub signal
 
@@ -400,10 +488,15 @@ the supply.  For example:
 would catch Control-C, thank you, and then exit.  The list of supported
 signals can be found by checking Signal::.keys (as you would any enum).
 
-=begin comment
+=head2 method IO::Notification.watch-path
 
-TODO: methods on-demand, flat
+    method IO::Notification.watch-path($path) returns Supply:D
 
-=end comment
+Creates a supply to which the OS will emit values to indicate changes on the
+file system for the given path.  Also has a shortcut with the C<watch> method
+on an IO object, like this:
+
+    IO::Notification.watch-path(".").act( { say "$^file changed" } );
+    ".'.IO.watch.act(                     { say "$^file changed" } );   # same
 
 =end pod
