@@ -206,12 +206,50 @@ Waits until the supply is done (in which case it returns C<True>) or C<quit>
 
     method list(Supply:D:) returns List:D
 
-Waits until the supply is done, and returns a list of all values emitted
+Waits until the supply is done, then returns a list of all values emitted
 since the C<list> call.
+
+=head2 method flat
+
+    method flat(Supply:D:) returns Supply:D
+
+Creates a supply on which all of the values seen in the given supply are
+flattened before being emitted again.
+
+=head2 method do
+
+    method do(Supply:D: &do) returns Supply:D
+
+Creates a supply to which all values seen in the given supply, are emitted
+again.  The given code, executed for its side-effects only, is guaranteed
+to be only executed by one thread at a time.
+
+=head2 method grab
+
+    method grab(Supply:D: &process ) returns Supply:D
+
+Waits until the given supply is done.  It will then call the given process
+closure passing all of the values seen,  Then creates a supply to which all
+values returned from the process closure.
+
+=head2 method reverse
+
+    method reverse(Supply:D:) returns Supply:D
+
+Waits until the given supply is done, then creates a supply to which all
+values seen are emitted in reverse order.
+
+=head2 method sort
+
+    method sort(Supply:D: &by?) returns Supply:D
+
+Waits until the given supply is done, then creates a supply to which all
+values seen are emitted in sorted order.  Optionally accepts a comparator
+C<Block|/type/Block>.
 
 =head2 method interval
 
-    method interval(Supply:U: $interval, $delay = 0)
+    method interval(Supply:U: $interval, $delay = 0) returns Supply:D
 
 Creates a supply that emits a value every C<$interval> seconds, starting
 C<$delay> seconds from the call. The value is an integer, starting from 0 at
@@ -231,7 +269,7 @@ that smart-match against C<$test>.
 
 =head2 method map
 
-    method map(Supply:D: &mapper)
+    method map(Supply:D: &mapper) returns Supply:D
 
 Returns a new supply that maps each value of the given supply through
 C<&mapper> and emits it to the new supply.
@@ -243,7 +281,7 @@ C<&mapper> and emits it to the new supply.
 
 =head2 method batch
 
-    method batch(Supply:D: :$elems, :$seconds)
+    method batch(Supply:D: :$elems, :$seconds) returns Supply:D
 
 Creates a new supply that batches the values of the given supply by either
 the number of elemnts in the batch (using :elems) or the maximum number of
@@ -252,7 +290,7 @@ a final batch when the supply is done.
 
 =head2 method elems
 
-    method elems(Supply:D: $seconds?)
+    method elems(Supply:D: $seconds?) returns Supply:D
 
 Creates a new supply in which changes to the number of values seen are
 emitted.  It optionally also takes an interval (in seconds) if you only want
@@ -260,20 +298,20 @@ to be updated every so many seconds.
 
 =head2 method rotor
 
-    method rotor(Supply:D: @cycle)
+    method rotor(Supply:D: @cycle) returns Supply:D
 
 Creates a "rotoring" supply with the same semantics as List.rotor.
 
 =head2 method delayed
 
-    method delayed(Supply:D: $seconds)
+    method delayed(Supply:D: $seconds) returns Supply:D
 
 Creates a new supply in which all values flowing through the given supply
 are emitted, but with the given delay in seconds.
 
 =head2 method stable
 
-    method stable(Supply:D: $seconds, :$scheduler)
+    method stable(Supply:D: $seconds, :$scheduler) returns Supply:D
 
 Creates a new supply that only passes on a value flowing through the given
 supply if it wasn't superseded by another value in the given time (in seconds).
@@ -282,13 +320,13 @@ Optionally uses another scheduler than the default scheduler, using the
 
 =head2 method reduce
 
-    method reduce(Supply:D: {...} )
+    method reduce(Supply:D: &with ) returns Supply:D
 
 Creates a "reducing" supply with the same semantics as List.reduce.
 
 =head2 method lines
 
-    method lines(Supply:D: :$chomp = True )
+    method lines(Supply:D: :$chomp = True ) returns Supply:D
 
 Creates a supply that will emit the characters coming in line by line from a
 supply that's usually created by some asynchronous I/O operation. The optional
@@ -297,7 +335,7 @@ True.
 
 =head2 method words
 
-    method words(Supply:D:)
+    method words(Supply:D:) returns Supply:D
 
 Creates a supply that will emit the characters coming in word for word from a
 supply that's usually created by some asynchronous I/O operation.
@@ -313,7 +351,7 @@ the GUI thread.
 
 =head2 method start
 
-    method start(Supply:D: &startee)
+    method start(Supply:D: &startee) returns Supply:D
 
 Creates a supply of supplies. For each value in the original supply, the code
 object is scheduled on another thread, and returns a supply either of a single
@@ -340,6 +378,14 @@ Creates an on-demand supply from the values passed to this method.
     my $s = Supply.from-list(1, 2, 3);
     $s.tap(&say);           # 1\n2\n3\n
     $s.done;
+
+=head2 method act
+
+    method act(Supply:D: &act) returns Tap:D
+
+Creates a tap on the given supply with the given code.  Differently from
+C<tap>, the given code is guaranteed to be only executed by one thread at
+a time.
 
 =head2 sub signal
 
