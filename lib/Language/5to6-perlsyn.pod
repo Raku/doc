@@ -1,0 +1,196 @@
+=begin pod
+
+=TITLE 5to6-perlsyn
+
+=SUBTITLE Perl 5 to Perl 6 guide - syntax
+
+perlsyn - Perl syntax
+
+=head1 DESCRIPTION
+
+A (hopefully) comprehensive description of the differences between Perl
+5 and Perl 6 with regards to the syntax elements described in the
+perlsyn document.
+
+=head1 NOTE
+
+I will I<not> be explaining Perl 6 syntax in detail. This document is an
+attempt to guide you from how things work in Perl 5 to the equivalents
+in Perl 6. For full documentation on the Perl 6 syntax, please see the
+Perl 6 documentation.
+
+=head1 SOURCES
+
+I'm taking my information from L<http://doc.perl6.org> (in particular,
+L<http://doc.perl6.org/language/syntax> and
+L<http://doc.perl6.org/language/control>), supplemented by the design
+documents at L<http://design.perl6.org/> and input from the denizens of
+#perl6 on irc.freenode.org
+
+=head1 Free Form
+
+Perl 6 is still I<largely> free form. However, there are a few instances
+where the presence or lack of whitespace is now significant. For
+instance, in Perl 5, you can omit a space following a keyword (e. g.
+C<while($x < 5)> or C<my($x, $y)>). In Perl 6, that space is required,
+thus C<while ($x < 5)> or C<my ($x, $y)>. In Perl 6, however, you can
+omit the parentheses altogether: C<< while $x < 5 >>. This holds for
+C<if>, C<for>, etc.
+
+Oddly, in Perl 5, you can leave spaces between an array or hash and its
+subscript, and before a postfix operator. So C<$seen {$_} ++> is valid.
+No more. That would now have to be C<%seen{$_}++>.
+
+If it makes you feel better, you can use backslashes to "unspace" whitespace,
+so you can use whitespace where it would otherwise be forbidden.
+
+You can find the details on this at
+L<http://doc.perl6.org/language/5to6#Whitespace>.
+
+=head2 Declarations
+
+As noted in L<5to6-perlfunc.pod>, there is no C<undef> in Perl 6. A declared, but
+uninitialized scalar variable will evaluate to its type. In other words, C<my
+$x;say $x;> will give you "(Any)". C<my Int $y;say $y;> will give you "(Int)".
+
+=head2 Comments
+
+C<#> starts a comment that runs to the end of the line as in Perl 5.
+
+Embedded comments start with a hash character and a backtick (C<#`>), followed by an
+opening bracketing character, and continue to the matching closing bracketing
+character. Like so:
+
+=begin code
+
+if #`( why would I ever write an inline comment here? ) True {
+    say "something stupid";
+}
+
+=end code
+
+As in Perl 5, you can use pod directives to create multiline comments, with
+C<=begin comment> before and C<=end comment> after the comment.
+
+=head2 Truth and Falsehood
+
+The one difference between Perl 5 truth and Perl 6 truth is that, unlike Perl
+5, Perl 6 treats the string C<"0"> as true. Numeric C<0> is still false, and
+you can use prefix C<+> to coerce string C<"0"> to numeric to get it to be
+false. Perl 6, additionally has an actual Boolean type, so, in many cases,
+True and False may be available to you without having to worry about what
+values count as true and false.
+
+=head2 Statement Modifiers
+
+Mostly, statement modifiers still work, with a few exceptions.
+
+First, C<for> loops are exclusively what were known in Perl 5 as
+C<foreach> loops and C<for> is not used for C-style C<for> loops in Perl
+6. To get that behavior, you want C<loop>. C<loop> cannot be used as a
+statement modifier.
+
+In Perl 6, you cannot use the form C<do {...} while $x>. You will want
+to replace C<do> in that form with C<repeat>. Similarly for C<do {...}
+until $x>.
+
+=head2 Compound Statements
+
+The big change from Perl 5 is that C<given> is not experimental or disabled by
+default in Perl 6. For the details on C<given> see
+L<http://doc.perl6.org/language/control#given>.
+
+=head2 Loop Control
+
+C<next>, C<last>, and C<redo> have not changed from Perl 5 to Perl 6.
+
+C<continue>, however, does not exist in Perl 6. You would use a C<NEXT>
+block in the body of the loop.
+
+=begin code
+
+# Perl 5
+my $str = '';
+for (1..5) {
+    next if $_ % 2 == 1;
+    $str .= $_;
+}
+continue {
+    $str .= ':'
+}
+
+# Perl 6
+my $str = '';
+for 1..5 {
+    next if $_ % 2 == 1;
+    $str ~= $_;
+    NEXT {
+        $str ~= ':'
+    }
+}
+
+=end code
+
+=head2 For Loops
+
+As noted above, C-style C<for> loops are not called C<for> loops in Perl
+6. They are just C<loop> loops. To write an infinite loop, you do not
+need to use the C idiom of C<loop (;;) {...}>, but may just omit the
+spec completely: C<loop {...}>
+
+=head2 Foreach Loops
+
+In Perl 5, C<for>, in addition to being used for C-style C<for> loops, is a
+synonym for C<foreach>. In Perl 6, C<for> is just used for C<foreach> style
+loops.
+
+=head2 Switch Statements
+
+Perl 6 has actual switch statements, provided by C<given> with the individual
+cases handled by C<when> and C<default>. The basic syntax is:
+
+=begin code
+
+given EXPR {
+    when EXPR { ... }
+    when EXPR { ... }
+    default { ... }
+}
+
+=end code
+
+The full details can be found at
+L<http://doc.perl6.org/language/control#given>.
+
+=head2 Goto
+
+C<goto> I<probably> works similarly in Perl 6 to the way it does in Perl 5.
+However, as of this writing, it does not seem to be functional. For what is
+planned for C<goto>, see
+L<http://design.perl6.org/S04.html#The_goto_statement>.
+
+=head2 The Ellipsis Statement
+
+C<...> (along with C<!!!> and C<???>) are used to create stub
+declarations. This is a bit more complicated than the use of C<...> in
+Perl 5, so you'll probably want to look at
+L<http://design.perl6.org/S06.html#Stub_declarations> for the gory
+details. That said, there doesn't seem to be an I<obvious> reason why it
+shouldn't still fulfill the role it did in Perl 5, despite its role
+being expanded in Perl 6.
+
+=head2 PODs: Embedded Documentation
+
+Pod has changed between Perl 5 and Perl 6. Probably the biggest
+difference is that you need to enclose your pod between C<=begin pod>
+and C<=end pod> directives. There are a few tweaks here and there as
+well. For instance, as I have discovered while writing these documents,
+the vertical bar ("|") is significant in C<< X<> >> codes, and it's not
+clear how to get a literal "|" into them. Your best bet may be to use
+the Perl 6 interpreter to check your pod. You can do this by using the
+C<--doc> switch. E. g. C<perl6 --doc Whatever.pod>. This will output any
+problems to standard error. (Depending on how/where you've installed
+perl6, you may need to specify the location of C<Pod::To::Text>.)
+Details on Perl 6 style pod is at L<http://design.perl6.org/S26.html>.
+
+=end pod
