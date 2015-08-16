@@ -1,0 +1,53 @@
+=begin pod
+
+=TITLE class IO::Notification
+
+=SUBTITLE Asynchronous notification for file and directory changes
+
+    enum FileChangeEvent (:FileChanged(1), :FileRenamed(2));
+
+    class IO::Notification  { 
+        class Change {
+            has $.path;
+            has $.event;
+        }
+        ...
+    }
+
+C<IO::Notification.watch-path($path)> produces a L<Supply|/type/Supply> of 
+C<IO::Notification::Change> events for a file or directory.
+
+Here is a small example that prints the first ten notifications for the current
+directory:
+
+    my $finish = Promise.new;
+    my $count = 0;
+
+    IO::Notification.watch-path($?FILE).act( -> $change {
+        $count++;
+        say "($count) $change.path(): $change.event()";
+        $finish.keep if $count >= 10;
+    });
+    await $finish;
+
+The type of the change is very much dependent both on the platform and on
+specific system calls that were used initiate the change. At this point in
+time, relying on them seems to be a bad idea.
+
+=head1 Methods
+
+=head2 method watch-path
+
+    method watch-path(IO::Notification: Str() $path, :$scheduler = $*SCHDEULER)
+
+Returns a L<Supply|/type/Supply> that emits C<IO::Notification::Change> objects.
+
+If C<$path> is a file, only modifications of that file are reported. If
+C<$path> is a directory, both modifications to the directory itself (for
+example permission changes) and to files in the directory (including new files
+in the directory) are reported.
+
+C<:$scheduler> allows you to specify which thread scheduler is responsible
+for the notification stream.
+
+=end pod

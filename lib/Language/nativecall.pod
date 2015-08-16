@@ -230,6 +230,40 @@ members: C<$!struct-member := StructObj.new;>
 As you may have predicted by now, a null is represented by the type object of the
 struct type.
 
+=head2 CUnions
+
+Likewise, it is possible to declare a Perl 6 class that stores its
+attributes the same way a C compiler would lay them out in a similar
+C<union> definition; using the C<CUnion> representation:
+
+    class MyUnion is repr('CUnion') {
+        has int32 $.flags32;
+        has int64 $.flags64;
+    }
+
+    say nativesizeof(MyUnion.new);  # 8, ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
+
+=head2 Embedding CStructs and CUnions
+
+CStructs and CUnions can be in turn referenced by -- or embedded into
+-- a surrounding CStruct and CUnion.  To say the former we use C<has>
+as usual, and to do the latter we use use the C<HAS> declarator
+instead:
+
+    class MyStruct is repr('CStruct') {
+        has Point $.point;  # referenced
+        has int32 $.flags;
+    }
+
+    say nativesizeof(MyStruct.new);  # 16, ie. sizeof(struct Point *) + sizeof(int32_t)
+
+    class MyStruct2 is repr('CStruct') {
+        HAS Point $.point;  # embedded
+        has int32 $.flags;
+    }
+
+    say nativesizeof(MyStruct2.new);  # 24, ie. sizeof(struct Point) + sizeof(int32_t)
+
 =head1 Typed Pointers
 
 TBD
@@ -255,6 +289,17 @@ to callbacks.
 =head1 Library Paths and Names
 
 TBD
+
+=head1 Exported variables
+
+Variables exported by a library -- also named "global" or "extern"
+variables -- can be accessed using C<cglobal>.  For example:
+
+    my $var := cglobal('libc.so.6', 'errno', int)
+
+This code binds to C<$var> a new L<Proxy|/type/Proxy> object that
+redirects all its accesses to the integer variable named "errno" as
+exported by the "libc.so.6" library.
 
 =head1 Examples
 
