@@ -715,8 +715,8 @@ sub highlight-code-blocks(:$use-inline-python = True) {
 
     my $py = $use-inline-python && try {
         require Inline::Python;
-        my $py = ::('Inline::Python').new();
-        $py.run(q{
+        my $inline-py = ::('Inline::Python').new();
+        $inline-py.run(q{
 import pygments.lexers
 import pygments.formatters
 p6lexer = pygments.lexers.get_lexer_by_name("perl6")
@@ -725,7 +725,7 @@ htmlformatter = pygments.formatters.get_formatter_by_name("html")
 def p6format(code):
     return pygments.highlight(code, p6lexer, htmlformatter)
 });
-        $py;
+        $inline-py;
     }
     if $py {
         say "Using syntax highlighting via Inline::Python";
