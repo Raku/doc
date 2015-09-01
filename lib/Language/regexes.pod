@@ -80,8 +80,8 @@ An unescaped dot C<.> in a regex matches any single character.
 
 So these all match:
 
-    'perl' ~~ / per . /;    # matches the whole string
-    'perl' ~~ /per./;       # the same; whitespace is ignored
+    'perl' ~~ /per./;       # matches the whole string
+    'perl' ~~ / per . /;    # the same; whitespace is ignored
     'perl' ~~ / pe.l /;     # the . matches the r
     'speller' ~~ / pe.l/;   # the . matches the first l
 
@@ -649,7 +649,9 @@ files:
     # ("passwords" => {"jack" => "password1", "joy" => "muchmoresecure123"},
     #    "quotas" => {"jack" => "123", "joy" => "42"}).hash
 
-Named regexes can and should be grouped in L<grammars|/language/grammars>.
+Named regexes can and should be grouped in L<grammars|/language/grammars>. A
+list of predefined subrules is listed in
+L<S05|http://design.perl6.org/S05.html#Predefined_Subrules>.
 
 =head1 Adverbs
 
@@ -850,7 +852,9 @@ of an C<m/.../> match or as arguments to a match method.
 
 The C<:continue> or short C<:c> adverb takes an argument. The argument is
 the position where the regex should start to search. By default, it searches
-from the start of the string, but C<:c> overrides that.
+from the start of the string, but C<:c> overrides that. If no position is
+specified for C<:c> it will default to C<0> unless C<$/> is set, in which
+case it defaults to C<$/.to>.
 
     given 'a1xa2' {
         say ~m/a./;         # a1
@@ -936,6 +940,31 @@ abracadabra
 
 =head2 Lookahead assertions
 
+To check that a pattern appears before another pattern, one can use a
+lookahead assertion via the C<before> assertion.  This has the form:
+
+    <?before pattern>
+
+Thus, to search for the string C<foo> which is immediately followed by the
+string C<bar>, one could use the following regexp:
+
+    rx{ foo <?before bar> }
+
+which one could use like so:
+
+    say "foobar" ~~ rx{ foo <?before bar> };   #->  foo
+
+However, if you want to search for a pattern which is B<not> immediately
+followed by some pattern, then you need to use a negative lookahead
+assertion, this has the form:
+
+    <!before pattern>
+
+Hence all occurrences of C<foo> which I<is not> before C<bar> would
+be matched by
+
+    rx{ foo <!before bar> }
+
 =head2 Lookbehind assertions
 
 To check that a pattern appears before another pattern, one can use a
@@ -956,12 +985,12 @@ However, if you want to search for a pattern which is B<not> immediately
 preceded by some pattern, then you need to use a negative lookbehind
 assertion, this has the form:
 
-    <?!after pattern>
+    <!after pattern>
 
 Hence all occurrences of C<bar> which I<do not> have C<foo> before them
 would be matched by
 
-    rx{ <?!after foo> bar }
+    rx{ <!after foo> bar }
 
 =head1 Best practices and gotchas
 

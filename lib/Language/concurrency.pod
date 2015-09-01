@@ -25,7 +25,7 @@ hyper-operators, autothreading junctions?
 
 =end comment
 
-Additionally certain Perl features may implicitly operate in am asynchronous
+Additionally certain Perl features may implicitly operate in an asynchronous
 fashion, so in order to ensure predictable interoperation with these features
 user code should, where possible, avoid the lower level concurrency APIs
 (i.e. L<Thread> and L<Scheduler> ) and use the higher-level interfaces.
@@ -647,5 +647,24 @@ C<protect> returns whatever the code block returns.
 
 Because C<protect> will block any threads that are waiting to execute
 the critical section the code should be as quick as possible.
+
+=head1 Safety Concerns
+
+Some shared data concurrency issues are less obvious than others.
+For a good general write-up on this subject see this L<blog post|https://6guts.wordpress.com/2014/04/17/racing-to-writeness-to-wrongness-leads/>.
+
+One particular issue of note is when container autovivification or extension
+takes place.  When an L<Array> or a L<Hash> entry is initially assigned the
+underlying structure is altered and that operation is not async safe.  For
+example, in this code:
+
+    my @array;
+    my $slot := @array[20];
+    $slot = 'foo';
+
+The third line is the critical section as that is when the array is extended.
+The simplest fix is to use a <Lock> to protect the critical section .  A
+possibly better fix would be to refactor the code so that sharing a container
+is not necessary.
 
 =end pod

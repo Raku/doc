@@ -1,0 +1,116 @@
+=begin pod
+
+=TITLE class IO::Socket::Async
+
+=SUBTITLE Asynchronous TCP socket
+
+    class IO::Socket::Async does IO::Socket { ... }
+
+C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
+server and the client side.
+
+Here is the equivalent example to that in
+L<IO::Socket::INET|/lib/Type/IO/Socket/INET> of a simple echo server
+that listens on port 3333:
+
+=begin code
+use v6;
+
+my $supply = IO::Socket::Async.listen('localhost',3333);
+
+$supply.tap(-> $conn { 
+    my $bs = $conn.bytes-supply;
+    $bs.tap(-> $buf { await $conn.write: $buf } );
+    $bs.wait;
+    $conn.close;
+});
+
+$supply.wait;
+
+=end code
+
+And a client that connects to it, and prints out what the server answers:
+
+=begin code
+use v6;
+
+await IO::Socket::Async.connect('localhost',3333).then( -> $p {
+	if $p.status == Kept {
+		my $conn = $p.result;
+		my $p2 = $conn.send('Hello, Perl 6');
+		my $p3 = Promise.new;
+		$conn.chars-supply.tap(-> $str { say $str; $p3.keep});
+		await $p3;
+		$conn.close;
+	}
+});
+=end code
+
+=head1 Methods
+
+The L<IO::Socket::Async> cannot be constructed directly, either C<connect>
+or C<listen> should be used to create a client or a server respectively.
+
+=head2 method connect
+
+    method connect(Str $host, Int $port) returns Promise
+
+Attempts to connect to the TCP server specified by C<$host> and C<$port>,
+returning a L<Promise|/lib/Type/Promise> that will either be kept with a connected L<IO::Socket::Async> or broken if the connection cannot be made.
+
+=head2 method listen
+
+    method listen(Str $host, Int $port) returns Supply
+
+Creates a listening socket on the specified C<$host> and C<$port>, returning
+a L<Supply|/lib/Type/Supply> to which the accepted client L<IO::Socket::Async>s will be C<emit>ted. This L<Supply|/lib/Type/Supply> should be tapped to
+process the client connections.
+
+To close the underlying listening socket the  L<Supply|/lib/Type/Supply>
+should be C<close>d.
+
+=head2 method print
+
+    method print(Str $str) returns Promise
+
+Attempt to send C<$str> on the L<IO::Socket::Async> that will
+have been obtained indirectly via C<connect> or C<listen>, returning a
+L<Promise|/lib/Type/Promise> that will be kept with the number of bytes
+sent or broken if there was an error sending.
+
+=head2 method write
+
+	method write(Blob $b) returns Promise
+
+Attempt to send the bytes in C<$b> on the L<IO::Socket::Async> that will
+have been obtained indirectly via C<connect> or C<listen>, returning a
+L<Promise|/lib/Type/Promise> that will be kept with the number of bytes
+sent or broken if there was an error sending.
+
+=head2 method chars-supply
+
+	method chars-supply() returns Supply
+
+Returns a L<Supply|/lib/Type/Supply> which can be tapped to obtain the
+characters read from the connected L<IO::Socket::Async> as they arrive.
+
+=head2 method bytes-supply
+
+	method bytes-supply() returns Supply
+
+Returns a L<Supply|/lib/Type/Supply> which can be tapped to obtain
+the bytes (as elements of a L<Buf|/lib/Type/Buf>,) read from the
+L<IO::Socket::Async>  as they arrive.
+
+=head2 method close
+
+	method close()
+
+Close the connected client <IO::Socket::Async> which will have been
+obtained from the C<listen> L<Supply|/lib/Type/Supply> or the C<connect>
+L<Promise|/lib/Type/Promise>.
+
+In order to close the underlying listening socket created by C<listen> you
+can simply C<close> the  L<Supply|/lib/Type/Supply>.
+
+=end pod

@@ -2,7 +2,7 @@
 
 =TITLE role Positional
 
-=SUBTITLE Common role for types that support looking up values by index
+=SUBTITLE Object that supports looking up values by index
 
     role Positional { ... }
 
@@ -18,75 +18,5 @@ include L<Parcel>, L<List>, L<Array>, L<Range>, and L<Buf>.
 
 Returns the type constraint for elements of the positional container. Defaults
 to L<Mu>.
-
-=head2 sub postcircumfix:<[ ]>
-
-    sub postcircumfix:<[ ]>(@container, *@index, :$k, :$v, :$kv, :$p, :$exists, :$delete)
-
-Universal interface for positional access to zero or more elements of the
-C<@container>. Elements can be accessed by zero-based
-L<integers|/type/Int>, or by C<callable objects|/type/Callable>, which will be
-passed the number of elements in the container, making indexing from the end
-esay:
-
-    my @a = <a b c>;
-    say @a[0];                      # a
-    say @a[*-1];                    # c
-    say @a[ sub $x { $x - 1 }];     # c
-
-If more than one index is given, a list of elements is returned:
-
-    my @a = <a b c>;
-    say @a[0, 2];                   # a c
-
-Different access mode (integers vs. callables) can be mixed inside a single
-positional access:
-
-    my @a = <a b c>;
-    say @a[*-1, 0];                 # c a
-
-Each access of a single element goes through a method called C<AT-POS>, which
-derivative types can override.
-
-Accesses with positive integers beyond the end of the container are allowed
-for mutable data structures (such as L<Array>), and return a L<Scalar>
-container that, on assignment, autovivifies the accessed array element:
-
-    my @a = <a b>;
-    @a[2] = 'c';
-    say @a;                         # a b c
-
-Where detected at compile time, assignment to a positional index can be
-short-circuted through a method called C<ASSIGN-POS>.
-
-The adverb C<:delete> deletes the specified indexes, and returns the deleted
-values:
-
-    my @a = <a b c>;
-    say @a[2]:delete;               # c
-    say @a;                         # a b
-
-Deletion of elements is impelemented in the C<DELETE-POS> method, which
-derivative types can override.
-
-The adverb C<:exists> make the positional accesses return a L<Bool> for each
-index, indicating whether the container has a value at the index:
-
-    my @a = 1, Any;
-
-    say @a[0, 1, 2]:exists;         # True True False
-
-The adverbs C<:k> (for I<key>), C<:v> (for I<value>), C<:kv> (for
-I<key/value>) and C<:p> (for L<Pair|/type/Pair>) are mutually exclusive, and
-control the format of the return value. C<:k> only returns the key (which is
-always the index on Positional types), C<:v> only the value (the default),
-C<:kv> a L<Parcel> of key and value, and C<:p> a L<Pair|/type/Pair> with the
-key being the index, and the value being the value stored in the container
-
-    for <a b c>.kv -> $k, $v {
-        say "$k: $v";               # 0: a
-                                    # 1: b
-                                    # 2: c
-    }
 
 =end pod
