@@ -44,7 +44,7 @@ class Perl6::TypeGraph {
                 $*CURRENT_TYPE.super.push: $<longname>.ast;
             }
             method roles($/) {
-                $*CURRENT_TYPE.roles.push:  $<longname>.ast;
+                $*CURRENT_TYPE.roles.push: $<longname>.ast;
             }
         }
         my @categories;
@@ -86,12 +86,11 @@ class Perl6::TypeGraph {
         sub visit($n) {
             return if %seen{$n};
             %seen{$n} = True;
-            visit($_) for $n.super, $n.roles;
+            visit($_) for flat $n.super, $n.roles;
             @!sorted.push: $n;
         }
         visit($_) for %.types.values.sort(*.name);
     }
-
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

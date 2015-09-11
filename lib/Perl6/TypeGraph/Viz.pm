@@ -12,7 +12,7 @@ class Perl6::TypeGraph::Viz {
     has $.node-hard-limit = 50;
 
     method new-for-type ($type) {
-        my $self = self.bless(:types([$type]));
+        my $self = self.bless(:types[$type]);
         $self!add-neighbors;
         return $self;
     }
@@ -22,13 +22,13 @@ class Perl6::TypeGraph::Viz {
         sub visit ($n) {
             state %seen;
             return if %seen{$n}++;
-            visit($_) for $n.super, $n.roles;
+            visit($_) for flat $n.super, $n.roles;
             @!types.push: $n;
         }
 
         # Work out in all directions from @.types,
         # trying to get a decent pool of type nodes
-        my @seeds = @.types, @.types>>.sub, @.types>>.doers;
+        my @seeds = flat @.types, @.types.map(*.sub), @.types.map(*.doers);
         while (@.types < $.node-soft-limit) {
             # Remember our previous node set
             my @prev = @.types;
@@ -38,7 +38,7 @@ class Perl6::TypeGraph::Viz {
             @.types .= unique;
 
             # Find a new batch of seed nodes
-            @seeds = (@seeds>>.sub, @seeds>>.doers).unique;
+            @seeds = (flat @seeds.map(*.sub), @seeds.map(*.doers)).unique;
 
             # If we're not growing the node pool, stop trying
             last if @.types <= @prev or !@seeds;
