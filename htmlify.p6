@@ -335,29 +335,30 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
                 # The Foo Infix
-                @definitions = [.[0].words[2,1]];
+                @definitions = .[0].words[2,1];
             }
             when :(Str $ where {m/^(\w+) \s (\S+)$/}) {
                 # Infix Foo
-                @definitions = [.[0].words[0,1]];
+                @definitions = .[0].words[0,1];
             }
             when :(Str $ where {m/^trait\s+(\S+\s\S+)$/}) {
                 # Infix Foo
-                @definitions = [.split(/\s+/, 2)]
+                @definitions = .split(/\s+/, 2)
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = [.[2].words[0], .[1].contents[0]];
+                @definitions = .[2].words[0], .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
                 # infix C<Foo>
-                @definitions = [.[0].words[0], .[1].contents[0]];
+                @definitions = .[0].words[0], .[1].contents[0];
             }
             default { next }
         }
 
         my int $new-i = $i;
-        for @definitions -> [$sk, $name] {
+        {
+            my ( $sk, $name ) = @definitions;
             my $subkinds = $sk.lc;
             my %attr;
             given $subkinds {
