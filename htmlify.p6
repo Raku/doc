@@ -328,9 +328,9 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
-            when :("", Pod::FormattingCode $, "") {
-                proceed unless .[1].type eq "X";
-                @definitions = .[1].meta[];
+            when :("", Pod::FormattingCode $fc, "") {
+                proceed unless $fc.type eq "X";
+                @definitions = $fc.meta[0].flat;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
