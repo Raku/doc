@@ -328,7 +328,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
-            when :("", Pod::FormattingCode $fc, "") {
+            when :("", Pod::FormattingCode $, "") {
+                my $fc := .[1];
                 proceed unless $fc.type eq "X";
                 @definitions = $fc.meta[0].flat;
                 $unambiguous = True;
