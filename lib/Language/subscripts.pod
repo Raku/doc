@@ -174,7 +174,7 @@ to doing multiple separate subscripting operations: Simply specify a I<list> of
 indices/keys in the subscript, to get back a I<list> of elements - also called
 a "slice" - in the same order.
 
-For positional slices, you can mix normal indices with ones 
+For positional slices, you can mix normal indices with
 L<from-the-end|#From the end> ones:
 
     my @alphabet = 'a' .. 'z';
@@ -191,25 +191,21 @@ Be aware that slices are controlled by the I<type> of what is passed to
 (L<one dimension of|#Multiple dimensions>) the subscript, not its length:
 
 =begin table
-    subscript                        result
-    -------------------------------  -----------------------------------------
-    any Positional object not        normal slice
-    covered below
+    subscript                         result
+    --------------------------------  -----------------------------------------
+    any Iterable not mentioned below  normal slice
     
-    a Range or infinite sequence     truncating slice (only for positional
-                                     subscripts)  
-    
-    * (Whatever-star)                full slice (as if all keys/indices were
-                                     specified)
-    
-    any other object                 single-element access rather than a slice
-    
-    empty                            Zen slice
-=end table
+    a Range                           L<truncates|#Truncating slices> in [ ]
 
-=comment TODO: Revisit the above table after the GLR, when slicing will
-               probably be based on Iterable rather than Positional, and
-               truncating based on "known infiniteness".
+    a lazy Iterable                   L<truncates|#Truncating slices> in [ ]
+    
+    * (Whatever-star)                 full slice (as if all keys/indices were
+                                      specified)
+    
+    any other object                  single-element access rather than a slice
+    
+    empty                             L<Zen slice|#Zen slices>
+=end table
 
 So even a one-element list returns a slice, whereas a bare scalar value doesn't:
 
@@ -220,11 +216,14 @@ So even a one-element list returns a slice, whereas a bare scalar value doesn't:
 L<word quoting|/language/quoting#Word_quoting:_qw> conveniently returns a
 L<Str> in case of a single word, but a L<List> in case of multiple words.)
 
-For a normal slice, the content of (L<the current dimension of|#Multiple
-dimensions>) the subscript is I<flattened> before its members are interpreted
-as indices/keys:
+In fact, the list structure of (L<the current dimension of|#Multiple
+dimensions>) the subscript is preserved across the slice operation
+(but the kind of Iterable is not -- the result is always just lists.)
 
-    dd @alphabet[0, (1..2, (3,)))];  #-> ("a", "b", "c", "d")
+    dd @alphabet[0, (1..2, (3,))];  #-> ("a", (("b", "c"), ("d",)))
+    dd @alphabet[0, (1..2, [3,])];  #-> ("a", (("b", "c"), ("d",)))
+    dd @alphabet[flat 0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
+    dd flat @alphabet[0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
 
 =head2 Truncating slices
 
@@ -233,22 +232,38 @@ output list to contain undefined values (or L<whatever else|
 #Nonexistent elements> the collection in question chooses to return for
 nonexistent elements). However if the outer object passed to
 (L<one dimension of|#Multiple dimensions>) of a positional subscript is a
-L<Range> or an infinite list constructed with the sequence operator, it will be
-automatically truncated to the actual size of the collection:
+L<Range>, it will be automatically truncated to the actual size of the
+collection:
 
     my @letters = <a b c d e f>;
     dd @letters[3, 4, 5, 6, 7];  #-> ("d", "e", "f", Any, Any)
     dd @letters[3 .. 7];         #-> ("d", "e", "f")
 
-L<From-the-end|#From the end> indices are allowed as range end-points, as are
-infinite ranges and sequences:
+L<From-the-end|#From the end> indices are allowed as range end-points.
 
     say @array[*-3 .. *];       # select the last three elements
-    say @array[0, 2, 4 ... *];  # select all elements with even indices
 
-=comment TODO: Revisit this whole section after the GLR, when truncating will
-               probably be restricted to "known infinite" objects rather that
-               to ranges/sequences
+A similar thing is done for lazy sequences, but it is often impossible to
+determine whether the sequence is infinite.  Just as often, the first part
+of the sequence is already known, and it would be silly to pretend we
+did not know it.  As a stopgap measure to prevent runaway generation of huge
+lists, a lazy subscript will not truncate as long as it does not have to
+lazily generate values, but once it starts generating values lazily, it
+will stop if it generates a value that points to a nonexistent index.
+
+This feature is more for protection against accidental out-of-memory
+problems than for actual use.  Since some lazy sequences cache their
+results, every time they are used in a truncation, they accumulate one
+more known element.  Things like this should probably be avoided rather
+than used for effect:
+
+    my @a = 2,3 ... *;
+    dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f")
+    dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f", Any)
+
+=comment TODO: wanted to add the following text, but example is brokenly eager
+               But if you are careful, something like this is OK:
+               if (@letters < 7) { for @letters[(0..*).map({$_ mod 6})] { $_.say; last if ++$ > 32 } }
 
 If you I<don't> want to specify your slice as a range/sequence but still want
 to silently skip nonexistent elements, you can use the L<#:v> adverb.
