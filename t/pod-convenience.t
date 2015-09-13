@@ -179,7 +179,6 @@ subtest {
         is($lowered-pod[0].level, 2, "heading head3 lowered to level 2");
         is($lowered-pod[2].level, 3, "heading head4 lowered to level 3");
     }
-    done;
 }, "pod-lower-headings";
 
 # vim: expandtab shiftwidth=4 ft=perl6
