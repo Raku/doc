@@ -155,6 +155,60 @@ type:
 
 =comment multi, proto, {*}, only
 
+=head1 Conventions and Idioms
+
+While the dispatch system described above provides a lot of flexibility,
+there are some conventions that most internal functions, and those in
+many modules, will follow.  These produce a consistent look and feel.
+
+=head2 Slurpy Conventions
+
+Perhaps the most important of these is the way slurpy list arguments are
+handled.  Most of the time, functions will not automatically flatten
+slurpy lists.  The rare exceptions are those functions that don't have a
+reasonable behavior on lists of lists, for example, L<chrs|routine/chrs>.
+
+If you wish to match this look and feel, any Iterable argument must
+be broken out element-by-element using a **@ slurpy, with two nuances:
+
+=item An Iterable inside a L<Scalar container|containers#Scalar_containers|> does not count.
+=item Lists created with a L<C<,>|routine/,> at the top level only count as one Iterable.
+
+This can be achieved by defining two multi candidates:
+
+    multi sub grab (**@a) { "grab $_".say for @a }
+    multi sub grab (\a) {
+        a ~~ Iterable and a.VAR !~~ Scalar ?? nextwith(|a) !! nextwith(a,)
+    }
+
+This results in the following behavior, which is known as the "single
+argument rule" or "the rule of comma" and is important to understand
+when invoking slurpy functions:
+
+    grab(1,2);     # grab 1 grab 2
+    grab((1,2));   # grab 1 grab 2
+    grab($(1,2));  # grab 1 2
+    grab((1,2),3); # grab 1 2 grab 3
+    grab((1,2),);  # grab 1 2
+
+This also makes user-requested flattenning feel consistent whether there is
+one sublist, or many:
+
+    grab(flat (1,2),(3,4));   # grab 1 grab 2 grab 3 grab 4
+    grab(flat $(1,2),$(3,4)); # grab 1 2 grab 3 4
+    grab(flat (1,2));         # grab 1 grab 2
+    grab(flat $(1,2));        # grab 1 2
+
+It is worth noting that mixing binding and sigilless variables
+in these cases requires a bit of finesse, because there is no Scalar
+intermediary used during binding.
+
+    my $a = (1,2);  # Normal assignment, equivalent to $(1,2)
+    grab ($a);      # grab 1 2
+    my $b := (1,2); # Binding, $b links directly to a bare (1,2)
+    grab ($b);      # grab 1 grab 2
+    my \c = (1,2);  # Sigilless variables always bind, even with '='
+    grab (c);       # grab 1 grab 2
 
 =head1 Functions are First-Class Objects
 
