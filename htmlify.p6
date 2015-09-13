@@ -424,7 +424,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_')
                 ]
             );
-            my @orig-chunk = $new-head, @pod-section[$i ^.. $new-i];
+            my @orig-chunk = flat $new-head, @pod-section[$i ^.. $new-i];
             my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
 
             if $subkinds eq 'routine' {
