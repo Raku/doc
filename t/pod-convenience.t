@@ -35,7 +35,7 @@ subtest {
 
     my @block_text = [ "a block of text", "another block of text" ];
     $pod = pod-with-title("title text", @block_text);
-    is($pod.contents[1], "a block of text another block of text",
+    is($pod.contents[1..*], "a block of text another block of text",
         "array block text matches input");
 }, "pod-with-title";
 
