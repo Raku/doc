@@ -6,12 +6,12 @@
 
     class Signature { ... }
 
-A signature is a static description of the parameter list of a code object.
-That is, it describes what and how many arguments you need to pass to
-the code or function in order to call it.
+A signature is a static description of the C<parameter|Parameter> list
+of a code object.  That is, it describes what and how many arguments
+you need to pass to the code or function in order to call it.
 
-Passing arguments to a signature I<binds> the arguments the parameters,
-and (loosely speaking) to the signature.
+Passing arguments to a signature I<binds> the arguments, contained in
+a L<Capture>, to the signature.
 
 =head1 Signature Literals
 
@@ -47,9 +47,10 @@ A signature consists of zero or more I<L<parameters|Parameter>>, separated by co
 sub add ($aB<,> $b) { $a + $b }
 
 As an exception the first parameter may be followed by a colon instead
-of a comma to mark the invocant of a method (the invocant is that
-thing that's bound to L<C<self>>, but by specifying it in the
-signature, you can change what it's bound to).
+of a comma to mark the invocant of a method.  The invocant is the
+thing that was used to call the method, which is usually bound to L<C<self>>
+By specifying it in the signature, you can change the variable name it
+is bound to.
 
 =begin code :allow<B L>
 :(B<$a:> @b, %c)       # first argument is the invocant
@@ -148,24 +149,25 @@ unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
 
 =head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%>
 
-An array or hash parameter can be marked as I<slurpy> by a leading asterisk,
+An array or hash parameter can be marked as I<slurpy> by leading asterisk(s),
 which means it can bind to an arbitrary amount of arguments (zero or more).
 
 These are called "slurpy" because they slurp up any remaining arguments
 to a function, like someone slurping up noodles.
 
 =for code :allow<B L>
-:($a, @b)           # exactly two arguments, where the second one must be Positional
-:($a, B<*@b>)          # at least one argument, where @b is slurpy
+:($a, @b)              # exactly two arguments, where the second one must be Positional
+:($a, B<*@b>)          # at least one argument, @b slurps up any beyond that
 :(B<*%h>)              # no positional arguments, but any number of named arguments
 
 =for code :allow<B L>
-sub one-arg (@) { }
-sub slurpy (B<*@>) { }
-one-arg (5, 6, 7); # ok
+sub one-arg (@)     { }
+sub slurpy  (B<*@>) { }
+one-arg(5, 6, 7) ; # !!! too many arguments
+one-arg (5, 6, 7); # ok, same as one-arg((5,6,7))
 slurpy  (5, 6, 7); # ok
-one-arg 5, 6, 7; # !!! too many arguments
-slurpy  5, 6, 7; # ok
+one-arg  5, 6, 7 ; # !!! too many arguments
+slurpy   5, 6, 7 ; # ok
 
 =for code :allow<B L>
 sub named-names (B<*%named-args>) { %named-args.L<keys> }
@@ -175,6 +177,25 @@ Note that positional parameters aren't allowed after slurpy
 parameters.
 
     :(*@args, $last) # !!! Cannot put required parameter after variadic parameters
+
+Slurpy parameters declared with one asterisk will flatten arguments by
+dissolving one layer of bare C<Iterables>.  Slurpy parameters declared
+with two stars do not do so:
+
+    sub a (*@a) { @a.join("|").say };
+    a(1,[1,2],[[3,4],5]); # 1|1|2|3 4|5
+    sub b (**@b) { @b.join("|").say };
+    b(1,[1,2],[[3,4],5]); # 1|1 2|3 4 5
+
+Normally a slurpy parameter will create an Array, create a new
+Scalar container for each argument, and assign the value from each
+argument to those Scalars.  If the original argument also had an
+intermediary Scalar it is bypassed during this process, and
+is not available inside the called function.
+
+Slurpy parameters have special behaviors when combined with some
+L<traits and modifiers|Parameter Traits and Modifiers>,
+as described below.
 
 =head2 Positional vs. Named
 
@@ -290,11 +311,22 @@ to be modified inside the routine
 
 The C<is rw> trait makes the parameter only bind to a variable (or
 other writable container). Assigning to the parameter changes the
-value of the variable at the caller side
+value of the variable at the caller side.
 
     sub swap($x is rw, $y is rw) {
         ($x, $y) = ($y, $x);
     }
+
+On slurpy parameters, C<is rw> is reserved for future use by language
+designers.
+
+The C<is raw> trait is automatically applied to sigilless parameters,
+and may be used to make sigiled parameters behave like sigilless
+parameters.  In the special case of slurpies, which normally produce
+an C<Array> full of C<Scalar>s as described above, C<is raw>
+will instead cause the parameter to produce a C<List>.  Each element
+of that list will be bound directly as per a sigilless parameter,
+including any intermediary Scalars from the caller.
 
 =head1 Methods
 
