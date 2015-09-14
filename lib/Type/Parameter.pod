@@ -22,43 +22,82 @@ on what most of the concepts related to parameters mean.
 
 =head2 method name
 
-Returns the variable name.
+Returns the variable name, which includes all sigils and twigils.
+This name is used internally when applied to code, or in a declaration
+determines the name declared.  This name is not necessarily
+useable by a caller -- if it is, it wil also appear as an
+L<alias|#named_names>.  Often, the name will chosen descriptively
+as a form of self-documentation.
 
-=head2 method constraints
+If the parameter is anonymous, C<Nil> will be returned.
 
-Returns additional constraints on the parameter (usually as an
-C<all>-Junction).
+=head2 method sigil
+
+Returns a string containing the parameter's sigil, for a looser
+definition of "sigil" than what is considered part of
+the variable's C<name|method name>.  Still returns a sigil even
+if the parameter is anonymous.
+
+This "sigil" is actually an introspection used to help determine
+the normal binding style of a parameter, if it has not been altered
+through a L<trait|Signature#Parameter_Traits_and_Modifiers>.
+
+=begin table
+   Will bind to           Default behavior
+=  ====================== ================================================================
+$  Scalar                 Generate new Scalar, use instead of Scalar in argument, if any
+@  Positional             Bind directly to the argument
+@  PositionalBindFailover If binding failed, call argument's .cache method, bind to result
+%  Associative            Bind directly to the argument
+&  Callable               Bind directly to the argument
+|  (anything)             Bind to all remaining arguments, make new Capture if needed
+\  (anything)             Bind directly to the argument, keep existing Scalar, if any
+=end table
 
 =head2 method type
 
-Returns the nominal type constraint of the parameter.
+Returns the L<nominal type constraint|Signature#Type_Constraints> of
+the parameter.
+
+=head2 method constraints
+
+Returns L<additional constraints|Signature#Type_Constraints> on the
+parameter (usually as an C<all>-Junction).
 
 =head2 method named
 
-Returns C<True> if it's a named parameter.
+Returns C<True> if it's a L<named parameter|Signature#Positional_vs._Named>.
 
 =head2 method named_names
 
-Returns a list of names/aliases for this parameter.
+Returns the list of externally usable names/aliases for a
+L<named parameter|Signature#Positional_vs._Named>.
 
 =head2 method positional
 
-Returns C<True> if the parameter is positional.
+Returns C<True> if the parameter is
+L<positional|Signature#Positional_vs._Named>.
 
 =head2 method slurpy
 
-Returns C<True> for slurpy parameters.
+Returns C<True> for
+L<slurpy parameters|Signature#Slurpy_(A.K.A._Variadic)_Parameters>.
+
+=head2 method twigil
+
+Returns a string containing the twigil part of the parameter's name.
 
 =head2 method optional
 
-Returns C<True> for optional parameters.
+Returns C<True> for
+L<optional parameters|Signature#Optional_and_Mandatory_Parameters>.
 
 =head2 method raw
 
 Returns C<True> for raw parameters.
 
-    sub f(\$raw) {
-        $raw = 5;
+    sub f(\raw) {
+        raw = 5;
     }
     f(my $x);   # works
     f(42);      # dies in the assignment
@@ -68,26 +107,39 @@ no decontainerization taking place.  That means that if a variable was passed
 to it, you can assign to the parameter. This is different from
 L<rw|#rw>-parameter which can only bind to variables, never to values.
 
+This is the normal behavior for parameters declared with a
+L<sigil|#method sigil> of C<'\'>, which is not really a sigil insofar
+as it is only used on the parameter.  Other parameters may become
+raw through use of the 'C<is raw>'
+L<trait|Signature#Parameter_Traits_and_Modifiers>.  These still use
+their sigil in code.
+
+    sub f($raw is raw) {
+        $raw = 5;
+    }
+
 =head2 method capture
 
 Returns C<True> for parameters that capture the rest of the argument list into
 a single object of L<type Capture|/type/Capture>.
 
-    sub f(|capture) { }
-    say &f.signature.params[0].capture;     # True
+    sub how_many_extra_positionals($!, |capture) { capture.elems.say }
+    how_many_extra_positionals(0,1,2,3)                        #-> 3
+    say &how_many_positionals.signature.params[1].capture;     #-> True
 
-Capture parameters do not force any context on the values passed bound
-to them, which is why they cannot have sigils.
-
-
+Like raw parameters, Capture parameters do not force any context on the
+values bound to them, which is why their sigils are only used in
+declarations.
 
 =head2 method rw
 
-Returns C<True> for C<is rw> parameters.
+Returns C<True> for L<C<is rw>|Signature#Parameter_Traits_and_Modifiers>
+parameters.
 
 =head2 method copy
 
-Returns C<True> for C<is copy> parameters.
+Returns C<True> for L<C<is copy>|Signature#Parameter_Traits_and_Modifiers>
+parameters.
 
 =head2 method readonly
 
@@ -95,19 +147,47 @@ Returns C<True> for read-only parameters (the default).
 
 =head2 method invocant
 
-Returns C<True> if the parameter is the invocant parameter.
+Returns C<True> if the parameter is the
+L<invocant parameter|Signature#Parameter_Separators>.
 
 =head2 method default
 
-Returns a closure that upon invocation returns the default value for
+Returns a closure that upon invocation returns the
+L<default value|Signature#Optional_and_Mandatory_Parameters> for
 this parameter, or C<Any> if no default was provided.
 
 =head2 method type_captures
 
 Returns a list of variable names of type captures associated with this
-parameter.
+parameter.  Type captures define a type name within the attached code,
+which is an alias to the type gleaned from the argument during a call.
 
-    sub a(::T ::U $x) { }
-    say &a.signature.params[0].type_captures;   # T U
+    sub a(::T ::U $x) { T.say }
+    a(8);                                       #-> Int
+    say &a.signature.params[0].type_captures;   #-> T U
+    sub b($x) { $x.WHAT.say } # does the same thing, but uglier.
+
+The type used may change from call to call.  Once they are defined,
+type captures can be used wherever you would use a type, even later
+in same the signature:
+
+    sub c(::T $x, T $y, $z) { my T $zz = $z };
+    c(4,5,6);           # OK
+    c(4,5,"six");       # Fails when assigning to $zz, wants Int not Str
+    c("four",5,"six");  # Fails when binding $y, wants Str, not Int
+
+Type captures may be used at the same time as
+C<type costraints|Signature#Type_Constraints>.
+
+    sub d(::T Numeric $x, T $y);
+    d(4,5);             # OK
+    d(4e0,5e0);         # OK
+    d(4e0,5);           # Fails when binding $y
+    d("four","five");   # Fails when binding $x
+
+=head2 method sub_signature
+
+If the parameter has a C<sub-signature|Signature#Destructuring_Parameters>,
+returns a Signature object for it.  Otherwise returns C<Any>.
 
 =end pod
