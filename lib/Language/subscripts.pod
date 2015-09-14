@@ -251,6 +251,8 @@ lists, a lazy subscript will not truncate as long as it does not have to
 lazily generate values, but once it starts generating values lazily, it
 will stop if it generates a value that points to a nonexistent index.
 
+    dd @letters[0,2,4...*];     # Every other element of the array.
+
 This feature is more for protection against accidental out-of-memory
 problems than for actual use.  Since some lazy sequences cache their
 results, every time they are used in a truncation, they accumulate one
@@ -261,9 +263,19 @@ than used for effect:
     dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f")
     dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f", Any)
 
-=comment TODO: wanted to add the following text, but example is brokenly eager
-               But if you are careful, something like this is OK:
-               if (@letters < 7) { for @letters[(0..*).map({$_ mod 6})] { $_.say; last if ++$ > 32 } }
+The runaway protection is not perfect.  The indices are eagerly evaluated,
+with the only stop condition being truncation.  This is to provide
+mostly consistent results when there is self-reference/mutation inside
+the indices.  As such, the following will most likely hang until all
+memory has been consumed:
+
+    @letters[0 xx *];
+
+So, to safely use lazy indices, they should be one-shot things which
+are guaranteed to overrun the array.  The following alternate formulation
+will produce a fully lazy result (but will not truncate):
+
+    my $a = (0 xx *).map({ @letters[$_] }); # "a","a","a" ... forever
 
 If you I<don't> want to specify your slice as a range/sequence but still want
 to silently skip nonexistent elements, you can use the L<#:v> adverb.
