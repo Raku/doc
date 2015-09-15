@@ -6,12 +6,14 @@ class Perl6::Documentable::Registry {
     has Bool $.composed = False;
     has %!cache;
     has %!grouped-by;
+    has @!kinds;
     method add-new(*%args) {
         die "Cannot add something to a composed registry" if $.composed;
         @!documentables.push: my $d = Perl6::Documentable.new(|%args);
         $d;
     }
     method compose() {
+        @!kinds = @.documentables>>.kind.unique;
         $!composed = True;
     }
     method grouped-by(Str $what) {
@@ -26,8 +28,10 @@ class Perl6::Documentable::Registry {
         }
         %!cache{$by}{$what};
     }
+
     method get-kinds() {
-        @.documentables>>.kind.unique;
+        die "You need to compose this registry first" unless $.composed;
+        @!kinds;
     }
 }
 
