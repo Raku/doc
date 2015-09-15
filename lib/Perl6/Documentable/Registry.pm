@@ -26,6 +26,9 @@ class Perl6::Documentable::Registry {
         }
         %!cache{$by}{$what};
     }
+    method get-kinds() {
+        @.documentables>>.kind.unique;
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

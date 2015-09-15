@@ -147,7 +147,7 @@ sub MAIN(
     write-search-file          if $search-file;
     write-index-files;
 
-    for <routine syntax> -> $kind {
+    for (set(<routine syntax>) (&) set($*DR.get-kinds)).keys -> $kind {
         write-kind $kind;
     }
 
@@ -532,7 +532,7 @@ sub write-search-file () {
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
-    my $items = <language type routine syntax>.map(-> $kind {
+    my $items = $*DR.get-kinds.map(-> $kind {
         $*DR.lookup($kind, :by<kind>).categorize({escape .name})\
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ label: "{
