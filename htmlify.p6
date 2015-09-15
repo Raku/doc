@@ -539,7 +539,7 @@ sub write-search-file () {
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
                 }: $name", value: "$name", url: "{@docs.[0].url}" \}]] #"
             }
-    }).join(",\n");
+    }).flat.join(",\n");
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 
