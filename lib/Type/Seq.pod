@@ -1,0 +1,96 @@
+=begin pod
+
+=TITLE class Seq
+
+=SUBTITLE An iterable, lazy sequence of values
+
+    class Seq is Cool does Iterable does PositionalBindFailover { }
+
+A C<Seq> represents anything that can lazily produce a sequence of values. A
+C<Seq> is born in a state where iterating it will consume the values. However,
+calling .list on a Seq will return a List that is still lazy, but stores the
+generated values for later access. The same is true when assigning a Seq to an
+array.
+
+A typical use case is L<method C<lines> in C<IO::Handles>|/type/IO::Handles#method lines>,
+which could use quite much memory if it stored all the lines read from the
+file. So
+
+    for open('README').lines -> $line {
+        say $line;
+    }
+
+won't keep all lines from the file in memory.
+
+This implies that you cannot iterate the same C<Seq> object twice (otherwise
+it couldn't throw away old values), so this dies:
+
+=begin code :allow<L>
+my \lines := open('README').lines;
+for lines { .say };
+for lines { .say }; # dies with "This Seq has already been iterated [...]"
+                    # of type L<X::Seq::Consumed>
+=end code
+
+A high-level construct to generate a C<Seq> is C<gather/take>, as well as many
+built-in methods like C<map> and C<grep>, low-level constructors to create a
+Seq from an iterator or from looping constrcuts are available too.
+
+=head1 Methods
+
+=head2 method new
+
+    method new(Iterator:D $iter) returns Seq:D
+
+Creates a new C<Seq> object from the iterator passed as the single argument.
+
+=head2 method iterator
+
+    method iterator(Seq:D:) returns Iterator:D
+
+Returns the underlying iterator, and marks the invocant as consumed.
+If called on an already consumed sequence, throws an error of type
+L<X::Seq::Consumed>.
+
+=head2 method is-lazy
+
+    method is-lazy(Seq:D:) returns Bool:D
+
+Returns C<True> if the sequence is lazy and potentially infinite, and C<False>
+otherwise.
+If called on an already consumed sequence, throws an error of type
+L<X::Seq::Consumed>.
+
+=head2 method eager
+
+    method eager(Seq:D:) returns Bool:D
+
+Returns an eagerly evalauted L<List|/type/List> based on the invocant
+sequence, and marks it as consumed.
+If called on an already consumed sequence, throws an error of type
+L<X::Seq::Consumed>.
+
+
+=head2 method from-loop
+
+    proto method from-loop(|) returns Seq:D
+    multi method from-loop(&body)
+    multi method from-loop(&body, &cond, :$repeat)
+    multi method from-loop(&body, &cond, &afteward)
+
+Creates a new C<Seq> based callbacks.
+
+The first form produces an infinite C<Seq> by calling C<&body> each time a new
+element is requested, using the return value from C<&body> as the item. This
+emulates (or implements) a C<loop { body }> construct.
+
+The second form calls C<&cond> before each call to C<&body>, and terminates
+the sequence if C<&cond> returns a false value. If C<$repeat> is set to a true
+value, the first call to C<&cond> is omitted, and C<&body> called right away.
+This emulates (or implements) C<while cond { body }> and
+C<repeat { body } while cond> loops.
+
+The third form enables C-style looping by calling a third callback,
+C<&afterward>, after each call to C<&body>.
+
+=end pod

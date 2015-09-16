@@ -147,7 +147,7 @@ sub MAIN(
     write-search-file          if $search-file;
     write-index-files;
 
-    for <routine syntax> -> $kind {
+    for (set(<routine syntax>) (&) set($*DR.get-kinds)).keys -> $kind {
         write-kind $kind;
     }
 
@@ -329,35 +329,37 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         my $unambiguous = False;
         given @header {
             when :("", Pod::FormattingCode $, "") {
-                proceed unless .[1].type eq "X";
-                @definitions = .[1].meta[];
+                my $fc := .[1];
+                proceed unless $fc.type eq "X";
+                @definitions = $fc.meta[0].flat;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
                 # The Foo Infix
-                @definitions = [.[0].words[2,1]];
+                @definitions = .[0].words[2,1];
             }
             when :(Str $ where {m/^(\w+) \s (\S+)$/}) {
                 # Infix Foo
-                @definitions = [.[0].words[0,1]];
+                @definitions = .[0].words[0,1];
             }
             when :(Str $ where {m/^trait\s+(\S+\s\S+)$/}) {
                 # Infix Foo
-                @definitions = [.split(/\s+/, 2)]
+                @definitions = .split(/\s+/, 2)
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = [.[2].words[0], .[1].contents[0]];
+                @definitions = .[2].words[0], .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
                 # infix C<Foo>
-                @definitions = [.[0].words[0], .[1].contents[0]];
+                @definitions = .[0].words[0], .[1].contents[0];
             }
             default { next }
         }
 
         my int $new-i = $i;
-        for @definitions -> [$sk, $name] {
+        {
+            my ( $sk, $name ) = @definitions;
             my $subkinds = $sk.lc;
             my %attr;
             given $subkinds {
@@ -422,7 +424,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                     $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_')
                 ]
             );
-            my @orig-chunk = $new-head, @pod-section[$i ^.. $new-i];
+            my @orig-chunk = flat $new-head, @pod-section[$i ^.. $new-i];
             my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
 
             if $subkinds eq 'routine' {
@@ -530,14 +532,14 @@ sub write-search-file () {
     sub escape(Str $s) {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
-    my $items = <language type routine syntax>.map(-> $kind {
+    my $items = $*DR.get-kinds.map(-> $kind {
         $*DR.lookup($kind, :by<kind>).categorize({escape .name})\
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ label: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
                 }: $name", value: "$name", url: "{@docs.[0].url}" \}]] #"
             }
-    }).join(",\n");
+    }).flat.join(",\n");
     spurt("html/js/search.js", $template.subst("ITEMS", $items));
 }
 
@@ -715,8 +717,8 @@ sub highlight-code-blocks(:$use-inline-python = True) {
 
     my $py = $use-inline-python && try {
         require Inline::Python;
-        my $py = ::('Inline::Python').new();
-        $py.run(q{
+        my $inline-py = ::('Inline::Python').new();
+        $inline-py.run(q{
 import pygments.lexers
 import pygments.formatters
 p6lexer = pygments.lexers.get_lexer_by_name("perl6")
@@ -725,7 +727,7 @@ htmlformatter = pygments.formatters.get_formatter_by_name("html")
 def p6format(code):
     return pygments.highlight(code, p6lexer, htmlformatter)
 });
-        $py;
+        $inline-py;
     }
     if $py {
         say "Using syntax highlighting via Inline::Python";

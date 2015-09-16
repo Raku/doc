@@ -41,8 +41,7 @@ sub pod-with-title($title, *@blocks) is export {
     Pod::Block::Named.new(
         name => "pod",
         contents => [
-            pod-title($title),
-            @blocks.flat,
+            flat pod-title($title), @blocks
         ]
     );
 }

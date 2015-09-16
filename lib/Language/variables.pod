@@ -63,7 +63,7 @@ seen in the current expression or declarator:
     say @bar.perl;          # [7, 9]<>
 
     (my $baz) = 11, 13;     # list assignment
-    say $baz.WHAT;          # Parcel
+    say $baz.WHAT;          # (List)
     say $baz.perl;          # (11, 13)
 
 Thus, the behavior of an assignment contained within a list assignment depends
@@ -90,7 +90,7 @@ expression determines the type of assignment:
     my ( @foo, $bar );
     @foo = ($bar) = 42, "str";       # list assignment: uses parens
     say @foo.perl;                   # [42, "str"]<> (an Array)
-    say $bar.perl;                   # $(42, "str")  (a Parcel)
+    say $bar.perl;                   # $(42, "str")  (a List)
 
 However, if the internal assignment is neither a declarator nor an
 expression, but is part of a larger expression, the context of the
@@ -501,7 +501,97 @@ but still aren't installed in a scope:
 
 =head2 The C<state> Declarator
 
-=comment TODO
+C<state> declares lexically scoped variables, just like C<my>. However,
+initialization happens exactly once the first time the initialization
+is encountered in the normal flow of execution. Thus, state variables
+will retain their value across multiple executions of the enclosing
+block or routine.
+
+Therefore, the subroutine
+
+=begin code
+
+sub a {
+    state @x;
+    @x.push(++$)
+};
+
+say a for 1..6;
+
+=end code
+
+will continue to append each time it is called. So it will output
+
+
+=begin code
+
+[1]
+[1 2]
+[1 2 3]
+[1 2 3 4]
+[1 2 3 4 5]
+[1 2 3 4 5 6]
+
+=end code
+
+As seen in this example, C<$> can be used as an anonymous state variable
+without an explicit C<state> declaration.
+
+As with C<my>, declaring multiple C<state> variables must be placed
+in parentheses and for declaring a single variable, parentheses may
+be omitted.
+
+=begin code
+
+perl6 -e 'sub foo() { say ++$  }; foo() for ^3'
+
+=end code
+
+produces
+
+=begin code
+
+1
+2
+3
+
+=end code
+
+Furthermore, state variables are not required to exist in
+subroutines. You could, for example, use C<$> in a one-liner to
+number the lines in a file.
+
+=begin code
+
+perl6 -ne 'say ++$ ~ " $_"' example.txt
+
+=end code
+
+Finally, if you were to use multiple anonymous state variables, they would
+fuction independently.
+
+=begin code
+
+perl6 -e '{ say ++$; say $++  } for ^5'
+
+=end code
+
+would produce
+
+=begin code
+
+1
+0
+2
+1
+3
+2
+4
+3
+5
+4
+
+=end code
 
 =head2 The C<augment> Declarator
 

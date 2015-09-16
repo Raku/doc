@@ -17,6 +17,4 @@ is $t.types<Match>.mro, 'Match Capture Cool Any Mu', 'Match mro';
 is $t.types<Exception>.super.any, 'Any', 'Any as default parent works';
 is $t.types<Any>.super, 'Mu', 'default-Any did not add a parent to Any';
 
-done;
-
 # vim: expandtab shiftwidth=4 ft=perl6

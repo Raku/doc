@@ -35,7 +35,7 @@ subtest {
 
     my @block_text = [ "a block of text", "another block of text" ];
     $pod = pod-with-title("title text", @block_text);
-    is($pod.contents[1], "a block of text another block of text",
+    is($pod.contents[1..*], "a block of text another block of text",
         "array block text matches input");
 }, "pod-with-title";
 
@@ -179,7 +179,6 @@ subtest {
         is($lowered-pod[0].level, 2, "heading head3 lowered to level 2");
         is($lowered-pod[2].level, 3, "heading head4 lowered to level 3");
     }
-    done;
 }, "pod-lower-headings";
 
 # vim: expandtab shiftwidth=4 ft=perl6

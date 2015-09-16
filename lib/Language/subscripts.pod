@@ -46,7 +46,7 @@ allows arbitrary objects as keys, etc.:
     say %grade{"Ben"};  #-> B+
     
     my $stats = ( Date.today => 4.18, Date.new(2015,  4,  5) => 17.253 ).Mix;
-    say $stats{ Date.new(2015, 4, 5) };  #-> 17.253
+    say $stats{ Date.new(2015, 4, 4) + 1 };  #-> 17.253
 
 For passing single-word string keys to C<{ }>, you can also use the
 L<angle-bracketed word quoting constructs|/language/quoting#Word_quoting:_qw>
@@ -61,6 +61,40 @@ C<{ }> form at compile-time:
     %hash<foo bar>;     # same as %hash{ <foo bar> }
     %hash«foo $var»;    # same as %hash{ «foo $var» }
     %hash<<foo $var>>;  # same as %hash{ <<foo $var>> }
+
+You may have noted above that we avoided having to quote C<Zoe> by using
+the C<=>> operator, but that same operator did not just put invisible
+quotes around C<Date.new(2015,  4,  5)>, and we were able to find the
+same element using C<$stats{ Date.new(2015, 4, 4) + 1 }>.  This is because
+C<=>> only puts invisible quotes around single words, and by "word" we
+mean an identifier/name.  The C<=>> operator is there to prevent us from
+accidentally calling functions or using constants with that name.
+
+Hash subscripts do not do the same thing as C<=>>.  The default C<Hash>
+has been made to behave the way new users have come to expect
+from using other languages, and for general ease of use.  On a
+default C<Hash>, subscripts coerce keys into strings, as long as
+those keys produce something C<Cool>.  You can use C<.perl> on a
+collection to be sure whether the keys are strings or objects:
+
+    ( 1  => 1 ).perl.say             #-> 1 => 1
+    my %h; %h{1}   = 1; say %h.perl; #-> { "1" => 1 }
+    ( 1/2 => 1 ).perl.say            #-> 0.5 => 1
+    my %h; %h{1/2} = 1; say %h.perl; #-> { "0.5" => 1 }
+    ( pi => 1 ).perl.say             #-> :pi(1)
+    my %h; %h{pi}  = 1; say %h.perl; #-> { "3.14159265358979" => 1 }
+
+While the invisible quotes around single names is built into C<=>>,
+string conversion is not built into the braces: it is a behavior
+of the default C<Hash>.  Not all types of hashes or collections
+do so:
+
+    my %h := MixHash.new;
+    $h{pi} = 1; %h.perl.say;         #-> (3.14159265358979e0=>1).MixHash
+
+(Any name that C<=>> would convert to a string can also be used to build
+a pair using "adverbial notation" and will appear that way when viewed
+through C<.perl>, which is why we see C<:pi(1)> above.)
 
 =end item1
 
@@ -97,8 +131,9 @@ is L<Any>):
 However, other types of collections may react differently to subscripts that
 address nonexistent elements:
 
-    say (0, 10, 20)[3];       #-> Nil
-    say bag(<a a b b b>)<c>;  #-> 0
+    say (0, 10, 20)[3];          #-> Nil
+    say bag(<a a b b b>)<c>;     #-> 0
+    say array[uint8].new(1,2)[2] #-> 0
 
 To silently skip nonexistent elements in a subscripting operation, see
 L<#Truncating slices> and the L<#:v> adverb.
@@ -139,7 +174,7 @@ to doing multiple separate subscripting operations: Simply specify a I<list> of
 indices/keys in the subscript, to get back a I<list> of elements - also called
 a "slice" - in the same order.
 
-For positional slices, you can mix normal indices with ones 
+For positional slices, you can mix normal indices with
 L<from-the-end|#From the end> ones:
 
     my @alphabet = 'a' .. 'z';
@@ -156,25 +191,21 @@ Be aware that slices are controlled by the I<type> of what is passed to
 (L<one dimension of|#Multiple dimensions>) the subscript, not its length:
 
 =begin table
-    subscript                        result
-    -------------------------------  -----------------------------------------
-    any Positional object not        normal slice
-    covered below
+    subscript                         result
+    --------------------------------  -----------------------------------------
+    any Iterable not mentioned below  normal slice
     
-    a Range or infinite sequence     truncating slice (only for positional
-                                     subscripts)  
-    
-    * (Whatever-star)                full slice (as if all keys/indices were
-                                     specified)
-    
-    any other object                 single-element access rather than a slice
-    
-    empty                            Zen slice
-=end table
+    a Range                           L<truncates|#Truncating slices> in [ ]
 
-=comment TODO: Revisit the above table after the GLR, when slicing will
-               probably be based on Iterable rather than Positional, and
-               truncating based on "known infiniteness".
+    a lazy Iterable                   L<truncates|#Truncating slices> in [ ]
+    
+    * (Whatever-star)                 full slice (as if all keys/indices were
+                                      specified)
+    
+    any other object                  single-element access rather than a slice
+    
+    empty                             L<Zen slice|#Zen slices>
+=end table
 
 So even a one-element list returns a slice, whereas a bare scalar value doesn't:
 
@@ -183,16 +214,16 @@ So even a one-element list returns a slice, whereas a bare scalar value doesn't:
 
 (The angle-bracket form for associative subscripts works out because
 L<word quoting|/language/quoting#Word_quoting:_qw> conveniently returns a
-L<Str> in case of a single word, but a L<Parcel> in case of multiple words.)
+L<Str> in case of a single word, but a L<List> in case of multiple words.)
 
-=comment TODO: Revisit the above paragraph after the GLR, when it will probably
-               be a List instead of a Parcel.
+In fact, the list structure of (L<the current dimension of|#Multiple
+dimensions>) the subscript is preserved across the slice operation
+(but the kind of Iterable is not -- the result is always just lists.)
 
-For a normal slice, the content of (L<the current dimension of|#Multiple
-dimensions>) the subscript is I<flattened> before its members are interpreted
-as indices/keys:
-
-    dd @alphabet[0, (1..2, (3,)))];  #-> ("a", "b", "c", "d")
+    dd @alphabet[0, (1..2, (3,))];  #-> ("a", (("b", "c"), ("d",)))
+    dd @alphabet[0, (1..2, [3,])];  #-> ("a", (("b", "c"), ("d",)))
+    dd @alphabet[flat 0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
+    dd flat @alphabet[0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
 
 =head2 Truncating slices
 
@@ -201,22 +232,50 @@ output list to contain undefined values (or L<whatever else|
 #Nonexistent elements> the collection in question chooses to return for
 nonexistent elements). However if the outer object passed to
 (L<one dimension of|#Multiple dimensions>) of a positional subscript is a
-L<Range> or an infinite list constructed with the sequence operator, it will be
-automatically truncated to the actual size of the collection:
+L<Range>, it will be automatically truncated to the actual size of the
+collection:
 
     my @letters = <a b c d e f>;
     dd @letters[3, 4, 5, 6, 7];  #-> ("d", "e", "f", Any, Any)
     dd @letters[3 .. 7];         #-> ("d", "e", "f")
 
-L<From-the-end|#From the end> indices are allowed as range end-points, as are
-infinite ranges and sequences:
+L<From-the-end|#From the end> indices are allowed as range end-points.
 
     say @array[*-3 .. *];       # select the last three elements
-    say @array[0, 2, 4 ... *];  # select all elements with even indices
 
-=comment TODO: Revisit this whole section after the GLR, when truncating will
-               probably be restricted to "known infinite" objects rather that
-               to ranges/sequences
+A similar thing is done for lazy sequences, but it is often impossible to
+determine whether the sequence is infinite.  Just as often, the first part
+of the sequence is already known, and it would be silly to pretend we
+did not know it.  As a stopgap measure to prevent runaway generation of huge
+lists, a lazy subscript will not truncate as long as it does not have to
+lazily generate values, but once it starts generating values lazily, it
+will stop if it generates a value that points to a nonexistent index.
+
+    dd @letters[0,2,4...*];     # Every other element of the array.
+
+This feature is more for protection against accidental out-of-memory
+problems than for actual use.  Since some lazy sequences cache their
+results, every time they are used in a truncation, they accumulate one
+more known element.  Things like this should probably be avoided rather
+than used for effect:
+
+    my @a = 2,3 ... *;
+    dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f")
+    dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f", Any)
+
+The runaway protection is not perfect.  The indices are eagerly evaluated,
+with the only stop condition being truncation.  This is to provide
+mostly consistent results when there is self-reference/mutation inside
+the indices.  As such, the following will most likely hang until all
+memory has been consumed:
+
+    @letters[0 xx *];
+
+So, to safely use lazy indices, they should be one-shot things which
+are guaranteed to overrun the array.  The following alternate formulation
+will produce a fully lazy result (but will not truncate):
+
+    my $a = (0 xx *).map({ @letters[$_] }); # "a","a","a" ... forever
 
 If you I<don't> want to specify your slice as a range/sequence but still want
 to silently skip nonexistent elements, you can use the L<#:v> adverb.
@@ -228,11 +287,8 @@ returns the subscripted object itself. Since it is empty but returns
 everything, it is known as a "Zen slice".
 
 It is different both from passing a Whatever-star (which, like a normal slice,
-always returns a Parcel of elements no matter the type of the original object)
+always returns a List of elements no matter the type of the original object)
 and from passing an empty list (which returns an empty slice):
-
-=comment TODO: Revisit the above paragraph after the GLR, when it will probably
-               be a List instead of a Parcel.
 
     my %bag := ("orange" => 1, "apple" => 3).Bag;
     dd %bag<>;    #-> ("orange"=>1,"apple"=>3).Bag
@@ -253,6 +309,8 @@ entire arrays / hashes into strings:
                jnthn's ongoing refactor to finish before writing this section.
 
 =head1 Modifying elements
+
+=comment TODO
 
 =head1 Autovivification
 

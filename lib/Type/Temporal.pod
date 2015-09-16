@@ -1,0 +1,109 @@
+=begin pod
+
+=TITLE Temporal
+
+=SUBTITLE Time-related functions
+
+=head1 Functions
+
+=head2 sub sleep
+
+    sub sleep($seconds = Inf --> Nil)
+
+Attempt to sleep for the given number of C<$seconds>.  Returns C<Nil> on
+completion.  Accepts C<Int>, C<Num>, C<Rat>, or C<Duration> types as an
+argument since all of these also do C<Real>.
+
+    sleep 5                # Int
+    sleep 5.2              # Num
+    sleep (5/2)            # Rat
+    sleep (now - now + 5)  # Duration
+
+It is thus possible to sleep for a non-integer amount of time.  For
+instance, the following code shows that C<sleep (5/2)> sleeps for 2.5
+seconds and C<sleep 5.2> sleeps for 5.2 seconds:
+
+    my $before = now
+    sleep (5/2)
+    my $after = now
+    say $after-$before  #=> 2.502411561
+
+    my $before = now
+    sleep 5.2
+    my $after = now
+    say $after-$before  #=> 5.20156987
+
+=head2 sub sleep-timer
+
+    sub sleep-timer(Real $seconds = Inf --> Duration)
+
+This function is just like C<sleep>, but returns the amount of time
+remaining to sleep as a C<Duration> (which will be 0 if the call was not
+interrupted).
+
+    say sleep-timer 3.14  #=> 0
+
+=head2 sub sleep-till
+
+    sub sleep-till(Instant $till --> Bool)
+
+Works just like C<sleep> but checks the current time and goes back to sleep
+if accidentally woken up early, to guarantee waiting until the specified
+time.  Returns C<True> if the function actually waited, or if the specified
+time happens to be the present moment.  Returns C<False> if you asked to
+sleep until a time in the past.
+
+To sleep until 10 seconds into the future, one could write something like this:
+
+    say sleep-till now+10     #=> True
+
+Trying to sleep until a time in the past doesn't work:
+
+    my $instant = now - 5;
+    say sleep-till $instant   # => False
+
+However if we put the instant sufficiently far in the future, the sleep
+should run:
+
+    my $instant = now + 30
+    # assuming the two commands are run within 30 seconds of one another...
+    say sleep-till $instant   # => True
+
+To specify an exact instant in the future, first create a C<DateTime> at the
+appropriate point in time, and cast to an C<Instant>.
+
+    my $instant = DateTime.new(
+        year => 2020,
+        month => 9,
+        day => 1,
+        hour => 22,
+        minute => 5);
+    say sleep-till $instant.Instant  # => True (eventually...)
+
+This could be be used as a primitive kind of alarm clock.  For instance, say
+you need to get up at 7am on the 4th of September 2015, but for some reason
+your usual alarm clock is broken and you only have your laptop.  You can
+specify the time to get up (being careful about timezones, since
+C<DateTime.new> uses UTC by default) as an C<Instant> and pass this to
+C<sleep-till>, after which you can play an mp3 file to wake you up instead
+of your normal alarm clock.  This scenario looks roughly like this:
+
+    # DateTime.new uses UTC by default, so get timezone from current time
+    my $timezone = DateTime.now.timezone;
+    my $instant = DateTime.new(
+        year => 2015,
+        month => 9,
+        day => 4,
+        hour => 7,
+        minute => 0,
+        timezone => $timezone
+    ).Instant;
+    sleep-till $instant;
+    qqx{mplayer wake-me-up.mp3};
+
+This code, if necessary, can run as a one-liner so you can e.g. get up in
+time for the talks at YAPC.
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
