@@ -238,6 +238,32 @@ two differences C<unless> works the same as L<if>:
 Implementation note: Currently, Rakudo will say "1 Nil 3 0" for the last
 example because it is not caught up to this part of the design yet.
 
+=head3 with, orwith, without
+
+The C<with> statement is like C<if> but tests for definedness rather than
+truth.  In addition, it topicalizes on the condition, much like C<given>:
+
+    with "abc".index("a") { .say }      # prints 0
+
+These may be cascaded:
+
+    with   $s.index("a") { "Found a at $_" }
+    orwith $s.index("b") { "Found b at $_" }
+    orwith $s.index("c") { "Found c at $_" }
+    else                 { "Didn't find a, b or c" }
+
+You may intermix C<if>-based and C<with>-based clauses.
+
+As with C<unless>, you may use C<without> to check for undefinedness,
+but you may not add an C<else> clause:
+
+    without $answer { fail "Got: $_" }
+
+There are also C<with> and C<without> statement modifiers:
+
+    return 42 with $answer;
+    .throw without $answer;
+
 =head2 for
 
 The C<for> loop iterates over a list.
@@ -458,23 +484,64 @@ This can also be written quite naturally with C<until>:
 
 =comment TODO
 
+=head2 LABELs
+
+C<while>, C<until>, and C<for> loops can all take a label, which can be
+used to identify them for C<next>, C<last>, and C<redo>. For instance:
+
+=begin code
+
+LINE: for $*IN.lines -> $line {
+    last LINE if $line ~~ /^$/;      # exit when done with header
+    ...
+}
+
+=end code
+
 =head2 next
 
-=comment TODO
+The C<next> command starts the next iteration of the loop. So the code
+
+=begin code
+
+my @x = 1, 2, 3, 4, 5;
+    for @x -> $x {
+        next if $x == 3;
+        print $x;
+}
+
+=end code
+
+prints "1245".
 
 =head2 last
 
-=comment TODO
+The C<last> command immediately exits the loop in question.
+
+=begin code
+
+my @x = 1, 2, 3, 4, 5;
+for @x -> $x {
+    next if $x == 3;
+    print $x;
+}
+
+=end code
+
+prints "12".
 
 =head2 redo
 
-=comment TODO
+The C<redo> command restarts the loop block without evaluating the
+conditional again.
+
+=begin code
+
+{ my $x = prompt("Enter a number"); redo unless is_a_number($x) }
+
+=end code
 
 =head2 goto
-
-=comment TODO
-
-=head2 with/without
 
 =comment TODO
 
