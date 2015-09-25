@@ -35,14 +35,18 @@ And a client that connects to it, and prints out what the server answers:
 use v6;
 
 await IO::Socket::Async.connect('localhost',3333).then( -> $p {
-	if $p.status == Kept {
-		my $conn = $p.result;
-		my $p2 = $conn.print('Hello, Perl 6');
-		my $p3 = Promise.new;
-		$conn.chars-supply.tap(-> $str { say $str; $p3.keep});
-		await $p3;
-		$conn.close;
-	}
+    if $p.status {
+        given $p.result {
+            .print('Hello, Perl 6');
+            react {
+                whenever .chars-supply() -> $v {
+                    $v.say;
+                    done;
+                }
+            }
+            .close;
+        }
+    }
 });
 =end code
 
