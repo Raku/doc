@@ -11,7 +11,7 @@ use v6;
 # */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
 #
 # util/update-and-sync is under version control in the perl6/doc repo (same as
-# this file), and it first updtes the git repository. If something changed, it
+# this file), and it first updates the git repository. If something changed, it
 # run htmlify, captures the output, and on success, syncs both the generated
 # files and the logs. In case of failure, only the logs are synchronized.
 #
