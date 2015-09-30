@@ -41,10 +41,10 @@ class Perl6::TypeGraph {
                 make $get-type($/.Str);
             }
             method inherits($/) {
-                $*CURRENT_TYPE.super.push: $<longname>.ast;
+                $*CURRENT_TYPE.super.append: $<longname>.ast;
             }
             method roles($/) {
-                $*CURRENT_TYPE.roles.push: $<longname>.ast;
+                $*CURRENT_TYPE.roles.append: $<longname>.ast;
             }
         }
         my @categories;
@@ -67,17 +67,17 @@ class Perl6::TypeGraph {
             # roles that have a superclass actually apply that superclass
             # to the class that does them, so mimic that here:
             for $t.roles -> $r {
-                $t.super.push: $r.super if $r.super;
+                $t.super.append: $r.super if $r.super;
             }
             # non-roles default to superclass Any
             if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {
-                $t.super.push: $get-type('Any');
+                $t.super.append: $get-type('Any');
             }
         }
         # Cache the inversion of all type relationships
         for %.types.values -> $t {
-            $_.sub.push($t)   for $t.super;
-            $_.doers.push($t) for $t.roles;
+            $_.sub.append($t)   for $t.super;
+            $_.doers.append($t) for $t.roles;
         }
         self!topo-sort;
     }
@@ -87,7 +87,7 @@ class Perl6::TypeGraph {
             return if %seen{$n};
             %seen{$n} = True;
             visit($_) for flat $n.super, $n.roles;
-            @!sorted.push: $n;
+            @!sorted.append: $n;
         }
         visit($_) for %.types.values.sort(*.name);
     }
