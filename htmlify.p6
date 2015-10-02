@@ -258,7 +258,7 @@ multi write-type-source($doc) {
         while @roles-todo.shift -> $role {
             next unless %routines-by-type{$role};
             next if %roles-seen{$role}++;
-            @roles-todo.push: $role.roles;
+            @roles-todo.append: $role.roles;
             $pod.contents.push:
                 pod-heading("Routines supplied by role $role"),
                 pod-block(
