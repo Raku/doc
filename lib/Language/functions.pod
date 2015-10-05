@@ -166,7 +166,9 @@ many modules, will follow.  These produce a consistent look and feel.
 Perhaps the most important of these is the way slurpy list arguments are
 handled.  Most of the time, functions will not automatically flatten
 slurpy lists.  The rare exceptions are those functions that don't have a
-reasonable behavior on lists of lists, for example, L<chrs|routine/chrs>.
+reasonable behavior on lists of lists, for example, L<chrs|routine/chrs>,
+or where there is a conflict with an established idiom, like L<pop|routine/pop>
+being the inverse of C<push|routine/push>.
 
 If you wish to match this look and feel, any Iterable argument must
 be broken out element-by-element using a **@ slurpy, with two nuances:
@@ -174,7 +176,11 @@ be broken out element-by-element using a **@ slurpy, with two nuances:
 =item An Iterable inside a L<Scalar container|containers#Scalar_containers|> does not count.
 =item Lists created with a L<C<,>|routine/,> at the top level only count as one Iterable.
 
-This can be achieved by defining two multi candidates:
+This can be achieved by using a slurpy with a C<+> or C<+@> instead of C<**>:
+
+    sub grab (+@a) { "grab $_".say for @a }
+
+...which is shorthand for something very close to:
 
     multi sub grab (**@a) { "grab $_".say for @a }
     multi sub grab (\a) {
@@ -182,14 +188,12 @@ This can be achieved by defining two multi candidates:
     }
 
 This results in the following behavior, which is known as the "single
-argument rule" or "the rule of comma" and is important to understand
-when invoking slurpy functions:
+argument rule" and is important to understand when invoking slurpy functions:
 
     grab(1,2);     # grab 1 grab 2
     grab((1,2));   # grab 1 grab 2
     grab($(1,2));  # grab 1 2
     grab((1,2),3); # grab 1 2 grab 3
-    grab((1,2),);  # grab 1 2
 
 This also makes user-requested flattenning feel consistent whether there is
 one sublist, or many:
