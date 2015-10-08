@@ -9,7 +9,7 @@ class Perl6::Documentable::Registry {
     has @!kinds;
     method add-new(*%args) {
         die "Cannot add something to a composed registry" if $.composed;
-        @!documentables.push: my $d = Perl6::Documentable.new(|%args);
+        @!documentables.append: my $d = Perl6::Documentable.new(|%args);
         $d;
     }
     method compose() {
@@ -23,7 +23,7 @@ class Perl6::Documentable::Registry {
     method lookup(Str $what, Str :$by!) {
         unless %!cache{$by}:exists {
             for @!documentables -> $d {
-                %!cache{$by}{$d."$by"()}.push: $d;
+                %!cache{$by}{$d."$by"()}.append: $d;
             }
         }
         %!cache{$by}{$what};

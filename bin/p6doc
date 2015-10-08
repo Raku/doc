@@ -27,17 +27,17 @@ sub tempfile() {
 }
 
 sub search-paths() {
-    (findbin()  X~ <../doc/perl6/lib/ ../lib/> X~ '',<Type/ Language/ Routine/>),
-    @*INC.map({CompUnitRepo.new($_)})».IO».Str.map({ /\/$/ ?? $_ !! $_ ~ '/' });
+    ((findbin()  X~ <../doc/perl6/lib/ ../lib/> X~ <Type/ Language/ Routine/>).list,
+    @*INC.map({CompUnitRepo.new($_)})».IO».Str.map({ /\/$/ ?? $_ !! $_ ~ '/' }).list).flat.list;
 }
 
 sub module-names(Str $modulename) {
-    $modulename.split('::').join('/')
-        X~ '.pm', '.pm6', '.pod';
+    [$modulename.split('::').join('/')
+        X~ <.pm .pm6 .pod>].list;
 }
 
 sub locate-module(Str $modulename) {
-    my $m = (search-paths() X~ module-names($modulename)).first: *.IO.f;
+    my $m = (search-paths() X~ module-names($modulename).list).first: *.IO.f;
     unless $m.defined {
         my $message = join "\n",
             "Cannot locate $modulename in any of the following paths:",
@@ -120,7 +120,7 @@ sub disambiguate-f-search( $docee, %data ) {
         my $ndocee = $pref ~ " " ~ $docee;
 
         if %data{$ndocee} {
-            my @types = %data{$ndocee}.values>>.grep({ $^v ~~ /^ 'Type' / and not $^v ~~ / 'Cool' $ / });
+            my @types = %data{$ndocee}.values>>.Str.grep({ $^v ~~ /^ 'Type' / and not $^v ~~ / 'Cool' $ / });
             %found{$ndocee}.push: @types X~ "." ~ $docee;
         }
     }

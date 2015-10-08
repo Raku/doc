@@ -13,12 +13,12 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
     @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
     for $pod.contents.list -> $c {
         if $c ~~ Pod::Block {
-            @chunks.push: pod-gist($c, $level + 2);
+            @chunks.append: pod-gist($c, $level + 2);
         }
         elsif $c ~~ Str {
-            @chunks.push: $c.indent($level + 2), "\n";
+            @chunks.append: $c.indent($level + 2), "\n";
         } elsif $c ~~ Positional {
-            @chunks.push: $c.map: {
+            @chunks.append: $c.map: {
                 if $_ ~~ Pod::Block {
                     *.&pod-gist
                 } elsif $_ ~~ Str {
@@ -31,10 +31,7 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
 }
 
 sub first-code-block(@pod) is export {
-    if @pod[1] ~~ Pod::Block::Code {
-        return @pod[1].contents.grep(Str).join;
-    }
-    '';
+    @pod.first(* ~~ Pod::Block::Code).contents.grep(Str).join;
 }
 
 sub pod-with-title($title, *@blocks) is export {
@@ -101,7 +98,7 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     return @content unless $by > $to;
     my @new-content;
     for @content {
-        @new-content.push($_ ~~ Pod::Heading
+        @new-content.append($_ ~~ Pod::Heading
             ?? Pod::Heading.new: :level(.level - $by + $to) :contents[.contents]
             !! $_
         );

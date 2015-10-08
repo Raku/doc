@@ -6,7 +6,6 @@ use Pod::Convenience;
 plan 10;
 
 subtest {
-    plan 4;
     eval-dies-ok('use Pod::Convenience; first-code-block();', "pod argument required");
     eval-dies-ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
 
@@ -16,8 +15,7 @@ subtest {
     @code-blocks.push(Pod::Block::Code.new(contents => ['my $first-block']));
     @code-blocks.push(Pod::Block::Code.new(contents => ['my @second-block']));
 
-    # XXX: why does this return the *second* block??
-    is(first-code-block(@code-blocks), 'my @second-block', "first code block returned");
+    is(first-code-block(@code-blocks), 'my $first-block', "first code block returned");
 }, "first-code-block";
 
 subtest {

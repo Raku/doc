@@ -23,7 +23,7 @@ class Perl6::TypeGraph::Viz {
             state %seen;
             return if %seen{$n}++;
             visit($_) for flat $n.super, $n.roles;
-            @!types.push: $n;
+            @!types.append: $n;
         }
 
         # Work out in all directions from @.types,
@@ -54,35 +54,35 @@ class Perl6::TypeGraph::Viz {
 
     method as-dot (:$size) {
         my @dot;
-        @dot.push: "digraph \"perl6-type-graph\" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n";
-        @dot.push: "    size=\"$size\"\n" if $size;
+        @dot.append: "digraph \"perl6-type-graph\" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n";
+        @dot.append: "    size=\"$size\"\n" if $size;
 
         if $.dot-hints -> $hints {
-            @dot.push: "\n    // Layout hints\n";
-            @dot.push: $hints;
+            @dot.append: "\n    // Layout hints\n";
+            @dot.append: $hints;
         }
 
-        @dot.push: "\n    // Types\n";
+        @dot.append: "\n    // Types\n";
         for @.types -> $type {
             my $color = $type.packagetype eq 'role' ?? $.role-color !! $.class-color;
-            @dot.push: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name }\", fontname=\"FreeSans\"];\n";
+            @dot.append: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name }\", fontname=\"FreeSans\"];\n";
         }
 
-        @dot.push: "\n    // Superclasses\n";
+        @dot.append: "\n    // Superclasses\n";
         for @.types -> $type {
             for $type.super -> $super {
-                @dot.push: "    \"$type.name()\" -> \"$super\" [color=\"$.class-color\"];\n";
+                @dot.append: "    \"$type.name()\" -> \"$super\" [color=\"$.class-color\"];\n";
             }
         }
 
-        @dot.push: "\n    // Roles\n";
+        @dot.append: "\n    // Roles\n";
         for @.types -> $type {
             for $type.roles -> $role {
-                @dot.push: "    \"$type.name()\" -> \"$role\" [color=\"$.role-color\"];\n";
+                @dot.append: "    \"$type.name()\" -> \"$role\" [color=\"$.role-color\"];\n";
             }
         }
 
-        @dot.push: "\}\n";
+        @dot.append: "\}\n";
         return @dot.join;
     }
 

@@ -11,7 +11,7 @@ use v6;
 # */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
 #
 # util/update-and-sync is under version control in the perl6/doc repo (same as
-# this file), and it first updtes the git repository. If something changed, it
+# this file), and it first updates the git repository. If something changed, it
 # run htmlify, captures the output, and on success, syncs both the generated
 # files and the logs. In case of failure, only the logs are synchronized.
 #
@@ -94,7 +94,7 @@ sub recursive-dir($dir) {
                 take $f;
             }
             else {
-                @todo.push($f.path);
+                @todo.append($f.path);
             }
         }
     }
@@ -158,12 +158,12 @@ sub MAIN(
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
-    say "Reading lib/$dir ...";
+    say "Reading doc/$dir ...";
     my @pod-sources =
-        recursive-dir("lib/$dir/")\
+        recursive-dir("doc/$dir/")\
         .grep({.path ~~ / '.pod' $/})\
         .map({;
-            .path.subst("lib/$dir/", '')\
+            .path.subst("doc/$dir/", '')\
                  .subst(rx{\.pod$},  '')\
                  .subst(:g,    '/',  '::')
             => $_
@@ -244,7 +244,7 @@ multi write-type-source($doc) {
         to the documentation pages for the related types. If not, try the
         <a href="/images/type-graph-{uri_escape $podname}.png">PNG
         version</a> instead.</p>];
-        $pod.contents.push: Pod::Raw.new(
+        $pod.contents.append: Pod::Raw.new(
             target => 'html',
             contents => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
 
@@ -258,8 +258,8 @@ multi write-type-source($doc) {
         while @roles-todo.shift -> $role {
             next unless %routines-by-type{$role};
             next if %roles-seen{$role}++;
-            @roles-todo.push: $role.roles;
-            $pod.contents.push:
+            @roles-todo.append: $role.roles;
+            $pod.contents.append:
                 pod-heading("Routines supplied by role $role"),
                 pod-block(
                     "$podname does role ",
@@ -271,7 +271,7 @@ multi write-type-source($doc) {
         }
         for @mro -> $class {
             next unless %routines-by-type{$class};
-            $pod.contents.push:
+            $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
@@ -282,7 +282,7 @@ multi write-type-source($doc) {
                 ;
             for $class.roles -> $role {
                 next unless %routines-by-type{$role};
-                $pod.contents.push:
+                $pod.contents.append:
                     pod-heading("Methods supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
@@ -425,7 +425,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 ]
             );
             my @orig-chunk = flat $new-head, @pod-section[$i ^.. $new-i];
-            my $chunk = $created.pod.push: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
+            my $chunk = $created.pod.append: pod-lower-headings(@orig-chunk, :to(%attr<kind> eq 'type' ?? 0 !! 2));
 
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
@@ -440,7 +440,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 $created.categories = @subkinds;
             }
             if %attr<kind> eq 'routine' {
-                %routines-by-type{$origin.name}.push: $chunk;
+                %routines-by-type{$origin.name}.append: $chunk;
                 write-qualified-method-call(
                     :$name,
                     :pod($chunk),
@@ -475,8 +475,8 @@ sub write-type-graph-images(:$force) {
 
     say 'Writing specialized visualizations to html/images/ ...';
     my %by-group = $type-graph.sorted.classify(&viz-group);
-    %by-group<Exception>.push: $type-graph.types< Exception Any Mu >;
-    %by-group<Metamodel>.push: $type-graph.types< Any Mu >;
+    %by-group<Exception>.append: $type-graph.types< Exception Any Mu >;
+    %by-group<Metamodel>.append: $type-graph.types< Any Mu >;
 
     for %by-group.kv -> $group, @types {
         my $viz = Perl6::TypeGraph::Viz.new(:types(@types),
@@ -551,7 +551,7 @@ sub write-disambiguation-files () {
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
-                $pod.contents.push:
+                $pod.contents.append:
                     pod-block(
                         pod-link("'$name' is a $p.human-kind()", $p.url),
                         ' from ',
@@ -559,14 +559,14 @@ sub write-disambiguation-files () {
                     );
             }
             else {
-                $pod.contents.push:
+                $pod.contents.append:
                     pod-block(
                         pod-link("'$name' is a $p.human-kind()", $p.url)
                     );
             }
         }
         else {
-            $pod.contents.push:
+            $pod.contents.append:
                 pod-block("'$name' can be anything of the following"),
                 $p.map({
                     if .origin -> $o {
@@ -590,7 +590,7 @@ sub write-disambiguation-files () {
 sub write-index-files () {
     say 'Writing html/index.html ...';
     spurt 'html/index.html',
-        p2h(EVAL(slurp('lib/HomePage.pod') ~ "\n\$=pod"),
+        p2h(EVAL(slurp('doc/HomePage.pod') ~ "\n\$=pod"),
             pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';

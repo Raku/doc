@@ -19,9 +19,9 @@ in the [#perl6 IRC channel](http://perl6.org/community/irc).
 
 ## Documenting types
 
-The POD documentation of types is located in the `lib/Type` directory and
+The POD documentation of types is located in the `doc/Type` directory and
 subdirectories of this repository. For example the POD of `X::Bind::Slice`
-lives in `lib/Type/X/Bind/Slice.pod`.
+lives in `doc/Type/X/Bind/Slice.pod`.
 
 To start contributing fork and checkout the repository, find the document
 you want to improve, commit your changes, and create a pull request. Should
@@ -33,7 +33,7 @@ with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
     $ perl6 util/new-type.p6 MyFunnyRole
 
-Fill the documentation file `lib/Type/MyFunnyRole.pod` like this:
+Fill the documentation file `doc/Type/MyFunnyRole.pod` like this:
 
     =TITLE role MyFunnyRole
 
