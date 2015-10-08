@@ -158,12 +158,12 @@ sub MAIN(
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
-    say "Reading lib/$dir ...";
+    say "Reading doc/$dir ...";
     my @pod-sources =
-        recursive-dir("lib/$dir/")\
+        recursive-dir("doc/$dir/")\
         .grep({.path ~~ / '.pod' $/})\
         .map({;
-            .path.subst("lib/$dir/", '')\
+            .path.subst("doc/$dir/", '')\
                  .subst(rx{\.pod$},  '')\
                  .subst(:g,    '/',  '::')
             => $_
@@ -590,7 +590,7 @@ sub write-disambiguation-files () {
 sub write-index-files () {
     say 'Writing html/index.html ...';
     spurt 'html/index.html',
-        p2h(EVAL(slurp('lib/HomePage.pod') ~ "\n\$=pod"),
+        p2h(EVAL(slurp('doc/HomePage.pod') ~ "\n\$=pod"),
             pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';
