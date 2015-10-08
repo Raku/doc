@@ -1,5 +1,4 @@
 $(function(){
-  $('#search').css('visibility', 'visible');
   $("#query").autocomplete({
       response: function( e, ui ) {
         if ( ! ui.content.length ) { $('#search').addClass(   'not-found') }
