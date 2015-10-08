@@ -19,3 +19,7 @@ help:
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   test:             run the test suite"
+
+run:
+	@echo "Starting local server…"
+	perl app.pl daemon
