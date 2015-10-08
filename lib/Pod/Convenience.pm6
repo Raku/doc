@@ -31,10 +31,7 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
 }
 
 sub first-code-block(@pod) is export {
-    if @pod[1] ~~ Pod::Block::Code {
-        return @pod[1].contents.grep(Str).join;
-    }
-    '';
+    @pod.first(* ~~ Pod::Block::Code).contents.grep(Str).join;
 }
 
 sub pod-with-title($title, *@blocks) is export {
