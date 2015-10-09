@@ -324,7 +324,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         # Is this new header a definition?
         # If so, begin processing it.
         # If not, skip to the next heading.
-        my @header := $pod-element.contents[0].contents;
+        
+        my @header;
+        try {
+            @header := $pod-element.contents[0].contents;
+            CATCH { next }
+        }
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
@@ -395,7 +400,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 }
                 default {
                     # No clue, probably not meant to be indexed
-                    last
+                    next;
                 }
             }
 
