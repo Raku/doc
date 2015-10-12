@@ -24,6 +24,9 @@ class Build is Panda::Builder {
             my $dest-dir = $dest.IO.dirname;
             mkpath $dest-dir unless $dest-dir.IO.d;
 
+            my $relative = $*SPEC.abs2rel($file, $workdir);
+            note "Copying $relative to $dest";
+
             cp($file, $dest);
         }
     }
