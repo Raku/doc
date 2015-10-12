@@ -13,4 +13,6 @@ function setup_search_box() {
     else {
         sel.removeClass('two-row');
     }
+
+    $('#query').focus();
 }
