@@ -29,8 +29,6 @@ use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
 
-my $*DEBUG = False;
-
 my $type-graph;
 my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
@@ -103,7 +101,6 @@ sub recursive-dir($dir) {
 # --sparse=5: only process 1/5th of the files
 # mostly useful for performance optimizations, profiling etc.
 sub MAIN(
-    Bool :$debug,
     Bool :$typegraph = False,
     Int  :$sparse,
     Bool :$disambiguation = True,
@@ -111,8 +108,6 @@ sub MAIN(
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
 ) {
-    $*DEBUG = $debug;
-
     say 'Creating html/ subdirectories ...';
     for flat '', <type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
@@ -158,12 +153,12 @@ sub MAIN(
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
-    say "Reading lib/$dir ...";
+    say "Reading doc/$dir ...";
     my @pod-sources =
-        recursive-dir("lib/$dir/")\
+        recursive-dir("doc/$dir/")\
         .grep({.path ~~ / '.pod' $/})\
         .map({;
-            .path.subst("lib/$dir/", '')\
+            .path.subst("doc/$dir/", '')\
                  .subst(rx{\.pod$},  '')\
                  .subst(:g,    '/',  '::')
             => $_
@@ -324,7 +319,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
         # Is this new header a definition?
         # If so, begin processing it.
         # If not, skip to the next heading.
-        my @header := $pod-element.contents[0].contents;
+        
+        my @header;
+        try {
+            @header := $pod-element.contents[0].contents;
+            CATCH { next }
+        }
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
@@ -395,7 +395,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 }
                 default {
                     # No clue, probably not meant to be indexed
-                    last
+                    next;
                 }
             }
 
@@ -590,7 +590,7 @@ sub write-disambiguation-files () {
 sub write-index-files () {
     say 'Writing html/index.html ...';
     spurt 'html/index.html',
-        p2h(EVAL(slurp('lib/HomePage.pod') ~ "\n\$=pod"),
+        p2h(EVAL(slurp('doc/HomePage.pod') ~ "\n\$=pod"),
             pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';
