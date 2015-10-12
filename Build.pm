@@ -22,7 +22,7 @@ class Build is Panda::Builder {
             $dest =  $dest-pref ~ $dest.split("$workdir/doc")[1];
 
             my $dest-dir = $dest.IO.dirname;
-            mkpath $dest-dir unless $dest.IO.d;
+            mkpath $dest-dir unless $dest-dir.IO.d;
 
             cp($file, $dest);
         }
