@@ -35,9 +35,10 @@ extension.
 
 =head2 Loading and Basic Importing
 
-Loading a module makes the packages declared within available in the
-package scope of the loader. Importing from a module makes the symbols
-exported available in the current lexical scope.
+Loading a module makes the packages in the same namespace declared
+within available in the file scope of the loader. Importing from a
+module makes the symbols exported available in the lexical scope of
+the importing statement.
 
     # loads at compile time
     need MyModule;
@@ -62,6 +63,8 @@ exported available in the current lexical scope.
 
 =head2 Exporting and Selective Importing
 
+=head3 is export
+
 Packages, subroutines, variables, constants and enums are exported by marking
 them with the L<is export> trait.
 
@@ -80,7 +83,7 @@ them with the L<is export> trait.
     class MyModule::MyClass {};
     =end code
 
-You can pass parameters to C<is export> to group symbols for exporting
+You can pass named parameters to C<is export> to group symbols for exporting
 then the importer can pick and choose. There are three predefined
 tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
 
@@ -104,7 +107,60 @@ tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
     use MyModule :ALL;     #bag, pants, sunglasses, torch, underpants
     =end code
 
-=head2 EXPORT
+=head3 UNIT::EXPORT::*
+
+Beneath the surface C<is export> is adding the symbols to a C<UNIT>
+scoped package in the C<EXPORT> namespace. For example, C<is
+export(:FOO)> will add the target to the C<UNIT::EXPORT::FOO>
+package. This is what Perl 6 is really using to decide what to import.
+
+    =begin code
+    unit module MyModule;
+
+    sub foo is export { ... }
+    sub bar is export(:other) { ... }
+    =end code
+
+Is the same as:
+
+    =begin code
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+        our sub foo { ... }
+    }
+
+    my package EXPORT::other {
+        our sub bar { ... }
+    }
+    =end code
+
+For most purposes C<is export> is suffficient but the C<EXPORT>
+packages are useful when you want to produce the exported symbols
+dynamically. For example:
+
+    =begin code
+    # lib/MyModule.pm
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+       for <zero one two three four>.kv -> $number,$name {
+          for <sqrt log> -> $func {
+             OUR::{'&' ~ $func ~ '-of-' ~ $name } := sub { $number."$func"() };
+          }
+       }
+    }
+
+    =end code
+
+    =begin code
+    # main.pl
+    use MyModule;
+    say sqrt-of-four; #-> 2
+    say log-of-zero;  #-> -Inf
+    =end code
+
+=head3 EXPORT
 
 You can export arbitrary symbols with an C<EXPORT> sub. C<EXPORT>
 must return a L<EnumMap>, where the keys are the symbol names and
@@ -135,17 +191,19 @@ the values are the desired values. The names should include the sigil
     say @array;
     say %hash;
     doit();
-    say ShortName.new; #MyModule::Class.new
+    say ShortName.new; #-> MyModule::Class.new
     =end code
 
 Note, C<EXPORT> can't be declared inside a package because
-presently rakudo (2015.06) seems to treat C<EXPORT> as part of the
+presently rakudo (2015.09) seems to treat C<EXPORT> as part of the
 compunit rather than the package.
 
-If you pass positional parameters to C<use> they will be passed to
-C<EXPORT>. The module no longer exports default symbols if a
-positional is passed, however you may still import them explicitly by
-passing :C<DEFAULT> to C<use>.
+Whereas C<UNIT::EXPORT> packages deal with the named parameters passed
+to C<use>, the C<EXPORT> sub handles positional parameters. If you
+pass positional parameters to C<use> they will be passed to
+C<EXPORT>. If a positional is passed the module no longer exports
+default symbols. You may still import them explicitly by
+passing C<:DEFAULT> to C<use> along with your positional parameters.
 
     =begin code
     # lib/MyModule
