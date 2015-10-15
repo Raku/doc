@@ -312,7 +312,53 @@ for @cars <-> $_ {...}
 
 =head2 gather/take
 
-=comment TODO
+C<gather> is a statement or block prefix that returns a L<sequence|/type/Seq>
+of values. The values come from calls to C<take> in the dynamic scope of the C<gather> block.
+
+    my @a = gather {
+        take 1;
+        take 5;
+        take 42;
+    }
+    say join ', ', @a;          # 1, 5, 42
+
+C<gather/take> generates values lazily, so the C<gather> block generally runs only until it hits
+the first C<take>. Code after the first C<take> is executed as soon as the next value is consumed
+from the returned sequence.
+
+For example
+
+    my \vals = gather {
+        take 1;
+        say "Produced a value";
+        take 2;
+    }
+    say vals[0];
+    say 'between consumption of two values';
+    say vals[1];
+
+produces this output:
+
+    1
+    between consumption of two values
+    Produced a value
+    2
+
+
+C<gather/take> is scoped dynamically, so you can call C<take> from subs or methods that are called
+from withint C<gather>:
+
+    sub weird(@elems, :$direction = 'foward') {
+        my %direction = (
+            forward  => sub { take $_ for @elems },
+            backward => sub { take $_ for @elems.reverse },
+            random   => sub { take $_ for @elems.pick(*) },
+        );
+        return gather %direction{$direction}();
+    }
+
+    say weird(<a b c>, :direction<backward> );          # (c b a)
+
 
 =head2 given
 
