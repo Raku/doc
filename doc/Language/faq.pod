@@ -1,0 +1,321 @@
+=begin pod
+
+=TITLE FAQ
+
+=SUBTITLE Frequently Asked Questions about Perl 6
+
+=head1 Language Features
+
+=head2 What is C<so>?
+
+C<so> is a loose precedence operator that coerces to L<Bool|/type/Bool>.
+
+It has the same semantics as the C<?> prefix operator, just like
+C<and> is the low-precedence version of C<&&>.
+
+Example usage:
+
+    say so 1|2 == 2;    # Bool::True
+
+In this example, the result of the comparison (which is a
+L<Junction|/type/Junction>), is
+converted to Bool before being printed.
+
+
+=head2 How can I extract the values from a Junction?
+
+If you want to extract the values (eigenstates) from a
+L<Junction|/type/Junction>, you are probably doing something wrong, and
+should be using a L<Set|/type/Set> instead.
+
+Junctions are meant as matchers, not for doing algebra with them.
+
+If you want to do it anyway, you can abuse autothreading for that:
+
+    sub eigenstates(Mu $j) {
+        my @states;
+        -> Any $s { @states.push: $s }.($j);
+        @states;
+    }
+
+    say eigenstates(1|2|3).join(', ');
+    # prints 1, 2, 3 or a permutation thereof
+
+=head2 If Str is immutable, how does C<s///> work? if Int is immutable, how does C<$i++> work?
+
+In Perl 6, many basic types are immutable, but the variables holding them are
+not. The C<s///> operator works on a variable, into which it puts a newly
+creates string object. Likewise C<$i++> works on the C<$i> variable, not
+just on the value in it.
+
+See the documentation on L<containers|/language/containers> for more
+information.
+
+=head2 What's up with array references and automatic derferencing? Do I still need the C<@> sigil?
+
+In Perl 6, nearly everything is a reference, so talking about taking
+references doesn't make much sense. Unlike Perl 5, scalar variables
+can also contain arrays directly:
+
+    my @a = 1, 2, 3;
+    say @a;                 # "1 2 3\n"
+    say @a.WHAT;            # (Array)
+
+    my $scalar = @a;
+    say $scalar;            # "1 2 3\n"
+    say $scalar.WHAT;       # (Array)
+
+The big difference is that arrays inside a scalar act as one value in list
+context, whereas arrays will be happily iterated over.
+
+    my @a = 1, 2, 3;
+    my $s = @a;
+
+    for @a { ... }          # loop body executed 3 times
+    for $s { ... }          # loop body executed only once
+
+    my @flat = flat @a, @a;
+    say @flat.elems;        # 6
+
+    my @nested = flat $s, $s;
+    say @nested.elems;      # 2
+
+You can force flattening with C<@( ... )> or by calling the C<.list> method
+on an expression, and item context (not flattening) with C<$( ... )>
+or by calling the C<.item> method on an expression.
+
+
+=head2 Why sigils? Couldn't you do without them?
+
+There are several reasons:
+
+=item they make it easy to interpolate variables into strings
+
+=item they form micro-namespaces for different variables, thus avoiding name clashes
+
+=item they allow easy single/plural distinction
+
+=item many natural languages use mandatory noun markers, so our brains are built to handle it
+
+
+=head2 Does Perl 6 have coroutines? What about C<yield>?
+
+Perl 6 has no C<yield> statement like python does, but it does offer similar
+functionality through lazy lists. There are two popular ways to write
+routines that return lazy lists:
+
+    # first method, gather/take
+    my @values = gather while have_data() {
+        # do some computations
+        take some_data();
+        # do more computations
+    }
+
+    # second method, use .map or similar method
+    # on a lazy list
+    my @squares = (1..*).map(-> $x { $x * $x });
+
+=head2 Why can't I initialize private attributes from the new method, and how can I fix this?
+
+A code like
+
+    class A {
+        has $!x;
+        method show-x {
+            say $!x;
+        }
+    }
+    A.new(x => 5).show-x;
+
+does not print 5. Private attributes are I<private>, which means invisible to
+the outside. If the default constructor could initialize them, they would leak
+into the public API.
+
+If you still want it to work, you can add a C<submethod BUILD> that
+initializes them:
+
+    class B {
+        has $!x;
+        submethod BUILD(:$!x) { }
+        method show-x {
+            say $!x;
+        }
+    }
+    A.new(x => 5).show-x;
+
+C<BUILD> is called by the default constructor (indirectly, see
+L<Object Construction|/language/objects#Object_Construction>
+for more details) with all the named arguments that the user passes to the
+constructor. C<:$!x> is a named parameter with name C<x>, and when called
+with a named argument of name C<x>, its value is bound to the attribute C<$!x>.
+
+=head2 How and why do C<say> and C<print> differ?
+
+The most obvious difference is that C<say> appends a newline at the
+end of the output, and C<print> does not.
+
+But there is another difference: C<print> converts its arguments to
+a string by calling the C<Str> method on each item passed to, C<say>
+uses the C<gist> method instead. The former is meant for computers,
+the latter for human interpretation.
+
+Or phrased differently, C<$obj.Str> gives a string representation,
+>$obj.gist> a short summary of that object suitable for fast recognition
+by the programmer, and C<$obj.perl> gives a Perlish representation.
+
+For example type objects, also known as "undefined values", stringify
+to an empty string and warn, whereas the C<gist> method returns the name
+of the type, followed by an empty pair of parenthesis (to indicate there's
+nothing in that value except the type).
+
+    my Date $x;     # $x now contains the Date type object
+    print $x;       # empty string plus warning
+    say $x;         # (Date)\n
+
+So C<say> is optimized for debugging and display to people, C<print>
+is more suitable for producing output for other programs to consume.
+
+=head2 What's the difference between C<token> and C<rule> ?
+
+C<regex>, C<token> and C<rule> all three introduce regexes, but with
+slightly different semantics.
+
+C<token> implies the C<:ratchet> or C<:r> modifier, which prevents the
+rule from backtracking.
+
+C<rule> implies both the C<:ratchet> and C<:sigspace> (short C<:s>)
+modifer, which means a rule doesn't backtrace, and it treats
+whitespace in the text of the regex as C«<.ws>» calls (ie
+matches whitespace, which is optional except between two word
+characters). Whitespace at the start of the regex and at the start
+of each branch of an alternation is ignored.
+
+C<regex> declares a plain regex without any implied modifiers.
+
+=head2 What's the difference between C<die> and C<fail>?
+
+C<die> throws an exception.
+
+If C<use fatal;> (which is dynamically scoped) is in scope, C<fail> also
+throws an exception. Otherwise it returns a C<Failure> from the routine
+it is called from.
+
+A C<Failure> is an "unthrown" or "soft" exception. It is an object that
+contains the exception, and throws the exception when the Failure is used
+as an ordinary object.
+
+A Failure returns False from a C<defined> check, and you can exctract
+the exception with the C<exception> method.
+
+=head2 Why is C<wantarray> or C<want> gone? Can I return different things in different contexts?
+
+Perl has the C<wantarray> function that tells you whether it is called in
+void, scalar or list context. Perl 6 has no equivalent construct,
+because context does not flow inwards, i.e. a routine cannot know which
+context it is called in.
+
+One reason is that Perl 6 has multi dispatch, and in a code example like
+
+    multi w(Int $x) { say 'Int' }
+    multi w(Str $x) { say 'Str' }
+    w(f());
+
+there is no way to determine if the caller of sub C<f> wants a string or
+an integer, because it is not yet known what the caller is. In general
+this requires solving the halting problem, which even Perl 6 compiler
+writers have trouble with.
+
+The way to achieve context sensitivity in Perl 6 is to return an object
+that knows how to respond to method calls that are typical for a context.
+
+For example regex matches return L<Match objects that know how to respond
+to list indexing, hash indexing, and that can turn into the matched
+string|/type/Match>.
+
+=head1 Meta Questions and Advocacy
+
+=head2 When will Perl 6 be ready? Is it ready now?
+
+Readiness of programming languages and their compilers is not a binary
+decision. As they (both the language and the implementations) evolve, they
+grow steadily more usable. Depending on your demands on a programming
+language, Perl 6 and its compilers might or might not be ready for you.
+
+Please see the L<feature comparison
+matrix|http://perl6.org/compilers/features> for an overview of implemented
+features.
+
+
+=head2 Why should I learn Perl 6? What's so great about it?
+
+Perl 6 unifies many great ideas that aren't usually found in other programming
+languages. While several other languages offer some of these features, none of
+them offer all.
+
+Unlike most languages, it offers
+
+=item  cleaned up regular expressions
+
+=item  [PEG](http://en.wikipedia.org/wiki/Parsing_expression_grammar) like grammars for parsing
+
+=item  lazy lists
+
+=item  a powerful meta object system
+
+=item  junctions of values
+
+=item  easy access to higher-order functional features like partial application and currying
+
+=item  separate mechanism for subtyping (inheritance) and code reuse (role application)
+
+=item  optional type annotations
+
+=item  powerful run-time multi dispatch for both subroutines and methods based on
+  arity, types and additional code constraints
+
+=item lexical imports
+
+It also offers
+
+=item closures
+
+=item anonymous types
+
+=item roles and traits
+
+=item named arguments
+
+=item nested signatures
+
+=item object unpacking in signatures
+
+=item intuitive, nice syntax (unlike Lisp)
+
+=item easy to understand, explicit scoping rules (unlike Python)
+
+=item a strong meta object system that does not rely on eval (unlike Ruby)
+
+=item expressive routine signatures (unlike Perl 5)
+
+=item state variables
+
+=item named regexes for easy reuse
+
+=item unlike many dynamic languages, calls to missing subroutines are caught
+  at compile time, and in some cases even signature mismatches can be
+  caught at compile time.
+
+Please see the L<feature comparison
+matrix|http://perl6.org/compilers/features> for an overview of implemented
+features.
+
+=head2 Is there a CPAN for Perl 6? Or will Perl 6 use the Perl 5 CPAN?
+
+There isn't yet a module repository for Perl 6 as sophisticated as CPAN.
+But L<modules.perl6.org|http://modules.perl6.org/> has a ist of known
+Perl 6 modules, and L<panda|https://github.com/tadzik/panda/> can install
+those that work with L<rakudo|http://rakudo.org/>.
+
+Suppport for installing Perl 6 modules from the Perl 5 CPAN is on its way.
+
+=end pod
