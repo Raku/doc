@@ -17,6 +17,24 @@ to see the documentation for method `split` in class `Str`.
 
 --------
 
+## Building the HTML documentation
+
+To build the documentation web pages, simply run
+
+    $ make html
+
+After the pages have been generated, you can view them on your local
+computer by starting the included `app.pl` program:
+
+    $ make run
+
+You can then view the examples documentation by pointing your web browser at
+http://localhost:3000.
+
+You will need at least Mojolicious installed.
+
+--------
+
 ## Help Wanted!
 
 Perl 6 is not a small language, and documenting it takes a lot of effort.
