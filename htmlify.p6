@@ -217,7 +217,8 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         |%type-info,
     );
 
-    find-definitions :$pod, :$origin;
+    find-definitions :$pod, :$origin, :url("/$kind/$filename");
+    find-references  :$pod, :$origin, :url("/$kind/$filename");
 }
 
 # XXX: Generalize
@@ -300,8 +301,53 @@ multi write-type-source($doc) {
     spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
 }
 
+sub find-references(:$pod!, :$url, :$origin) {
+    if $pod ~~ Pod::FormattingCode && $pod.type eq 'X' {
+        register-reference(:$pod, :$origin, :$url);
+    }
+    elsif $pod.?contents {
+        for $pod.contents -> $sub-pod {
+            find-references(:pod($sub-pod), :$url, :$origin) if $sub-pod ~~ Pod::Block;
+        }
+    }
+}
+
+sub register-reference(:$pod!, :$origin, :$url) {
+    if $pod.meta {
+        for @( $pod.meta ) -> $meta {
+            my $name;
+            if  $meta.elems > 1 {
+                my $last = $meta[*-1];
+                my $rest = $meta[0..*-2].join;
+                $name = "$last ($rest)";
+            }
+            else {
+                $name = $meta.Str;
+            }
+            $*DR.add-new(
+                :$pod,
+                :$origin,
+                :$url,
+                :kind<reference>,
+                :subkinds['reference'],
+                :$name,
+            )
+        }
+    }
+    elsif $pod.contents[0] -> $name {
+        $*DR.add-new(
+            :$pod,
+            :$origin,
+            :$url,
+            :kind<reference>,
+            :subkinds['reference'],
+            :$name,
+        )
+    }
+}
+
 #| A one-pass-parser for pod headers that define something documentable.
-sub find-definitions (:$pod, :$origin, :$min-level = -1) {
+sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
     # Runs through the pod content, and looks for headings.
     # If a heading is a definition, like "class FooBar", processes
     # the class and gives the rest of the pod to find-definitions,
@@ -415,6 +461,7 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1) {
                 $new-i = $i + find-definitions
                     :pod(@pod-section[$i+1..*]),
                     :origin($created),
+                    :$url,
                     :min-level(@pod-section[$i].level);
             }
 
