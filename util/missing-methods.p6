@@ -47,5 +47,3 @@ sub show-undoc-method(Str $qualified-method-name) {
     my $doc-output = qqx{$doc-lookup-command};
     say "$qualified-method-name" if $doc-output ~~ m:s/No documentation found/;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

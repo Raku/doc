@@ -92,5 +92,3 @@ class Perl6::TypeGraph {
         visit($_) for %.types.values.sort(*.name);
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

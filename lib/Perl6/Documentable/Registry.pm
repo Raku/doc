@@ -34,5 +34,3 @@ class Perl6::Documentable::Registry {
         @!kinds;
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

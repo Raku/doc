@@ -36,5 +36,3 @@ class Perl6::Documentable {
         @!categories //= @.subkinds
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

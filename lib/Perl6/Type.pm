@@ -58,5 +58,3 @@ class Perl6::Type {
         @result;
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

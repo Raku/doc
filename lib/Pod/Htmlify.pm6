@@ -35,5 +35,3 @@ sub footer-html($pod-path) is export {
 sub svg-for-file($file) is export {
     join "\n", grep { /^'<svg'/ ff False }, $file.IO.lines;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6
