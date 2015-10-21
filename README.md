@@ -31,7 +31,8 @@ computer by starting the included `app.pl` program:
 You can then view the examples documentation by pointing your web browser at
 http://localhost:3000.
 
-You will need at least Mojolicious installed.
+You will need at least Mojolicious installed and Inline::Python is recommended
+to speed up the syntax highlighting phase.
 
 --------
 
