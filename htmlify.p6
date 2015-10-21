@@ -763,5 +763,3 @@ sub pod-path-from-url($url) {
 
     return $pod-path;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

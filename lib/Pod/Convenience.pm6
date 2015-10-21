@@ -105,5 +105,3 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     }
     @new-content;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

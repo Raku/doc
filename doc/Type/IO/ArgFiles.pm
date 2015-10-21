@@ -98,5 +98,3 @@ The newline character for the file.  By default this is C<\n>.
 See also the related role L<IO> and the related class L<IO::Handle>.
 
 =end pod
-
-# vim: expandtab shiftwidth=4 ft=perl6
