@@ -18,14 +18,13 @@ class Build is Panda::Builder {
         for @files -> $file {
             next if $file ~~ /'HomePage.pod'$/;
 
-            my $dest = $file;
-            $dest =  $dest-pref ~ $dest.split("$workdir/doc")[1];
+            my $relative = $*SPEC.abs2rel($file, "$workdir/doc");
+            my $dest = $dest-pref ~ $relative;
 
             my $dest-dir = $dest.IO.dirname;
             mkpath $dest-dir unless $dest-dir.IO.d;
 
-            my $relative = $*SPEC.abs2rel($file, $workdir);
-            note "Copying $relative to $dest";
+            note "Copying doc/$relative to $dest";
 
             cp($file, $dest);
         }
