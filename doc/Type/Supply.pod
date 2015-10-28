@@ -343,15 +343,127 @@ Creates a "rotoring" supply with the same semantics as List.rotor.
 Creates a new supply in which all values flowing through the given supply
 are emitted, but with the given delay in seconds.
 
-=head2 throttle
+=head2 method throttle
 
-    method throttle(Supply:D: $elems, $seconds, $delay = 0, :$scheduler) returns Supply:D
+    method throttle(Supply:D:
+      $limit,                 # values / time or simultaneous processing
+      $seconds or $callable,  # time-unit / code to process simultaneously
+      $delay = 0,             # initial delay before starting, in seconds
+      :$control,              # supply to emit control messages on (optional)
+      :$status,               # supply to tap status messages from (optional)
+      :$bleed,                # supply to bleed messages to (optional)
+      :$vent-at,              # bleed when so many buffered (optional)
+      :$scheduler,            # scheduler to use, default $*SCHEDULER
+      ) returns Supply:D
 
-Produces a C<Supply> that throttles emitting the values of the given Supply
-on the created C<Supply> by the number of elements (specified by the first
-parameter) per number of seconds (specified by the second parameter).
-Optionally allows for specification of delay (in number of seconds), and
-scheduler to be used (defaults to $*SCHEDULER).
+Produces a C<Supply> from a given Supply, but makes sure the number of
+messages passed through, is limited.
+
+It has two modes of operation: per time-unit or by maximum number of
+execution of a block of code: this is determined by the second positional
+parameter.
+
+The first positional parameter specifies the limit that should be applied.
+
+If the second positional parameter is a C<Callable>, then the limit indicates
+the maximum number of parallel processes executing the Callable, which is
+given the value that was received.  The emitted values in this case will be
+the C<Promise>s that were obtained from C<start>ing the Callable.
+
+If the second positional parameter is a numeric value, it is interpreted as
+the time-unit (in seconds).  If you specify B<.1> as the value, then it makes
+sure you don't exceed the limit for every tenth of a second.
+    
+If the limit is exceeded, then incoming messages are buffered until there
+is room to pass on / execute the Callable again.
+
+The third positional parameter is optional: it indicates the number of
+seconds the throttle will wait before passing on any values.
+
+The :control named parameter optionally specifies a Supply that you can
+use to control the throttle while it is in operation.  Messages that
+can be sent, are strings in the form of "key:value".  Please see below
+for the types of messages that you can send to control the throttle.
+
+The :status named parameter optionally specifies a Supply that will receive
+any status messages.  If specified, it will at least send one status message
+after the original Supply is exhausted.  The status message is a hash with
+the following keys:
+
+=over 2 
+
+=item allowed
+
+The current number of messages / callables that is still allowed to be
+passed / executed.
+
+=item bled
+
+The number of messages routed to the :bleed Supply.
+
+=item buffered
+
+The number of messages currently buffered because of overflow.
+
+=item emitted
+
+The number of messages emitted (passed through).
+
+=item id
+
+The id of this status message (a monotonically increasing number).  Handy
+if you want to log status messages.
+
+=item limit
+
+The current limit that is being applied.
+
+=item vent-at
+
+The maximum number of messages that may be buffered before they're
+automatically re-routed to the :bleed Supply.
+
+=back
+
+The :bleed named parameter optionally specifies a Supply that will receive
+any values that were either explicitly bled (with the B<bleed> control
+message), or automatically bled (if there's a B<vent-at> active).
+
+The :vent-at named parameter indicates the number of values that may be
+buffered before any additional value will be routed to the :bleed Supply.
+Defaults to 0 if not specified (causing no automatic bleeding to happen).
+Only makes sense if a :bleed Supply has also been specified.
+
+The :scheduler named parameter indicates the scheduler to be used.  Defaults
+to $*SCHEDULER.
+
+=head3 control messages
+
+These messages can be sent to the :control Supply.  A control message
+consists of a string of the form "key: value", e.g. "limit: 4".
+
+=over 2
+
+=item limit
+
+Change the number of messages (as initially given in the first positional)
+to the value given.
+
+=item bleed
+
+Route the given number of buffered messages to the :bleed Supply.
+
+=item vent-at
+
+Change the maximum number of buffered values before automatic bleeding
+takes place.  If the value is lower than before, will cause immediate
+rerouting of buffered values to match the new maximum.
+
+=item status
+
+Send a status message to the :status Supply with the given id.
+
+=back
 
 =head2 method stable
 
@@ -472,7 +584,7 @@ supplies are done.  Can also be called as a class method.
 
 =head2 method zip-latest
 
-    method zip(Supply @*supplies, :&with = &[,], :$initial) returns Supply:D
+    method zip-latest(Supply @*supplies, :&with = &[,], :$initial) returns Supply:D
 
 Creates a supply that emits combined values as soon as there is a new value
 seen on B<any> of the supplies.  By default, C<Lists|/type/List> are
