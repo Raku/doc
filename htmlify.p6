@@ -378,6 +378,8 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
                 @definitions = $fc.meta[0].flat;
+                # set default name if none provide so X<if|control> gets name 'if'
+                @definitions[1] = $fc.contents[0] if @definitions == 1;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
