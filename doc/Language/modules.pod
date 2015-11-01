@@ -40,26 +40,68 @@ within available in the file scope of the loader. Importing from a
 module makes the symbols exported available in the lexical scope of
 the importing statement.
 
-    # loads at compile time
+=head3 X<need|compunit>
+
+C<need> loads a C<compunit> at compile time.
+
     need MyModule;
 
-    # loads and imports default symbols at compile time
+Any packages in the namespace defined within will also be availble.
+
+    # MyModule.pm
+    unit module MyModule;
+
+    class MyModule::Class { ... }
+
+C<MyModule::Class> will be defined in when C<MyModule> is loaded.
+
+=comment class Class { ... } won't get exported automatically on loading...not sure if bug or..
+
+=head3 X<use|compunit>
+
+C<use> loads and then imports from a compunit at compile time.
+
     use MyModule;
 
-    # imports default symbols at compile time
+It is equivalent to:
+
+    =begin code :allow<L>
+    L<need|/language/modules#need> MyModule;
     import MyModule;
+    =end code
 
-    # loads module at runtime
-    require MyModule;
+=head3 X<require|compunit>
 
-    #declares &foo at compile time in the lexical scope
-    #loads module at runtime
-    #binds &foo at runtime to the exported symbol
-    require MyModule <&foo>
+C<require> loads a compunit and imports definite symbols at runtime.
 
-    #the same but with the module name in runtime variable
-    my $var = 'MyModule';
-    require ::($var) <&foo>;
+    sub load-mymodule {
+       say "loading MyModule";
+       require MyModule;
+    }
+
+    load-mymodule();
+
+The compunit name can be in a runtime variable if you put it inside an
+indirect lookup.
+
+    sub load-a-module($name){
+       require ::($name);
+    }
+
+    load-a-module('MyModule');
+
+To import symbols you must define them at compile time.
+
+    sub do-something {
+       require MyModule <&something>;
+       something() # &something will be defined here
+    }
+
+    do-something();
+    # &something will not be defined here
+
+
+If C<MyModule> doesn't export C<&something> then it will fail.
 
 =head2 Exporting and Selective Importing
 
