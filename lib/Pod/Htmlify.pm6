@@ -24,7 +24,7 @@ sub footer-html($pod-path) is export {
         $pod-url = "the sources at $gh-link";
     }
     else {
-        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/lib/$pod-path'>$pod-path\</a\> from $gh-link";
+        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
 
