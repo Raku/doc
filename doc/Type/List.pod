@@ -700,24 +700,60 @@ temporarily transformed before comparison.
 
 Defined as:
 
-    multi sub    reduce(&with, *@elems)
+    multi sub    reduce(&with, *@values)
     multi method reduce(List:D: &with)
 
 Usage:
 
-    reduce WITH, LIST
-    LIST.reduce(WITH)
+    reduce CODE, LIST
+    LIST.reduce(CODE)
 
-Applies C<&with> to the first and the second value of the list, then to the
-result of that calculation and the third value and so on. Returns a single item
-generated that way.
+Generates a single "combined" value from a list of arbitrarily many of values,
+by repeatedly applying a function which knows how to combine I<two> values.
 
-Note that C<reduce> is an implicit loop, and thus responds to C<next>, C<last>
-and C<redo> statements.
+More precisely, the specified C<&with> is first called for the first two
+values of the list, then for the result of that calculation and the third
+value, and so on - and the final result is returned. In other words,
+C<(2,4,6,8).reduce(*+*)> is the same as C<(((2+4)+6)+8)>.
 
-Example:
+If C<@values> contains just a single element, that element is returned
+immediately. If it contains no elements, an exception is thrown. For this
+reason, you may want to prefix the input list with an explicit identity
+value:
 
-    say (1, 2, 3).reduce: * - *;    # -4
+    say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
+    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
+
+As a special case, if C<&with> is the function object of an I<operator>, its
+inherent identity value and associativity is respected - in other words,
+C<(VAL1,VAL2,VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+for operators which aren't left-associative, and an empty C<@values> list is
+allowed now. And since reducing with an infix operator is a common thing to do,
+the C<[ ]> meta-operator provides a syntactic shortcut:
+
+    # The following all do the same thing...
+    say reduce { $^a + $^b }, 0, |@numbers;
+    say reduce * + *, 0, |@numbers;
+    say reduce &[+], @numbers;
+    say [+] @numbers;
+
+Since C<reduce> is an implicit loop, it responds to C<next>, C<last> and C<redo>
+statements.
+
+Practical example:
+
+    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+    
+    my @ops = [Z] (<+ - * />, 1..20)».roll(4);
+    
+    say ('x', |@ops).reduce: -> $formula, [$op, $number] {
+        Bool.pick ?? "($formula $op $number)"
+                  !! "($number $op $formula)"
+    }
+
+I<Note:> In the functional programming world, this operation is generally
+called a L<left fold|
+https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
 
 =head2 routine splice
 
