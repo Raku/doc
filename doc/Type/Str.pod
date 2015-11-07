@@ -177,42 +177,86 @@ Examples:
 
 =head2 routine split
 
-    multi sub    split(  Str:D $delimiter, Str:D $input, $limit = Inf, :$all) returns Positional
-    multi sub    split(Regex:D $delimiter, Str:D $input, $limit = Inf, :$all) returns Positional
-    multi method split(Str:D $input:   Str:D $delimiter, $limit = Inf, :$all) returns Positional
-    multi method split(Str:D $input: Regex:D $delimiter, $limit = Inf, :$all) returns Positional
+    multi sub    split(  Str:D $delimiter, Str:D $input, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
+    multi sub    split(Regex:D $delimiter, Str:D $input, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
+    multi sub    split(List:D $delimiters, Str:D $input, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
+    multi method split(Str:D:   Str:D $delimiter, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
+    multi method split(Str:D: Regex:D $delimiter, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
+    multi method split(Str:D: List:D $delimiters, $limit = Inf,
+      :$skip-empty, :$v, :$k, :$kv, :$p) returns Positional
 
 Usage:
 
-    split( DELIMITER, STRING [, LIMIT] [, :all])
-    split( /PATTERN/, STRING [, LIMIT] [, :all])
-    STRING.split( DELIMITER [, LIMIT] [, :all])
-    STRING.split( /PATTERN/ [, LIMIT] [, :all])
+    split( DELIMITER,  STRING [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
+    split( /PATTERN/,  STRING [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
+    split( DELIMITERS, STRING [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
+    STRING.split( DELIMITER  [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
+    STRING.split( /PATTERN/  [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
+    STRING.split( DELIMITERS [,LIMIT] [,:v] [,:k] [,:kv] [,:p] [,:skip-empty] )
 
 Splits a string up into pieces based on delimiters found in the string.
 
 If C<DELIMITER> is a string, it is searched for literally and not treated
-as a regex.
+as a regex.  If C<DELIMITER> is the empty string, it effectively returns all
+characters of the string separately (plus an empty string at the begin and at
+the end).  If C<PATTERN> is a regular expression, then that will be used
+to split up the string.  If C<DELIMITERS> is a list, then all of its elements
+will be considered a delimiter (either a string or a regular expression) to
+split the string on.
 
-If the named parameter C<:all> is passed, the matches from C<DELIMITER>
-are included in the result list.
+The optional C<LIMIT> indicates in how many segments the string should be
+split, if possible.  It defaults to B<Inf> (or B<*>, whichever way you look at
+it), which means "as many as possible".
 
-Note that unlike in Perl 5, empty chunks are not removed from the result list.
-If you want that behavior, consider using L<comb> instead.
+A number of optional named parameters can be specified, which alter the
+result being returned.  The C<:v>, C<:k>, C<:kv> and C<:p> named parameters
+all perform a special action with regards to the delimiter found.
 
-=comment TODO Describe behavior of LIMIT
+=item :skip-empty
+
+If specified, do not return empty strings before or after a delimiter.
+
+=item :v
+
+Also return the delimiter.  If the delimiter was a regular expression, then
+this will be the associated C<Match> object. Since this stringifies as the
+delimiter string found, you can always assume it is the delimiter string if
+you're not interested in further information about that particular match.
+
+=item :k
+
+Also return the B<index> of the delimiter.  Only makes sense if a list of
+delimiters was specified: in all other cases, this will be B<0>.
+
+=item :kv
+
+Also return both the B<index> of the delimiter, as well as the delimiter.
+
+=item :p
+
+Also return the B<index> of the delimiter and the delimiter as a C<Pair>.
 
 Examples:
 
 =begin code
-    say split(';', "a;b;c").perl;          # ("a", "b", "c").list
-    say split(';', "a;b;c", :all).perl;    # (("a", ";"), ("b", ";"), "c").list
-    say split(';', "a;b;c", 2).perl;       # ("a", "b;c").list
-    say split(';', "a;b;c", 2, :all).perl; # (("a", ";"), "b;c").list
+    say split(";", "a;b;c")            # (a b c)
+    say split(";", "a;b;c", :v)        # (a ; b ; c)
+    say split(";", "a;b;c", 2)         # (a b;c)
+    say split(";", "a;b;c", 2, :v)     # (a ; b;c)
+    say split(";", "a;b;c,d")          # (a b c,d)
+    say split(/\;/, "a;b;c,d")         # (a b c,d)
+    say split(<; ,>, "a;b;c,d")        # (a b c d)
+    say split(/<[;,]>/, "a;b;c,d")     # (a b c d)
+    say split(<; ,>, "a;b;c,d", :k)    # (a 0 b 0 c 1 d)
+    say split(<; ,>, "a;b;c,d", :kv)   # (a 0 ; b 0 ; c 1 , d)
 
-    say split(';', "a;b;c,d").perl;        # ("a", "b", "c,d").list
-    say split(/\;/, "a;b;c,d").perl;       # ("a", "b", "c,d").list
-    say split(/<[;,]>/, "a;b;c,d").perl;   # ("a", "b", "c", "d").list
+    say "abcde".split("")              # ( a b c d e )
+    say "abcde".split("",:skip-empty)  # (a b c d e)
 =end code
 
 =head2 routine comb
