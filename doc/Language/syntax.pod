@@ -379,11 +379,12 @@ A L<Regex|/type/Regex> is declared with slashes like C</foo/>. Note that this C<
 
 =head3 Variable declaration
 
-    my $x;                      # simple lexical variable
-    my $x = 7;                  # initialize the variable
-    my Int $x = 7;              # declare the type
-    my Int $x:D = 7;            # specify that the value must be defined (not undef)
-    my Int $x where * > 3 = 7;  # constrain the value based on a function
+    my $x;                          # simple lexical variable
+    my $x = 7;                      # initialize the variable
+    my Int $x = 7;                  # declare the type
+    my Int $x:D = 7;                # specify that the value must be defined (not undef)
+    my Int $x where { $_ > 3 } = 7; # constrain the value based on a function
+    my Int $x where * > 3 = 7;      # same constraint, but using L<Whatever> short-hand
 
 See L<Variable Declarators and Scope|http://docs.perl6.org/language/variables#Variable_Declarators_and_Scope> for more details on other scopes (our, has).
 
@@ -400,9 +401,11 @@ You can also assign subroutines to variables.
     my &f = -> { say "Hello!" }  # Lambda style syntax. The & sigil indicates the variable holds a function
     my $f = -> { say "Hello!" }  # Functions can also be put into scalars
 
-=head3 Package, Class, Role, and Grammar declaration
+=head3 Module, Class, Role, and Grammar declaration
 
-    package Gar { }
+There are several types of compilation units (packages), each declared with a keyword, a name, some optional traits, and a body of functions.
+
+    module Gar { }
 
     class Foo { }
 
@@ -412,10 +415,12 @@ You can also assign subroutines to variables.
 
 You can declare a unit of things without explicit curly brackets.
 
-    unit package Gar;
+    unit module Gar;
     # ... stuff goes here instead of in {}'s
 
 =head3 Multi-dispatch declaration
+
+See also L<Multi-dispatch|http://docs.perl6.org/language/functions#Multi-dispatch>.
 
 Subroutines can be declared with multiple signatures.
 
@@ -427,7 +432,7 @@ Inside of a class, you can also declare multi-dispatch methods.
     multi method greet { }
     multi method greet(Str $name) { }
 
-=head2 Subroutine calls
+=head1 Subroutine calls
 
 See L<functions|/language/functions>.
 
@@ -435,10 +440,52 @@ See L<functions|/language/functions>.
 
     foo;   # Invoke the function foo with no arguments
     foo(); # Invoke the function foo with no arguments
-    $f();  # Invoke $f, which contains a function
+    &f();  # Invoke &f, which contains a function
 
 =head1 Operators
 
-See L<Operators|/language/operators>.
+See L<Operators|/language/operators> for lots of details.
+
+Operators are functions with a more symbol heavy and composable syntax. Like
+other functions, operators can be multi-dispatch to allow for context-specific
+usage.
+
+There are five types (arrangements) for operators, each taking either one or two arguments.
+
+    ++$x           # prefix, operator comes before single input
+    5 + 3          # infix, operator is between two inputs
+    $x++           # postfix, operator is after single input
+    <the blue sky> # circumfix, operator surrounds single input
+    %foo<bar>      # postcircumfix, operator comes after first input and surrounds second
+
+=head2 Meta Operators
+
+Operators can be composed. A common example of this is combining an infix
+(binary) operator with assignment. You can do this with any binary operator.
+
+    $x += 5   # Adds 5 to $x, same as $x = $x + 5
+    $x min= 3 # Sets $x to the smaller of $x and 3, same as $x = $x min 3
+
+Wrap an infix operator in C<[ ]> to create a new reduction operator that works
+on a single list of inputs, resulting in a single value.
+
+    [+] <1 2 3 4 5>         # 15
+    (((1 + 2) + 3) + 4) + 5 # equivalent expanded version
+
+Wrap an infix operator in C<« »> (or the ASCII equivalent C<<< >>>) to create a
+new hyper operator that works pairwise on two lists.
+
+    <1 2 3> «+» <4 5 6> # <5 7 9>
+
+The direction of the arrows indicates what to do when the lists are not the same size.
+
+    @a «+« @b # Result is the size of @b, elements from @a will be re-used
+    @a »+» @b # Result is the size of @a, elements from @b will be re-used
+    @a «+» @b # Result is the size of the biggest input, the smaller one is re-used
+    @a »+« @b # Exception if @a and @b are different sizes
+
+You can also wrap a unary operator with a hyper operator.
+
+    -« <1 2 3> # <-1 -2 -3>
 
 =end pod
