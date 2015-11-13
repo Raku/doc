@@ -7,6 +7,7 @@ function setup_search_box() {
     var sel = $('#search'), head = $('#logo').parent();
     if ( ! sel.length ) { return; }
 
+    /* Setup handling of narrow screens */
     if ( head.offset().top + head.innerHeight() <= sel.offset().top ) {
         sel.addClass('two-row');
     }
