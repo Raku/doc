@@ -15,16 +15,14 @@ function setup_search_box() {
         sel.removeClass('two-row');
     }
 
-    /* Focus search box on page load, but remove it when user scrolled a bit
-        ... because some use "Space" key to scroll through the page, but
-        ... if our search box stays focused, they get jolted back to the
-        ... top of the page
+    /* Focus search box on page load, but remove focus if the user appears
+        to be trying to scroll the page with keyboard, rather than typing
+        a search query
     */
-    $('#query').focus();
-    $(window).on('scroll.search', function(){
-        if ( $(window).scrollTop() > 200 ) {
-            $('#query').blur();
-            $(window).off('scroll.search');
-        }
+    $('#query').focus().keydown( function(e){
+        var el = $(this);
+        if ( e.which == 32 && el.val().length                ) { return true; }
+        if ( e.which == 32 || e.which == 34 || e.which == 40 ) { el.blur()  ; }
+        // key codes: 32: space; 34: pagedown; 40: down arrow
     });
 }
