@@ -16,6 +16,7 @@ in the [#perl6 IRC channel](http://perl6.org/community/irc).
 * Duplicate small pieces of information rather than rely on linking
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
+* Check out STYLEGUIDE.md for further ... guidance
 
 ## Documenting types
 
