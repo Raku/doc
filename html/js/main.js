@@ -19,7 +19,7 @@ function setup_search_box() {
         to be trying to scroll the page with keyboard, rather than typing
         a search query
     */
-    $('#query').focus().keydown( function(e){
+    $('#query').keydown( function(e){
         var el = $(this);
         if ( e.which == 32 && el.val().length                ) { return true; }
         if ( e.which == 32 || e.which == 34 || e.which == 40 ) { el.blur()  ; }
