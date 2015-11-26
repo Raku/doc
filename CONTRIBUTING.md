@@ -10,7 +10,7 @@ in the [#perl6 IRC channel](http://perl6.org/community/irc).
 
 ## General principles
 
-* Please use the present tense, and active voice.
+* Please use the present tense, and [active voice](https://en.wikipedia.org/wiki/Active_voice).
 * Link to external resources (like Wikipedia) for topics that are not
   directly related to Perl 6 (like the math that our routines implement)
 * Duplicate small pieces of information rather than rely on linking
