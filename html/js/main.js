@@ -21,7 +21,9 @@ function setup_search_box() {
     */
     $('#query').keydown( function(e){
         var el = $(this);
-        if ( e.which == 32 && el.val().length                ) { return true; }
+        if ( el.val().length && ( e.which == 32 || e.which == 40) ) {
+            return true;
+        }
         if ( e.which == 32 || e.which == 34 || e.which == 40 ) { el.blur()  ; }
         // key codes: 32: space; 34: pagedown; 40: down arrow
     });
