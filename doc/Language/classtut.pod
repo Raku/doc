@@ -269,6 +269,42 @@ C<$!done> attribute to C<True>, so that subsequent invocations of C<perform>
 on this object (if this C<Task> is a dependency of another C<Task>, for
 example) will not repeat the task.
 
+=head2 Private Methods
+
+Analogous to attributes methods can be private. Private methods are declared
+with a prefixed exclamation mark. They are called with C<self!> followed by the
+methods name. To call a private method of another class the calling class has
+to be trusted by the called class. A trust relationship is declaired with
+C<trusts> and the to be trusted class has to be declared already. Calling a
+private methods of another class requires an instance of that class and the
+fully quallified name of the method.  Trust also applies to accessor methods of
+private attributes.
+
+    class B {...}
+    
+    class C {
+        trusts B;
+        has $!hidden = 'invisible';
+        method !not-yours () { say 'hidden' }
+        method yours-to-use () {
+            say $!hidden;
+            self!not-yours();
+        }
+    }
+    
+    class B {
+        method i-am-trusted () {
+            my C $c.=new;
+            $c!C::not-yours();
+        }
+    }
+    
+    C.new.yours-to-use(); # the context of this call is GLOBAL, and not trusted by C
+    B.new.i-am-trusted();
+
+Trust relationships are not subject to inheritance. To trust the global
+namespace, the pseudo package C<GLOBAL> can be used.
+
 =head1 Constructors
 
 X<|constructors>
