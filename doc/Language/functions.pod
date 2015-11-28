@@ -159,15 +159,12 @@ can use it on methods as well. The candidates are all the mutli methods of the
 object:
 
     class Congrats {
-
         multi method congratulate($reason,$name) {
             say "Hooray for your $reason, $name";
         }
-
     }
 
     role BirthdayCongrats {
-
         multi method congratulate('birthday',$name) {
             say "Happy birthday, $name";
         }
@@ -181,7 +178,49 @@ object:
     $congrats.congratulate('promotion','Cindy'); #-> Hooray for your promotion, Cindy
     $congrats.congratulate('birthday','Bob');    #-> Happy birthday, Bob
 
-=comment proto, {*}, only
+=head3 X<proto|declarator>
+
+C<proto> is a way to formally declare commonalities between C<multi>
+candidates. It acts as a wrapper that can validate but not modify
+arguments. Consider this basic example:
+
+    proto congratulate(Str $reason,Str $name) {*}
+    multi congratulate($reason,$name) {
+       say "Hooray for your $reason, $name";
+    }
+    # ...
+
+    congratulate('being a cool number',42);
+
+This fails at compile time because the proto's C<signature>
+becomes the signature of the dispatcher and C<42> doesn't match
+C<Str>.
+
+    say &congratulate.signature #-> (Str $reason, Str $name, | is raw)
+
+You can give the C<proto> a function body, and place the C<{*}> where
+you want the dispatch to be done.
+
+    # attempts to notify someone -- returns False if unsuccessful
+    proto notify(Str $user,Str $msg) {
+       my \hour = DateTime.now.hour;
+       if hour > 8 or hour < 22 {
+          return {*};
+       } else {
+          # we can't notify someone when they might be sleeping
+          return False;
+       }
+    }
+
+C<{*}> always dispatches to candidates with the parameters it's called
+with. Parameter defaults and type coercions will work but are not be passed on.
+
+    proto mistake-proto(Str() $str, Int $number = 42) {*}
+    multi mistake-proto($str,$number) { say $str.WHAT }
+    mistake-proto(7,42);   #-> (Int) -- coercions not passed on
+    mistake-proto('test'); #!> fails -- defaults not passed on
+
+=comment only
 
 =head1 Conventions and Idioms
 
