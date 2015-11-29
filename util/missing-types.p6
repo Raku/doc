@@ -7,9 +7,12 @@ my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted  -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';
-    next unless ::($type).^name eq $type.name;
-    my $filename = 'lib/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.pod';
-    say $type.name unless $filename.IO.e;
+    my $actual = try ::($type.name);
+    printf "%-40s not defined in this Perl\n", $type.name()
+        if $actual === Any and $type.name ne "Any" | "Failure" | "Nil";
+    next unless $actual.^name eq $type.name;
+    my $filename = 'doc/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.pod';
+    printf "%-40s not found in documentation\n", $type.name() unless $filename.IO.e;
     CATCH { default { } }
 }
 
