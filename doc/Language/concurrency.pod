@@ -215,40 +215,42 @@ consumed by one or more consumers simultaneously in a manner similar to
 "events" in other programming languages and can be seen as enabling
 "Event Driven" or reactive designs.
 
-L<Supply> is a role that can be composed into your own types, but will
-frequently be used as a "type punned" class to create standalone objects.
+## Removed role - discuss live vs on-demand and Supplier factory
 
 At its simplest, a L<Supply> is a message stream that can have multiple
 subscribers created with the method C<tap> on to which data items can be
 placed with C<emit>:
 
-    my $supply = Supply.new();
+    my $supplier = Supplier.new;
+    my $supply   = $supplier.Supply;
 
     $supply.tap( -> $v { say $v });
 
     for 1 .. 10 {
-        $supply.emit($_);
+        $supplier.emit($_);
     }
 
 The C<tap> method returns a L<Tap> object which can be used to obtain
 information about the tap and also to turn it off when we are no longer
 interested in the events:
 
-    my $supply = Supply.new;
-    my $tap = $supply.tap(-> $v { say $v }, closing => {say "closing"});
-    $supply.emit("OK");
-    $tap.close; # Will trigger the closing callback
-    $supply.emit("Won't trigger the tap");
+    my $supplier = Supplier.new;
+    my $supply   = $supplier.Supply;
 
-Calling C<close> on the L<Tap> object (or calling C<close> on the
-supply object with the tap object as an argument,) triggers the callback
-specified by C<closing> if present and stop further events being sent to
-the tap callback but otherwise leave the supply intact to receive further
-events. Calling C<done> on the supply object similarly calls the C<done>
-callback that may be specified for any taps, but does not prevent any
-further events being emitted to the stream, or taps receiving them.
+    my $tap = $supply.tap( -> $v { say $v });
 
-The method C<interval> returns a new supply which periodically
+    $supplier.emit("OK");
+    $tap.close;
+    $supplier.emit("Won't trigger the tap");
+
+
+
+
+Calling C<done> on the supply object calls the C<done> callback that
+may be specified for any taps, but does not prevent any further events
+being emitted to the stream, or taps receiving them.
+
+The method C<interval> returns a new C<on-demand> supply which periodically
 emits a new event at the specified interval. The data that is emitted
 is an integer starting at 0 that is incremented for each event. The
 following code outputs 0 .. 5 :
@@ -275,28 +277,29 @@ the similarly named list methods: C<grep> returns a supply such that only
 those events emitted on the source stream for which the C<grep> condition
 is true is emitted on the second supply:
 
-    my $supply = Supply.new;
+    my $supplier = Supplier.new;
+    my $supply = $supplier.Supply;
     $supply.tap(-> $v { say "Original : $v" });
     my $odd_supply = $supply.grep({ $_ % 2 });
     $odd_supply.tap(-> $v { say "Odd : $v" });
     my $even_supply = $supply.grep({ not $_ % 2 });
     $even_supply.tap(-> $v { say "Even : $v" });
     for 0 .. 10 {
-        $supply.emit($_);
+        $supplier.emit($_);
     }
 
 C<map> returns a new supply such that for each item emitted to the
 original supply a new item which is the result of the expression passed
 to the C<map> is emitted:
 
-     my $supply = Supply.new;
+     my $supplier = Supplier.new;
+     my $supply = $supplier.Supply;
      $supply.tap(-> $v { say "Original : $v" });
      my $half_supply = $supply.map({ $_ / 2 });
      $half_supply.tap(-> $v { say "Half : $v" });
      for 0 .. 10 {
-         $supply.emit($_);
+         $supplier.emit($_);
      }
-
 
 =head2 Channels
 
