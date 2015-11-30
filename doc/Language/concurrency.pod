@@ -215,11 +215,13 @@ consumed by one or more consumers simultaneously in a manner similar to
 "events" in other programming languages and can be seen as enabling
 "Event Driven" or reactive designs.
 
-## Removed role - discuss live vs on-demand and Supplier factory
-
 At its simplest, a L<Supply> is a message stream that can have multiple
 subscribers created with the method C<tap> on to which data items can be
-placed with C<emit>:
+placed with C<emit>.
+
+The L<Supply> can either be C<live> or C<on-demand>.  A C<live> L<Supply>
+is created by the L<Supplier> factory, each emitted value is passed to
+all the active tappers as they are added:
 
     my $supplier = Supplier.new;
     my $supply   = $supplier.Supply;
@@ -229,6 +231,30 @@ placed with C<emit>:
     for 1 .. 10 {
         $supplier.emit($_);
     }
+
+Note that the C<tap> is called on a L<Supply> object created by the
+L<Supplier> and new values are emitted on the L<Supplier>.
+
+Or alternatively as an C<on-demand> L<Supply> created by the C<supply>
+keyword:
+
+    my $supply = supply { 
+        for 1 .. 10 { 
+            emit($_); 
+        } 
+    } 
+    $supply.tap( -> $v { say $v });
+
+In this case the code in the supply block is executed every time the
+L<Supply> returned by C<supply> is tapped, as demonstrated by:
+
+    my $supply = supply { 
+        for 1 .. 10 { 
+            emit($_); 
+        } 
+    } 
+    $supply.tap( -> $v { say "First : $v" });
+    $supply.tap( -> $v { say "Second : $v" });
 
 The C<tap> method returns a L<Tap> object which can be used to obtain
 information about the tap and also to turn it off when we are no longer
@@ -242,9 +268,6 @@ interested in the events:
     $supplier.emit("OK");
     $tap.close;
     $supplier.emit("Won't trigger the tap");
-
-
-
 
 Calling C<done> on the supply object calls the C<done> callback that
 may be specified for any taps, but does not prevent any further events
@@ -260,16 +283,38 @@ following code outputs 0 .. 5 :
 	$supply.tap(-> $v { say $v });
 	sleep 10;
 
-A second argument can be supplied which specifies a delay in seconds
-before the first event is fired. Each tap of a supply created by
-C<interval> has its own sequence starting from 0, as illustrated
-by the following:
+This could also be written using the C<react> keyword:
+
+    react {
+        whenever Supply.interval(2) -> $v {
+            say $v;
+            done() if $v == 4;
+        }
+    }
+
+Here the C<whenever> creates a tap on the L<Supply> from the provided block,
+the C<react> being exited when C<done()> is called in one of the taps.
+
+A second argument can be supplied to C<interval> which specifies a delay
+in seconds before the first event is fired. Each tap of a supply created
+by C<interval> has its own sequence starting from 0, as illustrated by
+the following:
 
     my $supply = Supply.interval(2);
     $supply.tap(-> $v { say "First $v" });
     sleep 6;
     $supply.tap(-> $v { say "Second $v"});
     sleep 10;
+
+An C<on-demand> L<Supply> can also be created from a list of values that
+will be emitted in turn, thus the first C<on-demand> example could be 
+written as:
+
+    react {
+        whenever Supply.from-list(1..10) -> $v {
+            say $v;
+        }
+    }
 
 An existing supply object can be filtered or transformed, using the methods
 C<grep> and C<map> respectively, to create a new supply in a manner like
