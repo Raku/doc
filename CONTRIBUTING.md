@@ -6,7 +6,7 @@ This document describes how to get started and helps to provide documentation
 that adheres to the common style and formatting guidelines.
 
 If you have any questions regarding contributing to this project, please ask
-in the [#perl6 IRC channel](http://perl6.org/community/irc).
+in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 ## General principles
 
@@ -27,7 +27,7 @@ lives in `doc/Type/X/Bind/Slice.pod`.
 To start contributing fork and checkout the repository, find the document
 you want to improve, commit your changes, and create a pull request. Should
 questions come up in the process feel free to ask in
-[#perl6 IRC channel](http://perl6.org/community/irc).
+[#perl6 IRC channel](https://perl6.org/community/irc).
 
 If the documentation for a type does not exist create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
@@ -67,7 +67,7 @@ are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 ## Building the documentation
 
 Assuming that you have already forked and cloned the
-[perl6/doc](http://github.com/perl6/doc) repository, one of the first things
+[perl6/doc](https://github.com/perl6/doc) repository, one of the first things
 you probably want to do is to build the documentation on your local
 computer.  To do this you will need:
 
@@ -85,7 +85,7 @@ computer.  To do this you will need:
 
 #### Rakudo
 
-Install Rakudo via [rakudobrew](http://github.com/tadzik/rakudobrew).
+Install Rakudo via [rakudobrew](https://github.com/tadzik/rakudobrew).
 
 Clone the `rakudobrew` repository
 
