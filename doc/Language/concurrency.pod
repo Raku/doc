@@ -418,77 +418,55 @@ The L<method closed|/type/Channel#method_closed> returns a L<Promise> that
 will be kept (and consequently will evaluate to True in a boolean context,)
 when the channel is closed.
 
-Because looping over a channel in this manner is a common pattern there is
-a simpler functional syntax to do this:
+Channels can be used in place of the L<Supply> in the C<whenever> of a
+C<react> block described earlier:
 
-    my $channel = Channel.new;
+	my $channel = Channel.new;
 
-    my $p = start {
-        loop {
-            earliest $channel {
-                more * {
-                    say $_;
-                }
-                done * {
-                    last;
-                }
-            }
-        }
-    }
+	my $p = start {
+    	react {
+        	whenever $channel {
+            	say $_;
+        	}
+    	}
+	}
 
-    await (^10).map: -> $r {
-        start {
-            sleep $r;
-            $channel.send($r);
-        }
-    }
+	await (^10).map: -> $r {
+    	start {
+        	sleep $r;
+        	$channel.send($r);
+    	}
+	}
 
-    $channel.close;
-    await $p;
-
-C<earliest> takes one or more channels and for the first one which has
-an item available it will be passed to the C<more> block that matches
-the channel, or to the "wildcard" block if there isn't a specific
-match. Similarly, if any channel is found to be closed then control
-is passed to the matching ( or wildcard ) C<done> block, the statement
-will return the value of the called block. Typically C<earliest> will
-be called in a loop with some control to exit the loop when one or more
-of the channels is closed as in the above example.
+	$channel.close;
+	await $p;
 
 It is also possible to obtain a L<Channel> from a L<Supply> using the
 L<Supply method|/type/Supply#method_Channel> which returns a L<Channel>
 which is fed by a C<tap> on the L<Supply>:
 
-    my $supply  = Supply.new;
-    my $channel = $supply.Channel;
+	my $supplier = Supplier.new;
+	my $supply   = $supplier.Supply;
+	my $channel = $supply.Channel;
 
-    my @channels;
-    @channels.push($channel);
 
-    $supply.tap(-> $v {say "via Supply : $v" });
+	my $p = start {
+    	react  {
+        	whenever $channel -> $item {
+            	say "via Channel: $item";
+        	}
+    	}
+	}
 
-    my $p = start {
-        loop {
-            earliest @channels {
-                more * -> $item {
-                    say "via Channel: $item";
-                }
-                done * {
-                    last;
-                }
-            }
-        }
-    }
+	await (^10).map: -> $r {
+    	start {
+        	sleep $r;
+        	$supplier.emit($r);
+    	}
+	}
 
-    await (^10).map: -> $r {
-        start {
-            sleep $r;
-            $supply.emit($r);
-        }
-    }
-
-    $supply.done;
-    await $p;
+	$supplier.done;
+	await $p;
 
 C<Channel> will return a different L<Channel> fed with the same data
 each time it is called.  This could be used, for instance, to fan-out a
