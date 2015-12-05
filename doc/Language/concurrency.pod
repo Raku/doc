@@ -424,49 +424,48 @@ C<react> block described earlier:
 	my $channel = Channel.new;
 
 	my $p = start {
-    	react {
-        	whenever $channel {
-            	say $_;
-        	}
-    	}
-	}
+        react {
+            whenever $channel {
+                say $_;
+            }
+        }
+    }
 
-	await (^10).map: -> $r {
-    	start {
-        	sleep $r;
-        	$channel.send($r);
-    	}
-	}
+    await (^10).map: -> $r {
+        start {
+            sleep $r;
+            $channel.send($r);
+        }
+    }
 
-	$channel.close;
-	await $p;
+    $channel.close;
+    await $p;
 
 It is also possible to obtain a L<Channel> from a L<Supply> using the
 L<Supply method|/type/Supply#method_Channel> which returns a L<Channel>
 which is fed by a C<tap> on the L<Supply>:
 
-	my $supplier = Supplier.new;
-	my $supply   = $supplier.Supply;
-	my $channel = $supply.Channel;
+    my $supplier = Supplier.new;
+    my $supply   = $supplier.Supply;
+    my $channel = $supply.Channel;
 
+    my $p = start {
+        react  {
+            whenever $channel -> $item {
+                say "via Channel: $item";
+            }
+        }
+    }
 
-	my $p = start {
-    	react  {
-        	whenever $channel -> $item {
-            	say "via Channel: $item";
-        	}
-    	}
-	}
+    await (^10).map: -> $r {
+        start {
+            sleep $r;
+            $supplier.emit($r);
+        }
+    }
 
-	await (^10).map: -> $r {
-    	start {
-        	sleep $r;
-        	$supplier.emit($r);
-    	}
-	}
-
-	$supplier.done;
-	await $p;
+    $supplier.done;
+    await $p;
 
 C<Channel> will return a different L<Channel> fed with the same data
 each time it is called.  This could be used, for instance, to fan-out a
