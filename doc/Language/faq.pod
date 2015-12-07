@@ -15,15 +15,20 @@ be used loosely and interchangeably.
 
 =head2 As a Perl 6 beginner what should I install?
 
-If you are a Linux or Mac user you probably want to download Rakudo Star and
-install via compilation (a simple process) the MoarVM version available from
-L<http://rakudo.org/downloads/star/|http://rakudo.org/downloads/star>.
+Linux or Mac users probably want to download Rakudo Star and
+install via compilation (a simple process) the MoarVM based version available
+from L<http://rakudo.org/downloads/star/|http://rakudo.org/downloads/star>.
+
+Compilation needs a C compiler and Perl 5 installed.
 
 Or there is an official rakudo star docker image at
 L<https://hub.docker.com/_/rakudo-star/>
 
 If you are a Windows 32 or 64 bit user then Rakudo Star binaries are also
 available at the rakudo site. You will need Windows Git to use panda.
+
+To use panda (see below) to install library modules you will need git and Perl
+5's Test::Harness.
 
 There should be Linux and Mac binaries available shortly from vendors and third
 parties. Although vendor versions may be outdated.
@@ -37,8 +42,8 @@ Perl 5's perlbrew and the equivalent Python and Ruby tools.
 
 The most reliable information is to be found either under the perl6.org domains or directly linked from it.
 
-L<http://www.perl6.org/documentation/|http://www.perl6.org/documentation/> with
-L<http://doc.perl6.org/|http://doc.perl6.org/> as the canonical technical reference.
+L<https://www.perl6.org/documentation/|https://www.perl6.org/documentation/> with
+L<https://doc.perl6.org/|https://doc.perl6.org/> as the canonical technical reference.
 
 There is much good recent material on Youtube but be careful to check any dates
 on webpages since much of the Perl 6 information on random websites found by
@@ -55,18 +60,18 @@ is the measure of how complete a Perl 6 implementation is.
 
 =head2 Is there a glossary of Perl 6 related terms?
 
-See L<S99|http://design.perl6.org/S99.html>
+See L<S99|https://design.perl6.org/S99.html>
 
 =head2 I'm a Perl 5 programmer. Where is a list of differences between Perl 5 and 6?
 
-See the pod with the 5to6- prefix under L<http://doc.perl6.org/language.html|http://doc.perl6.org/language.html>
+See the pod with the 5to6- prefix under L<https://doc.perl6.org/language.html|https://doc.perl6.org/language.html>
 
 =head1 Modules
 
 =head2 Is there a CPAN for Perl 6?
 
 There isn't yet a module repository for Perl 6 as sophisticated as CPAN. But
-L<modules.perl6.org|http://modules.perl6.org/> has a list of known Perl 6
+L<modules.perl6.org|https://modules.perl6.org/> has a list of known Perl 6
 modules called the "ecosystem" hosted on github, and
 L<panda|https://github.com/tadzik/panda/> can install those that work with
 L<rakudo|http://rakudo.org/>.
@@ -80,7 +85,7 @@ well with most Perl 5 modules. It can even run Perl 5 Catalyst and DBI.
 
 =head2 Can I use C and C++ from Perl 6?
 
-L<Nativecall|http://docs.perl6.org/language/nativecall> makes this particularly easy.
+L<Nativecall|https://docs.perl6.org/language/nativecall> makes this particularly easy.
 
 =head2 Nativecall can't find libfoo.so and I only have libfoo.so.1.2!
 
@@ -197,18 +202,26 @@ Likewise C<:U> constrains to undefined values, that is, type objects.
 
 To explicitly allow either type objects or instances, you can use C<:_>.
 
-=head2 What is the --> thing in the signature?
+=head2 What is the C<< --> >> thing in the signature?
 
---> is a return constraint checked at compile time.
+C<< --> >> is a return constraint, either a type or a definite value.
 
-Example:
+Example of a type constraint:
 
-    sub foo ( Int $a, Int $b --> Int ) {
-            return $a + $b;
+    sub divide-to-int( Int $a, Int $b --> Int ) {
+            return ($a / $b).narrow;
     }
 
-    foo(2,3.1)
-    # ===SORRY!===  ... Calling foo(Int, Rat) will never work with declared signature (Int $a, Int $b --> Int)
+    divide-to-int(3, 2)
+    # Type check failed for return value; expected Int but got Rat
+
+Example of a definite return value:
+
+    sub discard-random-number( --> 42 ) { rand }
+    say discard-random-number
+    # 42
+
+In this case the final value is thrown away because the return value is already specified.
 
 =head2 How can I extract the values from a Junction?
 
@@ -279,11 +292,13 @@ There are several reasons:
 
 =item they make it easy to interpolate variables into strings
 
-=item they form micro-namespaces for different variables, thus avoiding name clashes
+=item they form micro-namespaces for different variables and twigils, thus avoiding name clashes
 
 =item they allow easy single/plural distinction
 
-=item many natural languages use mandatory noun markers, so our brains are built to handle it
+=item they work like natural languages that use mandatory noun markers, so our brains are built to handle it
+
+=item they aren't mandatory, since you can declare sigilless names (if you don't mind the ambiguity)
 
 
 =head2 Does Perl 6 have coroutines? What about C<yield>?
@@ -301,7 +316,7 @@ routines that return lazy lists:
 
     # second method, use .map or similar method
     # on a lazy list
-    my @squares = (1..*).map(-> $x { $x * $x });
+    my @squares = (1..*).map(-> \x { x² });
 
 =head2 Why can't I initialize private attributes from the new method, and how can I fix this?
 
@@ -337,6 +352,10 @@ for more details) with all the named arguments that the user passes to the
 constructor. C<:$!x> is a named parameter with name C<x>, and when called
 with a named argument of name C<x>, its value is bound to the attribute C<$!x>.
 
+But don't do that.  If the name is public, there is no downside to
+declaring it that way with C<$.x> since the external view is readonly
+by default, and you can still access it internally with C<$!x>.
+
 =head2 How and why do C<say> and C<print> differ?
 
 The most obvious difference is that C<say> appends a newline at the
@@ -362,6 +381,7 @@ nothing in that value except the type).
 
 So C<say> is optimized for debugging and display to people, C<print>
 is more suitable for producing output for other programs to consume.
+(Use C<put> if you want C<print> semantics with a newline.)
 
 =head2 What's the difference between C<token> and C<rule> ?
 
@@ -384,25 +404,24 @@ C<regex> declares a plain regex without any implied modifiers.
 
 C<die> throws an exception.
 
-If C<use fatal;> (which is dynamically scoped) is in scope, C<fail> also
-throws an exception. Otherwise it returns a C<Failure> from the routine
-it is called from.
+C<fail> returns a C<Failure> object.  (If the caller has declared C<use fatal;>
+in the calling lexical scope, C<fail> throws an exception instead of returning.)
 
-A C<Failure> is an "unthrown" or "soft" exception. It is an object that
-contains the exception, and throws the exception when the Failure is used
-as an ordinary object.
+A C<Failure> is an "unthrown" or "lazy" exception. It is an object that
+contains the exception, and throws the exception if you try to use the C<Failure>
+as an ordinary object, or ignore it in sink context.
 
-A Failure returns False from a C<defined> check, and you can extract
+A C<Failure> returns C<False> from a C<defined> check, and you can extract
 the exception with the C<exception> method.
 
 =head2 Why is C<wantarray> or C<want> gone? Can I return different things in different contexts?
 
 Perl 5 has the C<wantarray> function that tells you whether it is called in
 void, scalar or list context. Perl 6 has no equivalent construct,
-because context does not flow inwards, i.e. a routine cannot know which
-context it is called in.
+because context does not flow inwards, i.e. a routine would need time travel to know which
+context it is called in because context is lazy, known only when the results are used later.
 
-One reason is that Perl 6 has multi dispatch, and in a code example like
+For example, Perl 6 has multiple dispatch, so in a code example like
 
     multi w(Int $x) { say 'Int' }
     multi w(Str $x) { say 'Str' }
@@ -429,10 +448,8 @@ decision. As they (both the language and the implementations) evolve, they
 grow steadily more usable. Depending on your demands on a programming
 language, Perl 6 and its compilers might or might not be ready for you.
 
-Please see the L<feature comparison
-matrix|http://perl6.org/compilers/features> for an overview of implemented
-features.
-
+That said, version 6c (Christmas 2015) is the first official release of Perl 6
+as a language, along with a validation suite and a compiler that passes it.
 
 =head2 Why should I learn Perl 6? What's so great about it?
 
@@ -440,77 +457,113 @@ Perl 6 unifies many great ideas that aren't usually found in other programming
 languages. While several other languages offer some of these features, none of
 them offer all.
 
-Unlike most languages, it offers
+=item Perl 6 offers procedural, object-oriented AND functional programming methodologies.
 
-=item  cleaned up regular expressions
+=item Easy to use consistent syntax, using invariable sigils for data-structures.
 
-=item  L<PEG|http://en.wikipedia.org/wiki/Parsing_expression_grammar> like grammars for parsing
+=item Full grapheme based Unicode support, including Annex #29.
 
-=item  lazy lists
+=item Regular expressions are cleaned up, made more readable, taken to the next level of usability, with a lot more functionality.  Named regular expressions are made possible for ease of use.
 
-=item  a powerful meta object system
+=item Junctions allowing easy checking of multiple possibilities, e.g. $a == 1|3|42 (meaning is $a equal to 1 or 3 or 42).
 
-=item  junctions of values
+=item Dynamic variables provide a lexically scoped alternative to global variables.
 
-=item  easy access to higher-order functional features like partial application and currying
+=item Emphasis on composability and lexical scoping to prevent “action at a distance”.  For example, imports are always lexically scoped.
 
-=item  separate mechanism for subtyping (inheritance) and code reuse (role application)
+=item Easy to understand consistent scoping rules and closures.
 
-=item  optional type annotations
+=item Powerful object orientation, with classes and roles (everything can be seen as an object). Inheritance. Subtyping. Code-reuse.
 
-=item  powerful run-time multi dispatch for both subroutines and methods based on
-  arity, types and additional code constraints
+=item Introspection into objects and meta-objects (turtles all the way down).
 
-=item lexical imports
+=item Meta Object Protocol allowing for meta-programming without needing to generate / parse code.
 
-It also offers
+=item Subroutine and method signatures for easy unpacking of positional and named parameters.
 
-=item closures
+=item Multi dispatch on identically named subroutines/methods with different signatures, based on arity, types and optional additional code.
 
-=item anonymous types
+=item Compile time error reporting on unknown subroutines / impossible dispatch.
 
-=item roles and traits
+=item Optional gradual type-checking at no additional runtime cost.  With optional type annotations.
 
-=item named arguments
+=item Advanced error reporting based on introspection of the compiler/runtime state.  This means more useful, more precise error messages.
 
-=item nested signatures
+=item Phasers (like BEGIN / END) allow code to be executed at scope entry / exit, loop first / last / next and many more special contexts.
 
-=item object unpacking in signatures
+=item High level concurrency model, both for implicit as well as explicit multi-processing, which goes way beyond primitive threads and locks.  Perl 6's concurrency offers a rich set of (composable) tools.
 
-=item intuitive, nice syntax (unlike Lisp)
+=item Multiple-core computers are getting used more and more, and with Perl 6 these can be used thanks to parallelism, both implicit (e.g. with the >>. method) and explicit ( start { code } ).  This is important, because Moore's Law is ending.
 
-=item easy to understand, explicit scoping rules (unlike Python)
+=item Structured language support is provided to enable programming for asynchronous execution of code.
 
-=item a strong meta object system that does not rely on eval (unlike Ruby)
+=item Supplies allow code to be executed when something happens (like a timer, or a signal, or a file-system event).
 
-=item expressive routine signatures (unlike Perl 5)
+=item react / whenever / supply keywords allows easy construction of interactive, event driven applications.
 
-=item state variables
+=item Lazy evaluation when possible, eager evaluation when wanted or necessary.   This means, for example, lazy lists, and even infinite lazy lists, like the Fibonacci sequence, or all prime numbers.
 
-=item named regexes for easy reuse
+=item Native data types for faster, closer to the metal, processing.
 
-=item unlike many dynamic languages, calls to missing subroutines are caught
-  at compile time, and in some cases even signature mismatches can be
-  caught at compile time.
+=item Interfacing to external libraries in C / C++ are trivially simple with NativeCall.
+
+=item Interfacing with Perl 5 (CPAN) / Python modules trivially simple with Inline::Perl5 resp. Inline::Python.
+
+=item Can have multiple versions of a module installed and loaded simultaneously.
+
+=item System administration simplified due to simpler update/upgrade policies.
+
+=item Floating point math without precision loss because of Rats (rational numbers).
+
+=item Extensible grammars for parsing data or code (which Perl 6 uses to parse itself).
+
+=item Perl 6 is a very mutable language (define your own functions, operators, traits and data-types, which modify the parser for you).
+
+=item Large selection of data-types, plus the possibility to create your own types.
+
+=item Multi-dimensional shaped and/or native arrays with proper bounds checking.
+
+=item Execute code at any time during parsing of a grammar, or when a certain match occurred.
+
+=item Adding a custom operator or adding a trait is as simple as writing a subroutine.
+
+=item Automatic generation of hyper-operators on any operator (system or custom added).
+
+=item Runs on a variety of back-ends.  Currently MoarVM & JVM, JavaScript in development, more may follow.
+
+=item Runtime optimization of hot code paths during execution (JIT).
+
+=item Runs on small (e.g. Raspberry Pi) and large multi-processor hardware.
+
+=item Garbage collect based: no timely destruction, so no ref-counting necessary.  Use phasers for timely actions.
+
+=item Methods can be mixed into any instantiated object at runtime, e.g. to allow adding out-of-band data.
+
+=item Easy command-line interface accessible by MAIN subroutine with multiple dispatch and automated usage message generation.
+
+=item Fewer lines of code allow for more compact program creation.  Huffman-coding of names allows for better readability.
+
+=item Lazy lists defined with a simple iterator interface, which any class can supply by minimally supplying a single method.
+
+=item Perl 6's motto's remain the same as they have been for Perl all along: “Perl is different. In a nutshell, Perl is designed to make the easy jobs easy, without making the hard jobs impossible.” and “There Is More Than One Way To Do It”.  Now with even more -Ofun added.
 
 Please see the L<feature comparison
-matrix|http://perl6.org/compilers/features> for an overview of implemented
+matrix|https://perl6.org/compilers/features> for an overview of implemented
 features.
 
 =head2 Is Perl 6 fast enough for me?
 
 That depends on what you are doing. Rakudo has been developed with the
 philosophy of "make it work right then make it work fast". It's fast for some
-things already but needs work on others.
+things already but needs work on others.  After the Christmas 2015 release stabilizes
+the definition of the language, we'll be spending much of our effort on optimizing in 2016.
+Since Perl 6 provides lots of clues to the JIT that other dynamic languages don't, we think
+we'll have a lot of headroom for performance improvements.  Some things already
+run faster than Perl 5.
 
-Perl 6 is mostly being worked on by volunteers but it's expected that Perl 6
-performance will improve in the near future since the MoarVM backend contains a
-modern Just In Time (JIT) compiler.
-
-Perl 5 programmers should be aware that Perl 6 comes with more built in in
-terms of object orientation and much else. Simple benchmarks will be misleading
-unless you include things like Moose, type checking modules etc. in your Perl 5
-script.
+Perl 5 programmers should be aware that Perl 6 comes with more built-in
+functionality.  Simple benchmarks will be misleading unless you include
+things like Moose, type checking modules etc. in your Perl 5 script.
 
 The following crude benchmarks, with all the usual caveats about such things,
 can show Perl 6 can be faster than Perl 5 for some similar common tasks if

@@ -1,10 +1,10 @@
 =begin pod
 
-=TITLE role Supply
+=TITLE class Supply
 
 =SUBTITLE Asynchronous data stream with multiple subscribers
 
-    role Supply { ... }
+    class Supply { ... }
 
 A supply is a thread-safe, asynchronous data stream like a
 L<Channel|/type/Channel>, but it can have multiple subscribers
@@ -14,29 +14,6 @@ It is a thread-safe implementation of the
 L<Observer Pattern|https://en.wikipedia.org/wiki/Observer_pattern>,
 and central to supporting reactive programming in Perl 6.
 
-C<Supply> is a role, but can be used directly too.
-
-    my $s = Supply.new;
-
-    # print even numbers directly
-    $s.grep(* %% 2).tap(&say);
-
-    $s.tap: -> $v { say "Got $v" },         # print everything
-        closing => { say "finished!" },     # announce closing
-        quit    => { say "finished with error." },
-        ;
-
-    $s.emit(23);
-    $s.emit(42);
-
-    $s.close;
-
-Prints
-
-    Got 23
-    42
-    Got 42
-    finished!
 
 There are two types of Supplies: C<live> and C<on demand>. When tapping into a
 C<live> supply, the tap will only see values that are flowing through the
@@ -51,41 +28,18 @@ C<Supply.interval> produces a fresh timer with the appropriate interval each
 time it is tapped. If the tap is closed, the timer simply stops emitting values
 to that tap.
 
-C<Supply> as a punned class (that is, used directly as C<Supply.new>) is a
-live supply, as are the supplies that are transformations of a live supply,
-for example with C<$live.grep> or C<$live.map>.
+A C<live> C<Supply> is obtained from the L<Supplier|/doc/Type/Supplier>
+factory method C<Supply>.  New values are emitted by calling C<emit> on
+the C<Supplier> object.
+
+	my $supplier = Supplier.new;
+	my $supply = $supplier.Supply;
+	$supply.tap(-> $v { say "$v" });
+	$supplier.emit(42); # Will cause the tap to output "42"
 
 The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
-tend to return I<on demand> supplies.
-
-=head1 Methods that affect a Supply
-
-=head2 method emit
-
-    method emit(Supply:D: \value)
-
-Sends the given C<value> to all taps (that is, to all subscriptions).
-
-    my $s = Supply.new;
-    $s.tap(&say);
-    $s.emit(42);    # triggers the &say from the previous line
-    $s.done;
-
-=head2 method done
-
-    method done(Supply:D:)
-
-Calls the C<done> callback on all taps that have one.
-
-=head2 method quit
-
-    method quit(Supply:D: $ex)
-
-Calls the C<quit> callback on the taps that have one, passing the exception to
-them.
-
-This is meant for shutting down a supply with an error.
+will return I<on demand> supplies.
 
 =head1 Methods that return Taps
 
@@ -102,21 +56,18 @@ existing taps. The first positional argument is a piece of code that will be
 called when a new value becomes available through the C<emit> call.
 
 The C<&done> callback is called when the C<done> method on the supply is
-called, indicating the end of life of the channel.
+called, indicating the end of life of the channel. For a C<live> supply the
+C<done> method will be called on the parent C<Supplier>.
 
 The C<&quit> callback is called when the C<quit> method on the supply is
-called, indicating an erroneous termination of the supply.
-
-The C<&closing> callback is called when somebody closes the tap (which
-terminates that "subscription", but keeps the supply as a whole in tact).
+called, indicating an erroneous termination of the supply. For a C<live>
+supply the C<done> method will be called on the parent C<Supplier>
 
 Method C<tap> returns an object of type L<Tap|/type/Tap>, on which you can
 call the C<close> method to cancel the subscription.
 
-    my $s = Supply.interval(1);
+    my $s = Supply.from-list(0 .. 5);
     my $t = $s.tap(-> $v { say $v }, done => { say "no more ticks" });
-    sleep 5;
-    $s.done;
 
 Produces:
 

@@ -184,16 +184,23 @@ C<proto> is a way to formally declare commonalities between C<multi>
 candidates. It acts as a wrapper that can validate but not modify
 arguments. Consider this basic example:
 
-    proto congratulate(Str $reason,Str $name,|) {*}
-    multi congratulate($reason,$name) {
+    proto congratulate(Str $reason, Str $name, |) {*}
+    multi congratulate($reason, $name) {
        say "Hooray for your $reason, $name";
     }
+    multi congratulate($reason, $name, Int $rank) {
+       say "Hooray for your $reason, $name -- you got rank $rank!";
+    }
 
-    congratulate('being a cool number',42);
+    congratulate('being a cool number', 'Fred');     # OK
+    congratulate('being a cool number', 'Fred', 42); # OK
+    congratulate('being a cool number', 42);         # Proto match error
 
-This fails at compile time because the proto's C<signature>
-becomes the signature of the dispatcher and C<42> doesn't match
-C<Str>.
+All C<multi congratulate> will conform to the basic signature of two strings,
+optionally followed by further parameters. The C<|> is an un-named C<Capture>
+parameter, allowing a C<multi> which takes additional arguments. The third call
+fails at compile time because the proto's C<signature> becomes the common
+signature of all three, and C<42> doesn't match C<Str>.
 
     say &congratulate.signature #-> (Str $reason, Str $name, | is raw)
 
