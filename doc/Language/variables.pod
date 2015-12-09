@@ -552,12 +552,14 @@ called. So it will output
 
 =end code
 
-As seen in this example, C<$> can be used as an anonymous state variable
-without an explicit C<state> declaration.
-
 As with C<my>, declaring multiple C<state> variables must be placed
 in parentheses and for declaring a single variable, parentheses may
 be omitted.
+
+=head3 The C<$> Variable
+
+As well as explicitly declared named state variables C<$> can be used
+as an anonymous state variable without an explicit C<state> declaration:
 
 =begin code
 
@@ -565,7 +567,7 @@ perl6 -e 'sub foo() { say ++$  }; foo() for ^3'
 
 =end code
 
-produces
+produces:
 
 =begin code
 
@@ -575,9 +577,8 @@ produces
 
 =end code
 
-Furthermore, state variables are not required to exist in
-subroutines. You could, for example, use C<$> in a one-liner to
-number the lines in a file.
+Furthermore, state variables are not required to exist in subroutines. You
+could, for example, use C<$> in a one-liner to number the lines in a file:
 
 =begin code
 
@@ -585,8 +586,8 @@ perl6 -ne 'say ++$ ~ " $_"' example.txt
 
 =end code
 
-Finally, if you were to use multiple anonymous state variables, they would
-fuction independently.
+Each reference to C<$> within a lexical scope in effect is a separate
+variable, as illustrated by:
 
 =begin code
 
@@ -594,7 +595,7 @@ perl6 -e '{ say ++$; say $++  } for ^5'
 
 =end code
 
-would produce
+which produces:
 
 =begin code
 
@@ -610,6 +611,129 @@ would produce
 4
 
 =end code
+
+If you need to refer to the value of C<$> more than once within the
+scope it should be copied to a new variable, for example:
+
+=begin code
+sub foo() {
+    given ++$ {
+        when 1 {
+            say "one";
+        }
+        when 2 {
+            say "two";
+        }
+        when 3 {
+            say "three";
+        }
+        default {
+            say "many";
+        }
+    }
+}
+
+foo() for ^3;
+=end code
+
+produces:
+
+=begin code
+one
+two
+three
+=end code
+
+=head3 The C<@> Variable
+
+In a similar manner to the C<$> variable there is also a L<Positional>
+anonymous state variable C<@> :
+
+=begin code
+sub foo($x) {
+    say (@).push($x);
+}
+
+foo($_) for ^3;
+=end code
+
+Produces:
+
+=begin code
+[0]
+[0 1]
+[0 1 2]
+=end code
+
+The C<@> here is parenthesized in order to disambiguate the expression
+from a class member variable named C<@.push>.  Indexed access doesn't
+require this disambiguation but you will need to copy the value in order
+to do anything useful with it:
+
+=begin code
+sub foo($x) {
+    my $v = @;
+    $v[$x] = $x;
+    say $v;
+}
+
+foo($_) for ^3;
+=end code
+
+Produces:
+
+=begin code
+[0]
+[0 1]
+[0 1 2]
+=end code
+
+As with C<$> each mention of C<@> in a scope introduces a new anonymous
+array.
+
+=head3 The C<%> Variable
+
+Finally there is also an L<Associative> anonymous state variable C<%>:
+
+=begin code
+sub foo($x) {
+    say (%).push($x => $x);
+}
+
+foo($_) for ^3;
+=end code
+
+Which produces:
+
+=begin code
+0 => 0
+0 => 0, 1 => 1
+0 => 0, 1 => 1, 2 => 2
+=end code
+
+The same caveat about disambiguation applies. As you may expect, indexed
+access is also possible (with copying to make it useful):
+
+=begin code
+sub foo($x) {
+    my $v = %;
+    $v{$x} = $x;
+    say $v;
+}
+
+foo($_) for ^3;
+=end code
+
+Which produces:
+
+=begin code
+0 => 0
+0 => 0, 1 => 1
+0 => 0, 1 => 1, 2 => 2
+=end code
+
+As with the other anonymous state variables each mention of C<%> within a
+given scope will effectively introduce a separate variable.
 
 =head2 The C<augment> Declarator
 
@@ -846,6 +970,7 @@ the block to the caught exception.
     &?ROUTINE   Which routine am I in?
     &?BLOCK     Which block am I in?
     %?LANG      What is the current set of interwoven languages?
+    %?RESOURCES The files associated with the "Distribution" of the current compilation unit.
 
 Other compile-time variables:
 
