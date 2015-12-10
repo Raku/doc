@@ -29,6 +29,8 @@ use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
 
+use experimental :cached;
+
 my $type-graph;
 my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
