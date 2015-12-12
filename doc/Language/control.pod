@@ -397,12 +397,6 @@ as though the rest of the statements in the block are skipped.
 A C<when> statement will also do this (but a C<when> statement modifier
 will I<not>.)
 
-    given 42 {
-        "This says".say when 42;      # just a prettier 'if $_ ~~ Int'
-        when Int { "This also says".say };
-        "This never says".say;
-    }
-
 In addition, C<when> statements C<smartmatch> the topic (C<$_>) against
 a supplied expression such that it is possible to check against values,
 regular expressions, and types when specifying a match.
@@ -423,6 +417,20 @@ C<when> statements.  The following code says C<"Int"> not C<42>.
         default  { say "huh?" }
     }
     #-> Int
+
+When a C<when> statement or C<default> statement causes the outer
+block to return, nesting C<when> or C<default> blocks do not count
+as the outer block, so you can nest these statements and still
+be in the same "switch" just so long as you do not open a new block:
+
+    given 42 {
+        when Int {
+          when 42  { say 42 }
+          say "Int"
+        }
+        default  { say "huh?" }
+    }
+    #-> 42
 
 =head3 X<proceed and succeed|control flow,proceed succeed>
 
@@ -485,6 +493,22 @@ specify a final value for the block.
         default { say "dunno?" }
     }
     #-> Int
+
+If you are not inside a when or default block, it is an error to try
+to use C<proceed> or C<succeed>.  Also remember, the C<when> statement
+modifier form does not cause any blocks to be left, and any C<succeed>
+or C<proceed> in such a statement applies to the surrounding clause,
+if there is one:
+
+    given 42 {
+        { say "This says" } when Int;
+        "This says too".say;
+        when * > 41 {
+           { "And this says".say; proceed } when * > 41;
+           "This never says".say;
+        }
+        "This also says".say;
+    }
 
 =head2 X<loop|control flow>
 
