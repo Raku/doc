@@ -10,13 +10,13 @@ class Perl6::Documentable {
     has Bool $.pod-is-complete;
     has Str $.summary = '';
     
-    # Remove itemization from incoming arrays
-    method new (:$categories = [], :$subkinds = [], *%_) {
-        nextwith |%_, :categories($categories.list), :subkinds(@$subkinds.list);
-    };
-    
     # the Documentable that this one was extracted from, if any
     has $.origin;
+    
+    # Remove itemization from incoming arrays
+    method new (:$categories = [], :$subkinds = [], *%_) {
+        nextwith |%_, :categories($categories.list), :subkinds($subkinds.list);
+    }
 
     my sub english-list (*@l) {
         @l > 1
