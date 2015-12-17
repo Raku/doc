@@ -72,92 +72,9 @@ Specify that testing has finished.  Use this function when you do not as yet
 have a C<plan> for the number of tests to run.  A C<plan> is thus not
 required when using C<done-testing>.
 
-=head1 Test functions
+=head1 Testing return values
 
-The C<Test> module exports the following functions to aid in structuring and
-organising tests:
-
-=head2 Unconditional passing/failing/notification
-
-=item pass($description?), flunk($description?)
-
-The C<pass> function marks a test as passed.  C<flunk> marks a test as
-B<not> passed.  Both functions accept an optional test C<$description>.
-
-    pass "Actually, this test has passed";
-
-    flunk "But this one hasn't passed";
-
-As the Perl 5 documentation for C<Test::More> notes, such constructs are
-used when one has a complicated test condition.  As such, they should be
-used very, very sparingly.
-
-=item diag($message);
-
-Display diagnostic information in a TAP-compatible manner on the standard
-error stream.  It is usually used when a particular test has failed to
-provide information that the test itself did not provide.  Or it can be used
-to provide visual markers on how the testing of a test-file is progressing
-(which can be important when doing stress testing).
-
-    diag "Yay!  The tests got to here!";
-
-=head2 Skipping tests
-
-Sometimes tests just aren't ready to be run, for instance a feature might
-not yet be implemented, in which case tests can be marked as C<todo>.  It
-could be the case that a given feature only works on a particular platform.
-In which case one can C<skip> tests.
-
-=item todo($reason, $count = 1)
-
-Mark C<$count> tests as TODO, giving a C<$reason> as to why.  By default
-only one test will be marked TODO.
-
-    sub my-custom-pi { 3 };
-    todo 'not yet precise enough';         # mark the test as TODO
-    # run test, but don't report failure in test harness
-    is my-custom-pi(), pi, 'my-custom-pi';
-
-=item skip($reason, $count = 1)
-
-Skip C<$count> tests, giving a C<$reason> as to why.  By default only one
-test will be skipped.  Use such functionality when a test (or tests) would
-die if run.
-
-=begin code
-if $*KERNEL ~~ 'linux' {
-    is(num-forward-slashes("/a/b"), 2);
-    is(num-forward-slashes(normalize("/a//b")), 2);
-}
-else {
-    skip "Can't use forward slashes on Windows", 2;
- }
-=end code
-
-=item skip-rest($reason?)
-
-Skip the remaining tests.  If the remainder of the tests in the test file
-would all fail due to some condition, use this function to skip them,
-providing an optional C<$reason> as to why.
-
-=begin code
-unless $location ~~ "Wimbledon Common" {
-    skip-rest "We can't womble, the remaining tests will fail";
-    exit;
-}
-
-# tests requiring functional wombling
-ok(womble());
-# ...
-=end code
-
-Note that C<skip-rest> requires a C<plan> to be set, otherwise the
-C<skip-rest> call will throw an error. If no plan was set, you can use
-C<done> to indicate the end of the test run (though of course the test
-summary will not count skipped tests).
-
-=head2 Evaluation of test conditions in boolean context
+=head2 By truthiness
 
 =item ok($condition, $description?), nok($condition, $description?)
 
@@ -171,7 +88,7 @@ a test as passed if the given condition evaluates to C<False>.
     ok($pi == 3, 'The variable $pi equals 3');
     nok(pi == 3, 'The constant pi does not equal 3');
 
-=head2 Comparison of expected and actual output
+=head2 By string comparison
 
 =item is($obtained, $expected, $description?)
 
@@ -199,36 +116,18 @@ optional C<$description> of the test.
     $a = Nil;
     isnt $a, Nil, 'Nil should not survive being put in a container';
 
-=item cmp-ok($obtained, $comparison, $expected, $description?)
+=head2 By approximate numeric comparison
 
-The C<cmp-ok()> function compares the C<$obtained> and C<$expected> values
-with the given C<$comparison> operator and passes the test if the comparison
-yields a C<True> value.  For ease of use, operators may be passed as
-strings, such as C<'=='> or C<'~~'>.
+=item is-approx($obtained, $expected, $description?)
 
-    cmp-ok('my spelling is apperling', '~~', /perl/, "bad speller");
+Marks a test as passed if the C<$obtained> and C<$expected> numerical values
+are within C<1e-5> of each other.  The function accepts an optional
+C<$description> of the test.
 
-=head2 Matching output with a regular expression
+    my $eulers-constant-approx = 2.71828;
+    is-approx($eulers-constant-approx, e, "approximate Euler's constant");
 
-=item like($obtained, $expected-regex, $description?)
-
-    like 'foo', /fo/, 'foo looks like fo';
-
-Marks a test as passed if the C<$obtained> C<Str> matches the
-C<$expected-regex>.  The function accepts an optional C<$description> of the
-test.  The regex to match can be either a pre-declared C<Regex> object or
-defined directly in the argument to C<like>.
-
-=item unlike($obtained, $expected-regex, $description?)
-
-    unlike 'foo', /bar/, 'foo does not look like bar';
-
-Marks a test as failed if the C<$obtained> C<Str> matches the
-C<$expected-regex>.  The function accepts an optional C<$description> of the
-test.  The regex to match can be either a pre-declared C<Regex> object or
-defined directly in the argument to C<unlike>.
-
-=head2 Structural comparison with C<< infix:<eqv> >>
+=head2 By structural comparison
 
 =item is-deeply($obtained, $expected, $description?)
 
@@ -258,26 +157,18 @@ is-deeply count-chars('fleece'), %expected, 'count-chars works on "fleece"';
 Note that string comparison here would have been fragile, because hashes are
 not sorted, and converting a L<Hash|/type/Hash> to a string loses information.
 
-=head2 Numeric comparison within a tolerance of 1e-5
+=head2 By arbitrary comparison
 
-=item is-approx($obtained, $expected, $description?)
+=item cmp-ok($obtained, $comparison, $expected, $description?)
 
-Marks a test as passed if the C<$obtained> and C<$expected> numerical values
-are within C<1e-5> of each other.  The function accepts an optional
-C<$description> of the test.
+The C<cmp-ok()> function compares the C<$obtained> and C<$expected> values
+with the given C<$comparison> operator and passes the test if the comparison
+yields a C<True> value.  For ease of use, operators may be passed as
+strings, such as C<'=='> or C<'~~'>.
 
-    my $eulers-constant-approx = 2.71828;
-    is-approx($eulers-constant-approx, e, "approximate Euler's constant");
+    cmp-ok('my spelling is apperling', '~~', /perl/, "bad speller");
 
-=head2 Module loading testing
-
-=item use-ok($module)
-
-Marks a test as passed if the given C<$module> is correctly loaded.
-
-    use-ok('Full::Qualified::ModuleName');
-
-=head2 Class membership testing
+=head2 By object type
 
 =item isa-ok($object, $type, $description?)
 
@@ -292,34 +183,35 @@ The function accepts an optional C<$description> of the test.
     isa-ok($womble, Womble, "Great Uncle Bulgaria is a womble");
     isa-ok($womble, 'Womble');     # equivalent
 
-=head2 Grouping tests
+=head2 By regex
 
-The result of a group of subtests is only C<ok> if all subtests are C<ok>.
+=item like($obtained, $expected-regex, $description?)
 
-=item subtest(&subtests, $description?)
+    like 'foo', /fo/, 'foo looks like fo';
 
-The C<subtest> function executes the given block, consisting of usually more
-than one test, possibly including a C<plan> or C<done>.  It will pass the
-test only if B<all> tests in the block, pass.  The function accepts an
-optional C<$description> of the test.
+Marks a test as passed if the C<$obtained> C<Str> matches the
+C<$expected-regex>.  The function accepts an optional C<$description> of the
+test.  The regex to match can be either a pre-declared C<Regex> object or
+defined directly in the argument to C<like>.
 
-=begin code
-class Womble {}
+=item unlike($obtained, $expected-regex, $description?)
 
-class GreatUncleBulgaria is Womble {
-    has $.location = "Wimbledon Common";
-    has $.spectacles = True;
-}
+    unlike 'foo', /bar/, 'foo does not look like bar';
 
-subtest {
-    my $womble = GreatUncleBulgaria.new;
-    isa-ok($womble, Womble, "Great Uncle Bulgaria is a womble");
-    is($womble.location, "Wimbledon Common", "Correct location");
-    ok($womble.spectacles, "Wears spectacles");
-}, "Check Great Uncle Bulgaria";
-=end code
+Marks a test as failed if the C<$obtained> C<Str> matches the
+C<$expected-regex>.  The function accepts an optional C<$description> of the
+test.  The regex to match can be either a pre-declared C<Regex> object or
+defined directly in the argument to C<unlike>.
 
-=head2 Exception testing
+=head1 Testing modules
+
+=item use-ok($module)
+
+Marks a test as passed if the given C<$module> is correctly loaded.
+
+    use-ok('Full::Qualified::ModuleName');
+
+=head1 Testing exceptions
 
 =item dies-ok($code, $description?)
 
@@ -392,6 +284,115 @@ any symbols in the surrounding scope.  If you are, you should encapsulate
 your string with a block and an EVAL.  For instance:
 
     throws-like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
+
+=head1 Grouping tests
+
+The result of a group of subtests is only C<ok> if all subtests are C<ok>.
+
+=item subtest(&subtests, $description?)
+
+The C<subtest> function executes the given block, consisting of usually more
+than one test, possibly including a C<plan> or C<done>.  It will pass the
+test only if B<all> tests in the block, pass.  The function accepts an
+optional C<$description> of the test.
+
+=begin code
+class Womble {}
+
+class GreatUncleBulgaria is Womble {
+    has $.location = "Wimbledon Common";
+    has $.spectacles = True;
+}
+
+subtest {
+    my $womble = GreatUncleBulgaria.new;
+    isa-ok($womble, Womble, "Great Uncle Bulgaria is a womble");
+    is($womble.location, "Wimbledon Common", "Correct location");
+    ok($womble.spectacles, "Wears spectacles");
+}, "Check Great Uncle Bulgaria";
+=end code
+
+=head1 Skipping tests
+
+Sometimes tests just aren't ready to be run, for instance a feature might
+not yet be implemented, in which case tests can be marked as C<todo>.  It
+could be the case that a given feature only works on a particular platform.
+In which case one can C<skip> tests.
+
+=item todo($reason, $count = 1)
+
+Mark C<$count> tests as TODO, giving a C<$reason> as to why.  By default
+only one test will be marked TODO.
+
+    sub my-custom-pi { 3 };
+    todo 'not yet precise enough';         # mark the test as TODO
+    # run test, but don't report failure in test harness
+    is my-custom-pi(), pi, 'my-custom-pi';
+
+=item skip($reason, $count = 1)
+
+Skip C<$count> tests, giving a C<$reason> as to why.  By default only one
+test will be skipped.  Use such functionality when a test (or tests) would
+die if run.
+
+=begin code
+if $*KERNEL ~~ 'linux' {
+    is(num-forward-slashes("/a/b"), 2);
+    is(num-forward-slashes(normalize("/a//b")), 2);
+}
+else {
+    skip "Can't use forward slashes on Windows", 2;
+ }
+=end code
+
+=item skip-rest($reason?)
+
+Skip the remaining tests.  If the remainder of the tests in the test file
+would all fail due to some condition, use this function to skip them,
+providing an optional C<$reason> as to why.
+
+=begin code
+unless $location ~~ "Wimbledon Common" {
+    skip-rest "We can't womble, the remaining tests will fail";
+    exit;
+}
+
+# tests requiring functional wombling
+ok(womble());
+# ...
+=end code
+
+Note that C<skip-rest> requires a C<plan> to be set, otherwise the
+C<skip-rest> call will throw an error. If no plan was set, you can use
+C<done> to indicate the end of the test run (though of course the test
+summary will not count skipped tests).
+
+=head1 Manual control
+
+=item pass($description?), flunk($description?)
+
+The C<pass> function marks a test as passed.  C<flunk> marks a test as
+B<not> passed.  Both functions accept an optional test C<$description>.
+
+    pass "Actually, this test has passed";
+
+    flunk "But this one hasn't passed";
+
+As the Perl 5 documentation for C<Test::More> notes, such constructs are
+used when one has a complicated test condition.  As such, they should be
+used very, very sparingly.
+
+=item diag($message);
+
+Display diagnostic information in a TAP-compatible manner on the standard
+error stream.  It is usually used when a particular test has failed to
+provide information that the test itself did not provide.  Or it can be used
+to provide visual markers on how the testing of a test-file is progressing
+(which can be important when doing stress testing).
+
+    diag "Yay!  The tests got to here!";
+
+
 
 =end pod
 
