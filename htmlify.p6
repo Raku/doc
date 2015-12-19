@@ -157,11 +157,11 @@ sub MAIN(
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     say "Reading doc/$dir ...";
     my @pod-sources =
-        recursive-dir("doc/$dir/")\
-        .grep({.path ~~ / '.pod' $/})\
-        .map({;
-            .path.subst("doc/$dir/", '')\
-                 .subst(rx{\.pod$},  '')\
+        recursive-dir("doc/$dir/")
+        .grep({.path ~~ / '.pod' $/})
+        .map({
+            .path.subst("doc/$dir/", '')
+                 .subst(rx{\.pod$},  '')
                  .subst(:g,    '/',  '::')
             => $_
         }).sort(&sorted-by);
@@ -584,7 +584,7 @@ sub write-search-file () {
         $s.trans([</ \\ ">] => [<\\/ \\\\ \\">]);
     }
     my $items = $*DR.get-kinds.map(-> $kind {
-        $*DR.lookup($kind, :by<kind>).categorize({escape .name})\
+        $*DR.lookup($kind, :by<kind>).categorize({escape .name})
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ label: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
@@ -688,7 +688,7 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
             "Use the above menu to narrow it down topically."
         ),
         pod-table($*DR.lookup($kind, :by<kind>)\
-            .categorize(*.name).sort(*.key)>>.value\
+            .categorize(*.name).sort(*.key)>>.value
             .map({[
                 .map({.subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
@@ -705,7 +705,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
         "Perl 6 {$category.tc} {$kind.tc}s",
         pod-table($*DR.lookup($kind, :by<kind>)\
             .grep({$category ⊆ .categories})\ # XXX
-            .categorize(*.name).sort(*.key)>>.value\
+            .categorize(*.name).sort(*.key)>>.value
             .map({[
                 .map({.subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
@@ -717,8 +717,8 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
 
 sub write-kind($kind) {
     say "Writing per-$kind files ...";
-    $*DR.lookup($kind, :by<kind>)\
-        .categorize({.name})\
+    $*DR.lookup($kind, :by<kind>)
+        .categorize({.name})
         .kv.map: -> $name, @docs {
             my @subkinds = @docs.map({.subkinds}).unique;
             my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
