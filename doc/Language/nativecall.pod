@@ -278,7 +278,8 @@ TBD more
 You can type your C<Pointer> with passing the type as parameter. It works with native type
 but also C<CArray> and C<CStruct> defined type. NativeCall will not implicitly alloc the memory for it
 even when calling new on them.
-It's mostly useful in the case of a C routine returning one or if emebeded in a C<CStruct>.
+It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
+embeded in a C<CStruct>.
 
 You have to call C<.deref> on it to access the embeded type.
 
@@ -313,7 +314,39 @@ to callbacks.
 
 =comment TODO
 
-TBD
+TBD more
+
+The C<native> trait accept simple lib name or a full path. It's common to
+have the lib parameter defined as a constant than can be modified via an
+environment variable. This is an example from the mysql binding in C<DBIIsh>
+
+  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'libmysqlclient';
+  # and later
+  sub mysql_affectied_rows( .. ) returns int32 is native(LIB)
+
+=head2 ABI/API Version
+
+If you write C<native('libfoo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on Os X).
+In most modern system it will requiere you or the user of your module to install
+the develepment package because it's recommanded to always provide an API/ABI version to a
+shared library, so libfoo.so ends often being a symbolic link provided only by a devel package.
+
+To avoid that, the C<native> trait allow you to specify the API/ABI version. It can be a full
+version or just a part of it (Try to stick to Major version, some BSD does not care for minor)
+
+  sub foo is native('libfoo', 1); # Will try to load libfoo.so.1
+  sub foo is native('libfoo', v1.2.3); # Will try to load libfoo.so.1.2.3
+  
+  #From DBIish Pg driver
+  constant LIB = %*ENV<DBIISH_PG_LIB> || ('libpq', 5);
+
+
+=head2 Routine
+
+the C<native> trait also accept a C<Callable> as argument, allowing you to provide your
+own way to handle the way it will find the library file to load.
+
+  sub foo is native(sub {'libfoo.so.42'});
 
 =head2 Calling into the standard library
 
