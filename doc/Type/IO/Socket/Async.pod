@@ -9,16 +9,15 @@
 C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
 server and the client side.
 
-Here is the equivalent example to that in
-L<IO::Socket::INET> of a simple echo server
-that listens on port 3333:
+Here is the equivalent example to that in L<IO::Socket::INET> of a simple
+echo server that listens on port 3333:
 
 =begin code
 use v6;
 
 react {
     whenever IO::Socket::Async.listen('localhost',3333) -> $conn {
-        my $bs = $conn.bytes-supply;
+        my $bs = $conn.Supply(:bin);
         $bs.tap(-> $buf { await $conn.write: $buf } );
         $bs.wait;
         $conn.close;
@@ -36,7 +35,7 @@ await IO::Socket::Async.connect('localhost',3333).then( -> $p {
         given $p.result {
             .print('Hello, Perl 6');
             react {
-                whenever .chars-supply() -> $v {
+                whenever .Supply() -> $v {
                     $v.say;
                     done;
                 }
@@ -88,20 +87,15 @@ have been obtained indirectly via C<connect> or C<listen>, returning a
 L<Promise> that will be kept with the number of bytes
 sent or broken if there was an error sending.
 
-=head2 method chars-supply
+=head2 method Supply
 
-	method chars-supply() returns Supply
+	method Supply(:$bin, :$buf = buf8.new) returns Supply
 
-Returns a L<Supply> which can be tapped to obtain the
-characters read from the connected L<IO::Socket::Async> as they arrive.
-
-=head2 method bytes-supply
-
-	method bytes-supply() returns Supply
-
-Returns a L<Supply> which can be tapped to obtain
-the bytes (as elements of a L<Buf>,) read from the
-L<IO::Socket::Async>  as they arrive.
+Returns a L<Supply> which can be tapped to obtain the data read from
+the connected L<IO::Socket::Async> as it arrives.  By default the data
+will be emitted as characters, but if the C<:bin> adverb is provided a
+L<Buf|/Type/Buf> of bytes will be emitted instead, optionally in this
+case you can provide your own C<Buf> with the C<:buf> named parameter.
 
 =head2 method close
 
