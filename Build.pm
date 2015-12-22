@@ -1,5 +1,5 @@
 # Since the p6doc pod is now moved from 'lib' to 'doc' in the distribution we
-# need this to install pod in the usual place (under 'lib' as a target).
+# need this to install pod under .../share/perl6/doc
 # This fixes p6doc command line use.
 
 use Panda::Common;
@@ -11,7 +11,7 @@ use Panda::Installer;
 class Build is Panda::Builder {
     method build($workdir) {
 
-        my $dest-pref = Panda::Installer.new.default-prefix() ~ '/lib/';
+        my $dest-pref = Panda::Installer.new.default-prefix() ~ '/../doc';
 
         my @files = find(dir => "$workdir/doc", type => 'file').list;
 
