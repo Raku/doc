@@ -1,4 +1,7 @@
 #!/usr/bin/env perl6
+use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+
+my $PROGRAM-NAME="p6doc";
 
 # die with printing a backtrace
 my class X::P6doc is Exception {
@@ -27,8 +30,8 @@ sub tempfile() {
 }
 
 sub search-paths() {
-    ((findbin()  X~ <../doc/perl6/lib/ ../lib/> X~ <Type/ Language/ Routine/>).list,
-    @*INC.map({CompUnitRepo.new($_)})».IO».Str.map({ /\/$/ ?? $_ !! $_ ~ '/' }).list).flat.list;
+    # XXX we need a way of getting inline pod from installed modules too
+     ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d
 }
 
 sub module-names(Str $modulename) {
@@ -37,7 +40,9 @@ sub module-names(Str $modulename) {
 }
 
 sub locate-module(Str $modulename) {
-    my $m = (search-paths() X~ module-names($modulename).list).first: *.IO.f;
+    my @candidates = (search-paths() X~ module-names($modulename).list);
+    DEBUG and warn :@candidates.perl;
+    my $m = @candidates.first: *.IO.f;
     unless $m.defined {
         my $message = join "\n",
             "Cannot locate $modulename in any of the following paths:",
@@ -67,7 +72,7 @@ sub show-docs(Str $path, :$section) {
 }
 
 multi sub MAIN() {
-    my $me = $*PROGRAM-NAME.IO.basename;
+    my $me = $PROGRAM-NAME.IO.basename;
 
     say 'What documentation do you want to read?';
     say "Examples: $me Type::Str";
@@ -80,7 +85,7 @@ multi sub MAIN() {
 multi sub MAIN($docee) {
     return MAIN($docee, :f) if defined $docee.index('.') ;
     if INDEX.IO ~~ :e {
-        my %data = EVAL slurp INDEX;
+        my %data = EVALFILE INDEX;
         if %data{$docee} {
             my $newdoc = %data{$docee}[0][0];
             return MAIN($newdoc);
@@ -94,7 +99,7 @@ multi sub MAIN($docee, Bool :$f!) {
     if ! $method {
         my %hits;
         if INDEX.IO ~~ :e {
-            my %data = EVAL slurp INDEX;
+            my %data = EVALFILE INDEX;
 
             my $final-docee = disambiguate-f-search( $docee, %data );
             ($package, $method) = $final-docee.split('.');
@@ -104,7 +109,7 @@ multi sub MAIN($docee, Bool :$f!) {
         } else {
             say 'In order to use unqualified sub and method names like "p6doc -f say"';
             say 'you will need to run "p6doc-index build" to build index.data.';
-            say 'Otherwise use "p6doc -f Str.split" instead of "p6doc -f split" for now.';
+            say 'Otherwise use "p6doc -f Type::Str.split" instead of "p6doc -f split" for now.';
             exit 2;
         }
     } else {

@@ -1,5 +1,6 @@
 #!/usr/bin/env perl6
 use v6;
+use MONKEY-SEE-NO-EVAL;
 
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
