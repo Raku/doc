@@ -27,19 +27,15 @@ multi sub MAIN('path-to-index') {
 multi sub MAIN('build') {
     my %words;
 
-    # XXX p6doc probably uses another path to @*INC which is probably incomplete
-
-    for @*INC.map({CompUnitRepo.new($_)})».IO -> $lib_path is copy {
-        next unless $lib_path.e;
-
-        $lib_path = $lib_path.Str;
+    # XXX should index more than this
+    for ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d  -> $lib_path is copy {
         my @files =  find(:dir($lib_path),:type('file')).map({.IO});
 
         for @files -> $f {
             my $file = $f.path;
             next if $file !~~ /\.pod$/;
             my $pod = substr($file.Str, 0 , $file.Str.chars -4);
-            $pod.=subst(/$lib_path\//,"");
+            $pod.=subst($lib_path,"");
             $pod.=subst(/\//,'::',:g);
             my $section = '';
             for open( $file.Str).lines -> $row {
