@@ -9,7 +9,7 @@
 The simplest imaginable use of NativeCall would look something like this:
 
     use NativeCall;
-    sub some_argless_function() is native('libsomething') { * }
+    sub some_argless_function() is native('something') { * }
     some_argless_function();
 
 The first line imports various traits and types. The next line looks like
@@ -39,7 +39,7 @@ routine in your library that may be different from your Perl subroutine name.
 
     module Foo;
     use NativeCall;
-    our sub init() is native('libfoo') is symbol('FOO_INIT') { * }
+    our sub init() is native('foo') is symbol('FOO_INIT') { * }
 
 Inside of "libfoo" there is a routine called "FOO_INIT" but, since we're
 creating a module called Foo and we'd rather call the routine as C<Foo::init>,
@@ -52,7 +52,7 @@ Normal Perl 6 signatures and the C<returns> trait are used in order to convey
 the type of arguments a native function expects and what it returns. Here is
 an example.
 
-    sub add(int32, int32) returns int32 is native("libcalculator") { * }
+    sub add(int32, int32) returns int32 is native("calculator") { * }
 
 Here, we have declared that the function takes two 32-bit integers and returns
 a 32-bit integer. Here are some of the other types that you may pass (this will
@@ -78,12 +78,12 @@ Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
 For strings, there is an additional "encoded" trait to give some extra hints on
 how to do the marshalling.
 
-    sub message_box(Str is encoded('utf8')) is native('libgui') { * }
+    sub message_box(Str is encoded('utf8')) is native('gui') { * }
 
 To specify how to marshal string return types, just apply this trait to the
 routine itself.
 
-    sub input_box() returns Str is encoded('utf8') is native('libgui') { * }
+    sub input_box() returns Str is encoded('utf8') is native('gui') { * }
 
 Note that a null string can be passed by passing the Str type object; a null
 return will also be represented by the type object.
@@ -93,7 +93,7 @@ to tell Perl not to free the memory allocated to the C string after the
 function returns using C<explicitly-manage> :
 
     # C prototype is set_foo(const char * foo)
-	sub set_foo(Str) is native('libfoo') { * }
+	sub set_foo(Str) is native('foo') { * }
     my $string = "FOO";
     explicitly-manage($string);
     set_foo($string);
@@ -104,8 +104,8 @@ Sometimes you need to get a pointer (for example, a library handle) back from a
 C library. You don't care about what it points to - you just need to keep hold
 of it. The Pointer type provides for this.
 
-    sub Foo_init() returns Pointer is native("libfoo") { * }
-    sub Foo_free(Pointer) is native("libfoo") { * }
+    sub Foo_init() returns Pointer is native("foo") { * }
+    sub Foo_free(Pointer) is native("foo") { * }
 
 This works out OK, but you may fancy working with a type named something better
 than Pointer. It turns out that any class with the representation "CPointer"
@@ -114,8 +114,8 @@ by writing a class like this:
 
     class FooHandle is repr('CPointer') {
         # Here are the actual NativeCall functions.
-        sub Foo_init() returns FooHandle is native("libfoo") { * }
-        sub Foo_free(FooHandle) is native("libfoo") { * }
+        sub Foo_init() returns FooHandle is native("foo") { * }
+        sub Foo_free(FooHandle) is native("foo") { * }
 
         # Here are the methods we use to expose it to the outside world.
         method new() { Foo_init() }
@@ -147,7 +147,7 @@ a much more primitive CArray type, which you must use if working with C arrays.
 
 Here is an example of passing a C array.
 
-    sub RenderBarChart(Str, int, CArray[Str], CArray[num]) is native("libchart") { * }
+    sub RenderBarChart(Str, int, CArray[Str], CArray[num]) is native("chart") { * }
     my @titles := CArray[Str].new;
     @titles[0]  = 'Me';
     @titles[1]  = 'You';
@@ -173,7 +173,7 @@ Getting return values for arrays works out just the same.
 Some library APIs may take an array as a buffer that will be populated by the
 C function and, for, instance, return the actual number of items populated:
 
-   sub get_n_ints(CArray[int], int) returns Int is native('libints');
+   sub get_n_ints(CArray[int], int) returns Int is native('ints');
 
 In these cases it is important that the CArray has at least the number of
 elements that are going to be populated before passing it to the native
@@ -320,9 +320,12 @@ The C<native> trait accept simple lib name or a full path. It's common to
 have the lib parameter defined as a constant than can be modified via an
 environment variable. This is an example from the mysql binding in C<DBIIsh>
 
-  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'libmysqlclient';
+  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'mysqlclient';
   # and later
   sub mysql_affectied_rows( .. ) returns int32 is native(LIB)
+
+You can also put incomplete path like './foo', NativeCall will automaticly put
+the right extension according to the plateform specification.
 
 =head2 ABI/API Version
 
@@ -334,11 +337,11 @@ shared library, so libfoo.so ends often being a symbolic link provided only by a
 To avoid that, the C<native> trait allow you to specify the API/ABI version. It can be a full
 version or just a part of it (Try to stick to Major version, some BSD does not care for minor)
 
-  sub foo is native('libfoo', 1); # Will try to load libfoo.so.1
-  sub foo is native('libfoo', v1.2.3); # Will try to load libfoo.so.1.2.3
+  sub foo is native('foo', v1); # Will try to load libfoo.so.1
+  sub foo is native('foo', v1.2.3); # Will try to load libfoo.so.1.2.3
   
   #From DBIish Pg driver
-  constant LIB = %*ENV<DBIISH_PG_LIB> || ('libpq', 5);
+  constant LIB = %*ENV<DBIISH_PG_LIB> || ('pq', v5);
 
 
 =head2 Routine
@@ -388,8 +391,8 @@ exported by the "libc.so.6" library.
 
 =head1 Examples
 
-The L<zavolaj|https://github.com/jnthn/zavolaj> git repository (where NativeCall is
-developed) hosts L<various examples|https://github.com/jnthn/zavolaj/tree/master/examples>
+The L<zavolaj|https://github.com/jnthn/zavolaj> git repository (where NativeCall was
+originaly developed) hosts L<various examples|https://github.com/jnthn/zavolaj/tree/master/examples>
 of how to use NativeCall.
 
 More examples can be found L<in the DBIsh repository
@@ -406,7 +409,7 @@ L<http://github.com/mberends/minidbi> that wraps these functions with a DBI
 compatible interface. You'll need that library to hand; on Debian-esque systems
 it can be installed with something like:
 
-    sudo apt-get install libmysqlclient-dev
+    sudo apt-get install libmysqlclient
 
 Prepare your system along these lines before trying out the examples:
 
