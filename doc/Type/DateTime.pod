@@ -40,22 +40,27 @@ say $dt.in-timezone(-8 * 3600);     # 2015-11-21T08:01:00-0800
 
 Defined as:
 
-    multi method new(Int :$year!, Int :$month, Int :$day,
-                     Int :$hour, Int :$minute, :$second
-                     :$timezone, :&formatter)
+    multi method new(Int :$year!, Int :$month = 1, Int :$day = 1,
+                     Int :$hour = 0, Int :$minute = 0, :$second = 0,
+                     Int :$timezone = 0, :&formatter)
     multi method new(Date :$date!,
-                     Int :$hour, Int :$minute, :$second
-                     :$timezone=0, :&formatter)
+                     Int :$hour = 0, Int :$minute = 0, :$second = 0,
+                     Int :$timezone = 0, :&formatter)
+    multi method new(Int() $year, Int() $month, Int() $day,
+                     Int() $hour, Int $minute, $second,
+                     Int() $timezone, :&formatter)
     multi method new(Instant:D $i,  :$timezone=0, :&formatter)
     multi method new(Int:D $posix,  :$timezone=0, :&formatter)
     multi method new(Str:D $format, :$timezone=0, :&formatter)
 
 Usage:
 
-    $datetime = DateTime.new(YEAR, MONTH?, DAY?, HOUR? MINUTE?, SECOND?,
-    TIMEZONE?, FORMATTER?)
+    $datetime = DateTime.new(YEAR, MONTH?, DAY?, HOUR?, MINUTE?, SECOND?,
+      TIMEZONE?, FORMATTER?)
     $datetime = DateTime.new(DATE, HOUR?, MINUTE?, SECOND?, TIMEZONE?,
-    FORMATTER?)
+      FORMATTER?)
+    $datetime = DateTime.new(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
+      TIMEZONE, FORMATTER?)
     $datetime = DateTime.new(INSTANT, TIMEZONE?, FORMATTER?)
     $datetime = DateTime.new(TIMESTAMP, TIMEZONE?, FORMATTER?)
     $datetime = DateTime.new(FORMAT, TIMEZONE?, FORMATTER?)
@@ -156,6 +161,8 @@ Usage:
 Returns the second component, including potentially fractional seconds.
 
     say DateTime.new('2012-02-29T12:34:56Z').second;     # 56
+    say DateTime.new('2012-02-29T12:34:56.789Z').second; # 56.789
+    say DateTime.new('2012-02-29T12:34:56,789Z').second; # comma also ok
 
 =head2 method whole-second
 
@@ -169,7 +176,7 @@ Usage:
 
 Returns the second component, rounded down to an L<Int|/type/Int>.
 
-    say DateTime.new('2012-02-29T12:34:56Z').whole-second;      # 56
+    say DateTime.new('2012-02-29T12:34:56.789Z').whole-second;      # 56
 
 =head2 method timezone
 
@@ -198,7 +205,7 @@ Usage:
 Returns the time zone in seconds as an offset from UTC. This is an alias for
 L<#method timezone>.
 
-    say DateTime.new('2015-12-24T12:23:00+0200').offset;        # 7200
+    say DateTime.new('2015-12-24T12:23:00+0200').offset;            # 7200
 
 =head2 method offset-in-minutes
 
@@ -212,8 +219,7 @@ Usage:
 
 Returns the time zone in minutes as an offset from UTC.
 
-    say DateTime.new('2015-12-24T12:23:00+0200').offset-in-minutes;
-            # 120
+    say DateTime.new('2015-12-24T12:23:00+0200').offset-in-minutes; # 120
 
 =head2 method offset-in-hours
 
@@ -227,8 +233,7 @@ Usage:
 
 Returns the time zone in hours as an offset from UTC.
 
-    say DateTime.new('2015-12-24T12:23:00+0200').offset-in-hours;
-            # 2
+    say DateTime.new('2015-12-24T12:23:00+0200').offset-in-hours;   # 2
 
 =head2 method formatter
 
@@ -242,7 +247,8 @@ Usage:
 
 Returns the formatting function which is used for conversion to
 L<Str|/type/Str>. If none was provided at object construction, a
-default formatter is used which produces an ISO 8601 timestamp.
+default formatter is used which produces an ISO 8601 timestamp.  In that
+case the method will return a Callable type object.
 
 The formatting function is called by L<#method Str> with the invocant as its
 only argument.
@@ -304,15 +310,18 @@ Allowed units are C<second>, C<seconds>, C<minute>, C<minutes>, C<hour>,
 C<hours>, C<day>, C<days>, C<week>, C<weeks>, C<month>, C<months>, C<year>,
 C<years>.
 
-    say DateTime.new('2015-12-24T12:23:00Z').later(years => 2);
+Please note that the special ":2nd" named parameter syntax can be a compact
+and self-documenting way of specifying the delta
+
+    say DateTime.new('2015-12-24T12:23:00Z').later(:2years);
         # 2017-12-24T12:23:00Z
 
 Since addition of several different time units is not commutative, only one
 unit may be passed.
 
     my $d = DateTime.new(date => Date.new('2015-02-27'));
-    say $d.later(month => 1).later(days => 2);  # 2015-03-29T00:00:00Z
-    say $d.later(days => 2).later(month => 1);  # 2015-04-01T00:00:00Z
+    say $d.later(month => 1).later(:2days);  # 2015-03-29T00:00:00Z
+    say $d.later(days => 2).later(:1month);  # 2015-04-01T00:00:00Z
 
 Negative offsets are allowed, though L<#method earlier> is more idiomatic for
 that.
