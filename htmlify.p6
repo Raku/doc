@@ -377,6 +377,15 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
+            when :(Pod::FormattingCode $) {
+                my $fc := .[0];
+                proceed unless $fc.type eq "X";
+                @definitions = $fc.meta[0].flat;
+                # set default name if none provide so X<if|control> gets name 'if'
+                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                $unambiguous = True;
+            }
+            # XXX: Remove when extra "" have been purged
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
@@ -401,8 +410,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
                 # The C<Foo> infix
                 @definitions = .[2].words[0], .[1].contents[0];
             }
-            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
+            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
+                @definitions = .[0].words[0], .[1].contents[0];
+            }
+            # XXX: Remove when extra "" have been purged
+            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
                 @definitions = .[0].words[0], .[1].contents[0];
             }
             default { next }
