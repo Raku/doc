@@ -6,6 +6,8 @@
 
 =head1 Getting Started
 
+X<|nativecall>
+
 The simplest imaginable use of NativeCall would look something like this:
 
     use NativeCall;
@@ -69,6 +71,8 @@ likely grow with time).
     Str            (C string)
     CArray[int32]  (int* in C, an array of integers)
     Pointer[void]  (void* in C, can point to all other types)
+    bool           (bool from C99)
+    size_t         (size_t in C)
 
 Note that the lack of a C<returns> trait is used to indicate void return type.
 Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
@@ -218,11 +222,13 @@ CStruct reprs). Other than that, you can do the usual set of things you would wi
 a class; you could even have some of the attributes come from roles or have them
 inherited from another class. Of course, methods are completely fine too. Go wild!
 
-The memory management rules are very much like for arrays, though simpler since a
-struct is never resized. When you create a struct, the memory is managed for you and
-when the variable(s) pointing to the instance of a CStruct go away, the memory will
-be freed when GC gets to it. When a CStruct-based type is used for the return type,
-the memory is not managed for you.
+CStruct objects are passed to native functions by reference and native functions 
+must also return CStruct objects by reference. The memory management 
+rules for these references are very much like the rules for arrays, though simpler 
+since a struct is never resized. When you create a struct, the memory is managed for 
+you and when the variable(s) pointing to the instance of a CStruct go away, the memory 
+will be freed when the GC gets to it. When a CStruct-based type is used as the return 
+type of a native function, the memory is not managed for you by the GC.
 
 NativeCall currently doesn't put object members in containers, so assigning new values
 to them (with =) doesn't work. Instead, you have to bind new values to the private
@@ -269,7 +275,22 @@ instead:
 
 =comment TODO
 
-TBD
+TBD more
+
+You can type your C<Pointer> with passing the type as parameter. It works with native type
+but also C<CArray> and C<CStruct> defined type. NativeCall will not implicitly alloc the memory for it
+even when calling new on them.
+It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
+embeded in a C<CStruct>.
+
+You have to call C<.deref> on it to access the embeded type.
+
+  my Pointer[int32] $p; #For a pointer on int32;
+  my Pointer[MyCstruct] $p2 = some_c_routine();
+  my MyCstruct $mc = $p2.deref;
+  say $mc.field1;
+  
+  
 
 =head1 Buffers and Blobs
 
@@ -295,7 +316,39 @@ to callbacks.
 
 =comment TODO
 
-TBD
+TBD more
+
+The C<native> trait accept simple lib name or a full path. It's common to
+have the lib parameter defined as a constant than can be modified via an
+environment variable. This is an example from the mysql binding in C<DBIIsh>
+
+  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'libmysqlclient';
+  # and later
+  sub mysql_affectied_rows( .. ) returns int32 is native(LIB)
+
+=head2 ABI/API Version
+
+If you write C<native('libfoo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on Os X).
+In most modern system it will requiere you or the user of your module to install
+the develepment package because it's recommanded to always provide an API/ABI version to a
+shared library, so libfoo.so ends often being a symbolic link provided only by a devel package.
+
+To avoid that, the C<native> trait allow you to specify the API/ABI version. It can be a full
+version or just a part of it (Try to stick to Major version, some BSD does not care for minor)
+
+  sub foo is native('libfoo', 1); # Will try to load libfoo.so.1
+  sub foo is native('libfoo', v1.2.3); # Will try to load libfoo.so.1.2.3
+  
+  #From DBIish Pg driver
+  constant LIB = %*ENV<DBIISH_PG_LIB> || ('libpq', 5);
+
+
+=head2 Routine
+
+the C<native> trait also accept a C<Callable> as argument, allowing you to provide your
+own way to handle the way it will find the library file to load.
+
+  sub foo is native(sub {'libfoo.so.42'});
 
 =head2 Calling into the standard library
 

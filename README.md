@@ -1,5 +1,7 @@
 # p6doc -- an attempt to write something like 'perldoc' for Perl 6
 
+[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+
 An HTML version of this documentation can be found at http://doc.perl6.org/.
 
 (If you are browsing this repository via github, it will not display most

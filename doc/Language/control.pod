@@ -4,26 +4,57 @@
 
 =SUBTITLE Statements used to control the flow of execution
 
+=head2 X<statements|control flow>
+
+Perl 6 programs consists of one or more statements.  Simple statements
+are separated by semicolons.  The following program will say "Hello"
+and then say "World" on the next line.
+
+    say "Hello";
+    say "World";
+
+In most places where spaces appear in a statement, and before the
+semicolon, it may be split up over many lines.  Also, multiple statements
+may appear on the same line.  It would be awkward, but the above could
+also be written as:
+
+    say
+    "Hello"; say "World";
+
 =head2 X<blocks|control flow>
 
-Like many languages, Perl6 uses C<blocks> delimited by C<{> and C<}>
-to compartmentalize code.  When a block stands alone as a statement,
-it will be entered immediately after the statement before it finishes,
-and the statements inside it will be executed.  Otherwise, a block
-simply creates a closure, which may be executed at a later time:
+Like many languages, Perl6 uses C<blocks> enclosed by C<{> and C<}> to turn
+multiple statements into a single statement.  It is ok to skip the semicolon
+between the last statement in a block and the closing C<}>.
+
+    { say "Hello"; say "World" }
+
+When a block stands alone as a statement, it will be entered immediately
+after the previous statement finishes, and the statements inside it will be
+executed.
+
+    say 1;                    # says "1"
+    { say 2; say 3 };         # says "2" then says "3"
+    say 4;                    # says "4"
+
+Unless it stands alone as a statement, a block simply creates a closure.  The
+statements inside are not executed immediately.  Closures are another topic
+and how they are used is explained
+L<elsewhere|language/functions#Blocks and Lambdas>.  For now it is just
+important to understand when blocks run and when they do not:
 
     say "We get here"; { say "then here." }; { say "not here"; 0; } or die;
 
-In the above example, after running the first statement, the first
-block stands alone as a second statement, so we run the statement inside
-it.  The second block does not stand alone as a statement, so it instantiates
-an object of type C<Block>, but does not run it.  Since any object instance
-is true, the code does not die, even though that block would evaluate to 0,
-were it to be executed.
+In the above example, after running the first statement, the first block stands
+alone as a second statement, so we run the statement inside it.  The second
+block does not stand alone as a statement, so instead, it makes an object of
+type C<Block> but does not run it.  Object instances are usually considered to
+be true, so the code does not die, even though that block would evaluate to 0,
+were it to be executed.  The example does not say what to do with the C<Block>
+object, so it just gets thrown away.
 
-Most of the flow control constructs covered below are just ways to
-tell perl6 when, how, and how many times, to enter blocks like that
-second block.
+Most of the flow control constructs covered below are just ways to tell perl6
+when, how, and how many times, to enter blocks like that second block.
 
 Before we go into those, an important side-note on syntax: If there is
 nothing (or nothing but comments) on a line after a closing curly brace where
@@ -116,18 +147,12 @@ run the block, or it will return the value which the block produces:
     my $c = 0; say (1, (if 1 { $c += 42; 2; }), 3, $c); # says "1 2 3 42"
     my $d = 0; say (1, (if 0 { $d += 42; 2; }), 3, $d); # says "1 3 0"
 
-Implementation note: Currently, Rakudo will say "1 Nil 3 0" for the last
-example because it is not caught up to this part of the design yet.
-
 For the statement modifier it is the same, except you have the value
 of the statement instead of a block:
 
     say (1, (42 if True) , 2); # says "1 42 2"
     say (1, (42 if False), 2); # says "1 2"
     say (1,  42 if False , 2); # says "1 42" because "if False, 2" is true
-
-Implementation note: Currently, Rakudo will say "1 Nil 2" for the second
-example because it is not caught up to this part of the design yet.
 
 The C<if> does not change the topic (C<$_>) by default.  In order to access
 the value which the conditional expression produced, you have to ask
@@ -200,9 +225,6 @@ or the value produced by the block that did run:
                     (if 0 { $d += 42; "two"; } elsif False { $d += 43; 2; }),
                     3, $d); # says "1 3 0"
 
-Implementation note: Currently, Rakudo will say "1 Nil 3 0" for the last
-example because it is not caught up to this part of the design yet.
-
 It's possible to obtain the value of the previous expression inside an
 C<else>, which could be from C<if> or the last C<elsif> if any are
 present:
@@ -233,9 +255,6 @@ two differences C<unless> works the same as L<if>:
 
     my $c = 0; say (1, (unless 0 { $c += 42; 2; }), 3, $c); #-> says "1 2 3 42"
     my $c = 0; say (1, (unless 1 { $c += 42; 2; }), 3, $c); #-> says "1 3 0"
-
-Implementation note: Currently, Rakudo will say "1 Nil 3 0" for the last
-example because it is not caught up to this part of the design yet.
 
 =head3 X<with, orwith, without|control flow,with orwith without>
 
@@ -394,7 +413,8 @@ as though the rest of the statements in the block are skipped.
     }
     # The above block evaluates to 43
 
-A C<when> statement will also do this.
+A C<when> statement will also do this (but a C<when> statement modifier
+will I<not>.)
 
 In addition, C<when> statements C<smartmatch> the topic (C<$_>) against
 a supplied expression such that it is possible to check against values,
@@ -416,6 +436,20 @@ C<when> statements.  The following code says C<"Int"> not C<42>.
         default  { say "huh?" }
     }
     #-> Int
+
+When a C<when> statement or C<default> statement causes the outer
+block to return, nesting C<when> or C<default> blocks do not count
+as the outer block, so you can nest these statements and still
+be in the same "switch" just so long as you do not open a new block:
+
+    given 42 {
+        when Int {
+          when 42  { say 42 }
+          say "Int"
+        }
+        default  { say "huh?" }
+    }
+    #-> 42
 
 =head3 X<proceed and succeed|control flow,proceed succeed>
 
@@ -478,6 +512,22 @@ specify a final value for the block.
         default { say "dunno?" }
     }
     #-> Int
+
+If you are not inside a when or default block, it is an error to try
+to use C<proceed> or C<succeed>.  Also remember, the C<when> statement
+modifier form does not cause any blocks to be left, and any C<succeed>
+or C<proceed> in such a statement applies to the surrounding clause,
+if there is one:
+
+    given 42 {
+        { say "This says" } when Int;
+        "This says too".say;
+        when * > 41 {
+           { "And this says".say; proceed } when * > 41;
+           "This never says".say;
+        }
+        "This also says".say;
+    }
 
 =head2 X<loop|control flow>
 

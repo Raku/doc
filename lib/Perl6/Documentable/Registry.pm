@@ -26,7 +26,7 @@ class Perl6::Documentable::Registry {
                 %!cache{$by}{$d."$by"()}.append: $d;
             }
         }
-        %!cache{$by}{$what};
+        %!cache{$by}{$what} // [];
     }
 
     method get-kinds() {
