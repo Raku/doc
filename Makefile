@@ -23,3 +23,7 @@ help:
 run:
 	@echo "Starting local server…"
 	perl app.pl daemon
+
+clean:
+	rm -rf html/*.html html/.*.html html/routine/ html/type/ html/op/ html/language/ html/syntax/ html/images/type-graph* html/js/search.js
+
