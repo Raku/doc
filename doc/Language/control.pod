@@ -284,32 +284,41 @@ There are also C<with> and C<without> statement modifiers:
 
 =head2 X<for|control flow>
 
-The C<for> loop iterates over a list.
+The C<for> loop iterates over a list, running the statements inside a block
+once on each iteration.  If the block takes parameters, the elements of the
+list are provided as arguments.
 
 =begin code
 
-for @foo {.print}
+for @foo { $_.print } # prints each value contained in @foo
+for @foo { .print }   # same thing, because .print implies a $_ argument
+for @foo { 42.print } # prints 42 as many times as @foo has elements
 
 =end code
 
-Use pointy block syntax to get an iteration variable.
+Pointy block syntax or a L<placeholder|language/variables#The C<^> Twigil>
+may be used to name the parameter, of course.
 
 =begin code
 
 for @foo -> $item { print $item }
+for @foo { print $^item }            # same thing
 
 =end code
 
-Multiple parameters can be declared.
+Multiple parameters can be declared, in which case the iterator takes
+as many elements from the list as needed before running the block.
 
 =begin code
 
 for %hash.kv -> $key, $value { print "$key => $value\n" }
+for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
 
 =end code
 
-The list in a C<for> loop is evaluated lazily by default, so to read a file
-line by line, you could use
+A C<for> may be used on lazy lists -- it will only take elements from the
+list when they are needed, so to read a file line by line, you could
+use:
 
 =begin code
 
@@ -325,6 +334,18 @@ read-write in a for loop, do so explicitly.
 =begin code
 
 for @cars <-> $_ {...}
+
+=end code
+
+A for loop can produce a a C<List> of the values produced by each run of the
+attached block.  To capture these values, put the for loop in parenthesis or
+assign them to an array:
+
+=begin code
+
+(for 1,2,3 { $_ * 2 }).say;             # says "(2 4 6)"
+my @a = do for 1,2,3 { $_ * 2 }; @a.say;# says "[2 4 6]"
+my @a = (for 1,2,3 { $_ * 2 }); @a.say; # same thing
 
 =end code
 
