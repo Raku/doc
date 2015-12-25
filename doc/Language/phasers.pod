@@ -1,0 +1,357 @@
+=begin pod
+
+=TITLE Phasers
+
+=SUBTITLE Program execution phases and corresponding phaser blocks
+
+The lifetime (execution timeline) of a program is broken up into phases. A
+I<phaser> is a block of code called during a specific execution phase.
+
+=head1 Phasers
+
+A phaser block is just a trait of the closure containing it, and is
+automatically called at the appropriate moment. These auto-called blocks are
+known as I<phasers>, since they generally mark the transition from one phase of
+computing to another. For instance, a C<CHECK> block is called at the end of
+compiling a compilation unit. Other kinds of phasers can be installed as well;
+these are automatically called at various times as appropriate, and some of
+them respond to various control exceptions and exit values.
+
+Here is a summary:
+
+      BEGIN {...} #  * at compile time, ASAP, only ever runs once
+      CHECK {...} #  * at compile time, ALAP, only ever runs once
+       LINK {...} #  * at link time, ALAP, only ever runs once
+       INIT {...} #  * at run time, ASAP, only ever runs once
+        END {...} #  at run time, ALAP, only ever runs once
+
+      ENTER {...} #  * at every block entry time, repeats on loop blocks.
+      LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
+       KEEP {...} #  at every successful block exit, part of LEAVE queue
+       UNDO {...} #  at every unsuccessful block exit, part of LEAVE queue
+
+      FIRST {...} #  * at loop initialization time, before any ENTER
+       NEXT {...} #  at loop continuation time, before any LEAVE
+       LAST {...} #  at loop termination time, after any LEAVE
+
+        PRE {...} #  assert precondition at every block entry, before ENTER
+       POST {...} #  assert postcondition at every block exit, after LEAVE
+
+      CATCH {...} #  catch exceptions, before LEAVE
+    CONTROL {...} #  catch control exceptions, before LEAVE
+
+    COMPOSE {...} #  when a role is composed into a class
+
+Phasers marked with a C<*> have a run-time value, and if evaluated earlier than
+their surrounding expression, they simply save their result for use in the
+expression later when the rest of the expression is evaluated:
+
+    my $compiletime = BEGIN { now };
+    our $temphandle = ENTER { maketemp() };
+
+As with other statement prefixes, these value-producing constructs may be
+placed in front of either a block or a statement:
+
+    my $compiletime = BEGIN now;
+    our $temphandle = ENTER maketemp();
+
+Most of these phasers will take either a block or a function reference. The
+statement form can be particularly useful to expose a lexically scoped
+declaration to the surrounding lexical scope without "trapping" it inside a
+block.
+
+These declare the same variables with the same scope as the preceding example,
+but run the statements as a whole at the indicated time:
+
+    BEGIN my $compiletime = now;
+    ENTER our $temphandle = maketemp();
+
+(Note, however, that the value of a variable calculated at compile time may not
+persist under run-time cloning of any surrounding closure.)
+
+
+Most of the non-value-producing phasers may also be so used:
+
+    END say my $accumulator;
+
+Note, however, that
+
+    END say my $accumulator = 0;
+
+sets the variable to 0 at C<END> time, since that is when the "my" declaration
+is actually executed. Only argumentless phasers may use the statement form.
+This means that C<CATCH> and C<CONTROL> always require a block, since they take
+an argument that sets C<$_> to the current topic, so that the innards are able
+to behave as a switch statement. (If bare statements were allowed, the
+temporary binding of C<$_> would leak out past the end of the C<CATCH> or
+C<CONTROL>, with unpredictable and quite possibly dire consequences. Exception
+handlers are supposed to reduce uncertainty, not increase it.)
+
+Some of these phasers also have corresponding traits that can be set on
+variables. These have the advantage of passing the variable in question into
+the closure as its topic:
+
+    our $h will enter { .rememberit() } will undo { .forgetit() };
+
+Only phasers that can occur multiple times within a block are eligible for this
+per-variable form.
+
+The topic of the block outside a phaser is still available as C<< OUTER::<$_>
+>>. Whether the return value is modifiable may be a policy of the phaser in
+question. In particular, the return value should not be modified within a
+C<POST> phaser, but a C<LEAVE> phaser could be more liberal.
+
+Any phaser defined in the lexical scope of a method is a closure that closes
+over C<self> as well as normal lexicals. (Or equivalently, an implementation
+may simply turn all such phasers into submethods whose primed invocant is the
+current object.)
+
+When multiple phasers are scheduled to run at the same moment, the general
+tiebreaking principle is that initializing phasers execute in order declared,
+while finalizing phasers execute in the opposite order, because setup and
+teardown usually want to happen in the opposite order from each other.
+
+=head2 Execution Order
+
+    Compilation Begins
+
+      BEGIN {...} #  at compile time, ASAP, only ever runs once
+      CHECK {...} #  at compile time, ALAP, only ever runs once
+       LINK {...} #  at link time, ALAP, only ever runs once
+    COMPOSE {...} #  when a role is composed into a class
+
+    Execution Begins
+
+       INIT {...} #  at run time, ASAP, only ever runs once
+
+    Before block execution begins
+
+        PRE {...} #  assert precondition at every block entry, before ENTER
+
+    Loop execution begins
+
+      FIRST {...} #  at loop initialization time, before any ENTER
+
+    Block execution begins
+
+      ENTER {...} #  at every block entry time, repeats on loop blocks.
+
+    Exception maybe happens
+
+      CATCH {...} #  catch exceptions, before LEAVE
+    CONTROL {...} #  catch control exceptions, before LEAVE
+
+    End of loop, either continuing or finished
+
+       NEXT {...} #  at loop continuation time, before any LEAVE
+       LAST {...} #  at loop termination time, after any LEAVE
+
+    End of block
+
+      LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
+       KEEP {...} #  at every successful block exit, part of LEAVE queue
+       UNDO {...} #  at every unsuccessful block exit, part of LEAVE queue
+
+    Post-condition for block
+
+       POST {...} #  assert postcondition at every block exit, after LEAVE
+
+    Program terminating
+
+        END {...} #  at run time, ALAP, only ever runs once
+
+=head1 Program Execution Phasers
+
+=head2 BEGIN
+
+Runs at compile time, As Soon As Possible, only runs once.
+
+Can have a return value that is provided even in later phases.
+
+=head2 CHECK
+
+Runs at compile time, As Last As Possible, only runs once.
+
+Can have a return value that is provided even in later phases.
+
+Code that is generated at run time can still fire off C<CHECK> and C<INIT>
+phasers, though of course those phasers can't do things that would require
+travel back in time. You need a wormhole for that.
+
+=head2 LINK
+
+Runs at link time, As Last As Possible, only runs once.
+
+Can have a return value that is provided even in later phases.
+
+The compiler is free to ignore C<LINK> phasers compiled at run time since
+they're too late for the application-wide linking decisions.
+
+=head2 INIT
+
+Runs after compilation during main execution, As Soon As Possible, only runs
+once.
+
+Can have a return value that is provided even in later phases.
+
+When phasers are in different modules, the C<INIT> and C<END> phasers are
+treated as if declared at C<use> time in the using module. (It is erroneous to
+depend on this order if the module is used more than once, however, since the
+phasers are only installed the first time they're noticed.)
+
+Code that is generated at run time can still fire off C<CHECK> and C<INIT>
+phasers, though of course those phasers can't do things that would require
+travel back in time. You need a wormhole for that.
+
+An C<INIT> only runs once for all copies of a cloned closure.
+
+=head2 END
+
+Runs after compilation during main execution, As Last As Possible, only runs
+once.
+
+When phasers are in different modules, the C<INIT> and C<END> phasers are
+treated as if declared at C<use> time in the using module. (It is erroneous to
+depend on this order if the module is used more than once, however, since the
+phasers are only installed the first time they're noticed.)
+
+=head1 Block Phasers
+
+Execution in the context of a block has it's own phases.
+
+Block-leaving phasers wait until the call stack is actually unwound to run.
+Unwinding happens only after some exception handler decides to handle the
+exception that way. That is, just because an exception is thrown past a stack
+frame does not mean we have officially left the block yet, since the exception
+might be resumable. In any case, exception handlers are specified to run within
+the dynamic scope of the failing code, whether or not the exception is
+resumable. The stack is unwound and the phasers are called only if an exception
+is not resumed.
+
+These can occur multiple times within the block. So they aren't really traits,
+exactly--they add themselves onto a list stored in the actual trait. So if you
+examine the C<ENTER> trait of a block, you'll find that it's really a list of
+phasers rather than a single phaser.
+
+All of these phaser blocks can see any previously declared lexical variables,
+even if those variables have not been elaborated yet when the closure is
+invoked (in which case the variables evaluate to an undefined value.)
+
+=head2 ENTER
+
+Runs at every block entry time, repeats on loop blocks.
+
+Can have a return value that is provided even in later phases.
+
+An exception thrown from an C<ENTER> phaser will abort the C<ENTER> queue, but
+one thrown from a C<LEAVE> phaser will not.
+
+=head2 LEAVE
+
+Runs at every block exit time (even stack unwinds from exceptions).
+
+So C<LEAVE> phasers for a given block are necessarily evaluated after any
+C<CATCH> and C<CONTROL> phasers. This includes the C<LEAVE> variants, C<KEEP>
+and C<UNDO>. C<POST> phasers are evaluated after everything else, to guarantee
+that even C<LEAVE> phasers can't violate postconditions.
+
+An exception thrown from an C<ENTER> phaser will abort the C<ENTER> queue, but
+one thrown from a C<LEAVE> phaser will not.
+
+If a C<POST> fails or any kind of C<LEAVE> block throws an exception while the
+stack is unwinding, the unwinding continues and collects exceptions to be
+handled. When the unwinding is completed all new exceptions are thrown from
+that point.
+
+=head2 KEEP
+
+Runs at every successful block exit, as part of the LEAVE queue (shares the
+same order of execution).
+
+For phasers such as C<KEEP> and C<POST> that are run when exiting a scope
+normally, the return value (if any) from that scope is available as the current
+topic within the phaser.
+
+=head2 UNDO
+
+Runs at every unsuccessful block exit, as part of the LEAVE queue (shares the
+same order of execution).
+
+=head2 PRE
+
+Asserts a precondition at every block entry. Runs before the ENTER phase.
+
+C<PRE> phasers fire off before any C<ENTER> or C<FIRST>.
+
+The exceptions thrown by failing C<PRE> and C<POST> phasers cannot be caught by
+a C<CATCH> in the same block, which implies that C<POST> phaser are not run if
+a C<PRE> phaser fails.
+
+=head2 POST
+
+Asserts a postcondition at every block entry. Runs after the LEAVE phase.
+
+For phasers such as C<KEEP> and C<POST> that are run when exiting a scope
+normally, the return value (if any) from that scope is available as the current
+topic within the phaser.
+
+The C<POST> block can be defined in one of two ways. Either the corresponding
+C<POST> is defined as a separate phaser, in which case C<PRE> and C<POST> share
+no lexical scope. Alternately, any C<PRE> phaser may define its corresponding
+C<POST> as an embedded phaser block that closes over the lexical scope of the
+C<PRE>.
+
+If a C<POST> fails or any kind of C<LEAVE> block throws an exception while the
+stack is unwinding, the unwinding continues and collects exceptions to be
+handled. When the unwinding is completed all new exceptions are thrown from
+that point.
+
+The exceptions thrown by failing C<PRE> and C<POST> phasers cannot be caught by
+a C<CATCH> in the same block, which implies that C<POST> phaser are not run if
+a C<PRE> phaser fails.
+
+=head1 Loop Phasers
+
+C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the lexical scope of
+a loop, and may occur only at the top level of such a loop block.
+
+=head2 FIRST
+
+Runs at loop initialization, before ENTER.
+
+Can have a return value that is provided even in later phases.
+
+=head2 NEXT
+
+Runs when loop is continued (either through C<next> or because you got to the
+bottom of the loop and are looping back around), before LEAVE.
+
+A C<NEXT> executes only if the end of the loop block is reached normally, or an
+explicit C<next> is executed. In distinction to C<LEAVE> phasers, a C<NEXT>
+phaser is not executed if the loop block is exited via any exception other than
+the control exception thrown by C<next>. In particular, a C<last> bypasses
+evaluation of C<NEXT> phasers.
+
+=head2 LAST
+
+Runs when loop is aborted (either through C<last>, or C<return>, or because you
+got to the bottom of the loop and are done), after LEAVE.
+
+=head1 Exception Handling Phasers
+
+=head2 CATCH
+
+Runs when an exception is raised by the current block, before the LEAVE phase.
+
+=head2 CONTROL
+
+Runs when a control exception is raised by the current block, before the LEAVE
+phase.
+
+=head1 Object Phasers
+
+=head2 COMPOSE
+
+Runs when a role is composed into a class.
+
+=end pod
