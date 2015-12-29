@@ -4,30 +4,14 @@
 
 =SUBTITLE Ruby to Perl 6, in a nutshell: How do I do what I used to do?
 
-This page attempts to index the changes in syntax and semantics from
-Ruby to Perl 6. Whatever worked in Ruby and must be written differently
-in Perl 6, should be listed here (whereas many I<new> Perl 6 features and
-idioms won't be).
+This page attempts to index the high-level differences in syntax and semantics
+between Ruby and Perl 6. Whatever works in Ruby and must be written differently
+in Perl 6 should be listed here (whereas many I<new> Perl 6 features and idioms
+won't be).
 
-Hence this should not be mistaken for a beginner tutorial or a promotional
-overview of Perl 6; it is intended as a technical reference for Perl 6
-learners with a strong Ruby background and for anyone porting Ruby code
-to Perl 6 (though note that L<#Automated Translation> might be more
-convenient).
-
-A note on semantics; when we say "now" in this document, we mostly just
-mean "now that you are trying out Perl 6."  We don't mean to imply that
-Ruby is now suddenly obsolete. Quite the contrary, most of us love
-Ruby, and we expect Ruby to continue in use for a good many years.
-Indeed, one of our more important goals has been to make interaction between
-Ruby and Perl 6 run smoothly. However, we do also like the design
-decisions in Perl 6, which are certainly newer and arguably better
-integrated than many of the historical design decisions in Ruby.
-So many of us do hope that over the next decade or two, Perl 6 will
-become the more dominant language. If you want to take "now" in that
-future sense, that's okay too. But we're not at all interested in the
-either/or thinking that leads to fights.
-
+Hence this should not be mistaken for a beginner tutorial or overview of Perl
+6; it is intended as a technical reference for Perl 6 learners with a strong
+Ruby background.
 
 =head2 RubyGems
 
@@ -37,8 +21,10 @@ If the module that you were using has not been converted to Perl 6, and no
 alternative is listed in this document, then its use under Perl 6 may not
 have been addressed yet.
 
-There are multiple projects aiming to make it possible to C<use> Ruby
-modules directly from Perl 6 code:
+In the future you should be able to call Ruby (and other code) directly from
+your Perl 6 programs.
+
+=begin comment
 
 =defn  L<Inline::Ruby|https://github.com/awwaiid/Inline-Ruby/>
 Uses an embedded instance of the C<ruby> interpreter to run Ruby code
@@ -47,13 +33,14 @@ called from your Perl 6 script.
 Of these, Inline::Ruby is currently the furthest along and the most
 promising.
 
+=end comment
 
-=head2 Syntax
+=head2 Basic Syntax
 
-=head3 C«.» Method calls
+=head3 C«.» Method calls, C<.send>
 
 If you've read any Perl 6 code at all, it's immediately obvious that
-method call syntax now uses a dot just like Ruby:
+method call syntax uses a dot just like Ruby:
 
     person.name    # Ruby
     $person.name   # Perl 6
@@ -170,8 +157,6 @@ of them as part of the variable's name.
 
 The scope of a variable is instead indicated by the declaration itself (C<my>,
 C<has>, C<our>, etc).
-
-(See also L<#Dereferencing>).
 
 =head4 C<$> Scalar
 
@@ -721,6 +706,130 @@ opposed to the equivalent usage of C<RUBYLIB> in Ruby) and shouldn't be
 used by module consumers as it could be removed in the future. This is
 because Perl 6's module loading isn't directly compatible with operating
 system paths.
+
+=head2 Object Orientation
+
+=head3 Basic classes, methods, attributes
+
+Classes are defined similarly between Ruby and Perl 6, using the C<class>
+keyword. Ruby uses C<def> for methods, whereas Perl 6 uses C<method>.
+
+    # Ruby
+    class Foo
+        def greet(name)
+            puts "Hi #{name}!"
+        end
+    end
+
+    # Perl 6
+    class Foo {
+        method greet($name) {
+            say "Hi $name!"
+        }
+    }
+
+In Ruby you can use an attribute without declaring it beforehand, and you can
+tell it is an attribute because of the C<@> sigil. In Perl 6 you must use a
+C<has> declaration and a variety of sigils. You can use the C<!> twigil for
+private attributes or C<.> to create an accessor. 
+
+    # Ruby
+    class Person
+        attr_accessor :age
+        def initialize
+            @name = 'default'
+        end
+    end
+
+    # Perl 6
+    class Person
+        has $!name = 'default';
+        has $.age;
+    end
+
+Creating a new instance of the class uses the C<.new> method. In Perl 6 you get
+a default constructor that accepts key/value pairs of accessor attributes, and
+can do further setup in the C<BUILD> method.
+
+    # Ruby
+    class Person
+        attr_accessor :name, :age
+        def initialize(attrs)
+            @name = attrs[:name] || 'Jill'
+            @age  = attrs[:age] || 42
+            @birth_year = Time.now.year - @age
+        end
+    end
+    p = Person.new( name: 'Jack', age: 23 )
+
+    # Perl 6
+    class Person
+        has $.name = 'Jill';
+        has $.age  = 42;
+        has $!birth_year;
+        method BUILD {
+            $!birth_year = now.Date.year - $.age;
+        }
+    }
+    p = Person.new( name => 'Jack', age => 23 )
+
+=head3 Private Methods
+
+Private methods in Perl 6 are declared with a C<!> prefixed in their name, and
+are invoked with a C<!> instead of a C<.>.
+
+    # Ruby
+    class Foo
+        def visible
+            puts "I can be seen!"
+            hidden
+        end
+
+        private
+        def hidden
+            puts "I cannot easily be called!"
+        end
+    end
+
+    # Perl 6
+    class Foo {
+        method visible {
+            say "I can be seen!"
+            self!hidden
+        }
+
+        method !hidden {
+            say "I cannot easily be called!"
+        }
+    }
+
+An important note is that in Ruby child objects can see parent private methods
+(so they are more like "protected" methods). In Perl 6 child objects cannot
+call parent private methods.
+
+=head3 Going Meta
+
+Here are a few examples of meta-programming. Note that Perl 6 separates the
+meta-methods from the regular methods.
+
+    person.class # Ruby, returns Person
+    person.WHAT  # Perl 6, returns Person
+
+    person.methods          # Ruby
+    $person.^methods        # Perl 6. The .^ syntax is sugar
+    $person.HOW.methods($p) # Perl 6, not using the .^ sugar
+
+    person.instance_variables # Ruby
+    person.^attributes        # Perl 6
+
+In Perl 6, everything is an object, but not all operations are equivalent to
+C<.send>.
+
+    5.send(:+, 3)    # Ruby, returns 8
+    &[+](5, 3)       # Perl 6, reference to infix additon operator
+    &[+].^candidates # Perl 6, lists the signatures for the + operator
+
+See L<Meta-Object Protocol|/language/mop> for lots of further details.
 
 =head2 Misc.
 
