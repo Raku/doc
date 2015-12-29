@@ -1727,7 +1727,74 @@ As with C<wait>, the disposition of this is unclear.
 
 =item wantarray
 
-There is no C<wantarray> in Perl 6.
+There is no C<wantarray> in Perl 6, because L<reasons|/language/faq#Why_is_wantarray_or_want_gone?_Can_I_return_different_things_in_different_contexts?>.
+
+There are very easy ways to cover many of the use cases which wantarray filled.
+
+First, since Perl 6 does not need special reference syntax to contain
+a C<List> or C<Array> in a C<Scalar>, simply returning a list may be
+all that is needed:
+
+    sub listofstuff {
+        return 1,2,3;
+    }
+    my $a = listofstuff();
+    print $a;                     # prints "123"
+    print join("<",listofstuff()) # prints "1<2<3"
+
+One of the most common use cases is to provide either an array of lines
+or elements, or a prettier string than would be produced by simply
+printing the array.  One can mix in a custom C<.Str> method for this
+purpose:
+
+    sub prettylist(*@origlist) {
+        @origlist but role {
+            method Str { self.join("<") }
+        }
+    }
+    print prettylist(1,2,3);  # prints "1<2<3"
+    print join(">", prettylist(3,2,1)); # prints "3>2>1"
+
+In the above example, the returned list may be lazy, and the C<.Str> method
+is not called until stringification happens, so no extra work is done
+to generate something which is not asked for.
+
+Another use case is to create methods which are mutators when called
+in void context but produce copies during assignment.  It is generally
+considered better form in Perl 6 not to do so, since users can quite
+easily turn any copy-producing method into a mutator using the C<.=>
+operator:
+
+    my $a = "foo\n";
+    $a.ords.say; # says "(102 111 111 10)"
+    $a .= chomp;
+    $a.ords.say; # says "(102 111 111)"
+
+However if you have your heart set on using the same function
+name for both operations, you can get most of the way there by mixing in
+a C<.sink> method, which will be called when the result finds itself
+in void context.  There are some caveats however, so again, this is
+not advised:
+
+    multi sub increment($b is rw) {
+        ($b + 1) does role { method sink { $b++ } }
+    }
+    multi sub increment($b) {
+        $b + 1
+    }
+    my $a = 1;
+    increment($a);
+    say $a;                 # says "2"
+    my $b = increment($a);
+    say $a, $b;             # says "2 3"
+    # ...users will just have to be aware that they should not accidentally
+    # sink a stored value later, though this requires some effort to
+    # actually do:
+    sub identity($c is rw) { $c };
+    $a = 1;
+    $b = increment($a);
+    identity($b);
+    $a.say;                  # says "2"
 
 =head2 warn
 
