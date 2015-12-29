@@ -57,10 +57,15 @@ To assign to a variable without the C<%> sigil, you may use curly braces:
 
     my $h = { a => 1, b => 2 };
 
-Because C<{ }> is also used to denote blocks, you may prefix it with a colon
-(X<:{ ... }|:{ }>) to force hash literal context:
+By default keys in C<{ }> are forced to strings. To compose a hash with
+non-string keys, use a colon prefix:
 
     my $when = :{ (now) => "Instant", (DateTime.now) => "DateTime" };
+
+Note that with objects as keys, you cannot access non-string keys as strings:
+
+    :{ -1 => 41, 0 => 42, 1 => 43 }<0>  # Any
+    :{ -1 => 41, 0 => 42, 1 => 43 }{0}  # 42
 
 =head1 Looping over hash keys and values
 
@@ -133,6 +138,7 @@ In these moments you want an object hash!
   for %intervals.kv.sort(* cmp *) -> (Instant $instant, $note) {
     state $last-instant //= $instant;
     say "We noted '$note' at $instant, with an interval of {$instant - $last-instant}";
+    $last-instant = $instant;
   }
 
 This example uses an object hash that only accepts keys of type L<Instant> to
@@ -172,6 +178,26 @@ There is a more concise syntax which uses binding.
 The binding is necessary because an object hash is about very solid, specific objects,
 which is something that binding is great at keeping track of but about which assignment doesn't
 concern itself much.
+
+=head2 In place editing of values
+
+There may be times when you would like to modify the values of a hash while iterating over them.
+
+    > my %answers = illuminatus => 23, hitchhikers => 42
+    hitchhikers => 42, illuminatus => 23
+    > for %answers.values -> $v { $v += 10 }
+    Cannot assign to a readonly variable or a value
+
+This is traditionally accomplished by sending both the key and the value as follows.
+
+    for %answers.kv -> $k,$v { %answers{$k} = $v + 10 }
+
+However, it is possible to leverage the signature of the block in order to specify that
+you would like read-write access to the values.
+
+    for %answers.values -> $v is rw { $v += 10 }
+
+It is not, however, possible to do in-place editing of hash keys, even in the case of object hashes.
 
 =head1 Methods
 

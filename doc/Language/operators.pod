@@ -107,6 +107,181 @@ L<#prefix ...> etc. stub operators.
 Defining custom operators is covered in
 L</language/functions#Defining_Operators>.
 
+=head1 Meta Operators
+
+Meta operators can be parameterized with other operators in the same way as
+functions can take functions as parameters. Perl 6 will generate the actual
+combinded operator in the background, allowing the mechanism to be applied
+to user defined operators. There are quite a few Meta operators with
+different semantics, as explained in detail as follows.
+
+=head2 Assignment Operators
+
+Infix operators can be combined with the assignment operator to modify a
+value and apply the result to a container in one go. Containers will be
+autovivified if possible.
+
+    my $a = 32;
+    $a += 10;  # 42
+
+    my $a = 3;
+    $a min= 5; # still 3
+    $a min= 2; # 2
+
+Z<blocked by #63642 my @a = 1,2; @a ,= 3,4;>
+
+This behavior is automatically extended to include custom-defined infix operators.
+
+    sub infix:<space-concat> ($a,$b) { $a ~ " " ~ $b };
+    my $a = 'word1';
+    $a space-concat= 'word2'; # 'word1 word2'
+
+Although not strictly operators, methods can be used in the same fashion.
+
+    my Rat $a .= new;
+    my $a = 3.14;
+    $a .= Int; # 3
+
+=head2 Negated Relational Operators
+
+The result of a relational operator returning C<Bool> can be negated by
+prefixing with C<!>. To avoid visial confusion with the C<!!> operator,
+you may not modify any operator already beginning with C<!>.
+
+There are shortcuts for C<!==> and C<!eq>, namely C<!=> and C<ne>.
+
+    my $a = True;
+    say so $a != True; # False
+    my $i = 10;
+
+    my $release = Date.new(:2015year, :12month, :24day);
+    my $today = Date.today;
+    say so $release !before $today; # True
+
+=head2 Reversed Operators
+
+Any infix operator may be called with its two arguments reversed by prefixing
+with C<R>. Associativity of operands is reversed as well.
+
+    say [R/] 2, 4, 16; # 2
+
+=head2 Hyper Operators
+
+Hyper operators apply a given operator enclosed by C<«> and C<»> to one or two
+lists, returning the resulting list. The pointy part of C<«> or C<»> has to
+point to the shorter list. A list with just one element is fine too. If one of
+the lists is shorter then the other, the operator will cycle over the shorter
+list until all elements of the longer list are processed.
+
+    say (1,2,3) »*» 2;       # (2,4,6)
+    say (1,2,3,4) »~» <a b>; # (1a 2b 3a 4b)
+    say (1,2,3) »+« (4,5,6); # (5 7 9)
+
+Assignment meta operators can be hyped.
+
+    my @a = 1,2,3;
+    say @a »+=» 1; # [2 3 4]
+
+Hyper forms of unary opators have the pointy bit point to the operator and
+the blunt end at the list to be operated on.
+
+    my @wisdom = True, False, True;
+    say !« @wisdom; # [False True False]
+    
+    my @a = 1,2,3;
+    @a»++;          # (2,3,4)
+
+Hyper operators are defined recursivly on nested arrays.
+
+    say -« [[1, 2], 3]; # [[-1 -2] -3]
+
+Methods can be called too, in a out of order, cuncurrent fashion. The resulting
+list is in order. Please note that all hyper operators are candidates for
+autothreading and will cause tears if said methods have side effects. The
+optimizer has full reign over hyper operators, what is the reasion that they
+can not be defined by the user.
+
+    my CarefulClass @objs;
+    my @results = @objs».take-care();
+
+    my @slops; # May Contain Nuts
+    @slops».?this-method-may-not-exist();
+
+Hyper operatos can work with hashes. The pointy direction indicates if missing
+keys are to be ignored in the resulting hash. The enclosed operator operates on
+all values that have keys in both hashes.
+
+=begin table
+C<%foo «+» %bar;>       intersection of keys
+
+C<%foo »+« %bar;>       union of keys
+
+C<%outer »+» %inner;>   only keys of %inner that exist in %outer will occur in the result
+=end table
+
+    my %outer = 1,2,3 Z=> <a b c>; 
+    my %inner = 1,2 Z=> <x z>; 
+    say %outer «~» %inner; # {"1" => "ax", "2" => "bz"}
+
+=head2 Reduction Operators
+
+Reduction operators apply any infix operator, surrounded by C<[> and C<]>,
+element by element and return the resulting value.
+
+    say [+] 1,2,3; # 6
+
+They can be defined as a list prefix operators or will be generated automatically. 
+
+    multi infix:<[~~]> (@c, &test) is looser(&infix:<~~>) { 
+        gather for @c { take $_ if test($_) } 
+    }; 
+    my @l = 1,'a',2,'b'; 
+    say @l [~~] {$^a ~~ Str}; # (a b)
+
+For list infix operators, flattening is not done on the input list. This
+allowes list operators to become the reduction operator.
+
+    [X~] (1,2), <a b> # 1,2 X~ <a b>
+
+By default reduction meta operators are eager. To lazily generate values,
+prefix the operater with a C<\>. If the non-meta part contains a C<\> already,
+quote it with C<[]> (e.g. C<[\[\x]]>). 
+
+    my $lazy := [\+] 1..*;
+    say $lazy[^10]; # (1 3 6 10 15 21 28 36 45 55)
+
+=head2 Cross Operators
+TODO
+
+=head2 Zip Operators
+
+The zip metaoperator, C<Z>, will apply a given infix operator to pairs taken
+one left, one right, from it's arguments. The resulting list is returned.
+
+    my @l = <a b c> Z~ 1,2,3; # [a1 b2 c3]
+    
+If one of the operands runs out of elements prematurely, the zip operator will
+stop. An infinite list can be used to repeat elements.
+
+    my @l = <a b c d> Z~ ':' xx *; [a: b: c: d:] 
+
+=head2 Sequential Operators
+
+The sequential metaoperator, C<S>, will suppress any concurrency, or reordering
+done by the optimizer. Most simple infix operators are supported.
+
+    say so 1 S& 2 S& 3; # True
+
+=head2 Nesting of Meta Operators
+
+To avoid ambiguity when chaining meta operators use square brackets to help the
+compiler to understand you.
+
+    my @a = 1,2,3; 
+    my @b = 5,6,7; 
+    @a X[+=] @b; 
+    say @a; # [19 20 21]
+
 =head1 Z<>Term Precedence
 
 =head2 circumfix C«< >»
@@ -170,7 +345,7 @@ Universal interface for positional access to zero or more elements of a
     say @alphabet[100]:exists;          #-> False
     say @alphabet[15, 4, 17, 11].join;  #-> perl
     say @alphabet[23 .. *].perl;        #-> ("x", "y", "z")
-    
+
     @alphabet[1, 2] = "B", "C";
     say @alphabet[0..3].perl            #-> ("a", "B", "C", "d")
 
@@ -189,7 +364,7 @@ Universal interface for associative access to zero or more elements of a
     say %color{"banana"};               #-> yellow
     say %color{"cherry", "kiwi"}.perl;  #-> ("red", "green")
     say %color{"strawberry"}:exists;    #-> False
-    
+
     %color{"banana", "lime"} = "yellowish", "green";
     %color{"cherry"}:delete;
     say %color;  #-> banana => yellowish, kiwi => green, lime => green

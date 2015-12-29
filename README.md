@@ -108,7 +108,7 @@ get started contributing documentation.
     the operator.  (`p6doc '%%'`  returns the documentation for
     `&infix:<%%>`.)
 
- *  Perl6 implementations could embed `P<...>` tags in their source
+ *  Perl 6 implementations could embed `P<...>` tags in their source
     code that would then inline the corresponding entry from `p6doc`.
     This would enable things like `&say.WHY` to (dynamically!)
     retrieve the documentation string from `p6doc`, without having

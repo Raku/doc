@@ -23,7 +23,7 @@ also be written as:
 
 =head2 X<blocks|control flow>
 
-Like many languages, Perl6 uses C<blocks> enclosed by C<{> and C<}> to turn
+Like many languages, Perl 6 uses C<blocks> enclosed by C<{> and C<}> to turn
 multiple statements into a single statement.  It is ok to skip the semicolon
 between the last statement in a block and the closing C<}>.
 
@@ -40,7 +40,7 @@ executed.
 Unless it stands alone as a statement, a block simply creates a closure.  The
 statements inside are not executed immediately.  Closures are another topic
 and how they are used is explained
-L<elsewhere|language/functions#Blocks and Lambdas>.  For now it is just
+L<elsewhere|/language/functions#Blocks_and_Lambdas>.  For now it is just
 important to understand when blocks run and when they do not:
 
     say "We get here"; { say "then here." }; { say "not here"; 0; } or die;
@@ -98,7 +98,7 @@ expression.  So:
 ...will not say 42.  However, the block is only evaluated once each time
 the expression it is contained in is evaluated:
 
-    # This says "..1 ..2 ..3" not "..1 ...2 ....3"
+    # This says "(..1 ..2 ..3)" not "(..1 ...2 ....3)"
     my $f = "."; say do { $f ~= "." } X~ 1,2,3;
 
 In other words, it follows the same reification rules as everything else.
@@ -141,18 +141,19 @@ conditionally.  Do note that the condition is still always evaluated first:
 
 The statement modifier form is probably best used sparingly.
 
-The C<if> statement itself will either return an empty list, if it does not
-run the block, or it will return the value which the block produces:
+The C<if> statement itself will either L<slip|/type/Slip> us an empty list, if
+it does not run the block, or it will return the value which the block produces:
 
-    my $c = 0; say (1, (if 1 { $c += 42; 2; }), 3, $c); # says "1 2 3 42"
-    my $d = 0; say (1, (if 0 { $d += 42; 2; }), 3, $d); # says "1 3 0"
+    my $d = 0; say (1, (if 0 { $d += 42; 2; }), 3, $d); # says "(1 3 0)"
+    my $c = 0; say (1, (if 1 { $c += 42; 2; }), 3, $c); # says "(1 2 3 42)"
+    say (1, (if 1 { 2, 2 }), 3);         # does not slip, says "(1 (2 2) 3)"
 
 For the statement modifier it is the same, except you have the value
 of the statement instead of a block:
 
-    say (1, (42 if True) , 2); # says "1 42 2"
-    say (1, (42 if False), 2); # says "1 2"
-    say (1,  42 if False , 2); # says "1 42" because "if False, 2" is true
+    say (1, (42 if True) , 2); # says "(1 42 2)"
+    say (1, (42 if False), 2); # says "(1 2)"
+    say (1,  42 if False , 2); # says "(1 42)" because "if False, 2" is true
 
 The C<if> does not change the topic (C<$_>) by default.  In order to access
 the value which the conditional expression produced, you have to ask
@@ -213,17 +214,17 @@ All the same rules for semicolons and newlines apply, consistently
 
     if        0 { say "no" }
     elsif False { say "NO" }
-    else        { say "yes" }                              ; # -> says "yes"
+    else        { say "yes" }                              ; # says "yes"
 
-The whole thing produces either an empty list (if no blocks were run)
-or the value produced by the block that did run:
+The whole thing either L<slips|/type/Slip> us an empty list (if no blocks
+were run) or returns the value produced by the block that did run:
 
-    my $c = 0; say (1,
-                    (if 0 { $c += 42; "two"; } else { $c += 43; 2; }),
-                    3, $c); # says "1 2 3 43"
     my $d = 0; say (1,
                     (if 0 { $d += 42; "two"; } elsif False { $d += 43; 2; }),
-                    3, $d); # says "1 3 0"
+                    3, $d); # says "(1 3 0)"
+    my $c = 0; say (1,
+                    (if 0 { $c += 42; "two"; } else { $c += 43; 2; }),
+                    3, $c); # says "(1 2 3 43)"
 
 It's possible to obtain the value of the previous expression inside an
 C<else>, which could be from C<if> or the last C<elsif> if any are
@@ -239,22 +240,22 @@ present:
 When you get sick of typing "if not (X)" you may use C<unless> to invert
 the sense of a conditional statement.  You cannot use C<else> or C<elsif>
 with C<unless> because that ends up getting confusing.  Other than those
-two differences C<unless> works the same as L<if>:
+two differences C<unless> works the same as L<#if>:
 
-    unless 1 { "1 is false".say }  ; #-> does not say anything, since 1 is true
-    unless 1   "1 is false".say    ; #-> syntax error, missing block
-    unless 0 { "0 is false".say }  ; #-> says "0 is false"
+    unless 1 { "1 is false".say }  ; # does not say anything, since 1 is true
+    unless 1   "1 is false".say    ; # syntax error, missing block
+    unless 0 { "0 is false".say }  ; # says "0 is false"
 
-    unless 42.say and 1 { 43.say } ; #-> says "42" but does not say "43"
-    43.say unless 42.say and 0;      #-> says "42" and then says "43"
-    43.say unless 42.say and 1;      #-> says "42" but does not say "43"
+    unless 42.say and 1 { 43.say } ; # says "42" but does not say "43"
+    43.say unless 42.say and 0;      # says "42" and then says "43"
+    43.say unless 42.say and 1;      # says "42" but does not say "43"
 
-    $_ = 1; unless 0 { $_.say }           ; # -> says "1"
-    $_ = 1; unless 0 -> $_ { $_.say }     ; # -> says "0"
-    $_ = 1; unless False -> $a { $a.say } ; # -> says "False"
+    $_ = 1; unless 0 { $_.say }           ; # says "1"
+    $_ = 1; unless 0 -> $_ { $_.say }     ; # says "0"
+    $_ = 1; unless False -> $a { $a.say } ; # says "False"
 
-    my $c = 0; say (1, (unless 0 { $c += 42; 2; }), 3, $c); #-> says "1 2 3 42"
-    my $c = 0; say (1, (unless 1 { $c += 42; 2; }), 3, $c); #-> says "1 3 0"
+    my $c = 0; say (1, (unless 0 { $c += 42; 2; }), 3, $c); # says "(1 2 3 42)"
+    my $d = 0; say (1, (unless 1 { $d += 42; 2; }), 3, $d); # says "(1 3 0)"
 
 =head3 X<with, orwith, without|control flow,with orwith without>
 
@@ -263,14 +264,19 @@ truth.  In addition, it topicalizes on the condition, much like C<given>:
 
     with "abc".index("a") { .say }      # prints 0
 
-These may be cascaded:
+Instead of C<elsif>, C<orwith> may be used to chain definedness tests:
 
-    with   $s.index("a") { "Found a at $_" }
-    orwith $s.index("b") { "Found b at $_" }
-    orwith $s.index("c") { "Found c at $_" }
-    else                 { "Didn't find a, b or c" }
+    # The below code says "Found a at 0"
+    my $s = "abc";
+    with   $s.index("a") { say "Found a at $_" }
+    orwith $s.index("b") { say "Found b at $_" }
+    orwith $s.index("c") { say "Found c at $_" }
+    else                 { say "Didn't find a, b or c" }
 
 You may intermix C<if>-based and C<with>-based clauses.
+
+    # This says "Yes"
+    if 0 { say "No" } orwith Nil { say "No" } orwith 0 { say "Yes" };
 
 As with C<unless>, you may use C<without> to check for undefinedness,
 but you may not add an C<else> clause:
@@ -284,32 +290,41 @@ There are also C<with> and C<without> statement modifiers:
 
 =head2 X<for|control flow>
 
-The C<for> loop iterates over a list.
+The C<for> loop iterates over a list, running the statements inside a block
+once on each iteration.  If the block takes parameters, the elements of the
+list are provided as arguments.
 
 =begin code
 
-for @foo {.print}
+for @foo { $_.print } # prints each value contained in @foo
+for @foo { .print }   # same thing, because .print implies a $_ argument
+for @foo { 42.print } # prints 42 as many times as @foo has elements
 
 =end code
 
-Use pointy block syntax to get an iteration variable.
+Pointy block syntax or a L<placeholder|/language/variables#The_^_Twigil>
+may be used to name the parameter, of course.
 
 =begin code
 
 for @foo -> $item { print $item }
+for @foo { print $^item }            # same thing
 
 =end code
 
-Multiple parameters can be declared.
+Multiple parameters can be declared, in which case the iterator takes
+as many elements from the list as needed before running the block.
 
 =begin code
 
 for %hash.kv -> $key, $value { print "$key => $value\n" }
+for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
 
 =end code
 
-The list in a C<for> loop is evaluated lazily by default, so to read a file
-line by line, you could use
+A C<for> may be used on lazy lists -- it will only take elements from the
+list when they are needed, so to read a file line by line, you could
+use:
 
 =begin code
 
@@ -325,6 +340,18 @@ read-write in a for loop, do so explicitly.
 =begin code
 
 for @cars <-> $_ {...}
+
+=end code
+
+A for loop can produce a C<List> of the values produced by each run of the
+attached block.  To capture these values, put the for loop in parenthesis or
+assign them to an array:
+
+=begin code
+
+(for 1,2,3 { $_ * 2 }).say;             # says "(2 4 6)"
+my @a = do for 1,2,3 { $_ * 2 }; @a.say;# says "[2 4 6]"
+my @a = (for 1,2,3 { $_ * 2 }); @a.say; # same thing
 
 =end code
 
@@ -547,6 +574,21 @@ is equivalent to the C-ish idiom:
 
     loop (;;) {...}
 
+The C<loop> statement may be used to produce values from the result of each
+run of the attached block if it appears in lists:
+
+    (loop ( my $i = 0; $i++ < 3;) { $i * 2 }).say;               #-> "(2 4 6)"
+    my @a = (loop ( my $i = 0; $i++ < 3;) { $i * 2 }); @a.say;   #-> "[2 4 6]"
+    my @a = do loop ( my $i = 0; $i++ < 3;) { $i * 2 }); @a.say; # same thing
+
+Unlike a C<for> loop, one should not rely on whether returned values are produced
+lazily, for now.  It would probably be best to use C<eager> to guarantee that a
+loop whose return value may be used actually runs:
+
+    sub heads-in-a-row {
+        (eager loop (; 2.rand < 1;) { "heads".say })
+    }
+
 =head2 X<while, until|control flow,while until>
 
 The C<while> statement executes the block as long as its condition is
@@ -605,6 +647,8 @@ $x++ while $x < 12
 
 Also see C<repeat/while> and C<repeat/until> below.
 
+All these forms may produce a return value the same way C<loop> does.
+
 =head2 X<repeat/while, repeat/until|control flow,repeat>
 
 Perl 5 allows one to apply a statement modifier to a C<do> block such that
@@ -628,6 +672,8 @@ This can also be written quite naturally with C<until>:
     repeat {
         ...
     } until $x >= 10;
+
+All these forms may produce a return value the same way C<loop> does.
 
 =head2 X<return|control flow>
 
