@@ -14,16 +14,36 @@ into the result without nesting:
 
     say <a b c>.map({ ($_, $_.uc).Slip }).join('|');        # a|A|b|B|c|C
 
-In contrast, when returning an oridinar List, the resulting list is nested:
+In contrast, when returning an ordinary List, the resulting list is nested:
 
     say <a b c>.map({ $_, $_.uc }).join('|');               # a A|b B|c C
 
 To create a C<Slip>, either coerce another list-like type to it by calling the
 C<Slip> method, or use the C<slip> subroutine:
 
+    # This says "1" and then says "2", rather than saying "(1 2)"
     .say for gather {
         take slip(1, 2);
     }
+
+A C<Slip> may also be created by using the C<prefix:<|>> operator.  This differs
+from the C<slip> subroutine in both precedence and treatment of single arguments.
+In fact, C<prefix:<|>> only takes a single argment, so it that way, it behaves
+closer to the C<.Slip> method than the C<slip> subroutine.
+
+    my $l = (1,2,3);
+    say (1, slip 2,3).perl;   # says (1,2,3)        , slips 2,3 into (1, …)
+    say (0, slip $l).perl;    # says (0,$(1,2,3))   , $l does not break apart 
+    say (0, $l.Slip).perl;    # says (0,1,2,3)      , slips from $l into (0, …)
+    say (|$l).perl;           # says slip(1,2,3)    , breaks apart $l
+    say (0, (|$l, 4), 5);     # says (0 (1 2 3 4) 5), slips from $l into (…, 4)
+    say (0, ($l.Slip, 4), 5); # says (0 (1 2 3 4) 5), slips from $l into (…, 4)
+    say (0, (slip $l, 4), 5); # says (0 (1 2 3) 4 5), slips ($l,4) into (0, …, 5)
+    say (0, ($l, 4).Slip, 5); # says (0 (1 2 3) 4 5), slips ($l,4) into (0, …, 5)
+
+Loops that do not want to produce a value for an iteration use C<Slips>, rather
+than empty C<List>s to do so, as do C<if> statements that do not run their
+blocks.
 
 =head1 Methods
 
