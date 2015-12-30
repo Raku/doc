@@ -4,10 +4,13 @@ use lib 'lib';
 use File::Temp;
 
 BEGIN {
-    unless (try require URI::Escape) {
-        warn "URI::Escape required to run these tests";
-        plan 0;
-        exit;
+    require URI::Escape;
+    CATCH {
+        when X::CompUnit::UnsatisfiedDependency {
+            warn "URI::Escape required to run these tests";
+            plan 0;
+            exit;
+        }
     }
 }
 
