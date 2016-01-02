@@ -52,8 +52,10 @@ sub locate-module(Str $modulename) {
     return $m;
 }
 
-sub show-docs(Str $path, :$section) {
-    my $pager = %*ENV<PAGER> // ($*DISTRO.name eq 'mswin32' ?? 'more' !! 'less');
+sub show-docs(Str $path, :$section, :$no-pager) {
+    my $pager = do if $no-pager.defined { 'cat' } else {
+      %*ENV<PAGER> // ($*DISTRO.name eq 'mswin32' ?? 'more' !! 'less');
+    }
     my $which-fmt = qq:x{which fmt}.chomp;
     my $fmt-string = $which-fmt.IO.e ?? "| $which-fmt -w 80 " !! "";
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ )  {
@@ -80,9 +82,12 @@ multi sub MAIN() {
 
     say "\nYou can also look up specific method/routine definitions:";
     say "          $me -f push";
+
+    say "\nYou can bypass the pager and print straight to stdout:";
+    say "          $me -n Type::Str"
 }
 
-multi sub MAIN($docee) {
+multi sub MAIN($docee, Bool :$n) {
     return MAIN($docee, :f) if defined $docee.index('.') ;
     if INDEX.IO ~~ :e {
         my %data = EVALFILE INDEX;
@@ -91,7 +96,11 @@ multi sub MAIN($docee) {
             return MAIN($newdoc);
         }
     }
-    show-docs(locate-module($docee));
+    if $n {
+      show-docs(locate-module($docee), :no-pager)
+    } else {
+      show-docs(locate-module($docee));
+    }
 }
 
 multi sub MAIN($docee, Bool :$f!) {
