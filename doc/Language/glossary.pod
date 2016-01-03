@@ -4,23 +4,25 @@
 
 =SUBTITLE Glossary of Perl 6 terminology
 
-=head1 Anonymous
+=head1 Abstract Class
 
-A subroutine, method or submethod is called I<anonymous> if it can't be
-called by name.
+The generic Computer Science term "abstract L</Class|class>" defines the
+L</Interface|interface> or L</API> of a class.  In Perl 6, this is
+implemented using L</Role|roles> with L</Stub|stubbed> methods.
 
-    # named subroutine
-    sub double($x) { 2 * $x };
+    role Canine {
+        method bark { ... }          # the ... indicates a stub
+    }
 
-    # anonymous subroutine, stored in a named scalar
-    my $double = sub ($x) { 2 * $x };
+    class Dog does Canine {
+        method bark { say "woof" }   # *MUST* be implemented by class
+    }
 
-Note that it is still allowed to have a name
+=head1 Advent Calendar
 
-    # anonymous, but knows its own name
-    my $s = anon sub triple($x) { 3 * $x }
-    say $s.name;        # triple
-    say triple(42);     # Undeclared routine: triple
+In the context of Perl 6, a yearly set of blog posts for each day from
+the 1st until the 25th of December, to be found at
+L<https://perl6advent.wordpress.com>.
 
 =head1 Adverb
 
@@ -44,24 +46,103 @@ followed by a name (for the key):
 
     :20seconds     # same as seconds => 20
 
+Also see L</Colon Pair and Colon List>.
+
+=head1 Anonymous
+
+A subroutine, method or submethod is called I<anonymous> if it can't be
+called by name.
+
+    # named subroutine
+    sub double($x) { 2 * $x };
+
+    # anonymous subroutine, stored in a named scalar
+    my $double = sub ($x) { 2 * $x };
+
+Note that it is still allowed to have a name
+
+    # anonymous, but knows its own name
+    my $s = anon sub triple($x) { 3 * $x }
+    say $s.name;        # triple
+    say triple(42);     # Undeclared routine: triple
+
+=head1 Any
+
+The L</Class|class> from which most things derive (inherit), except for
+L</Junction|junctions>.  C<Any> itself derives from L</Mu>.
+
+=head1 any()
+
+A function generating a L</Junction|junction> with "or" semantics (aka,
+L</True> if any of its values are C<True>.
+
+=head1 API
+
+Application Programming Interface. Ideally, someone using your system or
+library should be able to do so with knowledge only of the API, but not
+necessarily knowing anything about the internals or implementation.
+
+See also L<Abstract Class>.
+
+=head1 Apocalypse
+
+A document originally written by L</TimToady>, in which he processed the
+initial barrage of RFC's that came out of the Perl community.  Now only kept
+as an historical document for reference.  See also L</Exegesis> and
+L</Synopsis>.
+
+=head1 Arity
+
+The number of L</Positional|positional> operands expected by an
+L</Operator|operator>, L</Subroutine|subroutine>, L</Method|method> or
+L</Callable|callable block>.
+
+    sub infix:<+>(Foo $a, Foo $b) { $a.Int + $b.Int }  # arity of "+" is 2
+    sub frobnicate($x) { ... }                         # arity of 1
+    sub the-answer() { 42 }                            # arity of 0
+    -> $key, $value { ... }                            # arity of 2
+
+The arity of a C</Callable> is one of the main selectors in
+L</Multi-Dispatch|multi-dispatch>.
+
+=head1 Attribute
+
+A per-object storage slot.  Other programming languages refer to this as
+C<Field>, C<Member>, C<Slot> or C<Property>.
+
+In Perl 6, attributes are defined with the L</has> keyword inside a
+L</Class|class>:
+
+    class Dog {
+        has $.name;    # public attribute "name"
+    }
+
 =head1 Autothreading
 
-Autothreading is what happens if you pass a junction to a sub that expects a
-parameter of type C<Any> or a subtype thereof. The call is executed multiple
-times, each time with a different eigenstate of the junction. The result of
-these calls is assembled in a junction of the same type as the original
-junction.
+Autothreading is what happens if you pass a L</type/Junction|Junction> to
+a subroutine that expects a parameter of type C<Any> or a subtype thereof
+(such as anything L</Cool>). The call is then executed for each value of
+the junction. The result of these calls is assembled in a new junction of
+the same type as the original junction.
 
     sub f($x) { 2 * $x };
-    if f(1|2|3) == 4 {    # same as f(1) == 4 || f(2) == 4 || f(3) == 4
-        say 'success';
-    }
+    say f(1|2|3) == 4;    # any(False,True,False)
 
 Here C<f()> is a sub with one parameter, and since it has no explicit type,
 it is implicitly typed as C<Any>.  The C<Junction> argument causes the
 C<f(1|2|3)> call to be internally executed as C<f(1)|f(2)|f(3)>, and the
-resulting junction is C<2|4|6>. This process of separating junction
-arguments into multiple calls to a function is called I<autothreading>.
+resulting junction is C<2|4|6>.  These are then all compared to C<4>,
+resulting in a junction C<False|True|False>.  This process of separating
+junction arguments into multiple calls to a function is called
+I<autothreading>.
+
+If you use the resulting junction in a boolean context, such as with an
+C<if>, it collapses into a single boolean which is C<True> if any of the
+values in the junction are True.
+
+    if f(1|2|3) == 4 {    # fires because f(2) == 4 is true
+        say 'success';
+    }
 
 =head1 Colon Pair and Colon List
 
@@ -94,6 +175,8 @@ with the appropriate sigil:
     :%mapper       # same as mapper => %mapper
     :&test         # same as test => &test
 
+See also L</Adverb>.
+
 =head1 Constraint
 
 Constraints are a restriction placed on acceptable types for a parameter
@@ -107,8 +190,8 @@ shorter than 10 characters:
 The C<Str> in the above example is also a constraint, but is usually
 referred to as a "type constraint."
 
-Note that you can elso differentiate candidates in a C<multi-dispatch>
-by using a different constraint:
+Note that you can elso differentiate candidates in a
+L</Multi-Dispatch|multi-dispatch> by using a different constraint:
 
     multi sub abbreviate(Str $thing where { .chars >= 10 }) {
         "$thing.substr(0,10)..."
@@ -117,6 +200,10 @@ by using a different constraint:
 
     say abbreviate("Worthington";    # Worthingto...
     say abbreviate("Mäsak");         # Mäsak
+
+=head1 Field
+
+See L</Attribute>.
 
 =head1 Instance
 
@@ -145,6 +232,212 @@ C<defined($instance)> is C<True>.
 
 To put things another way, a class contains the blueprints of methods and
 attributes, and an instance carries it into the real world.
+
+=head2 IRC
+
+Internet Relay Chat.  Perl 6 developers and users usually hang out on the
+C<#perl6> channel of L</Freenode|irc.freenode.org>.
+
+=head1 IRC Lingo
+
+The following terms are often used on the Perl 6 related L</IRC> channels:
+
+=head2 AFAICS
+
+As Far As I Can See
+
+=head2 AFAICT
+
+As Far As I Can Tell
+
+=head2 AFAIK
+
+As Far As I Know
+
+=head2 AFK
+
+Away From Keyboard, as in logged in, but there's no one looking at the screen.
+
+=head2 ALAP
+
+As Late As Possible
+
+=head2 autopun
+
+A self-referencing pun, e.g. "Are you ignorant or apathetic?" - "I don'ti
+know, and I don't care.
+
+=head2 backlog
+
+That part of a discussion on an L</IRC> channel that you've missed.  If it
+is not or no longer available in your IRC client, you can go to sites such
+as L<http://irc.perl6.org> to see what has been logged for you.
+
+=head2 BIAB
+
+Back In A Bit.  As in, only L</AFK|afk> for a little while.
+
+=head2 Bot
+
+A program that does automatic tasks on one or more L</IRC> channels by
+acting like a regular user (as far as the IRC server is concerned) and
+performing some tasks that may involve answering to users requests.
+Examples are L</Camelia|camelia>, L</Dalek|dalek> and L</Yoleaux|yoleaux>.
+
+=head2 BRB
+
+Be Right Back
+
+=head2 DIHWIDT
+
+Doctor, It Hurts When I Do This
+
+=head2 DRY
+
+Don't Repeat Yourself
+
+=head2 DWIM
+
+Do What I Mean.  A programmng language designer motto.
+
+=head2 flap
+
+Sometimes a test will fail under some conditions, but not others; when this
+test passes some test runs and fails others, it's called flapping.
+
+=head2 fossil
+
+Something in a generally current document that is no longer true but which
+has not yet been fixed by correcting or removing it.
+
+=head2 FSVO
+
+For Some Value Of...
+
+=head2 FTFY
+
+Fixed That For You
+
+=head2 IC
+
+I See
+
+=head2 IIRC
+
+If I Remember Correctly
+
+=head2 IIUC
+
+If I Understand Correctly
+
+=head2 ISTR
+
+I Seem To Remember
+
+=head2 IWBN
+
+It Would Be Nice
+
+=head2 KISS
+
+L<Keep It Simple, Stupid!|https://en.wikipedia.org/wiki/KISS_principle>, a
+famous motto in computer science.
+
+=head2 LGTM
+
+Looks Good To Me
+
+=head2 LHF
+
+Low Hanging Fruit.  Usually used in the context of a (relatively) simple
+task tp be performed by a (relative) newbie.
+
+=head2 LMDDGTFY
+
+Let Me DuckDuckGo That For You.  L<http://lmddgtfy.net>
+
+=head2 LMGTFY
+
+Let Me Google That For You.  L<http://lmgtfy.com/>
+
+=head2 LTA
+
+Less Than Awesome.  Usually used in the context of an error message that
+is rather undescriptive or unrelated to the actual error.
+
+=head2 NST
+
+No Such Thing
+
+=head2 Opt
+
+Short for "optimization", usually in either the context of L</spesh> or
+L</JIT>.
+
+=head2 PB
+
+Short for "problem".  As in "that's not the pb".
+
+=head2 PBP
+
+"Perl Best Practices".  The book by Damian Conway outlining best practices
+when programming Perl 5.
+
+=head2 PR
+
+Pull Request.  A feature of L<Github|https://gitub.com> that allows you to
+make patches to be easily applied using the Github user interface.
+
+=head2 P5
+
+Perl 5
+
+=head2 P6
+
+Perl 6
+
+=head2 RSN
+
+Real Soon Now
+
+=head2 RT
+
+Request Tracker (L<http://rt.perl.org/>).  The place where all the bugs
+related to L</Rakudo> live.
+
+=head2 TIMTOWTDI
+
+An alternative form of L</TMTOWTDI>, explicitly including the "is" from
+the contraction "There's".
+
+=head2 TMI
+
+Too Much Information.
+
+=head2 TMTOWTDI
+
+"There's More Than One Way To Do It", the Perl motto.
+
+=head2 UGT
+
+"Universal Greeting Time" - i.e., it's always "morning".
+
+=head2 WFM
+
+Works For Me
+
+=head2 WIP
+
+Work In Progress
+
+=head2 WP
+
+Wikipedia
+
+=head2 WW
+
+Short for C<wrong window>.  When on L</IRC>, someone types something in a
+channel that was intended for another channel, or for a private message.
 
 =head1 Invocant
 
@@ -206,6 +499,18 @@ You can also have the mainline of any package-like declarator, such as
 C<class>, C<module>, C<grammar>, etc.  These are typically run just after
 the class/module/grammar have been compiled (or when loaded from a
 pre-compiled file).
+
+=head1 Member
+
+See L</Attribute>.
+
+=head1 Property
+
+See L</Attribute>.
+
+=head1 Slot
+
+See L</Attribute>.
 
 =head1 Slurpy
 
