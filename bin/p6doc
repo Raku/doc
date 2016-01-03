@@ -69,6 +69,7 @@ sub show-docs(Str $path, :$section, :$no-pager) {
         shell "$*EXECUTABLE-NAME -I$i --doc=SectionFilter $path $fmt-string | $pager";
     }
     else {
+        say "launching '$*EXECUTABLE-NAME --doc $path $fmt-string | $pager'" if DEBUG;
         shell "$*EXECUTABLE-NAME --doc $path $fmt-string | $pager";
     }
 }
@@ -88,22 +89,18 @@ multi sub MAIN() {
 }
 
 multi sub MAIN($docee, Bool :$n) {
-    return MAIN($docee, :f) if defined $docee.index('.') ;
+    return MAIN($docee, :f, :$n) if defined $docee.index('.') ;
     if INDEX.IO ~~ :e {
         my %data = EVALFILE INDEX;
         if %data{$docee} {
             my $newdoc = %data{$docee}[0][0];
-            return MAIN($newdoc);
+            return MAIN($newdoc, :$n);
         }
     }
-    if $n {
-      show-docs(locate-module($docee), :no-pager)
-    } else {
-      show-docs(locate-module($docee));
-    }
+    show-docs(locate-module($docee), :no-pager($n));
 }
 
-multi sub MAIN($docee, Bool :$f!) {
+multi sub MAIN($docee, Bool :$f!, Bool :$n) {
     my ($package, $method) = $docee.split('.');
     if ! $method {
         my %hits;
@@ -114,7 +111,7 @@ multi sub MAIN($docee, Bool :$f!) {
             ($package, $method) = $final-docee.split('.');
 
             my $m = locate-module($package);
-            show-docs($m, :section($method));
+            show-docs($m, :section($method), :no-pager($n));
         } else {
             say 'In order to use unqualified sub and method names like "p6doc -f say"';
             say 'you will need to run "p6doc-index build" to build index.data.';
@@ -123,12 +120,12 @@ multi sub MAIN($docee, Bool :$f!) {
         }
     } else {
         my $m = locate-module($package);
-        show-docs($m, :section($method));
+        show-docs($m, :section($method), :no-pager($n));
     }
 }
 
-multi sub MAIN(Str $file where $file.IO ~~ :e) {
-    show-docs($file);
+multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
+    show-docs($file, :no-pager($n));
 }
 
 sub disambiguate-f-search( $docee, %data ) {
