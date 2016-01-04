@@ -53,25 +53,26 @@ sub locate-module(Str $modulename) {
 }
 
 sub show-docs(Str $path, :$section, :$no-pager) {
-    my $pager = do if $no-pager.defined { 'cat' } else {
-      %*ENV<PAGER> // ($*DISTRO.name eq 'mswin32' ?? 'more' !! 'less');
-    }
+    my $pager;
+    $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less') unless $no-pager;
     my $which-fmt = qq:x{which fmt}.chomp;
     my $fmt-string = $which-fmt.IO.e ?? "| $which-fmt -w 80 " !! "";
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ )  {
         say "No Pod found in $path";
         return;
     }
+    my $doc-command-str = "$*EXECUTABLE-NAME";
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
-        say "launching '$*EXECUTABLE-NAME -I$i --doc=SectionFilter $path $fmt-string | $pager'" if DEBUG;
-        shell "$*EXECUTABLE-NAME -I$i --doc=SectionFilter $path $fmt-string | $pager";
+        $doc-command-str ~= " -I$i --doc=SectionFilter"
+    } else {
+        $doc-command-str ~= " --doc"
     }
-    else {
-        say "launching '$*EXECUTABLE-NAME --doc $path $fmt-string | $pager'" if DEBUG;
-        shell "$*EXECUTABLE-NAME --doc $path $fmt-string | $pager";
-    }
+    $doc-command-str ~= " $path $fmt-string";
+    $doc-command-str ~= " | $pager" if $pager;
+    say "launching '$doc-command-str'" if DEBUG;
+    shell $doc-command-str;
 }
 
 multi sub MAIN() {
