@@ -114,7 +114,7 @@ Exit the REPL by pressing `Ctrl-d` or typing `exit` at the prompt.
 
 After `rakudobrew` is installed, installing `panda` is very easy:
 
-    $ rakudobrew build-panda
+    $ rakudobrew build panda
 
 Now the `panda` command should be available.
 
