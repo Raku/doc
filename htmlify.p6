@@ -1,6 +1,5 @@
 #!/usr/bin/env perl6
 use v6;
-use MONKEY-SEE-NO-EVAL;
 
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
@@ -156,6 +155,11 @@ sub MAIN(
     }
 }
 
+sub extract-pod($file) {
+    use MONKEY-SEE-NO-EVAL;
+    my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+}
+
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     say "Reading doc/$dir ...";
     my @pod-sources =
@@ -176,7 +180,7 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     my $kind  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
-        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+        my $pod  = extract-pod($file.path);
         process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
     }
 }
@@ -656,7 +660,7 @@ sub write-disambiguation-files () {
 sub write-index-files () {
     say 'Writing html/index.html ...';
     spurt 'html/index.html',
-        p2h(EVAL(slurp('doc/HomePage.pod') ~ "\n\$=pod"),
+        p2h(extract-pod('doc/HomePage.pod'),
             pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';
