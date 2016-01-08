@@ -1,0 +1,216 @@
+=begin pod
+
+=TITLE Lists, Sequences, and Arrays
+
+=SUBTITLE Positional data constructs
+
+Lists have been a central part of computing since before there
+were computers, during which time many devils have taken up residence in
+their details.  They were actually one of the hardest parts of Perl 6
+to design, but through persistence and patience, Perl 6 has arrived with
+an elegant system for handling them.
+
+=head1 Literal Lists
+
+Literal lists are created with C<,> B<not> with parentheses, so:
+
+    1,2         # This is two-element list
+    (1,2)       # This is also a list, in parenthesis
+    (1)         # This is not a list, just a 1 in parenthesis
+    (1,)        # This is a one-element list
+
+Parentheses can be used to mark the beginning and end of a list, so:
+
+    (1,2),(1,2) # This is a list of two lists.
+
+Individual elements can be pulled out of a list using a subscript.  The
+first element of a list is at index number zero:
+
+    say (1,2)[0];  # says 1
+    say (1,2)[1];  # says 2
+    say (1,2)[2];  # says Nil
+    say (1,2)[-1]; # Error
+
+=head1 The @ sigil
+
+Variables in perl6 whose names bear the C<@> sigil are expected to
+contain some sort of list-like object.  Of course, other variables may
+also contain these objects, but C<@>-sigiled variables always do, and
+are expected to act the part.
+
+By default, when you assign a list to an C<@>-sigiled variable, you create
+an C<Array>.  Those are described below.  If, instead you want to put an actual
+C<List> into an C<@>-sigiled variable, you can use binding with C<:=> instead.
+
+    my @a := 1,2,3;
+
+One of the ways C<@>-sigiled variables act like lists is by always supporting
+<positional subscripting|/language/subscripts>.  Anything bound to a C<@>-sigiled
+value must support the L</type/positional> role which guarantees this:
+
+    my @a := 1; # Type check failed in binding; expected Positional but got Int
+
+=head1 Iteration
+
+All lists may be iterated, which means taking each element from the
+list in order and stopping after the last element:
+
+    for 1,2,3 { .say } # says 1, then says 2, then says 3
+
+=head2 Sequences
+
+Not all lists are born full of elements.  Some only create as many elements
+as they are asked for.  These are called sequences, which are of type C<Seq>.
+As it so happens, loops return C<Seq>s.
+
+    (loop { 42.say })[2] # says 42 three times
+
+So, it is fine to have infinite lists in Perl 6, just so long as you never
+ask them for all their elements.  In some cases, you may want to avoid
+asking them how long they are too -- Perl 6 will try to return C<Inf> if
+it knows a sequence is infinite, but it cannot always know.
+
+=comment TODO link or describe C<...>
+
+Just because you are still allowed to subscript a C<Seq> does not mean it
+promises to keep values around after you have used them.  If you have a very
+long sequence, you may want to throw old values away so that memory does
+not fill up.
+
+=comment TODO document .iterator, .list and .cache
+
+=head2 Slips
+
+Sometimes you want to insert the elements of a list into another list.
+This can be done with a special type of sequence called a C<Slip>.
+
+    say (1,(2,3),4) eqv (1,2,3,4)         # says False
+    say (1,Slip.new(2,3),4) eqv (1,2,3,4) # says True
+
+Another way to make a slip is with the C<|> prefix operator:
+
+    say (1,|(2,3),4) eqv (1,2,3,4)        # says True
+
+=head1 Immutability
+
+The lists we have talked about so far (C<List>, C<Seq> and C<Slip>)
+are all immutable.  This means you cannot remove elements from them,
+or re-bind existing elements:
+
+    (1,2,3)[0]:delete; # Error Can not remove elements from a List
+    (1,2,3)[0] := 0;   # Error Cannot use bind operator with this left-hand side
+    (1,2,3)[0] = 0;    # Error Cannot modify an immutable Int
+
+However, if any of the elements is wrapped in a L<C<Scalar>|/types/Scalar> you
+can still change the value which that C<Scalar> points to:
+
+    my $a = 2;
+    (1,$a,3)[1] = 42;
+    $a.say;            # says 42
+
+...that is, it is only the list structure itself -- how many elements there are
+and each element's identity -- that is immutable.  The immutability is not
+contagious past the identity of the element.
+
+=head1 List Contexts
+
+So far we have mostly dealt with lists in neutral contexts.  Lists are actually
+very context sensitive on a syntactical level.
+
+=head2 List Assignment Context
+
+When a list appears on the right hand side of an assignment into a C<@>-sigiled
+variable, it is "eagerly" evaluated.  This means that a C<Seq> will be iterated
+until it can produce no more elements.  This is one of the places you do not want
+to put an infinite list, lest your program hang and, eventually, run out of memory:
+
+    my $i = 3;
+    my @a = (loop { $i.say; last unless --$i }); # Says 3 2 1
+    say "take off!";
+
+=head2 Flattening "Context"
+
+When you have a list that contains sub-lists, but you only want one flat list,
+you may flatten the list to produce a sequence of values as if all parentheses.
+This works no matter how many levels deep the parenthesis are nested.
+
+    say (1,(2,(3,4)),5).flat eqv (1,2,3,4,5) # says True
+    for (1,(2,(3,4)),5).flat { .say }        #
+
+This is not really a syntactical "context" as much as it is a process of
+iteration, but it has the appearence of a context.
+
+Note that L<C<Scalar>s|/type/Scalar> around a list will make it immune to
+flattening:
+
+    for (1,(2,$(3,4)),5).flat { .say } # says 1, then 2, then (3 4), then 5
+
+...but an C<@>-sigiled variable will spill its elements.
+
+    my @l := 2,(3,4);
+    for (1, @l, 5).flat { .say };      # says 1, then 2, then 3, then 4, then 5
+    my @a = 2,(3,4);                   # Arrays are special, see below
+    for (1, @a, 5).flat { .say };      # says 1, then 2, then (3 4), then 5
+
+=head2 Argument List (Capture) Context
+
+When a list appears as arguments to a function or method call, special
+syntax rules are at play: the list immediately is converted into a
+C<Capture>.  A C<Capture> itself has a List (C<.list>) and a Hash (C<.hash>).
+Any C<Pair> literals whose keys are not quoted, or which are not parenthesized,
+never make it into C<.list>.  Instead, they are considered to be named
+arguments and squashed into C<.hash>.  See the page on L<C<Capture>|types/Capture>
+for the details of this processing.
+
+Consider the following ways to make a new C<Array> from a C<List>.  These ways
+place the C<List> in an argument list context and because of that, the C<Array>
+only contains C<1> and C<2> but not the C<pair> C<:c3>, which is ignored.
+
+    Array.new(1, 2, :c(3);
+    Array.new: 1, 2, :c(3);
+    new Array: 1, 2, :c(3);
+
+In contrast, these ways do not place the C<List> in argument list context,
+so all the elements, even the C<Pair> C<:c(3)>, are placed in the C<Array>.
+
+    Array.new((1, 2, :c(3));
+    (1, 2, :c(3)).Array;
+    my @a = 1, 2, :c(3); Array.new(@a);
+    my @a = 1, 2, :c(3); Array.new: @a;
+    my @a = 1, 2, :c(3); new Array: @a;
+    
+In argument list contet the C<|> prefix operator applied to a C<Positional>
+will always slip list elements as positional arguments to the Capture,
+while a C<|> prefix operator applied to an C<Associative> will slip pairs in
+as named parameters:
+
+    my @a := 2, "c" => 3;
+    Array.new(1, |@a, 4);    # Array contains 1, 2, :c(3), 4
+    my %a = "c" => 3;
+    Array.new(1, |%a, 4);    # Array contains 1, 4
+
+=head2 Array Constructor Context
+
+    [ 1, 2, :c(3) ]
+
+=comment TODO actualy not sure if there is anything special here, other then the internal itemization best left for later -- eager maybe?
+
+=head2 Slice Context
+
+    (1,2,3)[1, 2, :c(3)]
+
+=comment TODO there is a typecheck against key/index, anything else?
+
+=head1 Arrays
+
+=head2 Itemization
+
+=comment TODO explain nuances of automatic itemization done by arrays
+
+=head2 Mutability
+
+=head3 Binding
+
+=head3 Assigning
+
+=end pod
