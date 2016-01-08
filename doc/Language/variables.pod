@@ -777,28 +777,38 @@ L<function|/language/functions>).
 Like C<my>, C<temp> restores the old value of a variable at the end of its
 scope. However, C<temp> does not create a new variable.
 
-=begin code
-my $cookies = 5;
+    my $in = 0; # temp will "entangle" the global variable with the call stack
+                # that keeps the calls at the bottom in order.
+    sub f(*@c) { 
+        (temp $in)++;
+         "<f>\n"
+         ~ @c>>.indent($in).join("\n")
+         ~ (+@c ?? "\n" !! "")
+         ~ '</f>'
+    }; 
+    sub g(*@c) { 
+        (temp $in)++;
+        "<g>\n" 
+        ~ @c>>.indent($in).join("\n")
+        ~ (+@c ?? "\n" !! "")
+        ~ "</g>"
+    }; 
+    print g(g(f(g()),g(),f()));
 
-sub buy-cookie { $cookies++ }
+output:
 
-{
-    my $cookies = 42;
-    buy-cookie;   # Increments the outer $cookies variable
-    say $cookies; # 42
-                  # the outer $cookies variable is 6 now
-}
-
-{
-    temp $cookies = 42;
-    # Still the same $cookies, but a new value:
-    buy-cookie;
-    say $cookies; # -> 43
-}
-
-# Old value is restored
-say $cookies; # -> 6
-=end code
+    <g>
+     <g>
+      <f>
+       <g>
+       </g>
+      </f>
+      <g>
+      </g>
+      <f>
+      </f>
+     </g>
+    </g>
 
 =head2 The C<let> Prefix
 
