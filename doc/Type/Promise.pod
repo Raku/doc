@@ -90,10 +90,15 @@ Creates a new Promise that will be kept at the given time, or later.
     method allof(Promise:U: *@promises) returns Promise:D
 
 Returns a new promise that will be kept when all the promises passed as
-arguments are kept, and that will be broken as soon as any of the argument
-promises is broken. You may need to run the following code several times
-before none of the promises get broken with C<die> and we get to
-the C<say> on the last line, instead of bailing out on C<await>.
+arguments are kept or broken. The result of the individual Promises is
+not reflected in the the result of the returned promise: it simply
+indicates that all the promises have been completed in some way.
+If the results of the individual promises are important then they should
+be inspected after the the C<allof> promise is kept.
+
+In the following requesting the C<result> of a broken promise will case the
+original Exception to be thrown. (You may need to run it several times to
+see the exception.)
 
     my @promises;
     for 1..5 -> $t {
@@ -102,17 +107,19 @@ the C<say> on the last line, instead of bailing out on C<await>.
             die "OH NOEZ" if rand < 0.2;
         };
     }
-    my $all-successful = Promise.allof(@promises);
-    await $all-successful;
+    my $all-done = Promise.allof(@promises);
+    await $all-done;
+	@promises>>.result;
     say "Promises kept so we get to live another day!";
 
 =head2 method anyof
 
     method anyof(Promise:U: *@promises) returns Promise:D
 
-Returns a new promise that will be kept as soon as any of the promises passed as
-arguments is kept, and will be broken when all of the argument promises are
-broken.
+Returns a new promise that will be kept as soon as any of the promises
+passed as arguments is kept or broken. The result of the completed
+Promise is not reflected in the result of the returned promise which
+will always be Kept.
 
 You can use this to wait at most a number of seconds for a promise:
 
