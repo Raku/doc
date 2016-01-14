@@ -152,8 +152,7 @@ the result of each:
 
 In addition to C<await>, two class methods combine several
 L<Promise> objects into a new promise: C<allof> returns a promise that
-is kept when all the original promises are kept or broken when one of them
-is broken:
+is kept when all the original promises are kept or broken:
 
     my $promise = Promise.allof(
         Promise.in(2),
@@ -164,7 +163,7 @@ is broken:
     say "All done"; # Should be not much more than three seconds later
 
 And C<anyof> returns a new promise that will be kept when any of the
-original promises is kept or broken when any of them is broken:
+original promises is kept or broken:
 
     my $promise = Promise.anyof(
         Promise.in(3),
@@ -178,7 +177,20 @@ Unlike C<await> however the results of the original kept promises are not
 available without referring to the original, so these are more useful
 when the completion or otherwise of the tasks is more important to the
 consumer than the actual results, or when the results have been collected 
-by other means.
+by other means.  You may, for example, want to create a dependent Promise
+that will examine each of the original promises:
+
+    my @promises;
+    for 1..5 -> $t {
+        push @promises, start {
+            sleep $t;
+            Bool.pick;
+        };
+    }
+    say await Promise.allof(@promises).then({ so all(@promises>>.result) });
+
+Which will give True if all of the promises were kept with True, False
+otherwise.
 
 If you are creating a promise that you intend to keep or break yourself
 then you probably don't want any code that might receive the promise to
@@ -205,8 +217,6 @@ as the vow object is kept private, the status of the promise is safe:
 The methods that return a promise that will be kept or broken
 automatically such as C<in> or C<start> will do this, so it is not
 necessary to do it for these.
-
-
 
 =head2 Supplies
 
