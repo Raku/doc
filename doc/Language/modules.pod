@@ -255,16 +255,22 @@ to C<use>, the C<EXPORT> sub handles positional parameters. If you
 pass positional parameters to C<use> they will be passed to
 C<EXPORT>. If a positional is passed the module no longer exports
 default symbols. You may still import them explicitly by
-passing C<:DEFAULT> to C<use> along with your positional parameters.
+passing C<:DEFAULT> to C<use> along with your positional parameters. Type captures are supported and operators can be exported via their long name.
 
     =begin code
     # lib/MyModule
 
     class MyModule::Class {}
 
-    sub EXPORT($short_name?) {
+    sub EXPORT($short_name?, ::T) {
+        role R[::TT] { }
+        class C { }
+        multi sub infix:<~>(C \l, T \r){ note "supressed concat with: ", T.WHAT; };
+        multi sub infix:<~>(T \l, C \r){ note "supressed concat with: ", T.WHAT; };
         {
-          do $short_name => MyModule::Class if $short_name
+            do $short_name => MyModule::Class if $short_name,
+            'MixedC' => C but R.^parameterize(T), # workaround for RT#127256
+            'infix:<~>' => &infix:<~>
         }
     }
 
@@ -282,23 +288,6 @@ passing C<:DEFAULT> to C<use> along with your positional parameters.
     always();      #OK   - is imported
     shy();         #FAIL - won't be imported
     =end code
-
-C<EXPORT> can take arguments, given it was provided with a signature. Type
-captures are supported.
-
-    # lib/MyModule.pm
-
-    sub EXPORT(Int $i = 42) {
-        {
-            'foo' => sub () { $i }
-        }
-    }
-
-    # main.pl
-    
-    use MyModule 666;
-
-    foo(); # 666
 
 =head1 Distributing Modules
 
