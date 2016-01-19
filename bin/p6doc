@@ -1,5 +1,7 @@
 #!/usr/bin/env perl6
 use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+use JSON::Fast;
+use Panda::Installer;
 
 my $PROGRAM-NAME="p6doc";
 
@@ -43,6 +45,12 @@ sub locate-module(Str $modulename) {
     my @candidates = (search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list);
     DEBUG and warn :@candidates.perl;
     my $m = @candidates.first: *.IO.f;
+
+    unless $m.defined {
+        # not "core" pod now try for panda installed module XXX not zef
+        $m = locate-curli-module($modulename);
+    }
+
     unless $m.defined {
         my $message = join "\n",
             "Cannot locate $modulename in any of the following paths:",
@@ -217,6 +225,25 @@ sub prompt-with-options( %options, %found ) {
         }
     }
     return $final-docee;
+}
+
+sub locate-curli-module($module) {
+    my $prefix = Panda::Installer.new.default-prefix();
+    my $dist =  $prefix ~ '/dist';
+    my $hdist;
+    my @modules;
+    for dir($dist) -> $f {
+        my $d = from-json $f.slurp;
+        my @keys = $d<provides>.keys.list;
+        $hdist{$_} = $d<provides>{$_} for @keys;
+        @modules.append: @keys;
+    }
+
+    if any(@modules) eq $module {
+        my $sha = $hdist{$module}<pm><file>;
+        return "{$prefix}/sources/{$sha}";
+    }
+    return;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
