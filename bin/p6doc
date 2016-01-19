@@ -113,11 +113,14 @@ multi sub MAIN($docee, Bool :$n) {
 
 multi sub MAIN(Bool :$l!) {
     my @paths = search-paths() X~ <Type/ Language/> ;
+    my @modules;
     for @paths -> $dir {
         for dir($dir).sort -> $file {
-            say $file.basename.Str.subst('.pod','') if $file.f;
+            @modules.push: $file.basename.Str.subst('.pod','');
         }
     }
+    @modules.append: get-panda-modules(); 
+    .say for @modules.sort;
 }
 
 multi sub MAIN($docee, Bool :$f!, Bool :$n) {
@@ -244,6 +247,17 @@ sub locate-curli-module($module) {
         return "{$prefix}/sources/{$sha}";
     }
     return;
+}
+sub get-panda-modules {
+    my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
+    my @modules;
+    for $state.IO.lines -> $line {
+        my (Any, $json ) = $line.split(/'installed '|'installed-dep '/);
+        my $state = from-json $json;
+        @modules.append: $state<provides>.keys.list;
+    }
+
+    return @modules;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
