@@ -40,7 +40,7 @@ sub MAIN($typename, :$kind='class') {
         TEMPLATE
 
     say "'$path' written";
-    say "(remeber to 'git add $path')";
+    say "(remember to 'git add $path')";
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
