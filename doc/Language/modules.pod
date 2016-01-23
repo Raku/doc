@@ -255,22 +255,16 @@ to C<use>, the C<EXPORT> sub handles positional parameters. If you
 pass positional parameters to C<use> they will be passed to
 C<EXPORT>. If a positional is passed the module no longer exports
 default symbols. You may still import them explicitly by
-passing C<:DEFAULT> to C<use> along with your positional parameters. Type captures are supported and operators can be exported via their long name.
+passing C<:DEFAULT> to C<use> along with your positional parameters.
 
     =begin code
     # lib/MyModule
 
     class MyModule::Class {}
 
-    sub EXPORT($short_name?, ::T) {
-        role R[::TT] { }
-        class C { }
-        multi sub infix:<~>(C \l, T \r){ note "suppressed concat with: ", T.WHAT; };
-        multi sub infix:<~>(T \l, C \r){ note "suppressed concat with: ", T.WHAT; };
+    sub EXPORT($short_name?) {
         {
-            do $short_name => MyModule::Class if $short_name,
-            'MixedC' => C but R.^parameterize(T), # workaround for RT#127256
-            'infix:<~>' => &infix:<~>
+          do $short_name => MyModule::Class if $short_name
         }
     }
 
@@ -287,6 +281,25 @@ passing C<:DEFAULT> to C<use> along with your positional parameters. Type captur
     say foo.new(); #MyModule::Class.new
     always();      #OK   - is imported
     shy();         #FAIL - won't be imported
+    =end code
+
+You can combine `EXPORT` with type captures for interesting
+effect. This example creates a `?` postfix which will only work on
+L<Cool>s.
+
+    =begin code
+    # lib/MakeQuestionable.pm
+    sub EXPORT(::Questionable) {
+        my multi postfix:<?>(Questionable $_) { .so };
+        {
+          '&postfix:<?>' => &postfix:<?>,
+        }
+    }
+    =end code
+
+    =begin code
+    use MakeQuestionable Cool;
+    say 0?,1?,{}?,{ a => "b"}?; # False True False True
     =end code
 
 =head1 Distributing Modules
