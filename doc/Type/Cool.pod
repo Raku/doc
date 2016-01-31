@@ -1034,17 +1034,17 @@ This is the list-input version of L<chr>. The inverse operation is L<ords>.
 
 Defined as:
 
-    multi sub    split(  Str:D $delimiter, Str(Cool) $input, $limit = Inf, :$all)
-    multi sub    split(Regex:D $delimiter, Str(Cool) $input, $limit = Inf, :$all)
-    multi method split(  Str:D $delimiter, $limit = Inf, :$all)
-    multi method split(Regex:D $delimiter, $limit = Inf, :$all)
+    multi sub    split(  Str:D $delimiter, Str(Cool) $input, $limit = Inf, :$k, :$v, :$kv, :$p)
+    multi sub    split(Regex:D $delimiter, Str(Cool) $input, $limit = Inf, :$k, :$v, :$kv, :$p)
+    multi method split(  Str:D $delimiter, $limit = Inf, :$k, :$v, :$kv, :$p)
+    multi method split(Regex:D $delimiter, $limit = Inf, :$k, :$v, :$kv, :$p)
 
 Usage:
 
-    split DELIMITER, STRING, LIMIT?, :all?
-    split /PATTERN/, STRING, LIMIT?, :all?
-    STRING.split(DELIMITER, LIMIT?, :all?)
-    STRING.split(/PATTERN/, LIMIT?, :all?)
+    split DELIMITER, STRING, LIMIT?, [:k | :v | :kv | :p]?
+    split /PATTERN/, STRING, LIMIT?, [:k | :v | :kv | :p]?
+    STRING.split(DELIMITER, LIMIT?,  [:k | :v | :kv | :p]?)
+    STRING.split(/PATTERN/, LIMIT?,  [:k | :v | :kv | :p]?)
 
 Coerces the invocant (or in the sub form, the second argument) to
 L<Str|/type/Str>, and splits it into pieces based on delimiters found in the
@@ -1053,20 +1053,37 @@ string.
 If C<$delimiter> is a string, it is searched for literally and not treated
 as a regex.
 
-If the named parameter C<:all> is passed, the matches from C<$delimiter>
-are included in the result list.
-
-Note that unlike in Perl 5, empty chunks are not removed from the result list.
-If you want that behavior, consider using L<comb> instead.
-
     say split(';', "a;b;c").perl;          # ("a", "b", "c").list
-    say split(';', "a;b;c", :all).perl;    # ("a", ";", "b", ";", "c").list
     say split(';', "a;b;c", 2).perl;       # ("a", "b;c").list
-    say split(';', "a;b;c", 2, :all).perl; #("a", ";", "b;c").list
 
     say split(';', "a;b;c,d").perl;        # ("a", "b", "c,d").list
     say split(/\;/, "a;b;c,d").perl;       # ("a", "b", "c,d").list
     say split(/<[;,]>/, "a;b;c,d").perl;   # ("a", "b", "c", "d").list
+
+By default, split omits the matches, and returns a list of only those parts of
+the string that did not match. Specifying one of the C<:k, :v, :kv, :p> adverbs
+changes that. Think of the matches as a list that is interleaved with the
+non-matching parts. C<:v> interleaves the values of that list:
+s
+    say 'abc'.split(/b/, :v);               # (a ｢b｣ c)
+
+C<:k> interleaves the keys, that is, the indexes:
+
+    say 'abc'.split(/b/, :k);               # (a 0 c)
+
+C<:kv> adds both indexes and matches:
+
+    say 'abc'.split(/b/, :v);               # (a 0 ｢b｣ c)
+
+You can only use one of the C<:k, :v, :kv, :p> adverbs in a single call
+to C<split>.
+
+and C<:p> adds them as L<Pairs|/type/Pair>:
+
+    say 'abc'.split(/b/, :p)                # (a 0 => ｢b｣ c)
+
+Note that unlike in Perl 5, empty chunks are not removed from the result list.
+If you want that behavior, consider using L<comb> instead.
 
 
 =head2 routine lines
