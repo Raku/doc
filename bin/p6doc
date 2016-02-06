@@ -71,9 +71,9 @@ sub show-docs(Str $path, :$section, :$no-pager) {
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
-        $doc-command-str ~= " -I$i --doc=SectionFilter"
+        $doc-command-str ~= " -IFakeDir -I$i --doc=SectionFilter"
     } else {
-        $doc-command-str ~= " --doc"
+        $doc-command-str ~= " -IFakeDir --doc"
     }
     $doc-command-str ~= " $path ";
     $doc-command-str ~= " | $pager" if $pager;
@@ -121,6 +121,7 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
     if ! $method {
         my %hits;
         if INDEX.IO ~~ :e {
+
             my %data = EVALFILE INDEX;
 
             my $final-docee = disambiguate-f-search( $docee, %data );
@@ -224,23 +225,10 @@ sub prompt-with-options( %options, %found ) {
 }
 
 sub locate-curli-module($module) {
-    my $prefix = Panda::Installer.new.default-prefix();
-    my $dist =  $prefix ~ '/dist';
-    my $hdist;
-    my @modules;
-    for dir($dist) -> $f {
-        my $d = from-json $f.slurp;
-        my @keys = $d<provides>.keys.list;
-        $hdist{$_} = $d<provides>{$_} for @keys;
-        @modules.append: @keys;
-    }
-
-    if any(@modules) eq $module {
-        my $sha = $hdist{$module}<pm><file>;
-        return "{$prefix}/sources/{$sha}";
-    }
-    return;
+    my $cu = $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
+    return ~  $cu.repo.prefix.child('sources/' ~ $cu.distribution.provides{$module}.values[0]<file>).Str;
 }
+
 sub get-panda-modules {
     my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
     my @modules;
