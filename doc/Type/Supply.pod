@@ -28,7 +28,7 @@ C<Supply.interval> produces a fresh timer with the appropriate interval each
 time it is tapped. If the tap is closed, the timer simply stops emitting values
 to that tap.
 
-A C<live> C<Supply> is obtained from the L<Supplier|/doc/Type/Supplier>
+A C<live> C<Supply> is obtained from the L<Supplier|/type/Supplier>
 factory method C<Supply>.  New values are emitted by calling C<emit> on
 the C<Supplier> object.
 
@@ -40,6 +40,8 @@ the C<Supplier> object.
 The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
 will return I<on demand> supplies.
+
+Further examples can be found in the L<concurrency page|/language/concurrency#Supplies>.
 
 =head1 Methods that return Taps
 
@@ -89,17 +91,6 @@ a time.
 
 =head1 Utility methods
 
-=head2 method taps
-
-    method taps(Supply:D:) returns Int:D
-
-Returns the number of taps.
-
-    my $s = Supply.new;
-    say $s.taps;    # 0
-    $s.tap(&sqrt);
-    say $s.taps;    # 1
-
 =head2 method Channel
 
     method Channel(Supply:D:) returns Channel:D
@@ -127,12 +118,6 @@ or quit before a value arrived.
 
 Closes the given tap, this is, calls its C<close> callback (if any), and
 prevents it from getting any more values flowing through the supply.
-
-=head2 method tappers
-
-    method tappers(Supply:D:) returns List:D
-
-Returns a list of taps as L<Tap|/type/Tap> objects.
 
 =head2 method live
 
@@ -221,16 +206,16 @@ Creates an on-demand supply from the values passed to this method.
 
     method share(Supply:D:) returns Supply:D
 
-    my $s = Supply.from-list(^100000).share;
-    my @first;
-    $s.tap: { @first.push($_) };
-    my @second;
-    $s.tap: { @second.push($_) };
-    say @first + @second;
-
 Creates a live supply from an on-demand supply, thus making it possible to
 share the values of the on-demand supply on multiple taps, instead of each
-tap seeing all values from the on-demand supply.
+tap seeing its own copy of all values from the on-demand supply.
+
+    # this says in turn: "first 1" "first 2" "second 2" "first 3" "second 3"
+    my $s = Supply.interval(1).share;
+    $s.tap: { "first $_".say };
+    sleep 1.1;
+    $s.tap: { "second $_".say };
+    sleep 2
 
 =head2 method flat
 
@@ -578,7 +563,7 @@ be called as a class method.
     method zip(Supply @*supplies, :&with = &[,]) returns Supply:D
 
 Creates a supply that emits combined values as soon as there is a new value
-seen on B<all> of the supplies.  By default, C<Lists|/type/List> are
+seen on B<all> of the supplies.  By default, L<Lists|/type/List> are
 created, but this can be changed by specifying your own combiner with the
 :with parameter.  The resulting supply is done as soon as B<any> of the given
 supplies are done.  Can also be called as a class method.

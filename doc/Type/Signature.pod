@@ -38,6 +38,16 @@ my $sig = B<:($a, $b)>;
 #          ^^^^^^^^ Standalone Signature object
 =end code
 
+Signature literals can be used to define the signature of a callback or a
+closure.
+
+	sub f(&c:(Int)){}
+	sub will-work(Int){}
+	sub won't-work(Str){}
+	f(&will-work);
+	f(&won't-work); # fails at runtime
+	f(-> Int { 'this works too' } );
+
 =head2 Parameter Separators
 
 A signature consists of zero or more I<L<parameters|Parameter>>, separated by comma.
@@ -149,6 +159,31 @@ say limit-lines "a \n b \n c", Int; # "a \n b \n c"
 For explicitly indicating the normal behaviour, C<:_> can be used, but this is
 unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
 
+=head3 X«Constraining Return Types|-->;returns»
+
+The token C<-->> followed by a type will force a type check on successful
+execution of a routine. The return type arrow has to be placed at the end of
+the parameter list. The keyword C<returns> following a signature declaration
+has the same function. C<Nil> is considered as being defined for the type check.
+
+
+	sub foo(--> Int) { 1 };
+	sub foo() returns Int { 1 };
+	sub does-not-work(--> Int) { "" }; # throws X::TypeCheck::Return
+
+If the type constraint is a constant expression, it is used as the return value
+of the routine. Any return statement in that routine has to be argumentless.
+
+	sub foo(--> 123) { return }
+
+L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types, regardless of any
+type constraint.
+
+	sub foo(--> Int) { Nil };
+	say foo.perl; # Nil
+
+Type captures and coercion types are not supported.
+
 =head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%>
 
 An array or hash parameter can be marked as I<slurpy> by leading asterisk(s),
@@ -201,7 +236,7 @@ as described below.
 
 =head2 Type Captures
 
-Type Captures allow to defer the specification of a type constrain to the time
+Type Captures allow to defer the specification of a type constraint to the time
 the function is called. They allow to refer to a type both in the signature and
 the function body.
 
@@ -251,7 +286,24 @@ variable name:
 Aliases are also possible that way:
 
     sub paint( :color(:colour($c)) ) { }    # 'color' and 'colour' are both OK
-    sub paint( :color(:$colour) ) { }      # same API for the caller
+    sub paint( :color(:$colour) ) { }       # same API for the caller
+
+A function with named arguments can be called dynamically, dereferencing a
+Pair with C<|> to turn it into a named argument.
+
+	multi f(:$named){ note &?ROUTINE.signature }; 
+	multi f(:$also-named){ note &?ROUTINE.signature }; 
+	for 'named', 'also-named' -> $n { 
+		f(|($n => rand))                    # «(:$named)␤(:$also-named)␤»
+	}
+
+	my $pair = :named(1); 
+	f |$pair;                               # «(:$named)␤»
+
+The same can be used to convert a Hash into named arguments.
+
+	my %pairs = also-named => 4; 
+	f |%pairs;                              # «(:$also-named)␤»
 
 =head2 Optional and Mandatory Parameters
 

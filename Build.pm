@@ -12,14 +12,15 @@ class Build is Panda::Builder {
     method build($workdir) {
 
         my $dest-pref = Panda::Installer.new.default-prefix() ~ '/../doc';
+        my $docdir = IO::Path.new("$workdir/doc").abspath; # An OS independent version
 
-        my @files = find(dir => "$workdir/doc", type => 'file').list;
+        my @files = find(dir => $docdir, type => 'file').list;
 
         for @files -> $file {
             next if $file ~~ /'HomePage.pod'$/;
 
             my $dest = $file;
-            $dest =  $dest-pref ~ $dest.split("$workdir/doc")[1];
+            $dest =  $dest-pref ~ $dest.split($docdir)[1];
 
             my $dest-dir = $dest.IO.dirname;
             mkpath $dest-dir unless $dest-dir.IO.d;

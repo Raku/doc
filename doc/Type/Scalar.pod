@@ -1,0 +1,87 @@
+=begin pod
+
+=TITLE class Scalar
+
+=SUBTITLE A mostly transparent container used for indirections
+
+    class Scalar { ... }
+
+A C<Scalar> is an internal indirection which is for most purposes
+invisible during ordinary use of Perl 6.  It is the default container
+type associated with the C<$> sigil.  A literal C<Scalar> may be
+placed around a literal value by enclosing the value in C<$(…)>.
+This notation will appear in the output of a C<.perl> method in
+certain places where it is important to note the presence of C<Scalar>s.
+
+When a value is assigned to a C<$>-sigiled variable, the variable will
+actually bind to a C<Scalar>, which in turn will bind to the value.
+When a C<Scalar> is assigned to a C<$>-sigiled variable, the value
+bound to by that C<Scalar> will be bound to the C<Scalar> which that
+variable was bound to (a new one will be created if necessary.)
+
+In addition C<Scalar>s delegate all method calls to the value which
+they contain.  As such, C<Scalar>s are for the most part invisible.
+There is, however, one important place where C<Scalar>s have a visible
+impact: a C<Scalar> will shield its contents from flattening by most
+Perl 6 core list operations.
+
+A C<$>-sigiled variable may be bound directly to a value with no
+intermediate C<Scalar> using the binding operator C<:=>.  You can
+tell if this has been done by examining the introspective pseudo-method
+C<.VAR>:
+
+    my $a = 1;
+    $a.WHAT.say;     # says "(Int)"
+    $a.VAR.WHAT.say; # says "(Scalar)"
+    my $b := 1;
+    $b.WHAT.say;     # says "(Int)"
+    $b.VAR.WHAT.say; # says "(Int)"
+
+This same thing happens when values are assigned to an element of
+an C<Array>, however, C<List>s directly contain their values:
+
+    my @a = 1,2,3;
+    @a[0].WHAT.say;          # says "(Int)"
+    @a[0].VAR.WHAT.say;      # says "(Scalar)"
+    [1,2,3][0].WHAT.say;     # says "(Int)"
+    [1,2,3][0].VAR.WHAT.say; # says "(Scalar)"
+    (1,2,3)[0].WHAT.say;     # says "(Int)"
+    (1,2,3)[0].VAR.WHAT.say; # says "(Int)"
+
+Array elements may be bound directly to values using C<:=> as well,
+however this is to be discouraged as it may lead to confusion.
+Doing so will break exact round-tripping of C<.perl> output -- since
+C<Array>s are assumed to place C<Scalar>s around each element,
+C<Scalar>s are not denoted with C<$> in the output of C<Array.perl>.
+
+    [1,$(2,3)].perl.say      # says [1, (2, 3)]
+    (1,$(2,3)).perl.say      # says (1, $(2, 3))
+
+Binding a Scalar to a C<$>-sigiled variable replaces the existing
+C<Scalar> in that variable, if any, with the given C<Scalar>.
+That means more than one variable may refer to the same C<Scalar>.
+Because the C<Scalar> may be mutated, this makes it possible to
+alter the value of both variables by altering only one of them:
+
+    my $a = 1;
+    my $b := $a;
+    $b = 2;
+    $a.say;       # says "2"
+
+SSA-style constants bind directly to their value with no
+intervening C<Scalar>, even when C<=>/assignment is used.  They may
+be forced to use a C<Scalar> by assigning a C<$>-sigiled variable
+to them, at which point, they behave entirely like C<$>-sigiled
+variables.
+
+    my \c = 1;
+    c.WHAT.say;              # says "(Int)"
+    c.VAR.WHAT.say;          # says "(Int)"
+    my $a = 1;
+    my \d = $a;              # just "my \d = $ = 1" works, too
+    d.WHAT.say;              # says "(Int)"
+    d.VAR.WHAT.say;          # says "(Scalar)"
+    d = 2;                   # ok
+    c = 2;                   # error, cannot modify an immutable Int
+
+=end pod

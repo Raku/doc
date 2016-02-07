@@ -1,6 +1,5 @@
 #!/usr/bin/env perl6
 use v6;
-use MONKEY-SEE-NO-EVAL;
 
 # This script isn't in bin/ because it's not meant to be installed.
 # For syntax highlighting, needs pygmentize version 2.0 or newer installed
@@ -156,6 +155,11 @@ sub MAIN(
     }
 }
 
+sub extract-pod($file) {
+    use MONKEY-SEE-NO-EVAL;
+    my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+}
+
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     say "Reading doc/$dir ...";
     my @pod-sources =
@@ -176,7 +180,7 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     my $kind  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
-        my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+        my $pod  = extract-pod($file.path);
         process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
     }
 }
@@ -378,6 +382,15 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
+            when :(Pod::FormattingCode $) {
+                my $fc := .[0];
+                proceed unless $fc.type eq "X";
+                @definitions = $fc.meta[0].flat;
+                # set default name if none provide so X<if|control> gets name 'if'
+                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                $unambiguous = True;
+            }
+            # XXX: Remove when extra "" have been purged
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
@@ -402,8 +415,12 @@ sub find-definitions (:$pod, :$origin, :$min-level = -1, :$url) {
                 # The C<Foo> infix
                 @definitions = .[2].words[0], .[1].contents[0];
             }
-            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
+            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
+                @definitions = .[0].words[0], .[1].contents[0];
+            }
+            # XXX: Remove when extra "" have been purged
+            when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
                 @definitions = .[0].words[0], .[1].contents[0];
             }
             default { next }
@@ -643,7 +660,7 @@ sub write-disambiguation-files () {
 sub write-index-files () {
     say 'Writing html/index.html ...';
     spurt 'html/index.html',
-        p2h(EVAL(slurp('doc/HomePage.pod') ~ "\n\$=pod"),
+        p2h(extract-pod('doc/HomePage.pod'),
             pod-path => 'HomePage.pod');
 
     say 'Writing html/language.html ...';

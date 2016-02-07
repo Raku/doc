@@ -28,11 +28,11 @@ You can add new pairs simply by assigning to an unused key:
 =head1 Hash assignment
 
 Assigning a list of elements to a hash variable first empties the variable,
-and then iterates the elements of the right-hand side. If an element is an
-L<Enum> (or a subclass like L<Pair>), its key is taken as a new hash key,
-and its value as the new hash value for that key. Otherwise the value
-is coerced to L<Str> and used as a hash key, while the next element of the
-list is taken as the corresponding value.
+and then iterates the elements of the right-hand side. If an element is a
+L<Pair>, its key is taken as a new hash key, and its value as the new hash
+value for that key. Otherwise the value is coerced to L<Str> and used as a
+hash key, while the next element of the list is taken as the corresponding
+value.
 
     my %h = 'a', 'b', c => 'd', 'e', 'f';
     # same as
@@ -40,7 +40,7 @@ list is taken as the corresponding value.
     # or
     my %h = <a b c d e f>;
 
-If an L<Enum> is encountered where a value is expected, it is used as a
+If a L<Pair> is encountered where a value is expected, it is used as a
 hash value:
 
     my %h = 'a', 'b' => 'c';
@@ -231,6 +231,16 @@ Example:
     %h.push: (a => 1);                  # a => [1,1]
     %h.push: (a => 1) xx 3 ;            # a => [1,1,1,1,1]
     %h.push: (b => 3);                  # a => [1,1,1,1,1], b => 3
+    %h.push('c' => 4);                  # a => [1,1,1,1,1], b => 3, c => 4
+    push %h, 'd' => 5;                  # a => [1,1,1,1,1], b => 3, c => 4, d => 5
+
+Be careful to quote the keys in the last two methods, as these have no effect:
+
+    %h.push(e => 6);
+    push %h, f => 7;
+
+because they are interpreted as named arguments to C<push>, not positional
+arguments.
 
 Also note that push can be used as a replacement for assignment during hash
 initialization very useful ways. Take for instance the case of an inverted
@@ -243,5 +253,42 @@ index:
 Note that such a initialization could also be written as
 
     my %inv .= push: %wc.invert.unique;
+
+=head1 Subscript Adverbs
+
+Some methods are implemented as adverbs on subscripts.
+
+=head2 C<:exists>
+
+The adverb C<:exists> returns C<Bool::True> if a key exists in the Hash. If more then one key is supplied it returns a C<List> of C<Bool>.
+
+	my %h = a => 1, b => 2;
+	say %h<a>:exists;   # True
+	say %h<a b>:exists; # (True True)
+
+=head2 C<:delete>
+
+Use C<:delete> to remove a C<Pair> from the C<Hash>.
+
+	my %h = a => 1; 
+	dd %h;         # Hash %h = {:a(1)}
+	%h<a>:delete; 
+	dd %h;         # Hash %h = {}
+
+=head2 C<:p>
+
+The adverb C<:p> returns a C<Pair> or a List of C<Pair> instead of just the value.
+
+	my %h = a => 1, b => 2;
+	say %h<a>:p;    # a => 1
+	say %h<a b>:p;  # (a => 1 b=> 2)
+
+=head2 C<:v> and C<:k>
+
+The adverbs C<:v> and C<:k> return the key or value or a list their of.
+
+	my %h = a => 1, b => 2;	
+	say %h<a>:k;   # a
+	say %h<a b>:k  # (a b)
 
 =end pod

@@ -111,7 +111,7 @@ L</language/functions#Defining_Operators>.
 
 Meta operators can be parameterized with other operators in the same way as
 functions can take functions as parameters. Perl 6 will generate the actual
-combinded operator in the background, allowing the mechanism to be applied
+combined operator in the background, allowing the mechanism to be applied
 to user defined operators. There are quite a few Meta operators with
 different semantics, as explained in detail as follows.
 
@@ -145,7 +145,7 @@ Although not strictly operators, methods can be used in the same fashion.
 =head2 Negated Relational Operators
 
 The result of a relational operator returning C<Bool> can be negated by
-prefixing with C<!>. To avoid visial confusion with the C<!!> operator,
+prefixing with C<!>. To avoid visual confusion with the C<!!> operator,
 you may not modify any operator already beginning with C<!>.
 
 There are shortcuts for C<!==> and C<!eq>, namely C<!=> and C<ne>.
@@ -163,6 +163,7 @@ There are shortcuts for C<!==> and C<!eq>, namely C<!=> and C<ne>.
 Any infix operator may be called with its two arguments reversed by prefixing
 with C<R>. Associativity of operands is reversed as well.
 
+    say 4 R/ 12; # 3
     say [R/] 2, 4, 16; # 2
 
 =head2 Hyper Operators
@@ -182,23 +183,23 @@ Assignment meta operators can be hyped.
     my @a = 1,2,3;
     say @a »+=» 1; # [2 3 4]
 
-Hyper forms of unary opators have the pointy bit point to the operator and
+Hyper forms of unary operators have the pointy bit point to the operator and
 the blunt end at the list to be operated on.
 
     my @wisdom = True, False, True;
     say !« @wisdom; # [False True False]
-    
+
     my @a = 1,2,3;
     @a»++;          # (2,3,4)
 
-Hyper operators are defined recursivly on nested arrays.
+Hyper operators are defined recursively on nested arrays.
 
     say -« [[1, 2], 3]; # [[-1 -2] -3]
 
-Methods can be called too, in a out of order, cuncurrent fashion. The resulting
+Methods can be called too, in an out of order, concurrent fashion. The resulting
 list is in order. Please note that all hyper operators are candidates for
 autothreading and will cause tears if said methods have side effects. The
-optimizer has full reign over hyper operators, what is the reasion that they
+optimizer has full reign over hyper operators, which is the reason that they
 can not be defined by the user.
 
     my CarefulClass @objs;
@@ -207,7 +208,7 @@ can not be defined by the user.
     my @slops; # May Contain Nuts
     @slops».?this-method-may-not-exist();
 
-Hyper operatos can work with hashes. The pointy direction indicates if missing
+Hyper operators can work with hashes. The pointy direction indicates if missing
 keys are to be ignored in the resulting hash. The enclosed operator operates on
 all values that have keys in both hashes.
 
@@ -219,9 +220,41 @@ C<%foo »+« %bar;>       union of keys
 C<%outer »+» %inner;>   only keys of %inner that exist in %outer will occur in the result
 =end table
 
-    my %outer = 1,2,3 Z=> <a b c>; 
-    my %inner = 1,2 Z=> <x z>; 
+    my %outer = 1,2,3 Z=> <a b c>;
+    my %inner = 1,2 Z=> <x z>;
     say %outer «~» %inner; # {"1" => "ax", "2" => "bz"}
+
+Hyper operators can take user defined operators as its operator argument.
+
+    sub pretty-file-site (Int $size --> Str) {
+        # rounding version of infix:</>(Int,Int)
+        sub infix:<r/>(Int \i1, Int \i2) {
+            round(i1 / i2, 0.1)
+        }
+
+        # we build a vector of fractions of $size and zip that with the fitting prefix
+        for $size «[r/]« (2**60, 2**50, 2**40, 2**30, 2**20, 2**10)
+                  Z      <EB     PB     TB     GB     MB     KB> -> [\v,\suffix] {
+            # starting with the biggest suffix, we take the first that is 0.5 of that suffix or bigger
+            return v ~ ' ' ~ suffix if v > 0.4
+        }
+        # this be smaller or equal then 0.4 KB
+        return $size.Str;
+    }
+
+    for 60, 50, 40, 30, 20, 10 -> $test {
+        my &a = { (2 ** $test) * (1/4, 1/2, 1, 10, 100).pick * (1..10).pick };
+        print pretty-file-site(a.Int) xx 2, ' ';
+    }
+
+    # OUTPUT: «10 EB 4 EB 2 PB 5 PB 0.5 PB 4 TB 300 GB 4.5 GB 50 MB 200 MB 9 KB 0.6 MB»
+
+Hyper operators do not descent into child lists. You can chain hyper operators
+to destructure a List of Lists.
+
+    my $neighbors = ((-1, 0), (0, -1), (0, 1), (1, 0));
+    my $p = (2,3);
+    say $neighbors »>>+<<» ($p, *); # ((1 3) (2 2) (2 4) (3 3))
 
 =head2 Reduction Operators
 
@@ -230,40 +263,48 @@ element by element and return the resulting value.
 
     say [+] 1,2,3; # 6
 
-They can be defined as a list prefix operators or will be generated automatically. 
+They can be defined as a list prefix operators or will be generated automatically.
 
-    multi infix:<[~~]> (@c, &test) is looser(&infix:<~~>) { 
-        gather for @c { take $_ if test($_) } 
-    }; 
-    my @l = 1,'a',2,'b'; 
+    multi infix:<[~~]> (@c, &test) is looser(&infix:<~~>) {
+        gather for @c { take $_ if test($_) }
+    };
+    my @l = 1,'a',2,'b';
     say @l [~~] {$^a ~~ Str}; # (a b)
 
 For list infix operators, flattening is not done on the input list. This
-allowes list operators to become the reduction operator.
+allows list operators to become the reduction operator.
 
     [X~] (1,2), <a b> # 1,2 X~ <a b>
 
 By default reduction meta operators are eager. To lazily generate values,
-prefix the operater with a C<\>. If the non-meta part contains a C<\> already,
-quote it with C<[]> (e.g. C<[\[\x]]>). 
+prefix the operator with a C<\>. If the non-meta part contains a C<\> already,
+quote it with C<[]> (e.g. C<[\[\x]]>).
 
     my $lazy := [\+] 1..*;
     say $lazy[^10]; # (1 3 6 10 15 21 28 36 45 55)
 
 =head2 Cross Operators
-TODO
+
+The cross metaoperator, C<X>, will apply a given infix operator in order of
+cross product to all lists, such that the rightmost operator varies most
+quickly.
+
+    1..3 X~ <a b>
+    # produces <1a, 1b, 2a, 2b, 3a, 3b>
 
 =head2 Zip Operators
 
 The zip metaoperator, C<Z>, will apply a given infix operator to pairs taken
-one left, one right, from it's arguments. The resulting list is returned.
+one left, one right, from its arguments. The resulting list is returned.
 
     my @l = <a b c> Z~ 1,2,3; # [a1 b2 c3]
-    
-If one of the operands runs out of elements prematurely, the zip operator will
-stop. An infinite list can be used to repeat elements.
 
-    my @l = <a b c d> Z~ ':' xx *; [a: b: c: d:] 
+If one of the operands runs out of elements prematurely, the zip operator will
+stop. An infinite list can be used to repeat elements. A list with a final
+element of C<*> will repeat its 2nd last element indefinitely.
+
+    my @l = <a b c d> Z~ ':' xx *; # <a: b: c: d:>
+    my @l = <a b c d> Z~ 1, 2, *;  # <a1 b2 c2 d2>
 
 =head2 Sequential Operators
 
@@ -277,16 +318,16 @@ done by the optimizer. Most simple infix operators are supported.
 To avoid ambiguity when chaining meta operators use square brackets to help the
 compiler to understand you.
 
-    my @a = 1,2,3; 
-    my @b = 5,6,7; 
-    @a X[+=] @b; 
+    my @a = 1,2,3;
+    my @b = 5,6,7;
+    @a X[+=] @b;
     say @a; # [19 20 21]
 
 =head1 Z<>Term Precedence
 
 =head2 circumfix C«< >»
 
-The quote-words construct. Breaks up the contents on whitespace, and returns
+The X<quote-words|qw; quote-words> construct. Breaks up the contents on whitespace, and returns
 a L<List|/type/List> of the words. If a word
 looks like a number literal or a C<Pair> literal, it is converted to the
 appropriate number.
@@ -295,7 +336,7 @@ appropriate number.
 
 =head2 circumfix C«( )»
 
-The grouping operator.
+The X<grouping operator>.
 
 An empty group C<()> creates an empty L<List>.
 Parens around non-empty expressions simply structure the expression, but
@@ -311,7 +352,7 @@ being interpreted as a named argument.
 
 =head2 circumfix C«{ }»
 
-Block or L<Hash> constructor.
+Block or L<Hash> constructor.X<|block constructor; hash constructor>
 
 If the contents looks like a list of pairs and does not use L<$_> or other
 placeholder parameters, returns an itemized L<Hash>.
@@ -325,7 +366,7 @@ the block is executed and coerced to L<Hash>.
 
 =head2 circumfix C«[ ]»
 
-The L<Array> constructor. Returns an itemized L<Array> which does not flatten
+The X<L<Array> constructor>. Returns an itemized L<Array> which does not flatten
 in list context.
 
 =head1 Method Postfix Precedence
@@ -336,7 +377,7 @@ in list context.
                             :$k, :$v, :$kv, :$p, :$exists, :$delete)
 
 Universal interface for positional access to zero or more elements of a
-@container, a.k.a. "array indexing operator".
+@container, a.k.a. "X<array indexing operator|array indexing operator; array subscript operator>".
 
     my @alphabet = 'a' .. 'z';
     say @alphabet[0];                   #-> a
@@ -358,7 +399,7 @@ operator's behavior, and how to implement support for it in custom types.
                             :$k, :$v, :$kv, :$p, :$exists, :$delete)
 
 Universal interface for associative access to zero or more elements of a
-%container, a.k.a. "hash indexing operator".
+%container, a.k.a. "X<hash indexing operator|hash indexing operator; hash subscript operator>".
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     say %color{"banana"};               #-> yellow
@@ -404,7 +445,7 @@ C<{ }> postcircumfix operator at compile-time.
 
 =head2 postcircumfix C«( )»
 
-The call operator. Treats the invocant as a L<Callable> and invokes it,
+The X<call operator>. Treats the invocant as a L<Callable> and invokes it,
 using the expression between the parens as arguments.
 
 Note that an identifier followed by a pair of parens is always parsed as a
@@ -415,20 +456,20 @@ implement a C<method CALL-ME>.
 
 =head2 postfix C«.»
 
-The operator for calling one method, C<$invocant.method>.
+The operator for calling one method, C<$invocant.method>.X<|method call>
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
 =head2 postfix C«.=»
 
-A mutating method call. C<$invocant.=method> desugars to
+A X<mutating method call>. C<$invocant.=method> desugars to
 C<$invocant = $invocant.method>, similar to L<C<op=>>.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
 =head2 postfix C«.^»
 
-A meta-method call. C<$invocant.^method> calls C<method> on C<$invocant>'s
+A X<meta-method call>. C<$invocant.^method> calls C<method> on C<$invocant>'s
 metaclass. It desugars to C<$invocant.HOW.method($invocant, ...)>. See L<C<HOW>>
 for more information.
 
@@ -436,7 +477,7 @@ Technically this is not an operator, but syntax special-cased in the compiler.
 
 =head2 postfix C«.?»
 
-Potential method calls. C<$invocant.?method> calls method C<method> on
+X<Potential method call>s. C<$invocant.?method> calls method C<method> on
 C<$invocant> if it has a method of such name. Otherwise it returns L<Nil>.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
@@ -458,7 +499,7 @@ Technically this is not an operator, but syntax special-cased in the compiler.
 
 =head2 postfix C<».> / postfix C«>>.»
 
-Hyper method call operator will call a method on all elements of a C<List> out of order and return the list of return values in order.
+X<Hyper method call operator>. Will call a method on all elements of a C<List> out of order and return the list of return values in order.
 
     my @a = <a b c>;
     @a».say;                          # a␤b␤c␤
@@ -496,6 +537,7 @@ method call.
     1.i # No such method 'i' for invocant of type 'Int'
 
 Technically this is not an operator, but syntax special-cased in the compiler.
+X<|postfix call>
 
 =head2 postfix C«.:<prefix>»
 
@@ -506,10 +548,11 @@ A prefix can be called like a method using colonpair notation. For example:
     say $a.:<++>; # 3
 
 Technically this is not an operator, but syntax special-cased in the compiler.
+X<|prefix call>
 
 =head2 postfix C«.::»
 
-A class-qualified method call, used to call a method as defined in a parent
+A X<class-qualified method call>, used to call a method as defined in a parent
 class or role, even after it has been redefined in the child class.
 
     class Bar {
@@ -526,7 +569,7 @@ class or role, even after it has been redefined in the child class.
 
     multi sub prefix:<++>($x is rw) is assoc<none>
 
-Increments its argument by one, and returns the incremented value.
+Increments its argument by one, and returns the incremented value.X<|increment operator>
 
     my $x = 3;
     say ++$x;       # 4
@@ -540,7 +583,7 @@ semantics.
 
     multi sub prefix:<-->($x is rw) is assoc<none>
 
-Decrements its argument by one, and returns the decremented value.
+Decrements its argument by one, and returns the decremented value.X<|decrement operator>
 
     my $x = 3;
     say --$x;       # 2
@@ -555,7 +598,7 @@ semantics.
 
     multi sub postfix:<++>($x is rw) is assoc<none>
 
-Increments its argument by one, and returns the unincremented value.
+Increments its argument by one, and returns the unincremented value.X<|increment operator>
 
     my $x = 3;
     say $x++;       # 3
@@ -576,7 +619,7 @@ undefined values, it returns 0:
 
     multi sub postfix:<-->($x is rw) is assoc<none>
 
-Decrements its argument by one, and returns the undecremented value.
+Decrements its argument by one, and returns the undecremented value.X<|decrement operator>
 
     my $x = 3;
     say $x--;       # 3
@@ -599,7 +642,7 @@ undefined values, it returns 0:
 
     multi sub infix:<**>(Any, Any) returns Numeric:D is assoc<right>
 
-The exponentiation operator coerces both arguments to L<Numeric>
+The X<exponentiation operator> coerces both arguments to L<Numeric>
 and calculates the left-hand-side raised to the power of the right-hand side.
 
 If the right-hand side is a non-negative integer and the left-hand side
@@ -612,7 +655,7 @@ is carried out without loss of precision.
 
     multi sub prefix:<?>(Mu) returns Bool:D
 
-Boolean context operator.
+X<Boolean context operator>.
 
 Coerces the argument to L<Bool> by calling the C<Bool> method on it.
 Note that this collapses L<Junction>s.
@@ -621,7 +664,7 @@ Note that this collapses L<Junction>s.
 
     multi sub prefix:<!>(Mu) returns Bool:D
 
-Negated boolean context operator.
+X<Negated boolean context operator>.
 
 Coerces the argument to L<Bool> by calling the C<Bool> method on it,
 and returns the negation of the result.
@@ -631,7 +674,7 @@ Note that this collapses L<Junction>s.
 
     multi sub prefix:<+>(Any) returns Numeric:D
 
-Numeric context operator.
+X<Numeric context operator>.
 
 Coerces the argument to L<Numeric> by calling the C<Numeric> method on it.
 
@@ -639,7 +682,7 @@ Coerces the argument to L<Numeric> by calling the C<Numeric> method on it.
 
     multi sub prefix:<->(Any) returns Numeric:D
 
-Negative numeric context operator.
+X<Negative numeric context operator>.
 
 Coerces the argument to L<Numeric> by calling the C<Numeric> method on it,
 and then negates the result.
@@ -648,14 +691,14 @@ and then negates the result.
 
     multi sub prefix:<->(Any) returns Str:D
 
-String context operator.
+X<String context operator>.
 
 Coerces the argument to L<Str> by calling the C<Str> method on it.
 
 =head2 prefix C«|»
 
-Flattens objects of type L<Capture>, L<Enum>, L<Pair>, L<List>
-L<Map> and L<Hash> into an argument list.
+Flattens objects of type L<Capture>, L<Pair>, L<List> L<Map> and L<Hash>
+into an argument list.
 
 Outside of argument lists, it returns a L<Slip|/type/Slip>, which makes it
 flatten into the outer list.
@@ -664,7 +707,7 @@ flatten into the outer list.
 
     multi sub prefix:<+^>(Any) returns Int:D
 
-Integer bitwise negation.
+X<Integer bitwise negation operator>.
 
 Coerces the argument to L<Int> and does a bitwise negation on the result,
 assuming L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>.
@@ -673,7 +716,7 @@ assuming L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>.
 
     multi sub prefix:<?^>(Mu) returns Bool:D
 
-Boolean bitwise negation.
+X<Boolean bitwise negation operator>.
 
 Coerces the argument to L<Bool> and then does a bit flip, which makes it the
 same as C<< prefix:<!> >>.
@@ -682,7 +725,7 @@ same as C<< prefix:<!> >>.
 
     multi sub prefix:<^>(Any) returns Range:D
 
-I<upto> operator.
+I<upto> operator.X<|upto operator>
 
 Coerces the argument to L<Numeric>, and generates a range from 0 up to (but
 excluding) the argument.
@@ -696,12 +739,16 @@ excluding) the argument.
 
     multi sub infix:<*>(Any, Any) returns Numeric:D
 
+X<Multiplication operator>.
+
 Coerces both arguments to L<Numeric> and multiplies them. The result
 is of the wider type. See L<Numeric> for details.
 
 =head2 infix C«/»
 
     multi sub infix:</>(Any, Any) returns Numeric:D
+
+X<Division operator>.
 
 Coerces both argument to L<Numeric> and divides the left through the right
 number. Division of L<Int> values returns L<Rat>, otherwise the "wider type"
@@ -711,13 +758,13 @@ rule described in L<Numeric> holds.
 
     multi sub infix:<div>(Int:D, Int:D) returns Int:D
 
-Integer division. Rounds down.
+X<Integer division operator>. Rounds down.
 
 =head2 infix C«%»
 
     multi sub infix:<%>($x, $y) return Numeric:D
 
-Modulo operator. Coerces to L<Numeric> first.
+X<Modulo operator>. Coerces to L<Numeric> first.
 
 Generally the following identity holds:
 
@@ -727,45 +774,45 @@ Generally the following identity holds:
 
     multi sub infix:<%%>($a, $b) returns Bool:D
 
-Divisibility operator. Returns C<True> if C<$a %  $b == 0>.
+X<Divisibility operator>. Returns C<True> if C<$a %  $b == 0>.
 
 =head2 infix C«mod»
 
     multi sub infix:<mod>(Int:D $a, Int:D $b) returns Int:D
 
-Integer modulo operator. Returns the remainder of an integer modulo operation.
+X<Integer modulo operator>. Returns the remainder of an integer modulo operation.
 
 =head2 infix C«+&»
 
     multi sub infix:<+&>($a, $b) returns Int:D
 
-Numeric bitwise I<AND>. Coerces both arguments to L<Int> and does a bitwise
-I<AND> operation assuming two's complement.
+Numeric bitwise I<AND> operator. Coerces both arguments to L<Int> and does a bitwise
+I<AND> operation assuming two's complement.X<|Numeric bitwise AND operator>
 
 =head2 infix C«+<»
 
     multi sub infix:<< +< >>($a, $b) returns Int:D
 
-Integer bit shift to the left.
+Integer bit shift to the left.X<|integer bit shift operator, left>
 
 =head2 infix C«+>»
 
     multi sub infix:<< +> >>($a, $b) returns Int:D
 
-Integer bit shift to the right.
+Integer bit shift to the right.X<|integer bit shift operator, right>
 
 =head2 infix C«gcd»
 
     multi sub infix:<gcd>($a, $b) returns Int:D
 
-Coerces both arguments to L<Int> and returns the greatest common denominator.
+Coerces both arguments to L<Int> and returns the greatest common denominator.X<|greatest commmon demnominator operator>
 
 =head2 infix C«lcm»
 
     multi sub infix:<lcm>($a, $b) returns Int:D
 
 Coerces both arguments to L<Int> and returns the least common multiple, that is
-the smallest integer that is evenly divisible by both arguments.
+the smallest integer that is evenly divisible by both arguments.X<|least common multiple operator>
 
 =head1 Additive Precedence
 
@@ -773,11 +820,15 @@ the smallest integer that is evenly divisible by both arguments.
 
     multi sub infix:<+>($a, $b) returns Numeric:D
 
+X<Addition operator>.
+
 Coerces both arguments to L<Numeric> and adds them.
 
 =head2 infix C«-»
 
     multi sub infix:<->($a, $b) returns Numeric:D
+
+X<Subtraction operator>.
 
 Coerces both arguments to L<Numeric> and subtracts the second from the
 first.
@@ -786,6 +837,8 @@ first.
 
     multi sub infix:<+|>($a, $b) returns Int:D
 
+X<Integer bitwise OR operator>.
+
 Coerces both arguments to L<Int> and does a bitwise I<OR> (inclusive OR)
 operation.
 
@@ -793,12 +846,16 @@ operation.
 
     multi sub infix:<+^>($a, $b) returns Int:D
 
+X<Integer bitwise XOR operator>.
+
 Coerces both arguments to L<Int> and does a bitwise I<XOR> (exclusive OR)
 operation.
 
 =head2 infix C«?|»
 
     multi sub infix:<?|>($a, $b) returns Bool:D
+
+X<Boolean logical OR operator>.
 
 Coerces both arguments to L<Bool> and does a logical I<OR> (inclusive OR)
 operation.
@@ -811,6 +868,8 @@ operation.
     multi sub infix:<x>(Any, Any)
     multi sub infix:<x>(Str:D, Int:D)
 
+X<String repetition operator>.
+
 Coerces C<$a> to L<Str> and C<$b> to L<Int> and repeats the string C<$b>
 times. Return the empty string if C<< $b <= 0 >>.
 
@@ -820,6 +879,9 @@ times. Return the empty string if C<< $b <= 0 >>.
 =head2 infix C«xx»
 
     multi sub infix:<xx>($a, $b) returns List:D
+
+
+X<List repetition operator>.
 
 Returns a list of C<$a> repeated and evaluated C<$b> times (C<$b> is coerced
 to L<Int>). If C<< $b <= 0 >>, the empty list is returned.
@@ -845,6 +907,8 @@ is returned.
     multi sub infix:<~>(Any,   Any)
     multi sub infix:<~>(Str:D, Str:D)
 
+X<String concatenation operator>.
+
 Coerces both arguments to L<Str> and concatenates them.
 
     say 'ab' ~ 'c';     # abc
@@ -855,6 +919,8 @@ Coerces both arguments to L<Str> and concatenates them.
 
     multi sub infix:<&>($a, $b) returns Junction:D is assoc<list>
 
+X<All junction operator>.
+
 Creates an I<all> L<Junction> from its arguments. See L<Junction> for more
 details.
 
@@ -864,12 +930,16 @@ details.
 
     multi sub infix:<|>($a, $b) returns Junction:D is assoc<list>
 
+X<Any junction operator>.
+
 Creates an I<any> L<Junction> from its arguments. See L<Junction> for more
 details.
 
 =head2 infix C«^»
 
     multi sub infix:<^>($a, $b) returns Junction:D is assoc<list>
+
+X<One junction operator>.
 
 Creates a I<one> L<Junction> from its arguments. See L<Junction> for more
 details.
@@ -939,10 +1009,9 @@ to act like a role, for example enum values.
     multi sub infix:<cmp>(Any,       Any)
     multi sub infix:<cmp>(Real:D,    Real:D)
     multi sub infix:<cmp>(Str:D,     Str:D)
-    multi sub infix:<cmp>(Enum:D,    Enum:D)
     multi sub infix:<cmp>(Version:D, Version:D)
 
-Generic, "smart" three-way comparator.
+X<Generic, "smart" three-way comparator>.
 
 Compares strings with string semantics, numbers
 with number semantics, L<Pair> objects first by key and then by value etc.
@@ -959,7 +1028,7 @@ if C<$a eqv $b>, then C<$a cmp $b> always returns C<Order::Same>.
     multi sub infix:<leg>(Any,   Any)
     multi sub infix:<leg>(Str:D, Str:D)
 
-String three-way comparator. Short for I<less, equal or greater?>.
+X<String three-way comparator>. Short for I<less, equal or greater?>.
 
 Coerces both arguments to L<Str>, and then does a lexicographic comparison.
 
@@ -971,7 +1040,7 @@ Coerces both arguments to L<Str>, and then does a lexicographic comparison.
 
     multi sub infix:«<=>»($a, $b) returns Order:D is assoc<none>
 
-Numeric three-way comparator.
+X<Numeric three-way comparator>.X<|spaceship operator>
 
 Coerces both arguments to L<Real>, and then does a numeric comparison.
 
@@ -979,11 +1048,15 @@ Coerces both arguments to L<Real>, and then does a numeric comparison.
 
     multi sub infix:<..>($a, $b) returns Range:D is assoc<none>
 
+X<Range operator>
+
 Constructs a L<Range> from the arguments.
 
 =head2 infix C«..^»
 
     multi sub infix:<..^>($a, $b) returns Range:D is assoc<none>
+
+X<Right-open range operator>.
 
 Constructs a L<Range> from the arguments, excluding the end point.
 
@@ -991,12 +1064,15 @@ Constructs a L<Range> from the arguments, excluding the end point.
 
     multi sub infix:<^..>($a, $b) returns Range:D is assoc<none>
 
-Constructs a L<Range> from the arguments, excluding the start point.
+X<Left-open range operator>.
 
+Constructs a L<Range> from the arguments, excluding the start point.
 
 =head2 infix C«^..^»
 
     multi sub infix:<^..^>($a, $b) returns Range:D is assoc<none>
+
+X<Open range operator>
 
 Constructs a L<Range> from the arguments, excluding both start and end point.
 
@@ -1013,12 +1089,16 @@ Constructs a L<Range> from the arguments, excluding both start and end point.
     multi sub infix:<==>(Complex:D, Complex:D)
     multi sub infix:<==>(Numeric:D, Numeric:D)
 
+X<Numeric equality operator>.
+
 Coerces both arguments to L<Numeric> if necessary, and returns C<True>
 if they are equal.
 
 =head2 infix C«!=»
 
     proto sub infix:<!=>(Mu, Mu) returns Bool:D is assoc<chain>
+
+X<Numeric inequality operator>.
 
 Coerces both arguments to L<Numeric> (if necessary), and returns C<True> if they are
 distinct.
@@ -1030,6 +1110,8 @@ distinct.
     multi sub infix:«<»(Num:D, Num:D)
     multi sub infix:«<»(Real:D, Real:D)
 
+X<Numeric less than operator>.
+
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if the first argument
 is smaller than the second.
 
@@ -1039,6 +1121,9 @@ is smaller than the second.
     multi sub infix:«<=»(Int:D, Int:D)
     multi sub infix:«<=»(Num:D, Num:D)
     multi sub infix:«<=»(Real:D, Real:D)
+
+
+X<Numeric less than or equal to operator>.
 
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if the first argument
 is smaller than or equal to the second.
@@ -1051,6 +1136,8 @@ is smaller than or equal to the second.
     multi sub infix:«>»(Num:D, Num:D)
     multi sub infix:«>»(Real:D, Real:D)
 
+X<Numeric greater than operator>.
+
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if the first argument
 is larger than the second.
 
@@ -1061,6 +1148,8 @@ is larger than the second.
     multi sub infix:«>=»(Num:D, Num:D)
     multi sub infix:«>=»(Real:D, Real:D)
 
+X<Numeric less than or equal to operator>.
+
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if
 the first argument is larger than or equal to the second.
 
@@ -1069,6 +1158,8 @@ the first argument is larger than or equal to the second.
     proto sub infix:<eq>(Any, Any) returns Bool:D is assoc<chain>
     multi sub infix:<eq>(Any,   Any)
     multi sub infix:<eq>(Str:D, Str:D)
+
+X<String equality operator>.
 
 Coerces both arguments to L<Str> (if necessary), and returns C<True> if both
 are equal.
@@ -1081,6 +1172,8 @@ Mnemonic: I<equal>
     multi sub infix:<ne>(Mu,    Mu)
     multi sub infix:<ne>(Str:D, Str:D)
 
+X<String inequality operator>.
+
 Coerces both arguments to L<Str> (if necessary), and returns C<False> if both
 are equal.
 
@@ -1091,6 +1184,8 @@ Mnemonic: I<not equal>
     proto sub infix:<gt>(Mu, Mu) returns Bool:D is assoc<chain>
     multi sub infix:<gt>(Mu,    Mu)
     multi sub infix:<gt>(Str:D, Str:D)
+
+X<String greater than operator>.
 
 Coerces both arguments to L<Str> (if necessary), and returns C<True> if
 the first is larger than the second, as determined by lexicographic
@@ -1104,6 +1199,8 @@ Mnemonic: I<greater than>
     multi sub infix:<ge>(Mu,    Mu)
     multi sub infix:<ge>(Str:D, Str:D)
 
+X<String greater than or equal to operator>.
+
 Coerces both arguments to L<Str> (if necessary), and returns C<True> if
 the first is equal to or larger than the second, as determined by lexicographic
 comparison.
@@ -1115,6 +1212,8 @@ Mnemonic: I<greater or equal>
     proto sub infix:<lt>(Mu, Mu) returns Bool:D is assoc<chain>
     multi sub infix:<lt>(Mu,    Mu)
     multi sub infix:<lt>(Str:D, Str:D)
+
+X<String less than operator>.
 
 Coerces both arguments to L<Str> (if necessary), and returns C<True> if
 the first is smaller than the second, as determined by lexicographic
@@ -1128,6 +1227,8 @@ Mnemonic: I<less than>
     multi sub infix:<le>(Mu,    Mu)
     multi sub infix:<le>(Str:D, Str:D)
 
+X<String less than or equal to operator>.
+
 Coerces both arguments to L<Str> (if necessary), and returns C<True> if
 the first is equal to or smaller than the second, as determined by lexicographic
 comparison.
@@ -1140,7 +1241,6 @@ Mnemonic: I<less or equal>
     multi sub infix:<before>(Any,       Any)
     multi sub infix:<before>(Real:D,    Real:D)
     multi sub infix:<before>(Str:D,     Str:D)
-    multi sub infix:<before>(Enum:D,    Enum:D)
     multi sub infix:<before>(Version:D, Version:D)
 
 Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
@@ -1152,7 +1252,6 @@ Returns C<True> if the first argument is smaller than the second.
     multi sub infix:<after>(Any,       Any)
     multi sub infix:<after>(Real:D,    Real:D)
     multi sub infix:<after>(Str:D,     Str:D)
-    multi sub infix:<after>(Enum:D,    Enum:D)
     multi sub infix:<after>(Version:D, Version:D)
 
 Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
@@ -1163,7 +1262,7 @@ Returns C<True> if the first argument is larger than the second.
     proto sub infix:<eqv>(Any, Any) returns Bool:D is assoc<chain>
     proto sub infix:<eqv>(Any, Any)
 
-Equivalence operator. Returns C<True> if the two arguments are structurally
+X<Equivalence operator>. Returns C<True> if the two arguments are structurally
 the same, i.e. from the same type and (recursively) contain the same values.
 
     say [1, 2, 3] eqv [1, 2, 3];        # True
@@ -1194,7 +1293,7 @@ implement an appropriate infix C<eqv> operator:
     proto sub infix:<===>(Any, Any) returns Bool:D is assoc<chain>
     proto sub infix:<===>(Any, Any)
 
-Value identity. Returns C<True> if both arguments are the same object.
+X<Value identity operator>. Returns C<True> if both arguments are the same object.
 
     class A { };
     my $a = A.new;
@@ -1218,7 +1317,7 @@ types must override method C<WHICH>.
     proto sub infix:<=:=>(Mu \a, Mu \b) returns Bool:D is assoc<chain>
     multi sub infix:<=:=>(Mu \a, Mu \b)
 
-Container identity. Returns L<True> if both arguments are bound to the same
+X<Container identity operator>. Returns L<True> if both arguments are bound to the same
 container. If it returns C<True>, it generally means that modifying one will
 also modify the other.
 
@@ -1233,7 +1332,7 @@ also modify the other.
 
 =head2 infix C«~~»
 
-The smart-match operator. Aliases the left-hand side to C<$_>, then evaluates
+The X<smart-match operator>. Aliases the left-hand side to C<$_>, then evaluates
 the right-hand side, and calls C<.ACCEPTS($_)> on it. The semantics are left
 to the type of the right-hand side operand.
 
@@ -1297,7 +1396,7 @@ second, no matter how many more true values there are. (In other words, it has
 
 =head2 infix C«//»
 
-Defined-or operator. Returns the first defined operand, or else the last
+X<Defined-or operator>. Returns the first defined operand, or else the last
 operand. Short-circuits.
 
     say Any // 0 // 42;         # 0
@@ -1318,7 +1417,7 @@ Returns the largest of the arguments, as determined by L<cmp> semantics.
 
 =head2 infix C<?? !!>
 
-Ternary operator, conditional operator.
+X<Ternary operator>, X<conditional operator>.
 
 C<$condition ?? $true !! $false> evaluates and returns the expression from the
 C<$true> branch if C<$condition> is a true value. Otherwise it evaluates and
@@ -1328,7 +1427,7 @@ returns the C<$false> branch.
 
     sub infix:<ff>(Mu $a, Mu $b)
 
-Flipflop operator.
+X<Flipflop operator>.
 
 Compares both arguments to C<$_> (that is, C<$_ ~~ $a> and C<$_ ~~
 $b>). Evaluates to C<False> until the left-hand smartmatch is C<True>, at which
@@ -1495,7 +1594,7 @@ This operator cannot be overloaded, as it is handled specially by the compiler.
 
     sub infix:<=>(Mu $a is rw, Mu $b)
 
-Item assignment.
+X<Item assignment operator>.
 
 Places the value of the right-hand side into the container on the left-hand
 side. Its exact semantics are left to the container type on the left-hand side.
@@ -1508,7 +1607,7 @@ C<=> is parsed as item assignment or list assignment operator).
 
     sub infix:«=>»($key, Mu $value) returns Pair:D
 
-L<Pair> constructor.
+L<Pair> constructor.X<|pair constructor>
 
 Constructs a L<Pair> object with the left-hand side as the key and the
 right-hand side as the value.
@@ -1568,7 +1667,7 @@ other positions it is a syntax error.
 
     sub infix:<Z>(**@lists) returns List:D is assoc<chain>
 
-Zip operator.
+X<Zip operator>.
 
 Interleaves the lists passed to C<Z> like a zipper, stopping as soon as
 the first input list is exhausted:
@@ -1587,7 +1686,7 @@ list:
     sub infix:<X>(**@lists) returns List:D is assoc<chain>
 
 Creates a cross product from all the lists, order so that the rightmost
-elements vary most rapidly
+elements vary most rapidly:X<|cross product operator>
 
     1..3 X <a b c> X 9
     # produces ((1 a 9) (1 b 9) (1 c 9)
@@ -1606,7 +1705,7 @@ list:
     multi sub infix:<...>(**@) is assoc<list>
     multi sub infix:<...^>(**@) is assoc<list>
 
-The sequence operator is a generic operator to produce lazy lists.
+The X<sequence operator> is a generic operator to produce lazy lists.
 
 It can have initial elements and a generator on left-hand side, and an
 endpoint on the right-hand side.
@@ -1671,7 +1770,7 @@ well, so the are also checked against the endpoint:
 
 =head2 infix C«=»
 
-List assignment. Its exact semantics are left to the container type on the
+X<List assignment operator>. Its exact semantics are left to the container type on the
 left-hand side. See L<Array> and L<Hash> for common cases.
 
 The distinction between item assignment and list assignment is determined by
@@ -1679,7 +1778,7 @@ the parser depending on the syntax of the left-hand side.
 
 =head2 infix C«:=»
 
-Binding. Whereas C<$x = $y> puts the value in C<$y> into C<$x>, C<$x :=
+X<Binding operator>. Whereas C<$x = $y> puts the value in C<$y> into C<$x>, C<$x :=
 $y> makes C<$x> and C<$y> the same thing.
 
     =for code :allow<B L>
@@ -1703,7 +1802,7 @@ object.
 
 =head2 infix C«::=»
 
-Read-only binding. See L<C<infix :=>|:=>.
+X<Read-only binding operator>. See L<C<infix :=>|:=>.
 
 =head2 listop C«...»
 
@@ -1717,6 +1816,8 @@ message C<stub code executed>.
 
 =head2 listop C«!!!»
 
+X<Fatal stub operator>.
+
 If it is the only
 statement in a routine or type, it marks that routine or type as a stub
 (which is significant in the context of pre-declaring types and composing
@@ -1726,6 +1827,8 @@ If the C<!!!> statement is executed, it calls L<&die>, with the default
 message C<stub code executed>.
 
 =head2 listop C«???»
+
+X<Admonitory stub operator>.
 
 If it is the only
 statement in a routine or type, it marks that routine or type as a stub

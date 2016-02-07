@@ -1,5 +1,7 @@
 #!/usr/bin/env perl6
 use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+use JSON::Fast;
+use Panda::Installer;
 
 my $PROGRAM-NAME="p6doc";
 
@@ -40,9 +42,15 @@ sub module-names(Str $modulename) {
 }
 
 sub locate-module(Str $modulename) {
-    my @candidates = (search-paths() X~ module-names($modulename).list);
+    my @candidates = (search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list);
     DEBUG and warn :@candidates.perl;
     my $m = @candidates.first: *.IO.f;
+
+    unless $m.defined {
+        # not "core" pod now try for panda installed module XXX not zef
+        $m = locate-curli-module($modulename);
+    }
+
     unless $m.defined {
         my $message = join "\n",
             "Cannot locate $modulename in any of the following paths:",
@@ -52,60 +60,75 @@ sub locate-module(Str $modulename) {
     return $m;
 }
 
-sub show-docs(Str $path, :$section) {
-    my $pager = %*ENV<PAGER> // ($*DISTRO.name eq 'mswin32' ?? 'more' !! 'less');
-    my $which-fmt = qq:x{which fmt}.chomp;
-    my $fmt-string = $which-fmt.IO.e ?? "| $which-fmt -w 80 " !! "";
+sub show-docs(Str $path, :$section, :$no-pager) {
+    my $pager;
+    $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less') unless $no-pager;
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ )  {
         say "No Pod found in $path";
         return;
     }
+    my $doc-command-str = "$*EXECUTABLE-NAME";
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
-        say "launching '$*EXECUTABLE-NAME -I$i --doc=SectionFilter $path $fmt-string | $pager'" if DEBUG;
-        shell "$*EXECUTABLE-NAME -I$i --doc=SectionFilter $path $fmt-string | $pager";
+        $doc-command-str ~= " -IFakeDir -I$i --doc=SectionFilter"
+    } else {
+        $doc-command-str ~= " -IFakeDir --doc"
     }
-    else {
-        shell "$*EXECUTABLE-NAME --doc $path $fmt-string | $pager";
-    }
+    $doc-command-str ~= " $path ";
+    $doc-command-str ~= " | $pager" if $pager;
+    say "launching '$doc-command-str'" if DEBUG;
+    shell $doc-command-str;
 }
 
 multi sub MAIN() {
-    my $me = $PROGRAM-NAME.IO.basename;
+    my $me = $PROGRAM-NAME;
 
     say 'What documentation do you want to read?';
-    say "Examples: $me Type::Str";
-    say "          $me Type::Str.split";
+    say "Examples: $me Str";
+    say "          $me Str.split";
+    say "          $me faq";
+
+    say "\nYou can list some top level documents:";
+    say "          $me -l";
 
     say "\nYou can also look up specific method/routine definitions:";
     say "          $me -f push";
+
+    say "\nYou can bypass the pager and print straight to stdout:";
+    say "          $me -n Str"
 }
 
-multi sub MAIN($docee) {
-    return MAIN($docee, :f) if defined $docee.index('.') ;
-    if INDEX.IO ~~ :e {
-        my %data = EVALFILE INDEX;
-        if %data{$docee} {
-            my $newdoc = %data{$docee}[0][0];
-            return MAIN($newdoc);
+multi sub MAIN($docee, Bool :$n) {
+    return MAIN($docee, :f, :$n) if defined $docee.index('.') ;
+    show-docs(locate-module($docee), :no-pager($n));
+}
+
+multi sub MAIN(Bool :$l!) {
+    my @paths = search-paths() X~ <Type/ Language/> ;
+    my @modules;
+    for @paths -> $dir {
+        for dir($dir).sort -> $file {
+            @modules.push: $file.basename.Str.subst('.pod','');
         }
     }
-    show-docs(locate-module($docee));
+    @modules.append: get-panda-modules(); 
+    .say for @modules.sort;
 }
 
-multi sub MAIN($docee, Bool :$f!) {
+multi sub MAIN($docee, Bool :$f!, Bool :$n) {
     my ($package, $method) = $docee.split('.');
     if ! $method {
         my %hits;
         if INDEX.IO ~~ :e {
+
             my %data = EVALFILE INDEX;
 
             my $final-docee = disambiguate-f-search( $docee, %data );
             ($package, $method) = $final-docee.split('.');
 
             my $m = locate-module($package);
-            show-docs($m, :section($method));
+            show-docs($m, :section($method), :no-pager($n));
         } else {
             say 'In order to use unqualified sub and method names like "p6doc -f say"';
             say 'you will need to run "p6doc-index build" to build index.data.';
@@ -114,8 +137,12 @@ multi sub MAIN($docee, Bool :$f!) {
         }
     } else {
         my $m = locate-module($package);
-        show-docs($m, :section($method));
+        show-docs($m, :section($method), :no-pager($n));
     }
+}
+
+multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
+    show-docs($file, :no-pager($n));
 }
 
 sub disambiguate-f-search( $docee, %data ) {
@@ -125,8 +152,9 @@ sub disambiguate-f-search( $docee, %data ) {
         my $ndocee = $pref ~ " " ~ $docee;
 
         if %data{$ndocee} {
-            my @types = %data{$ndocee}.values>>.Str.grep({ $^v ~~ /^ 'Type' / and not $^v ~~ / 'Cool' $ / });
+            my @types = %data{$ndocee}.values>>.Str.grep({ $^v ~~ /^ 'Type' / });
             @types = [gather @types.deepmap(*.take)].unique.list;
+            @types.=grep({!/$pref/});
             %found{$ndocee}.push: @types X~ "." ~ $docee;
         }
     }
@@ -143,7 +171,7 @@ sub disambiguate-f-search( $docee, %data ) {
 
         my %options;
         for %found.keys -> $key {
-            %options{$key}.push: %found{$key}>>.subst(/^'Type::'/, '');
+            %options{$key}.push: %found{$key};
         }
 
         # 's' => Type::Supply.grep, ... | and we specifically want the %found values,
@@ -194,6 +222,23 @@ sub prompt-with-options( %options, %found ) {
         }
     }
     return $final-docee;
+}
+
+sub locate-curli-module($module) {
+    my $cu = $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
+    return ~  $cu.repo.prefix.child('sources/' ~ $cu.distribution.provides{$module}.values[0]<file>).Str;
+}
+
+sub get-panda-modules {
+    my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
+    my @modules;
+    for $state.IO.lines -> $line {
+        my (Any, $json ) = $line.split(/'installed '|'installed-dep '/);
+        my $state = from-json $json;
+        @modules.append: $state<provides>.keys.list;
+    }
+
+    return @modules;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

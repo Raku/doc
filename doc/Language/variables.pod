@@ -10,18 +10,16 @@ I<identifier>.
 
 =head1 Sigils
 
-The sigil serves both as a rough type constraint and as an indicator as to
-whether the contents of the variable flatten in list context. See also the
-documentation in L<List>.
+The sigil serves as a variable indicator and type constraint.
 
 =begin table
 
-    Sigil   Type constraint          Default type  Flattens  Assignment
-    =====   ===============          ============  ========  ==========
-    $       Mu (no type constraint)  Any           No        item
-    &       Callable                 Callable      No        item
-    @       Positional               Array         Yes       list
-    %       Associative              Hash          Yes       list
+    Sigil   Type constraint          	Default type  Assignment  Examples
+    =====   ===============          	============  ==========  ========
+    $       Mu (no type constraint)  	Any           item        Int, Str, Array, Hash
+    @       Positional               	Array         list        List, Array, Range, Buf
+    %       Associative              	Hash          list        Hash, Map, Pair
+    &       Callable                  Callable      item        Sub, Method, Block, Routine
 
 =end table
 
@@ -121,7 +119,7 @@ Sigilless variables do not enforce context, so they can be used to pass
 something on as-is:
 
     sub logged(&f, |args) {
-        say('Calling ' ~ &f.name ~ ' with arguments ' ~ args.perL)
+        say('Calling ' ~ &f.name ~ ' with arguments ' ~ args.perl)
         my \result = f(|args);
         #  ^^^^^^^ not enforcing any context here
         say(&f.name ~ ' returned ' ~ result.perl)
@@ -139,15 +137,16 @@ only depends on the C<$>.
 
     Twigil  Scope
     ======  =====
-     *      dynamic
-     !      attribute (class member)
-     ?      compile-time variable
-     .      method (not really a variable)
-     <      index into match object (not really a variable)
-     ^      self-declared formal positional parameter
-     :      self-declared formal named parameter
+     none   Based only on declarator
+     *      Dynamic
+     !      Attribute (class member)
+     ?      Compile-time variable
+     .      Method (not really a variable)
+     <      Index into match object (not really a variable)
+     ^      Self-declared formal positional parameter
+     :      Self-declared formal named parameter
      =      Pod variables
-     ~      the sublanguage seen by the parser at this lexical spot
+     ~      The sublanguage seen by the parser at this lexical spot
 
 =end table
 
@@ -191,7 +190,7 @@ C<$*dynamic2> is still C<101>. This stems from the fact that we declared a
 new dynamic variable C<$*dynamic1> in the block and did not assign to the
 old variable as we did with C<$*dynamic2>.
 
-The dynamic variables differ from other variable types in that refering
+The dynamic variables differ from other variable types in that referring
 to an undeclared dynamic variable is not a compile time error but a
 runtime L<failure|/type/Failure>, so a dynamic variable can be used
 undeclared as long as it is checked for definedness or used in a
@@ -301,7 +300,7 @@ that block. So the block in the code
 
     =for code :allow<B>
     for ^4 {
-        say "B<$^second> follows B<$^first>";
+        say "B<$^b> follows B<$^a>";
     }
 
 which prints
@@ -309,12 +308,15 @@ which prints
     1 follows 0
     3 follows 2
 
-has two formal parameters, namely C<$first> and C<$second>. Note that even
-though C<$^second> appears before C<$^first> in the code, C<$^first> is
-still the first formal parameter to that block. This is because the
-placeholder variables are sorted in Unicode order. If you have self-declared
-a parameter using C<$^a> once, you may refer to it using only C<$a>
-thereafter.
+has two formal parameters, namely C<$a> and C<$b>. Note that even though C<$^b>
+appears before C<$^a> in the code, C<$^a> is still the first formal parameter
+to that block. This is because the placeholder variables are sorted in Unicode
+order. If you have self-declared a parameter using C<$^a> once, you may refer
+to it using only C<$a> thereafter.
+
+Although it is possible to use nearly any valid identifier as a placeholder
+variable, it's recommended to use short names or ones that can be trivially
+understood in the correct order, to avoid surprise on behalf of the reader.
 
 Subroutines may also make use of placeholder variables but only if they do
 not have an explicit parameter list. This is true for normal blocks too.
@@ -774,28 +776,38 @@ L<function|/language/functions>).
 Like C<my>, C<temp> restores the old value of a variable at the end of its
 scope. However, C<temp> does not create a new variable.
 
-=begin code
-my $cookies = 5;
+    my $in = 0; # temp will "entangle" the global variable with the call stack
+                # that keeps the calls at the bottom in order.
+    sub f(*@c) { 
+        (temp $in)++;
+         "<f>\n"
+         ~ @c>>.indent($in).join("\n")
+         ~ (+@c ?? "\n" !! "")
+         ~ '</f>'
+    }; 
+    sub g(*@c) { 
+        (temp $in)++;
+        "<g>\n" 
+        ~ @c>>.indent($in).join("\n")
+        ~ (+@c ?? "\n" !! "")
+        ~ "</g>"
+    }; 
+    print g(g(f(g()),g(),f()));
 
-sub buy-cookie { $cookies++ }
+output:
 
-{
-    my $cookies = 42;
-    buy-cookie;   # Increments the outer $cookies variable
-    say $cookies; # 42
-                  # the outer $cookies variable is 6 now
-}
-
-{
-    temp $cookies = 42;
-    # Still the same $cookies, but a new value:
-    buy-cookie;
-    say $cookies; # -> 43
-}
-
-# Old value is restored
-say $cookies; # -> 6
-=end code
+    <g>
+     <g>
+      <f>
+       <g>
+       </g>
+      </f>
+      <g>
+      </g>
+      <f>
+      </f>
+     </g>
+    </g>
 
 =head2 The C<let> Prefix
 
@@ -976,12 +988,13 @@ the block to the caught exception.
 =head2 Compile-time variables
 
 =for table
-    $?FILE      Which file am I in?
-    $?LINE      Which line am I at?
-    &?ROUTINE   Which routine am I in?
-    &?BLOCK     Which block am I in?
-    %?LANG      What is the current set of interwoven languages?
-    %?RESOURCES The files associated with the "Distribution" of the current compilation unit.
+    $?FILE         Which file am I in?
+    $?LINE         Which line am I at?
+    ::?CLASS       Which class am I in?
+    &?ROUTINE      Which routine am I in?
+    &?BLOCK        Which block am I in?
+    %?LANG         What is the current set of interwoven languages?
+    %?RESOURCES    The files associated with the "Distribution" of the current compilation unit.
 
 Other compile-time variables:
 
@@ -1011,6 +1024,8 @@ Other compile-time variables:
     $*OUT              Standard output filehandle, AKA stdout
     ==
     $*ERR              Standard error filehandle, AKA stderr
+    ==
+    %*ENV              Environment variables
     ==
     $*REPO             A variable holding information about modules installed/loaded
     ==

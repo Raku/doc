@@ -32,6 +32,9 @@ say $dt;                            # 2015-11-21T16:01:00Z
 say $dt.later(days => 20);          # 2015-12-11T16:01:00Z
 say $dt.truncated-to('hour');       # 2015-11-21T16:00:00Z
 say $dt.in-timezone(-8 * 3600);     # 2015-11-21T08:01:00-0800
+
+my $now = DateTime.now(formatter => { sprintf "%02d:%02d",.hour,.minute });
+say $now;                           # 12:45 (or something like that)
 =end code
 
 =head1 Methods
@@ -48,7 +51,7 @@ Defined as:
                      Int :$timezone = 0, :&formatter)
     multi method new(Int() $year, Int() $month, Int() $day,
                      Int() $hour, Int $minute, $second,
-                     Int() $timezone, :&formatter)
+                     Int() :$timezone = 0, :&formatter)       # since 6.d
     multi method new(Instant:D $i,  :$timezone=0, :&formatter)
     multi method new(Int:D $posix,  :$timezone=0, :&formatter)
     multi method new(Str:D $format, :$timezone=0, :&formatter)
@@ -60,7 +63,7 @@ Usage:
     $datetime = DateTime.new(DATE, HOUR?, MINUTE?, SECOND?, TIMEZONE?,
       FORMATTER?)
     $datetime = DateTime.new(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
-      TIMEZONE, FORMATTER?)
+      TIMEZONE?, FORMATTER?)                                  # since 6.d
     $datetime = DateTime.new(INSTANT, TIMEZONE?, FORMATTER?)
     $datetime = DateTime.new(TIMESTAMP, TIMEZONE?, FORMATTER?)
     $datetime = DateTime.new(FORMAT, TIMEZONE?, FORMATTER?)
@@ -92,10 +95,11 @@ Defined as:
 
 Usage:
 
-    DateTime.now
+    DateTime.now(TIMEZONE?, FORMATTER?)
 
 Creates a new C<DateTime> object from the current system time, optionally with
 a different timezone than the default attached.
+
 
 =head2 method clone
 
@@ -235,24 +239,6 @@ Returns the time zone in hours as an offset from UTC.
 
     say DateTime.new('2015-12-24T12:23:00+0200').offset-in-hours;   # 2
 
-=head2 method formatter
-
-Defined as:
-
-    method formatter(DateTime:D:)
-
-Usage:
-
-    DATETIME.formatter
-
-Returns the formatting function which is used for conversion to
-L<Str|/type/Str>. If none was provided at object construction, a
-default formatter is used which produces an ISO 8601 timestamp.  In that
-case the method will return a Callable type object.
-
-The formatting function is called by L<#method Str> with the invocant as its
-only argument.
-
 =head2 method Str
 
 Defined as:
@@ -264,7 +250,8 @@ Usage:
     DATETIME.Str
 
 Returns a string representation of the invocant, as done by
-L<the formatter|#method formatter>.
+L<the formatter|#method formatter>.  If no formatter was specified, an
+ISO 8601 timestamp will be returned.
 
 =head2 method Instant
 
@@ -308,7 +295,8 @@ name is the unit.
 
 Allowed units are C<second>, C<seconds>, C<minute>, C<minutes>, C<hour>,
 C<hours>, C<day>, C<days>, C<week>, C<weeks>, C<month>, C<months>, C<year>,
-C<years>.
+C<years>.   Please note that the plural forms can only be used with
+the C<later> method.
 
 Please note that the special ":2nd" named parameter syntax can be a compact
 and self-documenting way of specifying the delta
@@ -353,7 +341,8 @@ Usage:
 Returns a copy of the invocant, with everything smaller than the specified
 unit truncated to the smallest possible value.
 
-    my $d = DateTime.new("2012-02-29T12:34:56Z");
+    my $d = DateTime.new("2012-02-29T12:34:56.946314Z");
+    say $d.truncated-to('second');      # 2012-02-29T12:34:56Z
     say $d.truncated-to('minute');      # 2012-02-29T12:34:00Z
     say $d.truncated-to('hour');        # 2012-02-29T12:00:00Z
     say $d.truncated-to('day');         # 2012-02-29T00:00:00Z

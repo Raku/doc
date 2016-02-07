@@ -25,6 +25,8 @@ To build the documentation web pages, simply run
 
     $ make html
 
+In addition to the Perl 6 dependencies, you need to have `graphviz` installed.
+
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
 

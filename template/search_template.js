@@ -33,7 +33,7 @@ $(function(){
       });
     }
   });
-  $("#query").catcomplete({
+  $("#query").attr('placeholder', 'Search').catcomplete({
       response: function( e, ui ) {
         if ( ! ui.content.length ) { $('#search').addClass(   'not-found') }
         else {                       $('#search').removeClass('not-found') }

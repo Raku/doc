@@ -14,17 +14,4 @@ function setup_search_box() {
     else {
         sel.removeClass('two-row');
     }
-
-    /* Focus search box on page load, but remove focus if the user appears
-        to be trying to scroll the page with keyboard, rather than typing
-        a search query
-    */
-    $('#query').keydown( function(e){
-        var el = $(this);
-        if ( el.val().length && ( e.which == 32 || e.which == 40) ) {
-            return true;
-        }
-        if ( e.which == 32 || e.which == 34 || e.which == 40 ) { el.blur()  ; }
-        // key codes: 32: space; 34: pagedown; 40: down arrow
-    });
 }

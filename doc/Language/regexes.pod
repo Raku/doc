@@ -209,7 +209,7 @@ L<perlunicode|http://perldoc.perl.org/perlunicode.html> documentation:
     Nd          Decimal_Number (also Digit)
     Nl          Letter_Number
     No          Other_Number
-    P           Punctuation (also Punct)
+    P           Punctuation (also punct)
     Pc          Connector_Punctuation
     Pd          Dash_Punctuation
     Ps          Open_Punctuation
@@ -229,7 +229,7 @@ L<perlunicode|http://perldoc.perl.org/perlunicode.html> documentation:
     Zl          Line_Separator
     Zp          Paragraph_Separator
     C           Other
-    Cc          Control (also Cntrl)
+    Cc          Control (also cntrl)
     Cf          Format
     Cs          Surrogate
     Co          Private_Use
@@ -351,7 +351,7 @@ is possible: C<a ** 5> matches C<a> exactly five times.
     say Bool('aaaaa' ~~ /a ** 5/);   #-> True
 =end code
 
-It is also posible to use non inclusive ranges using a caret:
+It is also possible to use non inclusive ranges using a caret:
 
 =begin code
     say Bool('a' ~~ /a ** 1^..^6); #-> False
@@ -373,7 +373,7 @@ or a Whatever operator for an infinite range with a non inclusive minimum:
 =head2 X<Modified quantifier: %|regex,%;regex,%%>
 
 To more easily match things like comma separated values, you can tack on a
-C<%> modifier to any of the above quantifiers to specify a separator than must
+C<%> modifier to any of the above quantifiers to specify a separator that must
 occur between each of the matches.  So, for example C<a+ % ','> will match
 C<a> or C<a,a> or C<a,a,a> or so on, but it will not match C<a,> or C<a,a,>.
 To match those as well, you may use C<%%> instead of C<%>.
@@ -422,14 +422,37 @@ match.
 Anchors need to match successfully in order for the whole regex to match but
 they do not use up characters while matching.
 
-=head2 X«C<^>, Start of String|regex,^»
+=head2 X«C<^>, Start of String and C<$>, End of String|regex,^;regex,$» 
 
-The C<^> assertion only matches at the start of the string.
+The C<^> assertion only matches at the start of the string:
 
-    say so 'properly' ~~ /perl/;        # True
+    say so 'properly' ~~ /  perl/;      # True
     say so 'properly' ~~ /^ perl/;      # False
     say so 'perly'    ~~ /^ perl/;      # True
     say so 'perl'     ~~ /^ perl/;      # True
+
+The C<$> assertion only matches at the end of the string:
+
+    say so 'use perl' ~~ /  perl  /;    # True
+    say so 'use perl' ~~ /  perl $/;    # True
+    say so 'perly'    ~~ /  perl $/;    # False
+
+You can, of course, combine both anchors:
+
+    say so 'use perl' ~~ /^ perl $/;    # False
+    say so 'perl'     ~~ /^ perl $/;    # True
+
+Keep in mind, these anchors match end of B<string>, not line:
+
+    my $str = q:to/EOS/;
+       Keep it secret
+       and keep it safe
+       EOS
+
+    say so $s ~~ /safe   $/;   # True
+    say so $s ~~ /secret $/;   # False
+    say so $s ~~ /^Keep   /;   # True
+    say so $s ~~ /^and    /;   # False
 
 =head2 X«C<^^>, Start of Line and C<$$>, End of Line|regex,^^;regex,$$»
 
@@ -627,7 +650,162 @@ all named captures:
     }
 
 There is a more convenient way to get named captures which is discussed in
-the next section.
+the section on Subrules.
+
+=head1 Substitution
+
+Regular expressions can also be used to substitute one piece of text for
+another.  You can use this for anything from correcting a spelling error (for
+instance, replacing 'Perl Jam' with 'Pearl Jam') to reformatting an ISO8601
+date from C<yyyy-mm-ddThh:mm:ssZ> to C<mm-dd-yy h:m {AM,PM}> and beyond.
+
+Just like the search-and-replace editor's dialog box, the C<s/ / /> operator
+has two sides, a left and right side.  The left side is where your matching
+expression goes, and the right-hand side is what you want to replace it with.
+
+=head2 X<Lexical conventions|quote,s/ / />
+
+Substitutions are written similarly to matching, but the substitution operator
+has both an area for the text to substitute, and the text to be substituted:
+
+    s/replace/with/;         # a substitution that is applied to $_
+    $str ~~ s/replace/with/; # a substitution applied to a scalar
+
+The substitution operator allows delimiters other than the slash:
+
+    s|replace|with|;
+    s!replace!with!;
+    s,replace,with,;
+
+Note that neither the colon C<:> nor balancing delimiters such as C<{}> or
+C<()> can be delimiters.  Colons clash with adverbs such as C<s:i/Foo/bar/>
+and the other delimiters are used for other purposes.
+
+Like the C<m//> operator, whitespace is ignored in general.  Comments, as in
+Perl 6 in general, start with the hash character C<#> and go to the end of
+the current line.
+
+=head2 Replacing literals
+
+The simplest thing to replace is a literal string.  The string you want to
+replace goes on the left-hand side of the substitution operator, and the string
+you want to replace it with goes on the right-hand side, like so:
+
+    $_ = 'The Replacements';
+    s/Replace/Entrap/;
+    .say;                    # The Entrapments
+
+Alphanumeric characters and the underscore are literal matches, just as in its
+cousin the C<m//> operator.  All other characters must be escaped with a
+backslash C<\> or included in quotes:
+
+    $_ = 'Space: 1999';
+    s/Space\:/Party like it's/;
+    .say                        # Party like it's 1999
+
+Note that the matching restrictions only apply to the left-hand side of the
+substitution expression.
+
+By default, substitutions are only done once per string, this is to mitigate
+unexpected consequences:
+
+    $_ = 'There can be twly two';
+    s/tw/on/;                     # Replace 'tw' with 'on' once
+    .say;                         # There can be only two
+
+=head2 Wildcards and character classes
+
+Anything that can go into the C<m//> operator can go into the left-hand side
+of the substitution operator, including wildcards and character classes.  This
+is handy when the text you're matching isn't static, such as trying to match
+a number in the middle of a string:
+
+    $_ = "Blake's 9";
+    s/\d+/7/;         # Replace any sequence of digits with '7'
+    .say;             # Blake's 7
+
+Of course, you can use any of the C<+>, C<*> and C<?> modifiers, and they'll
+behave just as they would in the C<m//> operator's context.
+
+=head2 Capturing Groups
+
+Just as in the match operator, capturing groups are allowed on the left-hand
+side, and the matched contents populate the C<$0>..C<$n> variables and the
+C<$/> object:
+
+    $_ = '2016-01-23 18:09:00';
+    s/ (\d+)\-(\d+)\-(\d+) /today/; # Replace YYYY-MM-DD with 'today'
+    .say;                           # today 18:09:00
+    "$1-$2-$0".say;                 # 01-23-2016
+    "$/[1]-$/[2]-$/[0]".say;        # 01-23-2016
+
+Any of these variables C<$0>, C<$1>, C<$/> can be used on the right-hand side
+of the operator as well, so you can manipulate what you've just matched.  This
+way you can separate out the C<YYYY>, C<MM> and C<DD> parts of a date and
+reformat them into C<MM-DD-YYYY> order:
+
+    $_ = '2016-01-23 18:09:00';
+    s/ (\d+)\-(\d+)\-(\d+) /$0-$1-$2/; # Transform YYYY-MM-DD to MM-DD-YYYY
+    .say;                              # 01-23-2016 18:09:00
+
+Since the right-hand side is effectively a regular Perl 6 interpolated string,
+you can reformat the time from C<HH:MM> to C<h:MM {AM,PM}> like so:
+
+    $_ = '18:38';
+    s/(\d+)\:(\d+)/{$0 % 12}\:$1 {$0 < 12 ?? 'AM' !! 'PM'}/;
+    .say;                                                    # 6:38 PM
+
+Using the modulo C<%> operator above keeps the sample code under 80 characters,
+but is otherwise the same as C« $0 < 12 ?? $0 !! $0 - 12 ».  When combined with
+the power of the Parser Expression Grammars that B<really> underly what you're
+seeing here, you can use "regular expressions" to parse pretty much any
+language out there.
+
+=head3 Common adverbs
+
+The full list of adverbs that you can apply to regular expressions can be found
+elsewhere in this document (L<section Adverbs|#Adverbs>), but the most
+common modifiers that you will use are probably C<:g> and C<:i>.
+
+=item Global adverb C<:g>
+
+Ordinarily substitutions are only made once in a given string, but adding the
+C<:g> modifier overrides that behavior, so that replacements are made
+everywhere possible.  Substitutions will never overlap, so for instance:
+
+    $_ = q{I can say "banana" but I don't know when to stop};
+    s:g/na/nana,/;  # Substitute 'nana' for 'na'
+    .say;           # ... "banana,nana,"
+
+Even though the substitution doubled the number of C<na>'s in the string, the
+substitution only took place twice.  Which is to say the substitution only
+applies to the original string, the targeted string does not count.
+
+=item Insensitive adverb C<:i>
+
+Substitutions are normally case-sensitive, so that C<s/foo/bar/> will only
+match C<'foo'> and not C<'Foo'>.  The C<:i> adverb makes matching
+case-insensitive:
+
+    $_ = 'STAR TREK Into Darkness';
+    s/Trek Into/TREK\: Into/;       # Someone forgot the colon?
+    .say;                           # STAR TREK Into Darkness
+    s:/Trek into/TREK\: Into/;      # Thereifixedit
+    .say;                           # STAR TREK: Into Darkness
+
+If you want more in-depth descriptions of what these adverbs are actually
+doing, look in the L<section Adverbs|#Adverbs> section of this document.
+
+These are just a few of the transformations you can apply with the substitution
+operator. Some of the simpler uses in the real world include removing personal
+data from log files, editing mySQL timestamps into PostgreSQL format, changing
+copyright information in HTML files and sanitizing form fields in a web
+application.
+
+As an aside, novices to regular expressions often get overwhelmed and think
+that their regular expression needs to match every piece of data in the line,
+including what they want to match.  Write just enough to match the data you're
+looking for, no more, no less.
 
 =head1 X<Subrules|declarator,regex>
 
