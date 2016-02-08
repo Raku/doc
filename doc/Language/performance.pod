@@ -4,18 +4,19 @@
 
 =SUBTITLE Measuring and improving run-time or compile-time performance
 
+In computer science, "performance" has many sub-topics such as
+L<throughput|https://en.wikipedia.org/wiki/Throughput>,
+L<latency|https://en.wikipedia.org/wiki/Latency_(engineering)>,
+or L<garbage collection|>.
+
+This page focuses on the simple notions of "speed" and "ram usage".
+
+=head1 First, clarify the problem(s)
+
 B<Make sure you're not wasting time on the wrong code>: start by identifying your
-L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> by profiling your code (explained on this page).
+L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> by "profiling" as explained below.
 
-If you decide to talk about a performance problem, please first prepare a one-liner and/or public gist
-that illustrates the problem.
-Also, let folk know if you are using Perl 6 in your $dayjob or exploring it for fun
-and think about what the minimum speed increase (or ram reduction or whatever) you want/need would be.
-What if it took a month for folk to help you achieve that? A year?
-
-=head1 Identifying the problem
-
-=head2 C<now - INIT now>
+=head2 Timing with C<now - INIT now>
 
 Expressions of the form C<now - BEGIN now>, where C<BEGIN> is a
 L<phase in the running of a Perl 6 program|/language/phasers>, provide a great idiom for timing code snippets.
@@ -29,19 +30,23 @@ you can write lines like:
 The C<now> to the left of C<INIT> runs 0.0018558 seconds I<later> than the C<now> to the right of the C<INIT>
 because the latter occurs during L<the INIT phase|/language/phasers#INIT>.
 
-=head2 C<prof-m: your code goes here>
+=head2 Profiling with C<prof-m: your code goes here>
 
 Entering C<prof-m: your code goes here> in the L<#perl6 channel|http://doc.perl6.org/language/glossary#IRC>
 invokes an evalbot that runs a Perl 6 compiler with a C<--profile> option.
 The evalbot's output includes a link to L<profile info|https://en.wikipedia.org/wiki/Profiling_(computer_programming)>:
 
+=begin code :allow< L >
+
     yournick prof-m: say 'hello world' 
     camelia  prof-m 273e89: OUTPUT«hello world␤...» 
              .. Prof: L<http://p.p6c.org/20f9e25>
 
+=end code
+
 Click on the profile info link to see a profile for C<say 'hello world'>.
 
-To learn how to interpret profile info, ask questions on channel.
+To learn how to interpret the profile info, ask questions on channel.
 
 =head2 Profiling locally
 
@@ -55,22 +60,36 @@ above) and ask questions on channel.
 
 The Rakudo compiler's C<--profile-compile> option profiles the time and memory used to compile code.
 
-=head2 Benchmarks
+=head2 Benchmarking
 
 Use L<perl6-bench|https://github.com/japhb/perl6-bench>.
 
 If you run perl6-bench for multiple compilers (typically versions of Perl 5, Perl 6, or NQP)
 then results for each are visually overlaid on the same graphs to provide for quick and easy comparison.
 
-=head1 Improving code 
+=head2 Sharing a problem
 
-This bears repeating: B<make sure you're not wasting time on the wrong code>. Start by identifying your
-L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> via profiling, as discussed in several sections above.
+Once you've used the above techniques to pinpoint code and performance that really matters you're in
+a good place to share one problem at a time:
+
+=item Distill a particular problem down to a one-liner or short public gist of code and pick one of the
+timing/profiling options explained above to provide measurements of its performance.
+
+=item Think about the minimum speed increase (or ram reduction or whatever) you need/want.
+What if it took a month for folk to help you achieve that? A year?
+
+=item Let folk know if your Perl 6 use-case is in a production setting or just for fun.
+
+=head1 Solve the problem(s)
+
+This bears repeating: B<make sure you're not wasting time on the wrong code>.
+Start by identifying the L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> of your code.
 
 =head2 Line by line
 
-A quick and fun way to try improve code line-by-line is to collaborate with others using the
-L<#perl6|http://doc.perl6.org/language/glossary#IRC> evalbot L<camelia|http://doc.perl6.org/language/glossary#camelia>.
+A quick, fun and frequently very productive way to try improve code line-by-line is to collaborate with
+others using the L<#perl6|http://doc.perl6.org/language/glossary#IRC> evalbot
+L<camelia|http://doc.perl6.org/language/glossary#camelia>.
 
 =head2 Routine by routine
 
@@ -89,28 +108,56 @@ previously existing set of definitions then you probably just made your code tha
 =head2 Type-checks and call resolution
 
 Most L<C<where> clauses|/type/Signature#Type_Constraints> -- and thus most
-L<subtypes|http://design.perl6.org/S12.html#Types_and_Subtypes>) -- force dynamic (run-time)
+L<subtypes|http://design.perl6.org/S12.html#Types_and_Subtypes> -- force dynamic (run-time)
 type checking and call resolution. This is slower, or at least later, than compile-time.
 
 Method calls are generally resolved as late as possible, so dynamically, at run-time,
-whereas sub calls are resolvable statically, at compile-time.
+whereas sub calls are generally resolvable statically, at compile-time.
 
 =head2 Choosing better algorithms
 
-Improving L<algorithmic efficiency|https://en.wikipedia.org/wiki/Algorithmic_efficiency> is
-one of the most reliable techniques for making large performance improvements regardless of language or compiler.
+One of the most reliable techniques for making large performance improvements regardless of language or compiler
+is to pick an algorithm better suited to your needs.
 
 A classic example is L<Boyer-Moore|https://en.wikipedia.org/wiki/Boyer%E2%80%93Moore_string_search_algorithm>.
 To match a small string in a large string, one obvious way to do it is to compare the first character of the
 two strings and then, if they match, compare the second characters, or, if they don't match, compare the first
 character of the small string with the second character in the large string, and so on. In contrast, the
-Boyer-Moore algorithm starts by comparing the *last* character of the small string with the corresponding
-character in the large string. For most strings the Boyer-Moore algorithm is close to N times faster where
-N is the length of the small string.
+Boyer-Moore algorithm starts by comparing the *last* character of the small string with the correspondingly
+positioned character in the large string. For most strings the Boyer-Moore algorithm is close to N times
+faster algorithmically, where N is the length of the small string.
 
-=head2 Changing sequential/blocking code to parallel/non-blocking
+The next couple sections discuss two broad categories for improving algorithms that are made especially
+easy to accomplish in Perl 6. For more on this topic, read the wikipedia page on
+L<algorithmic efficiency|https://en.wikipedia.org/wiki/Algorithmic_efficiency>,
+especially the See also section near the end.
 
-This is a very important class of algorithmic improvement.
+=head3 Making list processing lazy
+
+This a specific example of an algorithmic improvement. It's especially noteworthy when using languages
+like Perl 6 that have built in support for lazy lists because the lazy equivalent of eager (non-lazy)
+code is attractively simple.
+
+A classic example is processing a large text file. An obvious simple approach is to slurp the lines
+of the file into an array storing each line as an array element and then loop through that array:
+
+    my @lines = slurp 'largefile.txt';
+    for @lines -> $line {
+        # do something with $line
+    }
+    
+But if 'largefile.txt' contains a million very long lines you just used up a ton of memory
+and it may well take quite a while before your code starts to do something with the first line. 
+
+A lazy alternative:
+
+    for 'largefile.txt'.IO.lines -> $line {
+        # do something with $line
+    }
+
+=head3 Changing sequential/blocking code to parallel/non-blocking
+
+This is another very important class of algorithmic improvement.
 
 See the slides for
 L<Parallelism, Concurrency, and Asynchrony in Perl 6|http://jnthn.net/papers/2015-yapcasia-concurrency.pdf#page=17>
@@ -142,7 +189,7 @@ Perl 5's compiler can be treated as a C lib. Mix in Perl 6 types, the L<MOP|/lan
 programming that someone else has done for you, and the upshot is that you can conveniently
 L<use Perl 5 modules in Perl 6|http://stackoverflow.com/a/27206428/1077672>.
 
-More generally, Perl 6 is designed to be able to smoothly interop with any other language and there are a number
+More generally, Perl 6 is designed to be able to smoothly interop with other languages and there are a number
 of L<modules aimed at providing convenient use of libs from other langs|http://modules.perl6.org/#q=inline>.
 
 =head2 Speeding up Rakudo itself
@@ -161,20 +208,33 @@ If you can write Perl 6 you can fairly easily learn to use and improve the mid-l
 at least from a pure language point of view. 
 Start with L<NQP and internals course|http://edumentab.github.io/rakudo-and-nqp-internals-course/>.
 
-=item Finally, if low-level C hacking is your idea of fun, checkout L<MoarVM|http://moarvm.org>.
+=item If low-level C hacking is your idea of fun, checkout L<MoarVM|http://moarvm.org>.
 
 =head2 Still need more?
 
-There are many other things to consider:
-improving L<data alignment|https://en.wikipedia.org/wiki/Data_structure_alignment>,
+There are many other things to consider.
+
+Some Perl 6 (or Rakudo) specific performance topics not yet covered in this page include
+use of gather/take, use of junctions, and string handling.
+
+General topics -- not specific to Perl 6 or Rakudo -- include improving
+L<data alignment|https://en.wikipedia.org/wiki/Data_structure_alignment>,
 L<data granularity|https://en.wikipedia.org/wiki/Granularity#Data_granularity>,
 L<data compression|https://en.wikipedia.org/wiki/Data_compression>, and
-L<locality of reference|https://en.wikipedia.org/wiki/Locality_of_reference> to name a few.
+L<locality of reference|https://en.wikipedia.org/wiki/Locality_of_reference>.
+
 If you think some topic needs more coverage on this page please submit a PR or tell someone your idea.
 Thanks. :)
 
-B<Tried everything? Frustrated?> Please consider talking to someone in the community about your use-case
-before giving up or concluding the answer to
-L<Is Perl 6 fast enough for me?|http://doc.perl6.org/language/faq#Is_Perl_6_fast_enough_for_me?> is "No".
+=head1 Not getting the results you need/want?
+
+If you've tried everything on this page to no avail, please consider discussing things with a
+compiler dev on #perl6 so we can learn from your use-case and what you've found out about it so far.
+
+Once you know one of the main devs knows of your plight, allow enough time for an informed response
+(a few days or weeks depending on the exact nature of your problem and potential solutions).
+
+If I<that> hasn't worked out either, please consider filing an issue discussing your experience at
+L<User experience|https://github.com/perl6/user-experience/issues> before moving on. Thanks. :)
 
 =end pod
