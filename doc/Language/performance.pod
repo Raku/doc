@@ -1,0 +1,176 @@
+=begin pod
+
+=TITLE Performance
+
+=SUBTITLE Measuring and improving throughput, latency, ram usage etc. at run-time or compile-time
+
+B<N.B.> Make sure you're not wasting time on the wrong code: start by identifying your
+L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> by "profiling" your code (explained on this page).
+
+This page describes some tools for identifying problem code and some ways to improve it.
+It's not exhaustive.
+Please consider talking to someone in the community before deciding the answer to
+L<Is Perl 6 fast enough for me?|http://doc.perl6.org/language/faq#Is_Perl_6_fast_enough_for_me?> is "No".
+
+If you decide to talk about a performance problem, please first prepare a one-liner and/or public gist
+that illustrates the problem.
+Also, let folk know if you are using Perl 6 in your $dayjob or exploring it for fun.
+And think about what the minimum speed increase (or ram reduction or whatever) would have to be
+to make a worthwhile difference to you.
+What if it took a month for folk to help you achieve that? A year?
+
+=head1 Identifying the problem
+
+=head2 C<now - INIT now> (speed)
+
+Expressions of the form C<now - BEGIN now>, where C<BEGIN> is a
+L<phase in the running of a Perl 6 program|/language/phasers>, provide a simple idiom for simple timings.
+Using the C<m: your code goes here> L<#perl6 channel evalbot|http://doc.perl6.org/language/glossary#camelia>
+one might write:
+
+    m: say now - INIT now 
+    rakudo-moar 8bd7ee: OUTPUT«0.0018558␤» 
+
+The C<now> to the left of C<INIT> runs 0.0018558 seconds I<later> than the C<now> to the right of the C<INIT>
+because the latter occurs during L<the INIT phase|/language/phasers#INIT>.
+
+=head2 C<prof-m: your code goes here> (speed/ram)
+
+Entering C<prof-m: your code goes here> in the L<#perl6 channel|http://doc.perl6.org/language/glossary#IRC>
+invokes an evalbot that runs a Perl 6 compiler with a C<--profile> option.
+The evalbot's output includes a link to L<profile info|https://en.wikipedia.org/wiki/Profiling_(computer_programming)>:
+
+    yournick prof-m: say 'hello world' 
+    camelia  prof-m 273e89: OUTPUT«hello world␤Writing profiler output to /tmp/mprof.html␤» 
+             .. Prof: http://p.p6c.org/20f9e25
+
+To learn how to interpret the profile info, ask questions on channel.
+
+=head2 Profiling locally (speed/ram)
+
+When using the L<MoarVM|http://moarvm.org> backend the L<Rakudo|http://rakudo.org> compiler's C<--profile>
+command line option writes profile information as an HTML file.
+
+To learn how to interpret the profile info, use the C<prof-m: your code goes here> evalbot explained
+above and ask questions on channel.
+
+=head2 Profiling compilation (speed/ram)
+
+The Rakudo compiler's C<--profile-compile> option profiles the time and memory used to compile code.
+
+=head2 Benchmarks (speed)
+
+L<perl6-bench|https://github.com/japhb/perl6-bench> graphs the speed for a range of benchmarks.
+
+If you do this for multiple compilers (typically versions of Perl 5, Perl 6, or NQP)
+then results for each are visually overlaid on the same graphs to provide for quick and easy comparison.
+
+=head1 Improving code 
+
+B<N.B.> Make sure you're not wasting time on the wrong code: start by identifying your
+L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> via profiling, as discussed in several sections above.
+
+=head2 Improving code, line by line (speed/ram)
+
+A quick and fun way to try improve code line-by-line is to collaborate with others using the
+L<#perl6|http://doc.perl6.org/language/glossary#IRC> evalbot L<camelia|http://doc.perl6.org/language/glossary#camelia>.
+
+=head2 Improving code, routine by routine (speed)
+
+With multidispatch you can drop in new variants of routines alongside existing ones:
+
+    multi sub foo (Any $a, Any $b) { ... } # existing code generically matches a two arg foo call 
+    multi sub foo ("quux", Int $b) { ... } # new specific code takes over for a foo("quux", 42) call
+    
+The call overhead of having multiple C<foo> definitions is generally insignificant (though see discussion
+of C<where> below), so if your new definition handles its particular case more quickly/leanly than the
+previously existing set of definitions then you probably just made your code that much faster/leaner for that case.
+
+=head2 Compile-time vs run-time type-checks and call resolution (speed)
+
+Most L<C<where> clauses|/type/Signature#Type_Constraints> (and thus most
+L<subtypes|http://design.perl6.org/S12.html#Types_and_Subtypes>) force dynamic (run-time)
+type checking and call resolution (which is slower, or at least later, than compile-time).
+
+Method calls are generally resolved as late as possible, so dynamically (at run-time),
+whereas sub (function) calls are resolvable statically (at compile-time).
+
+=head2 Turning sequential/blocking algorithms into parallel/non-blocking (throughput/latency)
+
+See the slides for
+L<Parallelism, Concurrency, and Asynchrony in Perl 6|http://jnthn.net/papers/2015-yapcasia-concurrency.pdf#page=17>
+and/or L<the matching video|https://www.youtube.com/watch?v=JpqnNCx7wVY&list=PLRuESFRW2Fa77XObvk7-BYVFwobZHdXdK&index=8>.
+
+=head2 Other algorithmic changes (throughput/latency/ram/etc.)
+
+The previous section is a particular case of L<algorithmic efficiency|https://en.wikipedia.org/wiki/Algorithmic_efficiency>,
+one of the most reliable techniques for making large performance improvements regardless of language or compiler.
+
+A classic example is L<Boyer-Moore|https://en.wikipedia.org/wiki/Boyer%E2%80%93Moore_string_search_algorithm>.
+To match a small string in a large string, one obvious way to do it is to compare the first character of the
+two strings and then, if they match, compare the second characters, or, if they don't match, compare the first
+character of the small string with the second character in the large string, and so on. In contrast, the
+Boyer-Moore algorithm starts by comparing the *last* character of the small string with the corresponding
+character in the large string. For most strings the Boyer-Moore algorithm is close to N times faster where
+N is the length of the small string.
+
+=head2 Using native types (speed/ram)
+
+You can make some code run faster and/or use less ram by adding native types to your code:
+
+XXX Start of section to be written
+
+    code/discussion that demonstrates use of native types to improve performance
+                                      use of native types that worsens performance
+                                      use of native types that breaks code
+
+XXX End of section to be written
+    
+=head2 Using existing performant code (speed/ram)
+
+Is there already a performant implementation in some other language of what you're trying to speed up / slim down?
+
+There are a lot of C libs out there. The Perl 6 FFI L<NativeCall|/language/nativecall> makes it easy to create
+wrappers for C libs such as L<Gumbo|https://github.com/Skarsnik/perl6-gumbo> or for C++ libs (experimental).
+(Data marshalling and call handling is somewhat poorly optimized at the time of writing this but for many
+applications that won't matter.)
+
+Perl 5's compiler can be treated as a C lib. Mix in Perl 6 types, the L<MOP|/language/mop>, and some hairy
+programming that someone else has done for you, and you get to conveniently
+L<use Perl 5 modules in Perl 6|http://stackoverflow.com/a/27206428/1077672>.
+You can call Perl 5 functions and methods as if they were written in Perl 6;
+pass integers, strings, arrays, hashes, code references, file handles and objects back-and-forth;
+even subclass Perl 5 classes in Perl 6.
+In principle you can take advantage of the performance of mature Perl 5 solutions without even knowing any Perl 5.
+
+More generally, Perl 6 is designed to be able to smoothly interop with any other language so there's a number of
+L<modules aimed at providing convenient use of libs from other langs|http://modules.perl6.org/#q=inline>.
+
+=head2 Speeding up Rakudo itself
+
+The focus to date (Feb 2016) regarding the compiler has been correctness, not speed, but that's expected to
+change somewhat this year and beyond. You can talk to compiler devs on the freenode IRC channels #perl6 and
+#moarvm about what to expect. Or you can contribute yourself:
+
+* Rakudo is largely written in Perl 6. So if you can write Perl 6, then you can hack on the compiler,
+including optimizing any of the large body of existing high-level code that impacts the speed of your code
+(and everyone else's).
+
+* Most of the rest of the compiler is written in a small language called
+L<NQP|https://github.com/perl6/nqp>.
+NQP is more or less just a subset of Perl 6.
+So if you can write Perl 6 you can fairly easily learn to use and improve the mid-level NQP code too,
+at least from a pure language point of view.
+Start with L<NQP and internals course|http://edumentab.github.io/rakudo-and-nqp-internals-course/>.
+
+* Finally, if low-level C hacking is your idea of fun, checkout L<MoarVM|http://moarvm.org>.
+
+=head2 Other possibilities
+
+There are many other possibilities:
+improving L<data alignment|https://en.wikipedia.org/wiki/Data_structure_alignment>,
+L<data granularity|https://en.wikipedia.org/wiki/Granularity#Data_granularity>,
+<data compression|https://en.wikipedia.org/wiki/Data_compression>, and
+L<locality of reference|https://en.wikipedia.org/wiki/Locality_of_reference> to name a few.
+If you think some topic needs more coverage on this page please submit a PR or tell someone your idea.
+Thanks. :)
