@@ -4,19 +4,17 @@
 
 =SUBTITLE Measuring and improving run-time or compile-time performance
 
-In computer science, "performance" has many sub-topics such as
-L<throughput|https://en.wikipedia.org/wiki/Throughput>,
-L<latency|https://en.wikipedia.org/wiki/Latency_(engineering)>,
-or L<garbage collection|>.
+A simple take on performance is "speed and ram usage". According to wikipedia,
+L<Computer Performance|https://en.wikipedia.org/wiki/Computer_Performance> is
+"characterized by the amount of useful work accomplished by a computer system or
+computer network compared to the time and resources used.".
 
-This page focuses on the simple notions of "speed" and "ram usage".
-
-=head1 First, clarify the problem(s)
+=head1 First, clarify the problem
 
 B<Make sure you're not wasting time on the wrong code>: start by identifying your
 L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> by "profiling" as explained below.
 
-=head2 Timing with C<now - INIT now>
+=head2 Time with C<now - INIT now>
 
 Expressions of the form C<now - BEGIN now>, where C<BEGIN> is a
 L<phase in the running of a Perl 6 program|/language/phasers>, provide a great idiom for timing code snippets.
@@ -30,7 +28,7 @@ you can write lines like:
 The C<now> to the left of C<INIT> runs 0.0018558 seconds I<later> than the C<now> to the right of the C<INIT>
 because the latter occurs during L<the INIT phase|/language/phasers#INIT>.
 
-=head2 Profiling with C<prof-m: your code goes here>
+=head2 Profile with C<prof-m: your code goes here>
 
 Entering C<prof-m: your code goes here> in the L<#perl6 channel|http://doc.perl6.org/language/glossary#IRC>
 invokes an evalbot that runs a Perl 6 compiler with a C<--profile> option.
@@ -48,7 +46,7 @@ Click on the profile info link to see a profile for C<say 'hello world'>.
 
 To learn how to interpret the profile info, ask questions on channel.
 
-=head2 Profiling locally
+=head2 Profile locally
 
 When using the L<MoarVM|http://moarvm.org> backend the L<Rakudo|http://rakudo.org> compiler's C<--profile>
 command line option writes profile information as an HTML file.
@@ -56,31 +54,32 @@ command line option writes profile information as an HTML file.
 To learn how to interpret the profile info, use the C<prof-m: your code goes here> evalbot (explained
 above) and ask questions on channel.
 
-=head2 Profiling compilation
+=head2 Profile compiling
 
 The Rakudo compiler's C<--profile-compile> option profiles the time and memory used to compile code.
 
-=head2 Benchmarking
+=head2 Create or view benchmarks
 
 Use L<perl6-bench|https://github.com/japhb/perl6-bench>.
 
 If you run perl6-bench for multiple compilers (typically versions of Perl 5, Perl 6, or NQP)
 then results for each are visually overlaid on the same graphs to provide for quick and easy comparison.
 
-=head2 Sharing a problem
+=head2 Share the problem
 
 Once you've used the above techniques to pinpoint code and performance that really matters you're in
-a good place to share one problem at a time:
+a good place to share problems, one at a time:
 
-=item Distill a particular problem down to a one-liner or short public gist of code and pick one of the
-timing/profiling options explained above to provide measurements of its performance.
+=item For each problem you see, distill it down to a one-liner or short public gist of code that
+either already includes performance numbers or is small enough that it can be profiled using
+C<prof-m: your code or gist URL goes here>.
 
 =item Think about the minimum speed increase (or ram reduction or whatever) you need/want.
 What if it took a month for folk to help you achieve that? A year?
 
 =item Let folk know if your Perl 6 use-case is in a production setting or just for fun.
 
-=head1 Solve the problem(s)
+=head1 Solve the problem
 
 This bears repeating: B<make sure you're not wasting time on the wrong code>.
 Start by identifying the L<"critical 3%"|https://en.wikiquote.org/wiki/Donald_Knuth> of your code.
@@ -114,7 +113,7 @@ type checking and call resolution. This is slower, or at least later, than compi
 Method calls are generally resolved as late as possible, so dynamically, at run-time,
 whereas sub calls are generally resolvable statically, at compile-time.
 
-=head2 Choosing better algorithms
+=head2 Choose better algorithms
 
 One of the most reliable techniques for making large performance improvements regardless of language or compiler
 is to pick an algorithm better suited to your needs.
@@ -127,33 +126,35 @@ Boyer-Moore algorithm starts by comparing the *last* character of the small stri
 positioned character in the large string. For most strings the Boyer-Moore algorithm is close to N times
 faster algorithmically, where N is the length of the small string.
 
-The next couple sections discuss two broad categories for improving algorithms that are made especially
-easy to accomplish in Perl 6. For more on this topic, read the wikipedia page on
+The next couple sections discuss two broad categories for algorithmic improvement that are especially
+easy to accomplish in Perl 6. For more on this general topic, read the wikipedia page on
 L<algorithmic efficiency|https://en.wikipedia.org/wiki/Algorithmic_efficiency>,
 especially the See also section near the end.
 
-=head3 Making list processing lazy
+=head3 Process lazily
 
-This a specific example of an algorithmic improvement. It's especially noteworthy when using languages
-like Perl 6 that have built in support for lazy lists because the lazy equivalent of eager (non-lazy)
-code is attractively simple.
-
-A classic example is processing a large text file. An obvious simple approach is to slurp the lines
-of the file into an array storing each line as an array element and then loop through that array:
+Consider a program that processes every line in a large text file. An obvious simple approach is to
+slurp the lines of the file into an array storing each line as an array element and then loop through
+that array:
 
     my @lines = slurp 'largefile.txt';
     for @lines -> $line {
         # do something with $line
     }
     
-But if 'largefile.txt' contains a million very long lines you just used up a ton of memory
-and it may well take quite a while before your code starts to do something with the first line. 
+The assignment of all the lines in 'largefile.txt' to C<@lines> all at once is called "eager" assignment,
+the opposite of "lazy".
 
-A lazy alternative:
+But if 'largefile.txt' contains a million very long lines you just used up a ton of memory and it may
+well take quite a while before your code starts to do something with the first line. 
+
+A "lazy" approach often performs much better:
 
     for 'largefile.txt'.IO.lines -> $line {
         # do something with $line
     }
+    
+This loop pulls just one line from 'largefile.txt', immediately processes it, then gets the next, and so on.
 
 =head3 Changing sequential/blocking code to parallel/non-blocking
 
@@ -182,7 +183,7 @@ Is there an existing high (enough) performance implementation of what you're try
 There are a lot of C libs out there.
 L<NativeCall|/language/nativecall> makes it easy to create wrappers for C libs (there's experimental
 support for C++ libs too) such as L<Gumbo|https://github.com/Skarsnik/perl6-gumbo>.
-(Data marshalling and call handling is somewhat poorly optimized at the time of writing this but for many
+e(Data marshalling and call handling is somewhat poorly optimized at the time of writing this but for many
 applications that won't matter.)
 
 Perl 5's compiler can be treated as a C lib. Mix in Perl 6 types, the L<MOP|/language/mop>, and some hairy
@@ -205,23 +206,18 @@ including optimizing any of the large body of existing high-level code that impa
 =item Most of the rest of the compiler is written in a small language called
 L<NQP|https://github.com/perl6/nqp> that's basically a subset of Perl 6.
 If you can write Perl 6 you can fairly easily learn to use and improve the mid-level NQP code too,
-at least from a pure language point of view. 
-Start with L<NQP and internals course|http://edumentab.github.io/rakudo-and-nqp-internals-course/>.
+at least from a pure language point of view. To dig in to NQP and Rakudo's guts, start with
+L<NQP and internals course|http://edumentab.github.io/rakudo-and-nqp-internals-course/>.
 
-=item If low-level C hacking is your idea of fun, checkout L<MoarVM|http://moarvm.org>.
+=item If low-level C hacking is your idea of fun, checkout L<MoarVM|http://moarvm.org> and visit the
+freenode IRC channel #moarvm (L<logs|http://irclog.perlgeek.de/moarvm/>).
 
-=head2 Still need more?
+=head2 Still need more ideas?
 
-There are many other things to consider.
+There are endless performance topics.
 
-Some Perl 6 (or Rakudo) specific performance topics not yet covered in this page include
-use of gather/take, use of junctions, and string handling.
-
-General topics -- not specific to Perl 6 or Rakudo -- include improving
-L<data alignment|https://en.wikipedia.org/wiki/Data_structure_alignment>,
-L<data granularity|https://en.wikipedia.org/wiki/Granularity#Data_granularity>,
-L<data compression|https://en.wikipedia.org/wiki/Data_compression>, and
-L<locality of reference|https://en.wikipedia.org/wiki/Locality_of_reference>.
+Some known current Rakudo performance weaknesses not yet covered in this page include use of gather/take,
+use of junctions, regexes, and string handling in general.
 
 If you think some topic needs more coverage on this page please submit a PR or tell someone your idea.
 Thanks. :)
@@ -235,6 +231,6 @@ Once you know one of the main devs knows of your plight, allow enough time for a
 (a few days or weeks depending on the exact nature of your problem and potential solutions).
 
 If I<that> hasn't worked out either, please consider filing an issue discussing your experience at
-L<User experience|https://github.com/perl6/user-experience/issues> before moving on. Thanks. :)
+L<our user experience repo|https://github.com/perl6/user-experience/issues> before moving on. Thanks. :)
 
 =end pod
