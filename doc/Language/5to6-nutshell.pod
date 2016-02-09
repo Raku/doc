@@ -1112,16 +1112,33 @@ e.g.:
 Whereas in Perl 5 you would do:
 
     my $arg = 'Hello';
-    my $captured = `echo "$arg"`;
-    my $captured = qx(echo "$arg");
+    my $captured = `echo \Q$arg\E`;
+    my $captured = qx(echo \Q$arg\E);
 
-In Perl 6, you can do:
+Or using String::ShellQuote (because C<\Q…\E> is not completely right):
+
+    my $arg = shell_quote 'Hello';
+    my $captured = `echo $arg`;
+    my $captured = qx(echo $arg);
+
+In Perl 6, you will probably want to run commands without using the shell:
 
     my $arg = 'Hello';
-    my $captured = qq:x(echo "{$arg}");
+    my $captured = run('echo', $arg, :out).out.slurp-rest;
+    my $captured = run(«echo "$arg"», :out).out.slurp-rest;
 
-Beware of interpolating strings with special shell characters! (Which is a
-problem in Perl 5 as well).
+You can also use the shell if you really want to:
+
+    my $arg = 'Hello';
+    my $captured = shell("echo $arg", :out).out.slurp-rest;
+    my $captured = qqx{echo $arg};
+
+But beware that in this case there is B<no protection at all>! C<run> does
+not use the shell, so there is no need to escape the arguments (arguments
+are passed directly). If you are using C<shell> or C<qqx>, then everything
+ends up being one long string which is then passed to the shell. Unless you
+validate your arguments very carefully, there is a high chance to introduce
+shell injection vulnerabilities with such code.
 
 =head1 Environment variables
 
