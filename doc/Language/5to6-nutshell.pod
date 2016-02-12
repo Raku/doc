@@ -747,7 +747,17 @@ then just use C«<->» and explicitly specify C«$_».
     for @cars        {...} # Perl 6; $_ is read-only
     for @cars <-> $_ {...} # Perl 6; $_ is read-write
 
+=head4 C<each>
 
+Here is the equivalent to Perl 5’s C<while…each(%hash)> or C<while…each(@array)>
+(= iterating over both the keys or indices and values of a data structure) in
+Perl 6:
+
+    while (my ($i, $v) = each(@array)) { ... } # Perl 5
+    for @array.kv -> $i, $v { ... } # Perl 6
+
+    while (my ($k, $v) = each(%hash)) { ... } # Perl 5
+    for %hash.kv -> $k, $v { ... } # Perl 6
 
 =head2 Flow Control statements
 
@@ -1096,6 +1106,39 @@ e.g.:
     # read the file
     my @lines = "test-file".IO.slurp.split(/\n/);
     say @lines.elems;    #-> 4
+
+=head2 Trapping the standard output of executables.
+
+Whereas in Perl 5 you would do:
+
+    my $arg = 'Hello';
+    my $captured = `echo \Q$arg\E`;
+    my $captured = qx(echo \Q$arg\E);
+
+Or using String::ShellQuote (because C<\Q…\E> is not completely right):
+
+    my $arg = shell_quote 'Hello';
+    my $captured = `echo $arg`;
+    my $captured = qx(echo $arg);
+
+In Perl 6, you will probably want to run commands without using the shell:
+
+    my $arg = 'Hello';
+    my $captured = run('echo', $arg, :out).out.slurp-rest;
+    my $captured = run(«echo "$arg"», :out).out.slurp-rest;
+
+You can also use the shell if you really want to:
+
+    my $arg = 'Hello';
+    my $captured = shell("echo $arg", :out).out.slurp-rest;
+    my $captured = qqx{echo $arg};
+
+But beware that in this case there is B<no protection at all>! C<run> does
+not use the shell, so there is no need to escape the arguments (arguments
+are passed directly). If you are using C<shell> or C<qqx>, then everything
+ends up being one long string which is then passed to the shell. Unless you
+validate your arguments very carefully, there is a high chance to introduce
+shell injection vulnerabilities with such code.
 
 =head1 Environment variables
 
