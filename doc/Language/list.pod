@@ -315,6 +315,30 @@ not bind an Array that has the wrong type to a typed C<@>-sigiled variable:
     my Int @b := Array[Int].new(1,2,3); # fine
     @b := Array.new(1,2,3);             # error: Type check failed in binding
 
+When working with typed arrays, it is important to remember that they are
+nominally typed. This means the declared type of an array is what matters.
+Given the following sub declaration:
+
+    sub mean(Int @a) {
+        @a.sum / @a.elems
+    }
+
+Calls that pass an Array[Int] will be successful:
+
+    my Int @b = 1,3,5;
+    say mean(@b);                       # @b is Array[Int]
+    say mean(Array[Int].new(1,3,5));    # Anonymous Array[Int]
+    say mean(my Int @ = 1,3,5);         # Another anonymous Array[Int]
+
+However, the following calls will all fail, due to passing an untyped array,
+even if the array just happens to contain Int values at the point it is
+passed:
+
+    my @c = 1,3,5;
+    say mean(@c);                       # Fails, passing untyped Array
+    say mean([1,3,5]);                  # Same
+    say mean(Array.new(1,3,5));         # Same again
+
 Note that in any given compiler, there may be fancy, under-the-hood, ways to
 bypass the type check on arrays, so when handling untrusted input, it can be
 good practice to perform additional type checks, where it matters:
