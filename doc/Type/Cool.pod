@@ -1270,6 +1270,34 @@ C<MONKEY-SEE-NO-EVAL> pragma:
     use MONKEY-SEE-NO-EVAL;
     EVAL "say { 5 + 5 }";
 
+Symbols in the current lexical scope are visible to code in an C<EVAL>.
+
+    my $answer = 42;
+    EVAL 'say $answer;';    # says 42
+
+However, since the set of symbols in a lexical scope is immutable after compile
+time, an EVAL can never introduced symbols into the surrounding scope.
+
+    EVAL 'my $lives = 9'; say $lives;   # error, $lives not declared
+
+Furthermore, the C<EVAL> is evaluated in the current package:
+
+    module M {
+        EVAL 'our $answer = 42'
+    }
+    say $M::answer;         # says 42
+
+And also the current language, meaning any added syntax is available:
+
+    sub infix:<mean>(*@a) is assoc<list> {
+        @a.sum / @a.elems
+    }
+    EVAL 'say 2 mean 6 mean 4';     # says 4
+
+An C<EVAL> statement evaluates to the result of the last statement:
+
+    say EVAL 'say 1; 2 mean 6 mean 4';         # says 1, then says 4
+
 C<EVAL> is also a gateway for executing code in other languages:
 
     EVAL "use v5.20; say 'Hello from perl5!'", :lang<Perl5>;
