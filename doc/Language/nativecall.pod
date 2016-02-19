@@ -328,20 +328,28 @@ to callbacks.
 
 TBD more
 
-The C<native> trait accept simple lib name or a full path. It's common to
-have the lib parameter defined as a constant than can be modified via an
-environment variable. This is an example from the mysql binding in C<DBIIsh>
+The C<native> trait accept a simple lib name or a full path.
 
-  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'mysqlclient';
+  constant LIBMYSQL = 'mysqlclient';
+  constant LIBFOO = '/usr/lib/libfoo.so.1';
   # and later
-  sub mysql_affectied_rows( .. ) returns int32 is native(LIB)
+  sub mysql_affectied_rows( .. ) returns int32 is native(LIBMYSQL);
+  sub bar is native(LIBFOO);
 
 You can also put incomplete path like './foo', NativeCall will automaticly put
 the right extension according to the plateform specification.
 
+BE CAREFUL: the C<native> trait and C<constant> are evalued at compile time. Don't write a constant
+that depend on dynamic variable like:
+
+  constant LIBMYSQL = %*ENV<P6LIB_MYSQLCLIENT> || 'mysqlclient';
+
+This will keep the value given at compile time. A module will be precompiled and C<LIBMYSQL> will
+keep the value it get evaluated when the module get precompiled.
+
 =head2 ABI/API Version
 
-If you write C<native('libfoo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on Os X).
+If you write C<native('foo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on Os X, foo.dll on win32).
 In most modern system it will requiere you or the user of your module to install
 the develepment package because it's recommanded to always provide an API/ABI version to a
 shared library, so libfoo.so ends often being a symbolic link provided only by a devel package.
@@ -351,10 +359,10 @@ version or just a part of it (Try to stick to Major version, some BSD does not c
 
   sub foo is native('foo', v1); # Will try to load libfoo.so.1
   sub foo is native('foo', v1.2.3); # Will try to load libfoo.so.1.2.3
-  
-  #From DBIish Pg driver
-  constant LIB = %*ENV<DBIISH_PG_LIB> || ('pq', v5);
 
+  my List $lib = ('foo', 'v1');
+  sub foo is native($lib);
+  
 
 =head2 Routine
 
@@ -362,6 +370,8 @@ the C<native> trait also accept a C<Callable> as argument, allowing you to provi
 own way to handle the way it will find the library file to load.
 
   sub foo is native(sub {'libfoo.so.42'});
+
+It will only be called at the first invocation of the sub.
 
 =head2 Calling into the standard library
 
