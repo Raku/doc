@@ -125,13 +125,23 @@ can serve this role. This means you can expose libraries that work on handles
 by writing a class like this:
 
     class FooHandle is repr('CPointer') {
+        has $!initialized;
+
         # Here are the actual NativeCall functions.
         sub Foo_init() returns FooHandle is native("foo") { * }
         sub Foo_free(FooHandle) is native("foo") { * }
 
         # Here are the methods we use to expose it to the outside world.
-        method new() { Foo_init() }
-        method free() { Foo_free(self) }
+        method new() {
+            Foo_init();
+            $!initialized = True;
+        }
+        method free() {
+            if $!initialized {
+                Foo_free(self);
+                $!initialized = False; # prevent double frees
+            }
+        }
     }
 
 Note that the CPointer representation can do nothing more than hold a C pointer.
