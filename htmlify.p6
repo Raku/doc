@@ -629,7 +629,7 @@ sub write-search-file () {
             }
     }).flat;
     @items.append( %p5to6-functions.keys.map( {
-      my $url = "/language/5to6-perlfunc.html#" ~ uri_escape($_);
+      my $url = "/language/5to6-perlfunc#" ~ uri_escape($_);
       sprintf( q[[{ category: "5to6-perlfunc", value: "%s", url: "%s" }]], $_, $url);
     }) );
     spurt("html/js/search.js", $template.subst("ITEMS", @items.join(",\n") ));
