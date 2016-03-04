@@ -340,7 +340,8 @@ sub find-references(:$pod!, :$url, :$origin) {
 }
 
 sub find-p5to6-functions(:$pod!, :$url, :$origin) {
-  if $pod ~~ Pod::Item  {
+  if $pod ~~ Pod::Heading && $pod.level == 2  {
+      # Add =head2 function names to hash
       my $func-name = ~$pod.contents[0].contents;
       %p5to6-functions{$func-name} = 1;
   }
@@ -641,10 +642,15 @@ sub write-search-file () {
                 }", value: "$name", url: "{@docs.[0].url}" \}]] #"
             }
     }).flat;
+
+    # Add p5to6 functions to JavaScript search index
     @items.append( %p5to6-functions.keys.map( {
-      my $url = "/language/5to6-perlfunc#" ~ uri_escape($_);
-      sprintf( q[[{ category: "5to6-perlfunc", value: "%s", url: "%s" }]], $_, $url);
-    }) );
+      my $url = "/language/5to6-perlfunc#" ~ $_.subst(' ', '_', :g);
+      sprintf(
+        q[[{ category: "5to6-perlfunc", value: "%s", url: "%s" }]],
+        $_, $url
+      );
+    }));
     spurt("html/js/search.js", $template.subst("ITEMS", @items.join(",\n") ));
 }
 
