@@ -156,9 +156,22 @@ sub MAIN(
     }
 }
 
-sub extract-pod($file) {
-    use MONKEY-SEE-NO-EVAL;
-    my $pod  = EVAL(slurp($file.path) ~ "\n\$=pod")[0];
+my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
+my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
+
+sub extract-pod(IO() $file) {
+    use nqp;
+    # The file name is enough for the id because POD files don't have depends
+    my $id = nqp::sha1(~$file);
+    my $handle = $precomp.load($id,:since($file.modified));
+
+    if not $handle {
+        # precomile it
+        $precomp.precompile($file, $id);
+        $handle = $precomp.load($id);
+    }
+
+    return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
@@ -629,7 +642,7 @@ sub write-search-file () {
             }
     }).flat;
     @items.append( %p5to6-functions.keys.map( {
-      my $url = "/language/5to6-perlfunc.html#" ~ uri_escape($_);
+      my $url = "/language/5to6-perlfunc#" ~ uri_escape($_);
       sprintf( q[[{ category: "5to6-perlfunc", value: "%s", url: "%s" }]], $_, $url);
     }) );
     spurt("html/js/search.js", $template.subst("ITEMS", @items.join(",\n") ));
