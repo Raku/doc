@@ -1897,10 +1897,17 @@ Short-circuits.
 
 =head2 infix C«==>»
 
-This X<feed> operator takes the result from the left and passes it as the
-last parameter to the right. This allows for a more natural left-to-right data
-flow similar to method chaining, but can be used with functions that are not
-methods of the data in each step.
+This X<feed> operator takes the result from the left and passes it to the
+next (right) routine as the last parameter. This allows
+for a more natural left-to-right data flow similar to method chaining, but
+gives you the freedom to use something other than methods directly available
+to the data (the result of a bare routine or an unrelated data's method).
+
+The precedence is very loose so you will need to use parentheses to
+assign the result or you can even just use another feed operator! In the
+case of routines/methods that take a single argument or the first argument
+is a block, it is often required that you call with parentheses (though this
+is not required for the very last routine/method).
 
     # Traditional structure, read bottom-to-top
     my @result =
@@ -1909,39 +1916,73 @@ methods of the data in each step.
         map { .tc },       # (2) Capitalize the words
         <people of earth>; # (1) Start with the input
 
-    # Feed (left-to-right), read top-to-bottom
-    my @result =
-        <people of earth> # (1) Start with the input
-        ==> map { .tc }   # (2) Capitalize the words
-        ==> grep /<[PE]>/ # (3) Look for P or E
-        ==> sort;         # (4) Sort, result is <Earth People>
+    # Feed (left-to-right) with parentheses, read top-to-bottom
+    my @result = (
+        <people of earth>  # (1) Start with the input
+        ==> map({ .tc })   # (2) Capitalize the words
+        ==> grep /<[PE]>/  # (3) Look for P or E
+        ==> sort           # (4) Sort, result is <Earth People>
+    );
 
-    # For illustration, method chaning equivalent for Lists, read top-to-bottom
+    # For illustration, method chaining equivalent, read top-to-bottom
     my @result =
-        <people of earth> # (1) Start with the input
-        .map({ .tc })     # (2) Capitalize the words
-        .grep(/<[PE]>/)   # (3) Look for P or E
-        .sort;            # (4) Sort, result is <Earth People>
+        <people of earth>  # (1) Start with the input
+        .map({ .tc })      # (2) Capitalize the words
+        .grep(/<[PE]>/)    # (3) Look for P or E
+        .sort;             # (4) Sort, result is <Earth People>
+
+    # To assign without the need of parentheses use another feed operator
+    <people of earth>
+        ==> map({ .tc })
+        ==> grep /<[PE]>/
+        ==> sort()
+        ==> my @result;
+
+    # It can be useful to capture a partial result
+    <people of earth>
+        ==> map({ .tc })
+        ==> my @caps; @caps # also could wrap in parentheses instead
+        ==> grep /<[PE]>/
+        ==> sort()
+        ==> my @result;
 
 =head2 infix C«<==»
 
 This X<leftward feed> operator takes the result from the right and passes
-it as the last parameter to the left. This makes visible the right-to-left
-dataflow for a series of list manipulating functions.
+it to the previous (left) routine as the last parameter. This
+elucidates the right-to-left dataflow for a series of list manipulating
+functions.
 
     # Traditional structure, read bottom-to-top
     my @result =
-        sort               # (4) Sort, result is <Earth People>
-        grep { /<[PE]>/ }, # (3) Look for P or E
-        map { .tc },       # (2) Capitalize the words
-        <people of earth>; # (1) Start with the input
-
-    # Feed (right-to-left), read bottom-to-top
-    my @result =
         sort                   # (4) Sort, result is <Earth People>
-        <== grep { /<[PE]>/ }, # (3) Look for P or E
-        <== map { .tc },       # (2) Capitalize the words
+        grep { /<[PE]>/ },     # (3) Look for P or E
+        map { .tc },           # (2) Capitalize the words
+        <people of earth>;     # (1) Start with the input
+
+    # Feed (right-to-left) with parentheses, read bottom-to-top
+    my @result = (
+        sort()                 # (4) Sort, result is <Earth People>
+        <== grep({ /<[PE]>/ }) # (3) Look for P or E
+        <== map({ .tc })       # (2) Capitalize the words
+        <== <people of earth>  # (1) Start with the input
+    );
+
+    # To assign without parentheses, use another feed operator
+    my @result
+        <== sort()             # (4) Sort, result is <Earth People>
+        <== grep({ /<[PE]>/ }) # (3) Look for P or E
+        <== map({ .tc })       # (2) Capitalize the words
         <== <people of earth>; # (1) Start with the input
+
+    # It can be useful to capture a partial result
+    my @result
+        <== sort()
+        <== grep({ /<[PE]>/ })
+        <== my @caps # unlike <==, there is no need for addtl. statement
+        <== map({ .tc })
+        <== <people of earth>;
+
 
 =end pod
 
