@@ -93,15 +93,23 @@ routine itself.
 Note that a null string can be passed by passing the Str type object; a null
 return will also be represented by the type object.
 
-For string arguments that are specified as C<const char *> it is necessary
-to tell Perl not to free the memory allocated to the C string after the
-function returns using C<explicitly-manage> :
+If the C function requires the lifetime of a string to exceed the function
+call, the argument must be manually encoded and passed as C<CArray[uint8]>:
 
-    # C prototype is void set_foo(const char * foo)
-	sub set_foo(Str) is native('foo') { * }
+    # C prototype is void set_foo(const char *)
+    sub set_foo(CArray[uint8]) is native('foo') { * }
+    # C prototype is void use_foo(void)
+    sub use_foo() is native('foo') { * } # will use pointer stored by set_foo()
+
     my $string = "FOO";
-    explicitly-manage($string);
-    set_foo($string);
+    # The lifetime of this variable must be equal to the required lifetime of
+    # the data passed to the C function.
+    my $array = CArray[uint8].new($string.encode.list);
+
+    set_foo($array);
+    # ...
+    use_foo();
+    # It's fine if $array goes out of scope starting from here.
 
 =head1 Basic use of Pointers
 
