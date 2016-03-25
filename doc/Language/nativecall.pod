@@ -60,22 +60,27 @@ Here, we have declared that the function takes two 32-bit integers and returns
 a 32-bit integer. Here are some of the other types that you may pass (this will
 likely grow with time).
 
-    int8           (char in C)
-    int16          (short in C)
-    int32          (int in C)
-    int64          (64-bit explicit int in C like int64_t in C99)
-    long           (32- or 64-bit, depends what long means locally)
-    longlong       (at least 64bits, what long long means locally)
+    int8           (int8_t in C, also used for char)
+    int16          (int16_t in C, also used for short)
+    int32          (int32_t in C, also used for int)
+    int64          (int64_t in C)
+    uint8          (uint8_t in C, also used for unsigned char)
+    uint16         (uint16_t in C, also used for unsigned short)
+    uint32         (uint32_t in C, also used for unsigned int)
+    uint64         (uint64_t in C)
+    long           (long in C)
+    longlong       (long long in C, at least 64-bit)
     num32          (float in C)
     num64          (double in C)
     Str            (C string)
-    CArray[int32]  (int* in C, an array of integers)
+    CArray[int32]  (int* in C, an array of ints)
     Pointer[void]  (void* in C, can point to all other types)
     bool           (bool from C99)
     size_t         (size_t in C)
 
-Don't use Perl 6 native types like C<int> or C<num>, as they could lead to
-unwanted boundary issue between 32 bits and 64 bits systems.
+Don't use Perl 6 native types like C<int> or C<num>, as they don't have to
+correspond to the local C equivalent (e.g. Perl 6's C<int> can be 8 bytes but
+C's C<int> is only 4 bytes).
 
 Note that the lack of a C<returns> trait is used to indicate void return type.
 Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
@@ -114,7 +119,7 @@ call, the argument must be manually encoded and passed as C<CArray[uint8]>:
 =head1 Basic use of Pointers
 
 When the signature of your native function needs a pointer to some native type
-(int, uint, etc.) all you need to do is declare the argument C<is rw> :
+(C<int32>, C<uint32>, etc.) all you need to do is declare the argument C<is rw> :
 
    # C prototype is void my_version(int *mayor, int *minor)
        sub my_version(int32 is rw, int32 is rw) is native('foo') { * }
@@ -197,7 +202,7 @@ a much more primitive CArray type, which you must use if working with C arrays.
 
 Here is an example of passing a C array.
 
-    sub RenderBarChart(Str, int, CArray[Str], CArray[num]) is native("chart") { * }
+    sub RenderBarChart(Str, int32, CArray[Str], CArray[num]) is native("chart") { * }
     my @titles := CArray[Str].new;
     @titles[0]  = 'Me';
     @titles[1]  = 'You';
@@ -223,14 +228,14 @@ Getting return values for arrays works out just the same.
 Some library APIs may take an array as a buffer that will be populated by the
 C function and, for, instance, return the actual number of items populated:
 
-   sub get_n_ints(CArray[int], int) returns Int is native('ints');
+    sub get_n_ints(CArray[int32], int32) returns int32 is native('ints');
 
 In these cases it is important that the CArray has at least the number of
 elements that are going to be populated before passing it to the native
 subroutine, otherwise the C function may stomp all over Perl's memory
 leading to possibly unpredictable behaviour:
 
-   my $ints = CArray[int].new;
+   my $ints = CArray[int32].new;
    my $number_of_ints = 10;
    $ints[$number_of_ints - 1] = 0; # extend the array to 10 items
 
@@ -430,8 +435,8 @@ to print the home directory of the current user:
         has Str $.pw_dir;
         has Str $.pw_shell;
     }
-    sub getuid()           returns uint32   is native(Str) {};
-    sub getpwuid(int $uid) returns PwStruct is native(Str) {};
+    sub getuid()              returns uint32   is native(Str) {};
+    sub getpwuid(uint32 $uid) returns PwStruct is native(Str) {};
 
     say getpwuid(getuid()).pw_dir;
 
@@ -443,7 +448,7 @@ Though of course C<$*HOME> is a much easier way :-)
 Variables exported by a library -- also named "global" or "extern"
 variables -- can be accessed using C<cglobal>.  For example:
 
-    my $var := cglobal('libc.so.6', 'errno', int)
+    my $var := cglobal('libc.so.6', 'errno', int32)
 
 This code binds to C<$var> a new L<Proxy|/type/Proxy> object that
 redirects all its accesses to the integer variable named "errno" as
