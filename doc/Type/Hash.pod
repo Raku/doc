@@ -56,6 +56,47 @@ occurrence is stored in the hash:
 To assign to a variable without the C<%> sigil, you may use curly braces:
 
     my $h = { a => 1, b => 2 };
+    say $h.WHAT;                # Hash
+    say $h<a>;                  # 1
+
+B<NOTE:> If one or more values reference the topic variable, C<$_>, the
+right-hand side of the assignment will be interpreted as a L<Block|/type/Block.html>,
+not a Hash:
+
+    my %fruits = apple => 'McIntosh', pear => 'Bartlett';
+    given (%fruits) {
+      my $works = { red => %fruits<apple>, green => %fruits<pear> };
+      say $works.WHAT;          # Hash
+      say $works<red>;          # McIntosh
+
+      my $fails = { red => $_<apple>, green => $_<pear> };
+      say $fails.WHAT;          # Block
+      say $fails<red>;          # ERROR: Type Block does not support associative indexing
+    }
+
+If you B<need> to refer to C<$_> E<0x2014> i.e., the target Hash doesn't I<have> a name
+E<0x2014> you might want to consider using the more idiomatic C«my %h = a => 1, b => 2;»
+form, instead:
+
+    given ({ apple => 'McIntosh', pear => 'Bartlett' }) {
+      my %yummy = red => $_<apple>, green => $_<pear>;
+      say %yummy.WHAT;          # Hash
+      say %yummy<red>;          # McIntosh
+    }
+
+And finally, in the spirit of TMTOWTDI, you I<could> also use
+L<string interpolation|/language/quoting.html#Interpolation%3A_qq> to prevent the
+compiler from interpreting the C<$_>, but that smells funny[*]...
+
+    given ({ apple => 'McIntosh', pear => 'Bartlett' }) {
+      my $yummy = { red => "{ $_<apple> }", green => "{ $_<pear> }" };
+      say $yummy.WHAT;          # Hash
+      say $yummy<red>;          # McIntosh
+    }
+
+* L<https://en.wikipedia.org/wiki/Code_smell|https://en.wikipedia.org/wiki/Code_smell>
+
+=head2 Non-string keys
 
 By default keys in C<{ }> are forced to strings. To compose a hash with
 non-string keys, use a colon prefix:
