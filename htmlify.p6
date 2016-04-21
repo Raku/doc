@@ -842,6 +842,8 @@ def p6format(code):
     }
     if $py {
         say "Using syntax highlighting via Inline::Python";
+    } else {
+       say "Error using Inline::Python, falling back to pygmentize: ($!)";
     }
 
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
