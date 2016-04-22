@@ -344,6 +344,99 @@ Examples:
     "Perl".flip;  # lreP
     "ABBA".flip;  # ABBA
 
+=head2 sub printf
+
+ multi sub printf (Str:D $format, *@args)
+
+This function is mostly identical to the C library printf function.
+
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Format tokens have the following grammar:
+
+ grammar Str::PrintfFormat {
+  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ '$' }
+  token precision { <flags>? <vector>? <precision_count> }
+  token flags { <[ \x20 + 0 \# \- ]>+ }
+  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
+  token vector { '*'? v }
+  token modifier { < ll l h V q L > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
+ }
+
+Directives guide the use (if any) of the arguments. When a directive
+(other than C<%>) is used, it indicates how the next argument
+passed is to be formatted into the string to be printed.
+
+The directives are:
+
+=begin table
+
+ %   a literal percent sign
+ c   a character with the given codepoint
+ s   a string
+ d   a signed integer, in decimal
+ u   an unsigned integer, in decimal
+ o   an unsigned integer, in octal
+ x   an unsigned integer, in hexadecimal
+ e   a floating-point number, in scientific notation
+ f   a floating-point number, in fixed decimal notation
+ g   a floating-point number, in %e or %f notation
+ X   like x, but using uppercase letters
+ E   like e, but using an uppercase "E"
+ G   like g, but with an uppercase "E" (if applicable)
+ b   an unsigned integer, in binary
+
+=end table
+
+Compatibility:
+
+=begin table
+
+ i   a synonym for %d
+ D   a synonym for %ld
+ U   a synonym for %lu
+ O   a synonym for %lo
+ F   a synonym for %f
+
+=end table
+
+Perl 5 (non-)compatibility:
+
+=begin table
+
+ n   produces a runtime exception
+ p   produces a runtime exception
+
+=end table
+
+Modifiers change the meaning of format directives, but are largely
+no-ops (the semantics are still being determined).
+
+=begin table
+
+ h  interpret integer as native "short" (typically int16)
+ l  interpret integer as native "long" (typically int32 or int64)
+ ll interpret integer as native "long long" (typically int64)
+ L  interpret integer as native "long long" (typically uint64)
+ q  interpret integer as native "quads" (typically int64 or larger)
+
+=end table
+
+Examples:
+
+ printf('%c', [97]);                  # a
+ printf("%.2f", [1.969]);             # 1.97
+ printf("%+.3f", [3.141592]);         # +3.142
+ printf('%2$d %1$d', [12, 34]);       # 34 12
+ printf("%x", [255]);                 # ff
+
+Special case:  printf("<b>%s</b>\n", "Perl 6")  will not work use either of the following:
+
+ printf Q:b "<b>%s</b>\n",  "Perl 6";
+ printf     "<b>\%s</b>\n", "Perl 6";
+ printf     "<b>%s\</b>\n", "Perl 6";
+
 =head2 sub sprintf
 
  multi sub sprintf ( Str:D $format, *@args) returns Str:D
