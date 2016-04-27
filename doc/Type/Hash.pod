@@ -55,7 +55,7 @@ occurrence is stored in the hash:
 
 To assign to a variable without the C<%> sigil, you may use curly braces:
 
-    my $h = { a => 1, b => 2 };
+    my $h = { a => 1, b => 2 }; # *See Note*
     say $h.WHAT;                # Hash
     say $h<a>;                  # 1
 
@@ -63,38 +63,59 @@ B<NOTE:> If one or more values reference the topic variable, C<$_>, the
 right-hand side of the assignment will be interpreted as a L<Block|/type/Block.html>,
 not a Hash:
 
-    my %fruits = apple => 'McIntosh', pear => 'Bartlett';
-    given (%fruits) {
-      my $works = { red => %fruits<apple>, green => %fruits<pear> };
-      say $works.WHAT;          # Hash
-      say $works<red>;          # McIntosh
+    my @people = [
+        { id => "1A", firstName => "Andy", lastName => "Adams" },
+        { id => "2B", firstName => "Beth", lastName => "Burke" },
+        # ...
+    ];
 
-      my $fails = { red => $_<apple>, green => $_<pear> };
-      say $fails.WHAT;          # Block
-      say $fails<red>;          # ERROR: Type Block does not support associative indexing
-    }
+    sub lookup-user (Hash $h) { #`(Do something...) $h }
 
-If you B<need> to refer to C<$_> E<0x2014> i.e., the target Hash doesn't I<have> a name
-E<0x2014> you might want to consider using the more idiomatic C«my %h = a => 1, b => 2;»
-form, instead:
+    my @names = map {
+        my $query = { name => "$_<firstName> $_<lastName>" };
+        say $query.WHAT;       # Block
+        say $query<name>;      # ERROR: Type Block does not support associative indexing
 
-    given ({ apple => 'McIntosh', pear => 'Bartlett' }) {
-      my %yummy = red => $_<apple>, green => $_<pear>;
-      say %yummy.WHAT;          # Hash
-      say %yummy<red>;          # McIntosh
-    }
+        lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
+    }, @people;
 
-And finally, in the spirit of TMTOWTDI, you I<could> also use
-L<string interpolation|/language/quoting.html#Interpolation%3A_qq> to prevent the
-compiler from interpreting the C<$_>, but that smells funny[*]...
+Instead, you should either:
 
-    given ({ apple => 'McIntosh', pear => 'Bartlett' }) {
-      my $yummy = { red => "{ $_<apple> }", green => "{ $_<pear> }" };
-      say $yummy.WHAT;          # Hash
-      say $yummy<red>;          # McIntosh
-    }
+=begin item
+1) use the C<%()> hash constructor:
 
-* L<https://en.wikipedia.org/wiki/Code_smell|https://en.wikipedia.org/wiki/Code_smell>
+    my  $query = %( name => "$_<firstName> $_<lastName>" );
+    say $query.WHAT;         # Hash
+    say $query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+2) assign to a Hash type (C<%>) directly:
+
+    my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
+    say %query.WHAT;         # Hash
+    say %query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+or 3) simply avoid the issue altogether by explicitly providing a name for
+the topic variable:
+
+    my @names = map -> $person {
+        my $query = { name => "$person<firstName> $person<lastName>" };
+        say $query.WHAT;     # Hash
+        say $query<name>;    # Andy Adams, Beth Burke, etc.
+
+       lookup-user($query);
+    }, @people;
+=end item
+
+Even in the final case, however, specifying a Hash type (C<%>) is still the
+most idiomatic and unambiguous solution:
+
+    my @names = @people.map: -> $person {
+        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
+    };
 
 =head2 Non-string keys
 
