@@ -55,7 +55,69 @@ occurrence is stored in the hash:
 
 To assign to a variable without the C<%> sigil, you may use curly braces:
 
-    my $h = { a => 1, b => 2 };
+    my $h = { a => 1, b => 2 }; # *See Note*
+    say $h.WHAT;                # Hash
+    say $h<a>;                  # 1
+
+B<NOTE:> If one or more values reference the topic variable, C<$_>, the
+right-hand side of the assignment will be interpreted as a L<Block|/type/Block.html>,
+not a Hash:
+
+    my @people = [
+        { id => "1A", firstName => "Andy", lastName => "Adams" },
+        { id => "2B", firstName => "Beth", lastName => "Burke" },
+        # ...
+    ];
+
+    sub lookup-user (Hash $h) { #`(Do something...) $h }
+
+    my @names = map {
+        my $query = { name => "$_<firstName> $_<lastName>" };
+        say $query.WHAT;       # Block
+        say $query<name>;      # ERROR: Type Block does not support associative indexing
+
+        lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
+    }, @people;
+
+Instead, you should either:
+
+=begin item
+1) use the C<%()> hash constructor:
+
+    my  $query = %( name => "$_<firstName> $_<lastName>" );
+    say $query.WHAT;         # Hash
+    say $query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+2) assign to a Hash type (C<%>) directly:
+
+    my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
+    say %query.WHAT;         # Hash
+    say %query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+or 3) simply avoid the issue altogether by explicitly providing a name for
+the topic variable:
+
+    my @names = map -> $person {
+        my $query = { name => "$person<firstName> $person<lastName>" };
+        say $query.WHAT;     # Hash
+        say $query<name>;    # Andy Adams, Beth Burke, etc.
+
+       lookup-user($query);
+    }, @people;
+=end item
+
+Even in the final case, however, specifying a Hash type (C<%>) is still the
+most idiomatic and unambiguous solution:
+
+    my @names = @people.map: -> $person {
+        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
+    };
+
+=head2 Non-string keys
 
 By default keys in C<{ }> are forced to strings. To compose a hash with
 non-string keys, use a colon prefix:
