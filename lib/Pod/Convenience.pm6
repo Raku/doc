@@ -36,7 +36,7 @@ sub first-code-block(@pod) is export {
 
 sub pod-with-title($title, *@blocks) is export {
     Pod::Block::Named.new(
-        name => "pod",
+        name     => "pod",
         contents => [
             flat pod-title($title), @blocks
         ]
@@ -45,13 +45,13 @@ sub pod-with-title($title, *@blocks) is export {
 
 sub pod-title($title) is export {
     Pod::Block::Named.new(
-        name    => "TITLE",
+        name     => "TITLE",
         contents => Array.new(
             Pod::Block::Para.new(
                 contents => [$title],
             )
         )
-    )
+    );
 }
 
 sub pod-block(*@contents) is export {
@@ -90,7 +90,7 @@ sub pod-heading($name, :$level = 1) is export {
 sub pod-table(@contents) is export {
     Pod::Block::Table.new(
         :@contents
-    )
+    );
 }
 
 sub pod-lower-headings(@content, :$to = 1) is export {
@@ -98,10 +98,9 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     return @content unless $by > $to;
     my @new-content;
     for @content {
-        @new-content.append($_ ~~ Pod::Heading
+        @new-content.append: $_ ~~ Pod::Heading
             ?? Pod::Heading.new: :level(.level - $by + $to) :contents[.contents]
-            !! $_
-        );
+            !! $_;
     }
     @new-content;
 }
