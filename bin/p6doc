@@ -36,13 +36,12 @@ sub search-paths() returns Seq {
     ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d
 }
 
-sub module-names(Str $modulename) {
-    [$modulename.split('::').join('/')
-        X~ <.pm .pm6 .pod>].list;
+sub module-names(Str $modulename) returns Seq {
+    $modulename.split('::').join('/') X~ <.pm .pm6 .pod .pod6>;
 }
 
 sub locate-module(Str $modulename) {
-    my @candidates = (search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list);
+    my @candidates = search-paths() X~ </ Type/ Language/> X~ module-names($modulename);
     DEBUG and warn :@candidates.perl;
     my $m = @candidates.first: *.IO.f;
 
@@ -109,7 +108,7 @@ multi sub MAIN(Bool :$l!) {
     my @modules;
     for @paths -> $dir {
         for dir($dir).sort -> $file {
-            @modules.push: $file.basename.Str.subst('.pod','') if $file.IO.f;
+            @modules.push: $file.basename.subst('.pod','') if $file.IO.f;
         }
     }
     @modules.append: get-panda-modules(); 
@@ -234,9 +233,9 @@ sub get-panda-modules {
     my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
     my @modules;
     for $state.IO.lines -> $line {
-        my (Any, $json ) = $line.split(/'installed '|'installed-dep '/);
-        my $state = from-json $json;
-        @modules.append: $state<provides>.keys.list;
+        my $json = $line.split(/'installed '|'installed-dep '/)[1];
+        my $state = from-json($json);
+        @modules.append: $state<provides>.keys;
     }
 
     return @modules;
