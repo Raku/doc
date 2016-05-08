@@ -356,6 +356,32 @@ to the C<map> is emitted:
          $supplier.emit($_);
      }
 
+If you need to have an action that runs when the supply finishes, you can do so
+by setting the C<done> and C<quit> options in the call to C<tap>:
+
+    $supply.tap: { ... },
+        done => { say 'Job is done.' },
+        quit => {
+            when X::MyApp::Error { say "App Error: ", $_.message }
+        };
+
+The C<quit> block works very similar to a C<CATCH>. If the exception is marked
+as seen by a C<when> or C<default> block, the exception is caught and handled.
+Otherwise, the exception continues to up the call tree (i.e., the same behavior
+as when C<quit> is not set).
+
+If you are using the C<react> or C<supply> block syntax with C<whenever>, you can add phasers within your C<whenever> blocks to handle the C<done> and C<quit> messages from the tapped supply:
+
+    react {
+        whenever $supply {
+            ...; # your usual supply tap code here
+            LAST { say 'Job is done.' }
+            QUIT { when X::MyApp::Error { say "App Error: ", $_.message } }
+        }
+    }
+
+The behavior here is the same as setting C<done> and C<quit> on C<tap>.
+
 =head2 Channels
 
 A L<Channel> is a thread-safe queue that can have multiple readers and
