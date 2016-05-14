@@ -2,33 +2,31 @@
 # need this to install pod under .../share/perl6/doc
 # This fixes p6doc command line use.
 
-use Panda::Common;
-use Panda::Builder;
-use Shell::Command;
 use File::Find;
-use Panda::Installer;
 
-class Build is Panda::Builder {
+class Build {
     method build($workdir) {
+        my $doc-dir   = $workdir.IO.child('doc');
+        my $dest-pref = $*REPO.repo-chain.first(*.?can-install).prefix.child("doc");
+        mkdir($dest-pref) unless $dest-pref.d;
 
-        my $dest-pref = Panda::Installer.new.default-prefix() ~ '/../doc';
-        my $docdir = IO::Path.new("$workdir/doc").abspath; # An OS independent version
-
-        my @files = find(dir => $docdir, type => 'file').list;
+        my @files = find(dir => "$workdir/doc", type => 'file').list;
 
         for @files -> $file {
-            next if $file ~~ /'HomePage.pod'$/;
+            next if $file.basename eq 'HomePage.pod';
 
-            my $dest = $file;
-            $dest =  $dest-pref ~ $dest.split($docdir)[1];
+            my $rel-dest = $file.relative($doc-dir);
+            my $abs-dest = IO::Path.new($rel-dest, :CWD($dest-pref)).absolute;
 
-            my $dest-dir = $dest.IO.dirname;
-            mkpath $dest-dir unless $dest-dir.IO.d;
+            mkdir($abs-dest.IO.parent) unless $abs-dest.IO.parent.d;
 
-            my $relative = $*SPEC.abs2rel($file, $workdir);
-            note "Copying $relative to $dest";
+            say "Copying {$rel-dest} to {$abs-dest}";
 
-            cp($file, $dest);
+            copy($file, $abs-dest);
         }
+    }
+    method isa($what) { # Only needed for older panda compatibility
+        return True if $what.^name eq 'Panda::Builder';
+        callsame;
     }
 }
