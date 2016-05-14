@@ -1,7 +1,6 @@
 #!/usr/bin/env perl6
 use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
 use JSON::Fast;
-use Panda::Installer;
 
 my $PROGRAM-NAME = "p6doc";
 
@@ -17,13 +16,12 @@ constant DEBUG      = %*ENV<P6DOC_DEBUG>;
 constant INTERACT   = %*ENV<P6DOC_INTERACT>;
 
 sub findbin() returns Str {
-    IO::Path.new($*PROGRAM-NAME).dirname ~ '/';
+    IO::Path.new($*PROGRAM-NAME).parent ~ '/';
 }
 
 constant INDEX = findbin() ~ 'index.data';
 
 sub search-paths() returns Seq {
-    # XXX 
     ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d
 }
 
@@ -32,7 +30,7 @@ sub module-names(Str $modulename) returns Seq {
 }
 
 sub locate-module(Str $modulename) {
-    my @candidates = search-paths() X~ </ Type/ Language/> X~ module-names($modulename);
+    my @candidates = search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list;
     DEBUG and warn :@candidates.perl;
     my $m = @candidates.first: *.IO.f;
 
@@ -102,7 +100,7 @@ multi sub MAIN(Bool :$l!) {
             @modules.push: $file.basename.subst('.pod','') if $file.IO.f;
         }
     }
-    @modules.append: get-panda-modules(); 
+    @modules.append: list-installed().map(*.name).unique;
     .say for @modules.sort;
 }
 
@@ -217,20 +215,30 @@ sub prompt-with-options(%options, %found) {
 }
 
 sub locate-curli-module($module) {
-    my $cu = $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
-    return ~ $cu.repo.prefix.child('sources/' ~ $cu.distribution.provides{$module}.values[0]<file>).Str;
+    my $installed := list-installed();
+    my $dist = $installed.first({ $_.name eq $module or $_.hash<provides>{$module}:exists });
+    return unless $dist;
+    my $mangled-basename = $dist.hash<provides>{$module}<pm><file>;
+    return unless $mangled-basename;
+    my $installed-path   = "{$dist.repo-prefix}/sources/{$mangled-basename}";
 }
 
-sub get-panda-modules {
-    my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
-    my @modules;
-    for $state.IO.lines -> $line {
-        my $json = $line.split(/'installed '|'installed-dep '/)[1];
-        my $state = from-json($json);
-        @modules.append: $state<provides>.keys;
-    }
+# see: Zef::Client.list-installed()
+# Eventually replace with CURI.installed()
+# https://github.com/rakudo/rakudo/blob/8d0fa6616bab6436eab870b512056afdf5880e08/src/core/CompUnit/Repository/Installable.pm#L21
+sub list-installed() {
+    my @curs       = $*REPO.repo-chain.grep(*.?prefix.?e);
+    my @repo-dirs  = @curs>>.prefix;
+    my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
+    my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
 
-    return @modules;
+    my $dists := gather for @dist-files -> $file {
+        if try { Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
+            my $cur = @curs.first: {.prefix eq $file.parent.parent}
+            my $dist-with-prefix = $dist but role :: { has $.repo-prefix = $cur.prefix };
+            take $dist-with-prefix;
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
