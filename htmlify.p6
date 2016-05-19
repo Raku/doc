@@ -167,7 +167,7 @@ sub extract-pod(IO() $file) {
     my $handle = $precomp.load($id,:since($file.modified));
 
     if not $handle {
-        # precomile it
+        # precompile it
         $precomp.precompile($file, $id);
         $handle = $precomp.load($id);
     }
@@ -538,7 +538,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
                 my Str @subkinds = first-code-block($chunk)\
-                    .match(:g, /:s ^ 'multi'? (sub|method)»/)\
+                    .match(:g, /:s ^ 'multi'? (sub|method)>>/)\
                     .>>[0]>>.Str.unique;
 
                 note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
@@ -770,7 +770,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
     spurt "html/$kind-$category.html", p2h(pod-with-title(
         "Perl 6 {$category.tc} {$kind.tc}s",
         pod-table($*DR.lookup($kind, :by<kind>)\
-            .grep({$category ⊆ .categories})\ # XXX
+            .grep({$category (<=) .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
             .map({[
                 .map({.subkinds // Nil}).unique.join(', '),
