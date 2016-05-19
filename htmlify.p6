@@ -538,7 +538,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
                 my Str @subkinds = first-code-block($chunk)\
-                    .match(:g, /:s ^ 'multi'? (sub|method) >> /)\
+                    .match(:g, /:s ^ 'multi'? (sub|method)» /)\
                     .>>[0]>>.Str.unique;
 
                 note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
