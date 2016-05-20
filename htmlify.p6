@@ -406,7 +406,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
         # Is this new header a definition?
         # If so, begin processing it.
         # If not, skip to the next heading.
-        
+
         my @header;
         try {
             @header := $pod-element.contents[0].contents;
