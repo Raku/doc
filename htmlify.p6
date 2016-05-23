@@ -167,7 +167,7 @@ sub extract-pod(IO() $file) {
     my $handle = $precomp.load($id,:since($file.modified));
 
     if not $handle {
-        # precomile it
+        # precompile it
         $precomp.precompile($file, $id);
         $handle = $precomp.load($id);
     }
@@ -406,7 +406,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
         # Is this new header a definition?
         # If so, begin processing it.
         # If not, skip to the next heading.
-        
+
         my @header;
         try {
             @header := $pod-element.contents[0].contents;
