@@ -36,15 +36,18 @@ my $type-graph;
 my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
 my %p5to6-functions;
+my $Debug = False;
 
 # TODO: Generate menulist automatically
 my @menu =
+    ('perl6', 'Perl 6') => (),
     ('language',''         ) => (),
     ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines' ) => <sub method term operator>,
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
+
 
 my $head = slurp 'template/head.html';
 sub header-html($current-selection = 'nothing selected') is cached {
@@ -112,9 +115,40 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
+    Bool :$debug = False,
 ) {
-    say 'Creating html/ subdirectories ...';
-    for flat '', <type language routine images syntax> {
+
+    # TODO: For the moment rakudo doc pod files were copied
+    #       from its repo to subdir doc/Perl6.  The rakudo install needs
+    #       to (1) copy those files to its installation directory (share/pod)
+    #       and (2) use Perl 5's pod2man to convert them to man pages in
+    #       the installation directory (share/man).
+    #
+    #       Then they can be copied to doc/Perl6.
+
+    $Debug = True if $debug;
+
+=begin code
+
+    # remove existing pod files
+    say 'Getting latest rakudo docs...';
+    my $local_rakudo_pod_dir = 'doc/Perl6';
+    say "  Removing old pod files from dir '$local_rakudo_pod_dir'...";
+    my $found = False;
+    for dir($local_rakudo_pod_dir) -> $f {
+       if $f.f && $f ~~ /\.pod$/ {
+           say "  Found pod file '$f'..."
+           unlink $f;
+           $found = True;
+       }
+    }
+    say "  No pod files found..." if !$found;
+
+=end code
+
+    say 'Creating html/subdirectories ...';
+
+    for flat '', <perl6 type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -125,6 +159,7 @@ sub MAIN(
     my %h = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph));
 
+    process-pod-dir 'Perl6', :$sparse;
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
@@ -133,6 +168,13 @@ sub MAIN(
     say 'Composing doc registry ...';
     $*DR.compose;
 
+    for $*DR.lookup("perl6", :by<name>).list -> $doc {
+        # want to order by file name/?
+        say "Writing Perl 6 document for {$doc.name} ...";
+        my $pod-path = pod-path-from-url($doc.url);
+        spurt "html{$doc.url}.html",
+            p2h($doc.pod, 'perl6', pod-path => $pod-path);
+    }
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
@@ -166,7 +208,31 @@ sub extract-pod(IO() $file) {
     my $id = nqp::sha1(~$file);
     my $handle = $precomp.load($id,:since($file.modified));
 
+
+=begin pod
+    if $Debug {
+        say "DEBUG: \$precomp...";
+        say $precomp.perl;
+
+        say "=== \$file:   '$file'";
+        say "=== \$id:     '$id'";
+        say "=== \$handle: '$handle'";
+
+        die "DEBUG exit";
+    }
+=end pod
+
     if not $handle {
+      if $Debug {
+        say "DEBUG: \$precomp.precompile...";
+        #say $precomp.perl;
+
+        say "=== \$file:   '$file'";
+        say "=== \$id:     '$id'";
+        #say "=== \$handle: '$handle'";
+
+        #die "DEBUG exit";
+      }
         # precompile it
         $precomp.precompile($file, $id);
         $handle = $precomp.load($id);
@@ -538,7 +604,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             if $subkinds eq 'routine' {
                 # Determine proper subkinds
                 my Str @subkinds = first-code-block($chunk)\
-                    .match(:g, /:s ^ 'multi'? (sub|method)»/)\
+                    .match(:g, /:s ^ 'multi'? (sub|method)??/)\
                     .>>[0]>>.Str.unique;
 
                 note "The subkinds of routine $created.name() in $origin.name() cannot be determined."
@@ -710,6 +776,15 @@ sub write-index-files() {
         p2h(extract-pod('doc/HomePage.pod'),
             pod-path => 'HomePage.pod');
 
+    say 'Writing html/perl6.html ...';
+    spurt 'html/perl6.html', p2h(pod-with-title(
+        'Perl 6 Executable Documentation',
+        pod-table($*DR.lookup('perl6', :by<kind>).sort(*.name).map({[
+            pod-link(.name, .url),
+            .summary
+        ]}))
+    ), 'perl6');
+    
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
