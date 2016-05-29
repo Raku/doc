@@ -19,7 +19,7 @@ function setup_search_box() {
 
 function setup_auto_title_anchors() {
     $('#content').find('h1,h2,h3,h4,h5,h6').each(function(i, el){
-        if ( ! $(el).attr("id").length ) { return; }
+        if ( ! $(el).attr('id') ) { return; }
         $(el).append(
             '<a href="#' + $(el).attr('id') + '" class="title-anchor">§</a>'
         );
