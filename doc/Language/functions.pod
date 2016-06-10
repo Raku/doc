@@ -366,7 +366,7 @@ L<Submethod|/type/Submethod>.
 
 They carry additional functionality in addition to what L<Block|/type/Block>
 supplies: they can come as L<multis|#Multi-dispatch>,
-you can L<wrap|/type/Routine#method wrap> them, and exit early with C<return>:
+you can L<wrap|/type/Routine#method_wrap> them, and exit early with C<return>:
 
 =begin code :allow<B>
 my $keywords = set <if for unless while>;
@@ -385,6 +385,32 @@ say has-keyword 'but', 'here', 'for';       # True
 Here C<return> does not just leave the block inside which it was called, but
 the whole routine. In general, blocks are transparent to C<return>, they
 attach to the outer routine.
+
+Routines can be inlined and as such provide an obstacle for wrapping. Use the
+pragma C<use soft;> to prevent inlining to allow wrapping at runtime.
+
+    sub testee(Int $i, Str $s){
+        rand.Rat * $i ~ $s;
+    }
+    
+    sub wrap-to-debug(&c){
+        say "wrapping {&c.name} with arguments {&c.signature.perl}";
+        &c.wrap: sub (|args){
+            note "calling {&c.name} with {args.gist}";
+            my \ret-val := callwith(|args);
+            note "returned from {&c.name} with return value {ret-val.perl}";
+            ret-val
+        }
+    }
+    
+    my $testee-handler = wrap-to-debug(&testee);
+    # OUTPUT«wrapping testee with arguments :(Int $i, Str $s)»
+    
+    say testee(10, "ten");
+    # OUTPUT«calling testee with \(10, "ten")␤returned from testee with return value "6.151190ten"␤6.151190ten»
+    &testee.unwrap($testee-handler);
+    say testee(10, "ten");
+    # OUTPUT«6.151190ten␤»
 
 
 =comment Important ones: candidates, wrap, unwrap, assuming, arity, count
@@ -643,7 +669,7 @@ a 1;        # Int 1\n Any 1
 
 As mentioned earlier, multi subs are not the only situation in which
 X<C<callwith>|callwith>, X<C<callsame>|callsame>, X<C<nextwith>|nextwith> and X<C<nextsame>|nextsame> can be helpful.
-One is is for dispatching to wrapped routines:
+One is for dispatching to wrapped routines:
 
 =begin code
 # enable wrapping:

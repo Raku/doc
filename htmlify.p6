@@ -30,7 +30,6 @@ use Pod::Convenience;
 use Pod::Htmlify;
 
 use experimental :cached;
-use experimental :pack;
 
 my $type-graph;
 my %routines-by-type;

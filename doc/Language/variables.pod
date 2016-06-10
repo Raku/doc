@@ -100,7 +100,7 @@ larger expression determines the type of assignment:
 This is because the whole expression is C<@array = $num = 42, "str">, while
 C<$num = 42> is not is own separate expression.
 
-See L<operators|Language/operators> for more details on precedence.
+See L<operators|/language/operators> for more details on precedence.
 
 =head2 Sigilless variables
 
@@ -109,7 +109,7 @@ It is possible to create "variables" in Perl 6 that do not have sigils:
     my \degrees = pi / 180;
     my \θ       = 15 * degrees;
 
-Note, however, that these do not create L<containers>. That means C<degrees>
+Note, however, that these do not create L<containers|/language/containers>. That means C<degrees>
 and C<θ> above actually directly represent C<Num>s. To illustrate, try
 assigning to one after you've defined it:
 
@@ -578,6 +578,18 @@ Please note that many operators come with implicit binding, what will lead to ac
     f for 1..3;
     dd @a; # «Array $var = $[:k1(3), :k2(3), :k3(3)]»
 
+All state variables are shared between threads. The result can be undesired or
+dangerous.
+
+    sub code(){ state $i = 0; say ++$i; $i }; 
+    await 
+        start { loop { last if code() >= 5 } },
+        start { loop { last if code() >= 5 } };
+
+    # OUTPUT«1␤2␤3␤4␤4␤3␤5␤»
+    # OUTPUT«2␤1␤3␤4␤5␤»
+    # many other more or less odd variations can be produced
+
 =head3 The C<$> Variable
 
 As well as explicitly declared named state variables C<$> can be used
@@ -934,22 +946,36 @@ This outputs:
 
 =head3 The C<$/> Variable
 
-C<$/> is the match variable. It stores the result of the last L<Regex|regex>
+C<$/> is the match variable. It stores the result of the last L<Regex|/language/regexes>
 match and so usually contains objects of type L<Match>.
 
     'abc 12' ~~ /\w+/;  # sets $/ to a Match object
     say $/.Str;         # abc
 
 The C<Grammar.parse> method also sets the caller's C<$/> to the resulting
-L<Match> object.
+L<Match> object.  For the following code:
 
-    use XML;
-    XML.parse(slurp "filename.xml")
+    use XML::Grammar; # panda install XML
+    XML.Grammar.parse("<p>some text</p>");
     say $/;
+
+the output is:
+
+｢<p>some text</p>｣
+ root => ｢<p>some text</p>｣
+  name => ｢p｣
+  child => ｢some text｣
+   text => ｢some text｣
+   textnode => ｢some text｣
+ element => ｢<p>some text</p>｣
+  name => ｢p｣
+  child => ｢some text｣
+   text => ｢some text｣
+   textnode => ｢some text｣
 
 =head4 X«Positional Attributes|variable,$0;variable,$1;variable,@()»
 
-C<$/> can have positional attributes if the L<Regex|regex> had
+C<$/> can have positional attributes if the L<Regex|/language/regexes> had
 capture-groups in it, which are just formed with parentheses.
 
     'abbbbbcdddddeffg' ~~ / a (b+) c (d+ef+) g /;
@@ -968,7 +994,7 @@ C<@()> can be used.
 
 =head4 X«Named Attributes|variable,$<named>;variable,%()»
 
-C<$/> can have named attributes if the L<Regex|regex> had named
+C<$/> can have named attributes if the L<Regex|/language/regexes> had named
 capture-groups in it, or if the Regex called out to another Regex.
 
     'I.... see?' ~~ / \w+ $<punctuation>=[ <-[\w\s]>+ ] \s* $<final-word> = [ \w+ . ] /;
@@ -1080,7 +1106,8 @@ Other compile-time variables:
                       | "home directory" cannot be determined it will be L<Nil>
     ------------------+--------------------------------------------
     $*SPEC            | The appropriate L<IO::Spec> sub-class for the platform that
-                      | the program is running on.
+                      | the program is running on. For OS-specific code, simply use smartmatch:
+                      | C<say "We are on Windows!" if $*SPEC ~~ IO::Spec::Win32>
     ------------------+--------------------------------------------
     $*TMPDIR          | An L<IO::Path> object representing the "system temporary directory"
     ------------------+--------------------------------------------

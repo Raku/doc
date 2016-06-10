@@ -376,7 +376,7 @@ The C<native> trait accepts the library name or the full path.
     constant LIBMYSQL = 'mysqlclient';
     constant LIBFOO = '/usr/lib/libfoo.so.1';
     # and later
-    sub mysql_affectied_rows( .. ) returns int32 is native(LIBMYSQL);
+    sub mysql_affected_rows( .. ) returns int32 is native(LIBMYSQL);
     sub bar is native(LIBFOO);
 
 You can also put an incomplete path like './foo' and NativeCall will automatically put
@@ -460,6 +460,43 @@ exported by the "libc.so.6" library.
 NativeCall offers support to use classes and methods from C++ as shown in
 L<https://github.com/rakudo/rakudo/blob/nom/t/04-nativecall/13-cpp-mangling.t> (and its associated C++ file).
 Note that at the moment it's not as tested and developed as C support.
+
+=head1 Helper Functions
+
+The C<NativeCall> library exports several subroutines to help you work with
+data fron native libraries.
+
+=head2 sub X<nativecast|sub>
+
+    sub nativecast($target-type, $source) is export(:DEFAULT)
+
+This will I<cast> the L<Pointer> C<$source> to  an object of C<$target-type>.
+The source pointer will typically have been obtained from a call to a native subroutine
+that returns a pointer or as a member of a C<struct>, this may be specified as C<void *>
+in the C<C> library definition for instance, but you may also cast from a pointer to
+a less specific type to a more specific one.
+
+As a special case, if a L<Signature|/type/Signature> is supplied as C<$target-type> then
+a C<subroutine> will be returned which will call the native function pointed to by C<$source>
+in the same way as a subroutine declared with the C<native> trait.  This is described in
+L<Function Pointers|#Function_Pointers>.
+
+=head2 sub X<cglobal|sub>
+
+	sub cglobal($libname, $symbol, $target-type) is export is rw
+
+This returns a L<Proxy|/type/Proxy> object that provides access to the C<extern> named C<$symbol> that
+is exposed by the specified library. The library can be specified in the same ways that
+they can be to the C<native> trait.
+
+=head2 sub X<nativesizeof|sub>
+
+    sub nativesizeof($obj) is export(:DEFAULT)
+
+This returns the size in bytes of the supplied object, it can be thought of as being
+equivalent to C<sizeof> in B<C>.  The object can be a builtin native type such as
+C<int64> or C<num64>, a C<CArray> or a class with the C<repr> C<CStruct>, C<CUnion>
+or C<CPointer>.
 
 =head1 Examples
 
