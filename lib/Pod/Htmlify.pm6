@@ -27,7 +27,7 @@ sub footer-html($pod-path) is export {
         $pod-url = "<a href='https://github.com/perl6/doc/raw/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
-    state $source-commit = qx/git rev-parse HEAD/.chomp;
+    state $source-commit = qx/git rev-parse --short HEAD/.chomp;
     $footer.subst-mutate(:g, /SOURCECOMMIT/, $source-commit);
 
     return $footer;
