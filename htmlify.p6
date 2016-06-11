@@ -250,6 +250,10 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
 
 # XXX: Generalize
 multi write-type-source($doc) {
+    sub href_escape($ref) {
+        # only valid for things preceded by a protocol, slash, or hash
+        return uri_escape($ref).subst('%3A%3A', '::', :g);
+    }
     my $pod     = $doc.pod;
     my $podname = $doc.name;
     my $type    = $type-graph.types{$podname};
@@ -265,7 +269,7 @@ multi write-type-source($doc) {
         my $tg-preamble = qq[<h1>Type graph</h1>\n<p>Below you should see a
         clickable image showing the type relations for $podname that links
         to the documentation pages for the related types. If not, try the
-        <a href="/images/type-graph-{uri_escape $podname}.png">PNG
+        <a href="/images/type-graph-{href_escape $podname}.png">PNG
         version</a> instead.</p>];
         $pod.contents.append: Pod::Raw.new(
             target => 'html',
@@ -286,7 +290,7 @@ multi write-type-source($doc) {
                 pod-heading("Routines supplied by role $role"),
                 pod-block(
                     "$podname does role ",
-                    pod-link($role.name, "/type/{uri_escape ~$role}"),
+                    pod-link($role.name, "/type/{href_escape ~$role}"),
                     ", which provides the following methods:",
                 ),
                 %routines-by-type{$role}.list,
@@ -298,7 +302,7 @@ multi write-type-source($doc) {
                 pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
-                    pod-link($class.name, "/type/{uri_escape ~$class}"),
+                    pod-link($class.name, "/type/{href_escape ~$class}"),
                     ", which provides the following methods:",
                 ),
                 %routines-by-type{$class}.list,
@@ -309,9 +313,9 @@ multi write-type-source($doc) {
                     pod-heading("Methods supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
-                        pod-link($class.name, "/type/{uri_escape ~$class}"),
+                        pod-link($class.name, "/type/{href_escape ~$class}"),
                         ", which does role ",
-                        pod-link($role.name, "/type/{uri_escape ~$role}"),
+                        pod-link($role.name, "/type/{href_escape ~$role}"),
                         ", which provides the following methods:",
                     ),
                     %routines-by-type{$role}.list,
