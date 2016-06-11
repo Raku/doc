@@ -133,24 +133,52 @@ of the test.
 
 =head2 By approximate numeric comparison
 
+Approximate numeric comparisons maye be tested by the C<is-approx>
+function which has three signatures. Note that in all three versions,
+the final C<$description> argument is optional (but recommended).
+
 =item X<is-approx($value, $expected, $description?)|is-approx>
 
-Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<1e-5> of each other.  The function accepts an optional
-C<$description> of the test.
+The default version of the function calculates a tolerance and a
+comparison test in this way:
+
+    my $tol = $expected.abs < 1e-6 ?? 1e-5 !! $expected.abs * 1e-6;
+    my $test = ($value - $expected).abs <= $tol;
+
+Then it marks a test as passed if the C<$test> is C<True>.  For example:
 
     my $eulers-constant-approx = 2.71828;
     is-approx $eulers-constant-approx, e, "approximate Euler's constant";
 
 =item X<is-approx($value, $expected, $tol, $description?)|is-approx>
 
-Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<$tol> of each other.  The function accepts an optional
-C<$description> of the test.  For example, test for an approximation of pi:
+The second version of the function calculates a tolerance and a
+comparison test in this way (note that C<$tol> must be > 0):
+
+    my $abs-diff = ($value - $expected).abs;
+    my $abs-max = max($value.abs, $expected.abs);
+    my $rel-diff = $abs-max == 0 ?? 0 !! $abs-diff/$abs-max;
+    my $test = $rel-diff <= $tol;
+
+Then it marks a test as passed if the C<$test> is C<True>.  For
+example, test for an approximation of pi:
 
     my $pi-approx = 3.1416;
     my $pi-tol = 0.0001;
     is-approx $pi-approx, pi, $pi-tol, "approximate Pi";
+
+=item X<is-approx($value, $expected, $rel_tol, $abs_tol, $description?)|is-approx>
+
+The final version of the function calculates a tolerance and a
+comparison test in this way (note that one of C<$rel_tol> or
+C<$abs_tol> must be > 0):
+
+    my $abs-diff = ($value - $expected).abs;
+    my $test = (($abs-diff <= ($rel_tol * $expected).abs) &&
+        ($abs-diff <= ($rel_tol * $value).abs) ||
+        ($abs-diff <= $abs_tol));
+
+Then it marks a test as passed if C<$test> is C<True>.
 
 =head2 By structural comparison
 
