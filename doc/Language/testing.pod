@@ -136,21 +136,74 @@ of the test.
 =item X<is-approx($value, $expected, $description?)|is-approx>
 
 Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<1e-5> of each other.  The function accepts an optional
-C<$description> of the test.
+are approximately equal to each other. The subroutine can be called in numerous
+ways that let you test using relative tolerance (C<$rel-tol>) or
+absolute tolerance (C<$abs-tol>) of different values.
 
-    my $eulers-constant-approx = 2.71828;
-    is-approx $eulers-constant-approx, e, "approximate Euler's constant";
+If no tolerance is set, it will default to absolute tolerance of C<1e-5>
 
-=item X<is-approx($value, $expected, $tol, $description?)|is-approx>
+    my Numeric ($value, $expected, $abs-tol, $rel-tol) = ...
 
-Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<$tol> of each other.  The function accepts an optional
-C<$description> of the test.  For example, test for an approximation of pi:
+    is-approx $value, $expected;
+    is-approx $got, $expected, 'test description';
 
-    my $pi-approx = 3.1416;
-    my $pi-tol = 0.0001;
-    is-approx $pi-approx, pi, $pi-tol, "approximate Pi";
+    is-approx $value, $expected, $abs-tol;
+    is-approx $value, $expected, $abs-tol, 'test description';
+
+    is-approx $value, $expected, :$rel-tol;
+    is-approx $value, $expected, :$rel-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol;
+    is-approx $value, $expected, :$abs-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol, :$rel-tol;
+    is-approx $value, $expected, :$abs-tol, :$rel-tol, 'test description';
+
+=head3 Absolute Tolerance
+
+When absolute tolerance is set, it's used as the actual maximum value by
+which the C<$value> and C<$expected> can differ. For example:
+
+    is-approx 3, 4, 2; # success
+    is-approx 3, 6, 2; # fail
+
+    is-approx 300, 302, 2; # success
+    is-approx 300, 400, 2; # fail
+    is-approx 300, 600, 2; # fail
+
+Regardless of values given, the difference between them cannot be more
+than C<2>
+
+=head3 Relative Tolerance
+
+When relative tolerance is set, the test checks relative difference between
+values. Given the same tolerance, the larger the numbers given, the larger the
+value they can differ by can be.
+
+For example:
+
+    is-approx 10, 10.5, :rel-tol<0.1>; # success
+    is-approx 10, 11.5, :rel-tol<0.1>; # fail
+
+    is-approx 100, 105, :rel-tol<0.1>; # success
+    is-approx 100, 115, :rel-tol<0.1>; # fail
+
+Both versions use C<0.1> for relative tolerance, yet the first can differ
+by about C<1> while the second can differ by about C<10>. The function used
+to calculate the difference is:
+
+                  |got - expected|
+    rel-diff = ──────────────────────
+               max(|got|, |expected|)
+
+And the test will fail if C<rel-diff> is higher than C<$rel-tol>
+
+=head3 Both Absolute and Relative Tolerance Specified
+
+    is-approx $got, $expected, :rel-tol<.5>, :abs-tol<10>;
+
+When both absolute and relative tolerances are specified, each will be
+tested independently, and the C<is-approx> test will succeed only if both pass.
 
 =head2 By structural comparison
 
