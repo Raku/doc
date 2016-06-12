@@ -163,12 +163,12 @@ sub extract-pod(IO() $file) {
     use nqp;
     # The file name is enough for the id because POD files don't have depends
     my $id = nqp::sha1(~$file);
-    my $handle = $precomp.load($id,:since($file.modified));
+    my $handle = $precomp.load($id,:since($file.modified))[0];
 
     if not $handle {
         # precompile it
         $precomp.precompile($file, $id);
-        $handle = $precomp.load($id);
+        $handle = $precomp.load($id)[0];
     }
 
     return nqp::atkey($handle.unit,'$=pod')[0];
