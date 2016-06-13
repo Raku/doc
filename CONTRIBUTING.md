@@ -134,7 +134,7 @@ written in Perl 5, so assuming that you use
 [`cpanm`](http://search.cpan.org/~miyagawa/App-cpanminus-1.7027/lib/App/cpanminus.pm),
 install this now:
 
-    $ cpanm Mojolicious
+    $ cpanm -vn Mojolicious
 
 #### pygmentize
 
