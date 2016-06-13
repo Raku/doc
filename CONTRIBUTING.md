@@ -74,7 +74,7 @@ computer.  To do this you will need:
   - Rakudo (the Rakudo Perl 6 implementation)
   - Panda (the installer for third party Perl 6 modules)
   - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
-  - [graphviz](http://www.graphviz.org/)
+  - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - Mojolicious (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
   - pygmentize (optional; a program to add syntax highlighting to code
