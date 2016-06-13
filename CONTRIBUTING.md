@@ -164,7 +164,24 @@ Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
 #### Inline::Python
 
 `Inline::Python` is optional, however will speed up documentation builds
-using syntax highlighting.  It can simply be installed via `panda`
+using syntax highlighting.
+
+First, you'll need the Python Devel header files and libraries if they have not
+already been installed:
+
+On Debian, install the `python-dev` package:
+
+    aptitude install python-dev
+
+On Ubuntu, the package is also named `python-dev`:
+
+    sudo apt-get install python-dev
+
+On Fedora, install the `python-devel` package:
+
+    sudo yum install python-devel
+
+Use `panda` to install the `Inline::Python` module:
 
     $ panda install Inline::Python
 
