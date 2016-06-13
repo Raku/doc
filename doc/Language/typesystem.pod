@@ -16,6 +16,45 @@ TODO
 
 TODO
 
+=head3 X<C<handles>|handles trait> trait
+
+Defined as:
+
+    multi sub trait_mod:<handles>(Attribute:D $target, $thunk)
+
+The trait C<handles> applied to an attribute of a class will delegate all calls
+to the provided method name to the method with the same name of the attribute.
+The object referenced by the attribute must be initialized. A type constraint
+for the object that the call is delegated to can be provided.
+
+    class A      { method m(){ 'A::m has been called.' } }
+    class B is A { method m(){ 'B::m has been called.' } }
+    class C {
+        has A $.delegate handles 'm';
+        method new($delegate){ self.bless(delegate => $delegate) }
+    };
+    say C.new(B.new).m(); # OUTPUT«B::m has been called.␤»
+
+Instead of a method name a list of names, a C<Regex> or a C<Whatever> can be
+provided. In the latter case existing methods, both in the class itself and
+it's inheritance chain, will take precedence. If even local C<FALLBACK>s should
+be searched use a C<HyperWhatever>.
+
+    class A { 
+        method m1(){}
+        method m2(){}
+    }
+    
+    class C {
+        has $.delegate handles <m1 m2> = A.new()
+    }
+    C.new.m2;
+
+    class D {
+        has $.delegate handles /m\d/ = A.new()
+    }
+    D.new.m1;
+
 =head2 C<role>
 
 TODO
