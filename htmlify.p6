@@ -708,10 +708,14 @@ sub write-disambiguation-files() {
 }
 
 sub write-index-files() {
-    say 'Writing html/index.html ...';
+    say 'Writing html/index.html and html/404.html...';
     spurt 'html/index.html',
         p2h(extract-pod('doc/HomePage.pod'),
             pod-path => 'HomePage.pod');
+
+    spurt 'html/404.html',
+        p2h(extract-pod('doc/404.pod'),
+            pod-path => '404.pod');
 
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
