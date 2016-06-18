@@ -38,6 +38,7 @@ my %p5to6-functions;
 
 # TODO: Generate menulist automatically
 my @menu =
+    ('programs', '') => (),
     ('language',''         ) => (),
     ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines' ) => <sub method term operator>,
@@ -112,8 +113,19 @@ sub MAIN(
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
 ) {
-    say 'Creating html/ subdirectories ...';
-    for flat '', <type language routine images syntax> {
+
+    # TODO: For the moment rakudo doc pod files were copied
+    #       from its repo to subdir doc/Programs and modified to Perl 6 pod.
+    #       The rakudo install needs
+    #       to (1) copy those files to its installation directory (share/pod)
+    #       and (2) use Perl 5's pod2man to convert them to man pages in
+    #       the installation directory (share/man).
+    #
+    #       Then they can be copied to doc/Programs.
+
+    say 'Creating html/subdirectories ...';
+
+    for flat '', <programs type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
@@ -124,6 +136,7 @@ sub MAIN(
     my %h = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph));
 
+    process-pod-dir 'Programs', :$sparse;
     process-pod-dir 'Language', :$sparse;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
 
@@ -132,6 +145,12 @@ sub MAIN(
     say 'Composing doc registry ...';
     $*DR.compose;
 
+    for $*DR.lookup("programs", :by<kind>).list -> $doc {
+        say "Writing programs document for {$doc.name} ...";
+        my $pod-path = pod-path-from-url($doc.url);
+        spurt "html{$doc.url}.html",
+            p2h($doc.pod, 'programs', pod-path => $pod-path);
+    }
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
@@ -176,6 +195,7 @@ sub extract-pod(IO() $file) {
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     say "Reading doc/$dir ...";
+
     my @pod-sources =
         recursive-dir("doc/$dir/")
         .grep({.path ~~ / '.pod' $/})
@@ -185,10 +205,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
                  .subst(:g,    '/',  '::')
             => $_
         }).sort(&sorted-by);
+
     if $sparse {
         @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
     }
-
+    
     say "Processing $dir Pod files ...";
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
@@ -228,6 +249,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
             %type-info = :subkinds<class>;
         }
     }
+
     my $origin = $*DR.add-new(
         :$kind,
         :$name,
@@ -716,6 +738,15 @@ sub write-index-files() {
     spurt 'html/404.html',
         p2h(extract-pod('doc/404.pod'),
             pod-path => '404.pod');
+
+    say 'Writing html/programs.html ...';
+    spurt 'html/programs.html', p2h(pod-with-title(
+        'Perl 6 Programs Documentation',
+        pod-table($*DR.lookup('programs', :by<kind>).sort(*.name).map({[
+            pod-link(.name, .url),
+            .summary
+        ]}))
+    ), 'programs');
 
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
