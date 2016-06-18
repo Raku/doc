@@ -4,22 +4,12 @@ use Mojolicious::Lite;
 
 app->static->paths(['html']);
 
-get '(*dir)/:file' => sub {
-    my $self = shift;
-    my $dir  = $self->param('dir');
-    my $file = $self->param('file');
-    return $self->redirect_to("/$dir/$file.html");
-};
+get '/' => sub { shift->reply->static('/index.html') };
 
-get '(*dir)/' => sub {
+get '*dir' => sub {
     my $self = shift;
-    my $dir  = $self->param('dir');
-    return $self->redirect_to("/$dir.html");
-};
-
-get '/' => sub {
-    my $self = shift;
-    return $self->redirect_to('/index.html');
+    ( my $dir = $self->param('dir') ) =~ s{/$}{};
+    $self->reply->static("/$dir.html");
 };
 
 app->start;
