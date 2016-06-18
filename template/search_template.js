@@ -35,8 +35,16 @@ $(function(){
   });
   $("#query").attr('placeholder', 'Search').catcomplete({
       response: function( e, ui ) {
-        if ( ! ui.content.length ) { $('#search').addClass(   'not-found') }
-        else {                       $('#search').removeClass('not-found') }
+        if ( ! ui.content.length ) {
+            $('#search').addClass('not-found')
+                .find('#try-web-search').attr(
+                    'href', 'https://www.google.com/search?q=site%3Adocs.perl6.org+'
+                    + encodeURIComponent( $("#query").val() )
+                );
+        }
+        else {
+            $('#search').removeClass('not-found')
+        }
       },
       open: function() {
         var ui_el = $('.ui-autocomplete');

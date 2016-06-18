@@ -104,7 +104,7 @@ case the comparison fails.
 
 =head2 By string comparison
 
-=item X<is($value, $expected, $description?)|is>
+=item X<is($value, $expected, $description?)|is (testing)>
 
 Marks a test as passed if C<$value> and C<$expected> compare positively with
 the L<eq operator|/routine/eq>. The function accepts an optional
@@ -136,21 +136,76 @@ of the test.
 =item X<is-approx($value, $expected, $description?)|is-approx>
 
 Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<1e-5> of each other.  The function accepts an optional
-C<$description> of the test.
+are approximately equal to each other. The subroutine can be called in numerous
+ways that let you test using relative tolerance (C<$rel-tol>) or
+absolute tolerance (C<$abs-tol>) of different values.
 
-    my $eulers-constant-approx = 2.71828;
-    is-approx $eulers-constant-approx, e, "approximate Euler's constant";
+If no tolerance is set, it will default to an absolute tolerance of C<1e-5>.
 
-=item X<is-approx($value, $expected, $tol, $description?)|is-approx>
+    my Numeric ($value, $expected, $abs-tol, $rel-tol) = ...
 
-Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<$tol> of each other.  The function accepts an optional
-C<$description> of the test.  For example, test for an approximation of pi:
+    is-approx $value, $expected;
+    is-approx $value, $expected, 'test description';
 
-    my $pi-approx = 3.1416;
-    my $pi-tol = 0.0001;
-    is-approx $pi-approx, pi, $pi-tol, "approximate Pi";
+    is-approx $value, $expected, $abs-tol;
+    is-approx $value, $expected, $abs-tol, 'test description';
+
+    is-approx $value, $expected, :$rel-tol;
+    is-approx $value, $expected, :$rel-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol;
+    is-approx $value, $expected, :$abs-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol, :$rel-tol;
+    is-approx $value, $expected, :$abs-tol, :$rel-tol, 'test description';
+
+=head3 Absolute Tolerance
+
+When an absolute tolerance is set, it's used as the actual maximum value by
+which the C<$value> and C<$expected> can differ. For example:
+
+    is-approx 3, 4, 2; # success
+    is-approx 3, 6, 2; # fail
+
+    is-approx 300, 302, 2; # success
+    is-approx 300, 400, 2; # fail
+    is-approx 300, 600, 2; # fail
+
+Regardless of values given, the difference between them cannot be more
+than C<2>.
+
+=head3 Relative Tolerance
+
+When a relative tolerance is set, the test checks the relative difference between
+values. Given the same tolerance, the larger the numbers given, the larger the
+value they can differ by can be.
+
+For example:
+
+    is-approx 10, 10.5, :rel-tol<0.1>; # success
+    is-approx 10, 11.5, :rel-tol<0.1>; # fail
+
+    is-approx 100, 105, :rel-tol<0.1>; # success
+    is-approx 100, 115, :rel-tol<0.1>; # fail
+
+Both versions use C<0.1> for relative tolerance, yet the first can differ
+by about C<1> while the second can differ by about C<10>. The function used
+to calculate the difference is:
+
+=begin code
+              |value - expected|
+⁣rel-diff = ──────────────────────
+           max(|value|, |expected|)
+=end code
+
+and the test will fail if C<rel-diff> is higher than C<$rel-tol>.
+
+=head3 Both Absolute and Relative Tolerance Specified
+
+    is-approx $value, $expected, :rel-tol<.5>, :abs-tol<10>;
+
+When both absolute and relative tolerances are specified, each will be
+tested independently, and the C<is-approx> test will succeed only if both pass.
 
 =head2 By structural comparison
 
@@ -187,12 +242,23 @@ not sorted, and converting a L<Hash|/type/Hash> to a string loses information.
 
 =item X<cmp-ok($value, $comparison, $expected, $description?)|cmp-ok>
 
-Compares C<$value> and C<$expected> with the given C<$comparison> operator and
-passes the test if the comparison yields a C<True> value.  For ease of use,
-operators may be passed as strings, such as C<'=='> or C<'~~'>.  The function
-accepts an optional C<$description> of the test.
+Compares C<$value> and C<$expected> with the given C<$comparison> comparator and
+passes the test if the comparison yields a C<True> value. The C<$description>
+of the test is optional.
+
+The C<$comparison> comparator can be either a L<Callable> or 
+a L<Str> containing an infix operator, such as C<'=='>, a C<'~~'>, or a
+user-defined infix.
 
     cmp-ok 'my spelling is apperling', '~~', /perl/, "bad speller";
+
+A L<Callable> C<$comparison> lets you use custom comparisons:
+
+    sub my-comp { $^a / $^b  < rand };
+    cmp-ok 1, &my-comp, 2, 'the dice giveth and the dice taketh away'
+
+    cmp-ok 2, -> $a, $b { $a.is-prime and $b.is-prime and $a < $b }, 7,
+        'we got primes, one larger than the other!';
 
 =head2 By object type
 
@@ -357,9 +423,9 @@ throws-like { frodo }, Exception, message => /dies/;
 
 The function accepts an optional C<$description> of the test.
 
-Please note that you can only use the C<EVAL> form if you are not referencing
-any symbols in the surrounding scope.  If you are, you should encapsulate
-your string with a block and an EVAL.  For instance:
+Please note that you can only use the string form (for C<EVAL>) if you are not referencing
+any symbols in the surrounding scope. If you are, you should encapsulate
+your string with a block and an EVAL instead. For instance:
 
     throws-like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
 
@@ -413,7 +479,7 @@ only one test will be marked TODO.
 The result from the test code above will be something like:
 
     not ok 1 - my-custom-pi# TODO not yet precise enough
-    
+
     # Failed test 'my-custom-pi'
     # at test-todo.t line 7
     # expected: '3.14159265358979'

@@ -40,3 +40,7 @@ You may use `object` for anything you can call methods on, including value objec
 * Instead of: "In Perl 5 this was used for ..., but in Perl 6 ..."
 * Say: "In Perl 5 this is used for ..., but in Perl 6 ..."
 
+##### Don't reference Perl 5 unless in a 5-to-6 document or related document
+
+We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
+should not be part of the bulk of the documentation.

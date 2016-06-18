@@ -747,7 +747,7 @@ sub write-index-files() {
             .summary
         ]}))
     ), 'programs');
-    
+
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',

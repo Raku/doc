@@ -74,7 +74,7 @@ computer.  To do this you will need:
   - Rakudo (the Rakudo Perl 6 implementation)
   - Panda (the installer for third party Perl 6 modules)
   - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
-  - [graphviz](http://www.graphviz.org/)
+  - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - Mojolicious (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
   - pygmentize (optional; a program to add syntax highlighting to code
@@ -134,7 +134,7 @@ written in Perl 5, so assuming that you use
 [`cpanm`](http://search.cpan.org/~miyagawa/App-cpanminus-1.7027/lib/App/cpanminus.pm),
 install this now:
 
-    $ cpanm Mojolicious
+    $ cpanm -vn Mojolicious
 
 #### pygmentize
 
@@ -164,7 +164,24 @@ Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
 #### Inline::Python
 
 `Inline::Python` is optional, however will speed up documentation builds
-using syntax highlighting.  It can simply be installed via `panda`
+using syntax highlighting.
+
+First, you'll need the Python Devel header files and libraries if they have not
+already been installed:
+
+On Debian, install the `python-dev` package:
+
+    aptitude install python-dev
+
+On Ubuntu, the package is also named `python-dev`:
+
+    sudo apt-get install python-dev
+
+On Fedora, install the `python-devel` package:
+
+    sudo yum install python-devel
+
+Use `panda` to install the `Inline::Python` module:
 
     $ panda install Inline::Python
 
