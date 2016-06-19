@@ -125,7 +125,7 @@ sub MAIN(
 
     say 'Creating html/subdirectories ...';
 
-    for flat '', <programs type language routine images syntax> {
+    for <programs type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
