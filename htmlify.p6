@@ -739,10 +739,12 @@ sub write-index-files() {
         p2h(extract-pod('doc/404.pod'),
             pod-path => '404.pod');
 
+    # sort prorams index by file name to allow author control of order
     say 'Writing html/programs.html ...';
     spurt 'html/programs.html', p2h(pod-with-title(
         'Perl 6 Programs Documentation',
-        pod-table($*DR.lookup('programs', :by<kind>).sort(*.name).map({[
+        #pod-table($*DR.lookup('programs', :by<kind>).sort(*.name).map({[
+        pod-table($*DR.lookup('programs', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
         ]}))
