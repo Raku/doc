@@ -38,10 +38,10 @@ my %p5to6-functions;
 
 # TODO: Generate menulist automatically
 my @menu =
-    ('programs', '') => (),
     ('language',''         ) => (),
     ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines' ) => <sub method term operator>,
+    ('programs', ''        ) => (),
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
