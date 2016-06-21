@@ -288,15 +288,14 @@ multi write-type-source($doc) {
     }
 
     if $type {
-        my $tg-preamble = qq[<h1>Type graph</h1>\n<p>Below you should see a
-        clickable image showing the type relations for $podname that links
-        to the documentation pages for the related types. If not, try the
-        <a href="/images/type-graph-{href_escape $podname}.png">PNG
-        version</a> instead.</p>];
+        my $graph-contents = slurp 'template/type-graph.html';
+        $graph-contents .= subst('ESCAPEDPODNAME', uri_escape($podname), :g);
+        $graph-contents .= subst('PODNAME', $podname);
+        $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
+
         $pod.contents.append: Pod::Raw.new(
             target => 'html',
-            contents => $tg-preamble ~ svg-for-file("html/images/type-graph-$podname.svg"),
-
+            contents => $graph-contents,
         );
 
         my @mro = $type.mro;
