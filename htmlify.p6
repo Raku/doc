@@ -15,7 +15,7 @@ use v6;
 # run htmlify, captures the output, and on success, syncs both the generated
 # files and the logs. In case of failure, only the logs are synchronized.
 #
-# The build logs are available at http://doc.perl6.org/build-log/
+# The build logs are available at https://doc.perl6.org/build-log/
 #
 
 BEGIN say 'Initializing ...';
@@ -209,7 +209,7 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     if $sparse {
         @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
     }
-    
+
     say "Processing $dir Pod files ...";
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
