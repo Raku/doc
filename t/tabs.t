@@ -3,6 +3,7 @@ use Test;
 use lib 'lib';
 
 for qx<git ls-files>.lines -> $file is copy {
+    next if $file eq "LICENSE"|"Makefile";
     next if $file ~~ / 'custom-theme'/;
     next if $file ~~ / 'jquery'/;
     next if $file ~~ / '.png' $/;
