@@ -28,6 +28,7 @@ clean-html:
 	rm -rf html/*.html html/.*.html \
 		html/language/ \
 		html/op/ \
+		html/programs/ \
 		html/routine/ \
 		html/syntax/ \
 		html/type/ \
