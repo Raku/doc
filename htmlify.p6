@@ -465,7 +465,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 @definitions = .[0].words[0,1];
             }
             when :(Str $ where {m/^trait\s+(\S+\s\S+)$/}) {
-                # Infix Foo
+                # trait Infix Foo
                 @definitions = .split(/\s+/, 2);
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
