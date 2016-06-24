@@ -25,7 +25,13 @@ run:
 	perl app.pl daemon
 
 clean-html:
-	rm -rf html/*.html html/.*.html html/routine/ html/type/ html/op/ html/language/ html/syntax/
+	rm -rf html/*.html html/.*.html \
+		html/language/ \
+		html/op/ \
+		html/routine/ \
+		html/syntax/ \
+		html/type/ \
+		$(NULL)
 
 clean-images:
 	rm -f html/images/type-graph*
