@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-An HTML version of this documentation can be found at http://doc.perl6.org/.
+An HTML version of this documentation can be found at https://doc.perl6.org/.
 
 (If you are browsing this repository via github, it will not display most
 files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
@@ -33,9 +33,9 @@ computer by starting the included `app.pl` program:
     $ make run
 
 You can then view the examples documentation by pointing your web browser at
-http://localhost:3000.
+[http://localhost:3000](http://localhost:3000).
 
-You will need at least Mojolicious installed and Inline::Python is recommended
+You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious) installed and [Inline::Python](https://metacpan.org/pod/Inline::Python) is recommended
 to speed up the syntax highlighting phase.
 
 --------
@@ -130,3 +130,11 @@ get started contributing documentation.
         #= P<p6doc/&note>
         sub note(|$) { ... }
 
+# LICENSE
+
+See [LICENSE](LICENSE) file for the details of the license of the code in this repository.
+
+This repository also contains code authored by third parties that may be licensed under a different license. Such
+files indicate the copyright and license terms at the top of the file. Currently these include:
+
+* jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)

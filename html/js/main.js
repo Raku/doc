@@ -1,5 +1,6 @@
 $(function(){
     setup_search_box();
+    setup_auto_title_anchors();
     $(window).resize(setup_search_box);
 });
 
@@ -14,4 +15,13 @@ function setup_search_box() {
     else {
         sel.removeClass('two-row');
     }
+}
+
+function setup_auto_title_anchors() {
+    $('#content').find('h1,h2,h3,h4,h5,h6').each(function(i, el){
+        if ( ! $(el).attr('id') ) { return; }
+        $(el).append(
+            '<a href="#' + $(el).attr('id') + '" class="title-anchor">§</a>'
+        );
+    });
 }

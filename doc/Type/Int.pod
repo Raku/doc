@@ -13,11 +13,18 @@ There are two main syntax forms for C<Int> literals
     123         # Int in decimal notation
     :16<BEEF>   # Int in radix notations
 
-Both forms allow underscores between any two digits which can serve as visual
+For your convenience common radix forms come with a prefix shortcut.
+
+    say so :2<11111111> == 0b11111111 == :8<377> == 0o377 == 255 == 0d255 == :16<ff> == 0xff;
+    # OUTPUT«True␤»
+
+All forms allow underscores between any two digits which can serve as visual
 separators, but don't carry any meaning:
 
-    5_00000     # five Lakhs
-    500_000     # five hundred thousand
+    5_00000       # five Lakhs
+    500_000       # five hundred thousand
+    0xBEEF_CAFE   # a strange place
+    :2<1010_1010> # 0d170
 
 =head1 Methods
 
@@ -34,7 +41,7 @@ Usage:
     INTEGER.chr
 
 Returns a one-character string, by interpreting the integer as a Unicode
-codepoint number and converting it the corresponding character.
+codepoint number and converting it to the corresponding character.
 
 Example:
 
@@ -45,8 +52,8 @@ Example:
 
 Defined as:
 
-    multi sub    expmod (Int:D: Int $y, Int $mod) returns Int:D
-    multi method expmod (Int:D: Int $y, Int $mod) returns Int:D
+    multi sub    expmod(Int:D: Int $y, Int $mod) returns Int:D
+    multi method expmod(Int:D: Int $y, Int $mod) returns Int:D
 
 Usage:
 
@@ -54,6 +61,64 @@ Usage:
     INTEGER.expmod(POWER, MODULUS)
 
 Returns the given C<Int> raised to the C<$y> power within modulus C<$mod>.
+
+    say expmod(4, 2, 5);    # 1
+    say 7.expmod(2, 5);     # 4
+
+=head2 method polymod
+
+Defined as:
+
+    method polymod(Int:D: +@mods)
+
+Usage:
+
+    INTEGER.polymod(LIST)
+
+Returns a sequence of mod results corresponding to the divisors in C<@mods>.
+The divisors are given from smallest "unit" to the largest
+(e.g. 60 seconds per minute, 60 minutes per hour) and the results
+are returned in the same way: from smallest to the largest
+(5 seconds, 4 minutes).
+
+If the divisors are given as a lazy list, runs until the remainder is 0.
+Otherwise, returns one more item in the result than the number of given
+divisors. All divisors must be C<Int>s, unless the method is called on a non-C<Int> number.
+
+    my $seconds = 1 * 60*60*24 # days
+                + 3 * 60*60    # hours
+                + 4 * 60       # minutes
+                + 5;           # seconds
+
+    say $seconds.polymod(60, 60);              # (5 4 27)
+    say $seconds.polymod(60, 60, 24);          # (5 4 3 1)
+
+    say 120.polymod:      1, 10, 10², 10³, 10⁴;  # (0 0 12 0 0 0)
+    say 120.polymod: lazy 1, 10, 10², 10³, 10⁴;  # (0 0 12)
+    say 120.polymod:      1, 10, 10² … ∞;        # (0 0 12)
+
+    say ⅔.polymod(⅓);                          # (0 2)
+    say 5.Rat.polymod(.3, .2);                 # (0.2 0 80)
+
+To illustrate how the C<Int>, non-lazy version of polymod works, consider
+this code that implements it:
+
+    my $seconds = 2 * 60*60*24 # days
+                + 3 * 60*60    # hours
+                + 4 * 60       # minutes
+                + 5;           # seconds
+
+    my @pieces;
+    for 60, 60, 24 -> $divisor {
+        @pieces.push: $seconds mod $divisor;
+        $seconds div= $divisor
+    }
+    @pieces.push: $seconds;
+
+    say @pieces; # [5 4 3 2]
+
+For a more detailed discussion, see
+L<this blog post|http://perl6.party/post/Perl6-.polymod-break-up-a-number-into-denominations>
 
 =head2 routine is-prime
 
@@ -66,12 +131,15 @@ Usage:
 
     is-prime INTEGER
     INTEGER.is-prime
-    INTEGER.is-prime
+
 
 Returns C<True> if this C<Int> is known to be a prime, or is likely to be a
 prime based on a probabilistic Miller-Rabin test.
 
 Returns C<False> if this C<Int> is known not to be a prime.
+
+    say 2.is-prime;         # True
+    say is-prime(9);        # False
 
 =head2 routine lsb
 
@@ -130,7 +198,11 @@ Usage:
     INTEGER.unival
 
 Returns the number represented by the Unicode codepoint with the given integer
-number, or L<NaN> if it does not represent a number.
+number, or L<NaN|/type/Num#NaN> if it does not represent a number.
+
+    say ord("¾").unival;    # 0.75
+    say 190.unival;         # 0.75
+    say unival(65);         # NaN
 
 =head1 Operators
 

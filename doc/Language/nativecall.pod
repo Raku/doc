@@ -17,8 +17,8 @@ The simplest imaginable use of NativeCall would look something like this:
 The first line imports various traits and types. The next line looks like
 a relatively ordinary Perl 6 sub declaration - with a twist. We use the
 "native" trait in order to specify that the sub is actually defined in a
-native library. The platform-specific extension (e.g. .so or .dll) will be
-added for you.
+native library. The platform-specific extension (e.g., '.so' or '.dll'),
+as well as any customary prefixes (e.g., 'lib') will be added for you.
 
 The first time you call "some_argless_function", the "libsomething" will be
 loaded and the "some_argless_function" will be located in it. A call will then
@@ -60,28 +60,33 @@ Here, we have declared that the function takes two 32-bit integers and returns
 a 32-bit integer. Here are some of the other types that you may pass (this will
 likely grow with time).
 
-    int8           (char in C)
-    int16          (short in C)
-    int32          (int in C)
-    int64          (64-bit explicit int in C like int64_t in C99)
-    long           (32- or 64-bit, depends what long means locally)
-    longlong       (at least 64bits, what long long means locally)
+    int8           (int8_t in C, also used for char)
+    int16          (int16_t in C, also used for short)
+    int32          (int32_t in C, also used for int)
+    int64          (int64_t in C)
+    uint8          (uint8_t in C, also used for unsigned char)
+    uint16         (uint16_t in C, also used for unsigned short)
+    uint32         (uint32_t in C, also used for unsigned int)
+    uint64         (uint64_t in C)
+    long           (long in C)
+    longlong       (long long in C, at least 64-bit)
     num32          (float in C)
     num64          (double in C)
     Str            (C string)
-    CArray[int32]  (int* in C, an array of integers)
+    CArray[int32]  (int* in C, an array of ints)
     Pointer[void]  (void* in C, can point to all other types)
     bool           (bool from C99)
     size_t         (size_t in C)
 
-Don't use Perl 6 native types like C<int> or C<num>, as they could lead to
-unwanted boundary issue between 32 bits and 64 bits systems.
+Don't use Perl 6 native types like C<int> or C<num>, as they don't have to
+correspond to the local C equivalent (e.g., Perl 6's C<int> can be 8 bytes but
+C's C<int> is only 4 bytes).
 
 Note that the lack of a C<returns> trait is used to indicate void return type.
 Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
 
 For strings, there is an additional "encoded" trait to give some extra hints on
-how to do the marshalling.
+how to do the marshaling.
 
     sub message_box(Str is encoded('utf8')) is native('gui') { * }
 
@@ -93,17 +98,32 @@ routine itself.
 Note that a null string can be passed by passing the Str type object; a null
 return will also be represented by the type object.
 
-For string arguments that are specified as C<const char *> it is necessary
-to tell Perl not to free the memory allocated to the C string after the
-function returns using C<explicitly-manage> :
+If the C function requires the lifetime of a string to exceed the function
+call, the argument must be manually encoded and passed as C<CArray[uint8]>:
 
-    # C prototype is set_foo(const char * foo)
-	sub set_foo(Str) is native('foo') { * }
+    # C prototype is void set_foo(const char *)
+    sub set_foo(CArray[uint8]) is native('foo') { * }
+    # C prototype is void use_foo(void)
+    sub use_foo() is native('foo') { * } # will use pointer stored by set_foo()
+
     my $string = "FOO";
-    explicitly-manage($string);
-    set_foo($string);
-    
+    # The lifetime of this variable must be equal to the required lifetime of
+    # the data passed to the C function.
+    my $array = CArray[uint8].new($string.encode.list);
+
+    set_foo($array);
+    # ...
+    use_foo();
+    # It's fine if $array goes out of scope starting from here.
+
 =head1 Basic use of Pointers
+
+When the signature of your native function needs a pointer to some native type
+(C<int32>, C<uint32>, etc.) all you need to do is declare the argument C<is rw> :
+
+    # C prototype is void my_version(int *mayor, int *minor)
+    sub my_version(int32 is rw, int32 is rw) is native('foo') { * }
+    my_version(my int32 $mayor, my int32 $minor); # Pass a pointer to
 
 Sometimes you need to get a pointer (for example, a library handle) back from a
 C library. You don't care about what it points to - you just need to keep hold
@@ -118,13 +138,28 @@ can serve this role. This means you can expose libraries that work on handles
 by writing a class like this:
 
     class FooHandle is repr('CPointer') {
+        has $!initialized;
+
         # Here are the actual NativeCall functions.
         sub Foo_init() returns FooHandle is native("foo") { * }
         sub Foo_free(FooHandle) is native("foo") { * }
 
         # Here are the methods we use to expose it to the outside world.
-        method new() { Foo_init() }
-        method free() { Foo_free(self) }
+        method new() {
+            Foo_init();
+            $!initialized = True;
+        }
+        method free() {
+            if $!initialized {
+                Foo_free(self);
+                $!initialized = False; # prevent double frees
+            }
+        }
+
+        # Free data when the object is garbage collected.
+        method DESTROY() {
+            self.free;
+        }
     }
 
 Note that the CPointer representation can do nothing more than hold a C pointer.
@@ -140,11 +175,26 @@ better type safety and more readable code.
 
 Once again, type objects are used to represent nulls.
 
+=head1 Function Pointers
+
+C libraries can expose pointers to C functions as return values of functions and as
+members of Structures like, e.g., structs and unions.
+
+Example of invoking a function pointer "$fptr" returned by a function "f", using a
+signature defining the desired function parameters and return value:
+
+    sub f() returns Pointer is native('mylib') { * }
+
+    my $fptr    = f();
+    my &newfunc = nativecast(:(Str, size_t --> int32), $fptr);
+
+    say newfunc("test", 4);
+
 =head1 Arrays
 
 NativeCall has some support for arrays. It is constrained to work with machine-size
 integers, doubles and strings, sized numeric types, arrays of pointers, arrays of
-structs and arrays of arrays.
+structs, and arrays of arrays.
 
 Perl 6 arrays, which support amongst other things laziness, are laid out in memory
 in a radically different way to C arrays. Therefore, the NativeCall library offers
@@ -152,7 +202,7 @@ a much more primitive CArray type, which you must use if working with C arrays.
 
 Here is an example of passing a C array.
 
-    sub RenderBarChart(Str, int, CArray[Str], CArray[num]) is native("chart") { * }
+    sub RenderBarChart(Str, int32, CArray[Str], CArray[num]) is native("chart") { * }
     my @titles := CArray[Str].new;
     @titles[0]  = 'Me';
     @titles[1]  = 'You';
@@ -176,20 +226,20 @@ use C<$> all the way when using NativeCall. :-)
 Getting return values for arrays works out just the same.
 
 Some library APIs may take an array as a buffer that will be populated by the
-C function and, for, instance, return the actual number of items populated:
+C function and, for instance, return the actual number of items populated:
 
-   sub get_n_ints(CArray[int], int) returns Int is native('ints');
+    sub get_n_ints(CArray[int32], int32) returns int32 is native('ints') { * }
 
 In these cases it is important that the CArray has at least the number of
 elements that are going to be populated before passing it to the native
 subroutine, otherwise the C function may stomp all over Perl's memory
 leading to possibly unpredictable behaviour:
 
-   my $ints = CArray[int].new;
-   my $number_of_ints = 10;
-   $ints[$number_of_ints - 1] = 0; # extend the array to 10 items
+    my $ints = CArray[int32].new;
+    my $number_of_ints = 10;
+    $ints[$number_of_ints - 1] = 0; # extend the array to 10 items
 
-   my $n = get_n_ints($ints, $number_of_ints);
+    my $n = get_n_ints($ints, $number_of_ints);
 
 The memory management of arrays is important to understand. When you create an
 array yourself, then you can add elements to it as you wish and it will be
@@ -218,19 +268,19 @@ quick use of the "repr" trait:
         has num64 $.y;
     }
 
-The attributes can only be of the types that NativeCall knows how to marshall into
+The attributes can only be of the types that NativeCall knows how to marshal into
 struct fields. Currently, structs can contain machine-sized integers, doubles,
 strings, and other NativeCall objects (CArrays, and those using the CPointer and
 CStruct reprs). Other than that, you can do the usual set of things you would with
 a class; you could even have some of the attributes come from roles or have them
 inherited from another class. Of course, methods are completely fine too. Go wild!
 
-CStruct objects are passed to native functions by reference and native functions 
-must also return CStruct objects by reference. The memory management 
-rules for these references are very much like the rules for arrays, though simpler 
-since a struct is never resized. When you create a struct, the memory is managed for 
-you and when the variable(s) pointing to the instance of a CStruct go away, the memory 
-will be freed when the GC gets to it. When a CStruct-based type is used as the return 
+CStruct objects are passed to native functions by reference and native functions
+must also return CStruct objects by reference. The memory management
+rules for these references are very much like the rules for arrays, though simpler
+since a struct is never resized. When you create a struct, the memory is managed for
+you and when the variable(s) pointing to the instance of a CStruct go away, the memory
+will be freed when the GC gets to it. When a CStruct-based type is used as the return
 type of a native function, the memory is not managed for you by the GC.
 
 NativeCall currently doesn't put object members in containers, so assigning new values
@@ -280,20 +330,20 @@ instead:
 
 TBD more
 
-You can type your C<Pointer> with passing the type as parameter. It works with native type
-but also C<CArray> and C<CStruct> defined type. NativeCall will not implicitly alloc the memory for it
+You can type your C<Pointer> by passing the type as a parameter. It works with the native type
+but also with C<CArray> and C<CStruct> defined types. NativeCall will not implicitly alloc the memory for it
 even when calling new on them.
 It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
-embeded in a C<CStruct>.
+embedded in a C<CStruct>.
 
-You have to call C<.deref> on it to access the embeded type.
+You have to call C<.deref> on it to access the embedded type.
 
-  my Pointer[int32] $p; #For a pointer on int32;
-  my Pointer[MyCstruct] $p2 = some_c_routine();
-  my MyCstruct $mc = $p2.deref;
-  say $mc.field1;
-  
-  
+    my Pointer[int32] $p; #For a pointer on int32;
+    my Pointer[MyCstruct] $p2 = some_c_routine();
+    my MyCstruct $mc = $p2.deref;
+    say $mc.field1;
+
+
 
 =head1 Buffers and Blobs
 
@@ -321,40 +371,50 @@ to callbacks.
 
 TBD more
 
-The C<native> trait accept simple lib name or a full path. It's common to
-have the lib parameter defined as a constant than can be modified via an
-environment variable. This is an example from the mysql binding in C<DBIIsh>
+The C<native> trait accepts the library name or the full path.
 
-  constant LIB = %*ENV<DBIISH_MYSQL_LIB> || 'mysqlclient';
-  # and later
-  sub mysql_affectied_rows( .. ) returns int32 is native(LIB)
+    constant LIBMYSQL = 'mysqlclient';
+    constant LIBFOO = '/usr/lib/libfoo.so.1';
+    # and later
+    sub mysql_affected_rows( .. ) returns int32 is native(LIBMYSQL);
+    sub bar is native(LIBFOO);
 
-You can also put incomplete path like './foo', NativeCall will automaticly put
-the right extension according to the plateform specification.
+You can also put an incomplete path like './foo' and NativeCall will automatically put
+the right extension according to the platform specification.
+
+BE CAREFUL: the C<native> trait and C<constant> are evaluated at compile time. Don't write a constant
+that depends on a dynamic variable like:
+
+    constant LIBMYSQL = %*ENV<P6LIB_MYSQLCLIENT> || 'mysqlclient';
+
+This will keep the value given at compile time. A module will be precompiled and C<LIBMYSQL> will
+keep the value it acquires when the module gets precompiled.
 
 =head2 ABI/API Version
 
-If you write C<native('libfoo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on Os X).
-In most modern system it will requiere you or the user of your module to install
-the develepment package because it's recommanded to always provide an API/ABI version to a
+If you write C<native('foo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on OS X, foo.dll on win32).
+In most modern system it will require you or the user of your module to install
+the development package because it's recommended to always provide an API/ABI version to a
 shared library, so libfoo.so ends often being a symbolic link provided only by a devel package.
 
-To avoid that, the C<native> trait allow you to specify the API/ABI version. It can be a full
-version or just a part of it (Try to stick to Major version, some BSD does not care for minor)
+To avoid that, the C<native> trait allows you to specify the API/ABI version. It can be a full
+version or just a part of it. (Try to stick to Major version, some BSD code does not care for Minor.)
 
-  sub foo is native('foo', v1); # Will try to load libfoo.so.1
-  sub foo is native('foo', v1.2.3); # Will try to load libfoo.so.1.2.3
-  
-  #From DBIish Pg driver
-  constant LIB = %*ENV<DBIISH_PG_LIB> || ('pq', v5);
+    sub foo is native('foo', v1); # Will try to load libfoo.so.1
+    sub foo is native('foo', v1.2.3); # Will try to load libfoo.so.1.2.3
+
+    my List $lib = ('foo', 'v1');
+    sub foo is native($lib);
 
 
 =head2 Routine
 
-the C<native> trait also accept a C<Callable> as argument, allowing you to provide your
+The C<native> trait also accepts a C<Callable> as argument, allowing you to provide your
 own way to handle the way it will find the library file to load.
 
-  sub foo is native(sub {'libfoo.so.42'});
+    sub foo is native(sub {'libfoo.so.42'});
+
+It will only be called at the first invocation of the sub.
 
 =head2 Calling into the standard library
 
@@ -375,8 +435,8 @@ to print the home directory of the current user:
         has Str $.pw_dir;
         has Str $.pw_shell;
     }
-    sub getuid()           returns uint32   is native(Str) {};
-    sub getpwuid(int $uid) returns PwStruct is native(Str) {};
+    sub getuid()              returns uint32   is native(Str) { * };
+    sub getpwuid(uint32 $uid) returns PwStruct is native(Str) { * };
 
     say getpwuid(getuid()).pw_dir;
 
@@ -388,7 +448,7 @@ Though of course C<$*HOME> is a much easier way :-)
 Variables exported by a library -- also named "global" or "extern"
 variables -- can be accessed using C<cglobal>.  For example:
 
-    my $var := cglobal('libc.so.6', 'errno', int)
+    my $var := cglobal('libc.so.6', 'errno', int32)
 
 This code binds to C<$var> a new L<Proxy|/type/Proxy> object that
 redirects all its accesses to the integer variable named "errno" as
@@ -397,14 +457,51 @@ exported by the "libc.so.6" library.
 
 =head1 C++ Support
 
-NativeCall offer a support to use class and method  from C++ as show in
-L<https://github.com/rakudo/rakudo/blob/nom/t/04-nativecall/13-cpp-mangling.t> (and it associated cpp file)
+NativeCall offers support to use classes and methods from C++ as shown in
+L<https://github.com/rakudo/rakudo/blob/nom/t/04-nativecall/13-cpp-mangling.t> (and its associated C++ file).
 Note that at the moment it's not as tested and developed as C support.
+
+=head1 Helper Functions
+
+The C<NativeCall> library exports several subroutines to help you work with
+data fron native libraries.
+
+=head2 sub X<nativecast|sub>
+
+    sub nativecast($target-type, $source) is export(:DEFAULT)
+
+This will I<cast> the L<Pointer> C<$source> to  an object of C<$target-type>.
+The source pointer will typically have been obtained from a call to a native subroutine
+that returns a pointer or as a member of a C<struct>, this may be specified as C<void *>
+in the C<C> library definition for instance, but you may also cast from a pointer to
+a less specific type to a more specific one.
+
+As a special case, if a L<Signature|/type/Signature> is supplied as C<$target-type> then
+a C<subroutine> will be returned which will call the native function pointed to by C<$source>
+in the same way as a subroutine declared with the C<native> trait.  This is described in
+L<Function Pointers|#Function_Pointers>.
+
+=head2 sub X<cglobal|sub>
+
+    sub cglobal($libname, $symbol, $target-type) is export is rw
+
+This returns a L<Proxy|/type/Proxy> object that provides access to the C<extern> named C<$symbol> that
+is exposed by the specified library. The library can be specified in the same ways that
+they can be to the C<native> trait.
+
+=head2 sub X<nativesizeof|sub>
+
+    sub nativesizeof($obj) is export(:DEFAULT)
+
+This returns the size in bytes of the supplied object, it can be thought of as being
+equivalent to C<sizeof> in B<C>.  The object can be a builtin native type such as
+C<int64> or C<num64>, a C<CArray> or a class with the C<repr> C<CStruct>, C<CUnion>
+or C<CPointer>.
 
 =head1 Examples
 
 The L<zavolaj|https://github.com/jnthn/zavolaj> git repository (where NativeCall was
-originaly developed) hosts L<various examples|https://github.com/jnthn/zavolaj/tree/master/examples>
+originally developed) hosts L<various examples|https://github.com/jnthn/zavolaj/tree/master/examples>
 of how to use NativeCall.
 
 More examples can be found L<in the DBIsh repository
@@ -417,7 +514,7 @@ More examples can be found L<in the DBIsh repository
               on p6doc.
 
 There is an example of using the MySQL client library. There is a project
-L<http://github.com/mberends/minidbi> that wraps these functions with a DBI
+L<https://github.com/mberends/minidbi> that wraps these functions with a DBI
 compatible interface. You'll need that library to hand; on Debian-esque systems
 it can be installed with something like:
 
@@ -448,6 +545,6 @@ You can look at the results via a normal mysql connection:
 =head2 Microsoft Windows
 
 The win32-api-call.p6 script shows an example Windows API call done from Perl 6.
-See L<http://github.com/jnthn/zavolaj/tree/master/examples>
+See L<https://github.com/jnthn/zavolaj/tree/master/examples>
 
 =end pod

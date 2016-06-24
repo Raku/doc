@@ -215,13 +215,13 @@ Note that C<map> does not flatten embedded lists and arrays, so
 
 passes C<(1, 2)> and C<< <a b> >> in turn to the block, leading to a total
 of two iterations and the result sequence C<"1,2", "a,b">.
-See L<method flatmap|/type/List/#method_flatmap> for an alternative that flattens.
+See L<method flatmap|/type/List#method_flatmap> for an alternative that flattens.
 
 =head2 sub flat
 
 Defined as:
 
-    sub flat (**@list is raw)
+    sub flat(**@list is raw)
 
 Constructs a list which contains any arguments provided in the order
 provided, and returns the result of calling the C<.flat> method (L<inherited
@@ -247,7 +247,7 @@ Unlike C<map> it flattens non-itemized lists and arrays, so
 
     say ((1, 2), <a b>).flatmap(&uc).join('|');     # 1|2|A|B
 
-invokes C<uc|/type/Str#routine uc> four times.
+invokes L<uc|/type/Str#routine_uc> four times.
 
 =head2 routine grep
 
@@ -392,6 +392,38 @@ Examples:
     say ^10 .tail         # 9
     say ^Inf .tail        # Cannot tail a lazy list
 
+=head2 routine categorize
+
+Defined as:
+
+    multi sub    categorize(&mapper, *@values) returns Hash:D
+    multi method categorize(List:D: &mapper)   returns Hash:D
+
+Usage:
+
+    categorize MAPPER, LIST
+    LIST.categorize(MAPPER)
+
+Transforms a list of values into a hash representing the categorizations
+of those values according to a mapper; each hash key represents one possible
+categorization for one or more of the incoming list values, and the
+corresponding hash value contains an array of those list values categorized
+by the mapper into the category of the associated key.
+
+Note that, unlike L<classify>, which assumes that the return value
+of the mapper is a single value, C<categorize> always assumes that
+the return value of the mapper is a list of categories that are
+appropriate to the current value.
+
+Example:
+
+    sub mapper(Int $i) returns List {
+        $i %% 2 ?? 'even' !! 'odd',
+        $i.is-prime ?? 'prime' !! 'not prime'
+    }
+    say categorize &mapper, (1, 7, 6, 3, 2);   # {even => [6 2], not prime => [1 6], 
+                                               #  odd => [1 7 3], prime => [7 3 2]}
+
 =head2 routine classify
 
 Defined as:
@@ -488,7 +520,6 @@ from the invocant list are returned in a random sequence.
 Examples:
 
     say <a b c d e>.pick;           # b
-    b
     say <a b c d e>.pick: 3;        # (c a e)
     say  <a b c d e>.pick: *;       # (e d a b c)
 
@@ -514,7 +545,6 @@ chosen elements from the original list.
 Examples:
 
     say <a b c d e>.roll;       # b
-    b
     say <a b c d e>.roll: 3;    # c c e
     say roll 8, <a b c d e>;    # b a e d a e b c
 
@@ -588,7 +618,7 @@ Defined as:
 Usage:
 
     sort LIST
-    sort LIST, SORT_BY
+    sort SORT_BY, LIST
     LIST.sort
     LIST.sort(SORT_BY)
 
@@ -725,7 +755,7 @@ by repeatedly applying a function which knows how to combine I<two> values.
 More precisely, the specified C<&with> is first called for the first two
 values of the list, then for the result of that calculation and the third
 value, and so on - and the final result is returned. In other words,
-C<(2,4,6,8).reduce(*+*)> is the same as C<(((2+4)+6)+8)>.
+C<(2, 4, 6, 8).reduce(*+*)> is the same as C<(((2+4)+6)+8)>.
 
 If C<@values> contains just a single element, that element is returned
 immediately. If it contains no elements, an exception is thrown. For this
@@ -737,7 +767,7 @@ value:
 
 As a special case, if C<&with> is the function object of an I<operator>, its
 inherent identity value and associativity is respected - in other words,
-C<(VAL1,VAL2,VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+C<(VAL1, VAL2, VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
 for operators which aren't left-associative, and an empty C<@values> list is
 allowed now. And since reducing with an infix operator is a common thing to do,
 the C<[ ]> meta-operator provides a syntactic shortcut:
@@ -754,9 +784,9 @@ statements.
 Practical example:
 
     # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
-    
+
     my @ops = [Z] (<+ - * />, 1..20)».roll(4);
-    
+
     say ('x', |@ops).reduce: -> $formula, [$op, $number] {
         Bool.pick ?? "($formula $op $number)"
                   !! "($number $op $formula)"
@@ -770,9 +800,9 @@ https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
 
 Defined as:
 
-    multi sub    combinations ($n, $k)                     returns Seq:D
-    multi method combinations (List:D: Int:D $of)          returns Seq:D
-    multi method combinations (List:D: Range:D $of = 0..*) returns Seq:D
+    multi sub    combinations($n, $k)                     returns Seq:D
+    multi method combinations(List:D: Int:D $of)          returns Seq:D
+    multi method combinations(List:D: Range:D $of = 0..*) returns Seq:D
 
 Usage:
 
@@ -962,6 +992,25 @@ elements but simply skip any undefined value:
     for flat roundrobin(@a, @b, @c) -> $x { $x.say }
 
 will display the following values: C<1, 1, 1, 2, 2, 3>
+
+=head2 routine sum
+
+Defined as:
+
+    multi sub    sum($list)  returns Numeric:D
+    multi method sum(List:D:) returns Numeric:D
+
+Usage:
+
+    sum LIST
+    LIST.sum
+
+Returns the sum of all elements in the list or 0 if the list is empty.
+Throws an exception if an element can not be coerced into Numeric.
+
+    say (1, 3, pi).sum;       # 7.14159265358979
+    say (1, "0xff").sum;      # 256
+    say sum(0b1111, 5);       # 20
 
 =end pod
 

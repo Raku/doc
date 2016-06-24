@@ -29,7 +29,7 @@ tightest to loosest:
     X  Junctive or       | ^
     L  Named unary       temp let
     N  Structural infix  but does <=> leg cmp .. ..^ ^.. ^..^
-    C  Chaining infix    != == < <= > >= eq ne lt le gt ge ~~ === eqv !eqv
+    C  Chaining infix    != == < <= > >= eq ne lt le gt ge ~~ === eqv !eqv =~=
     X  Tight and         &&
     X  Tight or          || ^^ // min max
     R  Conditional       ?? !! ff fff
@@ -105,7 +105,7 @@ L<#prefix ...> etc. stub operators.
 
 
 Defining custom operators is covered in
-L</language/functions#Defining_Operators>.
+L<Defining Operators functions|/language/functions#Defining_Operators>.
 
 =head1 Meta Operators
 
@@ -115,7 +115,43 @@ combined operator in the background, allowing the mechanism to be applied
 to user defined operators. There are quite a few Meta operators with
 different semantics, as explained in detail as follows.
 
-=head2 Assignment Operators
+=head1 Substitution Operators
+
+    my $str = 'match string';
+    $str ~~ s/match/replacement/;
+    say $str; # replacement string
+
+    say S/match/replacement/ given 'match string'; # replacement string
+
+The lower-case version (X<s///>) substitutes in-place, while the
+upper-case version (X<S///>) leaves the original alone and returns
+the resultant string.
+
+Both operators work on `$_` variable. Since smartmatch operator aliases
+the left hand side to `$_`, you can use lowercase `s///` with it, but
+it's a mistake to use it with uppercase `S///`, because you can't
+retrieve the modified string. The correct way is to alias the given
+string by some other method, such as a `for` loop or, as is shown in the
+example above, with a `given` block (in this case, it's a postfix form
+of it, without curlies).
+
+Both operators can take the same adverbs as the
+L<.subst method|/routine/subst>, which go between the `s`/`S` and the opening
+`/`. Whitespace can be used liberally:
+
+    $str ~~ s:g/match/replacement/;
+    say S:i :g /match/replacement/;
+
+You can also use a different delimiter:
+
+    $str ~~ s!foo!!;
+    say S{foo} = {} given 'foobar';
+
+Non-matching characters can simply replace the original slashes. Matching
+characters, like braces, require an extra step where you use an
+assignment operator to assign the replacement to the match part.
+
+=head1 Assignment Operators
 
 Infix operators can be combined with the assignment operator to modify a
 value and apply the result to a container in one go. Containers will be
@@ -132,7 +168,7 @@ Z<blocked by #63642 my @a = 1,2; @a ,= 3,4;>
 
 This behavior is automatically extended to include custom-defined infix operators.
 
-    sub infix:<space-concat> ($a,$b) { $a ~ " " ~ $b };
+    sub infix:<space-concat> ($a, $b) { $a ~ " " ~ $b };
     my $a = 'word1';
     $a space-concat= 'word2'; # 'word1 word2'
 
@@ -142,7 +178,7 @@ Although not strictly operators, methods can be used in the same fashion.
     my $a = 3.14;
     $a .= Int; # 3
 
-=head2 Negated Relational Operators
+=head1 Negated Relational Operators
 
 The result of a relational operator returning C<Bool> can be negated by
 prefixing with C<!>. To avoid visual confusion with the C<!!> operator,
@@ -158,7 +194,7 @@ There are shortcuts for C<!==> and C<!eq>, namely C<!=> and C<ne>.
     my $today = Date.today;
     say so $release !before $today; # True
 
-=head2 Reversed Operators
+=head1 Reversed Operators
 
 Any infix operator may be called with its two arguments reversed by prefixing
 with C<R>. Associativity of operands is reversed as well.
@@ -166,7 +202,7 @@ with C<R>. Associativity of operands is reversed as well.
     say 4 R/ 12; # 3
     say [R/] 2, 4, 16; # 2
 
-=head2 Hyper Operators
+=head1 Hyper Operators
 
 Hyper operators apply a given operator enclosed by C<«> and C<»> to one or two
 lists, returning the resulting list. The pointy part of C<«> or C<»> has to
@@ -174,13 +210,13 @@ point to the shorter list. A list with just one element is fine too. If one of
 the lists is shorter then the other, the operator will cycle over the shorter
 list until all elements of the longer list are processed.
 
-    say (1,2,3) »*» 2;       # (2,4,6)
-    say (1,2,3,4) »~» <a b>; # (1a 2b 3a 4b)
-    say (1,2,3) »+« (4,5,6); # (5 7 9)
+    say (1, 2, 3) »*» 2;          # (2 4 6)
+    say (1, 2, 3, 4) »~» <a b>;   # (1a 2b 3a 4b)
+    say (1, 2, 3) »+« (4, 5, 6);  # (5 7 9)
 
 Assignment meta operators can be hyped.
 
-    my @a = 1,2,3;
+    my @a = 1, 2, 3;
     say @a »+=» 1; # [2 3 4]
 
 Hyper forms of unary operators have the pointy bit point to the operator and
@@ -189,8 +225,8 @@ the blunt end at the list to be operated on.
     my @wisdom = True, False, True;
     say !« @wisdom; # [False True False]
 
-    my @a = 1,2,3;
-    @a»++;          # (2,3,4)
+    my @a = 1, 2, 3;
+    @a»++;           # (2, 3, 4)
 
 Hyper operators are defined recursively on nested arrays.
 
@@ -220,14 +256,14 @@ C<%foo »+« %bar;>       union of keys
 C<%outer »+» %inner;>   only keys of %inner that exist in %outer will occur in the result
 =end table
 
-    my %outer = 1,2,3 Z=> <a b c>;
-    my %inner = 1,2 Z=> <x z>;
+    my %outer = 1, 2, 3 Z=> <a b c>;
+    my %inner = 1, 2 Z=> <x z>;
     say %outer «~» %inner; # {"1" => "ax", "2" => "bz"}
 
 Hyper operators can take user defined operators as its operator argument.
 
     sub pretty-file-site (Int $size --> Str) {
-        # rounding version of infix:</>(Int,Int)
+        # rounding version of infix:</>(Int, Int)
         sub infix:<r/>(Int \i1, Int \i2) {
             round(i1 / i2, 0.1)
         }
@@ -253,28 +289,28 @@ Hyper operators do not descent into child lists. You can chain hyper operators
 to destructure a List of Lists.
 
     my $neighbors = ((-1, 0), (0, -1), (0, 1), (1, 0));
-    my $p = (2,3);
+    my $p = (2, 3);
     say $neighbors »>>+<<» ($p, *); # ((1 3) (2 2) (2 4) (3 3))
 
-=head2 Reduction Operators
+=head1 Reduction Operators
 
 Reduction operators apply any infix operator, surrounded by C<[> and C<]>,
 element by element and return the resulting value.
 
-    say [+] 1,2,3; # 6
+    say [+] 1, 2, 3; # 6
 
 They can be defined as a list prefix operators or will be generated automatically.
 
     multi infix:<[~~]> (@c, &test) is looser(&infix:<~~>) {
         gather for @c { take $_ if test($_) }
     };
-    my @l = 1,'a',2,'b';
+    my @l = 1, 'a', 2, 'b';
     say @l [~~] {$^a ~~ Str}; # (a b)
 
 For list infix operators, flattening is not done on the input list. This
 allows list operators to become the reduction operator.
 
-    [X~] (1,2), <a b> # 1,2 X~ <a b>
+    [X~] (1, 2), <a b> # 1, 2 X~ <a b>
 
 By default reduction meta operators are eager. To lazily generate values,
 prefix the operator with a C<\>. If the non-meta part contains a C<\> already,
@@ -283,7 +319,7 @@ quote it with C<[]> (e.g. C<[\[\x]]>).
     my $lazy := [\+] 1..*;
     say $lazy[^10]; # (1 3 6 10 15 21 28 36 45 55)
 
-=head2 Cross Operators
+=head1 Cross Operators
 
 The cross metaoperator, C<X>, will apply a given infix operator in order of
 cross product to all lists, such that the rightmost operator varies most
@@ -292,12 +328,12 @@ quickly.
     1..3 X~ <a b>
     # produces <1a, 1b, 2a, 2b, 3a, 3b>
 
-=head2 Zip Operators
+=head1 Zip Operators
 
 The zip metaoperator, C<Z>, will apply a given infix operator to pairs taken
 one left, one right, from its arguments. The resulting list is returned.
 
-    my @l = <a b c> Z~ 1,2,3; # [a1 b2 c3]
+    my @l = <a b c> Z~ 1, 2, 3; # [a1 b2 c3]
 
 If one of the operands runs out of elements prematurely, the zip operator will
 stop. An infinite list can be used to repeat elements. A list with a final
@@ -306,20 +342,24 @@ element of C<*> will repeat its 2nd last element indefinitely.
     my @l = <a b c d> Z~ ':' xx *; # <a: b: c: d:>
     my @l = <a b c d> Z~ 1, 2, *;  # <a1 b2 c2 d2>
 
-=head2 Sequential Operators
+If infix operator is not given, C<,> (comma operator) will be used by default:
+
+    my @l = 1 Z 2; # [(1 2)]
+
+=head1 Sequential Operators
 
 The sequential metaoperator, C<S>, will suppress any concurrency, or reordering
 done by the optimizer. Most simple infix operators are supported.
 
     say so 1 S& 2 S& 3; # True
 
-=head2 Nesting of Meta Operators
+=head1 Nesting of Meta Operators
 
 To avoid ambiguity when chaining meta operators use square brackets to help the
 compiler to understand you.
 
-    my @a = 1,2,3;
-    my @b = 5,6,7;
+    my @a = 1, 2, 3;
+    my @b = 5, 6, 7;
     @a X[+=] @b;
     say @a; # [19 20 21]
 
@@ -354,7 +394,7 @@ being interpreted as a named argument.
 
 Block or L<Hash> constructor.X<|block constructor; hash constructor>
 
-If the contents looks like a list of pairs and does not use L<$_> or other
+If the contents looks like a list of pairs and does not use L<$_|/syntax/$_> or other
 placeholder parameters, returns an itemized L<Hash>.
 
 Otherwise it constructs a L<Block>.
@@ -460,13 +500,29 @@ The operator for calling one method, C<$invocant.method>.X<|method call>
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
-=head2 postfix C«.=»
+X«|postfix .&»
+=head2 postfix C«.&»
 
-A X<mutating method call>. C<$invocant.=method> desugars to
-C<$invocant = $invocant.method>, similar to L<C<op=>>.
+The operator to call a subroutine (with at least one positional argument) like
+a method. The invocant will be bound to the first positional argument.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+    my sub f($invocant){ dd $invocant; }
+    my $i = 42;
+    42.&f;
+    # OUTPUT«Int $invocant = 42␤»
+    42.&(-> $invocant { dd $invocant });
+    # OUTPUT«Int $invocant = 42␤»
+
+=head2 postfix C«.=»
+
+A X<mutating method call>. C<$invocant.=method> desugars to
+C<$invocant = $invocant.method>, similar to L<C<=>>.
+
+Technically this is not an operator, but syntax special-cased in the compiler.
+
+X«|postfix .^»
 =head2 postfix C«.^»
 
 A X<meta-method call>. C<$invocant.^method> calls C<method> on C<$invocant>'s
@@ -475,6 +531,7 @@ for more information.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+X«|postfix .?»
 =head2 postfix C«.?»
 
 X<Potential method call>s. C<$invocant.?method> calls method C<method> on
@@ -482,6 +539,7 @@ C<$invocant> if it has a method of such name. Otherwise it returns L<Nil>.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+X«|postfix .+»
 =head2 postfix C«.+»
 
 C<$invocant.+method> calls all methods called C<method> from C<$invocant>,
@@ -489,6 +547,7 @@ and returns a L<List> of the results. Dies if no such method was found.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+X«|postfix .*»
 =head2 postfix C«.*»
 
 C<$invocant.*method> calls all methods called C<method> from C<$invocant>,
@@ -497,6 +556,7 @@ L<List> is returned.
 
 Technically this is not an operator, but syntax special-cased in the compiler.
 
+X<|postfix ».>
 =head2 postfix C<».> / postfix C«>>.»
 
 X<Hyper method call operator>. Will call a method on all elements of a C<List> out of order and return the list of return values in order.
@@ -506,7 +566,7 @@ X<Hyper method call operator>. Will call a method on all elements of a C<List> o
     my @b = @a».ord;                  # [97, 98, 99]
     sub foo(Str:D $c){ $c.ord * 2 };  # The first parameter of a method is the invocant.
     say @a».&foo;                     # So we can pretend to have a method call with a sub that got a good first positional argument.
-    say @a».&({ .ord});               # Blocks have an implicit positional arguments that lands in $_. The latter can be obmitted for method calls.
+    say @a».&({ .ord});               # Blocks have an implicit positional arguments that lands in $_. The latter can be omitted for method calls.
 
 =head2 X«postfix C<.postfix>
     |postfix,.postfix;postcircumfix,.( );postcircumfix,.[ ];postcircumfix,.{ };postcircumfix,.< >»
@@ -529,7 +589,7 @@ call.
     my $addition = Operation.new(:symbol<+>, :function{ $^a + $^b });
     say $addition.function()(1, 2); # 3
     # OR
-    say $addition.function.(1,2); # 3
+    say $addition.function.(1, 2); # 3
 
 If the postfix is an identifier, however, it will be interpreted as a normal
 method call.
@@ -689,7 +749,7 @@ and then negates the result.
 
 =head2 prefix C«~»
 
-    multi sub prefix:<->(Any) returns Str:D
+    multi sub prefix:<~>(Any) returns Str:D
 
 X<String context operator>.
 
@@ -701,7 +761,8 @@ Flattens objects of type L<Capture>, L<Pair>, L<List> L<Map> and L<Hash>
 into an argument list.
 
 Outside of argument lists, it returns a L<Slip|/type/Slip>, which makes it
-flatten into the outer list.
+flatten into the outer list. Inside L<argument list|/language/list#Argument_List_(Capture)_Context> L<C<Positional>s|/type/Positional> are turned
+into positional arguments and L<C<Associative>s|/type/Associative> are turned into named arguments.
 
 =head2 prefix C«+^»
 
@@ -805,7 +866,7 @@ Integer bit shift to the right.X<|integer bit shift operator, right>
 
     multi sub infix:<gcd>($a, $b) returns Int:D
 
-Coerces both arguments to L<Int> and returns the greatest common denominator.X<|greatest commmon demnominator operator>
+Coerces both arguments to L<Int> and returns the greatest common denominator.X<|greatest common denominator operator>
 
 =head2 infix C«lcm»
 
@@ -1309,7 +1370,7 @@ For value types, C<===> behaves like C<eqv>:
     # different types
     say 1 === 1.0;              # False
 
-C<===> uses the L<WHICH> method to obtain the object identity, so all value
+C<===> uses the L<WHICH|/routine/WHICH> method to obtain the object identity, so all value
 types must override method C<WHICH>.
 
 =head2 infix C«=:=»
@@ -1317,7 +1378,7 @@ types must override method C<WHICH>.
     proto sub infix:<=:=>(Mu \a, Mu \b) returns Bool:D is assoc<chain>
     multi sub infix:<=:=>(Mu \a, Mu \b)
 
-X<Container identity operator>. Returns L<True> if both arguments are bound to the same
+X<Container identity operator>. Returns C<True> if both arguments are bound to the same
 container. If it returns C<True>, it generally means that modifying one will
 also modify the other.
 
@@ -1350,6 +1411,45 @@ Here is an excerpt of built-in smart-matching functionality:
     Any:D               object identity
 
 =end table
+
+=head2 infix C<=~=>
+
+    proto sub infix:<=~=>($, $) returns Bool:D is assoc:<chain>
+    multi sub infix:<=~=>(Any, Any)
+    multi sub infix:<=~=>(Int:D, Int:D)
+    multi sub infix:<=~=>(Num:D, Num:D)
+    multi sub infix:<=~=>(Rational:D, Rational:D)
+    multi sub infix:<=~=>(Real:D, Real:D)
+    multi sub infix:<=~=>(Complex:D, Complex:D)
+    multi sub infix:<=~=>(Numeric:D, Numeric:D)
+
+The X<approximately-equal operator>. Calculates the relative difference between
+the left-hand and right-hand sides and returns C<True> if the difference is
+less than $*TOLERANCE (which defaults to 1e-15). However, if either side is zero
+then it checks that the absolute difference between the sides is less than $*TOLERANCE.
+Note that this operator is not arithmetically symmetrical (doesn't do ± Δ):
+
+    say ($x + $*TOLERANCE) =~= $x;   # True
+    say ($x - $*TOLERANCE) =~= $x;   # False
+
+The tolerance is supposed to be modifiable via an adverb:
+
+    say $x =~= $y :tolerance(.1);
+
+however, this is not yet implemented. The same effect can be achieved by
+assigning to $*TOLERANCE.
+
+    {
+        my $*TOLERANCE = .1;
+        say 11 =~= 10;               # True
+    }
+
+Note that setting $*TOLERANCE = 0 will cause all comparisons to fail.
+
+    {
+        my $*TOLERANCE = 0;
+        say 1 =~= 1;                 # False
+    }
 
 =head1 Tight AND Precedence
 
@@ -1489,7 +1589,7 @@ A comparison:
     say $_ if /A/ ff /C/ for @list;  # prints A, B, and C
     say $_ if /A/ ^ff /C/ for @list; # prints B and C
 
-The sed-like version can be found in L<C<^fff>>.
+The sed-like version can be found in L<C<^fff>|/routine/^fff>.
 
 This operator cannot be overloaded, as it is handled specially by the compiler.
 
@@ -1519,7 +1619,7 @@ the stop or start condition (or both).
     say $_ if /A/ ff /C/ for @list;  # prints A, B, and C
     say $_ if /A/ ^ff^ /C/ for @list; # prints B
 
-The sed-like version can be found in L<C<^fff^>>.
+The sed-like version can be found in L<C<^fff^>|/routine/^fff^>.
 
 This operator cannot be overloaded, as it is handled specially by the compiler.
 
@@ -1555,7 +1655,7 @@ Like L<C<fff>>, except it does not return true for matches to the left argument.
     say $_ if /A/ fff /C/ for @list;  # prints A, B, and C
     say $_ if /A/ ^fff /C/ for @list; # prints B and C
 
-For the non-sed version, see L<C<^ff>>.
+For the non-sed version, see L<C<^ff>|/routine/^ff>.
 
 This operator cannot be overloaded, as it is handled specially by the compiler.
 
@@ -1584,7 +1684,7 @@ right argument.
     say $_ if /A/ fff /C/ for @list;  # prints A, B, and C
     say $_ if /A/ ^fff^ /C/ for @list; # prints B
 
-For the non-sed version, see L<C<^ff^>>.
+For the non-sed version, see L<C<^ff^>|/routine/^ff^>.
 
 This operator cannot be overloaded, as it is handled specially by the compiler.
 
@@ -1847,7 +1947,7 @@ that reduces using that operation.
 =begin code
 
     [+] 1, 2, 3;      # 1 + 2 + 3 = 6
-    my @a = (5,6);
+    my @a = (5, 6);
     [*] @a;           # 5 * 6 = 30
 
 =end code
@@ -1892,6 +1992,119 @@ Same as C<infix //>, except with looser precedence.
 
 Returns the first defined argument, or else the last argument.
 Short-circuits.
+
+=head1 Sequencer Precedence
+
+=head2 infix C«==>»
+
+This X<feed> operator takes the result from the left and passes it to the
+next (right) routine as the last parameter.
+
+The precedence is very loose so you will need to use parentheses to
+assign the result or you can even just use another feed operator! In the
+case of routines/methods that take a single argument or where the first argument
+is a block, it is often required that you call with parentheses (though this
+is not required for the very last routine/method).
+
+    # Traditional structure, read bottom-to-top
+    my @result =
+        sort               # (4) Sort, result is <Earth People>
+        grep { /<[PE]>/ }, # (3) Look for P or E
+        map { .tc },       # (2) Capitalize the words
+        <people of earth>; # (1) Start with the input
+
+    # Feed (left-to-right) with parentheses, read top-to-bottom
+    my @result = (
+        <people of earth>  # (1) Start with the input
+        ==> map({ .tc })   # (2) Capitalize the words
+        ==> grep /<[PE]>/  # (3) Look for P or E
+        ==> sort           # (4) Sort, result is <Earth People>
+    );
+
+    # For illustration, method chaining equivalent, read top-to-bottom
+    my @result =
+        <people of earth>  # (1) Start with the input
+        .map({ .tc })      # (2) Capitalize the words
+        .grep(/<[PE]>/)    # (3) Look for P or E
+        .sort;             # (4) Sort, result is <Earth People>
+
+    # To assign without the need of parentheses use another feed operator
+    <people of earth>
+        ==> map({ .tc })
+        ==> grep /<[PE]>/
+        ==> sort()
+        ==> my @result;
+
+    # It can be useful to capture a partial result, however, unlike
+    # the leftward feed operator, it does require parentheses or a semicolon
+    <people of earth>
+        ==> map({ .tc })
+        ==> my @caps; @caps # also could wrap in parentheses instead
+        ==> grep /<[PE]>/
+        ==> sort()
+        ==> my @result;
+
+The feed operator lets you construct method-chaining-like patterns out of
+routines and the results of methods on unrelated data.  In method-chaining,
+you are restricted to the methods available on the data or the result of
+previous method call.  With feed operators, that restriction is gone.
+The resulting code could also be seen to be more readable than a series of
+method calls broken over multiple lines.
+
+Note: In the future, this operator will see some change as it gains the
+ability to run list operations in parallel. It will enforce that the
+B<left> operand is enclosable as a closure (that can be cloned and run in
+a subthread).
+
+=head2 infix C«<==»
+
+This X<leftward feed> operator takes the result from the right and passes
+it to the previous (left) routine as the last parameter. This
+elucidates the right-to-left dataflow for a series of list manipulating
+functions.
+
+    # Traditional structure, read bottom-to-top
+    my @result =
+        sort                   # (4) Sort, result is <Earth People>
+        grep { /<[PE]>/ },     # (3) Look for P or E
+        map { .tc },           # (2) Capitalize the words
+        <people of earth>;     # (1) Start with the input
+
+    # Feed (right-to-left) with parentheses, read bottom-to-top
+    my @result = (
+        sort()                 # (4) Sort, result is <Earth People>
+        <== grep({ /<[PE]>/ }) # (3) Look for P or E
+        <== map({ .tc })       # (2) Capitalize the words
+        <== <people of earth>  # (1) Start with the input
+    );
+
+    # To assign without parentheses, use another feed operator
+    my @result
+        <== sort()             # (4) Sort, result is <Earth People>
+        <== grep({ /<[PE]>/ }) # (3) Look for P or E
+        <== map({ .tc })       # (2) Capitalize the words
+        <== <people of earth>; # (1) Start with the input
+
+    # It can be useful to capture a partial result
+    my @result
+        <== sort()
+        <== grep({ /<[PE]>/ })
+        <== my @caps # unlike ==>, there is no need for additional statement
+        <== map({ .tc })
+        <== <people of earth>;
+
+Unlike the rightward feed operator, the result is not closely mappable
+to method-chaining.  However, compared to the traditional structure above
+where each argument is separated by a line, the resulting code is more
+demonstrative than commas.  The leftward feed operator also allows you
+to "break into" the statement and capture an intermediary result which
+can be extremely useful for debugging or to take that result and create
+another variation on the final result.
+
+Note: In the future, this operator will see some change as it gains the
+ability to run list operations in parallel. It will enforce that the
+B<right> operand is enclosable as a closure (that can be cloned and run in
+a subthread).
 
 =end pod
 

@@ -52,7 +52,7 @@ Returns the day of the month of the date (1..31)
 
 Defined as:
 
-    method formatter(DateTime:D:)
+    method formatter(Dateish:D:)
 
 Usage:
 
@@ -63,8 +63,16 @@ L<Str|/type/Str>. If none was provided at object construction, a
 default formatter is used.  In that case the method will return a
 Callable type object.
 
-The formatting function is called by L<#method Str> with the invocant as its
-only argument.
+The formatting function is called by
+L<DateTime method Str|/type/DateTime#method Str> with the
+invocant as its only argument.
+
+    my $dt = Date.new('2015-12-31');  # (no formatter specified)
+    say $dt.formatter.WHAT;           # (Callable)
+    my $us-format = sub ($self) { sprintf "%02d/%02d/%04d", .month, .day, .year given $self; };
+    $dt = Date.new('2015-12-31', formatter => $us-format);
+    say $dt.formatter.WHAT;           # (Sub)
+    say $dt;                          # 12/31/2015
 
 =head2 method is-leap-year
 
@@ -78,6 +86,9 @@ Usage:
 
 Returns C<True> if C<$year> is a leap year. Can be called as a class method
 if the year is provided.
+
+    say Dateish.is-leap-year(2016);           # True
+    say Date.new("1900-01-01").is-leap-year;  # False
 
 =head2 method day-of-month
 
@@ -130,6 +141,9 @@ Returns the number of days in a month, where year and month default to that
 of the invocant. If both year and month are provided, it can be called as
 a class method.
 
+    say Date.new("2016-01-02").days-in-month;  # 31
+    say Dateish.days-in-month(2016, 1);        # 31
+
 =head2 method week
 
 Defined as:
@@ -146,6 +160,90 @@ at the start or end of a year, the week may actually belong to the other year.
     my ($year, $week) = Date.new("2014-12-31").week;
     say $year;      # 2015
     say $week;      # 1
-    say Date.new('2015-01-31').week;        # 2014 5
+    say Date.new('2015-01-31').week;        # 2015 5
+
+=head2 method week-number
+
+Defined as:
+
+    method week-number(Date:D:) returns Int:D
+
+Usage:
+
+    Dateish.week-number
+
+Returns the week number (1..53) of the date specified by the invocant. The first
+week of the year is defined by ISO as the one which contains the fourth day of
+January. Thus, dates early in January often end up in the last week of the prior
+year, and similarly, the final few days of December may be placed in the first
+week of the next year.
+
+    say Date.new("2014-12-31").week-number;   # 1  (first week of 2015)
+    say Date.new("2016-01-02").week-number;   # 53 (last week of 2015)
+
+=head2 method week-year
+
+Defined as:
+
+    method week-year(Date:D:) returns Int:D
+
+Usage:
+
+    Dateish.week-year
+
+Returns the week year of the date specified by the invocant. Normally C<week-year>
+is equal to C<Date.year>. Note however that dates early in January often end up in
+the last week of the prior year, and similarly, the final few days of December
+may be placed in the first week of the next year.
+
+    say Date.new("2015-11-15").week-year;   # 2015
+    say Date.new("2014-12-31").week-year;   # 2015 (date belongs to the first week of 2015)
+    say Date.new("2016-01-02").week-year;   # 2015 (date belongs to the last week of 2015)
+
+=head2 method weekday-of-month
+
+Defined as:
+
+    method weekday-of-month(Date:D:) returns Int:D
+
+Usage:
+
+    Dateish.weekday-of-month
+
+Returns a number (1..5) indicating the number of times a particular day-of-week
+has occurred so far during that month, the day itself included.
+
+    say Date.new("2003-06-09").weekday-of-month;  # 2  (second Monday of the month)
+
+=head2 method yyyy-mm-dd
+
+Defined as:
+
+    method yyyy-mm-dd(Date:D:) returns Str:D
+
+Usage:
+
+    Dateish.yyyy-mm-dd
+
+Returns the date in C<YYYY-MM-DD> format (L<ISO 8601|https://en.wikipedia.org/wiki/ISO_8601>)
+
+=head2 method daycount
+
+Defined as:
+
+    method daycount(Dateish:D:) returns Int:D
+
+Usage:
+
+    Dateish.daycount
+
+Returns the number of days from the epoch Nov. 17, 1858 to the
+day of the invocant. The daycount returned by this method is the
+MJD, i.e. the L<Modified Julian Day|https://en.wikipedia.org/wiki/Julian_day>,
+which is used routinely by e.g. astronomers, geodesists, scientists
+and others. The MJD convention is designed to facilitate simplified
+chronological calculations.
+
+    say Date.new('1995-09-27').daycount;    # 49987
 
 =end pod

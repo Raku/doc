@@ -14,12 +14,12 @@ The sigil serves as a variable indicator and type constraint.
 
 =begin table
 
-    Sigil   Type constraint          	Default type  Assignment  Examples
-    =====   ===============          	============  ==========  ========
-    $       Mu (no type constraint)  	Any           item        Int, Str, Array, Hash
-    @       Positional               	Array         list        List, Array, Range, Buf
-    %       Associative              	Hash          list        Hash, Map, Pair
-    &       Callable                  Callable      item        Sub, Method, Block, Routine
+    Sigil   Type constraint              Default type  Assignment  Examples
+    =====   ===============              ============  ==========  ========
+    $       Mu (no type constraint)      Any           item        Int, Str, Array, Hash
+    @       Positional                   Array         list        List, Array, Range, Buf
+    %       Associative                  Hash          list        Hash, Map, Pair
+    &       Callable                     Callable      item        Sub, Method, Block, Routine
 
 =end table
 
@@ -28,6 +28,28 @@ Examples:
     my $square = 9 ** 2;
     my @array  = 1, 2, 3;   # Array variable with three elements
     my %hash   = London => 'UK', Berlin => 'Germany';
+
+X<|is (container type)>
+The default type can be set with C<is>.
+
+    class FailHash is Hash {
+        has Bool $!final = False;
+        multi method AT-KEY ( ::?CLASS:D: Str:D \key ){
+            fail X::OutOfRange.new(:what("Hash key"), :got(key), :range(self.keys)) if $!final && !self.EXISTS-KEY(key);
+            callsame
+        }
+
+        method finalize() {
+            $!final = True
+        }
+    }
+    
+    my %h is FailHash = oranges => "round", bananas => "bendy";
+    say %h<oranges>;
+    # OUTPUT «round␤»
+    %h.finalize;
+    say %h<cherry>;
+    # OUTPUT «Hash key out of range. Is: cherry, should be in (oranges bananas)␤  in method AT-KEY at failhash.p6 line 4 [...]»
 
 Variables without sigils are also possible, see
 L<sigilless variables|#Sigilless variables>.
@@ -100,7 +122,7 @@ larger expression determines the type of assignment:
 This is because the whole expression is C<@array = $num = 42, "str">, while
 C<$num = 42> is not is own separate expression.
 
-See L<operators|Language/operators> for more details on precedence.
+See L<operators|/language/operators> for more details on precedence.
 
 =head2 Sigilless variables
 
@@ -109,7 +131,7 @@ It is possible to create "variables" in Perl 6 that do not have sigils:
     my \degrees = pi / 180;
     my \θ       = 15 * degrees;
 
-Note, however, that these do not create L<containers>. That means C<degrees>
+Note, however, that these do not create L<containers|/language/containers>. That means C<degrees>
 and C<θ> above actually directly represent C<Num>s. To illustrate, try
 assigning to one after you've defined it:
 
@@ -247,7 +269,8 @@ Although they may not be changed at runtime, the user is allowed to
     constant $?TABSTOP = 4; # this causes leading tabs in a heredoc or in a POD
                             # block's virtual margin to be counted as 4 spaces.
 
-For a list of these special variables see L<#Compile-time variables>.
+For a list of these special variables see
+L<compile-time variables|/language/variables#Compile-time_variables>.
 
 =head2 The C<.> Twigil
 
@@ -538,6 +561,14 @@ sub a {
 
 say a for 1..6;
 
+This works per "clone" of the containing code object, so:
+
+    ({ state $i = 1; $i++.say; } xx 3).map: {$_(), $_()}; # says 1 then 2 thrice
+
+Note that this is B<not> a thread-safe construct when the same clone of the same
+block is run by multiple threads.  Also remember that methods only have one
+clone per class, not per object.
+
 =end code
 
 will continue to increment C<$l> and append it to C<@x> each time it is
@@ -561,13 +592,25 @@ be omitted.
 Please note that many operators come with implicit binding, what will lead to actions at a distance. Use C<.clone> or coercion to create a new container that can be bound to.
 
     my @a;
-    sub f () { 
-    	state $i;
-    	$i++;
-    	@a.push: "k$i" => $i # <-- .clone goes here
+    sub f() {
+        state $i;
+        $i++;
+        @a.push: "k$i" => $i # <-- .clone goes here
     };
-    f for 1..3; 
+    f for 1..3;
     dd @a; # «Array $var = $[:k1(3), :k2(3), :k3(3)]»
+
+All state variables are shared between threads. The result can be undesired or
+dangerous.
+
+    sub code(){ state $i = 0; say ++$i; $i }; 
+    await 
+        start { loop { last if code() >= 5 } },
+        start { loop { last if code() >= 5 } };
+
+    # OUTPUT«1␤2␤3␤4␤4␤3␤5␤»
+    # OUTPUT«2␤1␤3␤4␤5␤»
+    # many other more or less odd variations can be produced
 
 =head3 The C<$> Variable
 
@@ -778,21 +821,21 @@ scope. However, C<temp> does not create a new variable.
 
     my $in = 0; # temp will "entangle" the global variable with the call stack
                 # that keeps the calls at the bottom in order.
-    sub f(*@c) { 
+    sub f(*@c) {
         (temp $in)++;
          "<f>\n"
          ~ @c>>.indent($in).join("\n")
          ~ (+@c ?? "\n" !! "")
          ~ '</f>'
-    }; 
-    sub g(*@c) { 
+    };
+    sub g(*@c) {
         (temp $in)++;
-        "<g>\n" 
+        "<g>\n"
         ~ @c>>.indent($in).join("\n")
         ~ (+@c ?? "\n" !! "")
         ~ "</g>"
-    }; 
-    print g(g(f(g()),g(),f()));
+    };
+    print g(g(f(g()), g(), f()));
 
 output:
 
@@ -925,22 +968,36 @@ This outputs:
 
 =head3 The C<$/> Variable
 
-C<$/> is the match variable. It stores the result of the last L<Regex|regex>
+C<$/> is the match variable. It stores the result of the last L<Regex|/language/regexes>
 match and so usually contains objects of type L<Match>.
 
     'abc 12' ~~ /\w+/;  # sets $/ to a Match object
     say $/.Str;         # abc
 
 The C<Grammar.parse> method also sets the caller's C<$/> to the resulting
-L<Match> object.
+L<Match> object.  For the following code:
 
-    use XML;
-    XML.parse(slurp "filename.xml")
+    use XML::Grammar; # panda install XML
+    XML.Grammar.parse("<p>some text</p>");
     say $/;
+
+the output is:
+
+｢<p>some text</p>｣
+ root => ｢<p>some text</p>｣
+  name => ｢p｣
+  child => ｢some text｣
+   text => ｢some text｣
+   textnode => ｢some text｣
+ element => ｢<p>some text</p>｣
+  name => ｢p｣
+  child => ｢some text｣
+   text => ｢some text｣
+   textnode => ｢some text｣
 
 =head4 X«Positional Attributes|variable,$0;variable,$1;variable,@()»
 
-C<$/> can have positional attributes if the L<Regex|regex> had
+C<$/> can have positional attributes if the L<Regex|/language/regexes> had
 capture-groups in it, which are just formed with parentheses.
 
     'abbbbbcdddddeffg' ~~ / a (b+) c (d+ef+) g /;
@@ -959,7 +1016,7 @@ C<@()> can be used.
 
 =head4 X«Named Attributes|variable,$<named>;variable,%()»
 
-C<$/> can have named attributes if the L<Regex|regex> had named
+C<$/> can have named attributes if the L<Regex|/language/regexes> had named
 capture-groups in it, or if the Regex called out to another Regex.
 
     'I.... see?' ~~ / \w+ $<punctuation>=[ <-[\w\s]>+ ] \s* $<final-word> = [ \w+ . ] /;
@@ -1014,63 +1071,72 @@ Other compile-time variables:
 =comment There should be a better way get this table to be formatted
     properly, but if there is, Rakudo doesn't support it at the moment.
 
-=for table
-    $*ARGFILES         Magic command-line input handle.
-    ==
-    @*ARGS             Arguments from the command line.
-    ==
-    $*IN               Standard input filehandle, AKA stdin
-    ==
-    $*OUT              Standard output filehandle, AKA stdout
-    ==
-    $*ERR              Standard error filehandle, AKA stderr
-    ==
-    %*ENV              Environment variables
-    ==
-    $*REPO             A variable holding information about modules installed/loaded
-    ==
-    $*TZ               The system's local timezone.
-    ==
-    $*CWD              The Current Working Directory.
-    ==
-    $*KERNEL           Which kernel am I compiled for?
-    ==
-    $*DISTRO           Which OS distribution am I compiling under?
-    ==
-    $*VM               Which virtual machine am I compiling under?
-    ==
-    $*PERL             Which Perl am I compiled for?
-    ==
-    $*PID              Process ID of the current process.
-    ==
-    $*PROGRAM-NAME     Path to the current executable as it was entered on the
-                       command line, or C<-e> if perl was invoked with the -e flag.
-    ==
-    $*PROGRAM          Location (in the form of an C<IO::Path> object) of the
-                       Perl program being executed.
-    ==
-    $*EXECUTABLE       Absolute path of the perl executable that is currently running.
-    ==
-    $*EXECUTABLE-NAME  The name of the perl executable that is currently running.
-                       (e.g. perl6-p, perl6-m, Niecza.exe)
-                       Favor $*EXECUTABLE because it is not guaranteed that the perl
-                       executable is in PATH.
-    ==
-    $*USER             The user that is running the program. It is an object
-                       that evaluates to "username (uid)".  It will evaluate
-                       to the username only if treated as a string and the
-                       numeric user id if treated as a number.
-    ==
-    $*GROUP           The primary group of the user who is running the program.
-                      It is an object that evaluates to "groupname (gid)".
-                      It will evaluate to the groupname only if treated as a
-                      string and the numeric group id if treated as a number.
-    ==
-    $*HOME            An L<IO::Path> object representing the "home directory"
-                      of the user that is running the program.  If the
-                      "home directory" cannot be determined it will be L<Nil>
-    ==
-    $*SPEC            The appropriate L<IO::Spec> sub-class for the platform that
-                      the program is running on.
+=table
+    $*ARGFILES        | Magic command-line input handle.
+    ------------------+--------------------------------------------
+    @*ARGS            | Arguments from the command line.
+    ------------------+--------------------------------------------
+    $*IN              | Standard input filehandle, AKA stdin
+    ------------------+--------------------------------------------
+    $*OUT             | Standard output filehandle, AKA stdout
+    ------------------+--------------------------------------------
+    $*ERR             | Standard error filehandle, AKA stderr
+    ------------------+--------------------------------------------
+    %*ENV             | Environment variables
+    ------------------+--------------------------------------------
+    $*REPO            | A variable holding information about modules installed/loaded
+    ------------------+--------------------------------------------
+    $*TZ              | The system's local timezone.
+    ------------------+--------------------------------------------
+    $*CWD             | The Current Working Directory.
+    ------------------+--------------------------------------------
+    $*KERNEL          | Which kernel am I running under?
+    ------------------+--------------------------------------------
+    $*DISTRO          | Which OS distribution am I running under?
+    ------------------+--------------------------------------------
+    $*VM              | Which virtual machine am I running under?
+    ------------------+--------------------------------------------
+    $*PERL            | Which Perl am I running under?
+    ------------------+--------------------------------------------
+    $*PID             | Process ID of the current process.
+    ------------------+--------------------------------------------
+    $*PROGRAM-NAME    | Path to the current executable as it was entered on the
+                      | command line, or C<-e> if perl was invoked with the -e flag.
+    ------------------+--------------------------------------------
+    $*PROGRAM         | Location (in the form of an C<IO::Path> object) of the
+                      | Perl program being executed.
+    ------------------+--------------------------------------------
+    $*EXECUTABLE      | Absolute path of the perl executable that is currently running.
+    ------------------+--------------------------------------------
+    $*EXECUTABLE-NAME | The name of the perl executable that is currently running.
+                      | (e.g. perl6-p, perl6-m, Niecza.exe)
+                      | Favor $*EXECUTABLE because it is not guaranteed that the perl
+                      | executable is in PATH.
+    ------------------+--------------------------------------------
+    $*USER            | The user that is running the program. It is an object
+                      | that evaluates to "username (uid)".  It will evaluate
+                      | to the username only if treated as a string and the
+                      | numeric user id if treated as a number.
+    ------------------+--------------------------------------------
+    $*GROUP           | The primary group of the user who is running the program.
+                      | It is an object that evaluates to "groupname (gid)".
+                      | It will evaluate to the groupname only if treated as a
+                      | string and the numeric group id if treated as a number.
+    ------------------+--------------------------------------------
+    $*HOME            | An L<IO::Path> object representing the "home directory"
+                      | of the user that is running the program.  If the
+                      | "home directory" cannot be determined it will be L<Nil>
+    ------------------+--------------------------------------------
+    $*SPEC            | The appropriate L<IO::Spec> sub-class for the platform that
+                      | the program is running on. For OS-specific code, simply use smartmatch:
+                      | C<say "We are on Windows!" if $*SPEC ~~ IO::Spec::Win32>
+    ------------------+--------------------------------------------
+    $*TMPDIR          | An L<IO::Path> object representing the "system temporary directory"
+    ------------------+--------------------------------------------
+    $*THREAD          | A L<Thread> object representing the currently executing thread.
+    ------------------+--------------------------------------------
+    $*SCHEDULER       | A L<ThreadPoolScheduler> object representing the current
+                      | default scheduler.
+    ------------------+--------------------------------------------
 
 =end pod

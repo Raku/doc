@@ -55,7 +55,7 @@ Returns a lower-case version of the string.
 Examples:
 
     lc("A"); # returns "a"
-    "A".lc   # returns "a"
+    "A".lc;  # returns "a"
 
 =head2 routine uc
 
@@ -141,8 +141,8 @@ Perl 6 does not have a C<length> function.  See L<chars>, L<elems>,
     multi sub    chars(str $x)   returns int
     multi method chars(Str:D:)   returns Int:D
 
-Returns the number of characters in the string in the current
-(lexically scoped) idea of what a normal character is, usually graphemes.
+Returns the number of characters in the string in graphemes. On the JVM, this
+currently erroneously returns the number of codepoints instead.
 
 =head2 method encode
 
@@ -168,7 +168,7 @@ Examples:
     say index "Camelia is a butterfly", "a", 2;  # 6
     say index "Camelia is a butterfly", "er";    # 17
     say index "Camelia is a butterfly", "Camel"; # 0
-    say index "Camelia is a butterfly", "Onion"; # Int()
+    say index "Camelia is a butterfly", "Onion"; # Nil
 
     say index("Camelia is a butterfly", "Onion").defined ?? 'OK' !! 'NOT'; # NOT
 
@@ -254,19 +254,24 @@ Also return the B<index> of the delimiter and the delimiter as a C<Pair>.
 Examples:
 
 =begin code
-    say split(";", "a;b;c")            # (a b c)
-    say split(";", "a;b;c", :v)        # (a ; b ; c)
-    say split(";", "a;b;c", 2)         # (a b;c)
-    say split(";", "a;b;c", 2, :v)     # (a ; b;c)
-    say split(";", "a;b;c,d")          # (a b c,d)
-    say split(/\;/, "a;b;c,d")         # (a b c,d)
-    say split(<; ,>, "a;b;c,d")        # (a b c d)
-    say split(/<[;,]>/, "a;b;c,d")     # (a b c d)
-    say split(<; ,>, "a;b;c,d", :k)    # (a 0 b 0 c 1 d)
-    say split(<; ,>, "a;b;c,d", :kv)   # (a 0 ; b 0 ; c 1 , d)
 
-    say "abcde".split("")              # ( a b c d e )
-    say "abcde".split("",:skip-empty)  # (a b c d e)
+    say split(";", "a;b;c").perl;            # ("a", "b", "c")
+    say split(";", "a;b;c", :v).perl;        # ("a", ";", "b", ";", "c")
+    say split(";", "a;b;c", 2).perl;         # ("a", "b;c").Seq
+    say split(";", "a;b;c", 2, :v).perl;     # ("a", ";", "b;c")
+    say split(";", "a;b;c,d").perl;          # ("a", "b", "c,d")
+    say split(/\;/, "a;b;c,d").perl;         # ("a", "b", "c,d")
+    say split(<; ,>, "a;b;c,d").perl;        # ("a", "b", "c", "d")
+    say split(/<[;,]>/, "a;b;c,d").perl;     # ("a", "b", "c", "d")
+    say split(<; ,>, "a;b;c,d", :k).perl;    # ("a", 0, "b", 0, "c", 1, "d")
+    say split(<; ,>, "a;b;c,d", :kv).perl;   # ("a", 0, ";", "b", 0, ";", "c", 1, ",", "d")
+
+    say "".split("x").perl;                  # ("",)
+    say "".split("x", :skip-empty).perl;     # ("",)
+
+    say "abcde".split("").perl;              # ("", "a", "b", "c", "d", "e", "")
+    say "abcde".split("",:skip-empty).perl;  # ("a", "b", "c", "d", "e")
+
 =end code
 
 =head2 routine comb
@@ -289,10 +294,10 @@ If no matcher is supplied, a list of characters in the string
 
 Examples:
 
-    comb(/\w/, "a;b;c").perl;        # ("a", "b", "c").list
-    comb(/\N/, "a;b;c").perl;        # ("a", ";", "b", ";", "c").list
-    comb(/\w/, "a;b;c", 2).perl;     # ("a", "b").list
-    comb(/\w\;\w/, "a;b;c", 2).perl; # ("a;b",).list
+    say comb(/\w/, "a;b;c").perl;        # ("a", "b", "c").Seq
+    say comb(/\N/, "a;b;c").perl;        # ("a", ";", "b", ";", "c").Seq
+    say comb(/\w/, "a;b;c", 2).perl;     # ("a", "b").Seq
+    say comb(/\w\;\w/, "a;b;c", 2).perl; # ("a;b",).Seq
 
 If the matcher is an integer value, it is considered to be a matcher that
 is similar to / . ** matcher /, but which is about 30x faster.
@@ -307,10 +312,10 @@ same as a call to C<$input.comb( / ^^ \N* /, $limit )> would.
 
 Examples:
 
-    lines("a\nb").perl;    # ("a", "b").list
-    lines("a\nb").elems;   # 2
-    "a\nb".lines.elems;    # 2
-    "a\n".lines.elems;     # 1
+    say lines("a\nb").perl;    # ("a", "b").Seq
+    say lines("a\nb").elems;   # 2
+    say "a\nb".lines.elems;    # 2
+    say "a\n".lines.elems;     # 1
 
 =head2 routine words
 
@@ -322,10 +327,10 @@ C<$input.comb( / \S+ /, $limit )> would.
 
 Examples:
 
-    "a\nb\n".words.perl;       # ("a", "b").list
-    "hello world".words.perl;  # ("hello", "world").list
-    "foo:bar".words.perl;      # ("foo:bar",).list
-    "foo:bar\tbaz".words.perl; # ("foo:bar", "baz").list
+    say "a\nb\n".words.perl;       # ("a", "b").Seq
+    say "hello world".words.perl;  # ("hello", "world").Seq
+    say "foo:bar".words.perl;      # ("foo:bar",).Seq
+    say "foo:bar\tbaz".words.perl; # ("foo:bar", "baz").Seq
 
 =head2 routine flip
 
@@ -339,9 +344,102 @@ Examples:
     "Perl".flip;  # lreP
     "ABBA".flip;  # ABBA
 
+=head2 sub printf
+
+ multi sub printf(Str:D $format, *@args)
+
+This function is mostly identical to the C library printf function.
+
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Format tokens have the following grammar:
+
+ grammar Str::PrintfFormat {
+  regex format_token { '%': <index>? <precision>? <modifier>? <directive> }
+  token index { \d+ '$' }
+  token precision { <flags>? <vector>? <precision_count> }
+  token flags { <[ \x20 + 0 \# \- ]>+ }
+  token precision_count { [ <[1..9]>\d* | '*' ]? [ '.' [ \d* | '*' ] ]? }
+  token vector { '*'? v }
+  token modifier { < ll l h V q L > }
+  token directive { < % c s d u o x e f g X E G b p n i D U O F > }
+ }
+
+Directives guide the use (if any) of the arguments. When a directive
+(other than C<%>) is used, it indicates how the next argument
+passed is to be formatted into the string to be printed.
+
+The directives are:
+
+=begin table
+
+ %   a literal percent sign
+ c   a character with the given codepoint
+ s   a string
+ d   a signed integer, in decimal
+ u   an unsigned integer, in decimal
+ o   an unsigned integer, in octal
+ x   an unsigned integer, in hexadecimal
+ e   a floating-point number, in scientific notation
+ f   a floating-point number, in fixed decimal notation
+ g   a floating-point number, in %e or %f notation
+ X   like x, but using uppercase letters
+ E   like e, but using an uppercase "E"
+ G   like g, but with an uppercase "E" (if applicable)
+ b   an unsigned integer, in binary
+
+=end table
+
+Compatibility:
+
+=begin table
+
+ i   a synonym for %d
+ D   a synonym for %ld
+ U   a synonym for %lu
+ O   a synonym for %lo
+ F   a synonym for %f
+
+=end table
+
+Perl 5 (non-)compatibility:
+
+=begin table
+
+ n   produces a runtime exception
+ p   produces a runtime exception
+
+=end table
+
+Modifiers change the meaning of format directives, but are largely
+no-ops (the semantics are still being determined).
+
+=begin table
+
+ h  interpret integer as native "short" (typically int16)
+ l  interpret integer as native "long" (typically int32 or int64)
+ ll interpret integer as native "long long" (typically int64)
+ L  interpret integer as native "long long" (typically uint64)
+ q  interpret integer as native "quads" (typically int64 or larger)
+
+=end table
+
+Examples:
+
+ printf('%c', 97);                  # a
+ printf("%.2f", 1.969);             # 1.97
+ printf("%+.3f", 3.141592);         # +3.142
+ printf('%2$d %1$d', 12, 34);       # 34 12
+ printf("%x", 255);                 # ff
+
+Special case:  printf("<b>%s</b>\n", "Perl 6")  will not work use either of the following:
+
+ printf Q:b "<b>%s</b>\n",  "Perl 6";
+ printf     "<b>\%s</b>\n", "Perl 6";
+ printf     "<b>%s\</b>\n", "Perl 6";
+
 =head2 sub sprintf
 
- multi sub sprintf ( Str:D $format, *@args) returns Str:D
+ multi sub sprintf( Str:D $format, *@args) returns Str:D
 
 This function is mostly identical to the C library sprintf function.
 
@@ -432,16 +530,16 @@ Special case:  sprintf("<b>%s</b>\n", "Perl 6")  will not work use either of the
 
     multi method starts-with(Str:D: Str(Cool) $needle) returns True:D
 
-Returns True if the invocant is identical to or starts with C<$needle>.
+Returns C<True> if the invocant is identical to or starts with C<$needle>.
 
-    say "Hello, World".starts-with("Hello");    # True
-    say "http://perl6.org/".starts-with('ftp'); # False
+    say "Hello, World".starts-with("Hello");     # True
+    say "https://perl6.org/".starts-with('ftp'); # False
 
 =head2 method ends-with
 
     multi method ends-with(Str:D: Str(Cool) $needle) returns True:D
 
-Returns True if the invocant is identical to or ends with C<$needle>.
+Returns C<True> if the invocant is identical to or ends with C<$needle>.
 
     say "Hello, World".ends-with('Hello');      # False
     say "Hello, World".ends-with('ld');         # True
@@ -450,7 +548,7 @@ Returns True if the invocant is identical to or ends with C<$needle>.
 
     multi method contains(Str:D: Str(Cool) $needle) returns True:D
 
-Returns True if the invocant contains the C<$needle> at any position within
+Returns C<True> if the invocant contains the C<$needle> at any position within
 the string.
 
     say "Hello, World".contains('hello');      # False
@@ -464,7 +562,7 @@ Returns the invocant string where C<$matcher> is replaced by C<$replacement>
 (or the original string, if no match was found).
 
 There is an in-place syntactic variant of C<subst> spelled
-C<s/matcher/replacement>.
+C<s/matcher/replacement/>.
 
 C<$matcher> can be a L<Regex>, or a literal C<Str>. Non-Str matcher arguments
 of type L<Cool> are coerced to C<Str> for literal matching.
@@ -499,6 +597,7 @@ The following adverbs are supported
     :nth(Int)               only substitute the nth's match
     :ss         :samespace  preserves whitespace on substitution
     :ii         :samecase   preserves case on substitution
+    :mm         :samemark   preserves character marks (e.g. 'ü' replaces with 'o' will result in 'ö')
     :x(Int)                 substitute exactly $x matches
 
 =end table
@@ -663,7 +762,7 @@ L<succ>). It fails on underflow
 
 =head2 routine ord
 
-    multi sub ord   (Str:D)  returns Int:D
+    multi sub    ord(Str:D)  returns Int:D
     multi method ord(Str:D:) returns Int:D
 
 Returns the codepoint number of the base characters of the first grapheme
@@ -698,17 +797,17 @@ C<:complement> anything but the matched value or range is replaced with a
 single value. With C<:delete> the matched characters are removed.  Combining
 C<:complement> and C<:delete> will remove anything but the matched values.  The
 adverb C<:squash> will reduce repeated matched characters to a single
-character. 
+character.
 
 Example:
 
     my $str = 'say $x<b> && $y<a>';
     $str.=trans( '<' => '«' );
     $str.=trans( '<' => '«', '>' => '»' );
-    
+
     $str.=trans( [ '<'   , '>'   , '&' ] =>
                  [ '&lt;', '&gt;', '&amp;' ]);
-    
+
     $str.=trans( ['a'..'y'] => ['A'..'z'] );
 
     "abcdefghij".trans(/<[aeiou]> \w/ => ''); # «cdgh»
@@ -795,6 +894,26 @@ Form KD / Compatibility Decomposed).
     multi method ACCEPTS(Str:D: $other)
 
 Returns C<True> if the string is L<the same as|eq> C<$other>.
+
+=head2 sub val
+
+=comment
+    seems like the best place to document this
+
+    multi sub val(Str:D $MAYBEVAL, :$val-or-fail)
+
+Given a C<Str> that may be parseable as a numeric value, it will
+attempt to construct the appropriate L<allomorph|/language/glossary#Allomorph>,
+returning one of L<IntStr|/type/IntStr>, L<NumStr|/type/NumStr>, L<RatStr|/type/RatStr>
+or L<ComplexStr|/type/ComplexStr> or a plain C<Str> if a numeric value cannot
+be parsed.  If the C<:val-or-fail> adverb is provided it will return an
+L<X::Str::Numeric|/type/X::Str::Numeric> rather than the original string if it
+cannot parse the string as a number.
+
+    say val("42").WHAT; # (IntStr)
+    say val("42e0").WHAT; # (NumStr)
+    say val("42.0").WHAT; # (RatStr)
+    say val("42+0i").WHAT; # (ComplexStr)
 
 =end pod
 

@@ -1,9 +1,8 @@
 #!/usr/bin/env perl6
 use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
 use JSON::Fast;
-use Panda::Installer;
 
-my $PROGRAM-NAME="p6doc";
+my $PROGRAM-NAME = "p6doc";
 
 # die with printing a backtrace
 my class X::P6doc is Exception {
@@ -17,32 +16,21 @@ constant DEBUG      = %*ENV<P6DOC_DEBUG>;
 constant INTERACT   = %*ENV<P6DOC_INTERACT>;
 
 sub findbin() returns Str {
-    $*PROGRAM-NAME.subst(rx{<-[/\\]>+$}, '');
+    IO::Path.new($*PROGRAM-NAME).parent ~ '/';
 }
 
 constant INDEX = findbin() ~ 'index.data';
 
-sub tempfile() {
-    my $tempfile = $*TMPDIR.Str;
-    $tempfile ~= '/';
-    $tempfile ~= join '', ('a'..'z', 0..9).roll(5);
-    $tempfile ~= '.tmp';
-    nextsame if $tempfile.IO.e;
-    return $tempfile;
+sub search-paths() returns Seq {
+    ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d
 }
 
-sub search-paths() {
-    # XXX we need a way of getting inline pod from installed modules too
-     ($*REPO.repo-chain()>>.Str X~ </doc/>).grep: *.IO.d
-}
-
-sub module-names(Str $modulename) {
-    [$modulename.split('::').join('/')
-        X~ <.pm .pm6 .pod>].list;
+sub module-names(Str $modulename) returns Seq {
+    $modulename.split('::').join('/') X~ <.pm .pm6 .pod .pod6>;
 }
 
 sub locate-module(Str $modulename) {
-    my @candidates = (search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list);
+    my @candidates = search-paths() X~ </ Type/ Language/> X~ module-names($modulename).list;
     DEBUG and warn :@candidates.perl;
     my $m = @candidates.first: *.IO.f;
 
@@ -57,23 +45,24 @@ sub locate-module(Str $modulename) {
             search-paths.map({"  $_"});
         X::P6doc.new(:$message).throw;
     }
+
     return $m;
 }
 
 sub show-docs(Str $path, :$section, :$no-pager) {
     my $pager;
     $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less') unless $no-pager;
-    if not open($path).lines.grep( /^'=' | '#|' | '#='/ )  {
+    if not open($path).lines.grep( /^'=' | '#|' | '#='/ ) {
         say "No Pod found in $path";
         return;
     }
-    my $doc-command-str = "$*EXECUTABLE-NAME";
+    my $doc-command-str = $*EXECUTABLE-NAME;
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
-        $doc-command-str ~= " -IFakeDir -I$i --doc=SectionFilter"
+        $doc-command-str ~= " -I$i --doc=SectionFilter"
     } else {
-        $doc-command-str ~= " -IFakeDir --doc"
+        $doc-command-str ~= " --doc"
     }
     $doc-command-str ~= " $path ";
     $doc-command-str ~= " | $pager" if $pager;
@@ -82,37 +71,36 @@ sub show-docs(Str $path, :$section, :$no-pager) {
 }
 
 multi sub MAIN() {
-    my $me = $PROGRAM-NAME;
 
     say 'What documentation do you want to read?';
-    say "Examples: $me Str";
-    say "          $me Str.split";
-    say "          $me faq";
+    say "Examples: $PROGRAM-NAME Str";
+    say "          $PROGRAM-NAME Str.split";
+    say "          $PROGRAM-NAME faq";
 
     say "\nYou can list some top level documents:";
-    say "          $me -l";
+    say "          $PROGRAM-NAME -l";
 
     say "\nYou can also look up specific method/routine definitions:";
-    say "          $me -f push";
+    say "          $PROGRAM-NAME -f push";
 
     say "\nYou can bypass the pager and print straight to stdout:";
-    say "          $me -n Str"
+    say "          $PROGRAM-NAME -n Str"
 }
 
 multi sub MAIN($docee, Bool :$n) {
-    return MAIN($docee, :f, :$n) if defined $docee.index('.') ;
+    return MAIN($docee, :f, :$n) if defined $docee.index('.');
     show-docs(locate-module($docee), :no-pager($n));
 }
 
 multi sub MAIN(Bool :$l!) {
-    my @paths = search-paths() X~ <Type/ Language/> ;
+    my @paths = search-paths() X~ <Type/ Language/>;
     my @modules;
     for @paths -> $dir {
         for dir($dir).sort -> $file {
-            @modules.push: $file.basename.Str.subst('.pod','');
+            @modules.push: $file.basename.subst('.pod','') if $file.IO.f;
         }
     }
-    @modules.append: get-panda-modules(); 
+    @modules.append: list-installed().map(*.name).unique;
     .say for @modules.sort;
 }
 
@@ -124,7 +112,7 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
 
             my %data = EVALFILE INDEX;
 
-            my $final-docee = disambiguate-f-search( $docee, %data );
+            my $final-docee = disambiguate-f-search($docee, %data);
             ($package, $method) = $final-docee.split('.');
 
             my $m = locate-module($package);
@@ -145,7 +133,7 @@ multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
     show-docs($file, :no-pager($n));
 }
 
-sub disambiguate-f-search( $docee, %data ) {
+sub disambiguate-f-search($docee, %data) {
     my %found;
 
     for <routine method> -> $pref {
@@ -160,7 +148,7 @@ sub disambiguate-f-search( $docee, %data ) {
     }
 
     my $final-docee;
-    my $total-found = [+] %found.values.map( *.elems );
+    my $total-found = %found.values.map( *.elems ).sum;
     if ! $total-found {
         say "No documentation found for a routine named '$docee'";
         exit 2;
@@ -173,45 +161,46 @@ sub disambiguate-f-search( $docee, %data ) {
         for %found.keys -> $key {
             %options{$key}.push: %found{$key};
         }
+        my @opts = %options.values.map({ @($^a) });
 
         # 's' => Type::Supply.grep, ... | and we specifically want the %found values,
         #                               | not the presentation-versions in %options
         if INTERACT {
-            my $idx = 0;
-            my $total-elems = [+] %found.values.map({ +@^o });
+            my $total-elems = %found.values.map( +* ).sum;
             if +%found.keys < $total-elems {
                 my @prefixes = (1..$total-elems) X~ ") ";
-                say "\t" ~ ( @prefixes Z~ %options.values.map({ @($^a) }) ).join("\n\t") ~ "\n";
+                say "\t" ~ ( @prefixes Z~ @opts ).join("\n\t") ~ "\n";
             } else {
-                say "\t" ~ %options.values.map({ @($^a) }).join("\n\t") ~ "\n";
+                say "\t" ~ @opts.join("\n\t") ~ "\n";
             }
-            $final-docee = prompt-with-options( %options, %found );
+            $final-docee = prompt-with-options(%options, %found);
         } else {
-            say "\t" ~ %options.values.map({ @($^a) }).join("\n\t") ~ "\n";
+            say "\t" ~ @opts.join("\n\t") ~ "\n";
             exit 1;
         }
     }
+
     return $final-docee;
 }
 
-sub prompt-with-options( %options, %found ) {
+sub prompt-with-options(%options, %found) {
     my $final-docee;
 
     my %prefixes = do for %options.kv -> $k,@o { @o.map(*.comb[0].lc) X=> %found{$k} };
 
-    if %prefixes.values.grep( -> @o { +@o > 1 }) {
+    if %prefixes.values.grep( -> @o { +@o > 1 } ) {
         my (%indexes,$base-idx);
         $base-idx = 0;
         for %options.kv -> $k,@o {
-            %indexes.push: @o>>.map({ ++$base-idx}) Z=> @(%found{$k});
+            %indexes.push: @o>>.map({ ++$base-idx }) Z=> @(%found{$k});
         }
         %prefixes = %indexes;
     }
 
-    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.sort.join(', ') }, or !{'/' ~ 'q' if !%prefixes<q>} to quit): ";
+    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.sort.join(', ') }, or !{ '/' ~ 'q' if !%prefixes<q> } to quit): ";
 
-    while prompt( $prompt-text ).words -> $word {
-        if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>)  {
+    while prompt($prompt-text).words -> $word {
+        if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>) {
             exit 1;
         } elsif $word ~~ /:i $<choice> = [ @(%prefixes.keys) ] / {
             $final-docee = %prefixes{ $<choice>.lc };
@@ -221,24 +210,35 @@ sub prompt-with-options( %options, %found ) {
             next;
         }
     }
+
     return $final-docee;
 }
 
 sub locate-curli-module($module) {
-    my $cu = $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
-    return ~  $cu.repo.prefix.child('sources/' ~ $cu.distribution.provides{$module}.values[0]<file>).Str;
+    my $installed := list-installed();
+    my $dist = $installed.first({ $_.name eq $module or $_.hash<provides>{$module}:exists });
+    return unless $dist;
+    my $mangled-basename = $dist.hash<provides>{$module}<pm><file>;
+    return unless $mangled-basename;
+    my $installed-path   = "{$dist.repo-prefix}/sources/{$mangled-basename}";
 }
 
-sub get-panda-modules {
-    my $state = Panda::Installer.new.default-prefix() ~ '/panda/state';
-    my @modules;
-    for $state.IO.lines -> $line {
-        my (Any, $json ) = $line.split(/'installed '|'installed-dep '/);
-        my $state = from-json $json;
-        @modules.append: $state<provides>.keys.list;
-    }
+# see: Zef::Client.list-installed()
+# Eventually replace with CURI.installed()
+# https://github.com/rakudo/rakudo/blob/8d0fa6616bab6436eab870b512056afdf5880e08/src/core/CompUnit/Repository/Installable.pm#L21
+sub list-installed() {
+    my @curs       = $*REPO.repo-chain.grep(*.?prefix.?e);
+    my @repo-dirs  = @curs>>.prefix;
+    my @dist-dirs  = |@repo-dirs.map(*.child('dist')).grep(*.e);
+    my @dist-files = |@dist-dirs.map(*.IO.dir.grep(*.IO.f).Slip);
 
-    return @modules;
+    my $dists := gather for @dist-files -> $file {
+        if try { Distribution.new( |%(from-json($file.IO.slurp)) ) } -> $dist {
+            my $cur = @curs.first: {.prefix eq $file.parent.parent}
+            my $dist-with-prefix = $dist but role :: { has $.repo-prefix = $cur.prefix };
+            take $dist-with-prefix;
+        }
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

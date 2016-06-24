@@ -73,8 +73,8 @@ subtest {
 
 subtest {
     plan 6;
-    eval-dies-ok('use Pod::Conenience; pod-link()', "text argument required");
-    eval-dies-ok('use Pod::Conenience; pod-link("text")', "link argument required");
+    eval-dies-ok('use Pod::Convenience; pod-link()', "text argument required");
+    eval-dies-ok('use Pod::Convenience; pod-link("text")', "link argument required");
 
     my $pod = pod-link("text", "link");
     isa-ok($pod, Pod::FormattingCode);

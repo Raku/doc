@@ -1,0 +1,235 @@
+=begin pod
+
+=TITLE Typesystem
+
+=SUBTITLE Introduction to the type system of Perl 6
+
+=head1 Definition of a Perl 6 Type
+
+TODO
+
+=head1 Type Declarators
+
+TODO
+
+=head2 C<class>
+
+TODO
+
+=head4 trait C<is nodal>
+
+TODO
+
+=head3 trait X<C<handles>|handles trait>
+
+Defined as:
+
+    multi sub trait_mod:<handles>(Attribute:D $target, $thunk)
+
+The trait C<handles> applied to an attribute of a class will delegate all calls
+to the provided method name to the method with the same name of the attribute.
+The object referenced by the attribute must be initialized. A type constraint
+for the object that the call is delegated to can be provided.
+
+    class A      { method m(){ 'A::m has been called.' } }
+    class B is A { method m(){ 'B::m has been called.' } }
+    class C {
+        has A $.delegate handles 'm';
+        method new($delegate){ self.bless(delegate => $delegate) }
+    };
+    say C.new(B.new).m(); # OUTPUT«B::m has been called.␤»
+
+Instead of a method name a list of names, a C<Regex> or a C<Whatever> can be
+provided. In the latter case existing methods, both in the class itself and
+it's inheritance chain, will take precedence. If even local C<FALLBACK>s should
+be searched use a C<HyperWhatever>.
+
+    class A { 
+        method m1(){}
+        method m2(){}
+    }
+    
+    class C {
+        has $.delegate handles <m1 m2> = A.new()
+    }
+    C.new.m2;
+
+    class D {
+        has $.delegate handles /m\d/ = A.new()
+    }
+    D.new.m1;
+
+=head3 trait C<is>
+
+Defined as:
+
+    multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent)
+
+The trait X<C<is>|is (inheritance)> accepts a type object to be
+added as a parent class of a class in it's definition. To allow multiple
+inheritance the trait can be applied more then once. Adding parents to a class
+will import their methods into the target class. If the same method name occurs
+in multiple parents, the first added parent will win.
+
+If no C<is> trait is provided the default of L<C<Any>|/type/Any)> will be used
+as a parent class. This forces all Perl 6 objects to have the same set of basic
+methods to provide an interface for introspection and coercion to basic types.
+
+    class A { 
+        multi method from-a(){ 'A::from-a' }
+    }
+    dd A.new.^parents(:all);
+    # OUTPUT«(Any, Mu)␤»
+
+    class B {
+        method from-b(){ 'B::from-b ' }
+        multi method from-a(){ 'B::from-A' }
+    }
+
+    class C is A is B {}
+    dd C.new.from-a();
+    # OUTPUT«"A::from-a"␤»
+
+=head3 trait C<is required>
+
+TODO
+
+=head3 trait C<does>
+
+TODO
+
+=head3 trait C<hides>
+
+TODO
+
+=head3 trait C<trusts>
+
+TODO
+
+=head2 C<role>
+
+TODO
+
+=head2 C<enum>
+
+Enumerations provide constant key-value-pairs with an associated type. Any key
+is of that type and injected as a symbol into the current scope. If the symbol
+is used, it is treated as a constant expression and the symbol is replaced with
+the value of the enum-pair. Any Enumeration inherits methods from the role
+C<Enumeration>. Complex expressions for generating key-value-pairs are
+not supported.
+
+Stringification of the symbol will provide the key of the enum-pair.
+
+    enum Names ( name1 => 1, name2 => 2 );
+    say name1, ' ', name2; # OUTPUT«name1 name2»
+    say name1.value, ' ', name2.value; # OUTPUT«1 2␤»
+
+Comparing symbols will use type information and the value of the enum-pair. As
+value types C<Numerical> an C<Str> are supported.
+
+    sub same(Names $a, Names $b){
+       $a eqv $b
+    }
+
+    say same(name1, name1); # OUTPUT«True␤»
+    say same(name1, name2); # OUTPUT«False␤»
+    my $a = name1;
+    say $a ~~ Names; # OUTPUT«True␤»
+    say $a.WHAT; # OUTPUT«Names␤»
+
+All keys have to be of the same type.
+
+    enum Mass ( mg => 1/1000, g => 1/1, kg => 1000/1 );
+    dd Mass.enums; # OUTPUT«{:g(1.0), :kg(1000.0), :mg(0.001)}␤»
+
+If no value is given C<Int> will be assumed as the values type and incremented
+by one per key starting at zero.
+
+    enum Numbers <one two three four>;
+    dd Numbers.enums; # OUTPUT«{:four(3), :one(0), :three(2), :two(1)}␤»
+
+A different starting value can be provided.
+
+    enum Numbers «:one(1) two three four»;
+    dd Numbers.enums; # OUTPUT«{:four(4), :one(1), :three(3), :two(2)}␤»
+
+
+Enums can be anonymous. They will be no type created, resulting in a lack of
+introspectiveness. The returned object is of type C<Map>.
+
+    my $e = enum <one two three>;
+    say two; # OUTPUT«two()(Map)␤»
+    say one.WHAT; # OUTPUT«()␤»
+    say $e.WHAT; # OUTPUT«(Map)␤»
+
+
+=head3 Methods
+
+=head4 method enums
+
+Defined as:
+
+    method enums()
+
+Returns the list of enum-pairs. Works both on the enum type and any key.
+
+    enum Mass ( mg => 1/1000, g => 1/1, kg => 1000/1 );
+    say Mass.enums, g.enums; # OUTPUT«{g => 1, kg => 1000, mg => 0.001}{g => 1, kg => 1000, mg => 0.001}␤»
+
+=head4 method key
+
+Returns the key of an enum-pair.
+
+   say g.key; # OUTPUT«g␤»
+
+=head4 method value
+
+Returns the value of an enum-pair.
+
+    say g.value; # OUTPUT«1␤»
+
+=head4 method pair
+
+Defined as:
+
+    method pair(::?CLASS:D:)
+
+Returns a C<Pair> of the enum-pair.
+
+    say g.pair; # OUTPUT«g => 1␤»
+
+=head4 method kv
+
+Defined as:
+
+    multi method kv(::?CLASS:D:)
+
+Returns a list with key and value of the enum-pair.
+
+    say g.kv; # OUTPUT«(g 1)␤»
+
+
+=head2 C<module>
+
+TODO
+
+=head2 C<package>
+
+TODO
+
+=head2 C<grammar>
+
+TODO
+
+=head2 C<subset>
+
+A X<C<subset>|subset> declares a new type that will re-dispatch to its base
+type. If a L<C<where>|/type/Signature#where> clause is supplied any assignment
+will be checked against the given code object.
+
+    subset Positive of Int where * > -1;
+    my Positive $i = 1;
+    $i = -42; # OUTPUT«Type check failed in assignment to $i; expected Positive but got Int (-42)␤ …»
+
+=end pod

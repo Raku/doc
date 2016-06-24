@@ -17,7 +17,7 @@ sub url-munge($_) is export {
 #| Return the footer HTML for each page
 sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';
-    $footer.subst-mutate(/DATETIME/, ~DateTime.now);
+    $footer.subst-mutate(/DATETIME/, ~DateTime.now.utc.truncated-to('seconds'));
     my $pod-url;
     my $gh-link = q[<a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>];
     if $pod-path eq "unknown" {
@@ -27,6 +27,8 @@ sub footer-html($pod-path) is export {
         $pod-url = "<a href='https://github.com/perl6/doc/raw/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
+    state $source-commit = qx/git rev-parse --short HEAD/.chomp;
+    $footer.subst-mutate(:g, /SOURCECOMMIT/, $source-commit);
 
     return $footer;
 }

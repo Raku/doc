@@ -17,6 +17,8 @@ list>, which specifies which, if any, arguments the signature expects. It can
 specify (or leave open) both the number and types of arguments, and also the
 return value.
 
+Introspection on subroutines is provided via L<C<Routine>|/type/Routine>.
+
 =head1 Defining/Creating/Using Functions
 
 =head2 X<Subroutines|declarator,sub>
@@ -41,26 +43,24 @@ C<sub foo {...}> is the same as C<my sub foo {...}> and is only
 defined within the current scope.
 
 =begin code :allow<L>
-sub escape ($str) {
-    L<$_> = $str;
+sub escape($str) {
     # Puts a slash before non-alphanumeric characters
-    L<s>:g[<-alpha-digit>] = "\\$/";
+    S:g[<-alpha -digit>] = "\\$/" given $str
 }
 
-say escape "foo#bar?" # foo\#bar\?
+say escape 'foo#bar?'; # foo\#bar\?
 
 {
-    sub escape ($str) {
-        $_ = $str;
+    sub escape($str) {
         # Writes each non-alphanumeric character in its hexadecimal escape
-        s:g|<-alpha-digit>| = "\\x[{ $/.base(16) }]";
+        S:g[<-alpha -digit>] = "\\x[{ $/.ord.base(16) }]" given $str
     }
 
-    say escape "foo#bar?" # foo\x[23]bar\x[3F]
+    say escape 'foo#bar?' # foo\x[23]bar\x[3F]
 }
 
 # Back to original escape function
-say escape "foo#bar?" # foo\#bar\?
+say escape 'foo#bar?'; # foo\#bar\?
 =end code
 
 Subroutines don't have to be named; in this case they're called anonymous.
@@ -68,7 +68,7 @@ Subroutines don't have to be named; in this case they're called anonymous.
     say sub ($a, $b) { $a ** 2 + $b ** 2 }(3, 4) # 25
 
 But in this case, it's often desirable to use the more succinct L<block|Block>
-syntax.
+syntax. Subroutines and blocks can be called in place, as in the example above.
 
 =head2 X«Blocks and Lambdas|syntax,->»
 
@@ -105,7 +105,7 @@ L<documentation on the C<Signature> class|Signature>.
 
 =head2 Arguments
 
-Arguments are supplied as a comma separated list. To disambugiate nested calls
+Arguments are supplied as a comma separated list. To disambiguate nested calls
 parentheses or adverbial form can be used.
 
     sub f(&c){ c() * 2 }; # call the function reference c with empty parameter list
@@ -167,16 +167,16 @@ can use it on methods as well. The candidates are all the multi methods of the
 object:
 
     class Congrats {
-        multi method congratulate($reason,$name) {
+        multi method congratulate($reason, $name) {
             say "Hooray for your $reason, $name";
         }
     }
 
     role BirthdayCongrats {
-        multi method congratulate('birthday',$name) {
+        multi method congratulate('birthday', $name) {
             say "Happy birthday, $name";
         }
-        multi method congratulate('birthday',$name,$age) {
+        multi method congratulate('birthday', $name, $age) {
             say "Happy {$age}th birthday, $name";
         }
     }
@@ -230,8 +230,8 @@ C<{*}> always dispatches to candidates with the parameters it's called
 with. Parameter defaults and type coercions will work but are not be passed on.
 
     proto mistake-proto(Str() $str, Int $number = 42) {*}
-    multi mistake-proto($str,$number) { say $str.WHAT }
-    mistake-proto(7,42);   #-> (Int) -- coercions not passed on
+    multi mistake-proto($str, $number) { say $str.WHAT }
+    mistake-proto(7, 42);  #-> (Int) -- coercions not passed on
     mistake-proto('test'); #!> fails -- defaults not passed on
 
 =comment only
@@ -247,53 +247,53 @@ many modules, will follow.  These produce a consistent look and feel.
 Perhaps the most important of these is the way slurpy list arguments are
 handled.  Most of the time, functions will not automatically flatten
 slurpy lists.  The rare exceptions are those functions that don't have a
-reasonable behavior on lists of lists, for example, L<chrs|routine/chrs>,
-or where there is a conflict with an established idiom, like L<pop|routine/pop>
-being the inverse of C<push|routine/push>.
+reasonable behavior on lists of lists, for example, L<chrs|/routine/chrs>,
+or where there is a conflict with an established idiom, like L<pop|/routine/pop>
+being the inverse of L<push|/routine/push>.
 
 If you wish to match this look and feel, any Iterable argument must
 be broken out element-by-element using a **@ slurpy, with two nuances:
 
-=item An Iterable inside a L<Scalar container|containers#Scalar_containers|> does not count.
-=item Lists created with a L<C<,>|routine/,> at the top level only count as one Iterable.
+=item An Iterable inside a L<Scalar container|/language/containers#Scalar_containers> does not count.
+=item Lists created with a L<C<,>|/routine/,> at the top level only count as one Iterable.
 
 This can be achieved by using a slurpy with a C<+> or C<+@> instead of C<**>:
 
-    sub grab (+@a) { "grab $_".say for @a }
+    sub grab(+@a) { "grab $_".say for @a }
 
 ...which is shorthand for something very close to:
 
-    multi sub grab (**@a) { "grab $_".say for @a }
-    multi sub grab (\a) {
+    multi sub grab(**@a) { "grab $_".say for @a }
+    multi sub grab(\a) {
         a ~~ Iterable and a.VAR !~~ Scalar ?? nextwith(|a) !! nextwith(a,)
     }
 
 This results in the following behavior, which is known as the "single
 argument rule" and is important to understand when invoking slurpy functions:
 
-    grab(1,2);     # grab 1 grab 2
-    grab((1,2));   # grab 1 grab 2
-    grab($(1,2));  # grab 1 2
-    grab((1,2),3); # grab 1 2 grab 3
+    grab(1, 2);      # grab 1 grab 2
+    grab((1, 2));    # grab 1 grab 2
+    grab($(1, 2));   # grab 1 2
+    grab((1, 2), 3); # grab 1 2 grab 3
 
 This also makes user-requested flattening feel consistent whether there is
 one sublist, or many:
 
-    grab(flat (1,2),(3,4));   # grab 1 grab 2 grab 3 grab 4
-    grab(flat $(1,2),$(3,4)); # grab 1 2 grab 3 4
-    grab(flat (1,2));         # grab 1 grab 2
-    grab(flat $(1,2));        # grab 1 2
+    grab(flat (1, 2), (3, 4));   # grab 1 grab 2 grab 3 grab 4
+    grab(flat $(1, 2), $(3, 4)); # grab 1 2 grab 3 4
+    grab(flat (1, 2));           # grab 1 grab 2
+    grab(flat $(1, 2));          # grab 1 2
 
 It is worth noting that mixing binding and sigilless variables
 in these cases requires a bit of finesse, because there is no Scalar
 intermediary used during binding.
 
-    my $a = (1,2);  # Normal assignment, equivalent to $(1,2)
-    grab ($a);      # grab 1 2
-    my $b := (1,2); # Binding, $b links directly to a bare (1,2)
-    grab ($b);      # grab 1 grab 2
-    my \c = (1,2);  # Sigilless variables always bind, even with '='
-    grab (c);       # grab 1 grab 2
+    my $a = (1, 2);  # Normal assignment, equivalent to $(1, 2)
+    grab($a);       # grab 1 2
+    my $b := (1, 2); # Binding, $b links directly to a bare (1, 2)
+    grab($b);       # grab 1 grab 2
+    my \c = (1, 2);  # Sigilless variables always bind, even with '='
+    grab(c);        # grab 1 grab 2
 
 =head1 Functions are First-Class Objects
 
@@ -313,7 +313,7 @@ Or you can reference an existing named function by using the C<&> in front of
 it.
 
 =begin code
-sub square ($x) { $x * $x };
+sub square($x) { $x * $x };
 
 # get hold of a reference to the function:
 my $func = &square
@@ -323,7 +323,7 @@ This is very useful for I<higher order functions>, that is, functions that
 take other functions as input. A simple one is L<map|/type/List#routine_map>,
 which applies a function to each input element:
 
-    sub square ($x) { $x * $x };
+    sub square($x) { $x * $x };
     my @squared = map &square,  1..5;
     say join ', ', @squared;        # 1, 4, 9, 16, 25
 
@@ -368,7 +368,7 @@ L<Submethod|/type/Submethod>.
 
 They carry additional functionality in addition to what L<Block|/type/Block>
 supplies: they can come as L<multis|#Multi-dispatch>,
-you can L<wrap|/type/Routine#method wrap> them, and exit early with C<return>:
+you can L<wrap|/type/Routine#method_wrap> them, and exit early with C<return>:
 
 =begin code :allow<B>
 my $keywords = set <if for unless while>;
@@ -387,6 +387,32 @@ say has-keyword 'but', 'here', 'for';       # True
 Here C<return> does not just leave the block inside which it was called, but
 the whole routine. In general, blocks are transparent to C<return>, they
 attach to the outer routine.
+
+Routines can be inlined and as such provide an obstacle for wrapping. Use the
+pragma C<use soft;> to prevent inlining to allow wrapping at runtime.
+
+    sub testee(Int $i, Str $s){
+        rand.Rat * $i ~ $s;
+    }
+    
+    sub wrap-to-debug(&c){
+        say "wrapping {&c.name} with arguments {&c.signature.perl}";
+        &c.wrap: sub (|args){
+            note "calling {&c.name} with {args.gist}";
+            my \ret-val := callwith(|args);
+            note "returned from {&c.name} with return value {ret-val.perl}";
+            ret-val
+        }
+    }
+    
+    my $testee-handler = wrap-to-debug(&testee);
+    # OUTPUT«wrapping testee with arguments :(Int $i, Str $s)»
+    
+    say testee(10, "ten");
+    # OUTPUT«calling testee with \(10, "ten")␤returned from testee with return value "6.151190ten"␤6.151190ten»
+    &testee.unwrap($testee-handler);
+    say testee(10, "ten");
+    # OUTPUT«6.151190ten␤»
 
 
 =comment Important ones: candidates, wrap, unwrap, assuming, arity, count
@@ -407,7 +433,7 @@ makes it available.
 =begin code
 # adding a multi candidate to an existing operator:
 multi infix:<+>(Int $x, "same") { 2 * $x };
-say 21 + "same",            # 42
+say 21 + "same";            # 42
 
 # defining a new operator
 sub postfix:<!>(Int $x where { $x >= 0 }) { [*] 1..$x };
@@ -460,7 +486,7 @@ sub infix:<!!>($a, $b) is tighter(&infix:<+>) {
     2 * ($a + $b)
 }
 
-say 1 + 2 * 3 !! 4;     # 29
+say 1 + 2 * 3 !! 4;     # 21
 =end code
 
 Here the C<1 + 2 * 3 !! 4> is parsed as C<1 + ((2 * 3) !! 4)>, because the
@@ -529,7 +555,7 @@ say 1 § 2 § 3;      # (1|2|3)
 
 =head1 Traits
 
-I<Traits> are subroutines are run at compile time to modify the behavior of a
+I<Traits> are subroutines that are run at compile time to modify the behavior of a
 type, variable, routine, attribute, or other language object.
 
 Examples of traits are:
@@ -644,8 +670,8 @@ a 1;        # Int 1\n Any 1
 =end code
 
 As mentioned earlier, multi subs are not the only situation in which
-C<callwith>, C<callsame>, C<nextwith> and C<nextsame> can be helpful.
-One is is for dispatching to wrapped routines:
+X<C<callwith>|callwith>, X<C<callsame>|callsame>, X<C<nextwith>|nextwith> and X<C<nextsame>|nextsame> can be helpful.
+One is for dispatching to wrapped routines:
 
 =begin code
 # enable wrapping:
@@ -724,12 +750,17 @@ currently (2015.02) only implements them for subroutine parameters.
 
 =head1 C<sub MAIN>
 
-The sub with the special name C<MAIN> is executed after all relevant phaser
-and it's signature is the means by which command line arguments can be parsed.
+X<|MAIN>
+
+The sub with the special name C<MAIN> is executed after all relevant phasers,
+and its signature is the means by which command line arguments can be parsed.
 Multi methods are supported and a usage method is automatically generated and
 displayed if no command line arguments are provided.
 
-    sub MAIN ( Int :$length = 24, :file($data) = 'file.dat', Bool :$verbose ) {
+    sub MAIN( Int :$length = 24,
+               :file($data) where { .IO.f // die "file not found in $*CWD" } = 'file.dat',
+               Bool :$verbose )
+    {
         say $length if $length.defined;
         say $data   if $data.defined;
         say 'Verbosity ', ($verbose ?? 'on' !! 'off');

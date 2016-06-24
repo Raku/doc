@@ -32,10 +32,10 @@ A C<live> C<Supply> is obtained from the L<Supplier|/type/Supplier>
 factory method C<Supply>.  New values are emitted by calling C<emit> on
 the C<Supplier> object.
 
-	my $supplier = Supplier.new;
-	my $supply = $supplier.Supply;
-	$supply.tap(-> $v { say "$v" });
-	$supplier.emit(42); # Will cause the tap to output "42"
+    my $supplier = Supplier.new;
+    my $supply = $supplier.Supply;
+    $supply.tap(-> $v { say "$v" });
+    $supplier.emit(42); # Will cause the tap to output "42"
 
 The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
@@ -103,21 +103,22 @@ down with error) when the supply is quit.
 
     method Promise(Supply:D:) returns Promise:D
 
-Returns a L<Promise|/type/Promise> object for the next value. That means the
-promise is kept when there is a next value, and broken when the supply is done
-or quit before a value arrived.
+Returns a L<Promise|/type/Promise> that will be kept when the C<Supply> is
+C<done>. If the C<Supply> also emits any values, then the C<Promise> will be
+kept with the final value. Otherwise, it will be kept with C<Nil>. If the
+C<Supply> ends with a C<quit> instead of a C<done>, then the C<Promise> will
+be broken with that exception.
 
-    my $s = Supply.new;
+    my $supplier = Supplier.new;
+    my $s = $supplier.Supply;
     my $p = $s.Promise;
     $p.then(-> $v { say "got $v.result()" });
-    $s.emit('cha');         # got cha
+    $supplier.emit('cha');         # not output yet
+    $supplier.done();              # got cha
 
-=head2 method close
-
-    method close(Supply:D: Tap:D $t)
-
-Closes the given tap, this is, calls its C<close> callback (if any), and
-prevents it from getting any more values flowing through the supply.
+The C<Promise> method is most useful when dealing with supplies that will tend
+to produce just one value, when only the final value is of interest, or when
+only completion (successful or not) is relevant.
 
 =head2 method live
 
@@ -127,7 +128,7 @@ Returns C<True> if the supply is "live", that is, values are emitted to taps
 as soon as they arrive. Always returns C<True> in the default C<Supply> (but
 for example on the supply returned from C<Supply.from-list> it's C<False>).
 
-    say Supply.new.live;    # True
+    say Supplier.new.Supply.live;    # True
 
 =head2 method schedule-on
 
@@ -147,18 +148,16 @@ the GUI thread.
 Waits until the supply is done (in which case it returns C<True>) or C<quit>
 (in which case it will throw the exception that was passed to C<quit>).
 
-    my $s = Supply.new;
-    $s.tap(&say);
-    my $p = Promise.allof((^10).pick(*).map: -> $v {
-        start {
-            $s.emit($v)
-        }
-    });
-    $p.then({ $s.done });
-
-    $s.wait;
-    say "Done";
-    await $p;
+   my $s = Supplier.new;
+   start {
+     sleep 1;
+     say "One second: running.";
+     sleep 1;
+     $s.emit(42);
+     $s.done;
+   }
+   $s.Supply.wait;
+   say "Two seconds: done";
 
 =head2 method list
 
@@ -188,7 +187,7 @@ values seen are emitted in reverse order.
 
 Waits until the given supply is done, then creates a supply to which all
 values seen are emitted in sorted order.  Optionally accepts a comparator
-C<Block|/type/Block>.
+L<Block|/type/Block>.
 
 =head1 Methods that return another Supply
 
@@ -200,7 +199,6 @@ Creates an on-demand supply from the values passed to this method.
 
     my $s = Supply.from-list(1, 2, 3);
     $s.tap(&say);           # 1\n2\n3\n
-    $s.done;
 
 =head2 method share
 
@@ -247,10 +245,11 @@ the interval tock, and is incremented by one for each value emitted.
 Creates a new supply that only emits those values from the original supply
 that smart-match against C<$test>.
 
-    my $all  = Supply.new;
-    my $ints = $all.grep(Int);
+    my $supplier = Supplier.new;
+    my $all      = $supplier.Supply;
+    my $ints     = $all.grep(Int);
     $ints.tap(&say);
-    $all.emit($_) for 1, 'a string', 3.14159;   # prints only 1
+    $supplier.emit($_) for 1, 'a string', 3.14159;   # prints only 1
 
 =head2 method map
 
@@ -259,10 +258,11 @@ that smart-match against C<$test>.
 Returns a new supply that maps each value of the given supply through
 C<&mapper> and emits it to the new supply.
 
-    my $all    = Supply.new;
-    my $double = $all.map(-> $value { $value * 2 });
+    my $supplier = Supplier.new;
+    my $all      = $supplier.Supply;
+    my $double   = $all.map(-> $value { $value * 2 });
     $double.tap(&say);
-    $all.emit(4);           # 8
+    $supplier.emit(4);           # 8
 
 =head2 method batch
 
@@ -336,7 +336,7 @@ the C<Promise>s that were obtained from C<start>ing the Callable.
 If the second positional parameter is a numeric value, it is interpreted as
 the time-unit (in seconds).  If you specify B<.1> as the value, then it makes
 sure you don't exceed the limit for every tenth of a second.
-    
+
 If the limit is exceeded, then incoming messages are buffered until there
 is room to pass on / execute the Callable again.
 
@@ -350,7 +350,7 @@ for the types of messages that you can send to control the throttle.
 
 The :status named parameter optionally specifies a Supply that will receive
 any status messages.  If specified, it will at least send one status message
-after the original Supply is exhausted.  See L<status message> below.
+after the original Supply is exhausted.  See L<status message|#status_message> below.
 
 The :bleed named parameter optionally specifies a Supply that will receive
 any values that were either explicitly bled (with the B<bleed> control
@@ -429,7 +429,7 @@ Have a simple piece of code announce when it starts running asynchronously,
 wait a random amount of time, then announce when it is done.  Do this 6 times,
 but don't let more than 3 of them run simultaneously.
 
-  my $s = Supply.from-list(^6);  # set up supply 
+  my $s = Supply.from-list(^6);  # set up supply
   my $t = $s.throttle: 3,        # only allow 3 at a time
   {                              # code block to run
       say "running $_";          # announce we've started
@@ -573,7 +573,7 @@ supplies are done.  Can also be called as a class method.
     method zip-latest(Supply @*supplies, :&with = &[,], :$initial) returns Supply:D
 
 Creates a supply that emits combined values as soon as there is a new value
-seen on B<any> of the supplies.  By default, C<Lists|/type/List> are
+seen on B<any> of the supplies.  By default, L<Lists|/type/List> are
 created, but this can be changed by specifying your own combiner with the
 :with parameter.  The optional :initial parameter can be used to indicate
 the initial state of the combined values.  By default, all supplies have to

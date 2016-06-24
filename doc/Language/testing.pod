@@ -4,12 +4,13 @@
 
 =SUBTITLE Writing and running tests in Perl 6
 
+
 Testing code is an integral part of software development.  For instance, how
 can one be sure the code works if there isn't some way to verify it behaves
 as desired?  This is the role of tests: to provide automated, repeatable
 verifications of code behaviour.
 
-In Perl 6, the C<Test> module provides a testing framework similar to the
+In Perl 6, the L<Test|https://github.com/rakudo/rakudo/blob/nom/lib/Test.pm6> module provides a testing framework similar to the
 traditional Perl 5 L<Test::More|http://perldoc.perl.org/Test/More.html>
 module.  Thus, anyone familiar with C<Test::More> (and friends) should be
 comfortable with Perl 6's C<Test> module.  The C<Test> module is the testing
@@ -26,7 +27,7 @@ project's base directory.
 A typical test file looks something like this:
 
     use v6;
-    use Test;
+    use Test;      # a Standard module included with Rakudo
     use lib 'lib';
 
     plan $num-tests;
@@ -93,17 +94,17 @@ accept an optional C<$description> of the test.
     nok $query.error,      'Query completed without error';
 
 In principle you could use C<ok> for every kind of comparison test, by
-including the comparison in the exression passed to C<$value>:
+including the comparison in the expression passed to C<$value>:
 
     ok factorial(6) == 720, 'Factorial - small integer';
 
 However, where possible it is better to use one of the specialized comparison
-test functions below, because they can print more helpful diagnostics ouput in
+test functions below, because they can print more helpful diagnostics output in
 case the comparison fails.
 
 =head2 By string comparison
 
-=item X<is($value, $expected, $description?)|is>
+=item X<is($value, $expected, $description?)|is (testing)>
 
 Marks a test as passed if C<$value> and C<$expected> compare positively with
 the L<eq operator|/routine/eq>. The function accepts an optional
@@ -135,11 +136,76 @@ of the test.
 =item X<is-approx($value, $expected, $description?)|is-approx>
 
 Marks a test as passed if the C<$value> and C<$expected> numerical values
-are within C<1e-5> of each other.  The function accepts an optional
-C<$description> of the test.
+are approximately equal to each other. The subroutine can be called in numerous
+ways that let you test using relative tolerance (C<$rel-tol>) or
+absolute tolerance (C<$abs-tol>) of different values.
 
-    my $eulers-constant-approx = 2.71828;
-    is-approx $eulers-constant-approx, e, "approximate Euler's constant";
+If no tolerance is set, it will default to an absolute tolerance of C<1e-5>.
+
+    my Numeric ($value, $expected, $abs-tol, $rel-tol) = ...
+
+    is-approx $value, $expected;
+    is-approx $value, $expected, 'test description';
+
+    is-approx $value, $expected, $abs-tol;
+    is-approx $value, $expected, $abs-tol, 'test description';
+
+    is-approx $value, $expected, :$rel-tol;
+    is-approx $value, $expected, :$rel-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol;
+    is-approx $value, $expected, :$abs-tol, 'test description';
+
+    is-approx $value, $expected, :$abs-tol, :$rel-tol;
+    is-approx $value, $expected, :$abs-tol, :$rel-tol, 'test description';
+
+=head3 Absolute Tolerance
+
+When an absolute tolerance is set, it's used as the actual maximum value by
+which the C<$value> and C<$expected> can differ. For example:
+
+    is-approx 3, 4, 2; # success
+    is-approx 3, 6, 2; # fail
+
+    is-approx 300, 302, 2; # success
+    is-approx 300, 400, 2; # fail
+    is-approx 300, 600, 2; # fail
+
+Regardless of values given, the difference between them cannot be more
+than C<2>.
+
+=head3 Relative Tolerance
+
+When a relative tolerance is set, the test checks the relative difference between
+values. Given the same tolerance, the larger the numbers given, the larger the
+value they can differ by can be.
+
+For example:
+
+    is-approx 10, 10.5, :rel-tol<0.1>; # success
+    is-approx 10, 11.5, :rel-tol<0.1>; # fail
+
+    is-approx 100, 105, :rel-tol<0.1>; # success
+    is-approx 100, 115, :rel-tol<0.1>; # fail
+
+Both versions use C<0.1> for relative tolerance, yet the first can differ
+by about C<1> while the second can differ by about C<10>. The function used
+to calculate the difference is:
+
+=begin code
+              |value - expected|
+⁣rel-diff = ────────────────────────
+           max(|value|, |expected|)
+=end code
+
+and the test will fail if C<rel-diff> is higher than C<$rel-tol>.
+
+=head3 Both Absolute and Relative Tolerance Specified
+
+    is-approx $value, $expected, :rel-tol<.5>, :abs-tol<10>;
+
+When both absolute and relative tolerances are specified, each will be
+tested independently, and the C<is-approx> test will succeed only if both pass.
 
 =head2 By structural comparison
 
@@ -176,12 +242,23 @@ not sorted, and converting a L<Hash|/type/Hash> to a string loses information.
 
 =item X<cmp-ok($value, $comparison, $expected, $description?)|cmp-ok>
 
-Compares C<$value> and C<$expected> with the given C<$comparison> operator and
-passes the test if the comparison yields a C<True> value.  For ease of use,
-operators may be passed as strings, such as C<'=='> or C<'~~'>.  The function
-accepts an optional C<$description> of the test.
+Compares C<$value> and C<$expected> with the given C<$comparison> comparator and
+passes the test if the comparison yields a C<True> value. The C<$description>
+of the test is optional.
+
+The C<$comparison> comparator can be either a L<Callable> or 
+a L<Str> containing an infix operator, such as C<'=='>, a C<'~~'>, or a
+user-defined infix.
 
     cmp-ok 'my spelling is apperling', '~~', /perl/, "bad speller";
+
+A L<Callable> C<$comparison> lets you use custom comparisons:
+
+    sub my-comp { $^a / $^b  < rand };
+    cmp-ok 1, &my-comp, 2, 'the dice giveth and the dice taketh away'
+
+    cmp-ok 2, -> $a, $b { $a.is-prime and $b.is-prime and $a < $b }, 7,
+        'we got primes, one larger than the other!';
 
 =head2 By object type
 
@@ -197,6 +274,50 @@ string.  The function accepts an optional C<$description> of the test.
 
     isa-ok $womble, Womble, "Great Uncle Bulgaria is a womble";
     isa-ok $womble, 'Womble';     # equivalent
+
+=head2 By method name
+
+=item X<can-ok($variable, $method-name, $description?)|can-ok>
+
+Marks a test as passed if the given C<$variable> can run the given
+C<$method-name>.  The function accepts an optional C<$description>.  For
+instance:
+
+    my $womble = Womble.new;
+
+    # with automatically generated test description
+    can-ok $womble, 'collect-rubbish';
+    #  => An object of type 'Womble' can do the method 'collect-rubbish'
+
+    # with human-generated test description
+    can-ok $womble, 'collect-rubbish', "Wombles can collect rubbish";
+    #  => Wombles can collect rubbish
+
+=head2 By role
+
+=item X<does-ok($variable, $role, $description?)|does-ok>
+
+Marks a test as passed if the given C<$variable> can do the given C<$role>.
+The function accepts an optional C<$description> of the test.
+
+    # create a Womble who can invent
+    role Invent {
+        method brainstorm { say "Aha!" }
+    }
+    class Womble {}
+    class Tobermory is Womble does Invent {}
+
+    # ... and later in the tests
+    use Test;
+
+    my $tobermory = Tobermory.new;
+
+    # with automatically generated test description
+    does-ok $tobermory, Invent;
+    #  => The object does role Type
+
+    does-ok $tobermory, Invent, "Tobermory can invent";
+    #  => Tobermory can invent
 
 =head2 By regex
 
@@ -252,7 +373,7 @@ sub frodo(Bool :$destroys-ring) {
     die "Oops, that wasn't supposed to happen" unless $destroys-ring;
 }
 
-lives-ok { frodo(destroys-ring => True) }, "Frodo survivies";
+lives-ok { frodo(destroys-ring => True) }, "Frodo survives";
 =end code
 
 =item X<eval-dies-ok($string, $description?)|eval-dies-ok>
@@ -281,7 +402,7 @@ eval-lives-ok q[my $daenerys-burns = False;
     "Dany is blood of the dragon";
 =end code
 
-=item X<throws-like($code, $expected-exception, $description?)|throws-like>
+=item X<throws-like($code, $expected-exception, $description?, *%matcher)|throws-like>
 
 Marks a test as passed if the given C<$code> throws the specific exception
 C<$expected-exception>. The code C<$code> may be specified as something
@@ -302,9 +423,9 @@ throws-like { frodo }, Exception, message => /dies/;
 
 The function accepts an optional C<$description> of the test.
 
-Please note that you can only use the C<EVAL> form if you are not referencing
-any symbols in the surrounding scope.  If you are, you should encapsulate
-your string with a block and an EVAL.  For instance:
+Please note that you can only use the string form (for C<EVAL>) if you are not referencing
+any symbols in the surrounding scope. If you are, you should encapsulate
+your string with a block and an EVAL instead. For instance:
 
     throws-like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
 
@@ -352,8 +473,17 @@ only one test will be marked TODO.
     sub my-custom-pi { 3 };
 
     todo 'not yet precise enough';         # Mark the test as TODO.
-    is my-custom-pi(), pi, 'my-custom-pi'; # Tun the test, but don't report
+    is my-custom-pi(), pi, 'my-custom-pi'; # Run the test, but don't report
                                            # failure in test harness.
+
+The result from the test code above will be something like:
+
+    not ok 1 - my-custom-pi# TODO not yet precise enough
+
+    # Failed test 'my-custom-pi'
+    # at test-todo.t line 7
+    # expected: '3.14159265358979'
+    #      got: '3'
 
 =item X<skip($reason, $count = 1)|skip>
 
@@ -370,6 +500,9 @@ else {
     skip "Can't use forward slashes on Windows", 2;
 }
 =end code
+
+Note that if you mark a test as skipped, you must also prevent that
+test from running.
 
 =item X<skip-rest($reason?)|skip-rest>
 
@@ -391,7 +524,10 @@ ok womble();
 Note that C<skip-rest> requires a C<plan> to be set, otherwise the
 C<skip-rest> call will throw an error. If no plan was set, you can use
 C<done> to indicate the end of the test run (though of course the test
-summary will not count skipped tests).
+summary will not count skipped tests).  Note also the C<exit> is
+required in the example to prevent the skipped tests from running.
+Alternatively, you could enclose the remaining tests in an C<else>
+branch.
 
 =head1 Manual control
 
@@ -408,9 +544,9 @@ B<not> passed.  Both functions accept an optional test C<$description>.
 
     flunk "But this one hasn't passed";
 
-As the Perl 5 documentation for C<Test::More> notes, such constructs are
-used when one has a complicated test condition.  As such, they should be
-used very, very sparingly.
+Since these subroutines do not provide indication of what value was received
+and what was expected, they should be used sparingly, such as when evaluating
+a complex test condition.
 
 =item X<diag($message)|diag>
 

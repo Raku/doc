@@ -99,7 +99,7 @@ expression.  So:
 the expression it is contained in is evaluated:
 
     # This says "(..1 ..2 ..3)" not "(..1 ...2 ....3)"
-    my $f = "."; say do { $f ~= "." } X~ 1,2,3;
+    my $f = "."; say do { $f ~= "." } X~ 1, 2, 3;
 
 In other words, it follows the same reification rules as everything else.
 
@@ -317,7 +317,8 @@ as many elements from the list as needed before running the block.
 
 =begin code
 
-for %hash.kv -> $key, $value { print "$key => $value\n" }
+for @foo.kv -> $idx, $val { say "$idx: $val" }
+for %hash.kv -> $key, $val { say "$key => $val" }
 for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
 
 =end code
@@ -349,9 +350,9 @@ assign them to an array:
 
 =begin code
 
-(for 1,2,3 { $_ * 2 }).say;             # says "(2 4 6)"
-my @a = do for 1,2,3 { $_ * 2 }; @a.say;# says "[2 4 6]"
-my @a = (for 1,2,3 { $_ * 2 }); @a.say; # same thing
+(for 1, 2, 3 { $_ * 2 }).say;              # says "(2 4 6)"
+my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # says "[2 4 6]"
+my @a = (for 1, 2, 3 { $_ * 2 }); @a.say;  # same thing
 
 =end code
 
@@ -478,6 +479,8 @@ be in the same "switch" just so long as you do not open a new block:
     }
     #-> 42
 
+C<when> statements can smart match against L<Signatures|/language/syntax#Signature_literals>.
+
 =head2 X<proceed and succeed|control flow,proceed succeed>
 
 Both C<proceed> and C<succeed> are meant to be used only from inside C<when>
@@ -555,6 +558,20 @@ if there is one:
         }
         "This also says".say;
     }
+=head2 X<given as a statement|control flow,given statement>
+
+C<given> can follow a statement to set the topic in the statement it follows.
+
+    .say given "foo";
+    # OUTPUT«foo␤»
+
+    printf "%s %02i.%02i.%i",
+            <Mo Tu We Th Fr Sa Su>[.day-of-week],
+            .day,
+            .month,
+            .year
+        given DateTime.now;
+    # OUTPUT«Sa 03.06.2016»
 
 =head1 X<loop|control flow>
 
@@ -679,17 +696,29 @@ All these forms may produce a return value the same way C<loop> does.
 
 =comment TODO
 
+=head1 X<return-rw|control flow>
+
+Same as C<return>, but returns a writable container.
+
 =head1 X<once|control flow>
 
 A block prefix with C<once> will be executed exactly once, even if placed inside a
 loop or a recursive routine.
 
-    my $guard = 3; 
-    loop { 
-        last if $guard-- <= 0; 
-        once { put 'once' }; 
-        print 'many' 
+    my $guard = 3;
+    loop {
+        last if $guard-- <= 0;
+        once { put 'once' };
+        print 'many'
     } # OUTPUT«once␤manymanymany»
+
+This works per "clone" of the containing code object, so:
+
+    ({ once 42.say } xx 3).map: {$_(), $_()}; # says 42 thrice
+
+Note that this is B<not> a thread-safe construct when the same clone of the same
+block is run by multiple threads.  Also remember that methods only have one
+clone per class, not per object.
 
 =head1 X<quietly|control flow>
 
@@ -750,13 +779,30 @@ conditional again.
 
 =begin code
 
-{ my $x = prompt("Enter a number"); redo unless is_a_number($x) }
+{
+    my $x = prompt("Enter a number");
+    redo unless is_a_number($x)
+}
 
 =end code
 
-=head1 X<goto|control flow>
+=head1 X<samewith|control flow>
 
-=comment TODO
+The C<samewith> allows one to call a multisub of the same name as the current sub.
+
+=begin code
+
+multi indent-say ( 'test' )
+{
+    samewith 'ABCD';
+}
+
+multi indent-say ( Str $string )
+{
+    say "\t$string";
+}
+
+=end code
 
 =end pod
 

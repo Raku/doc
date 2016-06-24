@@ -29,14 +29,14 @@ and the stream may be buffered.
 
 =head2 method eof
 
-Returns L<Bool::True> if the read operations have exhausted the content of the file.
+Returns C<True> if the read operations have exhausted the content of the file.
 
 =head2 method lines
 
     method lines($limit = Inf)
 
 Return a lazy list of the file's lines read via L<get>, limited to C<$limit> lines.
-The new line separator (e.g. $*IN.nl-in) will be excluded.
+The new line separator (i.e., C<$*IN.nl-in>) will be excluded.
 
     =for code :allow<B>
     my @data;
@@ -82,6 +82,32 @@ to write bytes.
     $fh.print("some text\n");
     $fh.close;
 
+=head2 method print-nl
+
+    method print-nl(IO::Handle:D: --> True)
+
+Writes a newline to the filehandle. The newline marker, which is stored
+in the attribute C<$.nl-out>, defaults to C<\n> unless another marker has
+been specified in the call to L<open>.
+
+    my $fh = open 'path/to/file', :w, nl-out => "\r\n";
+    $fh.print("some text");
+    $fh.print-nl;                                        # \r\n
+    $fh.close;
+
+=head2 method say
+
+    method say(IO::Handle:D: |)
+
+This method is identical to L<print|/type/IO::Handle#method_print> except
+that it stringifies its arguments by calling C<.gist> on them and
+auto-appends a newline, with a call to L<print-nl|/type/IO::Handle#method_print-nl>,
+after the final argument.
+
+    my $fh = open 'path/to/file', :w;  
+    $fh.say(Complex.new(3, 4));        # 3+4i\n
+    $fh.close;
+
 =head2 method read
 
     method read(IO::Handle:D: Int(Cool:D) $bytes --> Blob)
@@ -106,7 +132,7 @@ characters.
 
      method seek(IO::Handle:D: Int:D $offset, SeekType:D $whence --> True)
 
-Move the file pointer (that is the position at which any subsequent read
+Move the file pointer (that is, the position at which any subsequent read
 or write operations will begin,) to the byte position specified by
 C<$offset> relative to the location specified by C<$whence> which may be
 one of:
@@ -130,12 +156,6 @@ offset if you want to position before the end of the file.
 
 Return the current position of the file pointer in bytes.
 
-=head2 method ins
-
-    method ins(IO::Handle:D: --> Int)
-
-Return the number of lines read from the file.
-
 =head2 method slurp-rest
 
     multi method slurp-rest(IO::Handle:D: :$bin! --> Buf)
@@ -156,6 +176,14 @@ and defaults to 64K.  The optional C<:bin> named parameter can be specified
 to indicate binary reading of the contents, rather than character based
 reading.
 
+=head2 method path
+
+For a handle opened on a file this returns the L<IO::Path|/type/IO::Path> that represents
+the file. For the standard I/O handles C<$*IN>, C<$*OUT> and C<$*ERR> it returns a
+L<IO::Special|/type/IO::Special> object.
+
+    $fh.path;
+
 =head2 method close
 
 Will close a previously opened filehandle.
@@ -174,7 +202,19 @@ Will flush the filehandle to disk.
 
 This returns a value that the operating system would understand as a "file descriptor" and
 is suitable for passing to a native function that requires a file descriptor as an
-argument such as C<fcntl> or C<ioctl>. 
+argument such as C<fcntl> or C<ioctl>.
+
+=head2 method opened
+
+    method opened(IO::Handle:D: --> Bool)
+
+Returns C<True> if the handle is open.
+
+=head2 method t
+
+    method t(IO::Handle:D: --> Bool)
+
+Returns C<True> if the handle is opened to a tty.
 
 =head1 Related roles and classes
 
