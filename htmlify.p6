@@ -552,7 +552,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
 
             my $new-head = Pod::Heading.new(
                 :level(@pod-section[$i].level),
-                :contents[pod-link "$subkinds $name",
+                :contents[pod-link "$origin.name() $subkinds $name",
                     $created.url ~ "#$origin.human-kind() $origin.name()".subst(:g, /\s+/, '_')
                 ]
             );
