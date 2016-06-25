@@ -186,7 +186,7 @@ sub extract-pod(IO() $file) {
 
     if not $handle {
         # precompile it
-        $precomp.precompile($file, $id, force => True);
+        $precomp.precompile($file, $id, :force);
         $handle = $precomp.load($id)[0];
     }
 
