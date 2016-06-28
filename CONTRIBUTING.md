@@ -151,7 +151,12 @@ Mojolicious is written in Perl 5, so assuming that you use
 [`cpanm`](https://metacpan.org/pod/App::cpanminus),
 install this now:
 
-    $ cpanm -vn Mojolicious CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
+    $ cpanm -vn Mojolicious
+
+If you also plan on modifying the stylesheets, install these modules to
+enable SASS processor:
+
+    $ cpanm -vn CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
 
 #### pygmentize
 

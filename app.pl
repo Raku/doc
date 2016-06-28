@@ -1,7 +1,5 @@
 #!/usr/bin/env perl
 
-use CSS::Sass 3.3.4;
-use CSS::Minifier::XS 0.09;
 use File::Spec::Functions 'catfile';
 use Mojolicious 6.66;
 use Mojolicious::Lite;
@@ -10,14 +8,23 @@ use Mojo::Util qw/spurt/;
 
 app->static->paths(['html']);
 
-plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
-app->asset->process('app.css' => 'sass/style.scss' );
+if ( eval { require CSS::Sass; require CSS::Minifier::XS; 1; } ) {
+    plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
+    app->asset->process('app.css' => 'sass/style.scss' );
 
-my $style_sheet = catfile qw{html css style.css};
-app->log
-    ->debug("Processing SASS and copying the results over to $style_sheet...");
-spurt app->asset->processed('app.css')->map("content")->join => $style_sheet;
-app->log->debug('...Done');
+    my $style_sheet = catfile qw{html css style.css};
+    app->log->debug(
+        "Processing SASS and copying the results over to $style_sheet..."
+    );
+    spurt app->asset->processed('app.css')->map("content")->join
+        => $style_sheet;
+    app->log->debug('...Done');
+}
+else {
+    app->log->debug(
+        'Install CSS::Sass and CSS::Minifier::XS to enable SASS processor'
+    );
+}
 
 ## ROUTES
 
