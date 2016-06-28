@@ -24,8 +24,9 @@ Try to avoid absolute URLs.
 Works well.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
-subdomain is `docs` and the protocol is `https://` (as in `https://docs.perl6.org/blah/blah`). Other variations of the URL will still
-work for convenience, but they all simply redirect to the canonical version,
+subdomain is `docs` and the protocol is `https://` (as in
+`https://docs.perl6.org/blah/blah`). Other variations of the URL will still
+work, for convenience, but they all simply redirect to the canonical version,
 so it's best to use it from the start.
 
 ### Language
