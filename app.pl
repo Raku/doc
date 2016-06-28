@@ -12,8 +12,12 @@ app->static->paths(['html']);
 
 plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
 app->asset->process('app.css' => 'sass/style.scss' );
-spurt app->asset->processed('app.css')->map("content")->join
-    => catfile qw{html css style.css};
+
+my $style_sheet = catfile qw{html css style.css};
+app->log
+    ->debug("Processing SASS and copying the results over to $style_sheet...");
+spurt app->asset->processed('app.css')->map("content")->join => $style_sheet;
+app->log->debug('...Done');
 
 ## ROUTES
 
