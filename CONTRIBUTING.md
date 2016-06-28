@@ -64,6 +64,16 @@ or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 `postcircumfix`, `term`.
 
+## Website Styles
+
+The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
+don't edit `html/css/style.css` directly, as your changes will be lost
+the next time the SASS file is processed.
+
+[SASS](http://sass-lang.com/) is a superset of CSS, so if you don't know SASS,
+just write in regular CSS. Run `app.pl` to automatically process SASS and copy
+the result over to `html/css/style.css`
+
 ## Building the documentation
 
 Assuming that you have already forked and cloned the
@@ -127,15 +137,21 @@ Install `Pod::To::HTML` like so:
 
     $ panda install Pod::To::HTML
 
-#### Mojolicious
+#### Mojolicious / Web Server
 
-This is a Perl 5 web framework which is used to run the web application
-which renders and displays the HTML documentation in a web browser.  It is
-written in Perl 5, so assuming that you use
-[`cpanm`](http://search.cpan.org/~miyagawa/App-cpanminus-1.7027/lib/App/cpanminus.pm),
+This is a Perl 5 web framework which is used to run the included
+web application that displays the HTML documentation in a web browser. It's
+no required for development, as the site is static and you can serve it using
+any other webserver.
+
+The app *does* automatically convert the SASS file to CSS, so it's handy to
+use for that as well.
+
+Mojolicious is written in Perl 5, so assuming that you use
+[`cpanm`](https://metacpan.org/pod/App::cpanminus),
 install this now:
 
-    $ cpanm -vn Mojolicious
+    $ cpanm -vn Mojolicious CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
 
 #### pygmentize
 
