@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 
 use File::Spec::Functions 'catfile';
-use Mojolicious 6.66;
+use Mojolicious 6.58;
 use Mojolicious::Lite;
 use Mojolicious::Plugin::AssetPack 1.15;
 use Mojo::Util qw/spurt/;
