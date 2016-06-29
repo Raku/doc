@@ -153,7 +153,7 @@ install this now:
 
     $ cpanm -vn Mojolicious
 
-If you also plan on modifying the stylesheets, install these modules to
+If you also plan on modifying the SASS stylesheets, install these modules to
 enable SASS processor:
 
     $ cpanm -vn CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack

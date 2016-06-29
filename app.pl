@@ -3,12 +3,18 @@
 use File::Spec::Functions 'catfile';
 use Mojolicious 6.58;
 use Mojolicious::Lite;
-use Mojolicious::Plugin::AssetPack 1.15;
 use Mojo::Util qw/spurt/;
 
 app->static->paths(['html']);
 
-if ( eval { require CSS::Sass; require CSS::Minifier::XS; 1; } ) {
+my $has_extra_modules = eval {
+    require CSS::Sass;
+    require CSS::Minifier::XS;
+    require Mojolicious::Plugin::AssetPack;
+    1;
+};
+
+if ( $has_extra_modules ) {
     plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
     app->asset->process('app.css' => 'sass/style.scss' );
 
@@ -21,8 +27,8 @@ if ( eval { require CSS::Sass; require CSS::Minifier::XS; 1; } ) {
     app->log->debug('...Done');
 }
 else {
-    app->log->debug(
-        'Install CSS::Sass and CSS::Minifier::XS to enable SASS processor'
+    app->log->debug( 'Install CSS::Sass, CSS::Minifier::XS, and'
+        . ' Mojolicious::Plugin::AssetPack to enable SASS processor'
     );
 }
 
