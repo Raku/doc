@@ -64,6 +64,19 @@ or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 `postcircumfix`, `term`.
 
+## Reporting bugs
+
+Report issues at https://github.com/perl6/doc/issues. You can use the
+following labels when tagging tickets:
+
+* site   - presentation issue with the website (e.g. invalid HTML)
+* docs   - missing or incorrect documentation
+* build  - scripts or libraries that generate the site
+* search - the search component
+
+* LHF    - for a beginner to work on
+* big    - a big issue, may require some research
+
 ## Website Styles
 
 The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
