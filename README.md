@@ -138,3 +138,6 @@ This repository also contains code authored by third parties that may be license
 files indicate the copyright and license terms at the top of the file. Currently these include:
 
 * jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
+* [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
+  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
+  [MIT License](http://creativecommons.org/licenses/MIT)
