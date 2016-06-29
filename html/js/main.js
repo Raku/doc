@@ -47,7 +47,7 @@ function setup_collapsible_TOC() {
             + ( state == 'hidden' ? 'show' : 'hide')
             + ']</a></h2>'
         )
-        .find('a')
+        .find('> h2 > a')
             .click(function() {
                 var el = $(this);
                 if (el.text() == '[hide]') {
