@@ -76,6 +76,47 @@ should only be used to parse text; if you wish to extract complex data, an
 L<action object|/language/grammars#Action_Objects> is recommended to be used in
 conjunction with the grammar.
 
+=head2 Special Tokens
+
+=head3 C<TOP>
+
+    grammar Foo {
+        token TOP { \d+ }
+    }
+
+The C<TOP> token is the first token attempted to match when parsing with
+a grammar—the root of the tree. Note
+that if you're parsing with L<C<.parse>|/type/Grammar#method_parse> method,
+C<token TOP> is automatically anchored to the start and end of the string
+(see also: L<C<.subparse>|/type/Grammar#method_subparse>).
+
+Using C<rule TOP> or C<regex TOP> are also acceptable.
+
+=head3 C<ws>
+
+When C<rule> instead of C<token> is used, any whitespace after an
+atom is turned into a non-capturing call to C<ws>. That is:
+
+    rule entry { <key> ’=’ <value> }
+
+Is the same as:
+
+    token entry { <key> <.ws> ’=’ <.ws> <value> <.ws> } # . = non-capturing
+
+The default C<ws> matches "whitespace", such a sequence of spaces (of whatever
+type), newlines, unspaces, or heredocs.
+
+It's perfectly fine to provide your own C<ws> token:
+
+    grammar Foo {
+        rule TOP { \d \d }
+    }.parse: "4   \n\n 5"; # Succeeds
+
+    grammar Bar {
+        rule TOP { \d \d }
+        token ws { \h*   }
+    }.parse: "4   \n\n 5"; # Fails
+
 =head1 Action Objects
 
 A successful grammar match gives you a parse tree of L<Match|/type/Match>
@@ -95,7 +136,7 @@ Here is a contrived example of a grammar and actions in action:
 use v6;
 
 grammar TestGrammar {
-    token TOP { ^ \d+ $ }
+    token TOP { \d+ }
 }
 
 class TestActions {

@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-An HTML version of this documentation can be found at https://doc.perl6.org/.
+An HTML version of this documentation can be found at https://docs.perl6.org/.
 
 (If you are browsing this repository via github, it will not display most
 files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
@@ -138,3 +138,6 @@ This repository also contains code authored by third parties that may be license
 files indicate the copyright and license terms at the top of the file. Currently these include:
 
 * jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
+* [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
+  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
+  [MIT License](http://creativecommons.org/licenses/MIT)
