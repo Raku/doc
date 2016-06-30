@@ -76,9 +76,92 @@ should only be used to parse text; if you wish to extract complex data, an
 L<action object|/language/grammars#Action_Objects> is recommended to be used in
 conjunction with the grammar.
 
+X<sym>
+X<< :sym<> >>
+X<protoregex>
+=head2 Protoregexes
+
+If you have a lot of alternations, it may become difficult to produce
+readable code or subclass your grammar. In the Actions class below, the
+ternary in C<method TOP> is less than ideal and it becomes even worse the more
+operations we we add:
+
+    grammar Calculator {
+        token TOP { [ <add> | <sub> ] }
+        rule  add { <num> '+' <num> }
+        rule  sub { <num> '-' <num> }
+        token num { \d+ }
+    }
+
+    class Calculations {
+        method TOP ($/) { make $<add> ?? $<add>.made !! $<sub>.made; }
+        method add ($/) { make [+] $<num>; }
+        method sub ($/) { make [-] $<num>; }
+    }
+
+    say Calculator.parse('2 + 3', actions => Calculations).made;
+
+    # OUTPUT:
+    # 5
+
+To make things better, we can use protoregexes that look like `C<< :sym<...> >>
+adverbs on tokens:
+
+    grammar Calculator {
+        token TOP { <calc-op> }
+
+        proto rule calc-op          {*}
+              rule calc-op:sym<add> { <num> '+' <num> }
+              rule calc-op:sym<sub> { <num> '-' <num> }
+
+        token num { \d+ }
+    }
+
+    class Calculations {
+        method TOP              ($/) { make $<calc-op>.made; }
+        method calc-op:sym<add> ($/) { make [+] $<num>; }
+        method calc-op:sym<sub> ($/) { make [-] $<num>; }
+    }
+
+    say Calculator.parse('2 + 3', actions => Calculations).made;
+
+    # OUTPUT:
+    # 5
+
+In the grammar, the alternation has now been replaced with C<< <calc-op> >>,
+which is essentially the name of a group of values we'll create. We do so by
+defining a rule prototype with C<proto rule calc-op>. Each of our previous
+alternations have been replaced by a new C<rule calc-op> definition and the
+name of the alternation is attached with C<< :sym<> >> adverb.
+
+In the actions class, we now got rid of the ternary operator and simply take
+the C<.made> value from the C<< $<calc-op> >> match object. And the actions for
+individual alternations now follow the name naming pattern as in the grammar:
+C<< method calc-op:sym<add> >> and C<method calc-op:sym<sub> >>.
+
+The real beauty of this method can be seen when you subclass that grammar
+and actions class. Let's say we want to add a multiplication feature to the
+calculator:
+
+    grammar BetterCalculator is Calculator {
+        rule calc-op:sym<mult> { <num> '*' <num> }
+    }
+
+    class BetterCalculations is Calculations {
+        method calc-op:sym<mult> ($/) { make [*] $<num> }
+    }
+
+    say BetterCalculator.parse('2 * 3', actions => BetterCalculations).made;
+
+    # OUTPUT:
+    # 6
+
+All we had to add are additional rule and action to the C<calc-op> group and
+the thing works—all thanks to protoregexes.
+
 =head2 Special Tokens
 
-X<C<TOP>|class,Grammar>
+X<TOP>
 =head3 C<TOP>
 
     grammar Foo {
@@ -93,7 +176,7 @@ C<token TOP> is automatically anchored to the start and end of the string
 
 Using C<rule TOP> or C<regex TOP> are also acceptable.
 
-X<C<ws>|class,Grammar>
+X<ws>
 =head3 C<ws>
 
 When C<rule> instead of C<token> is used, any whitespace after an
