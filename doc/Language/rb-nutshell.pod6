@@ -13,45 +13,31 @@ Hence this should not be mistaken for a beginner tutorial or overview of Perl
 6; it is intended as a technical reference for Perl 6 learners with a strong
 Ruby background.
 
-=head2 RubyGems
-
-See L<https://modules.perl6.org/> .
-
-If the module that you were using has not been converted to Perl 6, and no
-alternative is listed in this document, then its use under Perl 6 may not
-have been addressed yet.
-
-In the future you should be able to call Ruby (and other code) directly from
-your Perl 6 programs.
-
-=begin comment
-
-=defn  L<Inline::Ruby|https://github.com/awwaiid/Inline-Ruby/>
-Uses an embedded instance of the C<ruby> interpreter to run Ruby code
-called from your Perl 6 script.
-
-Of these, Inline::Ruby is currently the furthest along and the most
-promising.
-
-=end comment
 
 =head2 Basic Syntax
 
-=head3 C«.» Method calls, C<.send>
+=head3 Statement Ending Semi-Colons
 
-If you've read any Perl 6 code at all, it's immediately obvious that
-method call syntax uses a dot just like Ruby:
+Ruby detects the end of most statements with a newline (and a few exceptions),
+as long as the expression is complete. It is common break up a long expression
+by leaving an operator dangling at the end of a line to ensure that the parsing
+will continue:
 
-    person.name    # Ruby
-    $person.name   # Perl 6
+    foo +     # In Ruby a trailing operator means parsing should continue
+      bar +
+      baz
 
-To call a method whose name is not known until runtime:
+In Perl 6 you must explicitly terminate statements with a C<;>, which allows
+for better feedback and more flexibility in breaking up long lines. Two
+exceptions not needing an explicit C<;> are the last statement in a block, and
+after the closing curley brace of the block itself (if there is nothing else on
+that line):
 
-    object.send(methodname, args);  # Ruby
-    $object."$methodname"(@args);   # Perl 6
-
-If you leave out the quotes, then Perl 6 expects C<$methodname> to contain
-a C<Method> object, rather than the simple string name of the method.
+    if 5 < $x < 10 {
+      say "Yep!";
+      $x = 17         # No ; required before closing }
+    }                 # No ; required after closing } because of the newline
+    say "Done!";      # The ; is not required here if nothing follows
 
 =head3 Whitespace
 
@@ -119,30 +105,22 @@ conflict with an existing postfix/postcircumfix operator.>
 
 =end item
 
-=head3 Statement Ending Semi-Colons
+=head3 C«.» Method calls, C<.send>
 
-Ruby detects the end of most statements with a newline (and a few exceptions),
-as long as the expression is complete. It is common break up a long expression
-by leaving an operator dangling at the end of a line to ensure that the parsing
-will continue:
+Method call syntax uses a dot just like Ruby:
 
-    foo +     # In Ruby a trailing operator means parsing should continue
-      bar +
-      baz
+    person.name    # Ruby
+    $person.name   # Perl 6
 
-In Perl 6 you must explicitly terminate statements with a C<;>, which allows
-for better feedback and more flexibility in breaking up long lines. Two
-exceptions not needing an explicit C<;> are the last statement in a block, and
-after the closing curley brace of the block itself (if there is nothing else on
-that line):
+To call a method whose name is not known until runtime:
 
-    if 5 < $x < 10 {
-      say "Yep!";
-      $x = 17         # No ; required before closing }
-    }                 # No ; required after closing } because of the newline
-    say "Done!";      # The ; is not required here if nothing follows
+    object.send(methodname, args);  # Ruby
+    $object."$methodname"(@args);   # Perl 6
 
-=head3 Sigils
+If you leave out the quotes, then Perl 6 expects C<$methodname> to contain
+a C<Method> object, rather than the simple string name of the method.
+
+=head3 Variables, Sigils, Scope, and Common Types
 
 In Ruby, variables use sigils primarily to indicate scope. C<$> for global
 scope, C<@@> for class scope, C<@> for instance scope, and no sigil for local
@@ -158,6 +136,23 @@ of them as part of the variable's name.
 The scope of a variable is instead indicated by the declaration itself (C<my>,
 C<has>, C<our>, etc).
 
+=head4 Variable Scope
+
+For local variables, Ruby uses implicit variable declaration upon assignment
+and limited to the current block. In Ruby the content of an C<if> or C<while>
+built-in construct is not a block or scope.
+
+Perl 6 uses explicit scope indicators, and never creates variables implicitly.
+Every place you see C<{ ... }> is a scope, including the body of a conditional
+or loop. The commonly used scope declarations:
+
+    foo = 7        # Ruby, variable scope is defined by first assignment and
+                   # extends to the end of the current block
+
+    my  $foo = 7   # Perl 6, lexical scoped to the current block
+    our $foo = 7   # Perl 6, package scoped
+    has $!foo = 7  # Perl 6, instance scoped (attribute)
+
 =head4 C<$> Scalar
 
 The C<$> sigil is always used with "scalar" variables (e.g. C<$name>). These
@@ -171,13 +166,66 @@ C<$x{"foo"}>, and C<$f("foo")>.
 
 The C<@> sigil is always used with "array" variables (e.g. C<@months>,
 C<@months[2]>, C<@months[2, 4]> for an array slice). Variables using the C<@>
-sigil can only contain things that do the C<Positional> role.
+sigil can only contain things that do the C<Positional> role, indicating
+positional indexing and slicing capabilities.
+
+=begin item
+I<Indexing>
+
+    puts months[2]; # Ruby
+    say @months[2]; # Perl 6
+=end item
+
+=begin item
+I<Value-slicing>
+
+    puts months[8..11].join(',') # Ruby
+    say @months[8..11].join(',') # Perl 6
+=end item
+
 
 =head4 C<%> Hash
 
 The C<%> sigil is always used with "hash" variables (e.g. C<%calories>,
 C<%calories<apple>>, C<%calories<pear plum>>). Variables using the C<%> sigil
 can only contain things that do the C<Associative> role.
+
+Ruby uses square brackets to access values for both Arrays and Hashes. Perl 6
+uses curley braces for hashes instead. The angle-brackets version is available
+which always autoquotes its contents (strings without quotes):
+
+Adverbs can be used to control the type of slice.
+
+=begin item
+I<Indexing>
+
+    puts calories["apple"]  # Ruby
+    say %calories{"apple"}; # Perl 6
+
+    puts calories["apple"]  # Ruby
+    puts calories[:apple]   # Ruby, symbols for keys are common
+    say %calories<apple>;   # Perl 6 - angle brackets instead of single-quotes
+    say %calories«$key»;    # Perl 6 - double angles interpolate as double-quotes
+=end item
+
+=begin item
+I<Value-slicing>
+
+    puts calories.values_at('pear', 'plum').join(',') # Ruby
+    puts calories.values_at(%w(pear plum)).join(',')  # Ruby, pretty?
+    say %calories{'pear', 'plum'}.join(',');          # Perl 6
+    say %calories<pear plum>.join(',');               # Perl 6 (prettier)
+    my $keys = 'pear plum';
+    say %calories«$keys».join(','); # Perl 6, interpolated split
+=end item
+
+=begin item
+I<Key/value-slicing>
+
+    say calories.slice('pear', 'plum').join(','); # Ruby, with ActiveRecord
+    say %calories{'pear', 'plum'}:kv.join(',');   # Perl 6 - use :kv adverb
+    say %calories<pear plum>:kv.join(',');        # Perl 6 (prettier version)
+=end item
 
 =head4 C<&> Sub
 
@@ -269,63 +317,8 @@ variable and go between the sigil and the rest of the variable name. Examples:
     $?FILE   # Current source filename. The ? twigil indicates a compile-time value
     $~foo    # Sublanguage seen by parser, uncommon
 
-=head3 [] Array indexing/slicing
-
-The C<@> sigil indicates positional slicing capabilities for a variable, and
-adverbs can be used to control the type of slice:
-
-=begin item
-I<Indexing>
-
-    puts months[2]; # Ruby
-    say @months[2]; # Perl 6
-=end item
-
-=begin item
-I<Value-slicing>
-
-    puts months[8..11].join(',') # Ruby
-    say @months[8..11].join(',') # Perl 6
-=end item
-
-=head3 {} Hash indexing/slicing
-
-Ruby uses square brackets to access values for both Arrays and Hashes. Perl 6
-uses curley braces for hashes instead. The angle-brackets version is available
-which always autoquotes its contents (strings without quotes):
-
-Adverbs can be used to control the type of slice.
-
-=begin item
-I<Indexing>
-
-    puts calories["apple"]  # Ruby
-    say %calories{"apple"}; # Perl 6
-
-    puts calories["apple"]  # Ruby
-    puts calories[:apple]   # Ruby, symbols for keys are common
-    say %calories<apple>;   # Perl 6 - angle brackets instead of single-quotes
-    say %calories«$key»;    # Perl 6 - double angles interpolate as double-quotes
-=end item
-
-=begin item
-I<Value-slicing>
-
-    puts calories.values_at('pear', 'plum').join(',') # Ruby
-    puts calories.values_at(%w(pear plum)).join(',')  # Ruby, pretty?
-    say %calories{'pear', 'plum'}.join(',');          # Perl 6
-    say %calories<pear plum>.join(',');               # Perl 6 (prettier)
-    my $keys = 'pear plum';
-    say %calories«$keys».join(','); # Perl 6, interpolated split
-=end item
-
-=begin item
-I<Key/value-slicing>
-
-    say calories.slice('pear', 'plum').join(','); # Ruby, with ActiveRecord
-    say %calories{'pear', 'plum'}:kv.join(',');   # Perl 6 - use :kv adverb
-    say %calories<pear plum>:kv.join(',');        # Perl 6 (prettier version)
-=end item
+Though each of these examples use the C<$> sigil, most could use C<@>
+(Positional) or C<%> (Associative).
 
 =head3 C<:> Symbols
 
@@ -349,29 +342,9 @@ You could probably get away with using a colon-pair without an explicit value
 and pretend that it is a Ruby symbol a lot of the time, but it isn't idomatic
 Perl 6.
 
-=head3 Variable Declaration and Scope
-
-For local variables, Ruby uses implicit variable declaration upon assignment
-and limited to the current block. In Ruby the content of an C<if> or C<while>
-built-in construct is not a block or scope.
-
-Perl 6 uses explicit scope indicators, and never creates variables implicitly.
-Every place you see C<{ ... }> is a scope, including the body of a conditional
-or loop. The commonly used scope declarations:
-
-    foo = 7        # Ruby, variable scope is defined by first assignment and
-                   # extends to the end of the current block
-
-    my  $foo = 7   # Perl 6, lexical scoped to the current block
-    our $foo = 7   # Perl 6, package scoped
-    has $!foo = 7  # Perl 6, instance scoped (attribute)
-
-
 =head2 Operators
 
-See S03-operators for full details on all operators.
-
-Similar usage in both Ruby and Perl 6:
+Many operators have a similar usage in both Ruby and Perl 6:
 
 =item C<,> List Separator
 =item C<+> Numeric Addition
@@ -382,7 +355,6 @@ Similar usage in both Ruby and Perl 6:
 =item C<**> Numeric Exponentiation
 =item C<! && ||> Booleans, high-precedence
 =item C<not and or> Booleans, low-precedence
-
 
 You may use C<$x++> instead of C<x += 1> as a shortcut for incrementing a
 variable. This can be used as a pre-increment C<++$x> (increment, return new
@@ -403,7 +375,7 @@ errors.
 For example, using C<==> tries to convert the values to numbers, and C<eq>
 tries to convert the values to strings.
 
-=head3 C«<=> leg» Three-way comparisons
+=head3 C«<=>» Three-way comparisons
 
 In Ruby, the C«<=>» operator returns -1, 0, or 1.
 In Perl 6, they return C<Order::Less>, C<Order::Same>, or C<Order::More>.
@@ -417,7 +389,8 @@ arguments.
 
 =head3 C<~~> Smart-match operator
 
-This is a very common matching operator. Here are some examples:
+This is a very common matching operator which doesn't exist in Ruby. Here are
+some examples:
 
     say "match!" if $foo ~~ /bar/;      # Regex match
     say "match!" if $foo ~~ "bar";      # String match
@@ -473,29 +446,39 @@ If you are using C«=>» in a hash literal, then the usage is very similar:
 =head3 C<? :> Ternary operator
 
 In Perl 6, this is spelled with two question marks instead of one question
-mark, and two exclamation points instead of one colon.
+mark, and two exclamation points instead of one colon. This deviation from the
+common ternary operators disambiguates several situations and makes the
+false-case stand out more.
 
     result     = (  score > 60 )  ? 'Pass'  : 'Fail'; # Ruby
     my $result = ( $score > 60 ) ?? 'Pass' !! 'Fail'; # Perl 6
 
 =head3 C<+> String Concatenation
 
-Replaced by the tilde.
-
-Mnemonic: think of "stitching" together the two strings with needle and thread.
+Replaced by the tilde. Mnemonic: think of "stitching" together the two strings with needle and thread.
 
     $food = 'grape' + 'fruit'  # Ruby
     $food = 'grape' ~ 'fruit'; # Perl 6
 
 =head3 String interpolation
 
-In Ruby, C<"#{foo}s"> deliminates an arbitrary block embedded in the string.
+In Ruby, C<"#{foo}s"> deliminates a block embedded in a double-quoted string.
 In Perl 6 drop the C<#> prefix: C<"{$foo}s">. As in Ruby, you can place
 arbitrary code into the embedded block and it will be rendered in string
 context.
 
-Ruby uses C<.to_s> to get string context, Perl 6 usually uses C<.Str>, or
-C<.gist>.
+Simple variables can be interpolated into a double-quoted string without using the block syntax:
+
+    # Ruby
+    name = "Bob"
+    puts "Hello! My name is #{name}!"
+
+    # Perl 6
+    my $name = "Bob"
+    say "Hello! My name is $name!"
+
+The result of an embedded block in Ruby uses C<.to_s> to get string context.
+Perl 6 uses C<.Str>, or C<.gist> for the same affect.
 
 =head2 Compound Statements
 
@@ -527,7 +510,7 @@ clearly deliniate the blocks.
 Binding the conditional expression to a variable is a little different:
 
     if x = dostuff(); ...; end   # Ruby
-    if dostuff() -> $x {...}     # Perl 6
+    if dostuff() -> $x {...}     # Perl 6, block-assignment uses arrow
 
 The C<unless> conditional only allows for a single block in Perl 6;
 it does not allow for an C<elsif> or C<else> clause.
@@ -581,7 +564,9 @@ different:
 
 =head4 C<for> C<.each>
 
-C<for> loops are rare in Ruby, instead we typically use C<.each> on an enumerable. The most direct translation to Perl 6 would be to use C<.map> for both C<.each> and C<.map>.
+C<for> loops are rare in Ruby, instead we typically use C<.each> on an
+enumerable. The most direct translation to Perl 6 would be to use C<.map> for
+both C<.each> and C<.map>, but we typically use a C<for> loop directly.
 
     # Ruby for loop
     for n in 0..5
@@ -614,21 +599,27 @@ Ruby, unless you change C«->» to C«<->».
     for @cars  -> $car   {...} # Perl 6; read-only
     for @cars <-> $car   {...} # Perl 6; read-write
 
-=head3 Flow Control statements
+=head3 Flow Interruption statements
 
 Same as Ruby:
 
 =item C<next>
 =item C<redo>
 
-=item4 C<break>
+=item2 C<break>
 
 This is C<last> in Perl 6.
 
 =head2 Regular Expressions ( Regex / Regexp )
 
 Regular expressions in Perl 6 are significantly different, and more powerful,
-than in Ruby.
+than in Ruby. By default whitespace is ignored and all characters must be
+escaped, for example. Regexes can be easily combined and declared in ways to
+build efficient grammars.
+
+There are many powerful features of Perl 6 regexes, especially defining entire
+grammars using the same syntax. See L<Regexes|/language/regexes> and
+L<Grammars|/language/grammars>.
 
 =head3 C<.match> method and C<=~> operator
 
@@ -667,11 +658,23 @@ require you to add the optional C<m> on a plain match like C«/abc/».
     next if $line =~    /static/i # Ruby
     next if $line ~~ m:i/static/; # Perl 6
 
+=head3 Whitespace is ignored, most things must be quoted
+
+In order to aid in readability and reusability, whitespace is not significant
+in Perl 6 regexes.
+
+    /this is a test/ # Ruby, boring string
+    /this.*/         # Ruby, possibly interesting string
+
+    / this " " is " " a " " test / # Perl 6, each space is quoted
+    / "this is a test" / # Perl 6, quoting the whole string
+    / this .* /          # Perl 6, possibly interesting string
+
 =head3 Special matchers generally fall under the <> syntax
 
-There are many cases of special matching syntax that Ruby regexes
-support. They won't all be listed here, but often instead of being
-surrounded by C<()>, the assertions will be surrounded by C«<>».
+There are many cases of special matching syntax that Perl 6 regexes support.
+They won't all be listed here, but often instead of being surrounded by C<()>,
+the assertions will be surrounded by C«<>».
 
 For character classes, this means that:
 
@@ -712,15 +715,6 @@ about which was written first in the regex.
 
 To avoid the new logic, change any C<|> in your Ruby regex to a C<||>.
 
-There are many more powerful features of Perl 6 regexes, especially defining
-entire grammars using the same syntax. See L<Regexes|/language/regexes> and
-L<Grammars|/language/grammars>.
-
-=head2 Command-line flags
-
-See
-L<S19/commandline|https://design.perl6.org/S19.html#Command_Line_Elements>
-
 =head2 File-related operations
 
 =head3 Reading the lines of a text file into an array
@@ -746,26 +740,6 @@ read. It is better to iterate over the results:
     for "file".IO.lines -> $line {
         say $line
     }
-
-=head2 Environment variables
-
-=head3 Perl module library path
-
-In Ruby, one of the environment variables to specify extra search paths for
-modules is C<RUBYLIB>.
-
-    $ RUBYLIB="/some/module/lib" ruby program.rb
-
-In Perl 6 this is similar, you merely needs to change the name. As you probably
-guessed, you just need to use C<PERL6LIB>:
-
-    $ PERL6LIB="/some/module/lib" perl6 program.p6
-
-As with Ruby, if you don't specify C<PERL6LIB>, you need to specify the
-library path within the program via the C<use lib> pragma:
-
-    # Ruby and Perl 6
-    use lib '/some/module/lib';
 
 =head2 Object Orientation
 
@@ -900,6 +874,26 @@ to use.
 
 See L<Meta-Object Protocol|/language/mop> for lots of further details.
 
+=head2 Environment variables
+
+=head3 Perl module library path
+
+In Ruby, one of the environment variables to specify extra search paths for
+modules is C<RUBYLIB>.
+
+    $ RUBYLIB="/some/module/lib" ruby program.rb
+
+In Perl 6 this is similar, you merely needs to change the name. As you probably
+guessed, you just need to use C<PERL6LIB>:
+
+    $ PERL6LIB="/some/module/lib" perl6 program.p6
+
+As with Ruby, if you don't specify C<PERL6LIB>, you need to specify the
+library path within the program via the C<use lib> pragma:
+
+    # Ruby and Perl 6
+    use lib '/some/module/lib';
+
 =head2 Misc.
 
 =head3 Importing specific functions from a module
@@ -933,9 +927,7 @@ Some modules allow for selectively importing funcitons, which would look like:
     foo(1);        #=> "foo 1"
     bar(2);        # Error!
 
-=head2 Core modules
-
-=head4 C<OptionParser>
+=head3 C<OptionParser>, parsing command-line flags
 
 Command line argument switch parsing in Perl 6 is done by the parameter list of
 the C<MAIN> subroutine.
@@ -987,9 +979,20 @@ the C<MAIN> subroutine.
 Note that Perl 6 auto-generates a full usage message on error in
 command-line parsing.
 
-=head2 Automated Translation
+=head2 RubyGems, External Libraries
 
-There are currently no automated translation tools from Ruby to Perl 6.
+See L<https://modules.perl6.org/>, where a growing number of Perl 6 libraries
+are available along with the tools to manage them.
+
+If the module that you were using has not been converted to Perl 6, and no
+alternative is listed in this document, then its use under Perl 6 may not
+have been addressed yet.
+
+You can experiment with L<Inline::Ruby|https://github.com/awwaiid/Inline-Ruby/>
+to call existing Ruby code from your Perl 6 programs. This uses an embedded
+instance of the C<ruby> interpreter to run Ruby code called from your Perl 6
+script. Note that this is an EXPERIMENTAL library. You can similarly call other
+language's libraries with Inline::Perl5, Inline::Python, and others.
 
 =end pod
 
