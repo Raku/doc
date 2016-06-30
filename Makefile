@@ -38,6 +38,6 @@ clean-images:
 	rm -f html/images/type-graph*
 
 clean-search:
-	rm html/js/search.js
+	rm -f html/js/search.js
 
 clean: clean-html clean-images clean-search
