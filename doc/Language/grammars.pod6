@@ -210,37 +210,34 @@ X<< <?> >>
 =head3 Always Succeed Assertion
 
 The C<< <?> >> is the I<always succeed> assertion. When used as a grammar
-token, it can be used to trigger an Action class method. In the following,
-admittedly convoluted, program we use a grammar we look for Arabic digits and
-define a C<succ> token with the always succeed assertion. In the action class
-convert an Arabic digits into a Devanagari digit for each digit found by
-grammar. In the C<succ> method, we print the converted number.
+token, it can be used to trigger an Action class method. In the following
+grammar we look for Arabic digits and define a C<succ> token with the always
+succeed assertion.
+
+In the action class, we use calles to the C<succ> method to do set up (in this
+case, we prepare a new element in C<@!numbers>). In the C<digit> method,
+we convert an Arabic digit into a Devanagari digit and add it to the last
+element of C<@!numbers>. Thanks to C<succ>, the last element will always be
+the number for the currently parsed C<digit> digits.
 
     grammar Digifier {
-        token TOP {
-            [ <digit>+ <.succ> <.ws> ]+
+        rule TOP {
+            [ <.succ> <digit>+ ]+
         }
-        token digit { <[0..9]>  }
-        token succ  { <?> }
+        token succ   { <?> }
+        token digit { <[0..9]> }
     }
 
     class Devanagari {
-        has $digit = '';
-        method digit ($/) { $digit ~= $/.ord.&[+](2358).chr }
-        method succ  ($)  {
-            say $digit;
-            $digit = '';
-        }
+        has @!numbers;
+        method digit ($/) { @!numbers[*-1] ~= $/.ord.&[+](2358).chr }
+        method succ  ($)  { @!numbers.push: ''     }
+        method TOP   ($/) { make @!numbers[^(*-1)] }
     }
 
-    Digifier.parse: '255 435 fail parsing here', actions => Devanagari.new;
-
+    say Digifier.parse('255 435 777', actions => Devanagari.new).made;
     # OUTPUT:
-    # २५५
-    # ४३५
-
-Notice that even though the grammar's C<.parse> failed to match the entire
-string, we still parsed some of the things we were interested in.
+    # (२५५ ४३५ ७७७)
 
 =head2 Methods in Grammar
 
