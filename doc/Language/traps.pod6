@@ -1,0 +1,308 @@
+=begin pod
+
+=TITLE Traps to avoid
+
+=SUBTITLE Traps to avoid when getting started with Perl 6
+
+When learning a programming language, possibly with the background of being
+familiar with another programming language, there are always some things
+that can surprise you and might cost valuable time in debugging and
+discovery.
+
+This document aims to show common misconceptions.
+
+During the making of Perl 6 great pains were taken to get rid of warts in
+the syntax.  When you whack one wart, though, sometimes another pops up.  So
+a lot of time was spent finding the minimum number of warts or trying to put
+them where they would rarely be seen.  Because of this, Perl 6's warts are
+in different places than you may expect them to be when coming from another
+language.
+
+=head1 Objects
+
+=head2 Assigning to attributes
+
+Newcomers often think that, because attributes with accessors are declared
+as C<has $.x>, they can assign to C<$.x> inside the class. That's not the
+case.
+
+For example
+
+    use v6;
+    class Point {
+        has $.x;
+        has $.y;
+        method double {
+            $.x *= 2;   # WRONG
+            $.y *= 2;   # WRONG
+            self;
+        }
+    }
+
+    say Point.new(x => 1, y => -2).double.x
+
+dies with
+
+    Cannot modify an immutable Int
+
+in the first line marked with C<# WRONG>, because C<$.x>, short for C<$(
+self.x )>, is a call to a read-only accessor.
+
+The syntax C<has $.x> is short for something like C<has $!x; method x() {
+$!x }>, so the actual attribute is called C<$!x>, and a read-only accessor
+method is automatically generated.
+
+Thus the correct way to write method C<double> is
+
+        method double {
+            $!x *= 2;
+            $!y *= 2;
+            self;
+        }
+
+which operates on the attributes directly.
+
+=head2 BUILD prevents automatic attribute initialization from constructor arguments
+
+When you define your own C<BUILD> submethod, you must take care of
+initializing all attributes yourself. For example
+
+    use v6;
+    class A {
+        has $.x;
+        has $.y;
+        submethod BUILD {
+            $!y = 18;
+        }
+    }
+
+    say A.new(x => 42).x;       # Any
+
+leaves C<$!x> uninitialized, because the custom C<BUILD> doesn't initialize
+it.
+
+One possible remedy is to explicitly initialize the attribute in C<BUILD>:
+
+        submethod BUILD(:$x) {
+            $!y = 18;
+            $!x := $x;
+        }
+
+which can be shortened to:
+
+        submethod BUILD(:$!x) {
+            $!y = 18;
+        }
+
+Another, more general approach is to leave C<BUILD> alone, and hook into the
+C<BUILDALL> mechanism instead:
+
+    use v6;
+    class A {
+        has $.x;
+        has $.y;
+        method BUILDALL(|c) {
+            callsame;
+            $!y = 18;
+            self
+        }
+    }
+
+    say A.new(x => 42).x;       # 42
+
+(Note that C<BUILDALL> is a method, not a submethod. That's because by
+default, there is only one such method per class hierarchy, whereas C<BUILD>
+is explicitly called per class. Which also explains why you need the
+C<nextsame> inside C<BUILDALL>, but not inside C<BUILD>).
+
+=head1 Regexes
+
+=head2 Whitespace in Regexes does not match literally
+
+    $ perl6 -e "say 'a b' ~~ /a b/"
+    False
+
+Whitespace in regexes is, by default, considered an optional filler without
+semantics, just like in the rest of the Perl 6 language.
+
+Ways to match whitespace:
+
+=item C<\s> to match any one whitespace, C<\s+> to match at least one
+=item C<' '> (a blank in quotes) to match a single blank
+=item C<\t>, C<\n> for specific whitespace (tab, newline)
+=item C<\h>, C<\v> for horizontal, vertical whitespace
+=item C<<.ws>>, a built-in rule for whitespace that oftentimes does what
+      you actually want it to do
+=item with C<m:s/a b/> or C<m:sigspace/a b/>, the blank in the regexes
+      matches arbitrary whitespace
+
+=head1 Captures
+
+=head2 Containers versus values in a Capture
+
+Beginners might expect a variable in a C<Capture> to supply its current
+value when that C<Capture> is later used.  For example:
+
+    $ perl6 -e 'my $a = 2; say join ",", ($a, ++$a)'
+    3,3
+
+Here the C<Capture> contained the B<container> pointed to by C<$a> and the
+B<value> of the result of the expression C<++$a>.  Since the C<Capture> must
+be reified before C<&say> can use it, the C<++$a> may happen before C<&say>
+looks inside the container in C<$a> and so it may already be incremented.
+
+Instead, use an expression that produces a value when you want a value.
+
+    $ perl6 -e 'my $a = 2; say join ",", (+$a, ++$a)'
+    2,3
+
+=head1 Arrays
+
+=head2 Referencing the last element of an array
+
+In Perl 5 one could reference the last element of an array by asking for the
+"-1th" element of the array, e.g.:
+
+    my @array = qw{victor alice bob charlie eve};
+    say @array[-1];    #->  eve
+
+In Perl 6 it is not possible to use negative subscripts, however the same is
+achieved by actually using a function, namely C<*-1>.  Thus accessing the
+last element of an array becomes:
+
+    my @array = qw{victor alice bob charlie eve};
+    say @array[*-1];   #->  eve
+
+=head2 Typed Array parameters
+
+Quite often new users will happen to write something like:
+
+    sub foo(Array @a) { ... }
+
+...before they have gotten far enough in the documentation to realize that
+this is asking for an Array of Arrays.  To say that C<@a> should only accept
+Arrays, use instead:
+
+    sub foo(@a where Array) { ... }
+
+It is also common to expect this to work, when it does not:
+
+    sub bar(Int @a) { 42.say };
+    bar([1, 2, 3]);             #-> expected Positional[Int] but got Array
+
+The problem here is that [1, 2, 3] is not an C<Array[Int]>, it is a plain
+old Array that just happens to have Ints in it.  To get it to work,
+the argument must also be an C<Array[Int]>.
+
+    my Int @b = 1, 2, 3;
+    bar(@b);                    #-> 42
+    bar(Array[Int].new(1, 2, 3));
+
+This may seem inconvenient, but on the upside it moves the type-check
+on what is assigned to C<@b> to where the assignment happens, rather
+than requiring every element to be checked on every call.
+
+=head1 Strings
+
+=head2 Capitalizing a string
+
+In Perl 5 one could capitalize a string by using the C<ucfirst> function
+
+    say ucfirst "alice"; #-> Alice
+
+The C<ucfirst> function does not exist in Perl 6; one needs to use the
+C<tc> method:
+
+    say "alice".tc;      #-> Alice
+
+which is equivalent to
+
+    say tc "alice";      #-> Alice
+
+Here, C<tc> means "title case".
+
+=head2 Strings are not iterable
+
+There are methods that Str inherits from Any that work on iterables like lists. Iterators on Strings contain one element that is the whole string. To use C<sort>, C<reverse> and friends, you need to split the string into a list first.
+
+    say "cba".sort;              #   cba (what is wrong)
+    say "cba".comb.sort.join;    #   abc
+
+=head1 Operators
+
+Some operators commonly shared among other languages were repurposed in Perl 6 for other, more common, things:
+
+=head2 Junctions
+
+The C<^>, C<|>, and C<&> are I<not> bitwise operators, they create L<Junctions|/type/Junction>. The corresponding
+bitwise operators in Perl 6 are: C<+^>, C<+|>, C<+&> for integers and C<?^>, C<?|>, C<?&> for booleans.
+
+=head1 Common Precedence Mistakes
+
+=head2 Adverbs and Precedence
+
+Adverbs do have a precedence that may not follow the order of operators that is displayed on your screen. If two operators of equal precedence are followed by an adverb it will pick the first operator it finds in the abstract syntax tree. Use parentheses to help Perl 6 understand what you mean or use operators with looser precedence.
+
+    my %x = a => 42;
+    say !%x<b>:exists;            # dies with X::AdHoc
+    say %x<b>:!exists;            # this works
+    say !(%x<b>:exists);          # works too
+    say not %x<b>:exists;         # works as well
+    say True unless %x<b>:exists; # avoid negation altogether
+
+=head2 Ranges and Precedence
+
+The loose precedence of C<..> can lead to some errors.  It is usually best to parenthesize ranges when you want to operate on the entire range.
+
+    1..3.say    # says "3" (and warns about useless "..")
+    (1..3).say  # says "1..3"
+
+=head1 Subroutine and method calls
+
+Subroutine and method calls can be made using one of two forms:
+
+  foo(...); # function call form, where ... represent the required arguments
+  foo ...;  # list op form, where ... represent the required arguments
+
+The function call form can cause problems for the unwary when
+whitespace is added after the function or method name and before the
+opening parenthesis.
+
+First we consider functions with zero or one parameter:
+
+  sub foo() { say 'no arg' }
+  sub bar($a) { say "one arg: $a" }
+
+Then execute each with and without a space after the name:
+
+  foo();    # okay: no arg
+  foo ();   # FAIL: Too many positionals passed; expected 0 arguments but got 1
+  bar($a);  # okay: one arg: 1
+  bar ($a); # okay: one arg: 1
+
+Now declare a function of two parameters:
+
+  sub foo($a, $b) { say "two args: $a, $b" }
+
+Execute it with and without the space after the name:
+
+  foo($a, $b);  # okay: two args: 1, 2
+  foo ($a, $b); # FAIL: Too few positionals passed; expected 2 arguments but got 1
+
+The lesson is: "be careful with spaces following sub and method names
+when using the function call format."  As a general rule, good
+practice might be to avoid the space after a function name when using
+the function call format.
+
+Note that there are clever ways to eliminate the error with the
+function call format and the space, but that is bordering on hackery
+and will not be mentioned here.  For more information, consult
+L<Functions|/language/functions#Functions>.
+
+Finally, note that, currently, when declaring the functions whitespace
+may be used between a function or method name and the parentheses
+surrounding the parameter list without problems.
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6

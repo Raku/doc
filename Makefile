@@ -24,6 +24,20 @@ run:
 	@echo "Starting local server…"
 	perl app.pl daemon
 
-clean:
-	rm -rf html/*.html html/.*.html html/routine/ html/type/ html/op/ html/language/ html/syntax/ html/images/type-graph* html/js/search.js
+clean-html:
+	rm -rf html/*.html html/.*.html \
+		html/language/ \
+		html/op/ \
+		html/programs/ \
+		html/routine/ \
+		html/syntax/ \
+		html/type/ \
+		$(NULL)
 
+clean-images:
+	rm -f html/images/type-graph*
+
+clean-search:
+	rm -f html/js/search.js
+
+clean: clean-html clean-images clean-search

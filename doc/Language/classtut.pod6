@@ -1,0 +1,658 @@
+=begin pod
+
+=TITLE Classes and Objects
+
+=SUBTITLE A tutorial for creating and using classes in Perl 6
+
+=comment More descriptive title?
+
+Perl 6 has a rich built in syntax for the definition and use of classes
+for object oriented programming, allowing for the definition of state
+(as L<attributes|#State>,) and behaviour (as L<methods|#Methods>,)
+in the objects of a class.
+
+A simple class is provided with a default constructor, that allows the
+setting of the attributes of the created object:
+
+    =begin code
+    class Point {
+        has Int $.x;
+        has Int $.y;
+    }
+
+    class Rectangle {
+        has Point $.lower;
+        has Point $.upper;
+
+        method area() returns Int {
+            ($!upper.x - $!lower.x) * ( $!upper.y - $!lower.y);
+        }
+    }
+
+    # Create a new Rectangle from two Points
+    my $r = Rectangle.new(lower => Point.new(x => 0, y => 0), upper => Point.new(x => 10, y => 10));
+
+    say $r.area(); # -> 100
+    =end code
+
+You are free, though, to provide your own construction and build
+implementation.  The following, more elaborate, example shows how
+a dependency handler might look in Perl 6.  It showcases custom
+constructors, private and public attributes, methods and various aspects
+of signatures. It's not very much code, and yet the result is interesting
+and, at times, useful.
+
+    =begin code
+    class Task {
+        has      &!callback;
+        has Task @!dependencies;
+        has Bool $.done;
+
+        # Normally doesn't need to be written
+        # BUILD is the equivalent of a constructor in other languages
+        method new(&callback, *@dependencies) {
+            return self.bless(:&callback, :@dependencies);
+        }
+
+        submethod BUILD(:&!callback, :@!dependencies) { }
+
+        method add-dependency(Task $dependency) {
+            push @!dependencies, $dependency;
+        }
+
+        method perform() {
+            unless $!done {
+                .perform() for @!dependencies;
+                &!callback();
+                $!done = True;
+            }
+        }
+    }
+
+    my $eat =
+        Task.new({ say 'eating dinner. NOM!' },
+            Task.new({ say 'making dinner' },
+                Task.new({ say 'buying food' },
+                    Task.new({ say 'making some money' }),
+                    Task.new({ say 'going to the store' })
+                ),
+                Task.new({ say 'cleaning kitchen' })
+            )
+        );
+
+    $eat.perform();
+    =end code
+
+=head1 Starting with class
+
+X<|class>
+X<|classes>
+
+X<|state>
+X<|has>
+X<|classes, has>
+X<|behavior>
+X<|classes, behavior>
+
+Perl 6, like many other languages, uses the C<class> keyword to introduce a
+new class.  The block that follows may contain arbitrary code, just as with
+any other block, but classes commonly contain state and behavior
+declarations.  The example code includes attributes (state), introduced
+through the C<has> keyword, and behaviors introduced through the C<method>
+keyword.
+
+X<|type object>
+X<|defined>
+X<|.defined>
+
+Declaring a class creates a I<type object> which, by default, is installed
+into the current package (just like a variable declared with C<our> scope).
+This type object is an "empty instance" of the class.  You've already seen
+these in previous chapters. For example, types such as C<Int> and C<Str>
+refer to the type object of one of the Perl 6 built-in classes. The example
+above uses the class name C<Task> so that other code can refer to it later,
+such as to create class instances by calling the C<new> method.
+
+Type objects are I<undefined>, in the sense that they return C<False> if you
+call the C<.defined> method on them. You can use this method to find out if
+a given object is a type object or not:
+
+    my $obj = Int;
+    if $obj.defined {
+        say "Ordinary, defined object";
+    } else {
+        say "Type object";
+    }
+
+=head1 State
+
+X<|attributes>
+X<|classes, attributes>
+
+X<|encapsulation>
+X<|classes, encapsulation>
+
+The first three lines inside the class block all declare attributes (called
+I<fields> or I<instance storage> in other languages).  These are storage
+locations that every instance of a class will obtain.  Just as a C<my>
+variable cannot be accessed from outside its declared scope, attributes are
+not accessible outside of the class.  This I<encapsulation> is one of the
+key principles of object oriented design.
+
+The first declaration specifies instance storage for a callback -- a bit of
+code to invoke in order to perform the task that an object represents:
+
+    has &!callback;
+
+X<|sigils, &>
+X<|twigils>
+X<|twigils, !>
+
+The C<&> sigil indicates that this attribute represents something invocable.
+The C<!> character is a I<twigil>, or secondary sigil.  A twigil forms part
+of the name of the variable.  In this case, the C<!> twigil emphasizes that
+this attribute is private to the class.
+
+The second declaration also uses the private twigil:
+
+    has Task @!dependencies;
+
+However, this attribute represents an array of items, so it requires the
+C<@> sigil. These items each specify a task that must be completed before
+the present one can complete. Furthermore, the type declaration on this
+attribute indicates that the array may only hold instances of the C<Task>
+class (or some subclass of it).
+
+The third attribute represents the state of completion of a task:
+
+    has Bool $.done;
+
+X<|twigils, .>
+X<|twigils, accessors>
+X<|accessor methods>
+X<|classes, accessors>
+
+This scalar attribute (with the C<$> sigil) has a type of C<Bool>.  Instead
+of the C<!> twigil, the C<.> twigil is used. While Perl 6 does enforce
+encapsulation on attributes, it also saves you from writing accessor
+methods.  Replacing the C<!> with a C<.> both declares the attribute
+C<$!done> and an accessor method named C<done>. It's as if you had written:
+
+    has Bool $!done;
+    method done() { return $!done }
+
+Note that this is not like declaring a public attribute, as some languages
+allow; you really get I<both> a private storage location and a method,
+without having to write the method by hand. You are free instead to write
+your own accessor method, if at some future point you need to do something
+more complex than return the value.
+
+Note that using the C<.> twigil has created a method that will provide
+read-only access to the attribute. If instead the users of this object
+should be able to reset a task's completion state (perhaps to perform it
+again), you can change the attribute declaration:
+
+    has Bool $.done is rw;
+
+X<|traits, is rw>
+
+The C<is rw> trait causes the generated accessor method to return something
+external code can modify to change the value of the attribute.
+
+You can also supply default values to attributes (which works equally for
+those with and without accessors):
+
+    has Bool $.done = False;
+
+The assignment is carried out at object build time. The right-hand side is
+evaluated at that time, and can even reference earlier attributes:
+
+    has Task @!dependencies;
+    has $.ready = not @!dependencies;
+
+=head1 Static fields?
+
+Perl 6 has no B<static> keyword. Nevertheless any class may declare anything
+that a module can, so making a scoped variable sounds like good idea.
+
+       =begin code
+
+       class Singleton {
+           my Singleton $instance;
+           method new {!!!}
+           submethod instance {
+               $instance = Singleton.bless unless $instance;
+               $instance;
+           }
+       }
+
+       =end code
+
+Class attributes defined by L<my|/syntax/my> or L<our|/syntax/our> may also be initialized when
+being declared, however we are implementing the Singleton pattern here and
+the object must be created during its first use. It is not 100% possible to
+predict the moment when attribute initialization will be executed, because
+it can take place during compilation, runtime or both, especially when
+importing the class using the L<use|/syntax/use> keyword.
+
+    class HaveStaticAttr {
+          my Foo $.foo = some_complicated_subroutine;
+    }
+
+Class attributes may also be declared with a secondary sigil -- in a similar
+manner to object attributes -- that will generate read-only accessors if the
+attribute is to be public.
+
+=head1 Methods
+
+X<|methods>
+X<|classes, methods>
+
+While attributes give objects state, methods give objects behaviors.  Let's
+ignore the C<new> method temporarily; it's a special type of method.
+Consider the second method, C<add-dependency>, which adds a new task to a
+task's dependency list.
+
+    method add-dependency(Task $dependency) {
+        push @!dependencies, $dependency;
+    }
+
+X<|invocant>
+
+In many ways, this looks a lot like a C<sub> declaration. However, there are
+two important differences. First, declaring this routine as a method adds it
+to the list of methods for the current class.  Thus any instance of the
+C<Task> class can call this method with the C<.> method call operator.
+Second, a method places its invocant into the special variable C<self>.
+
+The method itself takes the passed parameter -- which must be an instance of
+the C<Task> class -- and C<push>es it onto the invocant's C<@!dependencies>
+attribute.
+
+The second method contains the main logic of the dependency handler:
+
+    method perform() {
+        unless $!done {
+            .perform() for @!dependencies;
+            &!callback();
+            $!done = True;
+        }
+    }
+
+It takes no parameters, working instead with the object's attributes. First,
+it checks if the task has already completed by checking the C<$!done>
+attribute.  If so, there's nothing to do.
+
+X<|operators, .>
+
+Otherwise, the method performs all of the task's dependencies, using the
+C<for> construct to iterate over all of the items in the C<@!dependencies>
+attribute.  This iteration places each item -- each a C<Task> object -- into
+the topic variable, C<$_>.  Using the C<.> method call operator without
+specifying an explicit invocant uses the current topic as the invocant.
+Thus the iteration construct calls the C<.perform()> method on every C<Task>
+object in the C<@!dependencies> attribute of the current invocant.
+
+After all of the dependencies have completed, it's time to perform the
+current C<Task>'s task by invoking the C<&!callback> attribute directly;
+this is the purpose of the parentheses.  Finally, the method sets the
+C<$!done> attribute to C<True>, so that subsequent invocations of C<perform>
+on this object (if this C<Task> is a dependency of another C<Task>, for
+example) will not repeat the task.
+
+=head2 Private Methods
+
+Analogous to attributes, methods can be private. Private methods are declared
+with a prefixed exclamation mark. They are called with C<self!> followed by the
+method's name. To call a private method of another class the calling class has
+to be trusted by the called class. A trust relationship is declared with
+C<trusts> and the class to be trusted must already be declared. Calling a
+private method of another class requires an instance of that class and the
+fully qualified name of the method.  Trust also allows access to private attributes.
+
+    class B {...}
+
+    class C {
+        trusts B;
+        has $!hidden = 'invisible';
+        method !not-yours () { say 'hidden' }
+        method yours-to-use () {
+            say $!hidden;
+            self!not-yours();
+        }
+    }
+
+    class B {
+        method i-am-trusted () {
+            my C $c.=new;
+            $c!C::not-yours();
+        }
+    }
+
+    C.new.yours-to-use(); # the context of this call is GLOBAL, and not trusted by C
+    B.new.i-am-trusted();
+
+Trust relationships are not subject to inheritance. To trust the global
+namespace, the pseudo package C<GLOBAL> can be used.
+
+=head1 Constructors
+
+X<|constructors>
+
+Perl 6 is rather more liberal than many languages in the area of
+constructors.  A constructor is anything that returns an instance of the
+class.  Furthermore, constructors are ordinary methods. You inherit a
+default constructor named C<new> from the base class C<Mu>, but you are
+free to override C<new>, as this example does:
+
+    method new(&callback, *@dependencies) {
+        return self.bless(:&callback, :@dependencies);
+    }
+
+X<|objects, bless>
+X<|bless>
+
+The biggest difference between constructors in Perl 6 and constructors in
+languages such as C# and Java is that rather than setting up state on a
+somehow already magically created object, Perl 6 constructors actually
+create the object themselves. The easiest way to do this is by calling the
+L<bless> method, also inherited from L<Mu>. The C<bless> method expects a
+set of named parameters providing the initial values for each attribute.
+
+The example's constructor turns positional arguments into named arguments,
+so that the class can provide a nice constructor for its users. The first
+parameter is the callback (the thing which will execute the task). The rest
+of the parameters are dependent C<Task> instances.  The constructor captures
+these into the C<@dependencies> slurpy array and passes them as named
+parameters to C<bless> (note that C<:&callback> uses the name of the
+variable -- minus the sigil -- as the name of the parameter).
+
+X<|BUILD>
+
+Private attributes really are private. This means that C<bless> is not
+allowed to bind things to C<&!callback> and C<@!dependencies> directly. To
+do this, we override the C<BUILD> submethod, which is called on the brand
+new object by C<bless>:
+
+    submethod BUILD(:&!callback, :@!dependencies) { }
+
+Since C<BUILD> runs in the context of the newly created C<Task> object, it
+is allowed to manipulate those private attributes. The trick here is that
+the private attributes (C<&!callback> and C<@!dependencies>) are being used
+as the bind targets for C<BUILD>'s parameters. Zero-boilerplate
+initialization! See L<objects|/language/objects#Object_Construction> for
+more information.
+
+The C<BUILD> method is responsible for initializing all attributes, it must
+handle default values too:
+
+    has &!callback;
+    has @!dependencies;
+    has Bool ($.done, $.ready);
+    submethod BUILD(
+            :&!callback,
+            :@!dependencies,
+            :$!done = False,
+            :$!ready = not @!dependencies
+        ) { }
+
+See L<Object Construction|/language/objects#Object_Construction> for more
+options to influence object construction and attribute initialization.
+
+=head1 Consuming our class
+
+After creating a class, you can create instances of the class.  Declaring a
+custom constructor provides a simple way of declaring tasks along with their
+dependencies. To create a single task with no dependencies, write:
+
+    my $eat = Task.new({ say 'eating dinner. NOM!' });
+
+An earlier section explained that declaring the class C<Task> installed a
+type object in the namespace.  This type object is a kind of "empty
+instance" of the class, specifically an instance without any state.  You can
+call methods on that instance, as long as they do not try to access any
+state; C<new> is an example, as it creates a new object rather than
+modifying or accessing an existing object.
+
+Unfortunately, dinner never magically happens.  It has dependent tasks:
+
+    my $eat =
+        Task.new({ say 'eating dinner. NOM!' },
+            Task.new({ say 'making dinner' },
+                Task.new({ say 'buying food' },
+                    Task.new({ say 'making some money' }),
+                    Task.new({ say 'going to the store' })
+                ),
+                Task.new({ say 'cleaning kitchen' })
+            )
+        );
+
+Notice how the custom constructor and sensible use of whitespace allows a
+layout which makes task dependencies clear.
+
+Finally, the C<perform> method call recursively calls the C<perform> method
+on the various other dependencies in order, giving the output:
+
+    making some money
+    going to the store
+    buying food
+    cleaning kitchen
+    making dinner
+    eating dinner. NOM!
+
+=head1 Inheritance
+
+X<|is (inheritance)>
+
+Object Oriented Programming provides the concept of inheritance as one of
+the mechanisms to allow for code reuse.  Perl 6 supports the ability for one
+class to inherit from one or more classes.  When a class inherits from
+another class it informs the method dispatcher to follow the inheritance
+chain to look for a method to dispatch.  This happens both for standard
+methods defined via the method keyword and for methods generated through
+other means such as attribute accessors.
+
+    =begin code
+    class Employee {
+        has $.salary;
+
+        method pay() {
+            say "Here is \$$.salary";
+        }
+    }
+
+    class Programmer is Employee {
+        has @.known_languages is rw;
+        has $.favorite_editor;
+
+        method code_to_solve( $problem ) {
+            say "Solving $problem using $.favorite_editor in "
+            ~ $.known_languages[0] ~ '.';
+        }
+    }
+    =end code
+
+Now any object of type Programmer can make use of the methods and accessors
+defined in the Employee class as though they were from the Programmer class.
+
+    =begin code
+    my $programmer = Programmer.new(
+        salary => 100_000,
+        known_languages => <Perl5 Perl6 Erlang C++>,
+        favorite_editor => 'vim'
+    );
+
+    $programmer.code_to_solve('halting problem');
+    $programmer.pay();
+    =end code
+
+=head2 Overriding inherited methods
+
+Of course, classes can override methods and attributes defined by parent
+classes by defining their own.  The example below demonstrates the C<Baker>
+class overriding the C<Cook>'s C<cook> method.
+
+    =begin code
+    class Cook is Employee {
+        has @.utensils  is rw;
+        has @.cookbooks is rw;
+
+        method cook( $food ) {
+            say "Cooking $food";
+        }
+
+        method clean_utensils {
+            say "Cleaning $_" for @.utensils;
+        }
+    }
+
+    class Baker is Cook {
+        method cook( $confection ) {
+            say "Baking a tasty $confection";
+        }
+    }
+
+    my $cook = Cook.new(
+        utensils => <spoon ladle knife pan>,
+        cookbooks => 'The Joy of Cooking',
+        salary => 40000);
+
+    $cook.cook( 'pizza' ); # Cooking pizza
+
+    my $baker = Baker.new(
+        utensils => 'self cleaning oven',
+        cookbooks => "The Baker's Apprentice",
+        salary => 50000);
+
+    $baker.cook('brioche'); # Baking a tasty brioche
+    =end code
+
+Because the dispatcher will see the C<cook> method on C<Baker> before it
+moves up to the parent class the C<Baker>'s C<cook> method will be called.
+
+As a side note, you might have wondered how passing strings to an array
+attribute worked. Array assignment is coercive, so the assignment turns the
+new value into an array. This mechanism is also used for initializing
+attributes.
+
+=head2 Multiple inheritance
+
+As mentioned before, a class can inherit from multiple classes.  When a
+class inherits from multiple classes the dispatcher knows to look at both
+classes when looking up a method to search for.  Perl 6 uses the C3
+algorithm to linearize multiple inheritance hierarchies, which is a
+significant improvement over Perl 5's default approach
+(depth-first search) to handling multiple inheritance.
+
+    =begin code
+    class GeekCook is Programmer is Cook {
+        method new( *%params ) {
+            push( %params<cookbooks>, "Cooking for Geeks" );
+            return self.bless(|%params);
+        }
+    }
+
+    my $geek = GeekCook.new(
+        books           => 'Learning Perl 6',
+        utensils        => ('stainless steel pot', 'knife', 'calibrated oven'),
+        favorite_editor => 'MacVim',
+        known_languages => <Perl6>
+    );
+
+    $geek.cook('pizza');
+    $geek.code_to_solve('P =? NP');
+    =end code
+
+Now all the methods made available to the Programmer and the Cook classes
+are available from the GeekCook class.
+
+While multiple inheritance is a useful concept to know and occasionally use,
+it is important to understand that there are more useful OOP concepts.  When
+reaching for multiple inheritance it is good practice to consider whether
+the design wouldn't be better realized by using roles, which are generally
+safer because they force the class author to explicitly resolve conflicting
+method names.  For more information on roles see L<Roles|/language/objects#Roles>.
+
+=head2 The X<C<also>|also declarator> declarator
+
+Classes to be inherited from can be listed in the class declaration body by
+prefixing the C<is> trait with C<also>. This also works for the role
+composition trait C<does>.
+
+    class GeekCook {
+        also is Programmer;
+        also is Cook;
+        # ...
+    }
+
+    role A {};
+    role B {};
+    class C { also does A; also does B }
+
+=head1 Introspection
+
+Introspection is the process of gathering information about some objects in
+your program, not by reading the source code, but by querying the object (or
+a controlling object) for some properties, such as its type.
+
+Given an object C<$o>, and the class definitions from the previous sections,
+we can ask it a few questions:
+
+    if $o ~~ Employee { say "It's an employee" };
+    if $o ~~ GeekCook { say "It's a geeky cook" };
+    say $o.WHAT;
+    say $o.perl;
+    say $o.^methods(:local).join(', ');
+    say $o.^name;
+
+The output can look like this:
+
+    It's an employee
+    (Programmer)
+    Programmer.new(known_languages => ["Perl", "Python", "Pascal"],
+            favorite_editor => "gvim", salary => "too small")
+    code_to_solve, known_languages, favorite_editor
+    Programmer
+
+The first two tests each smart-match against a class name. If the object is
+of that class, or of an inheriting class, it returns true. So the object in
+question is of class C<Employee> or one that inherits from it, but not
+C<GeekCook>.
+
+The C<.WHAT> method returns the type object associated with the object
+C<$o>, which tells us the exact type of C<$o>: in this case C<Programmer>.
+
+C<$o.perl> returns a string that can be executed as Perl code, and
+reproduces the original object C<$o>. While this does not work perfectly in
+all casesN<For example closures cannot easily be reproduced this way; if you
+don't know what a closure is don't worry. Also current implementations have
+problems with dumping cyclic data structures this way, but they are expected
+to be handled correctly by C<.perl> at some point.>, it is very useful for
+debugging simple objects.
+
+C<$o.^methods(:local)> produces a list of L<Method|/type/Method>s that can be
+called on C<$o>. The C<:local> named argument limits the returned methods to
+those defined in the C<Employee> class and excludes the inherited methods.
+
+The syntax of calling a method with C<.^> instead of a single dot means that
+it is actually a method call on its I<meta class>, which is a class managing
+the properties of the C<Employee> class -- or any other class you are
+interested in. This meta class enables other ways of introspection too:
+
+    say $o.^attributes.join(', ');
+    say $o.^parents.map({ $_.^name }).join(', ');
+
+Finally C<$o.^name> calls the C<name> method on the meta object, which
+unsurprisingly returns the class name.
+
+Introspection is very useful for debugging, and for learning the language
+and new libraries. When a function or method returns an object you don't
+know about, finding its type with C<.WHAT>, seeing a construction recipe for
+it with C<.perl>, and so on, you'll get a good idea of what its return value
+is. With C<.^methods> you can learn what you can do with the class.
+
+But there are other applications too: a routine that serializes objects to a
+bunch of bytes needs to know the attributes of that object, which it can
+find out via introspection.
+
+=end pod

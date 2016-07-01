@@ -1,0 +1,110 @@
+=begin pod
+
+=TITLE class Junction
+
+=SUBTITLE Logical superposition of values
+
+    class Junction is Mu { }
+
+A junction is an unordered composite value of zero or more values. Junctions
+I<autothread> over many operations, which means that the operation
+is carried out for each junction element (also known as I<eigenstate>), and
+the result is junction of the return values of all those operators.
+
+Junctions collapse into a single value in boolean context. The semantics
+depend on the I<junction type>, which can be C<all>, C<any>, C<one> or
+C<none>.
+
+=begin table
+
+    type    constructor     operator    True if ...
+    ====    ===========     ========    ===========
+    all     all             &           no value evaluates to False
+    any     any             |           at least one value evaluates to True
+    one     one             ^           exactly one value evaluates to True
+    none    none                        no value evaluates to True
+
+=end table
+
+Autothreading happens when a junction is bound to a parameter of a code object
+that doesn't accept values of type C<Junction>. Instead of producing an error,
+the signature binding is repeated for each value of the junction.
+
+Example:
+
+    my $j = 1|2;
+    if 3 == $j + 1 {
+        say 'yes';
+    }
+
+First autothreads over the C<< infix:<+> >> operator, producing the Junction
+C<2|3>. The next autothreading step is over C<< infix:<==> >>, which produces
+C<False|True>. The C<if> conditional evaluates the junction in boolean
+context, which collapses it to C<True>. So the code prints C<yes\n>.
+
+Note that the compiler is allowed to parallelize and short-circuit
+autothreading (and Junction behavior in general), so it is usually an error
+to autothread junctions over code with side effects.
+
+Junctions are meant to be used as matchers in boolean context; introspection
+of junctions is not supported. If you feel the urge to introspect a junction,
+use a L<Set> or a related type instead.
+
+Usage examples:
+
+    my @bool_or_int = grep Bool|Int, @list;
+
+    sub is_prime(Int $x) returns Bool {
+        # 'so' is for boolean context
+        so $x %% none(2..$x.sqrt);
+    }
+    my @primes_ending_in_1 = grep &is_prime & / 1$ /, 2..100;
+    say @primes_ending_in_1;        # 11 31 41 61 71
+
+    my @exclude = <~ .git>;
+    for dir(".") { say .Str if .Str.ends-with(none @exclude) }
+
+Special care should be taken when using C<all> with arguments that may
+produce an empty list:
+
+    my @a = ();
+    so all(@a) # True, because there are 0 False's
+
+To express "all, but at least one", you can use C<@a && all(@a)>
+
+    say so @a && all(@a);   # False
+
+Negated operators are special-cased when it comes to autothreading.
+C<$a !op $b> is rewritten internally as C<!($a op $b)>. The outer
+negation collapses any junctions, so the return value always a plain
+L<Bool>.
+
+    my $word = 'yes';
+    my @negations = <no none never>;
+    if $word !eq any @negations {
+        say '"yes" is not a negation';
+    }
+
+Note that without this special-casing, an expression like
+C<$word ne any @words> would always evaluate to C<True> for non-trivial lists
+on one side.
+
+For this purpose, C<< infix:<ne> >> counts as a negation of C<< infix:<eq> >>.
+
+In general it is more readable to use a positive comparison operator and
+a negated junction:
+
+    my $word = 'yes';
+    my @negations = <no none never>;
+    if $word eq none @negations {
+        say '"yes" is not a negation';
+    }
+
+
+=head1 See Also
+
+=item L<http://perlgeek.de/blog-en/perl-5-to-6/08-junctions.html>
+=item L<http://perl6maven.com/perl6-is-a-value-in-a-given-list-of-values>
+=item L<https://perl6advent.wordpress.com/2009/12/13/day-13-junctions/>
+
+=end pod

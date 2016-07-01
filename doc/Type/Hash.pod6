@@ -1,0 +1,429 @@
+=begin pod
+
+=TITLE class Hash
+
+=SUBTITLE Mapping from strings to itemized values
+
+    class Hash is Map { }
+
+A Hash is a mutable mapping from keys to values (called I<dictionary>,
+I<hash table> or I<map> in other programming languages). The values are
+all scalar containers, which means you can assign to them.
+
+Hashes are usually stored in variables with the percent C<%> sigil.
+
+Hash elements are accessed by key via the C<{ }> postcircumfix operator:
+
+    dd %*ENV{'HOME', 'PATH'};
+    # OUTPUT«("/home/camelia", "/usr/bin:/sbin:/bin")␤»
+
+The general L<Subscript|/language/subscripts> rules apply providing shortcuts
+for lists of literal strings, with and without interpolation.
+
+    my %h = oranges => 'round', bananas => 'bendy';
+    dd %h<oranges bananas>;
+    # OUTPUT«("round", "bendy")␤»
+    my $fruit = 'bananas';
+    dd %h«oranges $fruit»
+    OUTPUT«("round", "bendy")␤»
+
+You can add new pairs simply by assigning to an unused key:
+
+    my %h;
+    %h{'new key'} = 'new value';
+
+=head1 Hash assignment
+
+Assigning a list of elements to a hash variable first empties the variable,
+and then iterates the elements of the right-hand side. If an element is a
+L<Pair>, its key is taken as a new hash key, and its value as the new hash
+value for that key. Otherwise the value is coerced to L<Str> and used as a
+hash key, while the next element of the list is taken as the corresponding
+value.
+
+    my %h = 'a', 'b', c => 'd', 'e', 'f';
+    # same as
+    my %h = a => 'b', c => 'd', e => 'f';
+    # or
+    my %h = <a b c d e f>;
+
+If a L<Pair> is encountered where a value is expected, it is used as a
+hash value:
+
+    my %h = 'a', 'b' => 'c';
+    say %h<a>.WHAT;             # Pair();
+    say %h<a>.key;              # b
+
+If the same key appears more than once, the value associated with its last
+occurrence is stored in the hash:
+
+    my %h = a => 1, a => 2;
+    say %h<a>;                  # 2
+
+To assign to a variable without the C<%> sigil, you may use curly braces:
+
+    my $h = { a => 1, b => 2 }; # *See Note*
+    say $h.WHAT;                # Hash
+    say $h<a>;                  # 1
+
+B<NOTE:> If one or more values reference the topic variable, C<$_>, the
+right-hand side of the assignment will be interpreted as a L<Block|/type/Block.html>,
+not a Hash:
+
+    my @people = [
+        { id => "1A", firstName => "Andy", lastName => "Adams" },
+        { id => "2B", firstName => "Beth", lastName => "Burke" },
+        # ...
+    ];
+
+    sub lookup-user (Hash $h) { #`(Do something...) $h }
+
+    my @names = map {
+        my $query = { name => "$_<firstName> $_<lastName>" };
+        say $query.WHAT;       # Block
+        say $query<name>;      # ERROR: Type Block does not support associative indexing
+
+        lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
+    }, @people;
+
+Instead, you should either:
+
+=begin item
+1) use the C<%()> hash constructor:
+
+    my  $query = %( name => "$_<firstName> $_<lastName>" );
+    say $query.WHAT;         # Hash
+    say $query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+2) assign to a Hash type (C<%>) directly:
+
+    my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
+    say %query.WHAT;         # Hash
+    say %query<name>;        # Andy Adams, Beth Burke, etc.
+=end item
+
+=begin item
+or 3) simply avoid the issue altogether by explicitly providing a name for
+the topic variable:
+
+    my @names = map -> $person {
+        my $query = { name => "$person<firstName> $person<lastName>" };
+        say $query.WHAT;     # Hash
+        say $query<name>;    # Andy Adams, Beth Burke, etc.
+
+       lookup-user($query);
+    }, @people;
+=end item
+
+Even in the final case, however, specifying a Hash type (C<%>) is still the
+most idiomatic and unambiguous solution:
+
+    my @names = @people.map: -> $person {
+        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
+    };
+
+=head2 Non-string keys
+
+By default keys in C<{ }> are forced to strings. To compose a hash with
+non-string keys, use a colon prefix:
+
+    my $when = :{ (now) => "Instant", (DateTime.now) => "DateTime" };
+
+Note that with objects as keys, you cannot access non-string keys as strings:
+
+    :{ -1 => 41, 0 => 42, 1 => 43 }<0>  # Any
+    :{ -1 => 41, 0 => 42, 1 => 43 }{0}  # 42
+
+=head1 Looping over hash keys and values
+
+A common idiom for processing the elements in a hash is to loop over the
+keys and values, for instance,
+
+    my %vowels = 'a' => 1, 'e' => 2, 'i' => 3, 'o' => 4, 'u' => 5;
+    for %vowels.kv -> $vowel, $index {
+      "$vowel: $index".say;
+    }
+
+gives output similar to this:
+
+    a: 1
+    e: 2
+    o: 4
+    u: 5
+    i: 3
+
+where we have used the C<kv> method to extract the keys and their respective
+values from the hash, so that we can pass these values into the loop.
+
+Note that the order of the keys and values printed cannot be relied upon;
+the elements of a hash are not always stored the same way in memory for
+different runs of the same program.  Sometimes one wishes to process the
+elements sorted on, e.g. the keys of the hash.  If one wishes to print the
+list of vowels in alphabetical order then one would write
+
+    my %vowels = 'a' => 1, 'e' => 2, 'i' => 3, 'o' => 4, 'u' => 5;
+    for %vowels.sort(*.key)>>.kv -> ($vowel, $index) {
+      "$vowel: $index".say;
+    }
+
+which prints
+
+    a: 1
+    e: 2
+    i: 3
+    o: 4
+    u: 5
+
+and is in alphabetical order as desired.  To achieve this result, we sorted
+the hash of vowels by key (C<%vowels.sort(*.key)>) which we then ask for its
+keys and values by applying the C<.kv> method to each element via the unary
+C< >> > hyperoperator resulting in a L<List> of key/value lists.  To extract
+the key/value the variables thus need to be wrapped in parentheses.
+
+An alternative solution is to flatten the resulting list.  Then the key/value
+pairs can be accessed in the same way as with plain C<.kv>:
+
+    my %vowels = 'a' => 1, 'e' => 2, 'i' => 3, 'o' => 4, 'u' => 5;
+    for %vowels.sort(*.key)>>.kv.flat -> $vowel, $index {
+      "$vowel: $index".say;
+    }
+
+
+=head2 Object hashes and type constraints
+
+Hash keys are stored as L<Str> values in a normal hash. In many cases this is
+sufficient, but sometimes you want the hash to preserve the objects you are using
+as keys I<as the *exact* objects you are providing to the hash to use as keys>.
+In these moments you want an object hash!
+
+  my %intervals{Instant};
+  my $first-instant = now;
+  %intervals{ $first-instant } = "Our first milestone.";
+  sleep 1;
+  my $second-instant = now;
+  %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
+  for %intervals.kv.sort(* cmp *) -> (Instant $instant, $note) {
+    state $last-instant //= $instant;
+    say "We noted '$note' at $instant, with an interval of {$instant - $last-instant}";
+    $last-instant = $instant;
+  }
+
+This example uses an object hash that only accepts keys of type L<Instant> to
+implement a rudimentary, yet type-safe, logging mechanism. We utilize a named L<state|/language/variables#The_state_Declarator>
+variable for keeping track of the previous C<Instant> so that we can provide an interval.
+
+The whole point of object hashes is to keep keys as objects-in-themselves.
+Currently object hashes utilize the L<WHICH|/routine/WHICH> method of an object, which returns a
+unique identifier for every mutable object. This is the keystone upon which the object
+identity operator (L<===>) rests. Order and containers really matter here as the order of
+C<.keys> is undefined and one anonymous list is never L<===> to another.
+
+  > ($first-instant, $second-instant) ~~ %intervals.keys
+  False
+  > ($first-instant, $second-instant) ~~ %intervals.keys.sort(* cmp *)
+  True
+  > ($first-instant, $second-instant) === %intervals.keys.sort(* cmp *)
+  False
+  > $first-instant === %intervals.keys.sort(* cmp *).index(0)
+  True
+
+Since C<Instant> defines its own comparison methods, in our example a sort according to
+L<cmp> will always provide the earliest instant object as the first element in the L<List>
+it returns.
+
+If you would like to accept any object whatsoever in your hash, you can use L<Any>!
+
+  my %h{Any};
+  %h{(now)} = "This is an Instant";
+  %h{(DateTime.now)} = "This is a DateTime, which is not an Instant";
+  %h{"completely different"} = "Monty Python references are neither DateTimes nor Instants";
+
+There is a more concise syntax which uses binding.
+
+  my %h := :{ (now) => "Instant", (DateTime.now) => "DateTime" }
+
+The binding is necessary because an object hash is about very solid, specific objects,
+which is something that binding is great at keeping track of but about which assignment doesn't
+concern itself much.
+
+=head2 In place editing of values
+
+There may be times when you would like to modify the values of a hash while iterating over them.
+
+    > my %answers = illuminatus => 23, hitchhikers => 42
+    hitchhikers => 42, illuminatus => 23
+    > for %answers.values -> $v { $v += 10 }
+    Cannot assign to a readonly variable or a value
+
+This is traditionally accomplished by sending both the key and the value as follows.
+
+    for %answers.kv -> $k,$v { %answers{$k} = $v + 10 }
+
+However, it is possible to leverage the signature of the block in order to specify that
+you would like read-write access to the values.
+
+    for %answers.values -> $v is rw { $v += 10 }
+
+It is not, however, possible to do in-place editing of hash keys, even in the case of object hashes.
+
+=head1 Methods
+
+=head2 method push
+
+Defined as:
+
+    multi method push(Hash:D: *@new)
+
+Usage:
+
+    push HASH, VALUES
+    HASH.push(VALUES)
+    HASH.push: (VALUES)
+
+Adds the C<@new> elements to the hash with the same semantics as hash
+assignment, but with three exceptions:
+
+=item The hash isn't emptied first, i.e. old pairs are not deleted.
+
+=item If a key already exists in the hash, and the corresponding value is an
+L<Array>, the new value is pushed onto the array (instead of replacing it).
+
+=item If a key already exists in the hash, and the corresponding value is not
+an L<Array>, old and new value are both placed into an array in the place
+of the old value.
+
+Example:
+
+    my %h  = a => 1;
+    %h.push: (a => 1);                  # a => [1,1]
+    %h.push: (a => 1) xx 3 ;            # a => [1,1,1,1,1]
+    %h.push: (b => 3);                  # a => [1,1,1,1,1], b => 3
+    %h.push('c' => 4);                  # a => [1,1,1,1,1], b => 3, c => 4
+    push %h, 'd' => 5;                  # a => [1,1,1,1,1], b => 3, c => 4, d => 5
+
+Be careful to quote the keys in the last two methods, as these have no effect:
+
+    %h.push(e => 6);
+    push %h, f => 7;
+
+because they are interpreted as named arguments to C<push>, not positional
+arguments.
+
+Also note that push can be used as a replacement for assignment during hash
+initialization very useful ways. Take for instance the case of an inverted
+index:
+
+    my %wc = 'hash' => 323, 'pair' => 322, 'pipe' => 323;
+    (my %inv).push: %wc.invert.unique;
+    say %inv;                           # 322 => 'pair', 323 => ['hash','pipe']
+
+Note that such a initialization could also be written as
+
+    my %inv .= push: %wc.invert.unique;
+
+=head2 method default
+
+Defined as:
+
+    method default
+
+Usage:
+
+    Hash.default
+
+Returns the default value of the invocant, i.e. the value which is returned
+when a non existing key is used to access an element in the C<Hash>.
+Unless the C<Hash> is declared as having a default value by using the
+L<is default|/routine/is default> trait the method returns the type object
+C<(Any)>.
+
+    my %h1 = 'apples' => 3, 'oranges' => 7;
+    say %h1.default;                                       # (Any)
+    say %h1{'bananas'};                                    # (Any)
+
+    my %h2 is default(1) = 'apples' => 3, 'oranges' => 7;
+    say %h2.default;                                       # 1
+    say %h2{'apples'} + %h2{'bananas'};                    # 4
+
+=head2 method keyof
+
+Defined as:
+
+    method keyof
+
+Usage:
+
+    Hash.keyof
+
+Returns the type constraint for the keys of the invocant. For
+normal hashes the method returns the coercion type C<(Str(Any))>
+while for L<object hashes|/type/Hash#Object_hashes_and_type_constraints>
+the type used in the declaration of the C<Hash> is returned.
+
+    my %h1 = 'apples' => 3, 'oranges' => 7;  # (no key type specified)
+    say %h1.keyof;                           # (Str(Any))
+
+    my %h2{Str} = 'oranges' => 7;            # (keys must be of type Str
+    say %h2.keyof;                           # (Str)
+    %h2{3} = 'apples';                       # throws exception of type X::TypeCheck::Binding
+
+=head2 method of
+
+Defined as:
+
+    method of
+
+Usage:
+
+    Hash.of
+
+Returns the type constraint for the values of the invocant. By default,
+i.e. if no type constraint is given during declaration, the method
+returns C<(Mu)>.
+
+    my %h1 = 'apples' => 3, 'oranges' => 7;  # (no type constraint specified)
+    say %h1.of;                              # (Mu)
+
+    my Int %h2 = 'oranges' => 7;             # (values must be of type Int)
+    say %h2.of;                              # (Int)
+
+=head1 Subscript Adverbs
+
+Some methods are implemented as adverbs on subscripts.
+
+=head2 C<:exists>
+
+The adverb C<:exists> returns C<Bool::True> if a key exists in the Hash. If more then one key is supplied it returns a C<List> of C<Bool>.
+
+    my %h = a => 1, b => 2;
+    say %h<a>:exists;   # True
+    say %h<a b>:exists; # (True True)
+
+=head2 C<:delete>
+
+Use C<:delete> to remove a C<Pair> from the C<Hash>.
+
+    my %h = a => 1;
+    dd %h;         # Hash %h = {:a(1)}
+    %h<a>:delete;
+    dd %h;         # Hash %h = {}
+
+=head2 C<:p>
+
+The adverb C<:p> returns a C<Pair> or a List of C<Pair> instead of just the value.
+
+    my %h = a => 1, b => 2;
+    say %h<a>:p;    # a => 1
+    say %h<a b>:p;  # (a => 1 b=> 2)
+
+=head2 C<:v> and C<:k>
+
+The adverbs C<:v> and C<:k> return the key or value or a list their of.
+
+    my %h = a => 1, b => 2;
+    say %h<a>:k;   # a
+    say %h<a b>:k;  # (a b)
+
+=end pod

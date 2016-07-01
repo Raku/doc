@@ -15,6 +15,20 @@ In other words, give each routine documentation a self-contained introduction,
 and only link to related/similar routines *below* that introduction, even if
 that means duplicating some half-sentences multiple times.
 
+##### Links to docs
+
+Try to avoid absolute URLs.
+
+    L<foo|/routine/foo>
+
+Works well.
+
+If you have to use the full URL in the docs or elsewhere, ensure the
+subdomain is `docs` and the protocol is `https://` (as in
+`https://docs.perl6.org/blah/blah`). Other variations of the URL will still
+work, for convenience, but they all simply redirect to the canonical version,
+so it's best to use it from the start.
+
 ### Language
 
 ##### 'parameter' vs 'argument'

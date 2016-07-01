@@ -1,0 +1,176 @@
+=begin pod
+
+=TITLE Packages
+
+=SUBTITLE Organizing and referencing namespaced program elements
+
+=begin comment
+
+* Take a lot of stuff from S02 for this
+* Document 'import'
+
+=end comment
+
+Packages are nested namespaces of named program elements. Modules, classes,
+grammars, and others are types of packages. Like files in a directory, you can
+generally refer to named elements with their short-name if they are local, or
+with a longer name to disambiguate.
+
+=head1 Names
+
+A I<name> is anything that is a legal part of a variable name (not counting the
+sigil). This includes:
+
+    $foo                # simple identifiers
+    $Foo::Bar::baz      # compound identifiers separated by ::
+    $Foo::($bar)::baz   # compound identifiers that perform interpolations
+    $42                 # numeric names
+    $!                  # certain punctuational variables
+
+C<::> is used to separate nested package names.
+
+=head2 Package-qualified names
+
+Ordinary package-qualified names look like:
+
+    $Foo::Bar::baz      # the $baz variable in package Foo::Bar
+
+Sometimes it's clearer to keep the sigil with the variable name, so an
+alternate way to write this is:
+
+    Foo::Bar::<$baz>
+
+This is resolved at compile time because the variable name is a constant.
+
+If the name part before C<::> is null, it means the package is unspecified and
+must be searched for. Generally this means that an initial C<::> following the
+main sigil is a no-op on names that are known at compile time, though C<::()>
+can also be used to introduce an interpolation. Also, in the absence of another
+sigil, C<::> can serve as its own sigil indicating intentional use of a
+not-yet-declared package name.
+
+=head1 Pseudo-packages
+
+The following pseudo-package names are reserved at the front of a name:
+
+    MY          # Symbols in the current lexical scope (aka $?SCOPE)
+    OUR         # Symbols in the current package (aka $?PACKAGE)
+    CORE        # Outermost lexical scope, definition of standard Perl
+    GLOBAL      # Interpreter-wide package symbols, really UNIT::GLOBAL
+    PROCESS     # Process-related globals (superglobals)
+    COMPILING   # Lexical symbols in the scope being compiled
+
+The following relative names are also reserved but may be used
+anywhere in a name:
+
+    CALLER      # Contextual symbols in the immediate caller's lexical scope
+    CALLERS     # Contextual symbols in any caller's lexical scope
+    DYNAMIC     # Contextual symbols in my or any caller's lexical scope
+    OUTER       # Symbols in the next outer lexical scope
+    OUTERS      # Symbols in any outer lexical scope
+    LEXICAL     # Contextual symbols in my or any outer's lexical scope
+    UNIT        # Symbols in the outermost lexical scope of compilation unit
+    SETTING     # Lexical symbols in the unit's DSL (usually CORE)
+    PARENT      # Symbols in this package's parent package (or lexical scope)
+    CLIENT      # The nearest CALLER that comes from a different package
+
+The file's scope is known as C<UNIT>, but there are one or more lexical scopes
+outside of that corresponding to the linguistic setting (often known as the
+prelude in other cultures). Hence, the C<SETTING> scope is equivalent to
+C<UNIT::OUTERS>. For a standard Perl program C<SETTING> is the same as C<CORE>,
+but various startup options (such as C<-n> or C<-p>) can put you into a domain
+specific language, in which case C<CORE> remains the scope of the standard
+language, while C<SETTING> represents the scope defining the DSL that functions
+as the setting of the current file. When used as a search term in the middle of
+a name, C<SETTING> includes all its outer scopes up to C<CORE>. To get I<only>
+the setting's outermost scope, use C<UNIT::OUTER> instead.
+
+=head1 Looking up names
+
+=head2 Interpolating into names
+
+X<|::()>
+You may interpolate a string into a package or variable name using
+C<::($expr)> where you'd ordinarily put a package or variable name. The
+string is allowed to contain additional instances of C<::>, which will be
+interpreted as package nesting. You may only interpolate entire names,
+since the construct starts with C<::>, and either ends immediately or is
+continued with another C<::> outside the parens. Most symbolic references
+are done with this notation:
+
+    $foo = "Bar";
+    $foobar = "Foo::Bar";
+    $::($foo)           # lexically-scoped $Bar
+    $::("MY::$foo")     # lexically-scoped $Bar
+    $::("OUR::$foo")    # package-scoped $Bar
+    $::("GLOBAL::$foo") # global $Bar
+    $::("PROCESS::$foo")# process $Bar
+    $::("PARENT::$foo") # current package's parent's $Bar
+    $::($foobar)        # $Foo::Bar
+    $::($foobar)::baz   # $Foo::Bar::baz
+    $::($foo)::Bar::baz # $Bar::Bar::baz
+    $::($foobar)baz     # ILLEGAL at compile time (no operator baz)
+
+An initial C<::> doesn't imply global. Here as part of the interpolation syntax
+it doesn't even imply package. After the interpolation of the C<::()>
+component, the indirect name is looked up exactly as if it had been there in
+the original source code, with priority given first to leading pseudo-package
+names, then to names in the lexical scope (searching scopes outwards, ending at
+C<CORE>). The current package is searched last.
+
+Use the C<MY> pseudopackage to limit the lookup to the current lexical scope,
+and C<OUR> to limit the scopes to the current package scope.
+
+=head2 Direct lookup
+
+To do direct lookup in a package's symbol table without scanning, treat the
+package name as a hash:
+
+    Foo::Bar::{'&baz'}  # same as &Foo::Bar::baz
+    PROCESS::<$IN>      # Same as $*IN
+    Foo::<::Bar><::Baz> # same as Foo::Bar::Baz
+
+Unlike C<::()> symbolic references, this does not parse the argument for
+C<::>, nor does it initiate a namespace scan from that initial point. In
+addition, for constant subscripts, it is guaranteed to resolve the symbol at
+compile time.
+
+The null pseudo-package is the same search list as an ordinary name search.
+That is, the following are all identical in meaning:
+
+    $foo
+    $::{'foo'}
+    ::{'$foo'}
+    $::<foo>
+    ::<$foo>
+
+Each of them scans lexical scopes outward, and then the current
+package scope (though the package scope is then disallowed when "strict" is
+in effect).
+
+As a result of these rules, you can write any arbitrary variable name as
+either of:
+
+    $::{'!@#$#@'}
+    ::{'$!@#$#@'}
+
+You can also use the C<< ::<> >> form as long as there are no spaces in the
+name.
+
+=head2 Package lookup
+
+Subscript the package object itself as a hash object, the key of which is
+the variable name, including any sigil. The package object can be derived
+from a type name by use of the C<::> postfix:
+
+    MyType::<$foo>
+
+=head1 Globals
+
+Interpreter globals live in the C<GLOBAL> package. The user's program
+starts in the C<GLOBAL> package, so "our" declarations in the mainline code
+go into that package by default. Process-wide variables live in the
+C<PROCESS> package. Most predefined globals such as C<$*UID> and C<$*PID>
+are actually process globals.
+
+=end pod

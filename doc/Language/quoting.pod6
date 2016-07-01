@@ -1,0 +1,287 @@
+=begin pod
+
+=TITLE Quoting Constructs
+
+=SUBTITLE Writing strings, word lists, and regexes in Perl 6
+
+=head1 The Q Lang
+
+Strings are usually represented in Perl 6 code using some form of quoting
+construct. The most minimalistic of these is C<Q>, usable via the shortcut
+C<｢…｣>, or via C<Q> followed by any pair of delimiters surrounding your
+text. Most of the time, though, the most you'll need is C<'…'> or C<"…">,
+described in more detail in the following sections.
+
+=head2 X<Literal strings: Q|quote,Q;quote,｢ ｣>
+
+=for code :allow<B>
+B<Q[>A literal stringB<]>
+B<｢>More plainly.B<｣>
+B<Q ^>Almost any non-word character can be a delimiter!B<^>
+
+Delimiters can be nested, but in the plain C<Q> form, backslash escapes
+aren't allowed.  In other words, basic C<Q> strings are as literal as
+possible.
+
+=for code :allow<B>
+Q<Make sure you B«<»matchB«>» opening and closing delimiters>
+Q{This is still a closing curly brace → B<\>}
+
+These examples produce:
+
+    A literal string
+    More plainly.
+    Almost any non-word character can be a delimiter!
+    Make sure you <match> opening and closing delimiters
+    This is still a closing curly brace → \
+
+The other quote forms add to this basic functionality:
+
+=head2 X<Escaping: q|quote,q;quote,' '>
+
+=for code :allow<B>
+B<'>Very plainB<'>
+B<q[>This backB<\s>lash staysB<]>
+B<q[>This backB<\\>slash staysB<]> # Identical output
+B<q{>This is not a closing curly brace → B<\}>, but this is → B<}>
+B<Q :q $>There are no backslashes here, only lots of B<\$>B<\$>B<\$>!B<$>
+B<'>(Just kidding. ThereB<\'>s no money in that string)B<'>
+B<'>No $interpolation {here}!B<'>
+B<Q:q!>Just a literal "\n" hereB<!>
+
+The C<q> form allows for escaping characters that would otherwise end the
+string using a backslash. The backslash itself can be escaped, too, as in
+the third example above. The usual form is C<'…'> or C<q> followed by a
+delimiter, but it's also available as an adverb on C<Q>, as in the fifth and
+last example above.
+
+These examples produce:
+
+    Very plain
+    This back\slash stays
+    This back\slash stays
+    This is not a closing curly brace → } but this is →
+    There are no backslashes here, only lots of $$$!
+    (Just kidding. There's no money in that string)
+    No $interpolation {here}!
+    Just a literal "\n" here
+
+=head2 X<Interpolation: qq|quote,qq;quote," ">
+
+=for code :allow<B L>
+my $color = 'blue';
+L<say> B<">My favorite color is B<$color>!B<">
+
+    My favorite color is blue!
+
+The C<qq> form -- usually written using double quotes -- allows for
+interpolation of variables, i.e., variables can be written within the string
+so that the content of the variable is inserted into the string. It is also
+possible to escape variables within a C<qq>-quoted string:
+
+=for code :allow<B>
+say B<">The B<\>$color variable contains the value '$color'B<">;
+
+    The $color variable contains the value 'blue'
+
+Another feature of C<qq> is the ability to interpolate Perl 6 code from
+within the string, using curly braces:
+
+=for code :allow<B L>
+my ($x, $y, $z) = 4, 3.5, 3;
+say "This room is B<$x> m by B<$y> m by B<$z> m.";
+say "Therefore its volume should be B<{ $x * $y * $z }> m³!";
+
+    This room is 4 m by 3.5 m by 3 m.
+    Therefore its volume should be 42 m³!
+
+By default, only variables with the C<$> sigil are interpolated normally.
+This way, when you write C<"documentation@perl6.org">, you aren't
+interpolating the C<@perl6> variable. If that's what you want to do, append
+a C<[]> to the variable name:
+
+=for code :allow<B>
+my @neighbors = "Felix", "Danielle", "Lucinda";
+say "@neighborsB<[]> and I try our best to coexist peacefully."
+
+    Felix Danielle Lucinda and I try our best to coexist peacefully.
+
+Often a method call is more appropriate.  These are allowed within C<qq>
+quotes as long as they have parentheses after the call. Thus the following
+code will work:
+
+=for code :allow<B L>
+say "@neighborsB<.L<join>(', ')> and I try our best to coexist peacefully."
+
+    Felix, Danielle, Lucinda and I try our best to coexist peacefully.
+
+However, C<"@example.com"> produces C<@example.com>.
+
+=head2 X«Word quoting: qw|quote,qw;quote,< >»
+
+=for code :allow<B L>
+B«<»a b cB«>» L<eqv> ('a', 'b', 'c')
+B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words
+B<Q:w {> [ ] \{ \} B<}> eqv ('[', ']', '{', '}')
+
+The C<:w> form, usually written C«<…>» or C<qw>, splits the string into
+"words".  In this context, words are defined as sequences of non-whitespace
+characters separated by whitespace.  The C<q:w> and C<qw> forms inherit the
+interpolation and escape semantics of the C<q> and single quote string
+delimiters, whereas C<Qw> and C<Q:w> inherit the non-escaping semantics of
+the C<Q> quoter.
+
+This form is used in preference to using many quotation marks and commas for
+lists of strings. For example, where you could write:
+
+    my @directions = 'left', 'right,', 'up', 'down';
+
+It's easier to write and to read this:
+
+    my @directions = <left right up down>;
+
+=head2 X<Word quoting with quote protection: qww|quote,qww>
+
+The C<qw> form of word quoting will treat quote characters literally, leaving them in the
+resulting words:
+
+    say qw{"a b" c}.perl; # ("\"a", "b\"", "c")
+
+Thus, if you wish to preserve quoted sub-strings as single items in the resulting words
+you need to use the C<qww> variant:
+
+    say qww{"a b" c}.perl; # ("a b", "c")
+
+=head2 X<Word quoting with interpolation: qqw|quote,qqw>
+
+The C<qw> form of word quoting doesn't interpolate variables:
+
+    my $a = 42; say qw{$a b c};  # $a b c
+
+Thus, if you wish for variables to be interpolated within the quoted string,
+you need to use the C<qqw> variant:
+
+    my $a = 42;
+    my @list = qqw{$a b c};
+    say @list;                # 42 b c
+
+=head2 X<<<Word quoting with interpolation and quote protection: qqww|quote,qqww;quote,<< >>;quote,« »>>>
+
+The C<qqw> form of word quoting will treat quote characters literally, leaving them in the
+resulting words:
+
+    my $a = 42; say qqw{"$a b" c}.perl; # ("\"42", "b\"", "c")
+
+Thus, if you wish to preserve quoted sub-strings as single items in the resulting words
+you need to use the C<qqww> variant:
+
+    my $a = 42; say qqww{"$a b" c}.perl; # ("42 b", "c")
+
+or equivalently:
+
+    my $a = 42; say <<"$a b" c>>.perl; # ("42 b", "c")
+    my $a = 42; say «"$a b" c».perl; # ("42 b", "c")
+
+=head2 X<Shell quoting: qx|quote,qx>
+
+To run a string as an external program, not only is it possible to pass the
+string to the C<shell> or C<run> functions but one can also perform shell
+quoting in a similar manner to the backticks a.k.a. C<qx> in Perl 5.  There
+are some subtleties to consider, however.  The backticks are no longer used
+for shell quoting in Perl 6 and the C<qx> quotes I<don't> interpolate Perl
+variables.  Thus
+
+    my $world = "there";
+    say qx{echo "hello $world"}
+
+prints simply C<hello>.  Nevertheless, if you have declared an environment
+variable before calling C<perl6>, this will be available within C<qx>, for
+instance
+
+    WORLD="there" perl6
+    > say qx{echo "hello $WORLD"}
+
+will now print C<hello there>.
+
+The result of calling C<qx> is returned, so this information can be assigned
+to a variable for later use:
+
+    my $output = qx{echo "hello!"};
+    say $output;    # hello!
+
+See also L<shell|/routine/shell>, L<run|/routine/run> and L<Proc::Async> for
+other ways to execute external commands.
+
+=head2 X<Shell quoting with interpolation: qqx|quote,qqx>
+
+If one wishes to use the content of a Perl variable within an external
+command, then the C<qqx> shell quoting construct should be used (this
+corresponds to Perl 5's C<qx>):
+
+    my $world = "there";
+    say qqx{echo "hello $world"};  # hello there
+
+Again, the output of the external command can be kept in a variable:
+
+    my $word = "cool";
+    my $option = "-i";
+    my $file = "/usr/share/dict/words";
+    my $output = qqx{grep $option $word $file};
+    # runs the command: grep -i cool /usr/share/dict/words
+    say $output;      # Cooley␤Cooley's␤Coolidge␤Coolidge's␤cool␤ ...
+
+See also L<shell|/routine/shell> and L<run|/routine/run> for other ways to
+execute external commands.
+
+=head2 X<Heredocs: :to|quote,heredocs :to>
+
+A convenient way to write multi-line string literals are I<heredocs>, which
+let you choose the delimiter yourself:
+
+=begin code
+say q:to/END/;
+Here is
+some multi-line
+string
+END
+=end code
+
+The contents of the heredoc only begin on the next line, so you can (and
+should) finish the line.
+
+=begin code
+my $escaped = my-escaping-function(q:to/TERMINATOR/, language => 'html');
+Here are the contents of the heredoc.
+Potentially multiple lines.
+TERMINATOR
+=end code
+
+If the terminator is indented, that amount of indention is removed from the
+string literals.  Therefore this heredoc
+
+=begin code
+say q:to/END/;
+    Here is
+    some multi line
+        string
+    END
+=end code
+
+produces this output:
+
+=begin code
+Here is
+some multi line
+    string
+
+
+=end code
+
+Heredocs include the newline from before the terminator.
+
+=head1 Regexes
+
+For information about quoting as applied in regexes see the L<regular
+expression documentation|/language/regexes>.
+
+=end pod

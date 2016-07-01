@@ -1,0 +1,515 @@
+=begin pod
+
+=TITLE Modules
+
+=SUBTITLE How to create, use and distribute Perl 6 modules
+
+=head1 Creating and Using Modules
+
+A module is usually a source file or set of source filesN<Technically
+a module is a set of I<compunits> which are usually files but could
+come from anywhere as long as there is a I<compunit repository> that
+can provide it. See L<S11|https://design.perl6.org/S11.html>.> that
+expose Perl 6 constructs. These are typically packages
+(L<classes|/language/objects#Classes>,
+L<roles|/language/objects#Roles>, L<grammars|Grammar>),
+L<subroutines|/language/functions>, and sometimes
+L<variables|/language/variables>. In Perl 6 I<module> can also refer
+to a type of package declared with the C<module> keyword (see example
+below) but here we mostly mean "module" as a set of source
+files in a namespace.
+
+=head2 Basic Structure
+
+Module distributions (in the I<set of related source files> sense) in Perl 6
+have the same structure as any distribution in the Perl family of languages:
+there is a main project directory containing a C<README> and a C<LICENSE> file,
+a C<lib> directory for the source filesE<mdash>which may be individually
+referred to as modules and/or may themselves define modules with the C<module>
+keywordN<As L<synopsis S11|https://design.perl6.org/S11.html#Units> says:
+Confusing? Yes it is.>, a C<t> directory for tests, and possibly a C<bin>
+directory for executable programs and scripts.
+
+Source files generally use the standard C<.pm> extension, and scripts or
+executables use C<.pl>.  However, if you wish to highlight that the file is
+written in Perl 6 you can use the C<.pm6> extension for modules, and the
+C<.p6> extension for scripts.  Test files still use the normal C<.t>
+extension.
+
+=head2 Loading and Basic Importing
+
+Loading a module makes the packages in the same namespace declared
+within available in the file scope of the loader. Importing from a
+module makes the symbols exported available in the lexical scope of
+the importing statement.
+
+=head3 X<need|compunit>
+
+C<need> loads a C<compunit> at compile time.
+
+    need MyModule;
+
+Any packages in the namespace defined within will also be available.
+
+    # MyModule.pm
+    unit module MyModule;
+
+    class MyModule::Class { ... }
+
+C<MyModule::Class> will be defined when C<MyModule> is loaded.
+
+=comment class Class { ... } won't get exported automatically on loading...not sure if bug or..
+
+=head3 X<use|compunit>
+
+C<use> loads and then imports from a compunit at compile time.
+
+    use MyModule;
+
+It is equivalent to:
+
+    =begin code :allow<L>
+    L<need|/language/modules#need> MyModule;
+    import MyModule;
+    =end code
+
+=head3 X<require|compunit>
+
+C<require> loads a compunit and imports definite symbols at runtime.
+
+    sub load-mymodule {
+       say "loading MyModule";
+       require MyModule;
+    }
+
+    load-mymodule();
+
+The compunit name can be in a runtime variable if you put it inside an
+indirect lookup.
+
+    sub load-a-module($name){
+       require ::($name);
+    }
+
+    load-a-module('MyModule');
+
+To import symbols you must define them at compile time.
+
+    sub do-something {
+       require MyModule <&something>;
+       something() # &something will be defined here
+    }
+
+    do-something();
+    # &something will not be defined here
+
+
+If C<MyModule> doesn't export C<&something> then it will fail.
+
+=head2 Exporting and Selective Importing
+
+=head3 is export
+
+Packages, subroutines, variables, constants and enums are exported by marking
+them with the L<is export> trait.
+
+    =begin code
+    unit module MyModule;
+    our $var is export = 3;
+    sub foo is export { ... };
+    constant $FOO is export = "foobar";
+    enum FooBar is export <one two three>;
+
+    # Packages like classes can be exported too
+    class MyClass is export {};
+
+    # If a subpackage is in the namespace of the current package
+    # it doesn't need to be explicitly exported
+    class MyModule::MyClass {};
+    =end code
+
+As with all traits, if applied to a routine, "is export" should appear after
+any argument list.
+
+    =begin code
+    sub foo(Str $string) is export { ... }
+    =end code
+
+You can pass named parameters to C<is export> to group symbols for exporting
+so that the importer can pick and choose. There are three predefined
+tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
+
+    =begin code
+    # lib/MyModule.pm
+    unit module MyModule;
+    sub bag        is export             { ... }
+    sub pants      is export(:MANDATORY) { ... }
+    sub sunglasses is export(:day)       { ... }
+    sub torch      is export(:night)     { ... }
+    sub underpants is export(:ALL)       { ... }
+    =end code
+
+    =begin code
+    # main.pl
+    use lib 'lib';
+    use MyModule;          #bag, pants
+    use MyModule :DEFAULT; #the same
+    use MyModule :day;     #pants, sunglasses
+    use MyModule :night;   #pants, torch
+    use MyModule :ALL;     #bag, pants, sunglasses, torch, underpants
+    =end code
+
+=head3 UNIT::EXPORT::*
+
+Beneath the surface, C<is export> is adding the symbols to a C<UNIT>
+scoped package in the C<EXPORT> namespace. For example, C<is
+export(:FOO)> will add the target to the C<UNIT::EXPORT::FOO>
+package. This is what Perl 6 is really using to decide what to import.
+
+    =begin code
+    unit module MyModule;
+
+    sub foo is export { ... }
+    sub bar is export(:other) { ... }
+    =end code
+
+Is the same as:
+
+    =begin code
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+        our sub foo { ... }
+    }
+
+    my package EXPORT::other {
+        our sub bar { ... }
+    }
+    =end code
+
+For most purposes C<is export> is sufficient but the C<EXPORT>
+packages are useful when you want to produce the exported symbols
+dynamically. For example:
+
+    =begin code
+    # lib/MyModule.pm
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+       for <zero one two three four>.kv -> $number, $name {
+          for <sqrt log> -> $func {
+             OUR::{'&' ~ $func ~ '-of-' ~ $name } := sub { $number."$func"() };
+          }
+       }
+    }
+
+    =end code
+
+    =begin code
+    # main.pl
+    use MyModule;
+    say sqrt-of-four; #-> 2
+    say log-of-zero;  #-> -Inf
+    =end code
+
+=head3 EXPORT
+
+You can export arbitrary symbols with an C<EXPORT> sub. C<EXPORT>
+must return a L<Map>, where the keys are the symbol names and
+the values are the desired values. The names should include the sigil
+(if any) for the associated type.
+
+    =begin code
+    # lib/MyModule.pm
+
+    class MyModule::Class { ... }
+
+    sub EXPORT {
+        {
+         '$var'   => 'one',
+         '@array' => <one two three>,
+         '%hash'  => { one => 'two', three => 'four' },
+         '&doit'   => sub { ... },
+         'ShortName' => MyModule::Class
+        }
+    }
+    =end code
+
+    =begin code
+    # main.pl
+    use lib 'lib';
+    use MyModule;
+    say $var;
+    say @array;
+    say %hash;
+    doit();
+    say ShortName.new; #-> MyModule::Class.new
+    =end code
+
+Note, C<EXPORT> can't be declared inside a package because
+presently Rakudo (2015.09) seems to treat C<EXPORT> as part of the
+compunit rather than the package.
+
+Whereas C<UNIT::EXPORT> packages deal with the named parameters passed
+to C<use>, the C<EXPORT> sub handles positional parameters. If you
+pass positional parameters to C<use> they will be passed to
+C<EXPORT>. If a positional is passed the module no longer exports
+default symbols. You may still import them explicitly by
+passing C<:DEFAULT> to C<use> along with your positional parameters.
+
+    =begin code
+    # lib/MyModule
+
+    class MyModule::Class {}
+
+    sub EXPORT($short_name?) {
+        {
+          do $short_name => MyModule::Class if $short_name
+        }
+    }
+
+    sub always is export(:MANDATORY) { say "works" }
+
+    #import with :ALL or :DEFAULT to get
+    sub shy is export { say "you found me!" }
+    =end code
+
+    =begin code
+    # main.pl
+    use lib 'lib';
+    use MyModule 'foo';
+    say foo.new(); #MyModule::Class.new
+    always();      #OK   - is imported
+    shy();         #FAIL - won't be imported
+    =end code
+
+You can combine `EXPORT` with type captures for interesting
+effect. This example creates a `?` postfix which will only work on
+L<Cool>s.
+
+    =begin code
+    # lib/MakeQuestionable.pm
+    sub EXPORT(::Questionable) {
+        my multi postfix:<?>(Questionable $_) { .so };
+        {
+          '&postfix:<?>' => &postfix:<?>,
+        }
+    }
+    =end code
+
+    =begin code
+    use MakeQuestionable Cool;
+    say 0?, 1?, {}?, { a => "b" }?; # False True False True
+    =end code
+
+=head2 Finding Modules
+
+A user may have a collection of modules not found in the normal
+ecosystem but needed regularly.  Instead of using the C<lib> pragma
+one can use the C<PERL6LIB> environment variable to point to module
+locations.  For example:
+
+    export PERL6LIB=/path/to/my-modules,/path/to/more/modules
+
+Note that the comma (',') is used as the directory separator (instead
+of the colon (':') as with Perl 5 for C<PERL5LIB> or C<PERLLIB>).
+
+=head1 Distributing Modules
+
+If you've written a Perl 6 module and would like to share it with the
+community, we'd be delighted to have it listed in the L<Perl 6 modules
+directory|https://modules.perl6.org>. C<:)>
+
+For now, the process requires that you use git for your module's version
+control.
+
+The instructions herein assume that you have a
+L<GitHub|https://github.com> account so that your module can be
+shared from its GitHub repository, however another provider such as
+L<GitLab|https://about.gitlab.com/> should work as long as it works in
+a similar way.
+
+To share your module, do the following:
+
+    =item Create a project directory named after your module. For
+    example, if your module is C<Vortex::TotalPerspective>, then create a
+    project directory named C<Vortex-TotalPerspective>. This project
+    directory name will also be used as the GitHub repo name.
+
+    =begin item
+    Make your project directory look like this:
+
+        Vortex-TotalPerspective/
+        |-- lib
+        |   `-- Vortex
+        |       `-- TotalPerspective.pm
+        |-- doc
+        |   `-- Vortex
+        |       `-- TotalPerspective.pod6
+        |-- LICENSE
+        |-- META6.json
+        |-- README.md
+        `-- t
+            `-- basic.t
+
+    If your project contains other modules that help the main module do
+    its job, they should go in your lib directory like so:
+
+        lib
+        `-- Vortex
+            |-- TotalPerspective.pm
+            `-- TotalPerspective
+                |-- FairyCake.pm
+                `-- Gargravarr.pm
+    =end item
+
+    =item If you have any additional files (such as templates or a dynamic
+    library) that you wish to have installed so you can access them at
+    runtime, they should be placed in a C<resources> sub-directory of your project.
+
+    =item The C<README.md> file is a L<markdown-formatted|https://help.github.com/articles/markdown-basics/>
+    text file, which will later be automatically rendered as HTML by GitHub.
+
+    =item Regarding the C<LICENSE> file, if you have no other preference,
+    you might just use the same one that Rakudo Perl 6 uses. Just
+    copy/paste the raw form of L<its license|https://github.com/rakudo/rakudo/blob/nom/LICENSE>
+    into your own C<LICENSE> file.
+
+    =item If you don't yet have any tests, you can leave out the C<t>
+    directory and C<basic.t> file for now. For more info on how to write
+    tests (for now), you might have a look at how other modules use
+    C<Test>. It's quite similar to Perl 5's C<Test::More>.
+
+    =item To document your modules, use L<Perl 6 Pod |
+    https://design.perl6.org/S26.html> markup inside your modules. Module
+    documentation is most appreciated and will be especially important once
+    the Perl 6 module directory (or some other site) begins rendering Pod docs
+    as HTML for easy browsing.
+    N«
+        Note, described above is a minimal project directory. If your project
+        contains scripts that you'd like distributed along with your module(s),
+        put them in a C<bin> directory. If you have extra docs (in addition to the
+        Pod docs in your module(s)), create a C<doc> directory for them. If you'd
+        like a graphical logo to appear next to your module at the module
+        directory, create a C<logotype> directory and put into it a C<logo_32x32.png>
+        file. At some point, you might also consider adding C<CONTRIBUTORS>, C<NEWS>,
+        C<TODO>, or other files.
+    »
+
+    =begin item
+    Make your C<META6.json> file look something like this:
+
+    =for code :allow<R>
+    {
+        "perl" : "6.c",
+        "name" : "Vortex::TotalPerspective",
+        "version" : "0.1.0",
+        "description" : "Wonderful simulation to get some perspective.",
+        "authors" : [ "R<Your Name>" ],
+        "provides" : {
+            "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.pm"
+        },
+        "depends" : [ ],
+        "resources" : [ ],
+        "source-url" : "git://github.com/R<you>/Vortex-TotalPerspective.git"
+    }
+
+    For choosing a version numbering scheme, perhaps use
+    "major.minor.patch" (see L<the spec on versioning |
+    https://design.perl6.org/S11.html#Versioning> for further
+    details). If the version number doesn't matter to you or your users
+    right now, you can just put in an asterisk (*) for the version.
+
+    The C<authors> section includes a list of all the module authors. In
+    the case there is only one author, a single element list must be
+    supplied.
+
+    In the C<provides> section, include all the namespaces provided by
+    your distribution and that you wish to be installed, only module
+    files that are explicitly included here will be installed and
+    available with C<use> or C<require> in other programs.
+
+    Set C<perl> version to the minimum perl version your module works with.
+
+    The C<resources> section is optional, but, if present, should contain a
+    list of the files in your C<resources> directory that you wish to be
+    installed, these will be installed with hashed names alongside your
+    library files and their installed location can be determined through the
+    C<%?RESOURCES> Hash indexed on the name provided.
+
+    The L<Test::META module | https://github.com/jonathanstowe/Test-META/>
+    can help you check the correctness of the META6.json file.
+
+    =end item
+
+    =item Put your project under git version control if you haven't done so
+    already.
+
+    =item Once you're happy with your project, create a repo for it at GitHub.
+    See L<GitHub's help docs|https://help.github.com/> if necessary. Your
+    GitHub repo should be named the same as your project directory. Immediately
+    after creating the GitHub repo, GitHub shows you how to configure your
+    local repo to know about your GitHub repo.
+
+    =item Push your project to GitHub.
+
+    =item Consider setting up automated testing (see L<https://docs.travis-ci.com/user/languages/perl6>).
+
+    =item Create a PR on L<ecosystem|https://github.com/perl6/ecosystem> adding
+    your module to META.list, or ping someone on IRC (#perl6 at freenode) to
+    get help having it added.
+
+    =item After the pull request has been accepted, wait for an hour. If
+    your module doesn't show up on L<https://modules.perl6.org/>, please
+    view the log file at L<https://modules.perl6.org/update.log> to see
+    if it identifies an error with your module or meta file.
+
+B<That's it! Thanks for contributing to the Perl 6 community!>
+
+If you'd like to try out installing your module, use the X<panda> module
+installer tool which is included with Rakudo Star Perl 6:
+
+=code panda install Vortex::TotalPerspective
+
+This will download your module to its own working directory (C<~/.panda>),
+build it there, and install the module into C<~/.perl6>.
+
+To use C<Vortex::TotalPerspective> from your scripts, just write
+C<use Vortex::TotalPerspective>, and your Perl 6 implementation will
+know where to look for the module file(s).
+
+=head1 Modules and Tools related to module authoring
+
+You can find a list of modules and tools that aim to improve the experience of
+writing/test modules at L<Modules Extra|/language/modules-extra>
+
+=head1 The Future of Ecosystem
+
+L<https://modules.perl6.org> and github-based infrastructure is temporary. The
+plan is to establish something similar to Perl 5's PAUSE/CPAN/MetaCPAN
+infrastructure. B<Volunteers needed!>
+
+The rough plan is:
+
+        1. fix EVAL precomp bug (nine)
+        2. get Repository API straight
+        3. get zef up to speed
+        4. continue with the metacpan fork for perl6 (jdv79)
+
+The repository with jdv's fork can be found at L<https://github.com/jdv/metacpan-web>
+
+You can also already upload your Perl 6 modules to
+L<Perl 5's PAUSE|https://pause.perl.org/>, selecting `Perl6` directory during the
+upload. That will ensure your module is indexed in Perl 6's space and not Perl 5's.
+
+=head2 Contact Information
+
+To help out or learn more, join the dedicated channel
+L<#perl6-toolchain on irc.freenode.net|irc://irc.freenode.net/#perl6-toolchain>
+L<(channel logs)|http://irclog.perlgeek.de/perl6-toolchain/today>. A repository
+to discuss tooling issues is also available at
+L<https://github.com/perl6/toolchain-bikeshed>
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6

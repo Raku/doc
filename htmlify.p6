@@ -15,7 +15,7 @@ use v6;
 # run htmlify, captures the output, and on success, syncs both the generated
 # files and the logs. In case of failure, only the logs are synchronized.
 #
-# The build logs are available at https://doc.perl6.org/build-log/
+# The build logs are available at https://docs.perl6.org/build-log/
 #
 
 BEGIN say 'Initializing ...';
@@ -186,7 +186,7 @@ sub extract-pod(IO() $file) {
 
     if not $handle {
         # precompile it
-        $precomp.precompile($file, $id);
+        $precomp.precompile($file, $id, :force);
         $handle = $precomp.load($id)[0];
     }
 
@@ -198,10 +198,10 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
 
     my @pod-sources =
         recursive-dir("doc/$dir/")
-        .grep({.path ~~ / '.pod' $/})
+        .grep({.path ~~ / '.pod6' $/})
         .map({
             .path.subst("doc/$dir/", '')
-                 .subst(rx{\.pod$},  '')
+                 .subst(rx{\.pod6$},  '')
                  .subst(:g,    '/',  '::')
             => $_
         }).sort(&sorted-by);
@@ -465,7 +465,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 @definitions = .[0].words[0,1];
             }
             when :(Str $ where {m/^trait\s+(\S+\s\S+)$/}) {
-                # Infix Foo
+                # trait Infix Foo
                 @definitions = .split(/\s+/, 2);
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
@@ -731,14 +731,14 @@ sub write-disambiguation-files() {
 sub write-index-files() {
     say 'Writing html/index.html and html/404.html...';
     spurt 'html/index.html',
-        p2h(extract-pod('doc/HomePage.pod'),
-            pod-path => 'HomePage.pod');
+        p2h(extract-pod('doc/HomePage.pod6'),
+            pod-path => 'HomePage.pod6');
 
     spurt 'html/404.html',
-        p2h(extract-pod('doc/404.pod'),
-            pod-path => '404.pod');
+        p2h(extract-pod('doc/404.pod6'),
+            pod-path => '404.pod6');
 
-    # sort prorams index by file name to allow author control of order
+    # sort programs index by file name to allow author control of order
     say 'Writing html/programs.html ...';
     spurt 'html/programs.html', p2h(pod-with-title(
         'Perl 6 Programs Documentation',
@@ -908,14 +908,14 @@ def p6format(code):
             spurt $tmp_fname, $node.contents.join;
             LEAVE try unlink $tmp_fname;
             my $command = "pygmentize -l perl6 -f html < $tmp_fname";
-            return qqx{$command};
+            qqx{$command};
         }
     }
 }
 
 #| Determine path to source POD from the POD object's url attribute
 sub pod-path-from-url($url) {
-    my $pod-path = $url.subst('::', '/', :g) ~ '.pod';
+    my $pod-path = $url.subst('::', '/', :g) ~ '.pod6';
     $pod-path.subst-mutate(/^\//, '');  # trim leading slash from path
     $pod-path = $pod-path.tc;
 
