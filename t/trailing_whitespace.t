@@ -14,13 +14,13 @@ for qx<git ls-files>.lines -> $file {
     push @files, $file;
 }
 
-plan +@files;  
+plan +@files;
 
 for @files -> $file {
     my $ok = True;
     for $file.IO.lines -> $line {
         if $line ~~ / \s $/ {
-           $ok = False; last; 
+           $ok = False; last;
         }
     }
     ok $ok, "no trailing whitespace in $file";
