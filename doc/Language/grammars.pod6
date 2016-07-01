@@ -205,6 +205,43 @@ It's perfectly fine to provide your own C<ws> token:
         token ws { \h*   }
     }.parse: "4   \n\n 5"; # Fails
 
+
+X<< <?> >>
+=head3 Always Succeed Assertion
+
+The C<< <?> >> is the I<always succeed> assertion. When used as a grammar
+token, it can be used to trigger an Action class method. In the following,
+admittedly convoluted, program we use a grammar we look for Arabic digits and
+define a C<succ> token with the always succeed assertion. In the action class
+convert an Arabic digits into a Devanagari digit for each digit found by
+grammar. In the C<succ> method, we print the converted number.
+
+    grammar Digifier {
+        token TOP {
+            [ <digit>+ <.succ> <.ws> ]+
+        }
+        token digit { <[0..9]>  }
+        token succ  { <?> }
+    }
+
+    class Devanagari {
+        has $digit = '';
+        method digit ($/) { $digit ~= $/.ord.&[+](2358).chr }
+        method succ  ($)  {
+            say $digit;
+            $digit = '';
+        }
+    }
+
+    Digifier.parse: '255 435 fail parsing here', actions => Devanagari.new;
+
+    # OUTPUT:
+    # २५५
+    # ४३५
+
+Notice that even though the grammar's C<.parse> failed to match the entire
+string, we still parsed some of the things we were interested in.
+
 =head2 Methods in Grammar
 
 It's fine to use methods instead of rules or tokens in a grammar, as long
