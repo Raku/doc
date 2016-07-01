@@ -1,0 +1,361 @@
+=begin pod
+
+=TITLE role IO
+
+=SUBTITLE Input/output related object
+
+    role IO { }
+
+The IO role provides no functionality itself; it simply marks that a
+particular object relates to input/output.
+
+=head1 Routines
+
+=head2 sub print
+
+Print the given text on C<$*OUT> (standard output), e.g.:
+
+    print "Hi there!\n";   # Hi there!
+
+Note that the C<print> function does I<not> (in contrast to some other
+languages) append a newline character to the text.  Thus the following code
+
+    print "Hi there!";
+    print "How are you?";
+    print (0..101).list;
+
+displays
+
+    Hi there!How are you?0123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101
+
+To print text implicitly including the trailing newline character, use
+L<say|/type/IO#sub_say>.
+
+=head2 sub put
+
+Print the given text on C<$*OUT> (standard output) with appended C<$*OUT.nl-out>. The default for the latter is the platform dependent newline sequence.
+
+    put 'Merry 1.0!';
+    put (0..101).list;
+
+outputs
+
+    Merry 1.0!␤
+    0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100 101␤
+
+=head2 sub say
+
+Print the given text in human readable form, followed by a C<$*OUT.nl-out> (platform dependent newline) on C<$*OUT> (standard output). Long output may be truncated. For machine readable output use C<put>.
+
+With C<say>, the example code as mentioned in the C<print> section will be
+displayed as the user likely intended:
+
+    say "Hi there!";
+    say "How are you?";
+    say (0..101).list;
+
+displays
+
+    Hi there!␤
+    How are you?␤
+    (0 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 ...)␤
+
+C<say> prints non-C<Str> objects by calling their C<.gist> method before
+printing.  Hence the following C<say> statements for the respective
+containers are equivalent:
+
+    my @array = qw{1 2 3 4};
+    say @array;       # 1 2 3 4␤
+    say @array.gist;  # 1 2 3 4␤
+
+    my %hash = "a" => 1, "b" => 2, "c" => 3;
+    say %hash;        # a => 1, b => 2, c => 3␤
+    say %hash.gist;   # a => 1, b => 2, c => 3␤
+
+=head2 sub note
+
+Print the given text, followed by a newline C<"\n"> on C<$*ERR> (standard
+error).  Before printing, call the C<.gist> method on any non-C<Str>
+objects.
+
+C<note> is effectively C<say>, only it writes its output to the standard
+error stream.  For instance:
+
+    if ("path/to/pirate/treasure".IO.e) {
+        say "Found pirate treasure!";
+    }
+    else {
+        note "Could not find pirate treasure.  Are you sure it exists?";
+    }
+
+will report (on the standard output stream) that treasure has been found if
+it exists or will note on the error stream that it couldn't be found if it
+doesn't exist.
+
+=head2 sub dd
+
+The Tiny Data Dumper.  This function takes the input list of variables and
+C<note>s them (on C<$*ERR>) in an easy to read format, along with the
+C<name> of the variable.  Thus,
+
+    my $a = 42;
+    my %hash = "a" => 1, "b" => 2, "c" => 3;
+    dd %hash, $a;
+
+prints
+
+    %hash = ("a" => 1, "c" => 3, "b" => 2).hash, $a = 42␤
+
+to the standard error stream.
+
+This is in spirit similar to Perl 5's L<Data::Dumper
+module|http://perldoc.perl.org/Data/Dumper.html>.
+
+Please note that C<dd> will ignore named parameters. You can use a capture to
+force it to dump everything passed to it.
+
+    dd \((:a(1), :b(2)), :c(3));
+
+If you don't specify any parameters at all, it will just print the type and
+name of the current subroutine / method to the standard error stream:
+
+    sub a { dd }; a    # sub a
+
+This can be handy as a cheap trace function.
+
+=head2 sub prompt
+
+    sub prompt($msg)
+
+Prints C<$msg> to standard output and waits for the user to type something
+and finish with an ENTER.  Returns the string typed in without the trailing
+newline.
+
+    my $name = prompt("Hi, what's your name? ");
+
+=head2 sub open
+
+    my $fh = open(IO::Path() $path, :$r, :$w, :$a, :$rw,
+                  :$bin, :$enc, :$nl, :$chomp)
+
+Opens the C<$path> (by default in text mode) with the given options,
+returning an L<IO::Handle> object.
+
+=head3 File mode options
+
+=item read-only mode, C<:r>
+
+Open the file as read only, e.g.:
+
+    my $fh = open("path/to/file", :r);
+
+This is the default mode for C<open>.
+
+Write-related methods on the returned C<IO::Handle> object will fail in this
+mode:
+
+    my $fh = open("test");   # the file "test" already exists
+    $fh.print("new text\n");
+    Failed to write bytes to filehandle: bad file descriptor
+
+=item write-only mode, C<:w>
+
+Open the file for writing, creating it if it doesn't exist or overwriting
+the file if it does exist, e.g.:
+
+    my $fh = open("path/to/file", :w);
+
+Read-related methods will fail in this mode:
+
+    my $fh = open("test", :w);
+    $fh.print("stuff\n");
+    $fh.print("more stuff\n");
+    $fh.seek(0, 0);   # return to the start of the file
+    $fh.get();        # Reading from filehandle failed: bad file descriptor
+
+=item read-write mode, C<:rw>
+
+Open the file for reading and writing, creating the file if it doesn't
+exist or overwriting the file if it already exists.
+
+    my $fh = open("path/to/file", :w);
+
+=item append mode, C<:a>
+
+Open the file for appending.  If the file does not exist, create it.  If the
+file already exists, append data to it.
+
+    my $fh = open("path/to/file", :a);
+
+=head3 Encoding options
+
+=item binary mode, C<:bin>
+
+Open the file in binary mode (byte mode):
+
+    my $fh = open("path/to/file", :bin);
+
+A file opened with C<:bin> may still be processed line-by-line, but IO will
+be in terms of L<Buf|/type/Buf> rather than L<Str|/type/Str> types.  Default
+is C<False>, implying text semantics.
+
+=item text mode encoding, C<:enc>
+
+The encoding to use if opened in text mode.
+
+    # open explicitly as utf8
+    my $fh = open("path/to/file", enc => "utf8");
+    my $fh = open("path/to/file", enc => "utf-8");  # this form also works
+    # open with latin1 encoding
+    my $fh = open("path/to/file", enc => "latin1");
+
+Defaults to "Unicode", which implies figuring out which actual UTF is in
+use, either from a BOM or other heuristics.  If heuristics are inconclusive,
+UTF-8 will be assumed.  (No 8-bit encoding will ever be picked implicitly.)
+There exists no valid option with the name "Unicode", so the following will
+result in an error:
+
+    my $fh = open("path/to/file", enc => "Unicode");
+
+This is because one needs to specify a specific unicode encoding, e.g.
+"utf8".
+
+=head3 Newline options
+
+=item end-of-line (EOL) marker, C<:nl>
+
+The marker used to indicate the end of a line of text.  Only used in text
+mode.  Defaults to "EOL", which implies accepting any combination of C<"\n">,
+C<"\r\n"> or C<"\r"> or any other Unicode character that has the C<Zl>
+(Separator, Line) property.
+
+    # explicitly use CR-LF as EOL character
+    my $fh = open("path/to/file", nl => "\r\n");
+
+=item chomp mode, C<:chomp>
+
+Whether or not to remove newline characters from text obtained with
+C<.lines> and C<.get>.  Defaults to C<True>.
+
+    # don't remove newline characters from input
+    my $fh = open("path/to/file", chomp => False);
+    say $fh.get();     # returns line including newline char
+
+=head2 method close
+
+To close an open file handle, simply call its
+L<close|/type/IO::Handle#method_close> method:
+
+    my $fh = open("path/to/file");
+    # ... do stuff with the file
+    $fh.close;
+
+It is also possible to call this as a sub, thus the example above can be
+written equivalently like so:
+
+    my $fh = open("path/to/file");
+    # ... do stuff with the file
+    close $fh;
+
+When a file was opened for writing, closing it is important to ensure that all
+contents are actually written to the file.
+
+=head2 sub slurp
+
+Slurps the contents of the entire file into a C<Str> (or C<Buf> if C<:bin>).
+Accepts C<:bin> and C<:enc> optional named parameters, with the same meaning
+as L<open()|/routine/open>.  The routine will C<fail> if the file does not
+exist, or is a directory.
+
+    # read entire file as (Unicode) Str
+    my $text_contents   = slurp "path/to/file";
+
+    # read entire file as Latin1 Str
+    my $text_contents   = slurp "path/to/file", enc => "latin1";
+
+    # read entire file as Buf
+    my $binary_contents = slurp "path/to/file", :bin;
+
+=head2 sub spurt
+
+    sub spurt($where, $what,
+        Str  :$enc        = $*ENC,
+        Bool :append      = False,
+        Bool :$createonly = False,
+        --> Bool ) is export
+
+Writes the indicated contents (2nd positional parameter, C<$what>) to the
+location indicated by the first positional parameter, C<$where> (which can
+either be a string or an C<IO::Path> object).  To write to an C<IO::Handle>,
+use the L<print> method.
+
+If a file needs to be opened for writing, it will also be C<close>d.  Returns
+C<True> on success, or the appropriate C<Failure> if something went wrong.
+
+These named parameters are optional and only have meaning if the first
+positional parameter was B<not> an C<IO::Handle>:
+
+=head3 Options
+
+=item :enc
+
+The encoding with which the contents will be written.
+
+=item :append
+
+Boolean indicating whether to append to a (potentially) existing file.  If
+the file did not exist yet, it will be created.  Defaults to C<False>.
+
+=item :createonly
+
+Boolean indicating whether to fail if the file already exists.  Defaults to
+C<False>.
+
+=head3 Examples
+
+    # write directly to a file
+    spurt "path/to/file", "default text, directly written";
+
+    # write directly with a non-Unicode encoding
+    spurt "path/to/latin1_file", "latin1 text: äöüß", enc => "latin1";
+
+    # append to a pre-existing file
+    spurt "file_already_exists", "some text";
+    spurt "file_already_exists", "new text", :append;
+    slurp "file_already_exists";   # some text␤new text
+
+    # fail when writing to a pre-existing file
+    spurt "file_already_exists", "new text", :createonly;
+    File 'test' already exists, and :createonly was specified
+
+=head2 sub run
+
+    sub run(*@args ($, *@)) returns Proc
+
+Runs an external command without involving a shell (if possible).
+
+See L<Proc|/type/Proc> for more details, for example on how to capture
+output.
+
+=head2 sub shell
+
+    sub shell($cmd) returns Proc
+
+Runs a command through the system shell. All shell meta characters are
+interpreted by the shell, including pipes, redirects, environment variable
+substitutions and so on. See L<run|/type/IO#sub_run> if you don't want that.
+
+The return value is of L<type Proc|/type/Proc>.
+
+    shell 'ls -lR | gzip -9 > ls-lR.gz';
+
+See L<Proc|/type/Proc> for more details, for example on how to capture
+output.
+
+=head1 Related classes
+
+See also the related classes L<IO::Handle> and L<IO::Path>.
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6

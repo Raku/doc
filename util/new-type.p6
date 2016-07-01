@@ -4,7 +4,7 @@ use v6;
 
 sub MAIN($typename, :$kind='class') {
     my @path-chunks =  $typename.split('::');
-    my $filename = @path-chunks.pop ~ '.pod';
+    my $filename = @path-chunks.pop ~ '.pod6';
     my $path = 'doc/Type';
     for @path-chunks -> $c {
         $path ~= "/$c";

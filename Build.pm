@@ -13,7 +13,7 @@ class Build {
         my @files = find(dir => "$workdir/doc", type => 'file').list;
 
         for @files -> $file {
-            next if $file.basename eq 'HomePage.pod';
+            next if $file.basename eq 'HomePage.pod6';
 
             my $rel-dest = $file.relative($doc-dir);
             my $abs-dest = IO::Path.new($rel-dest, :CWD($dest-pref)).absolute;

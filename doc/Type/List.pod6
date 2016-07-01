@@ -1,0 +1,1017 @@
+=begin pod
+
+=TITLE class List
+
+=SUBTITLE Sequence of values
+
+    my class List is Iterable does Positional { .. }
+
+C<List> stores items sequentially and potentially lazily.
+
+Indexes into lists and arrays start at 0 by default.
+
+You can assign to list elements if they are containers. Use
+Arrays to have every value of the list stored in a container.
+
+=head1 Items, Flattening and Sigils
+
+In Perl 6, assigning a C<List> to a scalar variable does not lose
+information. The difference is that iteration generally treats a
+list (or any other list-like object, like a L<Seq> or an L<Array>)
+inside a scalar as a single element, as long as it's part of another .
+
+    my @a = 1, 2, 3;
+    for @a { }      # three iterations
+
+    my $s = @a;
+    for $s { }      # one iteration
+    for @a.item { } # one iteration
+    for $s.list { } # three iterations
+
+Lists generally don't interpolate (flatten) into other lists, except
+when they are not itemized, and the single argument to an operation
+such as C<append>:
+
+    my @a = 1, 2, 3;
+    my @nested = @a, @a;           # two elements
+    my @flat = flat @a, @a;        # six elements, with explicit flat
+    my @b = 'a', 'b';
+    @b.append: @a;                 # @b now has 5 elements, because @a
+                                   # is the sole argument to append
+    my @c = 'a', 'b';
+    @c.append: $@a;                # @b now has 3 elements, because of the
+                                   # itemization with $
+    say @c.elems;
+
+C<.item> can often be written as C<$( ... )>, and on an array variable
+even as C<$@a>.
+
+The same flattening behavior applies all objects that do the
+L<Iterable|/type/Iterable> role, notable L<hashes|/type/Hash>:
+
+    my %h = a => 1, b => 2;
+    my @b = %h;   say @b.elems;     # 2
+    my @c = %h, ; say @c.elems;     # 1
+    my @d = $%h;  say @d.elems;     # 1
+
+Slurpy parameters (C<*@a>) flatten non-itemized sublists:
+
+    sub fe(*@flat) { @flat.elems }
+    say fe(<a b>, <d e>);           # 4
+    say fe(<a b>, <d e>.item);      # 3
+
+=head1 Methods
+
+=head2 routine elems
+
+Defined as:
+
+    multi sub    elems($list)  returns Int:D
+    multi method elems(List:D:) returns Int:D
+
+Usage:
+
+    elems LIST
+    LIST.elems
+
+Returns the number of elements in the list.
+
+=head2 routine end
+
+Defined as:
+
+    multi sub    end($list)  returns Int:D
+    multi method end(List:D:) returns Int:D
+
+Usage:
+
+    end LIST
+    LIST.end
+
+Returns the index of the last element.
+
+=head2 routine keys
+
+Defined as:
+
+    multi sub    keys($list)  returns Seq:D
+    multi method keys(List:D:) returns Seq:D
+
+Usage:
+
+    keys LIST
+    LIST.keys
+
+Returns a sequence of indexes into the list (e.g., 0..(@list.elems-1)).
+
+=head2 routine values
+
+Defined as:
+
+    multi sub    values($list)  returns Seq:D
+    multi method values(List:D:) returns Seq:D
+
+Usage:
+
+    values LIST
+    LIST.values
+
+Returns a sequence of the list elements, in order.
+
+=head2 routine kv
+
+Defined as:
+
+    multi sub    kv($list)  returns Seq:D
+    multi method kv(List:D:) returns Seq:D
+
+Usage:
+
+    kv LIST
+    LIST.kv
+
+Returns an interleaved sequence of indexes and values. For example
+
+    <a b c>.kv
+
+Returns
+
+    (0, 'a', 1, 'b', 2, 'c').Seq
+
+=head2 routine pairs
+
+Defined as:
+
+    multi sub    pairs($list)   returns Seq:D
+    multi method pairs(List:D:) returns Seq:D
+
+Usage:
+
+    pairs LIST
+    LIST.pairs
+
+Returns a sequence of pairs, with the indexes as keys and the list values as
+values.
+
+    <a b c>.pairs   # (0 => 'a', 1 => 'b', 2 => 'c').Seq
+
+=head2 routine join
+
+Defined as:
+
+    multi sub    join($separator, *@list) returns Str:D
+    multi method join(List:D: $separator) returns Str:D
+
+Usage:
+
+    join SEPARATOR, LIST
+    LIST.join(SEPARATOR)
+
+Treats the elements of the list as strings, interleaves them with
+C<$separator> and concatenates everything into a single string.
+
+Example:
+
+    join ', ', <a b c>;             # a, b, c
+
+Note that the method form does not flatten sublists:
+
+    say (1, <a b c>).join('|');     # 1|a b c
+
+=head2 routine map
+
+Defined as:
+
+    multi sub    map(&code, *@elems) returns Seq:D
+    multi method map(List:D: &code) returns Seq:D
+
+Usage:
+
+    map CODE, LIST
+    LIST.map(CODE)
+
+Invokes C<&code> for each element and gathers the return values in
+a sequence and returns it. This happens lazily, i.e. C<&code> is only invoked when
+the return values are accessed.
+
+Examples:
+
+    > ('hello', 1, 22/7, 42, 'world').map: { .WHAT.perl }
+    (Str Int Rat Int Str)
+    > map *.Str.chars, 'hello', 1, 22/7, 42, 'world'
+    (5 1 8 2 5)
+
+C<map> inspects the arity of the code object, and tries to pass as many
+arguments to it as expected:
+
+    sub b($a, $b) { "$a before $b" };
+    say <a b x y>.map(&b).join(', ');   # a before b, x before y
+
+iterates the list two items at a time.
+
+Note that C<map> does not flatten embedded lists and arrays, so
+
+    ((1, 2), <a b>).map({ .join(',')})
+
+passes C<(1, 2)> and C<< <a b> >> in turn to the block, leading to a total
+of two iterations and the result sequence C<"1,2", "a,b">.
+See L<method flatmap|/type/List#method_flatmap> for an alternative that flattens.
+
+=head2 sub flat
+
+Defined as:
+
+    sub flat(**@list is raw)
+
+Constructs a list which contains any arguments provided in the order
+provided, and returns the result of calling the C<.flat> method (L<inherited
+from C<Any>|/type/Any#method_flat>) on that list:
+
+    flat 1, (2, (3, 4), $(5, 6)));  # (1, 2, 3, 4, $(5, 6)).Seq
+
+=head2 method flatmap
+
+Defined as:
+
+    method flatmap(List:D: &code) returns Seq:D
+
+Usage:
+
+    LIST.flatmap(CODE)
+
+Like C<map> iterates over the elements of the invocant list, feeding each
+element in turn to the code reference, and assembling the return values from
+these invocations in a result list.
+
+Unlike C<map> it flattens non-itemized lists and arrays, so
+
+    say ((1, 2), <a b>).flatmap(&uc).join('|');     # 1|2|A|B
+
+invokes L<uc|/type/Str#routine_uc> four times.
+
+=head2 routine grep
+
+Defined as:
+
+    multi sub    grep(Mu $matcher, *@elems, :k, :kv, :p, :v) returns Seq:D
+    multi method grep(List:D:  Mu $matcher, :k, :kv, :p, :v) returns Seq:D
+
+Usage:
+
+    grep MATCHER, LIST
+    grep MATCHER, LIST, :RETURN_AS
+    LIST.grep(MATCHER)
+    LIST.grep(MATCHER, :RETURN_AS)
+
+Returns a sequence of elements against which C<$matcher> smart-matches.
+The elements are returned in the order in which they appear in the original
+list.
+
+Examples:
+
+    > ('hello', 1, 22/7, 42, 'world').grep: Int
+    (1 42)
+    > grep { .Str.chars > 3 }, 'hello', 1, 22/7, 42, 'world'
+    (hello 3.142857 world)
+
+The optional named parameters C<:k>, C<:kv>, C<:p>, C<:v> provide the same
+functionality as on slices:
+
+=item k
+
+Only return the index values of the matching elements in order.
+
+=item kv
+
+Return both the index and matched elements in order.
+
+=item p
+
+Return the index and the matched element as a C<Pair>, in order.
+
+=item v
+
+Only return the matched elements (same as not specifying any named parameter
+at all).
+
+Examples:
+
+    > ('hello', 1, 22/7, 42, 'world').grep: Int, :k
+    (1 3)
+    > grep { .Str.chars > 3 }, :kv, 'hello', 1, 22/7, 42, 'world'
+    (0 hello 2 3.142857 4 world)
+    > grep { .Str.chars > 3 }, :p, 'hello', 1, 22/7, 42, 'world'
+    (0 => hello 2 => 3.142857 4 => world)
+
+=head2 routine first
+
+Defined as:
+
+    multi sub    first(Mu $matcher, *@elems, :k, :kv, :p, :end)
+    multi method first(List:D:  Mu $matcher, :k, :kv, :p, :end)
+
+Usage:
+
+    first MATCHER, LIST, :RETURN_AS, :FROM_END
+    LIST.first(MATCHER, :RETURN_AS, :FROM_END)
+
+Returns the first item of the list which smart-matches against C<$matcher>,
+returns Nil when no values match.  The optional named parameter C<:end>
+indicates that the search should be from the B<end> of the list, rather than
+from the start.
+
+Examples:
+
+    say (1, 22/7, 42, 300).first: * > 5;                  # 42
+    say (1, 22/7, 42, 300).first: * > 5, :end;            # 300
+    say ('hello', 1, 22/7, 42, 'world').first: Complex;   # Nil
+
+The optional named parameters C<:k>, C<:kv>, C<:p> provide the same
+functionality as on slices:
+
+=item k
+
+Return the index value of the matching element.  Index is always counted from
+the beginning of the list, regardless of whether the C<:end> named parameter
+is specified or not.
+
+=item kv
+
+Return both the index and matched element.
+
+=item p
+
+Return the index and the matched element as a C<Pair>.
+
+Examples:
+
+    say (1, 22/7, 42, 300).first: * > 5, :k;        # 2
+    say (1, 22/7, 42, 300).first: * > 5, :p;        # 2 => 42
+    say (1, 22/7, 42, 300).first: * > 5, :kv, :end; # 3 300
+
+=head2 method head
+
+Defined as:
+
+    multi method head(List:D: Int(Cool) $number = 1) returns Seq:D
+
+Usage:
+
+    LIST.head
+    LIST.head(NUMBER)
+
+Returns the B<first> NUMBER items of the list.  Returns an empty list if
+NUMBER <= 0.  Defaults to the first element seen if no NUMBER specified.
+
+Examples:
+
+    say ^10 .head(5)       # 0 1 2 3 4
+    say ^Inf .head(5)      # 0 1 2 3 4
+    say ^10 .head          # 0
+    say ^Inf .head         # 0
+
+=head2 method tail
+
+Defined as:
+
+    multi method tail(List:D: Int(Cool) $number = 1) returns Seq:D
+
+Usage:
+
+    LIST.tail
+    LIST.tail(NUMBER)
+
+Returns a L<Seq> containing the B<last> NUMBER items of the list.  Returns an empty Seq if
+NUMBER <= 0.  Defaults to the last element if no NUMBER is specified.
+Throws an exception if the list is lazy.
+
+Examples:
+
+    say ^10 .tail(5)      # 5 6 7 8 9
+    say ^Inf .tail(5)     # Cannot tail a lazy list
+    say ^10 .tail         # 9
+    say ^Inf .tail        # Cannot tail a lazy list
+
+=head2 routine categorize
+
+Defined as:
+
+    multi sub    categorize(&mapper, *@values) returns Hash:D
+    multi method categorize(List:D: &mapper)   returns Hash:D
+
+Usage:
+
+    categorize MAPPER, LIST
+    LIST.categorize(MAPPER)
+
+Transforms a list of values into a hash representing the categorizations
+of those values according to a mapper; each hash key represents one possible
+categorization for one or more of the incoming list values, and the
+corresponding hash value contains an array of those list values categorized
+by the mapper into the category of the associated key.
+
+Note that, unlike L<classify>, which assumes that the return value
+of the mapper is a single value, C<categorize> always assumes that
+the return value of the mapper is a list of categories that are
+appropriate to the current value.
+
+Example:
+
+    sub mapper(Int $i) returns List {
+        $i %% 2 ?? 'even' !! 'odd',
+        $i.is-prime ?? 'prime' !! 'not prime'
+    }
+    say categorize &mapper, (1, 7, 6, 3, 2);   # {even => [6 2], not prime => [1 6],
+                                               #  odd => [1 7 3], prime => [7 3 2]}
+
+=head2 routine classify
+
+Defined as:
+
+    multi sub    classify(&mapper, *@values) returns Hash:D
+    multi method classify(List:D: &mapper)   returns Hash:D
+
+Usage:
+
+    classify MAPPER, LIST
+    LIST.classify(MAPPER)
+
+Transforms a list of values into a hash
+representing the classification of those values according to a mapper;
+each hash key represents the classification for one or more of the
+incoming list values, and the corresponding hash value contains
+an array of those list values classified by the mapper into the category
+of the associated key.
+
+Example:
+
+    say classify { $_ %% 2 ?? 'even' !! 'odd' }, (1, 7, 6, 3, 2);
+        #-> even => 6 2, odd => 1 7 3
+    say ('hello', 1, 22/7, 42, 'world').classify: { .Str.chars };
+        #-> 1 => 1, 2 => 42, 5 => hello world, 8 => 3.142857
+
+=head2 method Bool
+
+Defined as:
+
+    multi method Bool(List:D:) returns Bool:D
+
+Usage:
+
+    LIST.Bool
+
+Returns C<True> if the list has at least one element, and C<False>
+for the empty list.
+
+=head2 method Str
+
+Defined as:
+
+    multi method Str(List:D:) returns Str:D
+
+Usage:
+
+    LIST.Str
+
+Stringifies the elements of the list and joins them with spaces
+(same as C<.join(' ')>).
+
+=head2 method Int
+
+Defined as:
+
+    multi method Int(List:D:) return Int:D
+
+Usage:
+
+    LIST.Int
+
+Returns the number of elements in the list (same as C<.elems>).
+
+=head2 method Numeric
+
+Defined as:
+
+    multi method Numeric(List:D:) return Int:D
+
+Usage:
+
+    LIST.Numeric
+
+Returns the number of elements in the list (same as C<.elems>).
+
+=head2 routine pick
+
+Defined as:
+
+    multi sub    pick($count, *@list) returns Seq:D
+    multi method pick(List:D: $count = 1) returns Mu
+
+Usage:
+
+    pick COUNT, LIST
+    LIST.pick(COUNT)
+
+Returns C<$count> elements chosen at random and without repetition
+from the invocant. If C<*> is passed as C<$count>, or C<$count> is
+greater than or equal to the size of the list, then all elements
+from the invocant list are returned in a random sequence.
+
+Examples:
+
+    say <a b c d e>.pick;           # b
+    say <a b c d e>.pick: 3;        # (c a e)
+    say  <a b c d e>.pick: *;       # (e d a b c)
+
+=head2 routine roll
+
+Defined as:
+
+    multi sub    roll($count, *@list) returns Seq:D
+    multi method roll(List:D: $count = 1)
+
+Usage:
+
+    roll COUNT, LIST
+    LIST.roll(COUNT)
+
+Returns a sequence of C<$count> elements, each randomly selected from the
+list. Each random choice is made independently, like a separate die roll
+where each die face is a list element.
+
+If C<*> is passed to C<$count>, returns a lazy, infinite sequence of randomly
+chosen elements from the original list.
+
+Examples:
+
+    say <a b c d e>.roll;       # b
+    say <a b c d e>.roll: 3;    # c c e
+    say roll 8, <a b c d e>;    # b a e d a e b c
+
+    my $random_digits := (^10).roll(*);
+    say $random_digits[^15];    # 3 8 7 6 0 1 3 2 0 8 8 5 8 0 5
+
+=head2 routine eager
+
+Defined as:
+
+    multi method eager(List:D:) returns List:D
+    sub eager(*@elems) returns List:D
+
+Usage:
+
+    eager LIST
+    LIST.eager
+
+Evaluates all elements in the list eagerly, and returns them as a list.
+
+=head2 routine reverse
+
+Defined as:
+
+    multi sub    reverse(*@list ) returns List:D
+    multi method reverse(List:D:) returns List:D
+
+Usage:
+
+    reverse(LIST)
+    LIST.reverse
+
+Returns a list with the same elements in reverse order.
+
+Note that C<reverse> always refers to reversing elements of a list;
+to reverse the characters in a string, use L<flip>.
+
+Examples:
+
+    say <hello world!>.reverse      #  world! hello
+    say reverse ^10                 # 9 8 7 6 5 4 3 2 1 0
+
+=head2 routine rotate
+
+Defined as:
+
+    multi sub    rotate(@list,  Int:D $n = 1) returns List:D
+    multi method rotate(List:D: Int:D $n = 1) returns List:D
+
+Usage:
+
+    rotate(LIST, INTEGER?)
+    LIST.rotate(INTEGER?)
+
+Returns the list rotated by C<$n> elements.
+
+Examples:
+
+    <a b c d e>.rotate(2);   # <c d e a b>
+    <a b c d e>.rotate(-1);  # <e a b c d>
+
+=head2 routine sort
+
+Defined as:
+
+    multi sub    sort(*@elems)      returns Seq:D
+    multi sub    sort(&by, *@elems) returns Seq:D
+    multi method sort(List:D:)      returns Seq:D
+    multi method sort(List:D:, &by) returns Seq:D
+
+Usage:
+
+    sort LIST
+    sort SORT_BY, LIST
+    LIST.sort
+    LIST.sort(SORT_BY)
+
+Sorts the list, smallest element first. By default C<< infix:<cmp> >>
+is used for comparing list elements.
+
+If C<&by> is provided, and it accepts two arguments,
+it is invoked for pairs of list elements, and should return
+C<Order::Increase>, C<Order::Same> or C<Order::Decrease>.
+
+If C<&by> accepts only one argument, the list elements are sorted
+according to C<< by($a) cmp by($b) >>. The return values of C<&by> are
+cached, so that C<&by> is only called once per list element.
+
+Examples:
+
+    say (3, -4, 7, -1, 2, 0).sort;                  # -4 -1 0 2 3 7
+    say (3, -4, 7, -1, 2, 0).sort: *.abs;           # 0 -1 2 3 -4 7
+    say (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a }; # 7 3 2 0 -4 -1
+
+=head2 routine unique
+
+Defined as:
+
+    multi sub    unique(*@values, :&as, :&with) returns Seq:D
+    multi method unique(List:D:,  :&as, :&with) returns Seq:D
+
+Usage:
+
+    unique LIST, :COMPARE_AS, :COMPARE_WITH
+    LIST.unique(:COMPARE_AS, :COMPARE_WITH)
+
+Returns a sequence of B<unique> values from the invocant/argument list, such
+that only the first occurrence of each duplicated value remains in the
+result list. C<unique> uses the semantics of the L<===> operator to decide
+whether two objects are the same, unless the optional C<:with> parameter is
+specified with another comparator. The order of the original list is preserved
+even as duplicates are removed.
+
+Examples:
+
+    say <a a b b b c c>.unique    # a b c
+    say <a b b c c b a>.unique    # a b c
+
+(Use L<C<squish>> instead if you know the input is sorted such that identical
+objects are adjacent.)
+
+The optional C<:as> parameter allows you to normalize/canonicalize the elements
+before unique-ing. The values are transformed for the purposes of comparison,
+but it's still the original values that make it to the result list:
+
+Example:
+
+    say <a A B b c b C>.unique(:as(&lc))          # a B c
+
+One can also specify the comparator with the optional C<:with> parameter.  For
+instance if one wants a list of unique hashes, one could use the C<eqv>
+comparator.
+
+Example:
+
+    my @list = {a => 42}, {b => 13}, {a => 42};
+    say @list.unique(:with(&[eqv]))               # {a=>42} {b=>13}
+
+=head2 routine repeated
+
+Defined as:
+
+    multi sub    repeated(*@values, :&as, :&with) returns Seq:D
+    multi method repeated(List:D:,  :&as, :&with) returns Seq:D
+
+Usage:
+
+    repeated LIST, :COMPARE_AS, :COMPARE_WITH
+    LIST.repeated(:COMPARE_AS, :COMPARE_WITH)
+
+Returns a sequence of B<repeated> values from the invocant/argument list.
+It takes the same parameters as L<C<unique>>, but instead of passing through
+any elements when they're first seen, they're only passed through as soon
+as they're seen for the second time (or more).
+
+Examples:
+
+    say <a a b b b c c>.repeated                    # a b b c
+    say <a b b c c b a>.repeated                    # b c b a
+    say <a A B b c b C>.repeated(:as(&lc))          # A b b C
+
+    my @list = {a => 42}, {b => 13}, {a => 42};
+    say @list.repeated(:with(&[eqv]))               # {a=>42}
+
+=head2 routine squish
+
+Defined as:
+
+    multi sub    squish(*@values, :&as) returns Seq:D
+    multi method squish(List:D:,  :&as) returns Seq:D
+
+Usage:
+
+    squish LIST, :COMPARE_AS
+    LIST.squish(:COMPARE_AS)
+
+Returns a sequence of values from the invocant/argument list where runs
+of more than one value are replaced with only the first instance.
+Like L<C<unique>>, C<squish> uses the semantics of the L<===> operator to decide
+whether two objects are the same. Unlike L<C<unique>>, this function only
+removes adjacent duplicates; identical values further apart are still
+kept. The order of the original list is preserved even as duplicates
+are removed.
+
+Examples:
+
+    say <a a b b b c c>.squish  # a b c
+    say <a b b c c b a>.squish  # a b c b a
+
+The optional C<:as> parameter, just like with L<C<unique>>, allows values to be
+temporarily transformed before comparison.
+
+=head2 routine reduce
+
+Defined as:
+
+    multi sub    reduce(&with, *@values)
+    multi method reduce(List:D: &with)
+
+Usage:
+
+    reduce CODE, LIST
+    LIST.reduce(CODE)
+
+Generates a single "combined" value from a list of arbitrarily many of values,
+by repeatedly applying a function which knows how to combine I<two> values.
+
+More precisely, the specified C<&with> is first called for the first two
+values of the list, then for the result of that calculation and the third
+value, and so on - and the final result is returned. In other words,
+C<(2, 4, 6, 8).reduce(*+*)> is the same as C<(((2+4)+6)+8)>.
+
+If C<@values> contains just a single element, that element is returned
+immediately. If it contains no elements, an exception is thrown. For this
+reason, you may want to prefix the input list with an explicit identity
+value:
+
+    say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
+    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
+
+As a special case, if C<&with> is the function object of an I<operator>, its
+inherent identity value and associativity is respected - in other words,
+C<(VAL1, VAL2, VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+for operators which aren't left-associative, and an empty C<@values> list is
+allowed now. And since reducing with an infix operator is a common thing to do,
+the C<[ ]> meta-operator provides a syntactic shortcut:
+
+    # The following all do the same thing...
+    say reduce { $^a + $^b }, 0, |@numbers;
+    say reduce * + *, 0, |@numbers;
+    say reduce &[+], @numbers;
+    say [+] @numbers;
+
+Since C<reduce> is an implicit loop, it responds to C<next>, C<last> and C<redo>
+statements.
+
+Practical example:
+
+    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+
+    my @ops = [Z] (<+ - * />, 1..20)».roll(4);
+
+    say ('x', |@ops).reduce: -> $formula, [$op, $number] {
+        Bool.pick ?? "($formula $op $number)"
+                  !! "($number $op $formula)"
+    }
+
+I<Note:> In the functional programming world, this operation is generally
+called a L<left fold|
+https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+
+=head2 routine combinations
+
+Defined as:
+
+    multi sub    combinations($n, $k)                     returns Seq:D
+    multi method combinations(List:D: Int:D $of)          returns Seq:D
+    multi method combinations(List:D: Range:D $of = 0..*) returns Seq:D
+
+Usage:
+
+    combinations INTEGER, INTEGER
+    LIST.combinations(INTEGER)
+    LIST.combinations(RANGE)
+
+The C<Int> variant returns all C<$of>-combinations of the invocant list.
+For example
+
+    say .join('|') for <a b c>.combinations(2);
+
+prints
+
+    a|b
+    a|c
+    b|c
+
+because all the 2-combinations of C<'a', 'b', 'c'> are
+C<['a', 'b'], ['a', 'c'], ['b', 'c']>.
+
+The C<Range> variant combines all the individual combinations into a single
+list, so
+
+    say .join('|') for <a b c>.combinations(2..3);
+
+prints
+
+    a|b
+    a|c
+    b|c
+    a|b|c
+
+because that's the list of all 2- and 3-combinations.
+
+The subroutine form C<combinations($n, $k)> is equivalent to
+C<(^$n).combinations($k)>, so
+
+    .say for combinations(4, 2)
+
+prints
+
+    0 1
+    0 2
+    0 3
+    1 2
+    1 3
+    2 3
+
+=head2 routine permutations
+
+Defined as:
+
+    multi sub    permutations($n)      returns Seq:D
+    multi method permutations(List:D:) returns Seq:D
+
+Usage:
+
+    permutations(INTEGER)
+    LIST.permutations
+
+Returns all possible permutations of a list as a sequence of lists. So
+
+    say .join('|') for <a b c>.permutations
+
+prints
+
+    a|b|c
+    a|c|b
+    b|a|c
+    b|c|a
+    c|a|b
+    c|b|a
+
+C<permutations> treats all list elements as distinguishable, so
+C<(1, 1, 2).permutations> still returns a list of 6 elements, even though
+there are only three distinct permutations.
+
+The subroutine form C<permutations($n)> is equivalent to
+C<(^$n).permutations>, so
+
+    .say for permutations 3;
+
+prints
+
+    1 2 3
+    1 3 2
+    2 1 3
+    2 3 1
+    3 1 2
+    3 2 1
+
+=head2 method rotor
+
+Defined as:
+
+    method rotor(*@cycle, Bool() :$partial) returns Seq:D
+
+Usage:
+
+    LIST.rotor(EXPR, :partial?)
+
+Returns a sequence of lists, where each sublist is made up of elements of the
+invocant.
+
+In the simplest case, C<@cycle> contains just one integer, in which case the
+invocant list is split into sublists with as many elements as the integer
+specifies. If C<:$partial> is True, the final chunk is included even if it
+doesn't satisfy the length requirement:
+
+    say ('a'..'h').rotor(3).join('|');              # a b c|d e f
+    say ('a'..'h').rotor(3, :partial).join('|');    # a b c|d e f|g h
+
+If the element of C<@cycle> is a L<Pair|/type/Pair> instead, the key of the
+pair specifies the length of the return sublist, and the value the gap between
+sublists; negative gaps produce overlap:
+
+    say ('a'..'h').rotor(2 => 1).join('|');         # a b|d e|g h
+    say ('a'..'h').rotor(3 => -1).join('|');        # a b c|c d e|e f g
+
+If C<@cycle> contains more than element, C<rotor> cycles through it to find
+the number of elements for each sublist:
+
+    say ('a'..'h').rotor(2, 3).join('|');           # a b|c d e|f g
+    say ('a'..'h').rotor(1 => 1, 3).join('|');      # a|c d e|f
+
+Combining multiple cycles and C<:partial> also works:
+
+    say ('a'..'h').rotor(1 => 1, 3 => -1, :partial).join('|');
+                                                    # a|c d e|e|g h
+
+See L<this blog post for more elaboration on rotor|http://blogs.perl.org/users/zoffix_znet/2016/01/perl-6-rotor-the-king-of-list-manipulation.html>.
+
+=head2 routine zip
+
+Defined as:
+
+    sub zip(**@e) returns Seq:D
+
+Usage:
+
+    zip LISTS
+
+Zips two or more lists or other L<iterables|/type/Iterable> together by
+returning a sequence made of a list of all first elements of all lists, then a
+list of all second elements of a list etc.
+
+    say .join for zip  <a b c>, <d e f>;
+
+Produces the output
+
+    ad
+    be
+    cf
+
+C<zip> has an infix synonym, the C<Z> operator.
+
+    say .join for <a b c> Z <d e f>;    # same output as above
+
+When the first input list is exhausted, no more elements are returned; so
+trailing elements from longer input lists are discarded.
+
+If you just wish to skip missing entries in shorter sublists,
+use L<roundrobin|/type/List#sub_roundrobin> instead:
+
+    for roundrobin(@queue1, @queue2, @queue3) -> $next {
+        ...
+    }
+
+=head2 sub roundrobin
+
+Defined as:
+
+    multi roundrobin(List:D: --> Seq)
+
+Usage:
+
+    roundrobin LISTS
+
+C<roundrobin> is very similar to L<zip|/type/List#routine_zip>.  The
+difference is that C<roundrobin> will not stop on lists that run out of
+elements but simply skip any undefined value:
+
+    my @a = 1;
+    my @b = 1..2;
+    my @c = 1..3;
+    for flat roundrobin(@a, @b, @c) -> $x { $x.say }
+
+will display the following values: C<1, 1, 1, 2, 2, 3>
+
+=head2 routine sum
+
+Defined as:
+
+    multi sub    sum($list)  returns Numeric:D
+    multi method sum(List:D:) returns Numeric:D
+
+Usage:
+
+    sum LIST
+    LIST.sum
+
+Returns the sum of all elements in the list or 0 if the list is empty.
+Throws an exception if an element can not be coerced into Numeric.
+
+    say (1, 3, pi).sum;       # 7.14159265358979
+    say (1, "0xff").sum;      # 256
+    say sum(0b1111, 5);       # 20
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6

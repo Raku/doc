@@ -1,0 +1,76 @@
+=begin pod
+
+=TITLE class Semaphore
+
+=SUBTITLE Control access to shared resources by multiple processes
+
+  class Semaphore { }
+
+Protect your shared code, data or device access using semaphores. An example is
+a printer manager managing a pool of printers without the need of storing print
+jobs when all printers are occupied. The next job is just blocked until a
+printer becomes available.
+
+  class print-manager {
+    has Array $!printers;
+    has Semaphore $!print-control;
+
+    method BUILD( Int:D :$nbr-printers ) {
+      for ^$nbr-printers -> $pc {
+        $!printers[$pc] = { :name{"printer-$pc"}, ... };
+      }
+
+      $!print-control .= new($nbr-printers);
+    }
+
+    method print( $print-job ) {
+      $!print-control.acquire;
+
+      find-available-printer-and-print-it($job);
+
+      $!print-control.release;
+    }
+  }
+
+Another example is a protection around code updating sensitive data. In such a
+case the semaphore is typically initialized to 1.
+
+It is important to have a release on every exit of your program! While this is
+obvious, it is easy to fall in traps such as throwing an exception caused by some
+event. When the program dies there is no problem. When the exception is caught
+your program might eventually come back to the acquire method and will hang
+indefinitely.
+
+=head1 Methods
+
+=head2 method new
+
+  method new( int $permits )
+
+Initialize the semaphore with the number of permitted accesses. E.g. when set to
+2, program threads can pass the acquire method twice until it blocks on the
+third time acquire is called.
+
+=head2 method acquire
+
+  method acquire()
+
+Acquire access. When other threads have called the method before and the the
+number of permits are used up, the process blocks until threads passed before
+releases the semaphore.
+
+=head2 method try_acquire
+
+  method try_acquire() returns Bool
+
+Same as acquire but will not block. Instead it returns C<True> if access is
+permitted or C<False> otherwise.
+
+=head2 method release
+
+  method release()
+
+Release the semaphore raising the number of permissions. Any blocked thread will
+get access after that.
+
+=end pod

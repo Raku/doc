@@ -1,0 +1,538 @@
+=begin pod
+
+=TITLE class Signature
+
+=SUBTITLE Parameter list pattern
+
+    class Signature { ... }
+
+A signature is a static description of the L<parameter|Parameter> list
+of a code object.  That is, it describes what and how many arguments
+you need to pass to the code or function in order to call it.
+
+Passing arguments to a signature I<binds> the arguments, contained in
+a L<Capture>, to the signature.
+
+X<|signature literal (Signature)>
+=head1 Signature Literals
+
+Signatures appear in parenthesis after subroutine and method names, on
+blocks after a C<< -> >> or C<< <-> >> arrow, as the input to
+L<variable declarators|/language/variables#Variable_Declarators_and_Scope>
+like L<C<my>|/syntax/my>, or as a separate term starting with a colon.
+
+=begin code :allow<B L>
+sub fB<($x)> { }
+#    ^^^^ Signature of sub f
+method xB<()> { }
+#       ^^ Signature of a method
+my $s = sub B<(*@a)> { }
+#           ^^^^^ Signature of an anonymous function
+
+for @list -> B<$x> { }
+#            ^^   Signature of a L<block|Block>
+
+my B<($a, @b)> = 5, (6, 7, 8);
+#  ^^^^^^^^ Signature of a variable declarator
+
+my $sig = B<:($a, $b)>;
+#          ^^^^^^^^ Standalone Signature object
+=end code
+
+Signature literals can be used to define the signature of a callback or a
+closure.
+
+    sub f(&c:(Int)){}
+    sub will-work(Int){}
+    sub won't-work(Str){}
+    f(&will-work);
+    f(&won't-work); # fails at runtime
+    f(-> Int { 'this works too' } );
+
+Smart matching signatures against a List is supported.
+
+    my $sig = :(Int $i, Str $s);
+    say (10, 'answer') ~~ $sig;
+    # OUTPUT«True␤»
+    given ('answer', 10) {
+        when :(Str, Int) { say 'match' }
+        when $sig { say 'mismatch' }
+    }
+    # OUTPUT«match␤»
+
+When smart matching against a Hash, the signature is assumed to consist of the keys of the Hash.
+
+    my %h = left => 1, right => 2;
+    say %h ~~ :(:$left, :$right);
+    # OUTPUT«True␤»
+
+=head2 Parameter Separators
+
+A signature consists of zero or more I<L<parameters|Parameter>>, separated by comma.
+
+=for code :allow<B>
+:($aB<,> @bB<,> %c)
+sub add($aB<,> $b) { $a + $b }
+
+As an exception the first parameter may be followed by a colon instead
+of a comma to mark the invocant of a method.  The invocant is the
+object that was used to call the method, which is usually bound to L<C<self>>.
+By specifying it in the signature, you can change the variable name it
+is bound to.
+
+=begin code :allow<B L>
+:(B<$a:> @b, %c)       # first argument is the invocant
+
+L<class|/syntax/class> Foo {
+    method whoami(B<$me:>) {
+        "Well I'm class B<$me>.^L<name>(), of course!"
+    }
+}
+say Foo.whoami; # => Well I'm class Foo, of course!
+=end code
+
+X<|type constraint (Signature)>
+=head2 Type Constraints
+
+Parameters can optionally have a type constraint (the default is L<C<Any>>).
+These can be used to restrict the allowed input to a function.
+
+=begin code :allow<B L>
+:(B<L<Int>> $a, B<L<Str>> $b)
+
+sub divisors(B<L<Int>> $n) { $_ if $n L<%%> $_ for 1..$n }
+divisors 2.5; # !!! Calling 'divisors' will never work with argument types (L<Rat>)
+=end code
+
+X<|anonymouse arguments (Signature)>
+Anonymous arguments are fine too, if a parameter is only needed for
+its type constraint.
+
+=for code :allow<B L>
+:(B<$>, B<@>, %a)               # two anonymous and a "normal" parameter
+:(B<L<Int>>, B<L<Positional>>)  # just a type is also fine (two parameters)
+sub baz(B<L<Str>>) { "Got passed a Str" }
+
+Type constraints may also be L<type captures|/type/Signature#Type_Captures>.
+
+X<|where clause (Signature)>
+In addition to those I<nominal> types, additional constraints can
+be placed on parameters in the form of code blocks which must return
+a true value to pass the type check
+
+    sub f(Real $x where { $x > 0 }, Real $y where { $y >= $x }) { }
+
+In fact it doesn't need to be a code block, anything on the right of the
+C<where>-block will be used to smart-match the argument against it.
+So you can also write
+
+    multi factorial(Int $ where 0) { 1 }
+    multi factorial(Int $x)        { $x * factorial($x - 1) }
+
+The first of those can be shortened to
+
+    multi factorial(0) { 1 }
+
+i.e., you can use a literal directly as a type and value constraint
+on an anonymous parameter.
+
+=head3 X<Constraining Defined and Undefined Values|
+         type constraint,:D;type constraint,:U;type constraint,:_>
+
+Normally, a type constraint only checks whether the value passed is of the
+correct type.
+
+=for code :allow<B L>
+sub limit-lines (Str $s, Int $limit) {
+    my @lines = $s.lines;
+    @lines[0 .. min @lines.elems, $limit].join("\n")
+}
+say (limit-lines "a \n b \n c \n d \n", 3).perl; # "a \n b \n c "
+say limit-lines Str,      3;  # Uh-oh. Dies with "Cannot call 'lines';"
+say limit-lines "a \n b", Int # Always returns the max number of lines
+
+In this case, we really only want to deal with defined strings. To do this, we
+use the C<:D> type constraint.
+
+=for code :allow<B L>
+sub limit-lines (StrB<:D> $s, Int $limit) {
+    ...
+}
+# Dies with "Parameter '$s' requires an instance, but a type object was passed
+#   in sub limit-lines"
+say limit-lines Str, 3;
+
+This is much better than the way the program failed before, since here the
+reason for failure is clearer.
+
+It's also possible undefined types are the only ones that make sense for a
+routine to accept. This can be constrained with the C<:U> type constraint. For
+example, we can turn the C<&limit-lines> into a multi function to make use of
+the C<:U> constraint.
+
+=for code :allow<B L>
+multi limit-lines (Str $s, Int:D $limit) {
+    ...
+}
+multi limit-lines (Str $s, IntB<:U> $) { $s }
+say limit-lines "a \n b \n c", Int; # "a \n b \n c"
+
+For explicitly indicating the normal behaviour, C<:_> can be used, but this is
+unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
+
+=head3 X«Constraining signatures of Callables|function reference (constrain)»
+
+To constrain block and subroutine references based on their signature write
+the signature after the argument name.
+
+    sub f(&c:(Int, Str)) { say c(10, 'ten') };
+    sub g(Int $i, Str $s){ $s ~ $i };
+    f(&g);
+    # OUTPUT«ten10␤»
+
+=head3 X«Constraining Return Types|-->;returns»
+
+The token C<-->> followed by a type will force a type check on successful
+execution of a routine. The return type arrow has to be placed at the end of
+the parameter list. The keyword C<returns> following a signature declaration
+has the same function. C<Nil> is considered as being defined for the type
+check. Type objects and thus undefined values will pass the test unless the
+type smiley C<:D> is used.
+
+
+    sub foo(--> Int) { my Int $i; $i };
+    sub foo(--> Int:D) { 1 }
+    sub foo() returns Int { 1 };
+    sub does-not-work(--> Int) { "" }; # throws X::TypeCheck::Return
+
+If the type constraint is a constant expression, it is used as the return value
+of the routine. Any return statement in that routine has to be argumentless.
+
+    sub foo(--> 123) { return }
+
+L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types, regardless of any
+type constraint.
+
+    sub foo(--> Int) { Nil };
+    say foo.perl; # Nil
+
+Type captures and coercion types are not supported.
+
+=head3 X<Coercion Type|coercion type (signature)>
+
+To accept one type but coerce it automatically to another, use the accepted
+type as an argument to the target type. If the accepted type is C<Any> it can
+be omitted.
+
+    sub f(Int(Str) $want-int, Str() $want-str){ say $want-int.WHAT, $want-str.WHAT }
+    f '10', 10;
+    # OUTPUT«(Int)(Str)␤»
+
+=head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%, slurpy argument (Signature)>
+
+An array or hash parameter can be marked as I<slurpy> by leading asterisk(s),
+which means it can bind to an arbitrary amount of arguments (zero or more).
+
+These are called "slurpy" because they slurp up any remaining arguments
+to a function, like someone slurping up noodles.
+
+=for code :allow<B L>
+:($a, @b)              # exactly two arguments, where the second one must be Positional
+:($a, B<*@b>)          # at least one argument, @b slurps up any beyond that
+:(B<*%h>)              # no positional arguments, but any number of named arguments
+
+=for code :allow<B L>
+sub one-arg (@)     { }
+sub slurpy  (B<*@>) { }
+one-arg(5, 6, 7) ; # !!! too many arguments
+one-arg (5, 6, 7); # ok, same as one-arg((5, 6, 7))
+slurpy  (5, 6, 7); # ok
+one-arg  5, 6, 7 ; # !!! too many arguments
+slurpy   5, 6, 7 ; # ok
+
+=for code :allow<B L>
+sub named-names (B<*%named-args>) { %named-args.L<keys> }
+say named-names :foo(42) :bar<baz> # => foo bar
+
+Note that positional parameters aren't allowed after slurpy
+parameters.
+
+    :(*@args, $last) # !!! Cannot put required parameter after variadic parameters
+
+Slurpy parameters declared with one asterisk will flatten arguments by
+dissolving one or more layers of bare C<Iterables>.  Slurpy parameters declared
+with two stars do not do so:
+
+    sub a(*@a) { @a.join("|").say };
+    a(1, [1, 2], ([3, 4], 5)); # 1|1|2|3|4|5
+    sub b(**@b) { @b.join("|").say };
+    b(1, [1, 2], ([3, 4], 5)); # 1|1 2|3 4 5
+
+Normally a slurpy parameter will create an Array, create a new
+Scalar container for each argument, and assign the value from each
+argument to those Scalars.  If the original argument also had an
+intermediary Scalar it is bypassed during this process, and
+is not available inside the called function.
+
+Slurpy parameters have special behaviors when combined with some
+L<traits and modifiers|#Parameter_Traits_and_Modifiers>,
+as described below.
+
+=head2 Single Argument Rule Slurpy
+
+The single argument rule allows to treat arguments to subroutines,
+C<for>-loops and list constructors based on context. Many methods on positional
+types can work with a single arguments the same way as with a list or
+arguments. Using C<+@> as a sigil in a Signature provides syntactic sugar to
+make that task a little easier. Any single argument of a non-positional type
+will be promoted to a list with a single item.
+
+    sub f(+@a){ dd @a };
+    f(1);
+    # OUTPUT«[1]␤»
+    f(1, 2, 3);
+    # OUTPUT«[1, 2, 3]␤»
+    my @b = <a b c>;
+    f @b;
+    # OUTPUT«["a", "b", "c"]␤»
+
+=head2 Type Captures
+
+Type Captures allow to defer the specification of a type constraint to the time
+the function is called. They allow to refer to a type both in the signature and
+the function body.
+
+    sub f(::T $p1, T $p2, ::C){
+        # $p1 and $p2 are of the same type T, that we don't know yet
+        # C will hold a type we derive from a type object or value
+        my C $closure = $p1 / $p2;
+            return sub (T $p1) {
+                    $closure * $p1;
+            }
+    }
+
+    # The first parameter is Int and so must be the 2nd.
+    # We derive the 3rd type from calling the operator that is used in &f.
+    my &s = f(10, 2, Int.new / Int.new);
+    say s(2); # 10 / 2 * 2 == 10
+
+X<|positional argument (Signature), named argument (Signature)>
+=head2 Positional vs. Named
+
+A parameter can be I<positional> or I<named>. All parameters are positional,
+except slurpy hash parameters and parameters marked with a leading colon C<:>.
+
+    :($a)               # a positional parameter
+    :(:$a)              # a named parameter of name 'a'
+    :(*@a)              # a slurpy positional parameter
+    :(*%h)              # a slurpy named parameter
+
+On the caller side, positional arguments are passed in the same order
+as the parameters were declared.
+
+    sub pos($x, $y) { "x=$x y=$y" }
+    pos(4, 5);                          # x=4 y=5
+
+In the case of named arguments and parameters, only the name is used for
+mapping arguments to parameters
+
+    =for code :allow<L>
+    sub named(:$x, :$y) { "x=$x y=$y" }
+    named( y L«=>» 5, x => 4);             # x=4 y=5
+
+It is possible to have a different name for a named parameter than the
+variable name:
+
+    sub named(:official($private) { "Official business!" if $private }
+    named :official;
+
+Aliases are also possible that way:
+
+    sub paint( :color(:colour($c)) ) { }    # 'color' and 'colour' are both OK
+    sub paint( :color(:$colour) ) { }       # same API for the caller
+
+A function with named arguments can be called dynamically, dereferencing a
+Pair with C<|> to turn it into a named argument.
+
+    multi f(:$named){ note &?ROUTINE.signature };
+    multi f(:$also-named){ note &?ROUTINE.signature };
+    for 'named', 'also-named' -> $n {
+        f(|($n => rand))                    # «(:$named)␤(:$also-named)␤»
+    }
+
+    my $pair = :named(1);
+    f |$pair;                               # «(:$named)␤»
+
+The same can be used to convert a Hash into named arguments.
+
+    my %pairs = also-named => 4;
+    f |%pairs;                              # «(:$also-named)␤»
+
+X<|optional argument (Signature)>
+=head2 Optional and Mandatory Parameters
+
+Positional parameters are mandatory by default, and can be made optional
+with a default value or a trailing question mark:
+
+    :(Str $id)          # required parameter
+    :($base = 10)       # optional parameter, default value 10
+    :(Int $x?)          # optional parameter, default is the Int type object
+
+X<|mandatory named argument (Signature)>
+Named parameters are optional by default, and can be made mandatory with a
+trailing exclamation mark:
+
+    :(:%config)         # optional parameter
+    :(:$debug = False)  # optional parameter, defaults to False
+    :(:$name!)          # mandatory 'name' named parameter
+
+Default values can depend on previous parameters, and are (at least
+notionally) computed anew for each call
+
+    :($goal, $accuracy = $goal / 100);
+    :(:$excludes = ['.', '..']);        # a new Array for every call
+
+X<|destructuring arguments (Signature)>
+=head2 Destructuring Parameters
+
+Parameters can be followed by a sub-signature in brackets, which will
+destructure the argument given. The destructuring of a list is just its
+elements:
+
+    =for code :allow<B L>
+    sub first(@array B<($first, *@rest)>) { $first }
+
+or
+
+    =for code :allow<B L>
+    sub first(B<[$f, *@]>) { $f }
+
+While the destructuring of a hash is its pairs:
+
+    =for code :allow<B L>
+    sub all-dimensions (% B<(:length(:$x), :width(:$y), :depth(:$z))>) {
+        $x L<andthen> $y andthen $z andthen True
+    }
+
+In general, an object is destructured based on its attributes. A common idiom
+is to unpack a L<C<Pair>>'s key and value in a for loop:
+
+    =for code :allow<B L>
+    for @guest-list.L<pairs> -> B<(:key($index), :value($guest)>) {
+        ...
+    }
+
+However, this unpacking of objects as their attributes is only the default
+behavior. To make an object get destructured differently, change its
+L<C<Capture>> method.
+
+X<|Long Names>
+=head2 Long Names
+
+To exclude certain parameters from being considered in multiple dispatch,
+separate them with a double semi-colon.
+
+    multi sub f(Int $i, Str $s;; :$b) { dd $i, $s, $b };
+    f(10, 'answer');
+    # OUTPUT«10␤"answer"␤Any $b = Any␤»
+
+=head2 X<Capture Parameters|parameter,|>
+
+Prefixing a parameter with a vertical bar C<|> makes the parameter a
+L<C<Capture>>, using up all the remaining positional and named
+arguments.
+
+This is often used in C<proto> definitions (like C<proto foo (|) {*}>) to
+indicate that the routine's L<C<multi> definitions|multi> can have any L<type
+constraints|#Type_Constraints>. See L<proto|/language/functions#proto> for an
+example.
+
+If bound to a variable arguments can be forwarded as a whole using the slip operator C<|>.
+
+    sub a(Int $i, Str $s) { say $i.WHAT, $s.WHAT }
+    sub b(|c) { say c.WHAT; a(|c) }
+    b(42, "answer");
+    # OUTPUT«(Capture)␤(Int)(Str)␤»
+
+=head2 X<Parameter Traits and Modifiers|trait,is copy;trait,is rw>
+
+By default, parameters are bound to their argument and marked as
+read-only. One can change that with traits on the parameter.
+
+The C<is copy> trait causes the argument to be copied, and allows it
+to be modified inside the routine
+
+    sub count-up ($x is copy) {
+        $x = Inf if $x ~~ Whatever;
+        .say for 1..$x;
+    }
+
+The C<is rw> trait makes the parameter only bind to a variable (or
+other writable container). Assigning to the parameter changes the
+value of the variable at the caller side.
+
+    sub swap($x is rw, $y is rw) {
+        ($x, $y) = ($y, $x);
+    }
+
+On slurpy parameters, C<is rw> is reserved for future use by language
+designers.
+
+The L<C<is raw> trait|/type/Parameter#method_raw> is automatically applied to
+parameters declared with a L<backslash|/language/variables#Sigilless_variables>
+as a "sigil", and may also be used to make normally sigiled parameters behave
+like these do. In the special case of slurpies, which normally produce an
+C<Array> full of C<Scalar>s as described above, C<is raw> will instead cause
+the parameter to produce a C<List>.  Each element of that list will be bound
+directly as raw parameter.
+
+=head1 Methods
+
+=head2 method params
+
+    method params(Signature:D:) returns Positional
+
+Returns the list of L<C<Parameter>> objects that make up the signature.
+
+=head2 method arity
+
+    method arity(Signature:D:) returns Int:D
+
+Returns the I<minimal> number of positional arguments required to satisfy
+the signature.
+
+=head2 method count
+
+    method count(Signature:D:) returns Real:D
+
+Returns the I<maximal> number of positional arguments which can be bound
+to the signature. Returns C<Inf> if there is a slurpy positional parameter.
+
+=head2 method returns
+
+Whatever the Signature's return constraint is:
+
+    :($a, $b --> Int).returns # Int
+
+=head2 method ACCEPTS
+
+=for code :allow<B L>
+multi method ACCEPTS(Signature:D: L<Capture> $topic)
+multi method ACCEPTS(Signature:D: @topic)
+multi method ACCEPTS(Signature:D: %topic)
+multi method ACCEPTS(Signature:D: Signature $topic)
+
+The first three see if the argument could be bound to the capture,
+i.e., if a function with that C<Signature> would be able to be called
+with the C<$topic>:
+
+    (1, 2, :foo) ~~ :($a, $b, :foo($bar))   # True
+    <a b c d> ~~ :(Int $a)                  # False
+
+The last returns C<True> if anything accepted by C<$topic> would also
+be accepted by the C<Signature>.
+
+    :($a, $b) ~~ :($foo, $bar, $baz?)   # True
+    :(Int $n) ~~ :(Str)                 # False
+
+=end pod

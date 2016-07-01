@@ -16,13 +16,13 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Duplicate small pieces of information rather than rely on linking
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
-* Check out STYLEGUIDE.md for further ... guidance
+* Check out [the styleguide](STYLEGUIDE.md) for further ... guidance
 
 ## Documenting types
 
 The POD documentation of types is located in the `doc/Type` directory and
 subdirectories of this repository. For example the POD of `X::Bind::Slice`
-lives in `doc/Type/X/Bind/Slice.pod`.
+lives in `doc/Type/X/Bind/Slice.pod6`.
 
 To start contributing fork and checkout the repository, find the document
 you want to improve, commit your changes, and create a pull request. Should
@@ -34,7 +34,7 @@ with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
     $ perl6 util/new-type.p6 MyFunnyRole
 
-Fill the documentation file `doc/Type/MyFunnyRole.pod` like this:
+Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
     =TITLE role MyFunnyRole
 
@@ -64,6 +64,29 @@ or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 `postcircumfix`, `term`.
 
+## Reporting bugs
+
+Report issues at https://github.com/perl6/doc/issues. You can use the
+following labels when tagging tickets:
+
+* site   - presentation issue with the website (e.g. invalid HTML)
+* docs   - missing or incorrect documentation
+* build  - scripts or libraries that generate the site
+* search - the search component
+
+* LHF    - for a beginner to work on
+* big    - a big issue, may require some research
+
+## Website Styles
+
+The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
+don't edit `html/css/style.css` directly, as your changes will be lost
+the next time the SASS file is processed.
+
+[SASS](http://sass-lang.com/) is a superset of CSS, so if you don't know SASS,
+just write in regular CSS. Run `app.pl` to automatically process SASS and copy
+the result over to `html/css/style.css`
+
 ## Building the documentation
 
 Assuming that you have already forked and cloned the
@@ -75,7 +98,8 @@ computer.  To do this you will need:
   - Panda (the installer for third party Perl 6 modules)
   - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
-  - Mojolicious (optional; a Perl 5 web framework; it allows you to run a web
+  - [Mojolicious](https://metacpan.org/pod/Mojolicious)
+    (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
   - pygmentize (optional; a program to add syntax highlighting to code
     examples)
@@ -126,15 +150,26 @@ Install `Pod::To::HTML` like so:
 
     $ panda install Pod::To::HTML
 
-#### Mojolicious
+#### Mojolicious / Web Server
 
-This is a Perl 5 web framework which is used to run the web application
-which renders and displays the HTML documentation in a web browser.  It is
-written in Perl 5, so assuming that you use
-[`cpanm`](http://search.cpan.org/~miyagawa/App-cpanminus-1.7027/lib/App/cpanminus.pm),
+This is a Perl 5 web framework which is used to run the included
+web application that displays the HTML documentation in a web browser. It's
+no required for development, as the site is static and you can serve it using
+any other webserver.
+
+The app *does* automatically convert the SASS file to CSS, so it's handy to
+use for that as well.
+
+Mojolicious is written in Perl 5, so assuming that you use
+[`cpanm`](https://metacpan.org/pod/App::cpanminus),
 install this now:
 
     $ cpanm -vn Mojolicious
+
+If you also plan on modifying the SASS stylesheets, install these modules to
+enable SASS processor:
+
+    $ cpanm -vn CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
 
 #### pygmentize
 
