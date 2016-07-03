@@ -105,6 +105,10 @@ sub recursive-dir($dir) {
 
 # --sparse=5: only process 1/5th of the files
 # mostly useful for performance optimizations, profiling etc.
+#
+# --parallel=10: perform some parts in parallel (with width/degree of 10)
+# much faster, but with the current state of async/concurrency
+# in Rakudo you risk segfaults, weird errors, etc.
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -112,7 +116,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
-    Int  :$parallel = 5,
+    Int  :$parallel = 1,
 ) {
 
     # TODO: For the moment rakudo doc pod files were copied
