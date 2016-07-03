@@ -112,6 +112,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
+    Int  :$parallel = 5,
 ) {
 
     # TODO: For the moment rakudo doc pod files were copied
@@ -134,11 +135,11 @@ sub MAIN(
     say 'Reading type graph ...';
     $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
     my %h = $type-graph.sorted.kv.flat.reverse;
-    write-type-graph-images(:force($typegraph));
+    write-type-graph-images(:force($typegraph), :$parallel);
 
-    process-pod-dir 'Programs', :$sparse;
-    process-pod-dir 'Language', :$sparse;
-    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
+    process-pod-dir 'Programs', :$sparse, :$parallel;
+    process-pod-dir 'Language', :$sparse, :$parallel;
+    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
 
@@ -193,7 +194,7 @@ sub extract-pod(IO() $file) {
     return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
-sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
+sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Reading doc/$dir ...";
 
     my @pod-sources =
@@ -222,7 +223,7 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
             process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
         }
 
-        if $num %% 10 {
+        if $num %% $parallel {
             await(@pod-files);
             @pod-files = ();
         }
@@ -596,7 +597,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
     return $i;
 }
 
-sub write-type-graph-images(:$force) {
+sub write-type-graph-images(:$force, :$parallel) {
     unless $force {
         my $dest = 'html/images/type-graph-Any.svg'.IO;
         if $dest.e && $dest.modified >= 'type-graph.txt'.IO.modified {
@@ -623,7 +624,7 @@ sub write-type-graph-images(:$force) {
         }
         print '.';
 
-        if @type-graph-images %% 20 {
+        if @type-graph-images %% $parallel {
             await(@type-graph-images);
             @type-graph-images = ();
         }
