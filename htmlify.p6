@@ -657,6 +657,11 @@ sub write-type-graph-images(:$force, :$parallel) {
             }
         }
 
+        if @specialized-visualizations %% $parallel {
+            await(@specialized-visualizations);
+            @specialized-visualizations = ();
+        }
+
         LAST await(@specialized-visualizations);
     }
 }
