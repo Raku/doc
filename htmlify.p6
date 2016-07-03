@@ -105,6 +105,10 @@ sub recursive-dir($dir) {
 
 # --sparse=5: only process 1/5th of the files
 # mostly useful for performance optimizations, profiling etc.
+#
+# --parallel=10: perform some parts in parallel (with width/degree of 10)
+# much faster, but with the current state of async/concurrency
+# in Rakudo you risk segfaults, weird errors, etc.
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -112,6 +116,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
+    Int  :$parallel = 1,
 ) {
 
     # TODO: For the moment rakudo doc pod files were copied
@@ -134,11 +139,11 @@ sub MAIN(
     say 'Reading type graph ...';
     $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
     my %h = $type-graph.sorted.kv.flat.reverse;
-    write-type-graph-images(:force($typegraph));
+    write-type-graph-images(:force($typegraph), :$parallel);
 
-    process-pod-dir 'Programs', :$sparse;
-    process-pod-dir 'Language', :$sparse;
-    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse;
+    process-pod-dir 'Programs', :$sparse, :$parallel;
+    process-pod-dir 'Language', :$sparse, :$parallel;
+    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
 
@@ -193,7 +198,7 @@ sub extract-pod(IO() $file) {
     return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
-sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
+sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Reading doc/$dir ...";
 
     my @pod-sources =
@@ -214,9 +219,20 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
-        my $pod = extract-pod($file.path);
-        process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+        FIRST my @pod-files;
+
+        push @pod-files, start {
+            printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
+            my $pod = extract-pod($file.path);
+            process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+        }
+
+        if $num %% $parallel {
+            await(@pod-files);
+            @pod-files = ();
+        }
+
+        LAST await(@pod-files);
     }
 }
 
@@ -585,7 +601,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
     return $i;
 }
 
-sub write-type-graph-images(:$force) {
+sub write-type-graph-images(:$force, :$parallel) {
     unless $force {
         my $dest = 'html/images/type-graph-Any.svg'.IO;
         if $dest.e && $dest.modified >= 'type-graph.txt'.IO.modified {
@@ -596,12 +612,27 @@ sub write-type-graph-images(:$force) {
             return;
         }
     }
+
     say 'Writing type graph images to html/images/ ...';
     for $type-graph.sorted -> $type {
+        FIRST my @type-graph-images;
+
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
-        $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
+        @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
+        if @type-graph-images %% $parallel {
+            await(@type-graph-images);
+            @type-graph-images = ();
+        }
+
+        @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
+        if @type-graph-images %% $parallel {
+            await(@type-graph-images);
+            @type-graph-images = ();
+        }
+
         print '.';
+
+        LAST await(@type-graph-images);
     }
     say '';
 
@@ -611,11 +642,24 @@ sub write-type-graph-images(:$force) {
     %by-group<Metamodel>.append: $type-graph.types< Any Mu >;
 
     for %by-group.kv -> $group, @types {
+        FIRST my @specialized-visualizations;
+
         my $viz = Perl6::TypeGraph::Viz.new(:types(@types),
                                             :dot-hints(viz-hints($group)),
                                             :rank-dir('LR'));
-        $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
+        @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
+        if @specialized-visualizations %% $parallel {
+            await(@specialized-visualizations);
+            @specialized-visualizations = ();
+        }
+
+        @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
+        if @specialized-visualizations %% $parallel {
+            await(@specialized-visualizations);
+            @specialized-visualizations = ();
+        }
+
+        LAST await(@specialized-visualizations);
     }
 }
 
