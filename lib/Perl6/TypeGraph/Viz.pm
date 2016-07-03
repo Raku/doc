@@ -1,5 +1,6 @@
 use v6;
 use Perl6::TypeGraph;
+use File::Temp;
 
 class Perl6::TypeGraph::Viz {
     has @.types;
@@ -91,10 +92,10 @@ class Perl6::TypeGraph::Viz {
     }
 
     method to-file ($file, :$format = 'svg', :$size) {
-        my $tmpfile = $*TMPDIR ~ '/p6-doc-graphviz-' ~ (^100_000).pick;
-        spurt $tmpfile, self.as-dot(:$size);
-        run 'dot', "-T$format", "-o$file", $tmpfile or die 'dot command failed! (did you install Graphviz?)';
-        unlink $tmpfile;
+        my ($filename, $filehandle) = tempfile(:tempdir($*TMPDIR), :prefix('p6-doc-graphviz-'));
+        spurt $filename, self.as-dot(:$size);
+        die "bad filename '$file'" unless $file;
+        run 'dot', "-T$format", "-o$file", $filename or die 'dot command failed! (did you install Graphviz?)';
     }
 }
 
