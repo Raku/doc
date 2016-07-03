@@ -91,11 +91,11 @@ class Perl6::TypeGraph::Viz {
         spurt $file, self.as-dot;
     }
 
-    method to-file ($file, :$format = 'svg', :$size) {
+    method to-file ($file, :$format = 'svg', :$size --> Promise:D) {
+        die "bad filename '$file'" unless $file;
         my ($filename, $filehandle) = tempfile(:tempdir($*TMPDIR), :prefix('p6-doc-graphviz-'));
         spurt $filename, self.as-dot(:$size);
-        die "bad filename '$file'" unless $file;
-        run 'dot', "-T$format", "-o$file", $filename or die 'dot command failed! (did you install Graphviz?)';
+        Proc::Async.new('dot', '-T', $format, '-o', $file, $filename).start;
     }
 }
 

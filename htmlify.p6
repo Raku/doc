@@ -214,9 +214,20 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse) {
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
-        printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
-        my $pod = extract-pod($file.path);
-        process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+        FIRST my @pod-files;
+
+        push @pod-files, start {
+            printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
+            my $pod = extract-pod($file.path);
+            process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+        }
+
+        if $num %% 10 {
+            await(@pod-files);
+            @pod-files = ();
+        }
+
+        LAST await(@pod-files);
     }
 }
 
@@ -596,12 +607,28 @@ sub write-type-graph-images(:$force) {
             return;
         }
     }
+
     say 'Writing type graph images to html/images/ ...';
     for $type-graph.sorted -> $type {
+        FIRST my @type-graph-images;
+
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
-        $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
+        try {
+            @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
+            @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
+
+            CATCH {
+                die 'dot command failed! (did you install Graphviz?)';
+            }
+        }
         print '.';
+
+        if @type-graph-images %% 20 {
+            await(@type-graph-images);
+            @type-graph-images = ();
+        }
+
+        LAST await(@type-graph-images);
     }
     say '';
 
@@ -611,11 +638,21 @@ sub write-type-graph-images(:$force) {
     %by-group<Metamodel>.append: $type-graph.types< Any Mu >;
 
     for %by-group.kv -> $group, @types {
+        FIRST my @specialized-visualizations;
+
         my $viz = Perl6::TypeGraph::Viz.new(:types(@types),
                                             :dot-hints(viz-hints($group)),
                                             :rank-dir('LR'));
-        $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
-        $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
+        try {
+            @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
+            @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
+
+            CATCH {
+                die 'dot command failed! (did you install Graphviz?)';
+            }
+        }
+
+        LAST await(@specialized-visualizations);
     }
 }
 
