@@ -67,7 +67,7 @@ are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 ## Invisible index anchors
 
 You can create index entries and invisible anchors with `X<|somename,some
-category>`. To make them visiable as a link in the generated html add
+category>`. To make them visible as a link in the generated html add
 `#__debug__` to any URL.
 
 ## Reporting bugs
