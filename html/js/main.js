@@ -96,9 +96,8 @@ function setup_debug_mode(){
         var seen_link = [];
         $('html').find('a[href]').each( function(i, el) {
             var url_without_anchor = el.href.split('#')[0];
-            if ( ! seen_link.includes(url_without_anchor) ) {
-                seen_link.push(url_without_anchor);
-
+            if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
+                seen_link.push(decodeURIComponent(url_without_anchor));
             }
         });
 
