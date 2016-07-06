@@ -64,6 +64,12 @@ or more lines with the signatures. Other allowed words instead of `method`
 are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
 `postcircumfix`, `term`.
 
+## Invisible index anchors
+
+You can create index entries and invisible anchors with `X<|somename,some
+category>`. To make them visiable as a link in the generated html add
+`#__debug__` to any URL.
+
 ## Reporting bugs
 
 Report issues at https://github.com/perl6/doc/issues. You can use the
