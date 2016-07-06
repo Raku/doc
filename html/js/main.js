@@ -2,6 +2,7 @@ $(function(){
     setup_search_box();
     setup_auto_title_anchors();
     setup_collapsible_TOC();
+    setup_debug_mode();
     $(window).resize(setup_search_box);
 });
 
@@ -61,6 +62,33 @@ function setup_collapsible_TOC() {
                     el.text('[hide]');
                 }
 
-                return false;x
+                return false;
             });
+}
+
+function setup_debug_mode(){
+    if ( window.location.href.endsWith('#__debug__') ) {
+        console.info("checking for duplicated name and id attrs");
+
+        var seen_name_or_id = []; 
+
+        $('#content').css('overflow', 'visible');
+
+        $('html').find('a').each( function(i, el){
+            if ( el.name ) {
+                if ( seen_name_or_id.includes(el.name) ) {
+                    console.log("found duplicate name attr in", el);
+                }
+                seen_name_or_id.push(el.name);
+
+                $(el).after('<span><a href="#' + el.name + '" style="color: magenta;">«#'+el.name+'»</a> </span>');
+            }
+            if ( el.id ) {
+                if ( seen_name_or_id.includes(el.id) ) {
+                    console.log("found duplicate id attr in", el);
+                }
+                seen_name_or_id.push(el.id);
+            }
+        })
+    }
 }
