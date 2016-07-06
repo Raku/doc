@@ -371,8 +371,19 @@ multi write-type-source($doc) {
 
 sub find-references(:$pod!, :$url, :$origin) {
     if $pod ~~ Pod::FormattingCode && $pod.type eq 'X' {
-        register-reference(:$pod, :$origin, :$url);
-    }
+        multi sub recurse-until-str(Str:D $s){ $s }
+        multi sub recurse-until-str(Pod::Block $n){ $n.contents>>.&recurse-until-str().join }
+
+        my $index-name-attr is default(Failure.new('missing index link'));
+        # this comes from Pod::To::HTML and needs to be moved into a method in said module
+        # TODO use method from Pod::To::HTML
+        my $index-text = recurse-until-str($pod).join;
+        my @indices = $pod.meta;
+        $index-name-attr = qq[index-entry{@indices ?? '-' !! ''}{@indices.join('-')}{$index-text ?? '-' !! ''}$index-text].subst('_', '__', :g).subst(' ', '_', :g).subst('%', '%25', :g).subst('#', '%23', :g);
+
+       register-reference(:$pod, :$origin, url => $url ~ '#' ~ $index-name-attr);
+       # register-reference(:$pod, :$origin, :$url);
+}
     elsif $pod.?contents {
         for $pod.contents -> $sub-pod {
             find-references(:pod($sub-pod), :$url, :$origin) if $sub-pod ~~ Pod::Block;
@@ -713,7 +724,7 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: "{@docs.[0].url}" \}]] #"
+                }", value: "$name", url: "{@docs.[0].url.subst('"', '\"', :g)}" \}]] #"
             }
     }).flat;
 
