@@ -89,6 +89,34 @@ function setup_debug_mode(){
                 }
                 seen_name_or_id.push(el.id);
             }
-        })
+        });
+
+        console.info("checking for dead links");
+
+        var seen_link = [];
+        $('html').find('a[href]').each( function(i, el) {
+            var url_without_anchor = el.href.split('#')[0];
+            if ( ! seen_link.includes(url_without_anchor) ) {
+                seen_link.push(url_without_anchor);
+
+            }
+        });
+
+        seen_link.forEach( function(url) {
+            var request = new XMLHttpRequest();
+
+            request.onreadystatechange = function(){
+                if ( request.readyState === 4 ) {
+                    if ( request.status >= 400 ) {
+                        alert(request.status + " for " + url);
+                    } else {
+                        // console.log(request.status + " for " + url);
+                    }
+                }
+            }
+
+            request.open('HEAD', url);
+            request.send();
+        });
     }
 }
