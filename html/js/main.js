@@ -70,7 +70,7 @@ function setup_debug_mode(){
     if ( window.location.href.endsWith('#__debug__') ) {
         console.info("checking for duplicated name and id attrs");
 
-        var seen_name_or_id = []; 
+        var seen_name_or_id = [];
 
         $('#content').css('overflow', 'visible');
 
