@@ -30,7 +30,7 @@ function setup_auto_title_anchors() {
 
 function setup_collapsible_TOC() {
     var state;
-    if ( ! $('nav.indexgroup > ol').length ) { return; }
+    if ( ! $('nav.indexgroup') ) { return; }
 
     // fix for jumpy .slideDown() effect
     $('nav.indexgroup > ol').each( function(){
@@ -42,23 +42,23 @@ function setup_collapsible_TOC() {
         $('nav.indexgroup > ol').hide();
     }
 
-    $('nav.indexgroup')
-        .prepend('<h2 id="TOC_title">Table of Contents'
-            + ' <a href="#">['
+    $('nav.indexgroup').find('#TOC_Title')
+        .append(
+            '<a id="TOC_toggle_button" href="#">['
             + ( state == 'hidden' ? 'show' : 'hide')
             + ']</a></h2>'
         )
-        .find('> h2 > a')
+        .find('#TOC_toggle_button')
             .click(function() {
                 var el = $(this);
                 if (el.text() == '[hide]') {
                     Cookies.set('toc_state', 'hidden');
-                    el.parents('nav').find('ol').slideUp();
+                    el.parents('nav').find('tbody').slideUp();
                     el.text('[show]');
                 }
                 else {
                     Cookies.set('toc_state', 'shown');
-                    el.parents('nav').find('ol').slideDown();
+                    el.parents('nav').find('tbody').slideDown();
                     el.text('[hide]');
                 }
 
