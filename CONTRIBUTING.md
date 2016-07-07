@@ -192,6 +192,10 @@ enable SASS processor:
 
     $ cpanm -vn CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
 
+Alternatively, you can install `sass` program and process SASS using that instead:
+
+    $ sass -w assets/sass/style.scss:html/css/style.css
+
 #### pygmentize
 
 This program adds syntax highlighting to the code examples.  Highlighting of
