@@ -70,6 +70,16 @@ You can create index entries and invisible anchors with `X<|somename,some
 category>`. To make them visible as a link in the generated html add
 `#__debug__` to any URL.
 
+## Viewport size
+
+If you change the layout please check different screen sizes. The #__debug__
+anchor will display the viewport size in the bottom left corner.
+
+## Broken links
+
+To check for broken links use the #__debug__ anchor. Please note that some
+external links may not get checked depending on your browser settings.
+
 ## Reporting bugs
 
 Report issues at https://github.com/perl6/doc/issues. You can use the
