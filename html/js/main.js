@@ -90,6 +90,12 @@ function setup_debug_mode(){
                 seen_name_or_id.push(el.id);
             }
         });
+        
+        console.log('setup viewport resolution display');
+        $('body').append('<span id="screen_res" style="color: magenta; position: absolute; bottom: 0; left: 0;"></span>');
+        window.setInterval(function screen_size_on_status_bar(){
+            $('#screen_res').text(window.innerWidth + 'x' + window.innerHeight);
+        }, 1000);
 
         console.info("checking for dead links");
 
@@ -117,5 +123,6 @@ function setup_debug_mode(){
             request.open('HEAD', url);
             request.send();
         });
+
     }
 }
