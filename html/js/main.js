@@ -90,7 +90,7 @@ function setup_debug_mode(){
                 seen_name_or_id.push(el.id);
             }
         });
-        
+
         console.log('setup viewport resolution display');
         $('body').append('<span id="screen_res" style="color: magenta; position: absolute; bottom: 0; left: 0;"></span>');
         window.setInterval(function screen_size_on_status_bar(){
