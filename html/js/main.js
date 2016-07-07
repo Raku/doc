@@ -120,8 +120,10 @@ function setup_debug_mode(){
                 }
             }
 
-            request.open('HEAD', url);
-            request.send();
+            try {
+                request.open('HEAD', url);
+                request.send();
+            } catch (e) {}
         });
 
     }
