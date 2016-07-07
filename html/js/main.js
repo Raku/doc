@@ -123,7 +123,7 @@ function setup_debug_mode(){
             try {
                 request.open('HEAD', url);
                 request.send();
-            } catch (e) {}
+            } catch (e) { /* this will catch errors due to browser security settings for external links */ }
         });
 
     }
