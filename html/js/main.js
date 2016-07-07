@@ -97,6 +97,13 @@ function setup_debug_mode(){
             $('#screen_res').text(window.innerWidth + 'x' + window.innerHeight);
         }, 1000);
 
+        console.info("add debug CSS");
+
+        $('head').append($('<style/>', {
+            id: 'debug',
+            html: 'table#TOC td.toc-number { display: inherit; }'
+        }));
+
         console.info("checking for dead links");
 
         var seen_link = [];

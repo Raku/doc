@@ -80,6 +80,11 @@ anchor will display the viewport size in the bottom left corner.
 To check for broken links use the #__debug__ anchor. Please note that some
 external links may not get checked depending on your browser settings.
 
+## Heading numbering
+
+Please check if the heading you add are of sound structure. You can use #__debug__
+to display heading numbers.
+
 ## Reporting bugs
 
 Report issues at https://github.com/perl6/doc/issues. You can use the
