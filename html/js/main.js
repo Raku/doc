@@ -66,6 +66,10 @@ function setup_collapsible_TOC() {
             });
 }
 
+document.addEventListener("keypress", function(evt){
+    if(evt.key == "Escape"){$('#query').focus()}
+});
+
 function setup_debug_mode(){
     if ( window.location.href.endsWith('#__debug__') ) {
         console.info("checking for duplicated name and id attrs");
