@@ -850,8 +850,8 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
         pod-table($*DR.lookup($kind, :by<kind>)\
             .categorize(*.name).sort(*.key)>>.value
             .map({[
-                .map({.subkinds // Nil}).flat.unique.join(', '),
                 pod-link(.[0].name, .[0].url),
+                .map({.subkinds // Nil}).flat.unique.join(', '),
                 .&summary
             ]})
         )
