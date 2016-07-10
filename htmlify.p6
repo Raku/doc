@@ -847,14 +847,15 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
             "s that are documented here as part of the Perl 6 language. " ~
             "Use the above menu to narrow it down topically."
         ),
-        pod-table($*DR.lookup($kind, :by<kind>)\
+        pod-table([[pod-bold('Name'), pod-bold('Declarator'), pod-bold('Source')],
+            $*DR.lookup($kind, :by<kind>)\
             .categorize(*.name).sort(*.key)>>.value
             .map({[
                 pod-link(.[0].name, .[0].url),
                 .map({.subkinds // Nil}).flat.unique.join(', '),
                 .&summary
-            ]})
-        )
+            ]}).cache.Slip
+       ].flat)
     ), $kind);
 }
 
