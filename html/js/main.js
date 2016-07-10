@@ -32,11 +32,6 @@ function setup_collapsible_TOC() {
     var state;
     if ( ! $('nav.indexgroup') ) { return; }
 
-    // fix for jumpy .slideDown() effect
-    $('nav.indexgroup > ol').each( function(){
-        $(this).css( 'height', $(this).height() );
-    });
-
     state = Cookies.get('toc_state') || 'shown';
     if ( state == 'hidden' ) {
         $('nav.indexgroup > ol').hide();
