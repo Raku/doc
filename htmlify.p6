@@ -29,7 +29,34 @@ use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
 
+&spurt.wrap(sub (|c){
+    state %seen-paths;
+    die "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+    note "duplicated path {c[0]}" if %seen-paths{c[0]}:exists;
+    %seen-paths{c[0]}++;
+    callsame
+});
+
+my @__URLS;
+&url-munge.wrap(sub (|c){
+    @__URLS.push: uri-unescape(c[0]);
+    callsame
+});
+
 use experimental :cached;
+
+sub escape-filename($s is copy) {
+    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
+    constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < >];
+    constant goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
+    constant length = badchars.elems;
+
+    loop (my int $i = 0;$i < length;$i++) {
+        $s = $s.subst(badchars[$i], goodnames[$i], :g)
+    }
+
+    $s
+}
 
 my $type-graph;
 my %routines-by-type;
@@ -178,6 +205,8 @@ sub MAIN(
     if $sparse || !$search-file || !$disambiguation {
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
+    
+    spurt('html/links.txt', @__URLS.sort.unique.join("\n"));
 }
 
 my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
@@ -221,14 +250,16 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         FIRST my @pod-files;
 
-        push @pod-files, start {
+        # push @pod-files, start {
+        push @pod-files, {
             printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
             my $pod = extract-pod($file.path);
             process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
         }
 
         if $num %% $parallel {
-            await(@pod-files);
+            # await(@pod-files);
+            @pod-files>>.();
             @pod-files = ();
         }
 
@@ -364,7 +395,9 @@ multi write-type-source($doc) {
         note "Type $podname not found in type-graph data";
     }
 
-    my $html-filename = "html" ~ $doc.url ~ ".html";
+    my @parts = $doc.url.split('/', :v);
+    @parts[*-1] = escape-filename @parts[*-1];
+    my $html-filename = "html" ~ @parts.join('/') ~ ".html";
     my $pod-path = pod-path-from-url($doc.url);
     spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
 }
@@ -778,7 +811,8 @@ sub write-disambiguation-files() {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
+        spurt "html/{escape-filename $name}.html", $html;
+        # spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
     }
     say '';
 }
@@ -896,7 +930,8 @@ sub write-kind($kind) {
                 })
             );
             print '.';
-            spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
+            # spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
+            spurt "html/$kind/{escape-filename $name}.html", p2h($pod, $kind);
         }
     say '';
 }
@@ -908,7 +943,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     return if $name ~~ / '/' /;
-    spurt "html/routine/{$type}.{$name}.html", p2h($p, 'routine');
+    spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
 }
 
 sub highlight-code-blocks(:$use-inline-python = True) {
