@@ -41,3 +41,6 @@ clean-search:
 	rm -f html/js/search.js
 
 clean: clean-html clean-images clean-search
+
+test-links: html/links.txt
+	./test-links.sh
