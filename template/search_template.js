@@ -55,6 +55,7 @@ $(function(){
       },
       position: { my: "right top", at: "right bottom", of: "#search div" },
       source: [
+      { category: "Syntax", value: "#", url: "/language/syntax#Single-line_comments" },
 ITEMS
       ],
       select: function (event, ui) { window.location.href = ui.item.url; },
