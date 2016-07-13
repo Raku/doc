@@ -41,12 +41,22 @@ sub rewrite-url($s) is export {
             return $s;
         }
 
+        when / ^ <[A..Z]> / {
+            $r =  "/type/{uri_unescape($s)}";
+            succeed;
+        }
+
+        when / ^ <[a..z]> | ^ <-alpha>* $ / {
+            $r = "/routine/{uri_unescape($s)}";
+            succeed;
+        }
+
         # special case the really nasty ones
         when / ^ '/routine//' $ / { return '/routine/' ~ escape-filename('/'); succeed; }
         when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
 
         when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[/#]>+) ]* $ / {
-            $r =  $0 ~ escape-filename($1) ~ $2 ~ uri_escape($3);
+            $r =  $0 ~ escape-filename(uri_unescape($1)) ~ $2 ~ uri_escape($3);
             succeed;
         }
 
@@ -58,7 +68,6 @@ sub rewrite-url($s) is export {
     }
 
     my $file-part = $r.split('#')[0] ~ '.html';
-
     die "$file-part not found" unless $file-part.IO:e:f:s;
 
     return $r;
