@@ -57,7 +57,7 @@ sub rewrite-url($s) is export is cached {
         when / ^ '/routine//' $ / { return '/routine/' ~ escape-filename('/'); succeed; }
         when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
 
-        when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[/#]>+) ]* $ / {
+        when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
             $r =  $0 ~ escape-filename(uri_unescape($1)) ~ $2 ~ uri_escape($3);
             succeed;
         }
