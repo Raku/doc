@@ -31,7 +31,8 @@ use Pod::Htmlify;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
-    die "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+    note "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+    note "{c[0]} got empty filename" if c[0].split('/')[*-1] eq '.html';
     note "duplicated path {c[0]}" if %seen-paths{c[0]}:exists;
     %seen-paths{c[0]}++;
     callsame
@@ -39,8 +40,9 @@ use Pod::Htmlify;
 
 my @__URLS;
 &rewrite-url.wrap(sub (|c){
-    @__URLS.push: uri-unescape(c[0]);
-    callsame
+    @__URLS.push: my \r = callsame;
+#    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
+    r
 });
 
 use experimental :cached;
