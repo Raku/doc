@@ -14,6 +14,56 @@ sub url-munge($_) is export {
     return $_;
 }
 
+constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < >];
+my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
+constant length = badchars.elems;
+
+sub escape-filename($s is copy) is export {
+#    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
+
+    loop (my int $i = 0;$i < length;$i++) {
+        $s = $s.subst(badchars[$i], goodnames[$i], :g)
+    }
+
+    $s
+}
+
+sub rewrite-url($s) is export {
+    my Str $r;
+    given $s {
+        when / ^ [ 'http' | 'https' | 'irc' ] '://' / {
+            # external link, we bail
+            return $s;
+        }
+
+        when / ^ '#' / {
+            # on-page link, we bail
+            return $s;
+        }
+
+        # special case the really nasty ones
+        when / ^ '/routine//' $ / { return '/routine/' ~ escape-filename('/'); succeed; }
+        when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
+
+        when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[/#]>+) ]* $ / {
+            $r =  $0 ~ escape-filename($1) ~ $2 ~ uri_escape($3);
+            succeed;
+        }
+
+        default {
+            my @parts = $s.split('#');
+            $r = escape-filename(@parts[0]) ~ '#' ~ uri_escape(@parts[1]) if @parts[1];
+            $r = escape-filename(@parts[0]) unless @parts[1];
+        }
+    }
+
+    my $file-part = $r.split('#')[0] ~ '.html';
+
+    die "$file-part not found" unless $file-part.IO:e:f:s;
+
+    return $r;
+}
+
 #| Return the footer HTML for each page
 sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';

@@ -38,25 +38,12 @@ use Pod::Htmlify;
 });
 
 my @__URLS;
-&url-munge.wrap(sub (|c){
+&rewrite-url.wrap(sub (|c){
     @__URLS.push: uri-unescape(c[0]);
     callsame
 });
 
 use experimental :cached;
-
-sub escape-filename($s is copy) {
-    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
-    constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < >];
-    constant goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
-    constant length = badchars.elems;
-
-    loop (my int $i = 0;$i < length;$i++) {
-        $s = $s.subst(badchars[$i], goodnames[$i], :g)
-    }
-
-    $s
-}
 
 my $type-graph;
 my %routines-by-type;
@@ -107,7 +94,7 @@ sub header-html($current-selection = 'nothing selected') is cached {
 
 sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
     pod2html $pod,
-        :url(&url-munge),
+        :url(&rewrite-url),
         :$head,
         :header(header-html $selection),
         :footer(footer-html($pod-path)),
