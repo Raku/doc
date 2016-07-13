@@ -108,34 +108,38 @@ function setup_debug_mode(){
             html: 'table#TOC td.toc-number { display: inherit; }'
         }));
 
-        console.info("checking for dead links");
+    }
 
-        var seen_link = [];
-        $('html').find('a[href]').each( function(i, el) {
-            var url_without_anchor = el.href.split('#')[0];
-            if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
-                seen_link.push(decodeURIComponent(url_without_anchor));
-            }
-        });
+    console.info("checking for dead links");
 
-        seen_link.forEach( function(url) {
-            var request = new XMLHttpRequest();
+    function report_broken_link(url) {
+        $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=perl6">irc.freenode.net#perl6</a></div>');
+    }
 
-            request.onreadystatechange = function(){
-                if ( request.readyState === 4 ) {
-                    if ( request.status >= 400 ) {
-                        alert(request.status + " for " + url);
-                    } else {
-                        // console.log(request.status + " for " + url);
-                    }
+    var seen_link = [];
+    $('html').find('a[href]').each( function(i, el) {
+        var url_without_anchor = el.href.split('#')[0];
+        if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
+            seen_link.push(decodeURIComponent(url_without_anchor));
+        }
+    });
+
+    seen_link.forEach( function(url) {
+        var request = new XMLHttpRequest();
+
+        request.onreadystatechange = function(){
+            if ( request.readyState === 4 ) {
+                if ( request.status >= 400 ) {
+                    report_broken_link(request.status + " for " + url);
+                } else {
+                    // console.log(request.status + " for " + url);
                 }
             }
+        }
 
-            try {
-                request.open('HEAD', url);
-                request.send();
-            } catch (e) { /* this will catch errors due to browser security settings for external links */ }
-        });
-
-    }
+        try {
+            request.open('HEAD', url);
+            request.send();
+        } catch (e) { /* this will catch errors due to browser security settings for external links */ }
+    });
 }
