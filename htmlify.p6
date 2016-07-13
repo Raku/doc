@@ -192,7 +192,7 @@ sub MAIN(
     if $sparse || !$search-file || !$disambiguation {
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
-    
+
     spurt('html/links.txt', @__URLS.sort.unique.join("\n"));
 }
 

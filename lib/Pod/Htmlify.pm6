@@ -42,12 +42,12 @@ sub rewrite-url($s) is export {
         }
 
         when / ^ <[A..Z]> / {
-            $r =  "/type/{uri_unescape($s)}";
+            $r =  "/type/{escape-filename(uri_unescape($s))}";
             succeed;
         }
 
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
-            $r = "/routine/{uri_unescape($s)}";
+            $r = "/routine/{escape-filename(uri_unescape($s))}";
             succeed;
         }
 
