@@ -66,7 +66,7 @@ function setup_collapsible_TOC() {
             });
 }
 
-document.addEventListener("keypress", function(evt){
+document.addEventListener("keyup", function(evt){
     if(evt.key == "Escape"){$('#query').focus()}
 });
 
