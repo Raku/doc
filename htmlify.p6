@@ -54,10 +54,11 @@ my %p5to6-functions;
 
 # TODO: Generate menulist automatically
 my @menu =
-    ('language',''         ) => (),
-    ('type', 'Types'       ) => <basic composite domain-specific exceptions>,
-    ('routine', 'Routines' ) => <sub method term operator>,
-    ('programs', ''        ) => (),
+    ('language',''          ) => (),
+    ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
+    ('routine', 'Routines'  ) => <sub method term operator>,
+    ('programs', ''         ) => (),
+    ('examples', 'Examples' ) => (),
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
@@ -149,6 +150,8 @@ sub MAIN(
     for <programs type language routine images syntax> {
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
+
+    'template/examples.html'.IO.copy('html/examples.html'.IO);
 
     my $*DR = Perl6::Documentable::Registry.new;
 
