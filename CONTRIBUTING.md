@@ -190,7 +190,7 @@ install this now:
 If you also plan on modifying the SASS stylesheets, install these modules to
 enable SASS processor:
 
-    $ cpanm -vn CSS::Minifier::XS CSS::Sass Mojolicious::Plugin::AssetPack
+    $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
 Alternatively, you can install `sass` program and process SASS using that instead:
 

@@ -9,7 +9,6 @@ app->static->paths(['html']);
 
 my $has_extra_modules = eval {
     require CSS::Sass;
-    require CSS::Minifier::XS;
     require Mojolicious::Plugin::AssetPack;
     1;
 };
