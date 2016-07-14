@@ -118,7 +118,7 @@ function setup_debug_mode(){
             sS.setItem('commit', commit);
             console.info("wiping cache");
         }
-            
+
         if ( ! sS.getItem(commit+window.location.pathname) ) {
             sS.setItem(commit+window.location.pathname, "seen");
             console.info("checking for dead links");
@@ -134,7 +134,6 @@ function setup_debug_mode(){
                     seen_link.push(decodeURIComponent(url_without_anchor));
                 }
             });
-
 
             seen_link.forEach( function(url) {
                 var request = new XMLHttpRequest();
