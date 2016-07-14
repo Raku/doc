@@ -30,6 +30,10 @@ sub escape-filename($s is copy) is export is cached {
     $s
 }
 
+sub unescape-percent($s) is cached {
+    $s.subst(:g, / [ '%' (<.xdigit> ** 2 ) ]+ /, -> $/ { Buf.new($0.flatmap({ :16(~$_) })).decode('UTF-8') })
+}
+
 sub rewrite-url($s) is export is cached {
     my Str $r;
     given $s {
@@ -44,12 +48,12 @@ sub rewrite-url($s) is export is cached {
         }
 
         when / ^ <[A..Z]> / {
-            $r =  "/type/{escape-filename(uri_unescape($s))}";
+            $r =  "/type/{escape-filename(unescape-percent($s))}";
             succeed;
         }
 
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
-            $r = "/routine/{escape-filename(uri_unescape($s))}";
+            $r = "/routine/{escape-filename(unescape-percent($s))}";
             succeed;
         }
 
@@ -58,7 +62,7 @@ sub rewrite-url($s) is export is cached {
         when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
 
         when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
-            $r =  $0 ~ escape-filename(uri_unescape($1)) ~ $2 ~ uri_escape($3);
+            $r =  $0 ~ escape-filename(unescape-percent($1)) ~ $2 ~ uri_escape($3);
             succeed;
         }
 
