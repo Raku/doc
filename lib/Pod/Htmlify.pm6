@@ -14,7 +14,7 @@ sub url-munge($_) is export {
     return $_;
 }
 
-constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < >];
+constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < > |];
 my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
 constant length = badchars.elems;
 
