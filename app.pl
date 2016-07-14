@@ -7,13 +7,12 @@ use Mojo::Util qw/spurt/;
 
 app->static->paths(['html']);
 
-my $has_extra_modules = eval {
-    require CSS::Sass;
-    require Mojolicious::Plugin::AssetPack;
-    1;
-};
+if ( eval { require Mojolicious::Plugin::AssetPack; 1; } ) {
+    unless ( eval { require CSS::Sass } ) {
+        app->log->debug('CSS::Sass not loaded. Relying on `sass` program'
+            . ' to process SASS');
+    }
 
-if ( $has_extra_modules ) {
     plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
     app->asset->process('app.css' => 'sass/style.scss' );
 
@@ -26,8 +25,9 @@ if ( $has_extra_modules ) {
     app->log->debug('...Done');
 }
 else {
-    app->log->debug( 'Install CSS::Sass, CSS::Minifier::XS, and'
-        . ' Mojolicious::Plugin::AssetPack to enable SASS processor'
+    app->log->debug( 'Install Mojolicious::Plugin::AssetPack to enable SASS'
+        . ' processor. You will also need CSS::Sass module or have `sass`'
+        . ' command working'
     );
 }
 
