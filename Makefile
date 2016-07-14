@@ -43,4 +43,4 @@ clean-search:
 clean: clean-html clean-images clean-search
 
 test-links: html/links.txt
-	./test-links.sh
+	./util/test-links.sh
