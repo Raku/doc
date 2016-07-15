@@ -58,31 +58,39 @@ Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
         MyFunnyRole.do-it(2);   # example output
 
 
-When documenting a pair of a sub and a method which both do the same thing,
-the heading should be `=head2 routine do-it`, and the next thing should be two
-or more lines with the signatures. Other allowed words instead of `method`
-are `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`,
-`postcircumfix`, `term`.
+When documenting a pair of a sub and a method which both do the same thing, the
+heading should be `=head2 routine do-it`, and the next thing should be two or
+more lines with the signatures. Other allowed words instead of `method` are
+`sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`, `postcircumfix`,
+`term`. If you wish to hide a heading from any index prefix it with the empty
+comment `Z<>`.
 
-## Invisible index anchors
+## Debug mode
+
+On the right side of the footer you can find [Debug: off]. Click it and reload
+the page to activate debug mode. The state of debug mode will be remembered by
+`window.sessionStorage` and will not survive a brower restart or opening the
+docs in a new tab.
+
+### Invisible index anchors
 
 You can create index entries and invisible anchors with `X<|somename,some
-category>`. To make them visible as a link in the generated html add
-`#__debug__` to any URL.
+category>`. To make them visible activate debug mode.
 
-## Viewport size
+### Viewport size
 
-If you change the layout please check different screen sizes. The #__debug__
-anchor will display the viewport size in the bottom left corner.
+If you change the layout please check different screen sizes. Debug mode will
+display the viewport size in the bottom left corner.
 
-## Broken links
+### Broken links
 
-To check for broken links use the #__debug__ anchor. Please note that some
-external links may not get checked depending on your browser settings.
+To check for broken links use debug mode. Any spotted broken link will be
+listed under the search input. Please note that some external links may not get
+checked depending on your browser settings.
 
-## Heading numbering
+### Heading numbering
 
-Please check if the heading you add are of sound structure. You can use #__debug__
+Please check if the heading you add are of sound structure. You can use debug mode
 to display heading numbers.
 
 ## Reporting bugs
