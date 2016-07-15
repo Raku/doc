@@ -71,7 +71,18 @@ document.addEventListener("keyup", function(evt){
 });
 
 function setup_debug_mode(){
-    if ( window.location.href.endsWith('#__debug__') ) {
+    $('footer').children(':first').append('<span id="debug"> [Debug: '+ (window.sessionStorage.getItem("debug")?"on":"off") +']</span>');
+    $('#debug').click(function(){
+        if ( $(this).text().contains('off') ) {
+            window.sessionStorage.setItem("debug", "on");
+            $(this).html('[Debug: on]');
+        }else{
+            window.sessionStorage.removeItem("debug");
+            $(this).html('[Debug: off]');
+        }
+    });
+
+    if ( window.sessionStorage.getItem("debug") ) {
         console.info("checking for duplicated name and id attrs");
 
         var seen_name_or_id = [];
@@ -108,51 +119,52 @@ function setup_debug_mode(){
             html: 'table#TOC td.toc-number { display: inherit; }'
         }));
 
-    }
-
-    if(window.localStorage){
-        var sS = window.localStorage;
-        var commit = $('#footer-commit').text();
-        if ( sS.getItem('commit') != commit ) {
-            sS.clear();
-            sS.setItem('commit', commit);
-            console.info("wiping cache");
-        }
-
-        if ( ! sS.getItem(commit+window.location.pathname) ) {
-            sS.setItem(commit+window.location.pathname, "seen");
-            console.info("checking for dead links");
-
-            function report_broken_link(url) {
-                $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=perl6">irc.freenode.net#perl6</a></div>');
+        if(window.localStorage){
+            var sS = window.localStorage;
+            var commit = $('#footer-commit').text();
+            if ( sS.getItem('commit') != commit ) {
+                sS.clear();
+                sS.setItem('commit', commit);
+                console.info("wiping cache");
             }
 
-            var seen_link = [];
-            $('html').find('a[href]').each( function(i, el) {
-                var url_without_anchor = el.href.split('#')[0];
-                if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
-                    seen_link.push(decodeURIComponent(url_without_anchor));
+            if ( ! sS.getItem(commit+window.location.pathname) ) {
+                sS.setItem(commit+window.location.pathname, "seen");
+                console.info("checking for dead links");
+
+                function report_broken_link(url) {
+                    $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=perl6">irc.freenode.net#perl6</a></div>');
                 }
-            });
 
-            seen_link.forEach( function(url) {
-                var request = new XMLHttpRequest();
+                var seen_link = [];
+                $('html').find('a[href]').each( function(i, el) {
+                    var url_without_anchor = el.href.split('#')[0];
+                    if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
+                        seen_link.push(decodeURIComponent(url_without_anchor));
+                    }
+                });
 
-                request.onreadystatechange = function(){
-                    if ( request.readyState === 4 ) {
-                        if ( request.status >= 400 ) {
-                            report_broken_link(request.status + " for " + url);
-                        } else {
-                            // console.log(request.status + " for " + url);
+                seen_link.forEach( function(url) {
+                    var request = new XMLHttpRequest();
+
+                    request.onreadystatechange = function(){
+                        if ( request.readyState === 4 ) {
+                            if ( request.status >= 400 ) {
+                                report_broken_link(request.status + " for " + url);
+                            } else {
+                                // console.log(request.status + " for " + url);
+                            }
                         }
                     }
-                }
 
-                try {
-                    request.open('HEAD', url);
-                    request.send();
-                } catch (e) { /* this will catch errors due to browser security settings for external links */ }
-            });
+                    try {
+                        request.open('HEAD', url);
+                        request.send();
+                    } catch (e) { /* this will catch errors due to browser security settings for external links */ }
+                });
+            }
         }
+
     }
+
 }
