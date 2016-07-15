@@ -137,8 +137,11 @@ function setup_debug_mode(){
                 }
 
                 var seen_link = [];
-                $('html').find('a[href]').each( function(i, el) {
-                    var url_without_anchor = el.href.split('#')[0];
+                var links = [];
+                $('html').find('a[href]').each(function(i,el){ links.push(el.href)});
+                $('svg').find('a').filter(function(i,e){return e.href.baseVal}).each(function(i,el){ links.push(el.href.baseVal) });
+                links.forEach( function(el) {
+                    var url_without_anchor = el.split('#')[0];
                     if ( ! seen_link.includes(decodeURIComponent(url_without_anchor)) ) {
                         seen_link.push(decodeURIComponent(url_without_anchor));
                     }
