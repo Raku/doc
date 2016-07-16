@@ -151,8 +151,6 @@ sub MAIN(
         mkdir "html/$_" unless "html/$_".IO ~~ :e;
     }
 
-    'template/examples.html'.IO.copy('html/examples.html'.IO);
-
     my $*DR = Perl6::Documentable::Registry.new;
 
     say 'Reading type graph ...';
