@@ -33,6 +33,8 @@ sub unescape-percent($s) {
 }
 
 sub rewrite-url($s) is export {
+    state %cache;
+    return %cache{$s} if %cache{$s}:exists;
     my Str $r;
     given $s {
         when / ^ [ 'http' | 'https' | 'irc' ] '://' / {
@@ -74,7 +76,7 @@ sub rewrite-url($s) is export {
     my $file-part = $r.split('#')[0] ~ '.html';
     die "$file-part not found" unless $file-part.IO:e:f:s;
 
-    return $r;
+    return %cache{$s} = $r;
 }
 
 #| Return the footer HTML for each page
