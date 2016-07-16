@@ -18,9 +18,7 @@ constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < > |];
 my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
 constant length = badchars.elems;
 
-use experimental :cached;
-
-sub escape-filename($s is copy) is export is cached {
+sub escape-filename($s is copy) is export {
 #    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
 
     loop (my int $i = 0;$i < length;$i++) {
@@ -30,11 +28,11 @@ sub escape-filename($s is copy) is export is cached {
     $s
 }
 
-sub unescape-percent($s) is cached {
+sub unescape-percent($s) {
     $s.subst(:g, / [ '%' (<.xdigit> ** 2 ) ]+ /, -> $/ { Buf.new($0.flatmap({ :16(~$_) })).decode('UTF-8') })
 }
 
-sub rewrite-url($s) is export is cached {
+sub rewrite-url($s) is export {
     my Str $r;
     given $s {
         when / ^ [ 'http' | 'https' | 'irc' ] '://' / {
