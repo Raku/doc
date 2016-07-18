@@ -9,11 +9,11 @@ files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
 
 With a Rakudo `perl6` executable in `PATH`, try
 
-    ./bin/p6doc Type::Str
+    PERL6LIB=. ./bin/p6doc Type::Str
 
 to see the documentation for class `Str`, or
 
-    ./bin/p6doc Type::Str.split
+    PERL6LIB=. ./bin/p6doc Type::Str.split
 
 to see the documentation for method `split` in class `Str`.
 
