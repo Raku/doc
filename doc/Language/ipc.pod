@@ -1,0 +1,90 @@
+=begin pod
+
+=TITLE Inter-Process Communication
+
+=SUBTITLE Programs running other programs and communicating with them
+
+=head1 X<running|running programs>
+
+Many programs need to be able to run other programs. Running a program in Perl 6
+is as easy as:
+
+    run 'git', 'status';
+
+This line runs the program named "git" and passes "git" and "status" to its
+command-line. It will find the program using the C<< %*ENV<PATH> >> setting.
+
+If you would like to run a program by sending a command-line to the shell,
+there's a tool for that as well. All shell meta characters are interpreted by
+the shell, including pipes, redirects, environment variable substitutions and so
+on.
+
+    shell 'ls -lR | gzip -9 > ls-lR.gz';
+
+Caution should be taken when using C<shell> with user input.
+
+=head1 X<proc|Proc object>
+
+Both C<run> and C<shell> return a L<Proc|/type/Proc> object, which can be used
+to communicate with the process in more detail.
+
+    my $git = run 'git', 'log', '--oneline', :out;
+    for $git.out.lines -> $line {
+        my ($sha, $subject) = $line.split: / /;
+        say "$subject [$sha]";
+    }
+
+You can tell the C<Proc> object to capture output as a file handle by passing
+the C<:out> and C<:err> flags. You may also pass input via the C<:in> flag.
+
+    my $echo = run 'echo', 'Hello, world', :out;
+    my $cat  = run 'cat', '-n', :in($echo.out), :out;
+    say $cat.out.get;
+
+You may also use C<Proc> to capture the PID, send signals to the application,
+and check the exitcode.
+
+    my $crontab = run 'crontab' '-l';
+    if $crontab.exitcode == 0 {
+        say 'crontab -l ran ok';
+    }
+    else {
+        say 'something went wrong';
+    }
+
+=head1 X<async|Proc::Async object>
+
+When you need more control over the communication with and from another process,
+you will want to make use of L<Proc::Async|/type/Proc::Async>. This class
+provides support for asynchronous communication with a program, as well as the
+ability to send signals to that program.
+
+    # Get ready to run the program
+    my $log = Proc::Async.new('tail', '-f',  '/var/log/system.log');
+    $log.stdout.tap(-> $buf { print $buf });
+    $log.stderr.tap(-> $buf { $*ERR.print $buf });
+
+    # Start the program
+    my $done = $proc.start;
+    sleep 10;
+
+    # Tell the program to stop
+    $log.kill('QUIT');
+
+    # Wait for the program to finish
+    await $done;
+
+Here is a small program that uses the "tail" program to print out the contents
+of the log named F<system.log> for 10 seconds and then tells the program to stop
+with a QUIT signal.
+
+Whereas C<Proc> provides access to output using C<IO::Handle>s, C<Proc::Async>
+provides access using asynchronous L<Supply|/type/Supply>s.
+
+If you want to run a program and do some work while you wait for the original
+program to finish, the C<start> routine returns a L<Promise|/type/Promise>,
+which is kept when the program quits.
+
+Use the C<write> method to pass data into the program.
+
+# vim: expandtab shiftwidth=4 ft=perl6
