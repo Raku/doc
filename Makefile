@@ -44,3 +44,6 @@ clean: clean-html clean-images clean-search
 
 test-links: html/links.txt
 	./util/test-links.sh
+
+push: test
+	git pull --rebase && git push
