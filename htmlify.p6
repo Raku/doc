@@ -136,7 +136,9 @@ sub MAIN(
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
     Int  :$parallel = 1,
+    Bool :$erase-cache = False,
 ) {
+    unlink $cache-filename if $erase-cache;
 
     # TODO: For the moment rakudo doc pod files were copied
     #       from its repo to subdir doc/Programs and modified to Perl 6 pod.
