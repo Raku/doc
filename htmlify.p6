@@ -28,6 +28,7 @@ use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
+use Digest::MurmurHash3;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
@@ -51,6 +52,7 @@ my $type-graph;
 my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
 my %p5to6-functions;
+my $cache-filename = 'hashes.info';
 
 # TODO: Generate menulist automatically
 my @menu =
@@ -158,9 +160,10 @@ sub MAIN(
     my %h = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph), :$parallel);
 
-    process-pod-dir 'Programs', :$sparse, :$parallel;
-    process-pod-dir 'Language', :$sparse, :$parallel;
-    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
+    my Bool $new = $cache-filename.IO.e;
+    process-pod-dir 'Programs', $new, :$sparse, :$parallel;
+    process-pod-dir 'Language', $new, :$sparse, :$parallel;
+    process-pod-dir 'Type',     $new, :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
 
@@ -217,7 +220,7 @@ sub extract-pod(IO() $file) {
     return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
-sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
+sub process-pod-dir($dir, Bool $cache, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Reading doc/$dir ...";
 
     my @pod-sources =
@@ -237,14 +240,50 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Processing $dir Pod files ...";
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
+    my $cache-fh;
+    my Str $content;
+    my Str $hash;
+    # Cache update flag
+    my Bool $rewrite = False;
+    if $cache {
+        $content = slurp $cache-filename;
+        # To update cache if something was changed
+        $cache-fh = open $cache-filename;
+    } else {
+        # To fill up cache
+        $cache-fh = open $cache-filename, :a;
+    }
+
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         FIRST my @pod-files;
 
         # push @pod-files, start {
         push @pod-files, {
+            my Bool $process-flag = False;
             printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
-            my $pod = extract-pod($file.path);
-            process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+            $hash = murmurhash3_32_hex(slurp($file.path), 0).perl;
+            if !$cache {
+                $cache-fh.say("$file: $hash");
+                $process-flag = True;
+            } else {
+                if $content ~~ m/$file ': ' (.+?)\n/ {
+                    unless $hash eq ~$0 {
+                        # Cache needs update
+                        $rewrite = True;
+                        my $tmp = ~$0;
+                        $content = S/$tmp/$hash/ given $content;
+                        $process-flag = True;
+                    }
+                } else { # Update if file is completely new
+                    $cache-fh.say("$file: $hash");
+                    $process-flag = True;
+
+                }
+            }
+            if $process-flag {
+                my $pod = extract-pod($file.path);
+                process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+            }
         }
 
         if $num %% $parallel {
@@ -253,7 +292,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
             @pod-files = ();
         }
 
-        LAST await(@pod-files);
+        LAST {
+            await(@pod-files);
+            $cache-fh.close;
+            spurt $cache-filename, $content if $rewrite;
+        }
     }
 }
 
