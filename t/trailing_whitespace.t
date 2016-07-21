@@ -23,7 +23,7 @@ for @files -> $file {
            $ok = False; last;
         }
     }
-    ok $ok, "no trailing whitespace in $file";
+    ok $ok, "must not have any trailing whitespace in $file";
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
