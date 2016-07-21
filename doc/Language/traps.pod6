@@ -357,6 +357,52 @@ Finally, note that, currently, when declaring the functions whitespace
 may be used between a function or method name and the parentheses
 surrounding the parameter list without problems.
 
+=head2 Named Parameters
+
+Many built-in subroutines and method calls accept named parameters and your own
+code may accept them as well, but be sure the arguments you pass when calling
+your routines are actually named parameters:
+
+    sub foo($a, :$b) { ... }
+    foo(1, 'b' => 2); # FAIL: Too many positionals passed; expected 1 argument but got 2
+
+What happened? That second argument is not a named parameter argument, but a
+L<Pair|/type/Pair> passed as a positional argument. If you want a named
+parameter it has to look like a name to Perl:
+
+    foo(1, b => 2); # okay
+    foo(1, :b(2);   # okay
+    foo(1, :b<it>); # okay
+
+    my $b = 2;
+    foo(1, :b($b)); # okay, but redundant
+    foo(1, :$b);    # okay
+
+    # Or even...
+    my %arg = 'b' => 2;
+    foo(1, |%arg);  # okay too
+
+That last one may be confusing, but since it uses the C<|> prefix on a
+L<Hash|/type/Hash>, it means "treat this hash as holding named arguments."
+
+If you really do want to pass them as pairs you should use a L<List|/type/List>
+or L<Capture|/type/Capture> instead:
+
+    my $list = ('b' => 2); # this is a List containing a single Pair
+    foo(|$arg, :$b); # okay: we passed the pair 'b' => 2 to the first argument
+    foo(1, |$arg);   # FAIL: Too many positionals passed; expected 1 argument but got 2
+
+    my $cap = \('b' => 2); # a Capture with a single positional value
+    foo(|$cap, :$b); # okay: we passed the pair 'b' => 2 to the first argument
+    foo(1, |$cap);   # FAIL: Too many positionals passed; expected 1 argument but got 2
+
+A Capture is usually the best option for this as it works exactly like the usual
+capturing of routine arguments during a regular call.
+
+The nice thing about the distinction here is that it gives the developer the
+option of passing pairs as either named or positional arguments, which can be
+handy in various instances.
+
 =end pod
 
 # vim: expandtab shiftwidth=4 ft=perl6
