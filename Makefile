@@ -1,7 +1,7 @@
 .PHONY: html html-nohighlight test help
 
 html:
-	perl6 htmlify.p6
+	perl6 htmlify.p6 --erase-cache
 
 html-nohighlight:
 	perl6 htmlify.p6 --no-highlight
