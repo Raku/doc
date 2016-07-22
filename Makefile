@@ -12,7 +12,12 @@ sparse:
 bigpage:
 	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git,/precompiled > html/perl6.xhtml
 
+# Common tests that are run by travis with every commit
 test:
+	prove --exec perl6 t/00-load.t t/pod-htmlify.t t/tabs.t t/typegraph.t t/pod-convenience.t t/pod6.t
+
+# Extended tests
+xtest:
 	prove --exec perl6 -r t
 
 help:
