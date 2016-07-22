@@ -1,13 +1,16 @@
 .PHONY: html html-nohighlight test help
 
-html:
-	perl6 htmlify.p6
+html: bigpage
+	perl6 htmlify.p6 --parallel=1
 
 html-nohighlight:
 	perl6 htmlify.p6 --no-highlight
 
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
+
+bigpage:
+	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git,/precompiled > html/perl6.xhtml
 
 test:
 	prove --exec perl6 -r t
