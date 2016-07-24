@@ -240,16 +240,14 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         FIRST my @pod-files;
 
-        # push @pod-files, start {
-        push @pod-files, {
+        push @pod-files, start {
             printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
             my $pod = extract-pod($file.path);
             process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
         }
 
         if $num %% $parallel {
-            # await(@pod-files);
-            @pod-files>>.();
+            await(@pod-files);
             @pod-files = ();
         }
 
