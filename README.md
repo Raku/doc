@@ -50,14 +50,13 @@ Here are some ways to help us:
  * add missing documentation for classes, roles, methods or operators
  * add usage examples to existing documentation
  * proofread and correct the documentation
- * tell us about missing documentation, either by adding it to the WANTED
-   file, or by opening issues on github.
+ * tell us about missing documentation by opening issues on github.
  * Do a `git grep TODO` in this repository, and replace the TODO items by
    actual documentation.
 
-The file [WANTED](WANTED) has a list of particular documents that are known
-to be missing and [CONTRIBUTING](CONTRIBUTING.md) explains briefly how to
-get started contributing documentation.
+[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
+documentation parts that are known to be missing and [CONTRIBUTING](CONTRIBUTING.md)
+explains briefly how to get started contributing documentation.
 
 --------
 
