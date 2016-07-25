@@ -73,7 +73,7 @@ document.addEventListener("keyup", function(evt){
 function setup_debug_mode(){
     $('footer').children(':first').append('<span id="debug"> [Debug: '+ (window.sessionStorage.getItem("debug")?"on":"off") +']</span>');
     $('#debug').click(function(){
-        if ( $(this).text().contains('off') ) {
+        if ( $(this).text().includes('off') ) {
             window.sessionStorage.setItem("debug", "on");
             $(this).html('[Debug: on]');
         }else{
