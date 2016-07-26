@@ -55,9 +55,8 @@ $(function(){
       },
       position: { my: "right top", at: "right bottom", of: "#search div" },
       source: [
-      { category: "Syntax", value: "# sinle-line comment", url: "/language/syntax#Single-line_comments" },
-      { category: "Syntax", value: "#` multi-line comment", url: "/language/syntax#Multi-line_/_embedded_comments" },
-ITEMS
+          PREDEFINED
+          ITEMS
       ],
       select: function (event, ui) { window.location.href = ui.item.url; },
       autoFocus: true
