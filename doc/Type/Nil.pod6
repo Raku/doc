@@ -9,7 +9,8 @@
 The value C<Nil> may be used to fill a spot where a value would normally
 go, and in so doing, explicitly indicate that no value is present. It
 may also used as a cheaper and less explosive alternative to a
-L<C<Failure>|/type/Failure>.
+L<C<Failure>|/type/Failure>.  (In fact, class C<Failure> is derived from C<Nil>,
+so smartmatching C<Nil> will also match C<Failure>.)
 
 The class C<Nil> is the same exact thing as its only possible value, C<Nil>.
 
@@ -34,7 +35,9 @@ that use a bare C<return> statement.
 
 In a list, C<Nil> takes the space of one value.  Iterating a C<Nil>
 behaves like iteration of any non-iterable value, producing a sequence
-of one C<Nil>.
+of one C<Nil>. (When you need the other meaning, the special value
+C<Empty|/type/Slip#Empty> is available to take no spaces when inserted into
+list, and to return no values when iterated.)
 
     (1, Nil, 3).elems.say;      #-> 3
     (for Nil { $_ }).perl.say;  #-> (Nil,)
@@ -47,16 +50,24 @@ C<Nil>.
     say (Nil)[100];                  #-> Nil
     say (Nil){100};                  #-> Nil
 
-When assigned, C<Nil> and any subclass of C<Nil> will revert a container to its
-default value, if no such default is provided Perl 6 assumes C<Any>. Assigning
-to a defined constrained container will produce a L<Failure|/type/Failure>.
+When assigned to a container, the C<Nil> value (but not any subclass of
+C<Nil>) will attempt to revert the container to its default value; if no
+such default is declared, Perl 6 assumes C<Any>. However, if the container's
+type is constrained with C<:D>, assigning C<Nil> to it will immediately throw
+an exception.  (In contrast, an instantiated C<Failure> matches C<:D>
+because it's a definite value, but will fail to match the actual nominal
+type unless it happens to be a parent class of C<Failure>.)
 
     my Int $x = 42;
     $x = Nil;
     $x.say;                     #-> (Int)
 
-    sub f( -->Int:D ){ Nil }; # this definedness constraint is ignored
-    my Int:D $i = f; # this definedness contraint is not ignored
+    sub f( --> Int:D ){ Nil }; # this definedness constraint is ignored
+    my Int:D $i = f; # this definedness contraint is not ignored, so throws
+
+    sub g( --> Int:D ){ fail "oops" }; # this definedness constraint is ignored
+    my Any:D $i = g; # failure object matches Any:D, so is assigned
+    my Int:D $j = g; # failure object doesn't match Int:D, so throws
 
 Because an untyped variable is type C<Any>, assigning a C<Nil> to one
 will result in an L<(Any)|/type/Any> type object.
