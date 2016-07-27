@@ -39,7 +39,9 @@ function setup_collapsible_TOC() {
 
     state = Cookies.get('toc_state') || 'shown';
     if ( state == 'hidden' ) {
-        $('nav.indexgroup > ol').hide();
+        $('#TOC').find('tbody').addClass('hiddenTOC');
+    } else {
+        $('#TOC').find('tbody').addClass('shownTOC');
     }
 
     $('nav.indexgroup').find('#TOC_Title')
@@ -51,19 +53,9 @@ function setup_collapsible_TOC() {
         .find('#TOC_toggle_button')
             .click(function() {
                 var el = $(this);
-                if (el.text() == '[hide]') {
-                    Cookies.set('toc_state', 'hidden');
-                    el.parents('nav').find('tbody').removeClass('shownTOC');
-                    el.parents('nav').find('tbody').addClass('hiddenTOC');
-                    el.text('[show]');
-                }
-                else {
-                    Cookies.set('toc_state', 'shown');
-                    el.parents('nav').find('tbody').removeClass('hiddenTOC');
-                    el.parents('nav').find('tbody').addClass('shownTOC');
-                    el.text('[hide]');
-                }
-
+                el.text(el.text() == '[hide]' ? '[show]' : '[hide]');
+                Cookies.set('toc_state', el.text() == '[hide]' ? 'shown' : 'hidden');
+                el.parents('nav').find('tbody').toggleClass('hiddenTOC').toggleClass('shownTOC');
                 return false;
             });
 }
