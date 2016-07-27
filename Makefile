@@ -25,12 +25,14 @@ ctest:
 	prove --exec perl6 -r t/tabs.t t/trailing_whitespace.t
 
 help:
-	@echo "Usage: make [html|html-nohighlight|test]"
+	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"
 	@echo ""
 	@echo "Options:"
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   test:             run the test suite"
+	@echo "  xtest:             run the test suite, including extra tests"
+	@echo "  ctest:             run the test suite, content tests only"
 
 run:
 	@echo "Starting local server…"
