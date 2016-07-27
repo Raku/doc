@@ -20,6 +20,10 @@ test:
 xtest:
 	prove --exec perl6 -r t
 
+# Content tests
+ctest:
+	prove --exec perl6 -r t/tabs.t t/trailing_whitespace.t
+
 help:
 	@echo "Usage: make [html|html-nohighlight|test]"
 	@echo ""
