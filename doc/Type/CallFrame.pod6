@@ -1,0 +1,98 @@
+=begin pod
+
+=TITLE class CallFrame
+
+=SUBTITLE Capturing current frame state
+
+    class CallFrame { ... }
+
+There's no way to instantiate a C<CallFrame>. Instead, it is captured from the current state of a program using the L<callframe> subroutine.
+
+    my $frame = callframe;
+    say "The above line of code ran at {$frame.file}:{$frame.line}.";
+
+With no arguments the callframe will give you frame information for the line calling C<callframe>. The file and line annotations will be identical to those in L<$?FILE> and L<$?LINE>.
+
+You may, however, pass a number to C<callframe> to specify a different frame level. The current frame is level 0 (though level of the frame may be different, see L<level> for more information). A positive number will move upward through the levels of frame. A negative number will move downward into the C<callframe> method and class itself at the point at which they are running to construct this information for you.
+
+The frames themselves do not necessarily match to method or subroutine calls. Perl constructs a frames for blocks and such as well, so if you need a callframe for a particular method call, do not assume it is a fixed number of levels up.
+
+Each frame stores L<annotations>, including the L<file> and L<line> annotations, which have convenience methods for accessing those directly. You can also retrieve a reference to the code block of the currently executing frame using the L<code> method.  The frame also captures all lexical variables stored with the frame, which are available by calling L<my> on the frame object.
+
+Here's a short example that will find the calling routine and prints the package of the caller using the C<callframe> interface.
+
+    for 1..* -> $level {
+        given callframe($level) {
+            when CallFrame {
+                next unless $frame.code ~~ Routine;
+                say $frame.code.package;
+                last;
+            }
+            default {
+                say "no calling routine or method found";
+                last;
+            }
+        }
+    }
+
+If you just need to trace caller information, L<Backtrace> may provide a better means of getting information. L<CallFrame> contains more information about a specific frame, but provides a tedious interface for enumerating a call stack.
+
+=head1 Methods
+
+=head2 method code
+
+    method code(CallFrame:D:)
+
+Return the callable code for the current block. When called on the object returned by C<callframe(0)>, this will be the same value found in L<&?BLOCK>.
+
+=head2 method file
+
+    method file(CallFrame:D:)
+
+This is a shortcut for looking up the C<file> annotation. Therefore, the following code prints C<True>.
+
+    my $frame = callframe(0);
+    say $frame.file eq $frame.annotations<file>;
+
+head2 method level
+
+    method level(CallFrame:D:)
+
+Return the absolute level of the frame in the stack. This will usually be higher than 0 when calling C<callframe(0)>. Using a negative number to retrieve a frame less than 0 will result in an exception.
+
+=head2 method line
+
+    method line(CallFrame:D:)
+
+This is a shortcut for looking up the C<line> annotation. For example, the following two calls are identical.
+
+    say callframe(1).line;
+    say callframe(1).annotations<line>;
+
+=head2 method my
+
+    method my(CallFrame:D:)
+
+Return a L<Hash> that names all the variables and their values associated with the lexical scope of the frame.
+
+    sub some-value {
+        my $the-answer = 42;
+        callframe(0);
+    }
+
+    my $frame = some-value();
+    say $frame.my<$the-answer>; # 42
+
+=head1 Routines
+
+=head2 sub callframe
+
+    sub callframe(Int $level = 0)
+
+Returns a L<CallFrame> object for the given level. If no level is given, the default level is 0. Positive levels move up the frame stack and negative levels move down (into the call to C<callframe> and deeper).
+
+Returns L<Mu> if there is no call information for the given level. (Negative levels may result in an exception.)
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
