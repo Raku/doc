@@ -53,12 +53,14 @@ function setup_collapsible_TOC() {
                 var el = $(this);
                 if (el.text() == '[hide]') {
                     Cookies.set('toc_state', 'hidden');
-                    el.parents('nav').find('tbody').slideUp();
+                    el.parents('nav').find('tbody').removeClass('shownTOC');
+                    el.parents('nav').find('tbody').addClass('hiddenTOC');
                     el.text('[show]');
                 }
                 else {
                     Cookies.set('toc_state', 'shown');
-                    el.parents('nav').find('tbody').slideDown();
+                    el.parents('nav').find('tbody').removeClass('hiddenTOC');
+                    el.parents('nav').find('tbody').addClass('shownTOC');
                     el.text('[hide]');
                 }
 
