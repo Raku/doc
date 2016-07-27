@@ -31,6 +31,28 @@ the first of the two possible seconds in the case of a leap second.
     say DateTime.new(Instant.from-posix(915148800, True));  # 1998-12-31T23:59:60Z
     say DateTime.new(Instant.from-posix(915148800));        # 1999-01-01T00:00:00Z
 
+B<Note:> the method does not attempt to make any guesses about possible positions
+of leap seconds in the future and only uses the already-known leap seconds.
+This means you can get different results, depending on the compiler version you're
+using. For example, the December 31, 2016 leap second was announced in July and
+shipped with Rakudo 2016.07, so 2016.06 and earlier releases won't know about it:
+
+    $ perl6-2016.06 -e 'say Instant.from-posix: 1485726595'
+    Instant:1485726631
+
+    $ perl6-2016.07 -e 'say Instant.from-posix: 1485726595'
+    Instant:1485726632
+
+Since a Rakudo compiler always returns 0 for future leap seconds it doesn't know
+about, you can patch your old code when new leap seconds are announced, so it
+will give correct results, regardless of what version of the compiler it's run on:
+
+    $ perl6-2016.06 -e 'say ($*VM.version before 2016.07 ?? 1 !! 0) + Instant.from-posix: 1485726595'
+    Instant:1485726632
+
+    $ perl6-2016.07 -e 'say ($*VM.version before 2016.07 ?? 1 !! 0) + Instant.from-posix: 1485726595'
+    Instant:1485726632
+
 =head2 method to-posix
 
     method to-posix()
