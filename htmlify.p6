@@ -59,6 +59,7 @@ my @menu =
     ('routine', 'Routines'  ) => <sub method term operator>,
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
+    ('webchat', 'Chat with us') => (),
 #    ('module', 'Modules'   ) => (),
 #    ('formalities',''      ) => ();
 ;
