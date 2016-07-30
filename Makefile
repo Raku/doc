@@ -59,5 +59,8 @@ clean: clean-html clean-images clean-search
 test-links: html/links.txt
 	./util/test-links.sh
 
+extract-examples:
+	./util/extract-examples.p6 --source-path=./doc/ --prefix=./examples/
+
 push: test
 	git pull --rebase && git push
