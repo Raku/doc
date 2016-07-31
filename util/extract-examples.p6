@@ -51,7 +51,7 @@ sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:ver
         mkdir $out-file-path.volume ~ $out-file-path.dirname;
         $*OUT = open($out-file-path, :w) // die "can not open $out-file-path";
 
-        verbose [$out-file-path.Str, $source-path];
+        verbose $out-file-path.Str;
         
         put "# begin: $file " ~ "=" x (80 - 10 - $file.chars);
         put walk($file);
