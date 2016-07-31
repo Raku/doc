@@ -47,11 +47,11 @@ sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:ver
     &verbose = &note if $v;
 
     for @files.IO -> $file {
-        my $out-file-path = IO::Path.new($prefix ~ $file.substr($source-path.chars, $file.chars - $source-path.chars - 5) ~ '.p6');
+        my $out-file-path = IO::Path.new($prefix ~ $file.abspath.substr($source-path.IO.abspath.chars, $file.abspath.chars - $source-path.IO.abspath.chars - 5) ~ '.p6');
         mkdir $out-file-path.volume ~ $out-file-path.dirname;
         $*OUT = open($out-file-path, :w) // die "can not open $out-file-path";
 
-        verbose $out-file-path.Str;
+        verbose [$out-file-path.Str, $source-path];
         
         put "# begin: $file " ~ "=" x (80 - 10 - $file.chars);
         put walk $file;
