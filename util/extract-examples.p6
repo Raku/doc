@@ -27,10 +27,10 @@ multi sub walk(Pod::Block $_, @context is copy) {
 multi sub walk([], @context) { "" }
 
 multi sub walk(@childen, @context) {
-    (@childen.map: { walk($_, @context) }).join("\n")
+    (@childen.map: { walk($_, @context) }).join
 }
 
-multi sub walk(Str $s, @context) {
+multi sub walk(Str $s is copy, @context) {
     Pod::Block::Code ~~ any(@context) ?? $s !! ""
 }
 
