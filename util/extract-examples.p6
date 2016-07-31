@@ -15,8 +15,12 @@ multi sub walk(IO::Path $io) is export {
 multi sub walk(Pod::Block::Code $_, @context is copy) {
     @context.push: .WHAT;
 
-    my $content = .contents».&walk(@context).trim;
-    '# ', '=' x 78, NL, '{', NL, $content, NL, '}'
+    if .config<skip-test> {
+        return ''
+    }else{
+        my $content = .contents».&walk(@context).trim;
+        return '# ', '=' x 78, NL, '{', NL, $content, NL, '}'
+    }
 }
 
 multi sub walk(Pod::Block $_, @context is copy) {
