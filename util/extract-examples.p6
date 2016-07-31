@@ -34,18 +34,19 @@ multi sub walk(Str $s, @context) {
     Pod::Block::Code ~~ any(@context) ?? $s !! ""
 }
 
-my &verbose = sub {};
+my &verbose = sub (|c) {};
 
-sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v))) {
+sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v)), *@files) {
     my \exclude = none(flat <. ..>, $exclude.split(','));
-    my @files = gather for $source-path {
+
+    @files //= gather for $source-path {
         take .IO when .IO.f && .Str.ends-with('.pod6');
         .IO.dir(test => exclude)».&?BLOCK when .IO.d
     }
 
     &verbose = &note if $v;
 
-    for @files -> $file {
+    for @files.IO -> $file {
         my $out-file-path = IO::Path.new($prefix ~ $file.substr($source-path.chars, $file.chars - $source-path.chars - 5) ~ '.p6');
         mkdir $out-file-path.volume ~ $out-file-path.dirname;
         $*OUT = open($out-file-path, :w) // die "can not open $out-file-path";
