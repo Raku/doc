@@ -39,14 +39,14 @@ my &verbose = sub (|c) {};
 sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v)), *@files) {
     my \exclude = none(flat <. ..>, $exclude.split(','));
 
-    @files //= gather for $source-path {
+    @files ||= gather for $source-path {
         take .IO when .IO.f && .Str.ends-with('.pod6');
         .IO.dir(test => exclude)».&?BLOCK when .IO.d
     }
 
     &verbose = &note if $v;
 
-    for @files.IO -> $file {
+    for @files».IO -> $file {
         my $out-file-path = IO::Path.new($prefix ~ $file.abspath.substr($source-path.IO.abspath.chars, $file.abspath.chars - $source-path.IO.abspath.chars - 5) ~ '.p6');
         mkdir $out-file-path.volume ~ $out-file-path.dirname;
         $*OUT = open($out-file-path, :w) // die "can not open $out-file-path";
