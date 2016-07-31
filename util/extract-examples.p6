@@ -57,7 +57,7 @@ sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:ver
 
         verbose $out-file-path.Str;
         
-        put 'use MONKEY-SEE-NO-EVAL;';
+        put 'use v6;';
         put "# begin: $file " ~ "=" x (80 - 10 - $file.chars);
         put 'class {';
         put walk($file);
