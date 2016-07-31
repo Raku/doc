@@ -16,7 +16,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
     @context.push: .WHAT;
 
     my $content = .contents».&walk(@context).trim;
-    '# ', '=' x 78, NL, $content
+    '# ', '=' x 78, NL, '{', $content, '}'
 }
 
 multi sub walk(Pod::Block $_, @context is copy) {
@@ -54,7 +54,7 @@ sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:ver
         verbose [$out-file-path.Str, $source-path];
         
         put "# begin: $file " ~ "=" x (80 - 10 - $file.chars);
-        put walk $file;
+        put walk($file);
         put "# end: $file " ~ "=" x (80 - 8 - $file.chars), NL;
         
         $*OUT.close;
