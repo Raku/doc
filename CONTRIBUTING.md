@@ -65,6 +65,21 @@ more lines with the signatures. Other allowed words instead of `method` are
 `term`. If you wish to hide a heading from any index prefix it with the empty
 comment `Z<>`.
 
+## Testing examples
+
+To export examples from all .pod6-files use `make extract-examples`. To run
+individual tests pick the right .p6-file from `examples/` as a parameter to
+`perl6`.
+
+### Skipping tests
+
+Some examples fail with compile time exceptions and would interrupt the test
+for a file. Use the pod-config option `skip-test` to skip them.
+
+    =begin code :skip-test
+        your-example-here();
+    =end code
+
 ## Debug mode
 
 On the right side of the footer you can find [Debug: off]. Click it and reload
