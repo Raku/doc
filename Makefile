@@ -48,13 +48,16 @@ clean-html:
 		html/type/ \
 		$(NULL)
 
+clean-examples:
+	rm -fr examples/*
+
 clean-images:
 	rm -f html/images/type-graph*
 
 clean-search:
 	rm -f html/js/search.js
 
-clean: clean-html clean-images clean-search
+clean: clean-html clean-images clean-search clean-examples
 
 test-links: html/links.txt
 	./util/test-links.sh
