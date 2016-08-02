@@ -913,7 +913,7 @@ sub write-kind($kind) {
                     pod-heading("{.origin.human-kind} {.origin.name}"),
                     pod-block("From ",
                         pod-link(.origin.name,
-                            .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ .name),
+                            .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~ "method_" ~ .name),
                     ),
                     .pod.list,
                 })
