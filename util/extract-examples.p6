@@ -58,14 +58,14 @@ sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:ver
         $*OUT = open($out-file-path, :w) // die "can not open $out-file-path";
 
         verbose $out-file-path.Str;
-        
+
         put 'use v6;';
         put "# begin: $file " ~ "=" x (80 - 10 - $file.chars);
         put 'class {';
         put walk($file);
         put '}';
         put "# end: $file " ~ "=" x (80 - 8 - $file.chars), NL;
-        
+
         $*OUT.close;
     }
 }
