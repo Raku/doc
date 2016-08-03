@@ -9,6 +9,9 @@ html-nohighlight:
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
 
+webdev-build:
+	perl6 htmlify.p6 --no-highlight --sparse=200
+
 bigpage:
 	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git,/precompiled > html/perl6.xhtml
 
@@ -31,6 +34,7 @@ help:
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo " sparse:             generate HTML documention, but only every 10th file"
+	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
 	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"
