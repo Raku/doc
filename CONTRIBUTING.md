@@ -214,11 +214,11 @@ Now the `panda` command should be available.
 
 #### Pod::To::HTML
 
-The program which builds the HTML version of the documentation
+The program that builds the HTML version of the documentation
 (`htmlify.p6`) uses `Pod::To::HTML` to convert Pod structures into HTML.
-Install `Pod::To::HTML` like so:
+You'll also need `Pod::To::BigPage`. Install these modules like so:
 
-    $ panda install Pod::To::HTML
+    $ panda install Pod::To::HTML Pod::To::BigPage
 
 #### Mojolicious / Web Server
 
