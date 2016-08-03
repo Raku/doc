@@ -9,17 +9,28 @@ $(function(){
       var that = this,
       currentCategory = "";
       function sortBy(a, b) {
-        if (a.category.toLowerCase() < b.category.toLowerCase()) {
-          return -1;
-        } else if (a.category.toLowerCase() > b.category.toLowerCase()) {
-          return 1;
-        } else if (a.value.toLowerCase() < b.value.toLowerCase()) {
-          return -1;
-        } else if (a.value.toLowerCase() > b.value.toLowerCase()) {
-          return 1;
-        } else {
-          return 0;
-        }
+        // We want to place 5to6 docs to the end of the list.
+        // See if either a or b are in 5to6 category.
+        var isp5a = false, isp5b = false;
+        if ( a.category.substr(0,4) == '5to6' ) { isp5a = true; }
+        if ( b.category.substr(0,4) == '5to6' ) { isp5b = true; }
+
+        // If one of the categories is a 5to6 but other isn't,
+        // move 5to6 to be last
+        if ( isp5a  && !isp5b ) {return  1}
+        if ( !isp5a && isp5b  ) {return -1}
+
+        // Sort by category alphabetically; 5to6 items would both have
+        // the same category if we reached this point and category sort
+        // will happen only on non-5to6 items
+        if ( a.category.toLowerCase() < b.category.toLowerCase() ) {return -1}
+        if ( a.category.toLowerCase() > b.category.toLowerCase() ) {return  1}
+
+        // We reach this point when categories are the same; so
+        // we sort items by value
+        if ( a.value.toLowerCase() < b.value.toLowerCase() ) {return -1}
+        if ( a.value.toLowerCase() > b.value.toLowerCase() ) {return  1}
+        return 0;
       }
       $.each( items.sort(sortBy), function( index, item ) {
         var li;
