@@ -1,4 +1,4 @@
-## Contributing
+# Contributing
 
 Your patches to perl6/doc are very welcome.
 
@@ -7,6 +7,28 @@ that adheres to the common style and formatting guidelines.
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](https://perl6.org/community/irc).
+
+# TABLE OF CONTENTS
+- [General principles](#general-principles)
+- [Documenting types](#documenting-types)
+- [Testing examples](#testing-examples)
+    - [Skipping tests](#skipping-tests)
+- [Debug mode](#debug-mode)
+    - [Invisible index anchors](#invisible-index-anchors)
+    - [Viewport size](#viewport-size)
+    - [Broken links](#broken-links)
+    - [Heading numbering](#heading-numbering)
+- [Reporting bugs](#reporting-bugs)
+- [Website Styles](#website-styles)
+- [Building the documentation](#building-the-documentation)
+    - [Dependency installation](#dependency-installation)
+        - [Rakudo](#rakudo)
+        - [Panda](#panda)
+        - [Pod::To::HTML](#podtohtml)
+        - [Mojolicious / Web Server](#mojolicious--web-server)
+        - [pygmentize](#pygmentize)
+        - [Inline::Python](#inlinepython)
+    - [Build and view the documentation](#build-and-view-the-documentation)
 
 ## General principles
 
