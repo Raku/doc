@@ -30,9 +30,12 @@ help:
 	@echo "Options:"
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
+	@echo " sparse:             generate HTML documention, but only every 10th file"
+	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"
 	@echo "  ctest:             run the test suite, content tests only"
+	@echo "    run:             run the development webserver"
 
 run:
 	@echo "Starting local server…"
