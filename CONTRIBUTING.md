@@ -17,6 +17,10 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
 * Check out [the styleguide](STYLEGUIDE.md) for further ... guidance
+* For website: we support the current and previous major releases of Chrome, Firefox,
+Internet Explorer (Edge), and Safari. Please test layout changes.
+Lacking actual browers to test in, you can use [browsershots.org](http://browsershots.org)
+or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
 
 ## Documenting types
 
