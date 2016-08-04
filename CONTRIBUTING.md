@@ -41,7 +41,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Check out [the styleguide](STYLEGUIDE.md) for further ... guidance
 * For website: we support the current and previous major releases of Chrome, Firefox,
 Internet Explorer (Edge), and Safari. Please test layout changes.
-Lacking actual browers to test in, you can use [browsershots.org](http://browsershots.org)
+Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
 or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
 
 ## Documenting types
