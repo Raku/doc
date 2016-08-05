@@ -436,35 +436,65 @@ channel is closed:
     }
 
 There is also the non-blocking L<method poll|/type/Channel#method_poll>
-which returns an available item from the channel or L<Nil> if there
+that returns an available item from the channel or L<Nil> if there
 is no item or the channel is closed, this does of course mean that the
 channel must be checked to determine whether it is closed:
 
     my $c = Channel.new;
 
-    start {
-        my $closed = $c.closed;
-        loop {
-            if $c.poll -> $item {
-                say $item;
-            }
-            elsif $closed {
-                last;
-            }
+    # Start five Promises that sleep for 1..3 seconds, and then
+    # send a value to our Channel
+    ^3 .map: -> $v {
+        start {
+            sleep 3 - $v;
+            $c.send: "$v from thread {$*THREAD.id}";
         }
     }
 
-    await (^10).map: -> $r {
-        start {
-            sleep $r;
-            $c.send($r);
+    # Wait 3 seconds before closing the channel
+    Promise.in(3).then: { $c.close }
+
+    # Continuously loop and poll the channel, until it's closed
+    my $is-closed = $c.closed;
+    loop {
+        if $c.poll -> $item {
+            say "$item received after {now - INIT now} seconds";
         }
+        elsif $is-closed {
+            last;
+        }
+
+        say 'Doing some unrelated things...';
+        sleep .6;
     }
-    $c.close;
+
+    # Doing some unrelated things...
+    # Doing some unrelated things...
+    # 2 from thread 5 received after 1.2063182 seconds
+    # Doing some unrelated things...
+    # Doing some unrelated things...
+    # 1 from thread 4 received after 2.41117376 seconds
+    # Doing some unrelated things...
+    # 0 from thread 3 received after 3.01364461 seconds
+    # Doing some unrelated things...
 
 The L<method closed|/type/Channel#method_closed> returns a L<Promise> that
 will be kept (and consequently will evaluate to True in a boolean context,)
 when the channel is closed.
+
+The C<.poll> method can be used in combination with C<.receive> method, as a
+caching mechanism where lack of value returned by `.poll` is a signal that
+more values need to be fetched and loaded into the channel:
+
+    sub get-value {
+        return $c.poll // do { start replenish-cache; $c.receive };
+    }
+
+    sub replenish-cache {
+        for ^20 {
+            $c.send: $_ for slowly-fetch-a-thing();
+        }
+    }
 
 Channels can be used in place of the L<Supply> in the C<whenever> of a
 C<react> block described earlier:
