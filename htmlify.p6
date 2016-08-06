@@ -916,12 +916,12 @@ sub write-kind($kind) {
                                  .origin.url ~ '#' ~ (.subkinds~'_' if .subkinds ~~ /fix/) ~
                                   (
                                       if .subkinds ~~ /fix/ { '' }
-                                      # It looks really weird, but in reality, it checks pod content,
-                                      # then extracts a link(e.g. 'routine abs'), then this string
-                                      # splits by space characted and we take a correct category name.
+                                      # It looks really weird, but in reality, it checks the pod content,
+                                      # then extracts a link(e.g. '(Type) routine foo'), then this string
+                                      # splits by space character and we take a correct category name.
                                       # It works with sub/method/term/routine/*fix types, so all our links
                                       # here are correct.
-                                      else { .pod[0].contents[0].contents.Str.split(' ')[0] ~ '_'; }
+                                      else { .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_'; }
                                   ) ~ .name.subst(' ', '_')),
                     ),
                     .pod.list,
