@@ -17,9 +17,10 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
 
     if .config<skip-test> {
         return ''
-    }else{
+    } else {
         my $content = .contents».&walk(@context).trim;
-        return '# ', '=' x 78, NL, '{', NL, $content, NL, '}'
+        $content = $content.subst("\n", "\{\} \n", :g) if .config<signature>;
+        return '# ', '=' x 78, NL, '{', NL, (.config<signature> ?? $content ~ ' {' ~ '}' !! $content ), NL, '}';
     }
 }
 

@@ -97,6 +97,16 @@ To export examples from all .pod6-files use `make extract-examples`. To run
 individual tests pick the right .p6-file from `examples/` as a parameter to
 `perl6`.
 
+### Signatures
+
+Signatures are part of actual code and need to be tested too. But without the body every
+signature will cause an error during the test. Use the pod-config option `signature` to
+automatically add an empty body.
+
+    =begin code :signature
+        method new(*@codes)
+    =end code
+
 ### Skipping tests
 
 Some examples fail with compile time exceptions and would interrupt the test
