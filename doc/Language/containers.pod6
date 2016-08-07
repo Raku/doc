@@ -91,7 +91,9 @@ And C<is rw> on a parameter requires the presence of a writable Scalar
 container:
 
     sub f($x is rw) { say $x };
-    f 42;   # Parameter '$x' expected a writable container, but got Int value
+    f 42;
+    CATCH { default { say .^name, ': ', .Str } };
+    # OUTPUT«X::Parameter::RW: Parameter '$x' expected a writable container, but got Int value␤»
 
 =head1 Binding
 
@@ -104,9 +106,10 @@ variable is modified (and not just the container it points to). If you write
 then the lexpad entry for C<$x> directly points to the C<Int> 42. Which
 means that you cannot assign to it anymore:
 
-    $ perl6 -e 'my $x := 42; $x = 23'
-    Cannot modify an immutable value
-       in block  at -e:1
+    my $x := 42;
+    $x = 23;
+    CATCH { default { say .^name, ': ', .Str } };
+    # OUTPUT«X::AdHoc: Cannot assign to an immutable value␤»
 
 You can also bind variables to other variables:
 
@@ -151,6 +154,10 @@ you can still assign to it:
     ($x, 1, 2)[0] = 23;
     say $x;                 # 23
     ($x, 1, 2)[1] = 23;     # Error: Cannot modify an immutable value
+    CATCH { default { say .^name, ': ', .Str } };
+    # OUTPUT:
+    # 23
+    # X::Assignment::RO: Cannot modify an immutable Int
 
 So the list doesn't care about whether its elements are values or
 containers, they just store and retrieve whatever was given to them.
@@ -220,7 +227,9 @@ counter-intuitive results when the array is used later.
     my $b := 42;
     @a[1] := $b;         # Nor is this.
     @a[2] = $b;          # ...but this is fine.
-    @a[1, 2] := 1, 2;    # This is not allowed and will fail.
+    @a[1, 2] := 1, 2;    # runtime error: X::Bind::Slice
+    CATCH { default { say .^name, ': ', .Str } };
+    # OUTPUT«X::Bind::Slice: Cannot bind to Array slice␤»
 
 Operations that mix Lists and Arrays generally protect against such
 a thing happening accidentally.
@@ -255,6 +264,7 @@ container: slurpy parameters (C<*@a>) and explicit calls to C<flat>:
 As hinted above, scalar containers prevent that flattening:
 
     sub f(*@x) { @x.elems };
+    my @a = 1, 2, 3;
     say f $@a, 4, 5;            # 3
 
 The C<@> character can also be used as a prefix to remove a scalar container:
@@ -294,5 +304,6 @@ work with types in Perl 6.
     say $a = 12;
     say $a = 'FOO'; # X::TypeCheck::Binding
     say $a = 13; # X::OutOfRange
+    CATCH { default { say .^name, ': ', .Str; .resume } };
 
 =end pod
