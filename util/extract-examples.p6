@@ -25,7 +25,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
                                         (not .ends-with('}'))} ).all) {
             $content = $content.subst("\n", " \{\}\n", :g) ~ ' {' ~ '}';
         }
-        return '# ', '=' x 78, NL, '{', NL, $content, NL, '}';
+        return '# ', '=' x 78, NL, 'class :: {', NL, $content, NL, '}';
     }
 }
 
