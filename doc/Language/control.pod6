@@ -43,6 +43,7 @@ and how they are used is explained
 L<elsewhere|/language/functions#Blocks_and_Lambdas>.  For now it is just
 important to understand when blocks run and when they do not:
 
+=for code :skip-test
     say "We get here"; { say "then here." }; { say "not here"; 0; } or die;
 
 In the above example, after running the first statement, the first block stands
@@ -88,6 +89,7 @@ have unnecessary semicolons for clarity.
 The simplest way to run a block where it cannot be a stand-alone statement
 is by writing C<do> before it:
 
+=for code :skip-test
     # This dies half of the time
     do { say "Heads I win, tails I die."; Bool.pick } or die; say "I win.";
 
@@ -113,6 +115,7 @@ A C<do> may also be used on a bare statement (without curly braces)
 but this is mainly just useful for avoiding the syntactical need to
 parenthesize a statement if it is the last thing in an expression:
 
+=for code :skip-test
     3, do if 1 { 2 }  ; #-> 3, 2
     3,   (if 1 { 2 }) ; #-> 3, 2
     3,    if 1 { 2 }  ; # Syntax error
@@ -128,6 +131,7 @@ only be evaluated if the condition means True when coerced to C<Bool>.
 Unlike some languages the condition does not have to be parenthesized,
 instead the C<{> and C<}> around the block are mandatory:
 
+=for code :skip-test
     if 1 { "1 is true".say }  ; # says "1 is true"
     if 1   "1 is true".say    ; # syntax error, missing block
     if 0 { "0 is true".say }  ; # does not say anything, because 0 is false
@@ -174,12 +178,14 @@ A compound conditional may be produced by following an C<if> conditional
 with C<else> to provide an alternative block to run when the conditional
 expression is false:
 
+=for code :skip-test
     if 0 { say "no" } else { say "yes" }   ; # says "yes"
     if 0 { say "no" } else{ say "yes" }    ; # syntax error, space is required
 
 The C<else> cannot be separated from the conditional statement by a
 semicolon, but as a special case, it is OK to have a newline.
 
+=for code :skip-test
     if 0 { say "no" }; else { say "yes" }  ; # syntax error
     if 0 { say "no" }
     else { say "yes" }                     ; # says "yes"
@@ -202,10 +208,12 @@ instead of an C<else> if you want.
 
 You cannot use the statement modifier form with C<else> or C<elsif>:
 
+=for code :skip-test
     42.say if 0 else { 43.say }            # syntax error
 
 All the same rules for semicolons and newlines apply, consistently
 
+=for code :skip-test
     if 0 { say 0 }; elsif 1 { say 1 }  else { say "how?" } ; # syntax error
     if 0 { say 0 }  elsif 1 { say 1 }; else { say "how?" } ; # syntax error
     if 0 { say 0 }  elsif 1 { say 1 }  else { say "how?" } ; # says "1"
@@ -246,6 +254,7 @@ the sense of a conditional statement.  You cannot use C<else> or C<elsif>
 with C<unless> because that ends up getting confusing.  Other than those
 two differences C<unless> works the same as L<#if>:
 
+=for code :skip-test
     unless 1 { "1 is false".say }  ; # does not say anything, since 1 is true
     unless 1   "1 is false".say    ; # syntax error, missing block
     unless 0 { "0 is false".say }  ; # says "0 is false"
@@ -285,12 +294,14 @@ You may intermix C<if>-based and C<with>-based clauses.
 As with C<unless>, you may use C<without> to check for undefinedness,
 but you may not add an C<else> clause:
 
-    without $answer { fail "Got: $_" }
+    my $answer = Any;
+    without $answer { warn "Got: $_" }
 
 There are also C<with> and C<without> statement modifiers:
 
-    return 42 with $answer;
-    .throw without $answer;
+    my $answer = (Any, True).roll;
+    say 42 with $answer;
+    warn "undefined answer" without $answer;
 
 =head1 X<for|control flow>
 
@@ -298,67 +309,49 @@ The C<for> loop iterates over a list, running the statements inside a block
 once on each iteration.  If the block takes parameters, the elements of the
 list are provided as arguments.
 
-=begin code
-
-for @foo { $_.print } # prints each value contained in @foo
-for @foo { .print }   # same thing, because .print implies a $_ argument
-for @foo { 42.print } # prints 42 as many times as @foo has elements
-
-=end code
+    my @foo = 1..3;
+    for @foo { $_.print } # prints each value contained in @foo
+    for @foo { .print }   # same thing, because .print implies a $_ argument
+    for @foo { 42.print } # prints 42 as many times as @foo has elements
 
 Pointy block syntax or a L<placeholder|/language/variables#The_^_Twigil>
 may be used to name the parameter, of course.
 
-=begin code
-
-for @foo -> $item { print $item }
-for @foo { print $^item }            # same thing
-
-=end code
+    my @foo = 1..3;
+    for @foo -> $item { print $item }
+    for @foo { print $^item }            # same thing
 
 Multiple parameters can be declared, in which case the iterator takes
 as many elements from the list as needed before running the block.
 
-=begin code
-
-for @foo.kv -> $idx, $val { say "$idx: $val" }
-for %hash.kv -> $key, $val { say "$key => $val" }
-for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
-
-=end code
+    my @foo = 1..3;
+    for @foo.kv -> $idx, $val { say "$idx: $val" }
+    my %hash = <a b c> Z=> 1,2,3;
+    for %hash.kv -> $key, $val { say "$key => $val" }
+    for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
 
 A C<for> may be used on lazy lists -- it will only take elements from the
 list when they are needed, so to read a file line by line, you could
 use:
 
-=begin code
-
-for $*IN.lines -> $line {...}
-
-=end code
+=for code :skip-test
+    for $*IN.lines -> $line { .say }
 
 Iteration variables are always lexical, so you don't need to use C<my> to give
 them the appropriate scope. Also, they are read-only aliases. If you need them
 to be read-write, use C«<->» instead of C«->». If you need to make C<$_>
 read-write in a for loop, do so explicitly.
 
-=begin code
-
-for @cars <-> $_ {...}
-
-=end code
+    my @foo = 1..3;
+    for @foo <-> $_ { $_++ }
 
 A for loop can produce a C<List> of the values produced by each run of the
 attached block.  To capture these values, put the for loop in parenthesis or
 assign them to an array:
 
-=begin code
-
-(for 1, 2, 3 { $_ * 2 }).say;              # says "(2 4 6)"
-my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # says "[2 4 6]"
-my @a = (for 1, 2, 3 { $_ * 2 }); @a.say;  # same thing
-
-=end code
+    (for 1, 2, 3 { $_ * 2 }).say;              # says "(2 4 6)"
+    my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # says "[2 4 6]"
+    my @b = (for 1, 2, 3 { $_ * 2 }); @a.say;  # same thing
 
 =head1 X<gather/take|control flow,gather take>
 
@@ -389,12 +382,11 @@ For example
     say 'between consumption of two values';
     say vals[1];
 
-produces this output:
-
-    1
-    between consumption of two values
-    Produced a value
-    2
+    # OUTPUT:
+    # 1
+    # between consumption of two values
+    # Produced a value
+    # 2
 
 
 C<gather/take> is scoped dynamically, so you can call C<take> from subs or methods that are called
@@ -419,19 +411,20 @@ C<switch> topicalizes in languages such as C.  In other words, C<given>
 sets C<$_> inside the following block.  The keywords for individual cases
 are C<when> and C<default>.  The usual idiom looks like this:
 
-    given EXPR {
-        when EXPR { ... }
-        when EXPR { ... }
-        default { ... }
+    my $var = (Any, 21, any <answer lie>).pick;
+    given $var {
+        when 21 { say $_ * 2 }
+        when 'lie' { .say }
+        default { say 'default' }
     }
 
 The C<given> statement is often used alone:
 
-    given EXPR { .say; .Numeric; }
+    given 42 { .say; .Numeric; }
 
 This is a lot more understandable than:
 
-    { .say; .Numeric; }(EXPR)
+    { .say; .Numeric; }(42)
 
 
 =head2 X<default and when|control flow,default when>
@@ -496,6 +489,7 @@ The C<proceed> statement will immediately leave the C<when> or C<default>
 block, skipping the rest of the statements, and resuming after the block.
 This prevents the C<when> or C<default> from exiting the outer block.
 
+=for code :skip-test
     default {
         proceed;
         "This never says".say
@@ -581,28 +575,28 @@ C<given> can follow a statement to set the topic in the statement it follows.
 
 =head1 X<loop|control flow>
 
-The C<loop> statement is the C-style C<for> loop in disguise:
+The C<loop> statement takes three statements in parentheses separated by C<;>
+that take the role of initializer, conditional and incrementer. The initializer
+is execute once and any variable declaration will spill into the surrounding
+block. The conditional is executed once per iteration and coerced to C<Bool>,
+if C<False> the loop is stopped. The incrementor is executed once per
+iteration.
 
     loop (my $i = 0; $i < 10; $i++) {
-        ...
+        say $i;
     }
 
-As in C, the parentheses are required if you supply the 3-part spec;
-however, the 3-part loop spec may be entirely omitted to write an infinite
-loop.  That is,
+The infinite loop does not requie parentheses.
 
-    loop {...}
-
-is equivalent to the C-ish idiom:
-
-    loop (;;) {...}
+=for code :skip-test
+    loop { say 'forever' }
 
 The C<loop> statement may be used to produce values from the result of each
 run of the attached block if it appears in lists:
 
     (loop ( my $i = 0; $i++ < 3;) { $i * 2 }).say;               #-> "(2 4 6)"
-    my @a = (loop ( my $i = 0; $i++ < 3;) { $i * 2 }); @a.say;   #-> "[2 4 6]"
-    my @a = do loop ( my $i = 0; $i++ < 3;) { $i * 2 }); @a.say; # same thing
+    my @a = (loop ( my $j = 0; $j++ < 3;) { $j * 2 }); @a.say;   #-> "[2 4 6]"
+    my @b = do loop ( my $k = 0; $k++ < 3;) { $k * 2 }; @b.say; # same thing
 
 Unlike a C<for> loop, one should not rely on whether returned values are produced
 lazily, for now.  It would probably be best to use C<eager> to guarantee that a
@@ -617,44 +611,26 @@ loop whose return value may be used actually runs:
 The C<while> statement executes the block as long as its condition is
 true. So
 
-=begin code
+    my $x = 1;
+    while $x < 4 {
+        print $x++;
+    }
+    print "\n";
 
-my $x = 1;
-while $x < 4 {
-print $x++;
-}
-print "\n";
-
-=end code
-
-produces
-
-=begin code
-
-123
-
-=end code
+    # OUTPUT:
+    # 123
 
 Similarly, the C<until> statement executes the block as long as the
 expression is false.
 
-=begin code
+    my $x = 1;
+    until $x > 3 {
+        print $x++;
+    }
+    print "\n";
 
-my $x = 1;
-until $x > 3 {
-print $x++;
-}
-print "\n";
-
-=end code
-
-again produces
-
-=begin code
-
-123
-
-=end code
+    # OUTPUT:
+    # 123
 
 The condition for C<while> or C<until> can be parenthesized, but there
 must be a space between the keyword and the opening parenthesis of the
@@ -662,11 +638,8 @@ condition.
 
 Both C<while> and C<until> can be used as statement modifiers. E. g.
 
-=begin code
-
-$x++ while $x < 12
-
-=end code
+   my $x = 42;
+   $x-- while $x > 12
 
 Also see C<repeat/while> and C<repeat/until> below.
 
@@ -677,11 +650,14 @@ All these forms may produce a return value the same way C<loop> does.
 Executes the block I<at least once> and, if the condition allows, repeats
 that execution.
 
+    my $x = -42;
     repeat {
+        $x++;
         # Execute this block. Then, execute it again and again, until $x >= 10
     } while $x < 10;
 
     repeat {
+        $x++;
         # Execute this block. Then, execute it again and again, while $x < 10
     } until $x >= 10;
 
@@ -700,7 +676,7 @@ and will lead to runtime errors when attempted to be mutated.
 
     sub s(){ my $a = 41; return $a };
     say ++s();
-    CATCH { dd $_ };
+    CATCH { default { say .^name, ': ', .Str } };
     # OUTPUT«X::Multi::NoMatch.new(dispatcher …
 
 To return a mutable container, use C<return-rw>.
@@ -721,9 +697,9 @@ activated fatal exceptions via the pragma C<use fatal;>, the exception is
 thrown instead of being returned as a C<Failure>.
 
     sub f { fail "WELP!" };
-    dd f;
-    # OUTPUT«Failure.new(exception => X::AdHoc.new(payload => "wut?"),
-    # backtrace => Backtrace.new)␤»
+    say f;
+    CATCH { default { say .^name, ': ', .Str } }
+    # OUTPUT«X::AdHoc: WELP!␤»
 
 =head1 X<once|control flow>
 
@@ -751,7 +727,7 @@ A C<quietly> block will suppress warnings.
 
     quietly { warn 'kaput!' };
     warn 'still kaput!';
-    OUTPUT«still kaput! [...]␤»
+    # OUTPUT«still kaput! [...]␤»
 
 =head1 LABELs
 
@@ -759,9 +735,9 @@ C<while>, C<until>, and C<for> loops can all take a label, which can be
 used to identify them for C<next>, C<last>, and C<redo>. Nested loops are
 supported, for instance:
 
-    OUTAHERE: while True {
-        for lines() -> $line {
-            last OUTAHERE if $line ~~ /^$/;
+    OUTAHERE: while True  {
+        for 1,2,3 -> $n {
+            last OUTAHERE if $n == 2;
         }
     }
 
@@ -802,14 +778,11 @@ prints "12".
 The C<redo> command restarts the loop block without evaluating the
 conditional again.
 
-=begin code
-
+=for code :skip-test
 {
     my $x = prompt("Enter a number");
-    redo unless is_a_number($x)
+    redo unless $x ~~ /\d+/
 }
-
-=end code
 
 =head1 X<samewith|control flow>
 
