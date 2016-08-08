@@ -38,14 +38,14 @@ Defined as:
 
     method name(Attribute:D:) returns Str:D
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.name
-=end code
-
 Returns the name of the attribute.  Note that this is always the private name,
 so if an attribute is declared as C<has $.a>, the name returned is C<$!a>.
+
+    class Foo {
+        has @!bar;
+    }
+    my $a = Foo.^attributes(:local)[0];
+    say $a.name;            # OUTPUT: «@!bar␤»
 
 =head2 method package
 
@@ -53,13 +53,13 @@ Defined as:
 
     method package(Attribute:D:) returns Mu:U
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.package
-=end code
-
 Returns the package (class/grammar/role) to which this attribute belongs.
+
+    class Boo {
+        has @!baz;
+    }
+    my $a = Boo.^attributes(:local)[0];
+    say $a.package;         # OUTPUT: «(Boo)␤»
 
 =head2 method has_accessor
 
@@ -67,13 +67,16 @@ Defined as:
 
     method has_accessor(Attribute:D:) returns Bool:D
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.has_accessor
-=end code
-
 Returns C<True> if the attribute has a public accessor method.
+
+    class Container {
+        has $!private;
+        has $.public;
+    }
+    my $private = Container.^attributes(:local)[0];
+    my $public = Container.^attributes(:local)[1];
+    say $private.has_accessor; # OUTPUT: «False␤»
+    say $public.has_accessor;  # OUTPUT: «True␤»
 
 =head2 method readonly
 
@@ -81,14 +84,17 @@ Defined as:
 
     method readonly(Attribute:D:) returns Bool:D
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.readonly
-=end code
-
 Returns C<True> for readonly attributes, which is the default.
 Returns C<False> for attributes marked as C<is rw>.
+
+    class Library {
+        has $.address; # Read-only value
+        has @.new-books is rw;
+    }
+    my $addr = Library.^attributes(:local)[0];
+    my $new-books = Library.^attributes(:local)[1];
+    say $addr.readonly;      # OUTPUT: «True␤»
+    say $new-books.readonly; # OUTPUT: «False␤»
 
 =head2 method type
 
@@ -96,13 +102,18 @@ Defined as:
 
     method type(Attribute:D:) returns Mu
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.type
-=end code
-
 Returns the type constraint of the attribute.
+
+    class TypeHouse {
+        has Int @.array;
+        has $!scalar;
+        has @.mystery;
+    }
+    my @types = TypeHouse.^attributes(:local)[0..2];
+    for 0..2 { say @types[$_] }
+    # OUTPUT: «Positional[Int] @!array
+    # Mu $!scalar
+    # Positional @!mystery␤»
 
 =head2 method get_value
 
@@ -110,13 +121,13 @@ Defined as:
 
     method get_value(Attribute:D: Mu $instance)
 
-Usage:
-
-=begin code :skip-test
-    my $val = ATTRIBUTE.get_value(OBJECT)
-=end code
-
 Returns the value stored in this attribute of object C<$instance>.
+
+    class Violated {
+        has $!private-thing = 5;
+    }
+    my $private = Violated.^attributes(:local)[0];
+    say $private.get_value(Violated.new); # OUTPUT: «5␤»
 
 Note that this method violates encapsulation of the object, and should be
 used with care.  Here be dragons.
@@ -127,13 +138,17 @@ Defined as:
 
     method set_value(Attribute:D: Mu $instance, Mu \new_val)
 
-Usage:
-
-=begin code :skip-test
-    ATTRIBUTE.set_value(OBJECT, NEW_VALUE)
-=end code
-
 Binds the value C<new_val> to this attribute of object C<$instance>.
+
+    class A {
+        has $!a = 5;
+        method speak() { say $!a; }
+    }
+    my $attr = A.^attributes(:local)[0];
+    my $a = A.new;
+    $a.speak; # OUTPUT: «5␤»
+    $attr.set_value($a, 42);
+    $a.speak; # OUTPUT: «42␤»
 
 Note that this method violates encapsulation of the object, and should be
 used with care.  Here be dragons.
