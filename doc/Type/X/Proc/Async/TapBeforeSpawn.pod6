@@ -10,15 +10,23 @@ If the C<stdout> or C<stderr> methods of L<Proc::Async|/type/Proc::Async> are
 called after the program has been C<start>ed, an exception of type
 L<X::Proc::Async::TapBeforeSpawn> is thrown.
 
-    my $proc = Proc::Async.new("echo");
+    my $proc = Proc::Async.new("echo", "foo");
     $proc.start;
-    $proc.stdout.tap(&print)        # To avoid data races, you must tap stdout before running the process
+    $proc.stdout.tap(&print);
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Proc::Async::TapBeforeSpawn: To avoid data races, you must tap stdout before running the process␤»
+
+The right way is the reverse order
+
+    my $proc = Proc::Async.new("echo", "foo");
+    $proc.stdout.tap(&print);
+    await $proc.start;
 
 =head1 Methods
 
 =head2 method handle
 
-    method handle(X::Proc::Async::TapBeforeSpawn:D:) return Str:D
+    method handle(X::Proc::Async::TapBeforeSpawn:D:) returns Str:D
 
 Returns the name of the handle (C<stdout> or C<stderr>) that was accessed after the
 program started.
