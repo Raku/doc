@@ -43,30 +43,19 @@ say $now;                           # 12:45 (or something like that)
 
 Defined as:
 
-    multi method new(Int :$year!, Int :$month = 1, Int :$day = 1,
-                     Int :$hour = 0, Int :$minute = 0, :$second = 0,
-                     Int :$timezone = 0, :&formatter)
-    multi method new(Date :$date!,
-                     Int :$hour = 0, Int :$minute = 0, :$second = 0,
-                     Int :$timezone = 0, :&formatter)
-    multi method new(Int() $year, Int() $month, Int() $day,
-                     Int() $hour, Int $minute, $second,
-                     Int() :$timezone = 0, :&formatter)       # since 6.d
-    multi method new(Instant:D $i,  :$timezone=0, :&formatter)
-    multi method new(Int:D $posix,  :$timezone=0, :&formatter)
-    multi method new(Str:D $format, :$timezone=0, :&formatter)
-
-Usage:
-
-    $datetime = DateTime.new(YEAR, MONTH?, DAY?, HOUR?, MINUTE?, SECOND?,
-      TIMEZONE?, FORMATTER?)
-    $datetime = DateTime.new(DATE, HOUR?, MINUTE?, SECOND?, TIMEZONE?,
-      FORMATTER?)
-    $datetime = DateTime.new(YEAR, MONTH, DAY, HOUR, MINUTE, SECOND,
-      TIMEZONE?, FORMATTER?)                                  # since 6.d
-    $datetime = DateTime.new(INSTANT, TIMEZONE?, FORMATTER?)
-    $datetime = DateTime.new(TIMESTAMP, TIMEZONE?, FORMATTER?)
-    $datetime = DateTime.new(FORMAT, TIMEZONE?, FORMATTER?)
+=for code :skip-test
+multi method new(Int :$year!, Int :$month = 1, Int :$day = 1,
+                 Int :$hour = 0, Int :$minute = 0, :$second = 0,
+                 Int :$timezone = 0, :&formatter)
+multi method new(Date :$date!,
+                 Int :$hour = 0, Int :$minute = 0, :$second = 0,
+                 Int :$timezone = 0, :&formatter)
+multi method new(Int() $year, Int() $month, Int() $day,
+                 Int() $hour, Int $minute, $second,
+                 Int() :$timezone = 0, :&formatter)       # since 6.d
+multi method new(Instant:D $i,  :$timezone=0, :&formatter)
+multi method new(Int:D $posix,  :$timezone=0, :&formatter)
+multi method new(Str:D $format, :$timezone=0, :&formatter)
 
 Creates a new C<DateTime> object. One option for creating a new DateTime object
 is from the components (year, month, day, hour, ...) separately. Another is to
@@ -87,31 +76,40 @@ L<X::Temporal::InvalidFormat>. If you supply a string that includes a time
 zone and supply the C<timezone> named argument, an exception of type
 L<X::DateTime::TimezoneClash> is thrown.
 
+    my $datetime = DateTime.new(year => 2015,
+                                month => 1,
+                                day => 1,
+                                hour => 1,
+                                minute => 1,
+                                second => 1,
+                                timezone => 1);
+    $datetime = DateTime.new(date => Date.new('2015-12-24'),
+                             hour => 1,
+                             minute => 1,
+                             second => 1,
+                             timezone => 1);
+    $datetime = DateTime.new(2015, 1, 1, # First January of 2015
+                             1, 1, 1);   # Hour, minute, second with default timezone
+    $datetime = DateTime.new(now);                       # Instant.
+    say $datetime = DateTime.new(1470853583);            # 2016-08-10T18:26:23Z from a Unix timestamp
+    $datetime = DateTime.new("2015-01-01T03:17:30+0500") # Formatted string
+
 =head2 method now
 
 Defined as:
 
-    method now(:$timezone=$*TZ, &formatter) returns DateTime:D
-
-Usage:
-
-    DateTime.now(TIMEZONE?, FORMATTER?)
+    method now(:$timezone=$*TZ, :&formatter) returns DateTime:D
 
 Creates a new C<DateTime> object from the current system time, optionally with
 a different timezone than the default attached.
 
+    say DateTime.now;
 
 =head2 method clone
 
 Defined as:
 
-    method clone(:$year, :$month, :$day, :$hour, :$minute, :$second,
-                 :$timezone, :&formatter)
-
-Usage:
-
-    DATETIME.clone(YEAR, MONTH, DATE, HOUR, MINUTE, SECOND, TIMEZONE,
-    FORMATTER)
+    method clone(:$year, :$month, :$day, :$hour, :$minute, :$second, :$timezone, :&formatter)
 
 Creates a new C<DateTime> object based on the invocant, but with the given
 arguments overriding the values from the invocant.
@@ -122,17 +120,14 @@ arguments overriding the values from the invocant.
 Note that this can lead to invalid dates in some circumstances:
 
     say DateTime.new("2012-02-29T12:34:56Z").clone(year => 2015);
-        # day of 2015/2 out of range. Is: 29, should be in 1..28
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::OutOfRange: Day out of range. Is: 29, should be in 1..28␤»
 
 =head2 method hour
 
 Defined as:
 
     method hour(DateTime:D:) returns Int:D
-
-Usage:
-
-   DATETIME.hour
 
 Returns the hour component.
 
@@ -144,10 +139,6 @@ Defined as:
 
     method minute(DateTime:D:) returns Int:D
 
-Usage:
-
-    DATETIME.minute
-
 Returns the minute component.
 
     say DateTime.new('2012-02-29T12:34:56Z').minute;     # 34
@@ -157,10 +148,6 @@ Returns the minute component.
 Defined as:
 
     method second(DateTime:D:)
-
-Usage:
-
-    DATETIME.second
 
 Returns the second component, including potentially fractional seconds.
 
@@ -174,10 +161,6 @@ Defined as:
 
     method whole-second(DateTime:D:)
 
-Usage:
-
-    DATETIME.whole-second
-
 Returns the second component, rounded down to an L<Int|/type/Int>.
 
     say DateTime.new('2012-02-29T12:34:56.789Z').whole-second;      # 56
@@ -188,10 +171,6 @@ Defined as:
 
     method timezone(DateTime:D:) returns Int:D
 
-Usage:
-
-    DATETIME.timezone
-
 Returns the time zone in seconds as an offset from UTC.
 
     say DateTime.new('2015-12-24T12:23:00+0200').timezone;      # 7200
@@ -201,10 +180,6 @@ Returns the time zone in seconds as an offset from UTC.
 Defined as:
 
     method offset(DateTime:D:) returns Int:D
-
-Usage:
-
-    DATETIME.offset
 
 Returns the time zone in seconds as an offset from UTC. This is an alias for
 L<#method timezone>.
@@ -217,10 +192,6 @@ Defined as:
 
     method offset-in-minutes(DateTime:D:) returns Real:D
 
-Usage:
-
-    DATETIME.offset-in-minutes
-
 Returns the time zone in minutes as an offset from UTC.
 
     say DateTime.new('2015-12-24T12:23:00+0200').offset-in-minutes; # 120
@@ -230,10 +201,6 @@ Returns the time zone in minutes as an offset from UTC.
 Defined as:
 
     method offset-in-hours(DateTime:D:) returns Real:D
-
-Usage:
-
-    DATETIME.offset-in-hours
 
 Returns the time zone in hours as an offset from UTC.
 
@@ -245,13 +212,11 @@ Defined as:
 
     method Str(DateTime:D:) returns Str:D
 
-Usage:
-
-    DATETIME.Str
-
 Returns a string representation of the invocant, as done by
 L<the formatter|#method formatter>.  If no formatter was specified, an
 ISO 8601 timestamp will be returned.
+
+    say DateTime.new('2015-12-24T12:23:00+0200').Str; # 2015-12-24T12:23:00+02:00
 
 =head2 method Instant
 
@@ -259,21 +224,15 @@ Defined as:
 
     method Instant(DateTime:D:) returns Instant:D
 
-Usage:
-
-    DATETIME.Instant
-
 Returns an L<Instant|/type/Instant> object based on the invocant.
+
+    say DateTime.new('2015-12-24T12:23:00+0200').Instant; # 2015-12-24T12:23:00+02:00
 
 =head2 method posix
 
 Defined as:
 
     method posix(DateTime:D: $ignore-timezone = False) returns Int:D
-
-Usage:
-
-    DATETIME.posix
 
 Returns the date and time as a POSIX/UNIX timestamp (seconds since the Epoch,
 1st January 1970 UTC).
@@ -285,10 +244,6 @@ Returns the date and time as a POSIX/UNIX timestamp (seconds since the Epoch,
 Defined as:
 
     method later(DateTime:D: *%unit)
-
-Usage:
-
-    DATETIME.later(DELTA)
 
 Returns a DateTime object based on the current one, but with a time delta
 applied. The time delta can be passed as a named argument where the argument
@@ -322,22 +277,17 @@ Defined as:
 
     method earlier(DateTime:D: *%unit)
 
-Usage:
-
-    DATETIME.earlier(DELTA)
-
 Returns a DateTime object based on the current one, but with a time delta
 towards the past applied. See L<#method later> for usage.
+
+    my $d = DateTime.new(date => Date.new('2015-02-27'));
+    say $d.earlier(month => 1).earlier(:2days);  # 2015-01-25T00:00:00Z
 
 =head2 method truncated-to
 
 Defined as:
 
     method truncated-to(DateTime:D: Cool $unit)
-
-Usage:
-
-    DATETIME.truncated-to(UNIT)
 
 Returns a copy of the invocant, with everything smaller than the specified
 unit truncated to the smallest possible value.
@@ -359,12 +309,12 @@ Defined as:
 
     method Date(DateTime:D:) returns Date:D
 
-Usage:
-
-    DATETIME.Date
 
 Returns a L<Date|/type/Date> object for this DateTime object. Which obviously
 lacks the time component.
+
+    my $d = DateTime.new("2012-02-29T12:34:56.946314Z");
+    say $d.Date; # 2012-02-29
 
 =head2 method utc
 
@@ -372,23 +322,15 @@ Defined as:
 
     method utc(DateTime:D:) returns DateTime:D
 
-Usage:
-
-    DATETIME.utc
-
 Returns a DateTime object for the same time, but in time zone UTC.
 
-    say DateTime.new('2015-12-24T12:23:00+0200').utc";  # 2015-12-24T10:23:00Z
+    say DateTime.new('2015-12-24T12:23:00+0200').utc;  # 2015-12-24T10:23:00Z
 
 =head2 method in-timezone
 
 Defined as:
 
     method in-timezone(DateTime:D: $timezone = 0) returns DateTime:D
-
-Usage:
-
-    DATETIME.in-timezone
 
 Returns a DateTime object for the same time, but in the specified time zone.
 
@@ -400,10 +342,6 @@ Returns a DateTime object for the same time, but in the specified time zone.
 Defined as:
 
     method local(DateTime:D:) returns DateTime:D
-
-Usage:
-
-    DATETIME.local
 
 Returns a DateTime object for the same time, but in the local time zone
 (C<$*TZ>).
