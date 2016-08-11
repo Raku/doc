@@ -14,7 +14,7 @@ so smartmatching C<Nil> will also match C<Failure>.)
 
 The class C<Nil> is the same exact thing as its only possible value, C<Nil>.
 
-    say Nil === Nil.new         #-> True
+    say Nil === Nil.new         # True
 
 Along with C<Failure>, C<Nil> and its sub classes may always be returned from a
 routine even when the routine specifies a particular return type. It may also
@@ -22,16 +22,16 @@ be returned regardless of the definedness of the return type, however, C<Nil>
 is considered undefined for all other purposes.
 
     sub a( --> Int:D ) { return Nil }
-    a().say;                    #-> Nil
+    a().say;                    # Nil
 
 C<Nil> is what is returned from empty routines or clauses, or routines
 that use a bare C<return> statement.
 
-    sub a { }; a().say;         #-> Nil
-    sub b { return }; b().say;  #-> Nil
-    say (if 1 { });             #-> Nil
-    { ; }().say;                #-> Nil
-    say EVAL "";                #-> Nil
+    sub a { }; a().say;         # Nil
+    sub b { return }; b().say;  # Nil
+    say (if 1 { });             # Nil
+    { ; }().say;                # Nil
+    say EVAL "";                # Nil
 
 In a list, C<Nil> takes the space of one value.  Iterating a C<Nil>
 behaves like iteration of any non-iterable value, producing a sequence
@@ -39,16 +39,16 @@ of one C<Nil>. (When you need the other meaning, the special value
 C<Empty|/type/Slip#Empty> is available to take no spaces when inserted into
 list, and to return no values when iterated.)
 
-    (1, Nil, 3).elems.say;      #-> 3
-    (for Nil { $_ }).perl.say;  #-> (Nil,)
+    (1, Nil, 3).elems.say;      # 3
+    (for Nil { $_ }).perl.say;  # (Nil,)
 
 Any method call on C<Nil> other than those specifically listed below,
 and consequently, any subscripting operation, will succeed and return
 C<Nil>.
 
-    say Nil.ITotallyJustMadeThisUp;  #-> Nil
-    say (Nil)[100];                  #-> Nil
-    say (Nil){100};                  #-> Nil
+    say Nil.ITotallyJustMadeThisUp;  # Nil
+    say (Nil)[100];                  # Nil
+    say (Nil){100};                  # Nil
 
 When assigned to a container, the C<Nil> value (but not any subclass of
 C<Nil>) will attempt to revert the container to its default value; if no
@@ -60,29 +60,45 @@ type unless it happens to be a parent class of C<Failure>.)
 
     my Int $x = 42;
     $x = Nil;
-    $x.say;                     #-> (Int)
+    $x.say;                     # (Int)
 
     sub f( --> Int:D ){ Nil }; # this definedness constraint is ignored
     my Int:D $i = f; # this definedness contraint is not ignored, so throws
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to $y; expected Int but got Any (Any)»
 
     sub g( --> Int:D ){ fail "oops" }; # this definedness constraint is ignored
-    my Any:D $i = g; # failure object matches Any:D, so is assigned
-    my Int:D $j = g; # failure object doesn't match Int:D, so throws
+    my Any:D $h = g; # failure object matches Any:D, so is assigned
+
+but
+
+=for code :skip-test
+my Int:D $j = g;
+# It will throw both exceptions:
+# Earlier failure:
+#  oops
+#   in sub g at <unknown file> line 1
+#   in block <unit> at <unknown file> line 1
+#
+# Final error:
+#  Type check failed in assignment to $j; expected Int:D but got Failure (Failure.new(exception...)
+#   in block <unit> at <unknown file> line 1
 
 Because an untyped variable is type C<Any>, assigning a C<Nil> to one
 will result in an L<(Any)|/type/Any> type object.
 
     my $x = Nil;
-    $x.say;          #-> (Any)
-    my Int $y = $x;  # error:  Type check failed in assignment to '$y';
-                     # expected 'Int' but got 'Any'
+    $x.say;          # (Any)
+    my Int $y = $x;  # error
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to $y; expected Int but got Any (Any)␤»
 
 If you are looking for a variable which transforms objects into type objects
 when said variable appears on the RHS, you can type the container as C<Nil>.
 
     my Nil $x;
     my Str $s = $x;
-    $s.say;          #-> (Str)
+    $s.say;          # (Str)
 
 There is an important exception to this transforms-into-type-object rule:
 assigning C<Nil> to a variable which has a default will restore that default.
@@ -90,7 +106,7 @@ assigning C<Nil> to a variable which has a default will restore that default.
     my Int $x is default(42) = -1;
     my $y = 1;
     for $x, $y -> $val is rw { $val = Nil unless $val > 0 }
-    $x.say;          #-> 42
+    $x.say;          # 42
 
 =head1 Methods
 

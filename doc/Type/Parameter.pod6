@@ -100,7 +100,9 @@ Returns C<True> for raw parameters.
         raw = 5;
     }
     f(my $x);   # works
-    f(42);      # dies in the assignment
+    f(42);      # dies
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Int␤»
 
 Raw parameters bind either a variable or a value passed to it, with
 no decontainerization taking place.  That means that if a variable was passed
@@ -171,19 +173,21 @@ The type used may change from call to call.  Once they are defined,
 type captures can be used wherever you would use a type, even later
 in same the signature:
 
-    sub c(::T $x, T $y, $z) { my T $zz = $z };
-    c(4, 5, 6);          # OK
-    c(4, 5, "six");      # Fails when assigning to $zz, wants Int not Str
-    c("four", 5, "six"); # Fails when binding $y, wants Str, not Int
+=for code :skip-test
+sub c(::T $x, T $y, $z) { my T $zz = $z };
+c(4, 5, 6);          # OK
+c(4, 5, "six");      # Fails when assigning to $zz, wants Int not Str
+c("four", 5, "six"); # Fails when binding $y, wants Str, not Int
 
 Type captures may be used at the same time as
 L<type constraints|/type/Signature#Type_Constraints>.
 
-    sub d(::T Numeric $x, T $y);
-    d(4, 5);            # OK
-    d(4e0, 5e0);        # OK
-    d(4e0, 5);          # Fails when binding $y
-    d("four", "five");  # Fails when binding $x
+=for code :skip-test
+sub d(::T Numeric $x, T $y);
+d(4, 5);            # OK
+d(4e0, 5e0);        # OK
+d(4e0, 5);          # Fails when binding $y
+d("four", "five");  # Fails when binding $x
 
 =head2 method sub_signature
 
