@@ -21,7 +21,7 @@ test:
 
 # Extended tests
 xtest:
-	prove --exec perl6 -r t xt
+	prove --exec perl6 -r xt t
 
 # Content tests
 ctest:
