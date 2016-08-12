@@ -42,7 +42,7 @@ class LazyLookup does Associative {
             $method-names.=split(' ').Set;
             %!cache{$type-name} = $method-names;
             return $method-names if $key eq $type-name;
-        } 
+        }
     }
 }
 
