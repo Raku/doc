@@ -28,15 +28,16 @@ Defined as:
 
     method message(Exception:D:) returns Str:D
 
-Usage:
-
-    EXCEPTION.message
-
 This is a stub that must be overwritten by subclasses, and should
 return the exception message.
 
 Special care should be taken that this method does not produce
 an exception itself.
+
+    try die "Something bad happend";
+    if ($!) {
+        say $!.message; # Something bad happened.
+    }
 
 =head2 method backtrace
 
@@ -44,12 +45,13 @@ Defined as:
 
     method backtrace(Exception:D:) returns Backtrace:D
 
-Usage:
-
-    EXCEPTION.backtrace
-
 Returns the backtrace associated with the exception. Only makes sense
 on exceptions that have been thrown at least once.
+
+    try die "Something bad happend";
+    if ($!) {
+        say $!.backtrace;
+    }
 
 =head2 method throw
 
@@ -57,22 +59,21 @@ Defined as:
 
     method throw(Exception:D:)
 
-Usage:
-
-    EXCEPTION.throw
-
 Throws the exception.
 
-=head2 method resume
+    my $exception = X::AdHoc.new; # Totally fine
+    try $exception.throw;             # Throws
+    if ($!) { #`( some handling ) };                   # Suppress the exception in a
 
-Resumes control flow where C<.throw> left it when handled in a C<CATCH> block.
+=head2 method resume
 
 Defined as:
 
     method resume(Exception:D:)
 
-Usage:
+Resumes control flow where C<.throw> left it when handled in a C<CATCH> block.
 
+    # For example, resume control flow for any exception
     CATCH { default { .resume } }
 
 =head2 method rethrow
@@ -81,27 +82,23 @@ Defined as:
 
     method rethrow(Exception:D:)
 
-Usage:
-
-    EXCEPTION.rethrow
-
 Rethrows an exception that has already been thrown at least once.
 This is different from C<throw> in that it preserves the original
 backtrace.
+
+    my $e = X::AdHoc.new(payload => "Bad situation");
+    sub f() { die 'Bad' };
+    sub g() { try f; CATCH { default { .rethrow } } };
+    g;
+    CATCH { default { say .backtrace.full } };
 
 =head2 method fail
 
 Defined as:
 
-    sub    fail(*@text)
-    sub    fail(Exception $e)
-    method fail(Exception:D $e:)
-
-Usage:
-
-    fail(TEXT)
-    fail(EXCEPTION)
-    EXCEPTION.fail
+    multi sub    fail(*@text)
+    multi sub    fail(Exception $e)
+    multi method fail(Exception:D $e:)
 
 Exits the calling C<Routine> and returns a L<Failure> object wrapping the
 exception C<$e> - or, for the C<*@text> form, an L<X::AdHoc> exception
@@ -120,40 +117,35 @@ Defined as:
 
     multi method gist(Exception:D:)
 
-Usage:
-
-    EXCEPTION.gist
-
 Returns whatever the exception printer should produce for this exception.
 The default implementation returns message and backtrace separated by
 a newline.
+
+    my $e = X::AdHoc.new(payload => "This exception is pretty bad");
+    try $e.throw;
+    if ($!) { say $!.gist; };
+    # OUTPUT: «This exception is pretty bad
+    #   in block <unit> at <unknown file> line 1␤»
 
 =head2 sub die
 
 Defined as:
 
     multi sub die(*@message)
-    multi sub die(Exception:D $e:)
-    method    die(Exception:D $e:)
-
-Usage:
-
-    die(MESSAGE)
-    die(EXCEPTION)
-    EXCEPTION.die
+    multi sub die(Exception:D $e)
+    method    die(Exception:D $e)
 
 Throws a fatal C<Exception>. The default exception handler prints each
 element of the list to C<$*ERR> (STDERR).
+
+=for code :skip-test
+die "Important reason";
 
 =head2 sub warn
 
 Defined as:
 
     multi sub warn(*@message)
-
-Usage:
-
-    warn(MESSAGE)
 
 Throws a resumable warning exception, which is considered a control
 exception, and hence is invisible to most normal exception handlers.  The
@@ -166,6 +158,8 @@ warnings but pass fatal exceptions through.
 To simply print to C<$*ERR>, please use C<note> instead.  C<warn> should be
 reserved for use in threatening situations when you don't quite want to
 throw an exception.
+
+    warn "Warning message";
 
 =end pod
 

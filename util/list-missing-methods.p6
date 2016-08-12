@@ -71,7 +71,7 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
             # We solve this the British way, complain and carry on.
             CATCH { default { say "problematic method $name in $type-name" unless $name eq '<anon>'; False } }
             (.package ~~ ::($type-name))
-        })».name) 
+        })».name)
     }
 
     my \matched-methods := gather for methods -> ($type-name, $path, @expected-methods) {
@@ -87,4 +87,3 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
         put "";
     };
 }
-

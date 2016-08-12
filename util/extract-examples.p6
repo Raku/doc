@@ -21,6 +21,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
         my $content = .contents».&walk(@context).trim;
         if ($content.lines.».trim.map( {(.starts-with('multi')  ||
                                          .starts-with('method') ||
+                                         .starts-with('proto')  ||
                                          .starts-with('sub'))   &&
                                         (not .ends-with('}'))} ).all) {
             $content = $content.subst("\n", " \{\}\n", :g) ~ ' {' ~ '}';
