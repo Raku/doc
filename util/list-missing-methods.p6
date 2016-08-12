@@ -2,14 +2,6 @@
 
 use v6;
 
-# - find types under doc/
-# - print all local methods for those types
-# - list all methods that are not in doc
-
-my method destructure-fmt(Positional:D: $fmt-str, :$separator = " ") {
-    sprintf($fmt-str, |self);
-}
-
 sub USAGE () {
 print Q:c:to/EOH/;
     Usage: {$*PROGRAM-NAME} [FILE|PATH]
@@ -20,7 +12,11 @@ print Q:c:to/EOH/;
 EOH
 }
 
-class LazyLookup {
+class LazyLookup does Associative {
+    # Read a file line by line, turn it into a hash in a lazy fashion. Quite
+    # handy when only a single file is checked and the key is close to the top
+    # of the file.
+
     has IO::Path $.path;
     has IO::Handle $.in;
     has %!cache;
@@ -71,6 +67,8 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
     my \methods := gather for types -> ($type-name, $path) {
         take ($type-name, $path, ::($type-name).^methods(:local).grep({
             my $name = .name;
+            # Some buildins like NQPRoutine don't support the introspection we need.
+            # We solve this the British way, complain and carry on.
             CATCH { default { say "problematic method $name in $type-name" unless $name eq '<anon>'; False } }
             (.package ~~ ::($type-name))
         })».name) 
@@ -83,6 +81,10 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
         take ($type-name, $path, $missing-methods) if $missing-methods
     }
 
-    .&destructure-fmt("Type: %s, File: ⟨%s⟩\n%s\n").say for matched-methods;
+    for matched-methods -> ($type-name, $path, Set $missing-methods) {
+        put "Type: {$type-name}, File: ⟨{$path}⟩";
+        put $missing-methods;
+        put "";
+    };
 }
 
