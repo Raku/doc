@@ -50,9 +50,9 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git") {
 
     my \matched-methods := gather for methods -> ($type-name, $path, @expected-methods) {
         my @found-methods = ($path.slurp ~~ m:g/'Defined as:' \s+ method \s (<[-'\w]>+)/)».[0];
-        my @missing-methods = @expected-methods (-) @found-methods».Str;
+        my Set $missing-methods = @expected-methods (-) @found-methods».Str;
         # dd @missing-methods, @expected-methods, @found-methods».Str;
-        take ($type-name, $path, @missing-methods)
+        take ($type-name, $path, $missing-methods) if $missing-methods
     }
 
     .&destructure-fmt("Type: %s, File: ⟨%s⟩\n%s\n").say for matched-methods;
