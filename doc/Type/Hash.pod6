@@ -15,17 +15,17 @@ Hashes are usually stored in variables with the percent C<%> sigil.
 Hash elements are accessed by key via the C<{ }> postcircumfix operator:
 
     dd %*ENV{'HOME', 'PATH'};
-    # OUTPUT«("/home/camelia", "/usr/bin:/sbin:/bin")␤»
+    # OUTPUT: «("/home/camelia", "/usr/bin:/sbin:/bin")␤»
 
 The general L<Subscript|/language/subscripts> rules apply providing shortcuts
 for lists of literal strings, with and without interpolation.
 
     my %h = oranges => 'round', bananas => 'bendy';
     dd %h<oranges bananas>;
-    # OUTPUT«("round", "bendy")␤»
+    # OUTPUT: «("round", "bendy")␤»
     my $fruit = 'bananas';
     dd %h«oranges $fruit»;
-    # OUTPUT«("round", "bendy")␤»
+    # OUTPUT: «("round", "bendy")␤»
 
 You can add new pairs simply by assigning to an unused key:
 
@@ -81,8 +81,9 @@ not a Hash:
     my @names = map {
         my $query = { name => "$_<firstName> $_<lastName>" };
         say $query.WHAT;       # Block
-        say $query<name>;      # ERROR: Type Block does not support associative indexing
-
+        say $query<name>;      # fails
+        CATCH { default { put .^name, ': ', .Str } };
+        # OUTPUT: «X::AdHoc: Type Block does not support associative indexing.␤»
         lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
     }, @people;
 
@@ -91,23 +92,30 @@ Instead, you should either:
 =begin item
 1) use the C<%()> hash constructor:
 
-    my  $query = %( name => "$_<firstName> $_<lastName>" );
-    say $query.WHAT;         # Hash
-    say $query<name>;        # Andy Adams, Beth Burke, etc.
+=for code :skip-test
+my  $query = %( name => "$_<firstName> $_<lastName>" );
+say $query.WHAT;         # Hash
+say $query<name>;        # Andy Adams, Beth Burke, etc.
 =end item
 
 =begin item
 2) assign to a Hash type (C<%>) directly:
 
-    my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
-    say %query.WHAT;         # Hash
-    say %query<name>;        # Andy Adams, Beth Burke, etc.
+=for code :skip-test
+my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
+say %query.WHAT;         # Hash
+say %query<name>;        # Andy Adams, Beth Burke, etc.
 =end item
 
 =begin item
 or 3) simply avoid the issue altogether by explicitly providing a name for
 the topic variable:
 
+    my @people = [
+        { id => "1A", firstName => "Andy", lastName => "Adams" },
+        { id => "2B", firstName => "Beth", lastName => "Burke" }
+    ];
+    sub lookup-user (Hash $h) { #`(Do something...) $h }
     my @names = map -> $person {
         my $query = { name => "$person<firstName> $person<lastName>" };
         say $query.WHAT;     # Hash
@@ -120,6 +128,11 @@ the topic variable:
 Even in the final case, however, specifying a Hash type (C<%>) is still the
 most idiomatic and unambiguous solution:
 
+    my @people = [
+        { id => "1A", firstName => "Andy", lastName => "Adams" },
+        { id => "2B", firstName => "Beth", lastName => "Burke" }
+    ];
+    sub lookup-user (Hash $h) { #`(Do something...) $h }
     my @names = @people.map: -> $person {
         lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
     };
@@ -133,8 +146,8 @@ non-string keys, use a colon prefix:
 
 Note that with objects as keys, you cannot access non-string keys as strings:
 
-    :{ -1 => 41, 0 => 42, 1 => 43 }<0>  # Any
-    :{ -1 => 41, 0 => 42, 1 => 43 }{0}  # 42
+    :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # Any
+    :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # 42
 
 =head2 Contraint value types
 
@@ -166,11 +179,12 @@ keys and values, for instance,
 
 gives output similar to this:
 
-    a: 1
-    e: 2
-    o: 4
-    u: 5
-    i: 3
+=for code :skip-test
+a: 1
+e: 2
+o: 4
+u: 5
+i: 3
 
 where we have used the C<kv> method to extract the keys and their respective
 values from the hash, so that we can pass these values into the loop.
@@ -188,11 +202,12 @@ list of vowels in alphabetical order then one would write
 
 which prints
 
-    a: 1
-    e: 2
-    i: 3
-    o: 4
-    u: 5
+=for code :skip-test
+a: 1
+e: 2
+i: 3
+o: 4
+u: 5
 
 and is in alphabetical order as desired.  To achieve this result, we sorted
 the hash of vowels by key (C<%vowels.sort(*.key)>) which we then ask for its
@@ -219,17 +234,17 @@ sufficient, but sometimes you want the hash to preserve the objects you are usin
 as keys I<as the *exact* objects you are providing to the hash to use as keys>.
 In these moments you want an object hash!
 
-  my %intervals{Instant};
-  my $first-instant = now;
-  %intervals{ $first-instant } = "Our first milestone.";
-  sleep 1;
-  my $second-instant = now;
-  %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
-  for %intervals.kv.sort(* cmp *) -> (Instant $instant, $note) {
-    state $last-instant //= $instant;
-    say "We noted '$note' at $instant, with an interval of {$instant - $last-instant}";
-    $last-instant = $instant;
-  }
+    my %intervals{Instant};
+    my $first-instant = now;
+    %intervals{ $first-instant } = "Our first milestone.";
+    sleep 1;
+    my $second-instant = now;
+    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
+    for %intervals.sort -> (:$key, :$value) {
+        state $last-instant //= $key;
+        say "We noted '$value' at $key, with an interval of {$key - $last-instant}";
+        $last-instant = $key;
+    }
 
 This example uses an object hash that only accepts keys of type L<Instant> to
 implement a rudimentary, yet type-safe, logging mechanism. We utilize a named L<state|/language/variables#The_state_Declarator>
@@ -241,14 +256,16 @@ unique identifier for every mutable object. This is the keystone upon which the 
 identity operator (L<===>) rests. Order and containers really matter here as the order of
 C<.keys> is undefined and one anonymous list is never L<===> to another.
 
-  > ($first-instant, $second-instant) ~~ %intervals.keys
-  False
-  > ($first-instant, $second-instant) ~~ %intervals.keys.sort(* cmp *)
-  True
-  > ($first-instant, $second-instant) === %intervals.keys.sort(* cmp *)
-  False
-  > $first-instant === %intervals.keys.sort(* cmp *).index(0)
-  True
+    my %intervals{Instant};
+    my $first-instant = now;
+    %intervals{ $first-instant } = "Our first milestone.";
+    sleep 1;
+    my $second-instant = now;
+    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
+    say ($first-instant, $second-instant) ~~ %intervals.keys;       # False
+    say ($first-instant, $second-instant) ~~ %intervals.keys.sort;  # True
+    say ($first-instant, $second-instant) === %intervals.keys.sort; # False
+    say $first-instant === %intervals.keys.sort[0];                 # True
 
 Since C<Instant> defines its own comparison methods, in our example a sort according to
 L<cmp> will always provide the earliest instant object as the first element in the L<List>
@@ -256,14 +273,14 @@ it returns.
 
 If you would like to accept any object whatsoever in your hash, you can use L<Any>!
 
-  my %h{Any};
-  %h{(now)} = "This is an Instant";
-  %h{(DateTime.now)} = "This is a DateTime, which is not an Instant";
-  %h{"completely different"} = "Monty Python references are neither DateTimes nor Instants";
+    my %h{Any};
+    %h{(now)} = "This is an Instant";
+    %h{(DateTime.now)} = "This is a DateTime, which is not an Instant";
+    %h{"completely different"} = "Monty Python references are neither DateTimes nor Instants";
 
 There is a more concise syntax which uses binding.
 
-  my %h := :{ (now) => "Instant", (DateTime.now) => "DateTime" }
+    my %h := :{ (now) => "Instant", (DateTime.now) => "DateTime" };
 
 The binding is necessary because an object hash is about very solid, specific objects,
 which is something that binding is great at keeping track of but about which assignment doesn't
@@ -273,19 +290,22 @@ concern itself much.
 
 There may be times when you would like to modify the values of a hash while iterating over them.
 
-    > my %answers = illuminatus => 23, hitchhikers => 42
-    hitchhikers => 42, illuminatus => 23
-    > for %answers.values -> $v { $v += 10 }
-    Cannot assign to a readonly variable or a value
+    my %answers = illuminatus => 23, hitchhikers => 42;
+    # OUTPUT: «hitchhikers => 42, illuminatus => 23»
+    for %answers.values -> $v { $v += 10 }; # Fails
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::AdHoc: Cannot assign to a readonly variable or a value␤»
 
 This is traditionally accomplished by sending both the key and the value as follows.
 
-    for %answers.kv -> $k,$v { %answers{$k} = $v + 10 }
+    my %answers = illuminatus => 23, hitchhikers => 42;
+    for %answers.kv -> $k,$v { %answers{$k} = $v + 10 };
 
 However, it is possible to leverage the signature of the block in order to specify that
 you would like read-write access to the values.
 
-    for %answers.values -> $v is rw { $v += 10 }
+    my %answers = illuminatus => 23, hitchhikers => 42;
+    for %answers.values -> $v is rw { $v += 10 };
 
 It is not, however, possible to do in-place editing of hash keys, even in the case of object hashes.
 
@@ -296,12 +316,6 @@ It is not, however, possible to do in-place editing of hash keys, even in the ca
 Defined as:
 
     multi method push(Hash:D: *@new)
-
-Usage:
-
-    push HASH, VALUES
-    HASH.push(VALUES)
-    HASH.push: (VALUES)
 
 Adds the C<@new> elements to the hash with the same semantics as hash
 assignment, but with three exceptions:
@@ -326,8 +340,9 @@ Example:
 
 Be careful to quote the keys in the last two methods, as these have no effect:
 
-    %h.push(e => 6);
-    push %h, f => 7;
+=for code :skip-test
+%h.push(e => 6);
+push %h, f => 7;
 
 because they are interpreted as named arguments to C<push>, not positional
 arguments.
@@ -342,6 +357,7 @@ index:
 
 Note that such a initialization could also be written as
 
+    my %wc = 'hash' => 323, 'pair' => 322, 'pipe' => 323;
     my %inv .= push: %wc.invert.unique;
 
 =head2 method append
@@ -350,6 +366,7 @@ Defined as:
 
     method append(+@values)
 
+<<<<<<< Updated upstream
 Append the provided Pairs or even sized list to the Hash. If a key already
 exists, turn the existing value into an L<Array|/type/Array> and push new value
 onto that C<Array>. Please note that you can't mix even sized lists and lists
@@ -400,7 +417,9 @@ the type used in the declaration of the C<Hash> is returned.
 
     my %h2{Str} = 'oranges' => 7;            # (keys must be of type Str
     say %h2.keyof;                           # (Str)
-    %h2{3} = 'apples';                       # throws exception of type X::TypeCheck::Binding
+    %h2{3} = 'apples';                       # throws exception
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::TypeCheck::Binding: Type check failed in binding to key; expected Str but got Int (3)␤»
 
 =head2 method of
 
