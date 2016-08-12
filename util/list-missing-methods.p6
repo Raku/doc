@@ -20,8 +20,36 @@ print Q:c:to/EOH/;
 EOH
 }
 
-sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git") {
+class LazyLookup {
+    has IO::Path $.path;
+    has IO::Handle $.in;
+    has %!cache;
+
+    submethod BUILD(:$path){ $!path = $path.IO };
+
+    method in {
+        $!in //= $!path.open :r or die "could not open ⸨$!path.Str⸩";
+        $!in
+    }
+
+    method AT-KEY(Str() $key) {
+       %!cache{$key} // self!scan-for-key($key)
+    }
+
+    method !scan-for-key(Str $key){
+        for $.in.lines() {
+            my ($type-name, $method-names) = .split(':')».trim;
+            $method-names.=split(' ').Set;
+            %!cache{$type-name} = $method-names;
+            return $method-names if $key eq $type-name;
+        } 
+    }
+}
+
+sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/ignored-methods.txt') {
     my \exclude = none('.', '..', $exclude.split(','));
+
+    my \ignore = LazyLookup.new(:path($ignore));
 
     my \type-pod-files := $source-path.ends-with('.pod6')
     ?? ($source-path.IO,)
@@ -50,7 +78,7 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git") {
 
     my \matched-methods := gather for methods -> ($type-name, $path, @expected-methods) {
         my @found-methods = ($path.slurp ~~ m:g/method \s (<[-'\w]>+) '('/)».[0];
-        my Set $missing-methods = @expected-methods (-) @found-methods».Str;
+        my Set $missing-methods = @expected-methods (-) ignore{$type-name} (-) @found-methods».Str;
         # dd @missing-methods, @expected-methods, @found-methods».Str;
         take ($type-name, $path, $missing-methods) if $missing-methods
     }
