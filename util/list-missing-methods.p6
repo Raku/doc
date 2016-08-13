@@ -34,6 +34,7 @@ class LazyLookup does Associative {
 
     method !scan-for-key(Str $key){
         for $.in.lines() {
+            next if .starts-with('#');
             my ($type-name, $method-names) = .split(':')».trim;
             $method-names.=split(' ').Set;
             %!cache{$type-name} = $method-names;
