@@ -106,6 +106,14 @@ for a file. Use the pod-config option `skip-test` to skip them.
         your-example-here();
     =end code
 
+## Testing method completeness
+
+To get a list of methods that are found via introspection but not found in any
+pod6 under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
+directory or filepath as argument and limits the listing to the given file or
+any pod6-files found. All methods listed in `util/ignored-methods.txt` are
+ignored.
+
 ## Debug mode
 
 On the right side of the footer you can find [Debug: off]. Click it and reload
