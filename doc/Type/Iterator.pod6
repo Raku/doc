@@ -4,8 +4,9 @@
 
 =SUBTITLE Generic API for producing a sequence of values
 
-    constant IterationEnd
-    role Iterator { }
+=for code :skip-test
+constant IterationEnd
+role Iterator { }
 
 A C<Iterator> is an object that can generate or provide elements of a
 sequence. Users usually don't have to care about iterators, their usage
@@ -31,11 +32,7 @@ iterator API. Any other behavior is undefined and implementation dependent.
 
 Defined as:
 
-    method pull-one(Iterator:D:) returns Mu { ... }
-
-Usage:
-
-    ITERATOR.pull-one
+    method pull-one(Iterator:D:) returns Mu { }
 
 This method stub ensures that classes implementing the C<Iterator> role
 provide a method named C<pull-one>.
@@ -43,15 +40,13 @@ provide a method named C<pull-one>.
 The C<pull-one> method is supposed to return the next value if available, or
 the sentinel value C<IterationEnd> if no more elements are available.
 
+    (1 .. Inf).iterator.pull-one; # 1
+
 =head2 method push-exactly
 
 Defined as:
 
     method push-exactly(Iterator:D: $target, int $count) returns Mu
-
-Usage:
-
-    ITERATOR.push-exactly(TARGET, COUNT)
 
 Produces C<$count> elements, and for each of them, calls
 C<$target.push($value)>.
@@ -60,15 +55,15 @@ If fewer than C<$count> elements are available from the iterator, it
 returns the sentinel value C<IterationEnd>. Otherwise it returns
 C<$count>.
 
+    my @array;
+    say (1 .. Inf).iterator.push-exactly(@array, 3); # 3
+    say @array; # [1 2 3]
+
 =head2 method push-at-least
 
 Defined as:
 
     method push-at-least(Iterator:D: $target, int $count) returns Mu
-
-Usage:
-
-    ITERATOR.push-at-least(TARGET, COUNT)
 
 Produces at least C<$count> elements, and for each of them, calls
 C<$target.push($value)>.
@@ -81,30 +76,29 @@ Iterators with side effects should produce exactly C<$count> elements;
 iterators without side effects (such as L<Range|/type/Range> iterators) can
 produce more elements to achieve better performance.
 
+    my @array;
+    say (1 .. Inf).iterator.push-at-least(@array, 10); # 10
+    say @array; # [1 2 3 4 5 6 7 8 9 10]
+
 =head2 method push-all
 
 Defined as:
 
     method push-all(Iterator:D: $target)
 
-Usage:
-
-    ITERATOR.push-all(TARGET)
-
 Produces all elements from the iterator and pushes them to C<$target>.
 
 The fallback is implemented in terms of repeated C<push-at-least> with a large
 C<$count>.
+
+    my @array;
+    say (1 .. 1000).iterator.push-all(@array); # All 1000 values are pushed
 
 =head2 method push-until-lazy
 
 Defined as:
 
     method push-until-lazy(Iterator:D: $target) returns Mu
-
-Usage:
-
-    ITERATOR.push-until-lazy(TARGET)
 
 Produces values until it considers itself to be lazy, and pushes them onto
 C<$target>.
@@ -118,15 +112,14 @@ Defined as:
 
     method is-lazy(Iterator:D:) returns Bool:D
 
-Usage:
-
-    ITERATOR.is-lazy
-
 Returns C<True> for iterators that consider themselves lazy, and C<False>
 otherwise.
 
 Built-in operations that know that they can produce infinitely many values
 return C<True> here, for example C<(1..6).roll(*)>.
+
+    say (1 .. 100).is-lazy; # False
+    say (1 .. Inf).is-lazy; # True
 
 =head2 method count-only
 
@@ -134,13 +127,11 @@ Defined as:
 
     method count-only(Iterator:D:) returns int
 
-Usage:
-
-    ITERATOR.count-only
-
 Produces and discards all elements until it returns the end of the iteration,
 and returns the number of elements produced. This is useful to reduce memory
 usage in scenarios such as C<open($file).lines.elems>.
+
+    say (1 .. 1000).iterator.count-only; # 1000
 
 =head2 method sink-all
 
@@ -148,11 +139,9 @@ Defined as:
 
     method sink-all(Iterator:D:)
 
-Usage:
-
-    ITERATOR.sink-all
-
 Exhausts the iterator (while discarding generated elements) purely for the
 side effects of the iteration.
+
+    say (1 .. 1000).iterator.sink-all;
 
 =end pod

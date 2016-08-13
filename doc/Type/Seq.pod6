@@ -16,7 +16,7 @@ A typical use case is L<method C<lines> in C<IO::Handle>|/type/IO::Handle#method
 which could use quite much memory if it stored all the lines read from the
 file. So
 
-    for open('README').lines -> $line {
+    for open('README.md').lines -> $line {
         say $line;
     }
 
@@ -25,14 +25,15 @@ won't keep all lines from the file in memory.
 This implies that you cannot iterate the same C<Seq> object twice (otherwise
 it couldn't throw away old values), so this dies:
 
-=begin code :allow<L>
-my @a = 1, 2, 3;
-my @b = <a b c>;
-my \c = @a Z=> @b;
-.say for c;
-.say for c; # dies with "This Seq has already been iterated, and its values consumed [...]"
-            # of type L<X::Seq::Consumed>
-=end code
+    my @a = 1, 2, 3;
+    my @b = <a b c>;
+    my \c = @a Z=> @b;
+    .say for c;
+    .say for c; # fails
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Seq::Consumed: This Seq has already been iterated, and its values consumed
+    # (you might solve this by adding .cache on usages of the Seq, or
+    # by assigning the Seq into an array)»
 
 A high-level construct to generate a C<Seq> is C<gather/take>, as well as many
 built-in methods like C<map> and C<grep>, low-level constructors to create a
