@@ -38,7 +38,7 @@ class LazyLookup does Associative {
             # don't get a typename we either have an empty line or a line
             # starting with a comment.
             my ($type-name, $method-names) = .split('#')[0].split(':')».trim;
-            next without $type-name;
+            next unless $type-name;
             $method-names.=split(' ').Set;
             %!cache{$type-name} = $method-names;
             return $method-names if $key eq $type-name;
