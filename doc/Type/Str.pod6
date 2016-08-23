@@ -337,7 +337,7 @@ format token. Format tokens have the following grammar:
 
 Directives guide the use (if any) of the arguments. When a directive
 (other than C<%>) is used, it indicates how the next argument
-passed is to be formatted into the string to be printed.
+passed is to be formatted into the string to be created.
 
 The directives are:
 
@@ -394,7 +394,228 @@ no-ops (the semantics are still being determined).
 
 =end table
 
-Examples:
+Between the C<%> and the format letter, you may specify several
+additional attributes controlling the interpretation of the format. In
+order, these are:
+
+=head3 format parameter index
+
+An explicit format parameter index, such as C<2$>. By default,
+C<sprintf> will format the next unused argument in the list, but this
+allows you to take the arguments out of order:
+
+  sprintf '%2$d %1$d', 12, 34;      # "34 12"
+  sprintf '%3$d %d %1$d', 1, 2, 3;  # "3 1 1"
+
+=head3 flags
+
+One or more of:
+
+   space   prefix non-negative number with a space
+   +       prefix non-negative number with a plus sign
+   -       left-justify within the field
+   0       use zeros, not spaces, to right-justify
+   #       ensure the leading "0" for any octal,
+           prefix non-zero hexadecimal with "0x" or "0X",
+           prefix non-zero binary with "0b" or "0B"
+
+For example:
+
+  sprintf '<% d>',  12;   # "< 12>"
+  sprintf '<% d>',   0;   # "< 0>"
+  sprintf '<% d>', -12;   # "<-12>"
+  sprintf '<%+d>',  12;   # "<+12>"
+  sprintf '<%+d>',   0;   # "<+0>"
+  sprintf '<%+d>', -12;   # "<-12>"
+  sprintf '<%6s>',  12;   # "<    12>"
+  sprintf '<%-6s>', 12;   # "<12    >"
+  sprintf '<%06s>', 12;   # "<000012>"
+  sprintf '<%#o>',  12;   # "<014>"
+  sprintf '<%#x>',  12;   # "<0xc>"
+  sprintf '<%#X>',  12;   # "<0XC>"
+  sprintf '<%#b>',  12;   # "<0b1100>"
+  sprintf '<%#B>',  12;   # "<0B1100>"
+
+When a space and a plus sign are given as the flags at once, the space
+is ignored:
+
+  sprintf '<%+ d>', 12;   # "<+12>"
+  sprintf '<% +d>', 12;   # "<+12>"
+
+When the C<#> flag and a precision are given in the C<%o> conversion, the
+precision is incremented if it's necessary for the leading "0":
+
+  sprintf '<%#.5o>', 012;      # "<00012>"
+  sprintf '<%#.5o>', 012345;   # "<012345>"
+  sprintf '<%#.0o>', 0;        # "<0>"
+
+=head3 vector flag
+
+This flag tells Perl 6 to interpret the supplied string as a vector of
+integers, one for each character in the string. Perl 6 applies the
+format to each integer in turn, then joins the resulting strings with
+a separator (a dot, C<'.'>, by default). This can be useful for
+displaying ordinal values of characters in arbitrary strings:
+
+  sprintf "%vd", "AB\x{100}";           # "65.66.256"
+  sprintf "version is v%vd\n", $^V;     # Perl 6's version
+
+You can also explicitly specify the argument number to use for the
+join string using something like C<*2$v>; for example:
+
+  sprintf '%*4$vX %*4$vX %*4$vX',       # 3 IPv6 addresses
+          @addr[1..3], ":";
+
+=head3 (minimum) width
+
+Arguments are usually formatted to be only as wide as required to
+display the given value. You can override the width by putting a
+number here, or get the width from the next argument (with C<*> ) or
+from a specified argument (e.g., with C<*2$>):
+
+ sprintf "<%s>", "a";       # "<a>"
+ sprintf "<%6s>", "a";      # "<     a>"
+ sprintf "<%*s>", 6, "a";   # "<     a>"
+ sprintf '<%*2$s>', "a", 6; # "<     a>"
+ sprintf "<%2s>", "long";   # "<long>" (does not truncate)
+
+If a field width obtained through C<*> is negative, it has the same
+effect as the C<-> flag: left-justification.
+
+=head3 precision, or maximum width
+
+You can specify a precision (for numeric conversions) or a maximum
+width (for string conversions) by specifying a C<.> followed by a
+number. For floating-point formats, except C<g> and C<G>, this
+specifies how many places right of the decimal point to show (the
+default being 6). For example:
+
+  # these examples are subject to system-specific variation
+  sprintf '<%f>', 1;    # "<1.000000>"
+  sprintf '<%.1f>', 1;  # "<1.0>"
+  sprintf '<%.0f>', 1;  # "<1>"
+  sprintf '<%e>', 10;   # "<1.000000e+01>"
+  sprintf '<%.1e>', 10; # "<1.0e+01>"
+
+For "g" and "G", this specifies the maximum number of digits to show,
+including those prior to the decimal point and those after it; for
+example:
+
+  # These examples are subject to system-specific variation.
+  sprintf '<%g>', 1;        # "<1>"
+  sprintf '<%.10g>', 1;     # "<1>"
+  sprintf '<%g>', 100;      # "<100>"
+  sprintf '<%.1g>', 100;    # "<1e+02>"
+  sprintf '<%.2g>', 100.01; # "<1e+02>"
+  sprintf '<%.5g>', 100.01; # "<100.01>"
+  sprintf '<%.4g>', 100.01; # "<100>"
+
+For integer conversions, specifying a precision implies that the
+output of the number itself should be zero-padded to this width, where
+the C<0> flag is ignored:
+
+  sprintf '<%.6d>', 1;      # "<000001>"
+  sprintf '<%+.6d>', 1;     # "<+000001>"
+  sprintf '<%-10.6d>', 1;   # "<000001    >"
+  sprintf '<%10.6d>', 1;    # "<    000001>"
+  sprintf '<%010.6d>', 1;   # "<    000001>"
+  sprintf '<%+10.6d>', 1;   # "<   +000001>"
+  sprintf '<%.6x>', 1;      # "<000001>"
+  sprintf '<%#.6x>', 1;     # "<0x000001>"
+  sprintf '<%-10.6x>', 1;   # "<000001    >"
+  sprintf '<%10.6x>', 1;    # "<    000001>"
+  sprintf '<%010.6x>', 1;   # "<    000001>"
+  sprintf '<%#10.6x>', 1;   # "<  0x000001>"
+
+For string conversions, specifying a precision truncates the string to
+fit the specified width:
+
+  sprintf '<%.5s>', "truncated";   # "<trunc>"
+  sprintf '<%10.5s>', "truncated"; # "<     trunc>"
+
+You can also get the precision from the next argument using C<.*>, or
+from a specified argument (e.g., with C<.*2$>):
+
+  sprintf '<%.6x>', 1;       # "<000001>"
+  sprintf '<%.*x>', 6, 1;    # "<000001>"
+  sprintf '<%.*2$x>', 1, 6;  # "<000001>"
+  sprintf '<%6.*2$x>', 1, 4; # "<  0001>"
+
+If a precision obtained through C<*> is negative, it counts as having
+no precision at all:
+
+  sprintf '<%.*s>',  7, "string";   # "<string>"
+  sprintf '<%.*s>',  3, "string";   # "<str>"
+  sprintf '<%.*s>',  0, "string";   # "<>"
+  sprintf '<%.*s>', -1, "string";   # "<string>"
+  sprintf '<%.*d>',  1, 0;          # "<0>"
+  sprintf '<%.*d>',  0, 0;          # "<>"
+  sprintf '<%.*d>', -1, 0;          # "<0>"
+
+=head3 size
+
+For numeric conversions, you can specify the size to interpret the
+number as using C<l>, C<h>, C<V>, C<q>, C<L>, or C<ll>. For integer
+conversions (C<d> C<u> C<o> C<x> C<X> C<b> C<i> C<D> C<U> C<O>),
+numbers are usually assumed to be whatever the default integer size is
+on your platform (usually 32 or 64 bits), but you can override this to
+use instead one of the standard C types, as supported by the compiler
+used to build Perl 6:
+
+   hh          interpret integer as C type "char" or "unsigned
+                              char"
+   h           interpret integer as C type "short" or
+               "unsigned short"
+   j           interpret integer as C type "intmax_t", only with
+               a C99 compiler (unportable)
+   l           interpret integer as C type "long" or
+               "unsigned long"
+   q, L, or ll interpret integer as C type "long long",
+               "unsigned long long", or "quad" (typically
+               64-bit integers)
+   t           interpret integer as C type "ptrdiff_t"
+   z           interpret integer as C type "size_t"
+
+=head3 order of arguments
+
+Normally, C<sprintf> takes the next unused argument as the value to
+format for each format specification. If the format specification uses
+C<*> to require additional arguments, these are consumed from the
+argument list in the order they appear in the format specification
+before the value to format. Where an argument is specified by an
+explicit index, this does not affect the normal order for the
+arguments, even when the explicitly specified index would have been
+the next argument.
+
+So:
+
+   sprintf "<%*.*s>", $a, $b, $c;
+
+uses C<$a> for the width, C<$b> for the precision, and C<$c> as the value to
+format; while:
+
+  sprintf '<%*1$.*s>', $a, $b;
+
+would use C<$a> for the width and precision and C<$b> as the value to format.
+
+Here are some more examples; be aware that when using an explicit
+index, the C<$> may need escaping:
+
+ sprintf "%2\$d %d\n",      12, 34;     # "34 12\n"
+ sprintf "%2\$d %d %d\n",   12, 34;     # "34 12 34\n"
+ sprintf "%3\$d %d %d\n",   12, 34, 56; # "56 12 34\n"
+ sprintf "%2\$*3\$d %d\n",  12, 34,  3; # " 34 12\n"
+ sprintf "%*1\$.*f\n",       4,  5, 10; # "5.0000\n"
+
+=comment TODO: document effects of locale
+
+
+
+
+
+
+
+Other examples:
 
 =for code :skip-test
 sprintf "%ld a big number, %lld a bigger number\n", 4294967295, 4294967296;
