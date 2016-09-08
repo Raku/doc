@@ -163,6 +163,21 @@ will be emitted as characters, but if the C<:bin> adverb is provided a
 L<Buf|/type/Buf> of bytes will be emitted instead, optionally in this
 case you can provide your own C<Buf> with the C<:buf> named parameter.
 
+A UDP socket in character mode will treat each packet as a complete
+message and decode it. In the event of a decoding error, the C<Supply>
+will C<quit>. A TCP socket treats the incoming packets as part of a
+stream, and feeds the incoming bytes into a streaming decoder. It then
+emits whatever characters the decoder considers ready. Since strings
+work at grapheme level in Perl 6, this means that only known complete
+graphemes will be emitted. For example, if the UTF-8 encoding were
+being used and the last byte in the packet decoded to C<a>, this would
+not be emitted since the next packet may include a combining character
+that should form a single grapheme together with the C<a>. Control
+characters (such as C<\n>) always serve as grapheme boundaries, so any
+text-based protocols that use newlines or null bytes as terminators
+will not need special consideration. A TCP socket will also C<quit>
+upon a decoding error.
+
 =head2 method close
 
     method close()
