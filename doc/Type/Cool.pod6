@@ -950,15 +950,18 @@ Defined as:
 
     multi sub    split(  Str:D $delimiter, Str(Cool) $input, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
     multi sub    split(Regex:D $delimiter, Str(Cool) $input, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
+    multi sub    split(@delimiters, Str(Cool) $input, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
     multi method split(  Str:D $delimiter, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
     multi method split(Regex:D $delimiter, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
+    multi method split(@delimiters, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
 
 Coerces the invocant (or in the sub form, the second argument) to
 L<Str|/type/Str>, and splits it into pieces based on delimiters found in the
 string.
 
 If C<$delimiter> is a string, it is searched for literally and not treated
-as a regex.
+as a regex. You can also provide multiple delimiters by specifying them as a
+list; mixing Cool and Regex objects is OK.
 
     say split(';', "a;b;c").perl;          # ("a", "b", "c")
     say split(';', "a;b;c", 2).perl;       # ("a", "b;c").Seq
@@ -966,6 +969,8 @@ as a regex.
     say split(';', "a;b;c,d").perl;        # ("a", "b", "c,d")
     say split(/\;/, "a;b;c,d").perl;       # ("a", "b", "c,d")
     say split(/<[;,]>/, "a;b;c,d").perl;   # ("a", "b", "c", "d")
+
+    say split(['a', /b+/, 4], '1a2bb345').perl # ("1", "2", "3", "5")
 
 By default, split omits the matches, and returns a list of only those parts of
 the string that did not match. Specifying one of the C<:k, :v, :kv, :p> adverbs
@@ -975,7 +980,9 @@ non-matching parts.
 The C<:v> interleaves the values of that list, which will be either
 L<Match|/type/Match> objects, if a L<Regex|/type/Regex> was used as a matcher
 in the split, or L<Str|/type/Str> objects, if a L<Cool|/type/Cool> was used
-as matcher:
+as matcher. If multiple delimiters are specified, L<Match|/type/Match> objects
+will be generated for all of them, unless B<all> of the delimiters are
+L<Cool|/type/Cool>.
 
     say 'abc'.split(/b/, :v);               # (a ｢b｣ c)
     say 'abc'.split('b', :v);               # (a b c)
@@ -988,7 +995,8 @@ C<:kv> adds both indexes and matches:
 
     say 'abc'.split(/b/, :kv);               # (a 0 ｢b｣ c)
 
-and C<:p> adds them as L<Pairs|/type/Pair>:
+and C<:p> adds them as L<Pairs|/type/Pair>, using the same types for
+values as C<:v> does:
 
     say 'abc'.split(/b/, :p)                # (a 0 => ｢b｣ c)
     say 'abc'.split('b', :p)                # (a 0 => b c)
