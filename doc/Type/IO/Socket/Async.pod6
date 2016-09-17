@@ -87,11 +87,28 @@ returning a L<Promise> that will either be kept with a connected L<IO::Socket::A
     method listen(Str $host, Int $port) returns Supply
 
 Creates a listening socket on the specified C<$host> and C<$port>, returning
-a L<Supply> to which the accepted client L<IO::Socket::Async>s will be C<emit>ted. This L<Supply> should be tapped to
-process the client connections.
+a L<Supply> to which the accepted client L<IO::Socket::Async>s will be
+C<emit>ted. This L<Supply> should be tapped start listening for client
+connections.
 
-To close the underlying listening socket the  L<Supply>
-should be C<close>d.
+To close the underlying listening socket, the L<Tap> returned by tapping the
+listener should be C<close>d.
+
+For example, when using C<tap>:
+
+    my $listener = IO::Socket::Async.listen('127.0.0.1', 8080);
+    my $tap = $listener.tap({ ... });
+
+    # When you want to close the listener
+    $tap.close;
+
+Or when using C<whenever>:
+
+    my $listener = IO::Socket::Async.listen('127.0.0.1', 5000);
+    my $big-finish = Promise.new;
+    my $tap = do whenever $listener -> $conn { ... }
+    await $big-finish;
+    $tap.close;
 
 =head2 method udp
 
@@ -187,6 +204,6 @@ obtained from the C<listen> L<Supply> or the C<connect>
 L<Promise>.
 
 In order to close the underlying listening socket created by C<listen> you
-can simply C<close> the  L<Supply>.
+can C<close> the L<Tap>. See C<listen> for examples.
 
 =end pod
