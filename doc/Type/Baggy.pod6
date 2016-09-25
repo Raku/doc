@@ -190,26 +190,38 @@ Baggy type returns the same result as L<antipairs|#method_antipairs>.
 
 Defined as:
 
-    multi method classify-list(&test, *@list) returns Baggy:D
+    multi method classify-list(&mapper, *@list) returns Baggy:D
+    multi method classify-list(%mapper, *@list) returns Baggy:D
+    multi method classify-list(@mapper, *@list) returns Baggy:D
 
-Transforms a list of values into a classification of those values according to
-C<&test> and stores the results in the invocant which is then returned. Each
-key represents the classification for one or more of the incoming list values,
-and the corresponding value contains the number of list values classified by
-C<&test> into the category of the associated key.
+Populates a I<mutable> L«C<Baggy>|/type/Baggy» by classifying the
+possibly-empty C<@list> of values using the given C<mapper>. The C<@list>
+cannot be lazy.
 
-As an example, suppose that we have a list of C<Int>s which we would like to
-classify into two categories, namely even and odd numbers. Here's one way to solve
-this problem:
+    say BagHash.new.classify-list: { $_ %% 2 ?? 'even' !! 'odd' }, ^10;
+    # OUTPUT: BagHash.new(even(5), odd(5))
 
-    my $b = BagHash.new();
-    dd $b.classify-list( { $_ %% 2 ?? 'even' !! 'odd' }, (1, 7, 6, 3, 2) );
-    # returns: ("even"=>2,"odd"=>3).BagHash
+    my @mapper = <zero one two three four five>;
+    say MixHash.new.classify-list: @mapper, 1, 2, 3, 4, 4, 6;
+    # OUTPUT: MixHash.new((Any), two, three, four(2), one)
 
-The printed result shows us that of the numbers in the list two were classified
-as even and three as odd. Note that the result doesn't show us B<which> numbers were
-classified as being even or odd. If that's what you want, use the
-L<classify|/type/List#routine_classify> routine in L<List|/type/List> instead.
+The mapper can be a L«C<Callable>|/type/Callable» that takes a single argument,
+an L«C<Associative>|/type/Associative», or an L«C<Iterable>|/type/Iterable».
+With L«C<Associative>|/type/Associative» and an L«C<Iterable>|/type/Iterable»
+mappers, the values in the C<@list> represent the key and index of the mapper's
+value respectively. A L«C<Callable>|/type/Callable» mapper will be executed
+once per each item in the C<@list>, with that item as the argument and its
+return value will be used as the mapper's value.
+
+The mapper's value is used as the key of the L«C<Baggy>|/type/Baggy» that will
+be incremented by C<1>. See L«C<.categorize-list>|/routine/categorize-list» if
+you wish to classify an item into multiple categories at once.
+
+B<Note:> unlike the L«C<Hash>|/type/Hash»'s
+C<.classify-list>, returning an L«C<Iterable>|/type/Iterable» mapper's value
+will throw, as L«C<Baggy>|/type/Baggy» types do not support nested
+classification. For the same reason, L«C<Baggy>|/type/Baggy»'s C<.classify-list>
+does not accept C<:&as> parameter.
 
 =head2 method categorize-list
 
