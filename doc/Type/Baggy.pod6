@@ -227,40 +227,43 @@ does not accept C<:&as> parameter.
 
 Defined as:
 
-    multi method categorize-list(&test:(Any --> Bool), *@list) returns Baggy:D
+    multi method categorize-list(&mapper, *@list) returns Baggy:D
+    multi method categorize-list(%mapper, *@list) returns Baggy:D
+    multi method categorize-list(@mapper, *@list) returns Baggy:D
 
-Transforms a list of values into categorizations of those values according to
-C<&test> and stores the results in the invocant which is then returned.
-Each key represents one possible categorization for one or more of the
-incoming list values, and the corresponding value contains the number of list
-values categorized by C<&test> into the category of the associated key.
+Populates a I<mutable> L«C<Baggy>|/type/Baggy» by categorizing the
+possibly-empty C<@list> of values using the given C<mapper>. The C<@list>
+cannot be lazy.
 
-The signature for C<&test> contains one parameter of type C<Any> which simply
-means that C<&test> must be able to handle arguments of the same type as those
-in C<*@list>.
+    say BagHash.new.categorize-list: {
+        gather {
+            take 'largish' if $_ > 5;
+            take .is-prime ?? 'prime' !! 'non-prime';
+            take $_ %% 2   ?? 'even'  !! 'odd';
+        }
+    }, ^10;
+    # OUTPUT: BagHash.new(largish(4), even(5), non-prime(6), prime(4), odd(5))
 
-As an example, suppose that we have a list of C<Int>s each of which is either
-even or odd and, at the same time, prime or non-prime. We want to get hold of
-an aggregated result which shows us how many numbers were even, odd, prime and
-non-prime.
+    my %mapper = :sugar<sweet white>, :lemon<sour>, :cake('sweet', 'is a lie');
+    say MixHash.new.categorize-list: %mapper, <sugar lemon cake>;
+    # OUTPUT: MixHash.new(is a lie, sour, white, sweet(2))
 
-    my $b = BagHash.new();
-    dd $b.categorize-list( { $_ %% 2 ?? 'even' !! 'odd',
-                             $_.is-prime ?? 'prime' !! 'not prime'
-                           }, (1, 7, 6, 3, 2) );
-    # returns: ("non-prime"=>2,"even"=>2,"prime"=>3,"odd"=>3).BagHash
+The mapper can be a L«C<Callable>|/type/Callable» that takes a single argument,
+an L«C<Associative>|/type/Associative», or an L«C<Iterable>|/type/Iterable».
+With L«C<Associative>|/type/Associative» and an L«C<Iterable>|/type/Iterable»
+mappers, the values in the C<@list> represent the key and index of the mapper's
+value respectively. A L«C<Callable>|/type/Callable» mapper will be executed
+once per each item in the C<@list>, with that item as the argument and its
+return value will be used as the mapper's value.
 
-The result shows us that of the numbers in the list two were categorized as
-even and three as odd. In addition the result also shows that three of the numbers
-were also categorized as prime and two as non-prime. Note that the result doesn't
-show us B<which> numbers were categorized as being even, odd, prime or non-prime.
-If that is what you want, use the L<categorize|/type/List#routine_categorize>
-routine in L<List|/type/List> instead.
+The mapper's value is used as a possibly-empty list of keys of the
+L«C<Baggy>|/type/Baggy» that will be incremented by C<1>.
 
-It should also be noted that, unlike L<classify-list|/type/Baggy#method_classify-list>,
-which assumes that the return value of C<&test> is a single value, C<categorize-list>
-always assumes that the return value of C<&test> is a list of categories that are
-appropriate to the current value.
+B<Note:> unlike the L«C<Hash>|/type/Hash»'s
+C<.categorize-list>, returning a list of L«C<Iterables>|/type/Iterable»
+as mapper's value will throw, as L«C<Baggy>|/type/Baggy» types do not support
+nested categorization. For the same reason, L«C<Baggy>|/type/Baggy»'s
+C<.categorize-list> does not accept C<:&as> parameter.
 
 =head2 method keys
 
