@@ -379,6 +379,102 @@ must have the same number of elements, or the method will throw an exception.
 This restriction exists to avoid conflicts when the same key is a
 leaf of one value's classification but a node of another value's classification.
 
+=head2 method categorize-list
+
+Defined as:
+
+    multi method categorize-list(&mapper, *@list, :&as) returns Hash:D
+    multi method categorize-list(%mapper, *@list, :&as) returns Hash:D
+    multi method categorize-list(@mapper, *@list, :&as) returns Hash:D
+
+Populates a L«C<Hash>|/type/Hash by classifying the
+possibly-empty C<@list> of values using the given C<mapper>, optionally
+altering the values using the C<:&as> L«C<Callable>|/type/Callable». The
+C<@list> cannot be lazy.
+
+The mapper can be a L«C<Callable>|/type/Callable» that takes a single argument,
+an L«C<Associative>|/type/Associative», or an L«C<Iterable>|/type/Iterable».
+With L«C<Associative>|/type/Associative» and an L«C<Iterable>|/type/Iterable»
+mappers, the values in the C<@list> represent the key and index of the mapper's
+value respectively. A L«C<Callable>|/type/Callable» mapper will be executed
+once per each item in the C<@list>, with that item as the argument and its
+return value will be used as the mapper's value.
+
+=head3 Simple Categorization
+
+The mapper's value is expected to be a possibly empty list of
+non-L«C<Iterables>|/type/Iterable» that represent categories to place the value
+into:
+
+    say % .categorize-list: {
+        gather {
+            take 'prime'   if .is-prime;
+            take 'largish' if $_ > 5;
+            take $_ %% 2 ?? 'even' !! 'odd';
+        }
+    }, ^10;
+
+    # OUTPUT:
+    # {
+    #     prime   => [2 3 5 7]
+    #     even    => [0 2 4 6 8],
+    #     odd     => [1 3 5 7 9],
+    #     largish => [6 7 8 9],
+    # }
+
+Notice how some items, e.g. C<6> and C<7>, are present in several categories.
+
+=head3 Multi-Level Categorization
+
+In multi-level categorization, the categories produced by the mapper can are
+L<Iterables|/type/Iterable> and categorization combines features
+of C<classify|/routine/classify>, by producing nested hashes of classifications
+for each category.
+
+    say % .categorize-list: {
+        [
+            $_ > 5    ?? 'largish' !! 'smallish',
+            .is-prime ?? 'prime'   !! 'non-prime',
+        ],
+    }, ^10;
+
+    # OUTPUT:
+    # {
+    #     largish => {
+    #         non-prime => [6 8 9],
+    #         prime     => [7]
+    #     },
+    #     smallish => {
+    #         non-prime => [0 1 4],
+    #         prime     => [2 3 5]
+    #     }
+    # }
+
+The mapper in above snippet produces single-item list (note the significant
+trailing comma) with a two-item C<Array> in it. The first item in that array
+indicates the first level of classification: the C<largish>/C<smallsih>
+categories the routine produces. The second item in that array indicates
+further levels of classification, in our case the classification into
+C<prime>/C<non-prime> inside of each category.
+
+B<NOTE:> each of category L«C<Iterables>|/type/Iterable»
+must have the same number of elements, or the method will throw an exception.
+This restriction exists to avoid conflicts when the same key is a
+leaf of one value's classification but a node of another value's classification.
+
+=head3 C<:&as> value modifier
+
+If C<:&as> L«C<Callable>|/type/Callable» argument is specified, it will be
+called once per each item of C<@list>, with the value as the argument, and
+its return value will be used instead of the original C<@list>'s item:
+
+    say % .categorize-list: :as{"Value is $_"}, { $_ %% 2 ?? 'even' !! 'odd' }, ^5;
+    # OUTPUT (slightly altered manually, for clarity):
+    # {
+    #     even => ['Value is 0', 'Value is 2', 'Value is 4'],
+    #     odd  => ['Value is 1', 'Value is 3']
+    # }
+
 =head2 method push
 
 Defined as:
