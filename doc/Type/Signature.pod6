@@ -4,7 +4,7 @@
 
 =SUBTITLE Parameter list pattern
 
-    class Signature {}
+    class Signature { }
 
 A signature is a static description of the L<parameter|Parameter> list
 of a code object.  That is, it describes what and how many arguments
@@ -41,9 +41,9 @@ like L<C<my>|/syntax/my>, or as a separate term starting with a colon.
 Signature literals can be used to define the signature of a callback or a
 closure.
 
-    sub f(&c:(Int)){}
-    sub will-work(Int){}
-    sub won't-work(Str){}
+    sub f(&c:(Int)) { }
+    sub will-work(Int) { }
+    sub won't-work(Str) { }
     f(&will-work);
 
     f(&won't-work);
@@ -82,7 +82,7 @@ object that was used to call the method, which is usually bound to L<C<self>>.
 By specifying it in the signature, you can change the variable name it
 is bound to.
 
-    method ($a: @b, %c){};       # first argument is the invocant
+    method ($a: @b, %c) {};       # first argument is the invocant
 
     class Foo {
         method whoami($me:) {
@@ -125,7 +125,7 @@ a true value to pass the type check
     sub f(Real $x where { $x > 0 }, Real $y where { $y >= $x }) { }
 
 In fact it doesn't need to be a code block, anything on the right of the
-C<where>-block will be used to L<smart-match|/language/operators#infix_~~> the
+C<where>-clause will be used to L<smart-match|/language/operators#infix_~~> the
 argument against it.  So you can also write:
 
     multi factorial(Int $ where 0) { 1 }
@@ -138,12 +138,13 @@ The first of those can be shortened to
 i.e., you can use a literal directly as a type and value constraint
 on an anonymous parameter.
 
-Any argument in a C<Signature> is declared in a C<where>-clause that is
-following that argument. Therefor, the C<where>-clause of the last argument got
-access to all arguments of a signature that are not part of a sub-signature.
-For sub-signature place the C<where>-clause inside the sub-signature.
+All previous arguments that are not part of a sub-signaure in a C<Signature>
+are accessible in a C<where>-clause that follows an argument. Therefore,
+the C<where>-clause of the last argument has access to all arguments of a
+signature that are not part of a sub-signature. For a sub-signature place
+the C<where>-clause inside the sub-signature.
 
-    sub one-of-them(:$a, :$b, :$c where { $a.defined ^^ $b.defined ^^ $c.defined } ) {
+    sub one-of-them(:$a, :$b, :$c where { $a.defined ^^ $b.defined ^^ $c.defined }) {
         $a // $b // $c
     };
     say one-of-them(c=>42);
@@ -152,10 +153,10 @@ For sub-signature place the C<where>-clause inside the sub-signature.
 =head3 Constraining Slurpy Arguments
 
 L<Slurpy arguments|Slurpy_(A.K.A._Variadic)_Parameters> can not have type
-constraints. A C<where>-clause in
-conjunction with a L<Junction|/type/Junction> can be used to that effect.
+constraints. A C<where>-clause in conjunction with a L<Junction|/type/Junction>
+can be used to that effect.
 
-    sub f(*@a where {$_.all ~~ Int}){say @a};
+    sub f(*@a where {$_.all ~~ Int}) { say @a };
     f(42);
     f(<a>);
     # OUTPUT«[42]␤Constraint type check failed for parameter '@a'␤  in sub f at ...»
@@ -166,7 +167,7 @@ conjunction with a L<Junction|/type/Junction> can be used to that effect.
 Normally, a type constraint only checks whether the value passed is of the
 correct type.
 
-    sub limit-lines (Str $s, Int $limit) {
+    sub limit-lines(Str $s, Int $limit) {
         my @lines = $s.lines;
         @lines[0 .. min @lines.elems, $limit].join("\n")
     }
@@ -183,7 +184,7 @@ correct type.
 In this case, we really only want to deal with defined strings. To do this, we
 use the C<:D> type constraint.
 
-    sub limit-lines (Str:D $s, Int $limit) {};
+    sub limit-lines(Str:D $s, Int $limit) { };
     say limit-lines Str, 3;
     CATCH { default { put .^name, .Str } };
     # OUTPUT«X::AdHocParameter '$s' requires an instance of type Str, but a
@@ -198,8 +199,8 @@ example, we can turn the C<&limit-lines> into a multi function to make use of
 the C<:U> constraint.
 
 =for code :allow<B L>
-multi limit-lines (Str $s, Int:D $limit) {}
-multi limit-lines (Str $s, Int:U $) { $s }
+multi limit-lines(Str $s, Int:D $limit) { }
+multi limit-lines(Str $s, Int:U $) { $s }
 say limit-lines "a \n b \n c", Int; # "a \n b \n c"
 
 For explicitly indicating the normal behaviour, C<:_> can be used, but this is
@@ -210,8 +211,8 @@ unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
 To constrain block and subroutine references based on their signature write
 the signature after the argument name.
 
-    sub f(&c:(Int, Str)) { say c(10, 'ten') };
-    sub g(Int $i, Str $s){ $s ~ $i };
+    sub f(&c:(Int, Str))  { say c(10, 'ten') };
+    sub g(Int $i, Str $s) { $s ~ $i };
     f(&g);
     # OUTPUT«ten10␤»
 
@@ -224,9 +225,9 @@ has the same function. C<Nil> and its subclasses are ignored in return
 constraints. This allows L<Failure|/type/Failure> to be returned and passed on
 down the call chain.
 
-    sub (--> Int) { my Int $i; $i };
-    sub (--> Int:D) { 1 }
-    sub () returns Int { 1 };
+    sub(--> Int) { my Int $i; $i };
+    sub(--> Int:D) { 1 }
+    sub() returns Int { 1 };
     sub does-not-work(--> Int) { "" }; # throws X::TypeCheck::Return
 
 If the type constraint is a constant expression, it is used as the return value
@@ -234,8 +235,8 @@ of the routine. Any return statement in that routine has to be argumentless.
 
     sub foo(--> 123) { return }
 
-L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types, regardless of any
-type constraint.
+L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types,
+regardless of any type constraint.
 
     sub foo(--> Int) { Nil };
     say foo.perl; # Nil
@@ -248,7 +249,7 @@ To accept one type but coerce it automatically to another, use the accepted
 type as an argument to the target type. If the accepted type is C<Any> it can
 be omitted.
 
-    sub f(Int(Str) $want-int, Str() $want-str){ say $want-int.WHAT, $want-str.WHAT }
+    sub f(Int(Str) $want-int, Str() $want-str) { say $want-int.WHAT, $want-str.WHAT }
     f '10', 10;
     # OUTPUT«(Int)(Str)␤»
 
@@ -275,8 +276,7 @@ to a function, like someone slurping up noodles.
     sub named-names (*%named-args) { %named-args.keys };
     say named-names :foo(42) :bar<baz>; # foo bar
 
-Note that positional parameters aren't allowed after slurpy
-parameters.
+Note that positional parameters aren't allowed after slurpy parameters.
 
 =begin code :skip-test
 :(*@args, $last);
@@ -285,10 +285,10 @@ CATCH { when X::Parameter::WrongOrder { put .^name, ': ', .Str } }
 =end code
 
 Slurpy parameters declared with one asterisk will flatten arguments by
-dissolving one or more layers of bare C<Iterables>.  Slurpy parameters declared
-with two stars do not do so:
+dissolving one or more layers of bare C<Iterables>.  Slurpy parameters
+declared with two stars do not do so:
 
-    sub a(*@a) { @a.join("|").say };
+    sub a(*@a)  { @a.join("|").say };
     a(1, [1, 2], ([3, 4], 5)); # 1|1|2|3|4|5
     sub b(**@b) { @b.join("|").say };
     b(1, [1, 2], ([3, 4], 5)); # 1|1 2|3 4 5
@@ -305,14 +305,14 @@ as described below.
 
 =head2 Single Argument Rule Slurpy
 
-The single argument rule allows to treat arguments to subroutines,
+The single argument rule allows for treating arguments to subroutines,
 C<for>-loops and list constructors based on context. Many methods on positional
-types can work with a single arguments the same way as with a list or
+types can work with a single arguments the same as with a list of
 arguments. Using C<+@> as a sigil in a Signature provides syntactic sugar to
 make that task a little easier. Any single argument of a non-positional type
 will be promoted to a list with a single item.
 
-    sub f(+@a){ dd @a };
+    sub f(+@a) { dd @a };
     f(1);
     # OUTPUT«[1]␤»
     f(1, 2, 3);
@@ -332,9 +332,9 @@ the function body.
         # $p1 and $p2 are of the same type T, that we don't know yet
         # C will hold a type we derive from a type object or value
         my C $closure = $p1 / $p2;
-            return sub (T $p1) {
-                    $closure * $p1;
-            }
+        return sub(T $p1) {
+            $closure * $p1;
+        }
     }
 
     # The first parameter is Int and so must be the 2nd.
@@ -380,8 +380,8 @@ Aliases are also possible that way:
 A function with named arguments can be called dynamically, dereferencing a
 L<Pair|/type/Pair> with C<|> to turn it into a named argument.
 
-    multi f(:$named){ note &?ROUTINE.signature };
-    multi f(:$also-named){ note &?ROUTINE.signature };
+    multi f(:$named) { note &?ROUTINE.signature };
+    multi f(:$also-named) { note &?ROUTINE.signature };
     for 'named', 'also-named' -> $n {
         f(|($n => rand))                    # «(:$named)␤(:$also-named)␤»
     }
@@ -401,7 +401,7 @@ X<|optional argument (Signature)>
 Positional parameters are mandatory by default, and can be made optional
 with a default value or a trailing question mark:
 
-    $ = :(Str $id);          # required parameter
+    $ = :(Str $id);         # required parameter
     $ = :($base = 10);      # optional parameter, default value 10
     $ = :(Int $x?);         # optional parameter, default is the Int type object
 
@@ -434,22 +434,22 @@ or
 
 While the destructuring of a hash is its pairs:
 
-    sub all-dimensions (% (:length(:$x), :width(:$y), :depth(:$z))) {
+    sub all-dimensions(% (:length(:$x), :width(:$y), :depth(:$z))) {
         $x andthen $y andthen $z andthen True
     }
 
 In general, an object is destructured based on its attributes. A common idiom
 is to unpack a L<C<Pair>>'s key and value in a for loop:
 
-    for <Peter Paul Merry>.pairs -> (:key($index), :value($guest)) {}
+    for <Peter Paul Merry>.pairs -> (:key($index), :value($guest)) { }
 
 However, this unpacking of objects as their attributes is only the default
 behavior. To make an object get destructured differently, change its
 L<C<Capture>> method.
 
-=head2 Subsignatures
+=head2 Sub-signatures
 
-To match against a compound parameter use a subsignature following the argument
+To match against a compound parameter use a sub-signature following the argument
 name in parentheses.
 
     sub foo(|c(Int, Str)){
@@ -494,12 +494,12 @@ read-only. One can change that with traits on the parameter.
 The C<is copy> trait causes the argument to be copied, and allows it
 to be modified inside the routine
 
-    sub count-up ($x is copy) {
+    sub count-up($x is copy) {
         $x = Inf if $x ~~ Whatever;
         .say for 1..$x;
     }
 
-The C<is rw> trait makes the parameter only bind to a variable (or
+The C<is rw> trait makes the parameter bind to a variable (or
 other writable container). Assigning to the parameter changes the
 value of the variable at the caller side.
 
@@ -520,7 +520,7 @@ directly as raw parameter.
 
 Traits can be followed by the where clause:
 
-    sub ip-expand-ipv6($ip is copy where m:i/^<[a..f\d\:]>**3..39$/) {...}
+    sub ip-expand-ipv6($ip is copy where m:i/^<[a..f\d\:]>**3..39$/) { }
 
 =head1 Methods
 
