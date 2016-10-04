@@ -728,6 +728,63 @@ https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
 With a right-associative operator it is a right fold, otherwise (and usually)
 it is a left fold.
 
+=head2 routine produce
+
+Defined as:
+
+    multi sub    produce(&with, *@values)
+    multi method produce(List:D: &with)
+
+Generates a list of all intermediate "combined" values along with the final
+result by iteratively applying a function which knows how to combine I<two>
+values.
+
+If C<@values> contains just a single element, a list containing that element
+is returned immediately. If it contains no elements, an exception is thrown,
+unless C<&with> is an I<operator> with a known identity value.
+
+If C<&with> is the function object of an I<operator>, its
+inherent identity value and associativity is respected - in other words,
+C<(VAL1, VAL2, VAL3).produce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+for operators which aren't left-associative:
+
+    # Raise 2 to the 81st power, because 3 to the 4th power is 81
+    [2,3,4].produce(&[**]).say;        # (4 81 2417851639229258349412352)
+    say produce &[**], (2,3,4);        # (4 81 2417851639229258349412352)
+    say [\**] (2,3,4);                 # (4 81 2417851639229258349412352)
+
+    # Subtract 4 from -1, because 2 minus 3 is -1
+    [2,3,4].produce(&[-]).say;         # (2 -1 -5)
+    say produce &[-], (2,3,4);         # (2 -1 -5)
+    say [\-] (2,3,4);                  # (2 -1 -5)
+
+A triangle meta-operator C<[\ ]> provides a syntactic shortcut for
+producing with an infix operator:
+
+    # The following all do the same thing...
+    my @numbers = (1,2,3,4,5);
+    say produce { $^a + $^b }, 0, |@numbers;
+    say produce * + *, 0, |@numbers;
+    say produce &[+], @numbers; # operator does not need explicit identity
+    say [\+] @numbers;          # most people write it this way
+
+The visual picture of a triangle C<[\> is not accidental. To produce a
+triangular list of of lists, you can use a "triangular comma":
+
+    [\,] 1..5
+    (
+     (1)
+     (1 2)
+     (1 2 3)
+     (1 2 3 4)
+     (1 2 3 4 5)
+    )
+
+Since C<produce> is an implicit loop, it responds to C<next>, C<last> and
+C<redo> statements inside C<&with>:
+
+    say (2,3,4,5).produce: { last if $^a > 7; $^a + $^b }; # says (2 5 9)
+
 =head2 routine combinations
 
 Defined as:
