@@ -110,6 +110,16 @@ for a file. Use the pod-config option `skip-test` to skip them.
         your-example-here();
     =end code
 
+### Catching expected exception
+
+Some tests will throw exceptions that would stop the execution of the extracted
+test file. Use the pod-option `catch-all` to have a default handler installed
+for a single example.
+
+    =begin code :catch-all
+        your-throwy-here();
+    =end code
+
 ## Testing method completeness
 
 To get a list of methods that are found via introspection but not found in any

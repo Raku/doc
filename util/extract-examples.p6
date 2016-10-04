@@ -18,6 +18,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
     if .config<skip-test> {
         return ''
     }else{
+        my $catch-all = .config<catch-all> ?? 'CATCH { default {} }' ~ NL !! '';
         my $content = .contents».&walk(@context).trim;
         if ($content.lines.».trim.map( {(.starts-with('multi')  ||
                                          .starts-with('method') ||
@@ -26,7 +27,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
                                         (not .ends-with('}'))} ).all) {
             $content = $content.subst("\n", " \{\}\n", :g) ~ ' {' ~ '}';
         }
-        return '# ', '=' x 78, NL, 'class :: {', NL, $content, NL, '}';
+        return '# ', '=' x 78, NL, 'class :: {', NL, $catch-all, $content, NL, '}';
     }
 }
 
