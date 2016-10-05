@@ -264,10 +264,11 @@ be omitted.
 
 =head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%,slurpy argument (Signature)>
 
-A function is X<variadic> if it can take a varying number of arguments; that is, its arity is not
-fixed. Therefore, optional, named, and slurpy parameters are variadic. An array or hash parameter
-can be marked as I<slurpy> by leading asterisk(s), which means it can bind to an arbitrary amount
-of arguments (zero or more).
+A function is X<variadic> if it can take a varying number of arguments; that is,
+its arity is not fixed. Therefore, optional, named, and slurpy parameters are
+variadic. An array or hash parameter can be marked as I<slurpy> by leading
+asterisk (*) or two leading asterisks (**) or a leading plus (+). A slurpy
+parameter can bind to an arbitrary number of arguments (zero or more).
 
 These are called "slurpy" because they slurp up any remaining arguments
 to a function, like someone slurping up noodles.
@@ -295,15 +296,6 @@ CATCH { when X::Parameter::WrongOrder { put .^name, ': ', .Str } }
 # OUTPUT«X::Parameter::WrongOrder: Cannot put required parameter $last after variadic parameters␤»
 =end code
 
-Slurpy parameters declared with one asterisk will flatten arguments by
-dissolving one or more layers of bare C<Iterables>.  Slurpy parameters
-declared with two stars do not do so:
-
-    sub a(*@a)  { @a.join("|").say };
-    a(1, [1, 2], ([3, 4], 5)); # 1|1|2|3|4|5
-    sub b(**@b) { @b.join("|").say };
-    b(1, [1, 2], ([3, 4], 5)); # 1|1 2|3 4 5
-
 Normally a slurpy parameter will create an Array, create a new
 Scalar container for each argument, and assign the value from each
 argument to those Scalars.  If the original argument also had an
@@ -314,23 +306,72 @@ Slurpy parameters have special behaviors when combined with some
 L<traits and modifiers|#Parameter_Traits_and_Modifiers>,
 as described below.
 
-=head2 Single Argument Rule Slurpy
+=head2 Types of Slurpy Array Parameters
 
-The single argument rule allows for treating arguments to subroutines,
-C<for>-loops and list constructors based on context. Many methods on positional
-types can work with a single arguments the same as with a list of
-arguments. Using C<+@> as a sigil in a Signature provides syntactic sugar to
-make that task a little easier. Any single argument of a non-positional type
-will be promoted to a list with a single item.
+There are three variations to slurpy array parameters.
 
-    sub f(+@a) { dd @a };
-    f(1);
-    # OUTPUT«[1]␤»
-    f(1, 2, 3);
-    # OUTPUT«[1, 2, 3]␤»
-    my @b = <a b c>;
-    f @b;
-    # OUTPUT«["a", "b", "c"]␤»
+=item The single asterisk form flattens passed arguments.
+
+=item The double asterisk form does not flatten arguments.
+
+=item The plus form flattens according to the single argument rule.
+
+Each will be described in detail in the next few sections. As the difference
+between each is a bit nuanced, examples are provided for each to demonstrate how
+each slurpy convention varies from the others.
+
+=head3 Flattened Slurpy
+
+Slurpy parameters declared with one asterisk will flatten arguments by
+dissolving one or more layers of bare C<Iterables>.
+
+    my @array = <a b c>;
+    my $list := <d e f>;
+    sub a(*@a)  { @a.perl.say };
+    a(@array)                  # ["a", "b", "c"]
+    a(1, $list, [2, 3]);       # [1, "d", "e", "f", 2, 3]
+    a([1, 2]);                 # [1, 2]
+    a(1, [1, 2], ([3, 4], 5)); # [1, 1, 2, 3, 4 5]
+    a(($_ for 1, 2, 3));       # [1, 2, 3]
+
+A single asterisk slurpy flattens all given iterables, effectively hoisting any
+object created with commas up to the top level.
+
+=head3 Unflattened Slurpy
+
+Slurpy parameters declared with two stars do not flatten any iterable arguments
+within the list, but keep the arguments more or less as-is:
+
+    my @array = <a b c>;
+    my $list := <d e f>;
+    sub b(**@b) { @b.perl.say };
+    b(@array);                 # [["a", "b", "c"]]
+    b(1, $list, [2, 3]);       # [1, ("d", "e", "f"), [2, 3]]
+    b([1, 2]);                 # [[1, 2]]
+    b(1, [1, 2], ([3, 4], 5)); # [1, [1, 2], ([3, 4], 5)]
+    b(($_ for 1, 2, 3));       # [(1, 2, 3),]
+
+The double asterisk slurpy hides the nested comma objects and leaves them as-is
+in the slurpy array.
+
+=head3 Single Argument Rule Slurpy
+
+A slurpy parameter created using a plus engaged the "single argument rule",
+which decides how to handle the slurpy argument based upon context. Basically,
+if only a single argument is passed and that argument is iterable, that argument
+is used to fill the slurpy parameter array. In any other case, C<+@> works like
+C<**@>.
+
+    my @array = <a b c>;
+    my $list := <d e f>;
+    sub c(+@b) { @b.perl.say };
+    c(@array);                 # ["a", "b", "c"]
+    c(1, $list, [2, 3]);       # [1, ("d", "e", "f"), [2, 3]]
+    c([1, 2]);                 # [1, 2]
+    c(1, [1, 2], ([3, 4], 5)); # [1, [1, 2], ([3, 4], 5)]
+    c(($_ for 1, 2, 3));       # [1, 2, 3]
+
+For additional discussion and examples, see L<Slurpy Conventions for Functions|/language/funcctions#Slurpy_Conventions>.
 
 =head2 Type Captures
 X<|Type Capture (signature)>
