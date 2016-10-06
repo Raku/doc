@@ -21,7 +21,7 @@ test:
 
 # Extended tests
 xtest:
-	prove --exec perl6 -r xt t
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 xt t; else prove -e perl6 xt t; fi
 
 # Content tests
 ctest:
