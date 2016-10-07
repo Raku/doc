@@ -27,6 +27,8 @@ To build the documentation web pages, simply run
 
 In addition to the Perl 6 dependencies, you need to have `graphviz` installed.
 
+Also install Pod::To::BigPage i.e. panda install Pod::To::BigPage then copy ~/.rakudobrew/moar-nom/install/share/perl6/site/bin/pod2onepage to ~/.rakudobrew/bin/
+
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
 
