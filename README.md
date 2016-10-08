@@ -21,13 +21,24 @@ to see the documentation for method `split` in class `Str`.
 
 ## Building the HTML documentation
 
+Install dependencies by running the following in the checkout directory:
+
+    panda installdeps .       # if you use panda
+    zef --depsonly install .  # if you use zef
+
+If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
+following, to update the shims for installed executables:
+
+    rakudobrew rehash
+
+In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
+on Debian you can do by running
+
+    sudo apt-get install graphviz
+
 To build the documentation web pages, simply run
 
     $ make html
-
-In addition to the Perl 6 dependencies, you need to have `graphviz` installed.
-
-Also install Pod::To::BigPage i.e. panda install Pod::To::BigPage then copy ~/.rakudobrew/moar-nom/install/share/perl6/site/bin/pod2onepage to ~/.rakudobrew/bin/
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
