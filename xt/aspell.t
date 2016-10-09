@@ -4,10 +4,14 @@ use lib 'lib';
 
 my @files;
 
-for qx<git ls-files>.lines -> $file {
-    next unless $file ~~ / '.pod6' $/;
-    next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-    push @files, $file;
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    for qx<git ls-files>.lines -> $file {
+        next unless $file ~~ / '.pod6' $/;
+        next if $file ~~ / 'contributors.pod6' $/; # names are hard.
+        push @files, $file;
+    }
 }
 
 plan +@files;
