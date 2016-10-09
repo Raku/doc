@@ -31,7 +31,7 @@ for @files -> $file {
         $count++;
     }
 
-    my $so-many  = $count ?? $count !! "no";
+    my $so-many  = $count // "no";
     ok !$count, "$file has $so-many spelling errors";
 }
 
