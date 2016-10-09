@@ -12,6 +12,12 @@ for qx<git ls-files>.lines -> $file {
 
 plan +@files;
 
+my $proc = shell('aspell -v');
+if $proc.exitcode {
+    skip-rest "This test requires aspell";
+    exit;
+}
+
 my $file-count = 1;
 for @files -> $file {
     $file-count++;
