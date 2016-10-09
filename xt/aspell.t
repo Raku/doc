@@ -18,11 +18,7 @@ if $proc.exitcode {
     exit;
 }
 
-my $file-count = 1;
 for @files -> $file {
-    $file-count++;
-    #last if $file-count > 15;
-
     my $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
 
     my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/.aspell.pws>, :in($fixer.out), :out);
