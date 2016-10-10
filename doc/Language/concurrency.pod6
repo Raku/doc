@@ -37,7 +37,10 @@ user code should, where possible, avoid the lower level concurrency APIs
 A L<Promise|/type/Promise> (also called I<future> in other programming
 environments) encapsulates the result of a computation that may not
 have completed or even started at the time the promise is obtained.
-It provides much of the functionality that user code needs to operate
+A C<Promise> starts from a C<Planned> status and can result in either a
+C<Kept> status, meaning the promise has been successfully completed, or
+a C<Broken> status meaning that the promise has failed.
+Usually this is much of the functionality that user code needs to operate
 in a concurrent or asynchronous manner.
 
 =begin code
@@ -46,19 +49,20 @@ say $p1.status;         # Planned;
 $p1.keep('result');
 say $p1.status;         # Kept
 say $p1.result;         # result
+                        # (since it has been kept, a result is available!)
 
 my $p2 = Promise.new;
 $p2.break('oh no');
 say $p2.status;         # Broken
-say $p2.result;         # dies with "oh no"
+say $p2.result;         # dies with "oh no", because the promise has been broken
 =end code
 
 Promises gain much of their power by being composable, for example by
-chaining:
+chaining, usually by the L<then|/type/Promise#method_then> method:
 
     my $promise1 = Promise.new();
     my $promise2 = $promise1.then(
-        -> $v { say $v.result; "Second Result"}
+        -> $v { say $v.result; "Second Result" }
     );
     $promise1.keep("First Result");
     say $promise2.result;   # First Result \n Second Result
