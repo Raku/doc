@@ -17,7 +17,17 @@ for qx<git ls-files>.lines -> $file {
 plan +@files;
 
 for @files -> $file {
-    ok !($file.IO.slurp ~~ / \t/), "no tabs in $file";
+    my @lines;
+    my $line-no = 1;
+    for $file.IO.lines -> $line {
+        @lines.push($line-no) if $line.contains("\t");
+        $line-no++;
+    }
+    if @lines {
+        flunk "$file has tabs on lines: {@lines}";
+    } else {
+        pass "$file has no tabs";
+    }
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
