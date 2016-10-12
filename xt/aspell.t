@@ -2,12 +2,22 @@ use v6;
 use Test;
 use lib 'lib';
 
+=begin overview
+
+Spell check all the pod files in the documentation directory.
+
+Ignore case, and provide a repo-specific list of approved words,
+which include technical jargon, method and class names, etc.
+
+=end overview
+
 my @files;
 
 if @*ARGS {
     @files = @*ARGS;
 } else {
     for qx<git ls-files>.lines -> $file {
+        next unless $file ~~ /^ 'doc' /;
         next unless $file ~~ / '.pod6' $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
         push @files, $file;
