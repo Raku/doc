@@ -33,7 +33,9 @@ if $proc.exitcode {
 }
 
 for @files -> $file {
-    my $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
+    my $pod2text = run('perl6', 'bin/p6doc', $file, :out);
+
+    my $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
 
     my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/.aspell.pws>, :in($fixer.out), :out);
 
