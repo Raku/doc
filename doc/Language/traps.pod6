@@ -471,6 +471,41 @@ Due to the variables allowed to be called anything, this can cause some problems
 
     for 1..4 { say "$^one $^two $^three $^four"; }    # 2 4 3 1
 
+=head1 Scope
+
+=head2 Using a C<once> block
+
+The C<once> block is a block of code that will only run once when it's parent block is run. As an example:
+
+    my $var = 0;
+    for 1..10 {
+        once { $var++; }
+    }
+    say "Variable = $var";    # "Variable = 1"
+
+This functionallity also applies to other code blocks like C<sub> and C<while>, not just C<for> loops. Problems arise though, when trying to nest C<once> blocks inside of other code blocks:
+
+    my $var = 0;
+    for 1..10 {
+        do { once { $var++; } }
+    }
+    say "Variable = $var";    # "Variable = 10"
+
+In the above example, the C<once> block was nested inside of a code block which was inside of a C<for> loop code block. This causes the C<once> block to run multiple times, beacuse the C<once> block uses state variables to determine whether it has run previously. This means that if the parent code block goes out of scope, then the state variable the C<once> block uses to keep track of if it has run previously, goes out of scope as well. This is why C<once> blocks and C<state> variables can cause some unwanted behaviour when burried within more than one code block.
+
+If you want to have something that will emulate the functionality of a once block, but still work when burried a few code blocks deep, we can manually build the functionality of a C<once> block. Using the above example, we can change it so that it will only run once, even when inside the C<do> block by changing the scope of the C<state> variable.
+
+    my $var = 0;
+    for 1..10 {
+        state $run-code = True;
+        do { if ($run-code) { $run-code = False; $var++; } }
+    }
+    say "Variable = $var";    # "Variable = 1"
+
+In this example, we essentially manually build a C<once> block by making a C<state> variable called C<$run-code> at the highest level that will be run more than once, then checking to see if C<$run-code> is C<True> using a regular C<if>. If the variable C<$run-code> is C<True>, then make the variable C<False> and continue with the code that should only be completed once.
+
+The main difference between using a C<state> variable like the above example and using a regular C<once> block is what scope the C<state> variable is in. The scope for the C<state> variable created by the C<once> block, is the same as where you put the block (imagine that the word 'C<once>' is replaced with a state variable and an C<if> to look at the variable). The example above using C<state> variables works because the variable is at the highest scope that will be repeated; whereas the example that has a C<once> block inside of a C<do>, made the variable within the C<do> block which is not the highest scope that is repeated.
+
 =end pod
 
 # vim: expandtab shiftwidth=4 ft=perl6
