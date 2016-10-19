@@ -40,7 +40,7 @@ $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
 for @files -> $file {
-    my $pod2text = run('perl6', 'bin/p6doc', $file, :out);
+    my $pod2text = run('perl6', '--doc', $file, :out);
 
     my $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
 
