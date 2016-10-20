@@ -128,7 +128,7 @@ test file. Use the pod-option `catch-all` to have a default handler installed
 for a single example.
 
     =begin code :catch-all
-        your-throwy-here();
+        exception-generator-here();
     =end code
 
 ## Testing method completeness
@@ -143,13 +143,13 @@ ignored.
 
 On the right side of the footer you can find [Debug: off]. Click it and reload
 the page to activate debug mode. The state of debug mode will be remembered by
-`window.sessionStorage` and will not survive a brower restart or opening the
+`window.sessionStorage` and will not survive a browser restart or opening the
 docs in a new tab.
 
 ### Invisible index anchors
 
-You can create index entries and invisible anchors with `X<|somename,some
-category>`. To make them visible activate debug mode.
+You can create index entries and invisible anchors with `X<|thing,category>`.
+To make them visible activate debug mode.
 
 ### Viewport size
 
