@@ -153,7 +153,7 @@ checked depending on your browser settings.
 
 ### Heading numbering
 
-Please check if the heading you add are of sound structure. You can use debug mode
+Please check if the headings you add are of sound structure. You can use debug mode
 to display heading numbers.
 
 ## Reporting bugs
