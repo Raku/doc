@@ -17,8 +17,7 @@ if @*ARGS {
     @files = @*ARGS;
 } else {
     for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ /^ 'doc' /;
-        next unless $file ~~ / '.pod6' $/;
+        next unless $file ~~ / '.' ('pod6'|'md') $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
         push @files, $file;
     }
@@ -40,9 +39,14 @@ $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
 for @files -> $file {
-    my $pod2text = run('perl6', '--doc', $file, :out);
+    my $fixer;
 
-    my $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
+    if $file ~~ / '.pod6' $/ {
+        my $pod2text = run('perl6', '--doc', $file, :out);
+        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
+    } else {
+        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
+    }
 
     my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>, :in($fixer.out), :out);
 
