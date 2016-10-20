@@ -95,6 +95,17 @@ more lines with the signatures. Other allowed words instead of `method` are
 `term`. If you wish to hide a heading from any index prefix it with the empty
 comment `Z<>`.
 
+## Running tests
+
+Any contributions should pass the `make test` target. This insures basic
+integrity of the documentation, and is run automatically by a corresponding
+travis build. Even edits made via the github editor should pass this test.
+
+The repo should also pass `make xtest` most of the time - this includes
+tests about whitespace and spelling that might be difficult to get right
+on an initial commit, and shouldn't be considered to break the build. If
+you're contributing a patch or pull request, please make sure this passes.
+
 ## Testing examples
 
 To export examples from all .pod6-files use `make extract-examples`. To run
