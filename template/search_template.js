@@ -72,7 +72,7 @@ $(function(){
               url: "/language/syntax#Single-line_comments"
           }, {
               category: "Syntax",
-              value: "#` multi-line comment"
+              value: "#` multi-line comment",
               url: "/language/syntax#Multi-line_/_embedded_comments"
           }, {
               category: "Signature",
