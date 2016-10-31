@@ -48,7 +48,7 @@ for @files -> $file {
     my $fixer;
 
     if $file ~~ / '.pod6' $/ {
-        my $pod2text = run('perl6', '--doc', $file, :out);
+        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
         $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
     } else {
         $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
