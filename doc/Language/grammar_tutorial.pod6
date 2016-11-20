@@ -187,7 +187,7 @@ This results in any URI coming in getting checked; where the second string betwe
 
 There is another way, though, that can give you far greater flexibility to do interesting or unholy things with your regexes, and provide some better readability when options grow large. These are proto-regexes.
 
-To utilize these multimethods (here called protoregexes) to constrain our command to the same values we had above, we'll replace "token command" with the following:
+To utilize these multimethods (here called proto-regexes) to constrain our command to the same values we had above, we'll replace "token command" with the following:
 
     =begin code
     proto token command {*}
@@ -197,7 +197,23 @@ To utilize these multimethods (here called protoregexes) to constrain our comman
     token command:sym<delete>   { <sym> }
     =end code
 
-Using protoregexes like this gives us some greater flexibility. For example, instead of returning <sym>, which is the string that was matched, we could instead enter our own string, or do other funny stuff. We could do the same with the "token subject" method, and limit it also to only parsing correctly on valid subjects (like 'part' or 'people', etc.).
+The 'sym' keyword is used to create the various proto-regex options. Each option 
+is named (ie. sym<update>), and for that option's use, a special <sym> token is 
+auto-generated, that is the case-sensitive string-literal of the name assigned. 
+
+The <sym> token, as well as other user-defined tokens, may be used in the proto-
+regex option block to define the specific 'match condition'. Regex tokens are 
+compiled forms, and once defined cannot subsequently be modified by adverb 
+actions (eg. :i). Therefore, as it's auto-generated, the special <sym> token is 
+useful only where an exact match of the option name is required.
+
+If, for one of the proto-regex options, a match condition occurs, then the whole
+proto's search terminates. The matching data, in the form of a match object, is 
+assigned to the parent proto token. If the special <sym> token was employed, and
+formed all or part of the actual match, then it is preserved as a sublevel in 
+the match object, otherwise it is absent.
+
+Using proto-regexes like this gives us some greater flexibility. For example, instead of returning <sym>, which in this case is the entire string that was matched, we could instead enter our own string, or do other funny stuff. We could do the same with the "token subject" method, and limit it also to only parsing correctly on valid subjects (like 'part' or 'people', etc.).
 
 =head2 Putting our RESTful grammar together so far
 
@@ -342,7 +358,7 @@ To do this, all we have to do is add the method TOP to our action class, and in 
     {
         method TOP ($/) {
             make { subject => $<subject>.Str,
-                   command => $<command><sym>.Str,
+                   command => $<command>.Str,
                    data    => $<data>.made }
         }
 
@@ -386,7 +402,7 @@ Oh, did we forget to get rid of that ugly array element number? Hmm. Let's make 
     {
         method TOP ($/) {
             make { subject    => $<subject>.Str,
-                   command    => $<command><sym>.Str,
+                   command    => $<command>.Str,
                    data       => $<data>.made,
                    subject-id => $<data>.made[0] }
         }
@@ -430,7 +446,7 @@ And this is the grammar and grammar actions that got us there, to recap:
     {
         method TOP ($/) {
             make { subject    => $<subject>.Str,
-                   command    => $<command><sym>.Str,
+                   command    => $<command>.Str,
                    data       => $<data>.made,
                    subject-id => $<data>.made[0] }
         }
