@@ -158,16 +158,15 @@ L<CONTROL|https://docs.perl6.org/syntax/CONTROL>.
     CONTROL { .die };
 
 =head2 Word quoting: qw
-X<|qw word quote>X«|< > word quote»
+X<|qw word quote>
 
 =for code :allow<B L>
-B«<»a b cB«>» L<eqv> ('a', 'b', 'c')
 B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words
 B<Q:w {> [ ] \{ \} B<}> eqv ('[', ']', '{', '}')
 
-The C<:w> form, usually written C«<…>» or C<qw>, splits the string into
+The C<:w> form, usually written as C<qw>, splits the string into
 "words".  In this context, words are defined as sequences of non-whitespace
-characters separated by whitespace.  The C<q:w> and C<qw> forms inherit the
+characters separated by whitespace. The C<q:w> and C<qw> forms inherit the
 interpolation and escape semantics of the C<q> and single quote string
 delimiters, whereas C<Qw> and C<Q:w> inherit the non-escaping semantics of
 the C<Q> quoter.
@@ -179,13 +178,42 @@ lists of strings. For example, where you could write:
 
 It's easier to write and to read this:
 
-    my @directions = <left right up down>;
+    my @directions = qw|left right up down|;
 
-Please note that a fraction without any leading or trailing spaces is not a
-word quote but a L<Rat|/type/Rat>-literal.
+=head2 Word quoting: < >
+X«|< > word quote»
 
-    <1/2>.WHAT.say;
-    # OUTPUT«(Rat)␤»
+=for code :allow<B L>
+B«<»a b cB«>» L<eqv> ('a', 'b', 'c');   # True
+B«<»a b 42B«>» L<eqv> ('a', 'b', '42'); # False, the 42 become an IntStr allomorph
+say < 42 > ~~ Int; # True
+say < 42 > ~~ Str; # Also True
+
+The angle brackets quoting is like C<qw>, but with extra feature that lets you
+construct C<allomorphs/language/glossary#index-entry-Allomorph> or literals
+of certain numbers:
+
+    say <42 4/2 1e6 1+1i abc>.perl;
+    # OUTPUT«(IntStr.new(42, "42"), RatStr.new(2.0, "4/2"), NumStr.new(1000000e0, "1e6"), ComplexStr.new(<1+1i>, "1+1i"), "abc")␤»
+
+To construct a L«C<Rat>|/type/Rat» or L«C<Complex>|/type/Complex» literal, use angle
+brackets around the number, without any extra spaces:
+
+    say <42/10>.^name;   # Rat
+    say <1+42i>.^name;   # Complex
+    say < 42/10 >.^name; # RatStr
+    say < 1+42i >.^name; # ComplexStr
+
+Compared to C<42/10> and C<1+42i>, there's no division (or addition) operation
+involved. This is useful for literals in routine signatures, for example:
+
+    sub close-enough-τ (<355/113>) {
+        say "Your π is close enough!"
+    }
+    close-enough-τ 710/226; # Your π is close enough!
+    
+    # WRONG: can't do this, since it's a division operation
+    sub compilation-failure (355/113) {}
 
 =head2 X<Word quoting with quote protection: qww|quote,qww>
 
