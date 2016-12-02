@@ -58,3 +58,15 @@ You may use `object` for anything you can call methods on, including value objec
 
 We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
 should not be part of the bulk of the documentation.
+
+### Domain
+
+What should be documented? The primary goal of the programmatic documentation
+is to cover items that are part of the specification (the roast test suite)
+
+* If something is visible to users of Perl 6 and is in roast: document it.
+* If something is visible to users of Perl 6 and is not in roast: check with the dev team (#perl6-dev on freenode) - This might need have a test added (and therefore docs), or it might need to be hidden so users cannot see it.
+
+Future considerations on this line include: documenting things are rakudo
+specific (like "dd"), and documenting which versions of the spec items are
+available in.
