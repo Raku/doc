@@ -15,17 +15,17 @@ for @files -> $file {
     { pass "$file return types are valid" ; next } if $file ~~ /Signature/;
     my @lines;
     my Int $line-no = 1;
-     for $file.IO.lines -> $line {
-	 if so $line ~~ /(method|sub) .+? '-->'/
-	 && $line !~~ /'--> True'/
-	 && $line !~~ /'--> False'/ {
-	     @lines.push($line-no);
-	 }
-	 $line-no++;
-     }
-     if @lines {
-	 flunk "$file has bad return type: {@lines}";
-     } else {
-	 pass "$file return types are ok";
-     }
+    for $file.IO.lines -> $line {
+        if so $line ~~ /(method|sub) .+? '-->'/
+        && $line !~~ /'--> True'/
+        && $line !~~ /'--> False'/ {
+        @lines.push($line-no);
+        }
+    $line-no++;
+    }
+    if @lines {
+        flunk "$file has bad return type: {@lines}";
+    } else {
+        pass "$file return types are ok";
+    }
 }
