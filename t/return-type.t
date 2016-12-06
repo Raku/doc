@@ -10,18 +10,13 @@ my @files;
 plan +@files;
 
 for @files -> $file {
-    # If it is the any Signature-related exception
-    # or Signature.pod, then presence of '-->' is valid.
-    { pass "$file return types are valid" ; next } if $file ~~ /Signature/;
     my @lines;
     my Int $line-no = 1;
     for $file.IO.lines -> $line {
-        if so $line ~~ /(method|sub) .+? '-->'/
-        && $line !~~ /'--> True'/
-        && $line !~~ /'--> False'/ {
-        @lines.push($line-no);
-        }
-    $line-no++;
+        if so $line ~~ /(multi|method|sub) .+? ')' ' '+? 'returns' ' '+? (<alnum>|':')+? $/ {
+	    @lines.push($line-no);
+	}
+	$line-no++;
     }
     if @lines {
         flunk "$file has bad return type: {@lines}";
