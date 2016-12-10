@@ -616,7 +616,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
 
                 note "The subkinds of routine $created.name() in $origin.name()"
                         ~ " cannot be determined. Are you sure that routine is"
-                        ~ " actually defined $origin.name()'s file?"
+                        ~ " actually defined in $origin.name()'s file?"
                     unless @subkinds;
 
                 $created.subkinds   = @subkinds;
