@@ -20,8 +20,8 @@ for @files -> $file {
     my $ok = True;
     my $row = 0;
     for $file.IO.lines -> $line {
-    ++$row;
-    if $line ~~ / \s $/ {
+        ++$row;
+        if $line ~~ / \s $/ {
            $ok = False; last;
         }
     }
