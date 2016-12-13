@@ -1,4 +1,3 @@
-// WARNING
 $(function(){
   $.widget( "custom.catcomplete", $.ui.autocomplete, {
     _create: function() {
@@ -85,3 +84,18 @@ $(function(){
       autoFocus: true
   });
 });
+
+// allow for inexact searching via levenshtein
+
+$.extend( $.ui.autocomplete, {
+    filter: function( array, term ) {
+        var OK_distance = 2;
+        return $.grep( array, function( value ) {
+            var lookup = value.value;
+            if (lookup.length > term.length) {
+                lookup = lookup.substr(0,term.length);
+            }
+            return getEditDistance( lookup, term) <= OK_distance;
+        } );
+    }
+} );
