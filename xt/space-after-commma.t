@@ -32,10 +32,10 @@ for @files -> $file {
     } else {
         $out = $file.IO;
     }
- 
+
     for $out.lines -> $line is copy {
         next if $line ~~ / ^ '    '/;
- 
+
         # ignore these cases already in docs/ that don't strictly follow rule
         $line ~~ s:g/ "','" //;
         $line ~~ s:g/ '","' //;
