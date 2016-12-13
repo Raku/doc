@@ -89,7 +89,7 @@ $(function(){
 
 $.extend( $.ui.autocomplete, {
     filter: function( array, term ) {
-        var OK_distance = 2;
+        var OK_distance = 1;
         return $.grep( array, function( value ) {
             var lookup = value.value;
             if (lookup.length > term.length) {
