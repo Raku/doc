@@ -87,6 +87,7 @@ $(function(){
 
 // allow for inexact searching via levenshtein
 
+/*
 $.extend( $.ui.autocomplete, {
     filter: function( array, term ) {
         var OK_distance = 1;
@@ -99,3 +100,4 @@ $.extend( $.ui.autocomplete, {
         } );
     }
 } );
+*/
