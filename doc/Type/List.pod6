@@ -189,11 +189,9 @@ Defined as:
     multi sub    map(&code, *@elems --> Seq:D)
     multi method map(List:D: &code --> Seq:D)
 
-Invokes C<&code> for each element and gathers the return values in
-a sequence and returns it. This happens lazily, i.e. C<&code> is only invoked when
-the return values are accessed.
-
-Examples:
+Invokes C<&code> for each element and gathers the return values in a sequence
+    and returns it. This happens lazily, i.e. C<&code> is only invoked when the
+return values are accessed.Examples:
 
     say ('hello', 1, 22/7, 42, 'world').map: { .WHAT.perl } # (Str Int Rat Int Str)
     say map *.Str.chars, 'hello', 1, 22/7, 42, 'world';     # (5 1 8 2 5)
@@ -213,6 +211,25 @@ Note that C<map> does not flatten embedded lists and arrays, so
 passes C<(1, 2)> and C<< <a b> >> in turn to the block, leading to a total
 of two iterations and the result sequence C<"1,2", "a,b">.
 See L<method flatmap|/type/List#method_flatmap> for an alternative that flattens.
+
+If C<&code> is a L<Block|/type/Block> loop phasers will be executed and loop
+control statements will be treated as in loop control flow. Please note that
+C<return> is executed in the context of its definition. It is not the return
+statement of the block but the surrounding Routine. Using a
+L<Routine|/type/Routine> will also handle loop control statements and loop
+phasers. Any C<Routine> specific control statement or phaser will be handled in
+the context of that C<Routine>.
+
+    sub s {
+        my &loop-block = {
+            return # return from sub s
+        };
+        say 'hi';
+        (1..3).map: &loop-block;
+        say 'oi‽' # dead code
+    };
+    s
+    # OUTPUT«hi␤»
 
 =head2 sub flat
 
