@@ -47,7 +47,40 @@ To learn how to interpret the profile info, ask questions on channel.
 =head2 Profile locally
 
 When using the L<MoarVM|http://moarvm.org> backend the L<Rakudo|http://rakudo.org> compiler's C<--profile>
-command line option writes profile information as an HTML file.
+command line option writes profile information as an HTML file. However, if the profile is too big it can
+be slow to open in a browser. In that case, if you use the C<--profile-filename=file.extension> option with
+an extension of C<.json>, you can use the L<Qt viewer|https://github.com/tadzik/p6profiler-qt> on the resulting
+JSON file.
+
+Another option (especially useful for profiles too big even for the Qt viewer) is to use an extention of C<.sql>.
+This will write the profile data as a series of SQL statements, suitable for opening in SQLite.
+
+    # create a profile
+    perl6 --profile --profile-filename=demo.sql -e 'say (^20).combinations(3).elems'
+    
+    # create a SQLite database
+    sqlite3 demo.sql
+    
+    # load the profile data
+    sqlite> .read demo.sql
+    
+    # the query below is equivalent to the default view of the "Routines" tab in the HTML file
+    sqlite> select
+       ...>   case when r.name = "" then "<anon>" else r.name end,
+       ...>   r.file,
+       ...>   r.line,
+       ...>   sum(entries) as entries,
+       ...>   sum(case when rec_depth = 0 then inclusive_time else 0 end) as inclusive_time,
+       ...>   sum(exclusive_time) as exclusive_time
+       ...> from
+       ...>   callees c,
+       ...>   routines r
+       ...> where
+       ...>   c.id = r.id
+       ...> group by
+       ...>   c.id
+       ...> order by
+       ...>   inclusive_time desc;
 
 To learn how to interpret the profile info, use the C<prof-m: your code goes here> evalbot (explained
 above) and ask questions on channel.
