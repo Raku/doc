@@ -152,7 +152,7 @@ sub MAIN(
     #
     #       Then they can be copied to doc/Programs.
     if $use-highlights and $async {
-        $proc = Proc::Async.new('./highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $proc = Proc::Async.new('./highlights/node_modules/coffee-script/bin/coffee', './highlights/highlight-filename-from-stdin.coffee', :r, :w);
         $supply = $proc.stdout.lines.Channel;
         $supply2 = $proc.stderr.tap( { .say } );
 
@@ -1027,7 +1027,7 @@ sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) 
                     $thing = $supply.receive;
                 }
                 else {
-                    $command = “./highlights/highlight-file.coffee "$tmp_fname"”;
+                    $command = “./highlights/node_modules/coffee-script/bin/coffee ./highlights/highlight-file.coffee "$tmp_fname"”;
                 }
             }
             else {
