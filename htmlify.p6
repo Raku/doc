@@ -127,6 +127,11 @@ sub recursive-dir($dir) {
 # --parallel=10: perform some parts in parallel (with width/degree of 10)
 # much faster, but with the current state of async/concurrency
 # in Rakudo you risk segfaults, weird errors, etc.
+my $proc;
+my $supply;
+my $supply2;
+my $prom;
+my $async = True;
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -146,7 +151,13 @@ sub MAIN(
     #       the installation directory (share/man).
     #
     #       Then they can be copied to doc/Programs.
+    if $use-highlights and $async {
+        $proc = Proc::Async.new('./highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $supply = $proc.stdout.lines.Channel;
+        $supply2 = $proc.stderr.tap( { .say } );
 
+        $prom = $proc.start;
+    }
     say 'Creating html/subdirectories ...';
 
     for <programs type language routine images syntax> {
@@ -1009,14 +1020,22 @@ sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) 
             spurt $tmp_fname, $node.contents.join;
             LEAVE try unlink $tmp_fname;
             my $command;
+            my $thing;
             if $use-highlights {
-                $command = "./highlights/node_modules/highlights/bin/highlights -i ./highlights/atom-language-perl6/package.json -s source.perl6fe -f ./highlights/atom-language-perl6/package.json < $tmp_fname"
+                if $async {
+                    $proc.say($tmp_fname);
+                    $thing = $supply.receive;
+                }
+                else {
+                    $command = “./highlights/highlight-file.coffee "$tmp_fname"”;
+                }
             }
             else {
                 $command = "pygmentize -l perl6 -f html < $tmp_fname";
             }
-            my $thing = qqx{$command};
-            say "OUTPUT OF HIGHLIGHTS: $thing";
+            if ! $async or ! $use-highlights {
+                $thing = qqx{$command};
+            }
             $thing;
         }
     }

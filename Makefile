@@ -3,6 +3,14 @@
 html: bigpage
 	perl6 htmlify.p6 --parallel=1
 
+html-highlights: bigpage
+	perl6 htmlify.p6 --parallel=1 --use-highlights
+
+init-highlights:
+	git clone https://github.com/atom/highlights.git ./highlights/highlights
+	git clone https://github.com/perl6/atom-language-perl6 ./highlights/atom-language-perl6
+	cd highlights/highlights; npm install .
+
 html-nohighlight:
 	perl6 htmlify.p6 --no-highlight
 
