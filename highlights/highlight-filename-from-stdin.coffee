@@ -10,12 +10,11 @@ highlighter.requireGrammarsSync
 
 stdin = process.openStdin()
 stdin.setEncoding 'utf8'
-
+mystderr = process.stderr
 stdin.on 'data', (input) ->
     name = input.trim()
     process.exit() if name == 'exit'
     file_to_hl = path.resolve(name)
-    process.stderr.write('HL')
     foo = ->
       fs.readFileSync file_to_hl, 'utf8'
 
