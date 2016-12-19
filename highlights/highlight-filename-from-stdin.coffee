@@ -3,7 +3,6 @@
 Highlights = require 'highlights'
 fs = require 'fs'
 path = require 'path'
-split = require 'split'
 highlighter = new Highlights()
 highlighter.requireGrammarsSync
   modulePath: require.resolve('./atom-language-perl6/package.json')
