@@ -134,6 +134,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
+    Bool :$use-highlights = False,
     Int  :$parallel = 1,
 ) {
 
@@ -163,7 +164,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse, :$parallel;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
-    highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
+    highlight-code-blocks(:use-inline-python(!$no-inline-python), :use-highlights($use-highlights)) unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -946,41 +947,50 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks(:$use-inline-python = True) {
-    my $pyg-version = try qx/pygmentize -V/;
-    if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
-        if Version.new(~$0) ~~ v2.0+ {
-            say "pygmentize $0 found; code blocks will be highlighted";
+sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) {
+    say "highlight-code-blocks has been called";
+    my $py;
+    if $use-highlights {
+        note "Using highlights";
+        #return;
+    }
+    else {
+        my $pyg-version = try qx/pygmentize -V/;
+        if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
+            if Version.new(~$0) ~~ v2.0+ {
+                say "pygmentize $0 found; code blocks will be highlighted";
+            }
+            else {
+                say "pygmentize $0 is too old; need at least 2.0";
+                return;
+            }
         }
         else {
-            say "pygmentize $0 is too old; need at least 2.0";
+            say "pygmentize not found; code blocks will not be highlighted";
             return;
         }
-    }
-    else {
-        say "pygmentize not found; code blocks will not be highlighted";
-        return;
-    }
 
-    my $py = $use-inline-python && try {
-        require Inline::Python;
-        my $inline-py = ::('Inline::Python').new();
-        $inline-py.run(q{
-import pygments.lexers
-import pygments.formatters
-p6lexer = pygments.lexers.get_lexer_by_name("perl6")
-htmlformatter = pygments.formatters.get_formatter_by_name("html")
+        $py = $use-inline-python && try {
+            require Inline::Python;
+            my $inline-py = ::('Inline::Python').new();
+            $inline-py.run(Q:to/END/
+            import pygments.lexers
+            import pygments.formatters
+            p6lexer = pygments.lexers.get_lexer_by_name("perl6")
+            htmlformatter = pygments.formatters.get_formatter_by_name("html")
 
-def p6format(code):
-    return pygments.highlight(code, p6lexer, htmlformatter)
-});
-        $inline-py;
-    }
-    if $py {
-        say "Using syntax highlighting via Inline::Python";
-    }
-    else {
-        say "Error using Inline::Python, falling back to pygmentize: ($!)";
+            def p6format(code):
+                return pygments.highlight(code, p6lexer, htmlformatter)
+            END
+            );
+            $inline-py;
+        }
+        if $py {
+            say "Using syntax highlighting via Inline::Python";
+        }
+        else {
+            say "Error using Inline::Python, falling back to pygmentize: ($!)";
+        }
     }
 
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
@@ -998,8 +1008,16 @@ def p6format(code):
             my $tmp_fname = "$*TMPDIR/$basename";
             spurt $tmp_fname, $node.contents.join;
             LEAVE try unlink $tmp_fname;
-            my $command = "pygmentize -l perl6 -f html < $tmp_fname";
-            qqx{$command};
+            my $command;
+            if $use-highlights {
+                $command = "./highlights/node_modules/highlights/bin/highlights -i ./highlights/atom-language-perl6/package.json -s source.perl6fe -f ./highlights/atom-language-perl6/package.json < $tmp_fname"
+            }
+            else {
+                $command = "pygmentize -l perl6 -f html < $tmp_fname";
+            }
+            my $thing = qqx{$command};
+            say "OUTPUT OF HIGHLIGHTS: $thing";
+            $thing;
         }
     }
 }
