@@ -8,7 +8,7 @@ html-highlights: bigpage
 
 init-highlights:
 	git clone https://github.com/atom/highlights.git ./highlights/highlights || cd highlights/highlights; git pull
-	git clone https://github.com/perl6/atom-language-perl6 ./highlights/atom-language-perl6 || cd highlights/highlights; git pull
+	git clone https://github.com/perl6/atom-language-perl6 ./highlights/atom-language-perl6 || cd highlights/atom-language-perl6; git pull
 	cd highlights; npm install .
 
 html-nohighlight:
