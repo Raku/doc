@@ -7,19 +7,19 @@ highlighter = new Highlights()
 highlighter.requireGrammarsSync
   modulePath: require.resolve('./atom-language-perl6/package.json')
 
-
 stdin = process.openStdin()
 stdin.setEncoding 'utf8'
 mystderr = process.stderr
+mystdout = process.stdout
+foo = (full_path) ->
+  fs.readFile full_path, 'utf8', (err, file_str) ->
+    if err
+      console.error err
+    else
+      mystdout.write highlighter.highlightSync(
+        fileContents: file_str
+        scopeName: 'source.perl6fe'
+      ) + '\n'
+
 stdin.on 'data', (input) ->
-    name = input.trim()
-    process.exit() if name == 'exit'
-    file_to_hl = path.resolve(name)
-    foo = ->
-      fs.readFileSync file_to_hl, 'utf8'
-
-    html = highlighter.highlightSync
-      fileContents: foo()
-      scopeName: 'source.perl6fe'
-
-    console.log html
+    foo path.resolve input.trim()
