@@ -11,15 +11,17 @@ stdin = process.openStdin()
 stdin.setEncoding 'utf8'
 mystderr = process.stderr
 mystdout = process.stdout
-foo = (full_path) ->
-  fs.readFile full_path, 'utf8', (err, file_str) ->
-    if err
-      console.error err
+process_file = (full_path) ->
+  fs.readFile full_path, 'utf8', (read_err, file_str) ->
+    if read_err
+      console.error read_err
     else
-      mystdout.write highlighter.highlightSync(
-        fileContents: file_str
-        scopeName: 'source.perl6fe'
-      ) + '\n'
+      highlighter.highlight (fileContents: file_str, scopeName: 'source.perl6fe'), (hl_err, html) ->
+        if hl_err
+          console.error hl_err
+        else
+          mystdout.write(html + '\n')
+
 
 stdin.on 'data', (input) ->
-    foo path.resolve input.trim()
+    process_file path.resolve input.trim()
