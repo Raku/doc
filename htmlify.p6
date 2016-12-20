@@ -28,6 +28,7 @@ use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
+use JSON::Fast;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
@@ -153,7 +154,7 @@ sub MAIN(
     #       Then they can be copied to doc/Programs.
     if $use-highlights and $async {
         $proc = Proc::Async.new('./highlights/node_modules/coffee-script/bin/coffee', './highlights/highlight-filename-from-stdin.coffee', :r, :w);
-        $supply = $proc.stdout.lines.Channel;
+        $supply = $proc.stdout.lines;
         $supply2 = $proc.stderr.tap( { .say } );
 
         $prom = $proc.start;
@@ -1023,8 +1024,17 @@ sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) 
             my $thing;
             if $use-highlights {
                 if $async {
+                    my $promise = Promise.new;
+                    my $tap = $supply.tap( -> $json {
+                        my $parsed-json = from-json($json);
+                        if $parsed-json<file> eq $tmp_fname {
+                            $promise.keep($parsed-json<html>);
+                            $tap.close();
+                        }
+                    } );
                     $proc.say($tmp_fname);
-                    $thing = $supply.receive;
+                    await $promise;
+                    $thing = $promise.result;
                 }
                 else {
                     $command = “./highlights/node_modules/coffee-script/bin/coffee ./highlights/highlight-file.coffee "$tmp_fname"”;

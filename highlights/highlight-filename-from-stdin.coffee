@@ -11,7 +11,8 @@ stdin = process.openStdin()
 stdin.setEncoding 'utf8'
 mystderr = process.stderr
 mystdout = process.stdout
-process_file = (full_path) ->
+process_file = (given_path) ->
+  full_path = path.resolve given_path
   fs.readFile full_path, 'utf8', (read_err, file_str) ->
     if read_err
       console.error read_err
@@ -20,8 +21,11 @@ process_file = (full_path) ->
         if hl_err
           console.error hl_err
         else
-          mystdout.write(html + '\n')
+          obj = {}
+          obj.file = full_path
+          obj.html = html
+          mystdout.write(JSON.stringify(obj) + '\n' )
 
 
 stdin.on 'data', (input) ->
-    process_file path.resolve input.trim()
+    process_file input.trim()
