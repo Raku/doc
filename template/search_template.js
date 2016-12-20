@@ -85,19 +85,30 @@ $(function(){
   });
 });
 
-// allow for inexact searching via levenshtein
-
 /*
+ * allow for inexact searching via sift4
+ * try to restrict usage, and always check the standard
+ * search mechanism if sift4 doesn't match
+ */
 $.extend( $.ui.autocomplete, {
+    escapeRegex: function( value ) {
+        return value.replace( /[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&" );
+    },
     filter: function( array, term ) {
-        var OK_distance = 1;
+        var max_distance = 2;
+        var len = term.length;
+        var matcher = new RegExp( $.ui.autocomplete.escapeRegex( term ), "i" );
         return $.grep( array, function( value ) {
-            var lookup = value.value;
-            if (lookup.length > term.length) {
-                lookup = lookup.substr(0,term.length);
+            if (len >=2 ) {
+                var OK_distance = Math.min(max_distance, len -1);
+                var result = sift4( value.value, term, Math.max(5, len+1), Math.max(3, len-1));
+                if (result <=OK_distance) {
+                    return true;
+                }
             }
-            return getEditDistance( lookup, term) <= OK_distance;
+
+            // Try the old school match
+            return matcher.test( value.label || value.value || value );
         } );
     }
 } );
-*/

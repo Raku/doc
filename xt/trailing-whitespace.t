@@ -10,7 +10,6 @@ for qx<git ls-files>.lines -> $file {
     next if $file ~~ / 'jquery'/;
     next if $file ~~ / '.png' $/;
     next if $file ~~ / '.ico' $/;
-    next if $file eq 'html/js/levenshtein.js';
 
     push @files, $file;
 }
