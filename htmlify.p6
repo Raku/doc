@@ -28,6 +28,7 @@ use Perl6::TypeGraph::Viz;
 use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
+use JSON::Fast;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
@@ -127,6 +128,11 @@ sub recursive-dir($dir) {
 # --parallel=10: perform some parts in parallel (with width/degree of 10)
 # much faster, but with the current state of async/concurrency
 # in Rakudo you risk segfaults, weird errors, etc.
+my $proc;
+my $supply;
+my $supply2;
+my $prom;
+my $async = True;
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -134,6 +140,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$no-inline-python = False,
+    Bool :$use-highlights = False,
     Int  :$parallel = 1,
 ) {
 
@@ -145,7 +152,13 @@ sub MAIN(
     #       the installation directory (share/man).
     #
     #       Then they can be copied to doc/Programs.
+    if $use-highlights and $async {
+        $proc = Proc::Async.new('./highlights/node_modules/coffee-script/bin/coffee', './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $supply = $proc.stdout.lines;
+        $supply2 = $proc.stderr.tap( { .say } );
 
+        $prom = $proc.start;
+    }
     say 'Creating html/subdirectories ...';
 
     for <programs type language routine images syntax> {
@@ -163,7 +176,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse, :$parallel;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
-    highlight-code-blocks(:use-inline-python(!$no-inline-python)) unless $no-highlight;
+    highlight-code-blocks(:use-inline-python(!$no-inline-python), :use-highlights($use-highlights)) unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -946,41 +959,50 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks(:$use-inline-python = True) {
-    my $pyg-version = try qx/pygmentize -V/;
-    if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
-        if Version.new(~$0) ~~ v2.0+ {
-            say "pygmentize $0 found; code blocks will be highlighted";
+sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) {
+    say "highlight-code-blocks has been called";
+    my $py;
+    if $use-highlights {
+        note "Using highlights";
+        #return;
+    }
+    else {
+        my $pyg-version = try qx/pygmentize -V/;
+        if $pyg-version && $pyg-version ~~ /^'Pygments version ' (\d\S+)/ {
+            if Version.new(~$0) ~~ v2.0+ {
+                say "pygmentize $0 found; code blocks will be highlighted";
+            }
+            else {
+                say "pygmentize $0 is too old; need at least 2.0";
+                return;
+            }
         }
         else {
-            say "pygmentize $0 is too old; need at least 2.0";
+            say "pygmentize not found; code blocks will not be highlighted";
             return;
         }
-    }
-    else {
-        say "pygmentize not found; code blocks will not be highlighted";
-        return;
-    }
 
-    my $py = $use-inline-python && try {
-        require Inline::Python;
-        my $inline-py = ::('Inline::Python').new();
-        $inline-py.run(q{
-import pygments.lexers
-import pygments.formatters
-p6lexer = pygments.lexers.get_lexer_by_name("perl6")
-htmlformatter = pygments.formatters.get_formatter_by_name("html")
+        $py = $use-inline-python && try {
+            require Inline::Python;
+            my $inline-py = ::('Inline::Python').new();
+            $inline-py.run(Q:to/END/
+            import pygments.lexers
+            import pygments.formatters
+            p6lexer = pygments.lexers.get_lexer_by_name("perl6")
+            htmlformatter = pygments.formatters.get_formatter_by_name("html")
 
-def p6format(code):
-    return pygments.highlight(code, p6lexer, htmlformatter)
-});
-        $inline-py;
-    }
-    if $py {
-        say "Using syntax highlighting via Inline::Python";
-    }
-    else {
-        say "Error using Inline::Python, falling back to pygmentize: ($!)";
+            def p6format(code):
+                return pygments.highlight(code, p6lexer, htmlformatter)
+            END
+            );
+            $inline-py;
+        }
+        if $py {
+            say "Using syntax highlighting via Inline::Python";
+        }
+        else {
+            say "Error using Inline::Python, falling back to pygmentize: ($!)";
+        }
     }
 
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
@@ -998,8 +1020,33 @@ def p6format(code):
             my $tmp_fname = "$*TMPDIR/$basename";
             spurt $tmp_fname, $node.contents.join;
             LEAVE try unlink $tmp_fname;
-            my $command = "pygmentize -l perl6 -f html < $tmp_fname";
-            qqx{$command};
+            my $command;
+            my $thing;
+            if $use-highlights {
+                if $async {
+                    my $promise = Promise.new;
+                    my $tap = $supply.tap( -> $json {
+                        my $parsed-json = from-json($json);
+                        if $parsed-json<file> eq $tmp_fname {
+                            $promise.keep($parsed-json<html>);
+                            $tap.close();
+                        }
+                    } );
+                    $proc.say($tmp_fname);
+                    await $promise;
+                    $thing = $promise.result;
+                }
+                else {
+                    $command = “./highlights/node_modules/coffee-script/bin/coffee ./highlights/highlight-file.coffee "$tmp_fname"”;
+                }
+            }
+            else {
+                $command = "pygmentize -l perl6 -f html < $tmp_fname";
+            }
+            if ! $async or ! $use-highlights {
+                $thing = qqx{$command};
+            }
+            $thing;
         }
     }
 }
