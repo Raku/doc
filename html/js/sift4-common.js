@@ -70,10 +70,10 @@ function sift4(s1, s2, maxOffset, maxDistance) {
                 c1=c2=Math.min(c1,c2);  //using min allows the computation of transpositions
             }
             //if matching characters are found, remove 1 from both cursors (they get incremented at the end of the loop)
-            //so that we can have only one code block handling matches 
+            //so that we can have only one code block handling matches
             for (var i = 0; i < maxOffset && (c1+i<l1 || c2+i<l2); i++) {
                 if ((c1 + i < l1) && (s1.charAt(c1 + i) == s2.charAt(c2))) {
-                    c1+= i-1; 
+                    c1+= i-1;
                     c2--;
                     break;
                 }
