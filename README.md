@@ -17,7 +17,7 @@ to see the documentation for class `Str`, or
 
 to see the documentation for method `split` in class `Str`.
 
---------
+-------
 
 ## Building the HTML documentation
 
