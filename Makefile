@@ -6,9 +6,12 @@ html: bigpage
 html-highlights: bigpage
 	perl6 htmlify.p6 --parallel=1 --use-highlights
 
+
 init-highlights:
-	git clone https://github.com/perl6/atom-language-perl6 ./highlights/atom-language-perl6 || cd highlights/atom-language-perl6; git pull
-	cd highlights; npm install .
+	ATOMDIR="./highlights/atom-language-perl6";  \
+	if [ -d "$$ATOMDIR" ]; then (cd "$$ATOMDIR" && git pull); \
+	else git clone https://github.com/perl6/atom-language-perl6 "$$ATOMDIR"; \
+	fi; cd highlights; npm install .
 
 html-nohighlight:
 	perl6 htmlify.p6 --no-highlight
