@@ -29,6 +29,7 @@ use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
 use JSON::Fast;
+use File::Temp;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
@@ -1016,8 +1017,7 @@ sub highlight-code-blocks(:$use-inline-python = True, :$use-highlights = False) 
             return $py.call('__main__', 'p6format', $node.contents.join);
         }
         else {
-            my $basename = join '-', %*ENV<USER> // 'u', (^100_000).pick, 'pod_to_pyg.pod';
-            my $tmp_fname = "$*TMPDIR/$basename";
+            my $tmp_fname = tempfile(:prefix(%*ENV<USER> ~ '-' // 'u-'), :suffix('-pod_to_pyg.pod'));
             spurt $tmp_fname, $node.contents.join;
             LEAVE try unlink $tmp_fname;
             my $command;
