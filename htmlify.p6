@@ -22,15 +22,16 @@ use v6;
 
 BEGIN say 'Initializing ...';
 
+use JSON::Fast;
 use Pod::To::HTML;
 use URI::Escape;
+
 use lib 'lib';
+use Perl6::Documentable::Registry;
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
-use Perl6::Documentable::Registry;
 use Pod::Convenience;
 use Pod::Htmlify;
-use JSON::Fast;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
