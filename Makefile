@@ -3,9 +3,7 @@
 html: bigpage
 	perl6 htmlify.p6 --parallel=1
 
-html-highlights: bigpage
-	perl6 htmlify.p6 --parallel=1 --use-highlights
-
+html-highlights: html
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
