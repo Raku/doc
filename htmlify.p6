@@ -133,7 +133,6 @@ sub recursive-dir($dir) {
 my $proc;
 my $proc-supply;
 my $proc-prom;
-my $async = True;
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -957,7 +956,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks(:$use-highlights = False) {
+sub highlight-code-blocks(:$no-proc-async = False, :$use-highlights = False) {
     say "highlight-code-blocks has been called";
     if $use-highlights {
         note "Using highlights";
@@ -975,7 +974,7 @@ sub highlight-code-blocks(:$use-highlights = False) {
         spurt $tmp_fname, $node.contents.join;
         LEAVE try unlink $tmp_fname;
         my $html;
-        if $async {
+        if ! $no-proc-async {
             my $promise = Promise.new;
             my $tap = $proc-supply.tap( -> $json {
                 my $parsed-json = from-json($json);
