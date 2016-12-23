@@ -42,6 +42,7 @@ help:
 	@echo " sparse:             generate HTML documention, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
 	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
+	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"
 	@echo "  ctest:             run the test suite, content tests only"
