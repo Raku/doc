@@ -30,6 +30,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Zef](#zef)
         - [Pod::To::HTML](#podtohtml)
         - [Mojolicious / Web Server](#mojolicious--web-server)
+        - [SASS compiler](#sass-compiler)
         - [pygmentize](#pygmentize)
         - [Inline::Python](#inlinepython)
     - [Build and view the documentation](#build-and-view-the-documentation)
@@ -204,6 +205,7 @@ computer.  To do this you will need:
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
+  - [SASS](http://sass-lang.com/) Compiler
   - pygmentize (optional; a program to add syntax highlighting to code
     examples)
   - `Inline::Python` (optional; run Python code from within Perl 6,
@@ -247,14 +249,19 @@ install this now:
 
     $ cpanm -vn Mojolicious
 
-If you also plan on modifying the SASS stylesheets, install these modules to
-enable SASS processor:
+#### SASS Compiler
+
+To build the styles, you need to have a SASS compiler. You can either install
+the `sass` command
+
+    $ sudo apt-get install ruby-sass
+
+or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
 
     $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
-Alternatively, you can install `sass` program and process SASS using that instead:
-
-    $ sass -w assets/sass/style.scss:html/css/style.css
+The SASS files are compiled when you run `make html`, or `make sass`, or
+start the development webserver (`./app-start`).
 
 #### pygmentize
 
