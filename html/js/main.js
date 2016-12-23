@@ -130,5 +130,4 @@ function setup_debug_mode(){
         }
 
     }
-
 }
