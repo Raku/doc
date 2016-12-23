@@ -1,9 +1,7 @@
 .PHONY: html html-nohighlight test help
 
-html: bigpage
+html: init-highlights bigpage
 	perl6 htmlify.p6 --parallel=1
-
-html-highlights: html
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
