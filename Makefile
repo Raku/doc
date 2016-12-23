@@ -15,6 +15,9 @@ html-nohighlight:
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
 
+sass:
+	./util/compile-sass.sh
+
 webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
