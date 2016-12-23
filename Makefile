@@ -1,6 +1,6 @@
-.PHONY: html html-nohighlight test help
+.PHONY: html html-nohighlight sass test help
 
-html: init-highlights bigpage
+html: init-highlights sass bigpage
 	perl6 htmlify.p6 --parallel=1
 
 init-highlights:
