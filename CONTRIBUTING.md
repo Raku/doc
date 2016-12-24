@@ -27,9 +27,10 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
-        - [Panda](#panda)
+        - [Zef](#zef)
         - [Pod::To::HTML](#podtohtml)
         - [Mojolicious / Web Server](#mojolicious--web-server)
+        - [SASS compiler](#sass-compiler)
         - [pygmentize](#pygmentize)
         - [Inline::Python](#inlinepython)
     - [Build and view the documentation](#build-and-view-the-documentation)
@@ -197,13 +198,14 @@ Assuming that you have already forked and cloned the
 you probably want to do is to build the documentation on your local
 computer.  To do this you will need:
 
-  - Rakudo (the Rakudo Perl 6 implementation)
-  - Panda (the installer for third party Perl 6 modules)
+  - Perl 6 (e.g., the Rakudo Perl 6 implementation)
+  - zef (the installer for third party Perl 6 modules)
   - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
+  - [SASS](http://sass-lang.com/) Compiler
   - pygmentize (optional; a program to add syntax highlighting to code
     examples)
   - `Inline::Python` (optional; run Python code from within Perl 6,
@@ -213,37 +215,15 @@ computer.  To do this you will need:
 
 #### Rakudo
 
-Install Rakudo via [rakudobrew](https://github.com/tadzik/rakudobrew).
+You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
+downloading the latest Rakudo Star release from
+[rakudo.org/downloads/star/](http://rakudo.org/downloads/star/)
 
-Clone the `rakudobrew` repository
+#### Zef
 
-    $ git clone https://github.com/tadzik/rakudobrew ~/.rakudobrew
-
-and add `rakudobrew` to your `PATH` (also add this line to e.g. `~/.profile`):
-
-    $ export PATH=~/.rakudobrew/bin:$PATH
-
-To build the Rakudo Perl 6 implementation with the MoarVM backend, simply
-run
-
-    $ rakudobrew build moar
-
-If everything is set up correctly, the executable `perl6` should be in your
-`PATH`.  As a simple test, run `perl6` and see if the
-[REPL](http://en.wikipedia.org/wiki/Read-eval-print_loop) prompt appears:
-
-    $ perl6
-    >
-
-Exit the REPL by pressing `Ctrl-d` or typing `exit` at the prompt.
-
-#### Panda
-
-After `rakudobrew` is installed, installing `panda` is very easy:
-
-    $ rakudobrew build panda
-
-Now the `panda` command should be available.
+[Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
+installed Rakudo Star package, it should already be installed. Feel free to
+use any other module installer for the modules needed (see below).
 
 #### Pod::To::HTML
 
@@ -251,7 +231,7 @@ The program that builds the HTML version of the documentation
 (`htmlify.p6`) uses `Pod::To::HTML` to convert Pod structures into HTML.
 You'll also need `Pod::To::BigPage`. Install these modules like so:
 
-    $ panda install Pod::To::HTML Pod::To::BigPage
+    $ zef install Pod::To::HTML Pod::To::BigPage
 
 #### Mojolicious / Web Server
 
@@ -269,14 +249,19 @@ install this now:
 
     $ cpanm -vn Mojolicious
 
-If you also plan on modifying the SASS stylesheets, install these modules to
-enable SASS processor:
+#### SASS Compiler
+
+To build the styles, you need to have a SASS compiler. You can either install
+the `sass` command
+
+    $ sudo apt-get install ruby-sass
+
+or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
 
     $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
-Alternatively, you can install `sass` program and process SASS using that instead:
-
-    $ sass -w assets/sass/style.scss:html/css/style.css
+The SASS files are compiled when you run `make html`, or `make sass`, or
+start the development webserver (`./app-start`).
 
 #### pygmentize
 
@@ -323,9 +308,9 @@ On Fedora, install the `python-devel` package:
 
     sudo yum install python-devel
 
-Use `panda` to install the `Inline::Python` module:
+Use `zef` to install the `Inline::Python` module:
 
-    $ panda install Inline::Python
+    $ zef install Inline::Python
 
 ### Build and view the documentation
 

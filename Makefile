@@ -1,6 +1,8 @@
-.PHONY: html html-nohighlight test help
+.PHONY: html init-highlights html-nohighlight sparse sass webdev-build bigpage \
+	test xtest ctest help run clean-html clean-examples clean-images \
+	clean-search clean test-links extract-examples push
 
-html: init-highlights bigpage
+html: init-highlights sass bigpage
 	perl6 htmlify.p6 --parallel=1
 
 init-highlights:
@@ -14,6 +16,9 @@ html-nohighlight:
 
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
+
+sass:
+	./util/compile-sass.sh
 
 webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
