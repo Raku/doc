@@ -28,7 +28,9 @@ function setup_auto_title_anchors() {
 }
 
 document.addEventListener("keyup", function(evt){
-    if(evt.key == "Escape"){$('#query').focus()}
+    if(evt.key == "Escape" && $('body').scrollTop() == 0) {
+        $('#query').focus();
+    }
 });
 
 function setup_debug_mode(){
