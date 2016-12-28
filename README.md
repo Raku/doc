@@ -111,17 +111,6 @@ explains briefly how to get started contributing documentation.
 
 ## Wishlist stuff:
 
- *  Search terms like `.any`, `any()`, `&any`, `::Any`, etc. can be
-    used to disambiguate whether information is sought on a method,
-    subroutine, type, etc.
-
- *  Searching for `Int.Bool` returns the documentation for the
-    inherited method `Numeric.Bool`.
-
- *  Searching for an operator name returns the documentation for
-    the operator.  (`p6doc '%%'`  returns the documentation for
-    `&infix:<%%>`.)
-
  *  Perl 6 implementations could embed `P<...>` tags in their source
     code that would then inline the corresponding entry from `p6doc`.
     This would enable things like `&say.WHY` to (dynamically!)
