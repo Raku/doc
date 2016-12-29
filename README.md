@@ -48,8 +48,8 @@ computer by starting the included `app.pl` program:
 You can then view the examples documentation by pointing your web browser at
 [http://localhost:3000](http://localhost:3000).
 
-You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious) installed and [Inline::Python](https://metacpan.org/pod/Inline::Python) is recommended
-to speed up the syntax highlighting phase.
+You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
+installed and you will need [nodejs](https://nodejs.org) to perform highlighting.
 
 --------
 

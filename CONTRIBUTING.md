@@ -206,10 +206,8 @@ computer.  To do this you will need:
     (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
-  - pygmentize (optional; a program to add syntax highlighting to code
-    examples)
-  - `Inline::Python` (optional; run Python code from within Perl 6,
-    necessary for faster execution of pygmentize)
+  - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
+    only `nodejs` and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
 
 ### Dependency installation
 
