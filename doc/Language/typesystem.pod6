@@ -571,6 +571,51 @@ Default parameters can be provided.
     CATCH { default { say .^name, ': ', .Str} }
     # OUTPUT«X::AdHoc: Could not instantiate role 'R':␤Please provide a parameter to role R␤»
 
+=head3 Roles as Types
+
+Roles can be used as type constraints wherever a type is expected. If a role is
+mixed in with C<does> or C<but>, it's type-object is added to the type-object
+list of the object in question. If a role is used instead of a class (using
+autopunning), the roles type-object is added to the inheritance chain.
+
+    role Unitish[$unit = fail('Please provide a SI unit quantifier as a parameter to the role Unitish')] {
+        has $.SI-unit-symbol = $unit;
+        has $.SI-unit-name = %SI-UNITS{$unit};
+        method gist {
+            given self {
+                # ...
+                when * < 1 { return self * 1000 ~ 'm' ~ $.SI-unit-symbol }
+                when * < 1000 { return self ~ $.SI-unit-symbol }
+                when * < 1_000_000 { return self / 1_000 ~ 'k' ~ $.SI-unit-symbol }
+                # ...
+            }
+        }
+    }
+    
+    role SI-second   does Unitish[<s>] {}
+    role SI-metre    does Unitish[<m>] {}
+    role SI-kilogram does Unitish[<g>] {}
+
+    sub postfix:<s>(Numeric $num) { ($num) does SI-second }
+    sub postfix:<m>(Numeric $num) { ($num) does SI-metre }
+    sub postfix:<g>(Numeric $num) { ($num) does SI-kilogram }
+    sub postfix:<kg>(Numeric $num){ ($num * 1000) does SI-kilogram }
+
+    constant g = 9.806_65;
+
+    role SI-Newton does Unitish[<N>] {}
+
+    multi sub N(SI-kilogram $kg, SI-metre $m, SI-second $s --> SI-Newton ){ ($kg * ($m / $s²)) does SI-Newton }
+    multi sub N(SI-kilogram $kg --> SI-Newton)                            { ($kg * g) does SI-Newton }
+
+    say [75kg, N(75kg)];
+    # OUTPUT«[75kg 735.49875kN]»
+    say [(75kg).^name, N(75kg).^name];
+    # OUTPUT«[Int+{SI-kilogram} Rat+{SI-Newton}]»
+
+
+    
+
 =head3 Versioning and Authorship
 
 Versioning and authorship can be applied via adverbs X«C«:ver<>»|:ver<> (role)» and X«C«:auth<>»|:auth<> (role)».
