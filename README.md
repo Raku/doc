@@ -7,6 +7,23 @@ An HTML version of this documentation can be found at https://docs.perl6.org/.
 (If you are browsing this repository via github, it will not display most
 files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
 
+## Install
+
+This module is available via the Perl 6 module ecosystem. Use
+
+	zef install p6doc
+	
+to install the binaries and make it available in your binaries
+execution path.
+
+Once it has been dowloaded, run
+
+	p6doc-index build
+	
+to build the index.
+
+## Use
+
 With a Rakudo `perl6` executable in `PATH`, try
 
     ./bin/p6doc Type::Str
@@ -15,7 +32,14 @@ to see the documentation for class `Str`, or
 
     ./bin/p6doc Type::Str.split
 
-to see the documentation for method `split` in class `Str`.
+to see the documentation for method `split` in class `Str`. You can
+skip the `./bin` part if you have installed it via `panda` or
+`zef`. You can also do
+
+	p6doc -f slurp
+	
+to browse the documentation of standard functions. Depending on your
+disk speed and Rakudo version, it might take a while. 
 
 -------
 
