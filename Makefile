@@ -2,7 +2,9 @@
 	test xtest ctest help run clean-html clean-examples clean-images \
 	clean-search clean test-links extract-examples push
 
-html: init-highlights sass bigpage
+html: bigpage htmlify
+
+htmlify: init-highlights sass
 	perl6 htmlify.p6 --parallel=1
 
 init-highlights:
