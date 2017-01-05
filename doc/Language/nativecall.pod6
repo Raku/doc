@@ -138,27 +138,28 @@ can serve this role. This means you can expose libraries that work on handles
 by writing a class like this:
 
     class FooHandle is repr('CPointer') {
-        has $!initialized;
-
         # Here are the actual NativeCall functions.
         sub Foo_init() returns FooHandle is native("foo") { * }
         sub Foo_free(FooHandle) is native("foo") { * }
+        sub Foo_query(FooHandle, Str) returns int8 is native("foo") { * }
+        sub Foo_close(FooHandle) returns int8 is native("foo") { * }
 
         # Here are the methods we use to expose it to the outside world.
-        method new() {
+        method new {
             Foo_init();
-            $!initialized = True;
         }
-        method free() {
-            if $!initialized {
-                Foo_free(self);
-                $!initialized = False; # prevent double frees
-            }
+
+        method query(Str $stmt) {
+            Foo_query(self, $stmt);
+        }
+
+        method close {
+            Foo_close(self);
         }
 
         # Free data when the object is garbage collected.
-        method DESTROY() {
-            self.free;
+        submethod DESTROY {
+            Foo_free(self);
         }
     }
 
