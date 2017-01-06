@@ -35,7 +35,6 @@ use Pod::Htmlify;
 
 &spurt.wrap(sub (|c){
     state %seen-paths;
-    note "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
     note "{c[0]} got empty filename" if c[0].split('/')[*-1] eq '.html';
     note "duplicated path {c[0]}" if %seen-paths{c[0]}:exists;
     %seen-paths{c[0]}++;
