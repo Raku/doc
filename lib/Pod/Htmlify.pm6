@@ -13,10 +13,12 @@ sub url-munge($_) is export {
     }
     return $_;
 }
-
-constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < > |];
+constant badchars-ntfs = Qw⟅ / ? < > \ : * | " ⟆;
+constant badchars-unix = Qw⟅ / ⟆;
+my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
+#constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < > |];
 my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
-constant length = badchars.elems;
+my \length = badchars.elems;
 
 sub escape-filename($s is copy) is export {
 #    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
