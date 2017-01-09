@@ -16,7 +16,7 @@ This module is available via the Perl 6 module ecosystem. Use
 to install the binaries and make it available in your binaries
 execution path.
 
-Once it has been dowloaded, run
+Once it has been downloaded, run
 
     p6doc-index build
 
