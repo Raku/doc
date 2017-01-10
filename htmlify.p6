@@ -957,12 +957,8 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
 }
 
-sub highlight-code-blocks(:$no-proc-async = False, :$use-highlights = False) {
+sub highlight-code-blocks(:$no-proc-async = False) {
     say "highlight-code-blocks has been called";
-    if $use-highlights {
-        note "Using highlights";
-        #return;
-    }
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
