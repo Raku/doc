@@ -999,6 +999,11 @@ sub highlight-code-blocks(:$no-proc-async = False) {
         }
         $html;
     }
+    if !$no-highlight and $proc.started {
+        say "Stopping highlights worker";
+        $proc.print(0x3.chr);
+    }
+
 }
 
 #| Determine path to source POD from the POD object's url attribute
