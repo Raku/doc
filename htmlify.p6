@@ -134,6 +134,7 @@ sub recursive-dir($dir) {
 my $proc;
 my $proc-supply;
 my $proc-prom;
+my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee';
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
@@ -153,7 +154,7 @@ sub MAIN(
     #
     #       Then they can be copied to doc/Programs.
     if !$no-highlight and !$no-proc-async {
-        $proc = Proc::Async.new('./highlights/node_modules/coffee-script/bin/coffee', './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
         $proc-supply = $proc.stdout.lines;
         $proc-prom = $proc.start;
     }
@@ -985,8 +986,7 @@ sub highlight-code-blocks(:$no-proc-async = False) {
             $html = $promise.result;
         }
         else {
-            my $command = q[./highlights/node_modules/coffee-script/bin/coffee ] ~
-                q[./highlights/highlight-file.coffee "$tmp_fname"];
+            my $command = qq[$coffee-exe ./highlights/highlight-file.coffee "$tmp_fname"];
             $html = qqx{$command};
         }
         $html;
