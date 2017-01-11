@@ -153,10 +153,15 @@ sub MAIN(
     #       the installation directory (share/man).
     #
     #       Then they can be copied to doc/Programs.
-    if !$no-highlight and !$no-proc-async {
-        $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
-        $proc-supply = $proc.stdout.lines;
-        $proc-prom = $proc.start;
+    if !$no-highlight {
+        if ! $coffee-exe.IO.f {
+            say "Could not find $coffee-exe, did you run `make init-highlights`?";
+            exit 1;
+        }
+        if !$no-proc-async {
+            $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+            $proc-supply = $proc.stdout.lines;
+        }
     }
     say 'Creating html/subdirectories ...';
 
@@ -959,7 +964,10 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
 }
 
 sub highlight-code-blocks(:$no-proc-async = False) {
-    say "highlight-code-blocks has been called";
+    if !$proc.started {
+        say "Starting highlights worker thread";
+        $proc-prom = $proc.start;
+    }
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
