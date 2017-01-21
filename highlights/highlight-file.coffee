@@ -8,7 +8,6 @@ highlighter.requireGrammarsSync
   modulePath: require.resolve('./atom-language-perl6/package.json')
 
 file_to_hl = path.resolve(process.argv[2])
-console.error "Highlights is reading #{file_to_hl}"
 foo = ->
   fs.readFileSync file_to_hl, 'utf8'
 
