@@ -19,7 +19,7 @@ for @files -> $file {
         $line-no++;
     }
     if @lines {
-        flunk "$file has bad return type at lines: {@lines}";
+        flunk "$file uses 'returns' at lines: {@lines}; should be -->";
     } else {
         pass "$file return types are ok";
     }
