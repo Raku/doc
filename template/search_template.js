@@ -64,22 +64,24 @@ $(function(){
         }
       },
       position: { my: "right top", at: "right bottom", of: "#search div" },
-      source: [
-          {
-              category: "Syntax",
-              value: "# single-line comment",
-              url: "/language/syntax#Single-line_comments"
-          }, {
-              category: "Syntax",
-              value: "#` multi-line comment",
-              url: "/language/syntax#Multi-line_/_embedded_comments"
-          }, {
-              category: "Signature",
-              value: ";; (long name)",
-              url: "/type/Signature#index-entry-Long_Names"
-          },
-          ITEMS
-      ],
+      source: function(request, response) {
+          var items = [
+              {
+                  category: "Syntax",
+                  value: "# single-line comment",
+                  url: "/language/syntax#Single-line_comments"
+              }, {
+                  category: "Syntax",
+                  value: "#` multi-line comment",
+                  url: "/language/syntax#Multi-line_/_embedded_comments"
+              }, {
+                  category: "Signature",
+                  value: ";; (long name)",
+                  url: "/type/Signature#index-entry-Long_Names"
+              }, ITEMS ];
+          var results = $.ui.autocomplete.filter(items, request.term);
+          response(results.slice(0, 50));
+      },
       select: function (event, ui) { window.location.href = ui.item.url; },
       autoFocus: true
   });

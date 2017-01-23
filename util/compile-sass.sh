@@ -5,7 +5,7 @@
 # or the CSS::Sass Perl 5 module: https://metacpan.org/pod/CSS::Sass
 #
 
-if command -v sass >/dev/null 2>&1; then
+if command -v sass >/dev/null 2>&1 && sass --version 2>&1 /dev/null; then
     sass -t compressed assets/sass/style.scss:html/css/style.css &&
     echo "Successfully compiled SASS using 'sass' command" ||
     { echo "Failed to compile SASS with 'sass' command"; exit 1; }
