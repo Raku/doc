@@ -972,9 +972,8 @@ sub get-temp-filename {
     $temp;
 }
 sub highlight-code-blocks(:$no-proc-async = False) {
-    if !$proc.started {
-        say "Starting highlights worker thread";
-        $proc-prom = $proc.start;
+    unless $no-proc-async {
+        $proc-prom = $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
     }
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {

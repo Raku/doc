@@ -4,8 +4,11 @@
 # It requires either the presence of `sass` command (which will be tried first)
 # or the CSS::Sass Perl 5 module: https://metacpan.org/pod/CSS::Sass
 #
-
-if command -v sass >/dev/null 2>&1 && sass --version 2>&1 /dev/null; then
+if command -v sassc >/dev/null 2>&1 && sassc --version 2>&1 /dev/null; then
+    sassc -t compressed assets/sass/style.scss html/css/style.css &&
+    echo "Successfully compiled SASS using 'sassc' command" ||
+    { echo "Failed to compile SASS with 'sassc' command"; exit 1; }
+elif command -v sass >/dev/null 2>&1 && sass --version 2>&1 /dev/null; then
     sass -t compressed assets/sass/style.scss:html/css/style.css &&
     echo "Successfully compiled SASS using 'sass' command" ||
     { echo "Failed to compile SASS with 'sass' command"; exit 1; }
