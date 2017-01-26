@@ -141,7 +141,8 @@ sub MAIN(
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
-    Bool :$no-proc-async = False,
+    Bool :$force-proc-async = False,
+    Bool :$no-proc-async    = True,
     Int  :$parallel = 1,
 ) {
 
@@ -158,7 +159,16 @@ sub MAIN(
             say "Could not find $coffee-exe, did you run `make init-highlights`?";
             exit 1;
         }
-        if !$no-proc-async {
+        if $*DISTRO eq 'macosx' and !$force-proc-async {
+            warn-user Q/"\$*DISTRO == macos, so Proc::Async will not be used.
+            due to freezes from using Proc::Async.
+            For more info see Issue #1129/;
+            $no-proc-async = True;
+        }
+        if $no-proc-async {
+            warn-user "Proc::Async is disabled, this build will take a very long time.";
+        }
+        else {
             $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
             $proc-supply = $proc.stdout.lines;
         }
@@ -1017,4 +1027,8 @@ sub pod-path-from-url($url) {
     return $pod-path;
 }
 
+sub warn-user (Str $warn-text) {
+    my $border = '=' x $warn-text.chars;
+    note "\n$border\n$warn-text\n$border\n";
+}
 # vim: expandtab shiftwidth=4 ft=perl6
