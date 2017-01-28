@@ -142,7 +142,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Bool :$force-proc-async = False,
-    Bool :$no-proc-async    = True,
+    Bool :$no-proc-async    = False,
     Int  :$parallel = 1,
 ) {
 
