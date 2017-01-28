@@ -31,7 +31,7 @@ Here's one way to solve that problem in Perl 6:
 
     use v6;
 
-    my $file  = open 'scores';
+    my $file  = open 'scores.txt';
     my @names = $file.get.words;
 
     my %matches;
@@ -84,7 +84,7 @@ a semicolon or a curly bracket at the end of a line:
 
 =begin programlisting
 
-    my $file = open 'scores';
+    my $file = open 'scores.txt';
 
 =end programlisting
 
@@ -135,7 +135,7 @@ X<strings, literal>
 X<string literal>
 X<string>
 
-C<'scores'> is a I<string literal>. A string is a piece of text, and a string
+C<'scores.txt'> is a I<string literal>. A string is a piece of text, and a string
 literal is a string which appears directly in the program. In this line, it's
 the argument provided to C<open>.
 
@@ -151,7 +151,8 @@ X<invocant>
 
 The right-hand side calls a I<method> --a named group of behavior-- named C<get>
 on the file handle stored in C<$file>.  The C<get> method reads and returns 
-one line from the file, removing the line ending.  C<words> is also a method, 
+one line from the file, removing the line ending.  If you print the contents of C<$file>
+after calling C<get>, you will see that the first line is no longer in there. C<words> is also a method, 
 called on the string returned from C<get>. C<words> decomposes its 
 I<invocant>--the string on which it operates--into a list of words, which
 here means strings separated by whitespace.
@@ -197,8 +198,8 @@ X<block>
 C<for> produces a loop that runs the I<block> delimited by curly brackets
 once for each item of the list, setting the variable C<$line>
 to the current value of each iteration. C<$file.lines> produces a list of the
-lines read from the file F<scores>, starting with the line where the previous
-calls to C<$file.get> left off, and going all the way to the end of the file.
+lines read from the file F<scores.txt>, starting with the second line of the file
+since we already called C<$file.get> once, and going all the way to the end of the file.
 
 During the first iteration, C<$line> will contain the string C<Ana Dave |
 3:0>; during the second, C<Charlie Beth | 3:1>, and so on.
@@ -463,13 +464,18 @@ item. Hashes within curly braces are interpolated as a series of
 lines. Each line will contain a key, followed by a tab character, then
 the value associated with that key, and finally a newline.
 
-TODO: explain C<< <...> >> quote-words
+Let's see an example of this now. 
+
+In this example, you will see some special syntax that makes it easier
+to make a list of strings. This is the C<< <...> >> L<quote-words|https://docs.perl6.org/language/operators#index-entry-qw-quote-words-quote-words> construct.
+When you put words in between the < and > they are all assumed to be strings,
+so you do not need to wrap them each in double quotes C<< "..." >>. 
 
 =begin programlisting
 
-    say "Math: { 1 + 2 }"                   # Math: 3
+    say "Math: { 1 + 2 }";                  # Math: 3
     my @people = <Luke Matthew Mark>;
-    say "The synoptics are: {@people}"      # The synoptics are: Luke Matthew Mark
+    say "The synoptics are: {@people}";      # The synoptics are: Luke Matthew Mark
 
     say "{%sets}";                          # From the table tennis tournament
 
@@ -515,7 +521,7 @@ containing the name of all players is not necessary, because you can find out
 which players participated in the tournament by looking at their names in the
 subsequent rows.
 
-How can you change the program if the first input line is omitted?
+How can you make the program run if you do not use the C<@names> variable?
 Hint: C<%hash.keys> returns a list of all keys stored in C<%hash>.
 
 B<Answer:> Remove the line C<my @names = $file.get.words;>, and change:
@@ -534,33 +540,31 @@ B<Answer:> Remove the line C<my @names = $file.get.words;>, and change:
 
 =end programlisting
 
-B<2.> Instead of removing the redundancy, you can also use it to warn if a
+B<2.> Instead of deleting the redundant C<@names> variable, you can also use it to warn if a
 player appears that wasn't mentioned in the first line, for example due to a
 typo. How would you modify your program to achieve that?
 
-B<Answer:> Introduce another hash with the names of the legitimate players as
-keys, and look in this hash when the name of a player is read:
+Hint: Try using L<membership operators|https://docs.perl6.org/routine/(elem)>. 
+
+B<Answer:> Change C<@names> to C<@valid-players>. When looping through the lines of
+the file, check to see that C<$p1> and C<$p2> are in C<@valid-players>. Note that
+for membership operators you can also use C<(elem)> and C<!(elem)>.
 
 =begin programlisting
 
     ...
-    my @names = $file.get.split(' ');
-    B<my %legitimate-players;>
-    B<< for @names -> $n { >>
-    B<    %legitimate-players{$n} = 1;>
-    B<}>
-
+    my B<@valid-players> = $file.get.words;
     ...
 
     for $file.lines -> $line {
         my ($pairing, $result) = $line.split(' | ');
         my ($p1, $p2)          = $pairing.split(' ');
-        B<< for $p1, $p2 -> $p { >>
-        B<    if !%legitimate-players{$p} {>
-        B<        say "Warning: '$p' is not on our list!";>
-        B<    }>
-        B<}>
-
+        B< if $p1 ∉ @valid-players {>
+        B<     say "Warning: '$p1' is not on our list!";>
+        B< }>
+        B< if $p2 ∉ @valid-players {>
+        B<     say "Warning: '$p2' is not on our list!";>
+        B< }>
         ...
     }
 
