@@ -686,12 +686,6 @@ sub write-type-graph-images(:$force, :$parallel) {
             @type-graph-images = ();
         }
 
-        @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
-        if @type-graph-images %% $parallel {
-            await(@type-graph-images);
-            @type-graph-images = ();
-        }
-
         print '.';
 
         LAST await(@type-graph-images);
@@ -710,12 +704,6 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :dot-hints(viz-hints($group)),
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
-        if @specialized-visualizations %% $parallel {
-            await(@specialized-visualizations);
-            @specialized-visualizations = ();
-        }
-
-        @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
         if @specialized-visualizations %% $parallel {
             await(@specialized-visualizations);
             @specialized-visualizations = ();
