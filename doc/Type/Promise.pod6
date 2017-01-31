@@ -73,10 +73,13 @@ this method:
 
 Creates a new Promise that will be kept in C<$seconds> seconds, or later.
 
-    my $p = Promise.in(2).then({ say "2 seconds later" });
-    # do other stuff here
+    my $proc = Proc::Async.new('perl6', '-e', 'sleep 10; warn "end"');
 
-    await $p;   # wait here until the 2 seconds are over
+    my $result = await Promise.anyof(
+        my $promise = $proc.start,
+        Promise.in(5).then: { note 'timeout'; $proc.kill }
+    ).then: {$promise.result};
+    # OUTPUT«timeout␤»
 
 =head2 method at
 
