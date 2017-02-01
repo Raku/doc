@@ -174,12 +174,14 @@ Report issues at https://github.com/perl6/doc/issues. You can use the
 following labels when tagging tickets:
 
 * site   - presentation issue with the website (e.g. invalid HTML)
-* docs   - missing or incorrect documentation
+* docs   - missing or incorrect documentation (use 'UNSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
 * build  - scripts or libraries that generate the site
-* search - the search component
+* search - the search component, either for items that are on the site but not searchable, or for search functionality)
+
+Contributes may also specify one of the following tags.
 
 * LHF    - for a beginner to work on
-* big    - a big issue, may require some research
+* big    - a big issue, requires research or consensus
 
 ## Website Styles
 
