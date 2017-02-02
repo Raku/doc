@@ -52,15 +52,18 @@ For passing single-word string keys to C<{ }>, you can also use the
 L<angle-bracketed word quoting constructs|/language/quoting#Word_quoting:_qw>
 as if they were postcircumfix operators:
 
+    my %grade = Zoe => "C", Ben => "B+";
     say %grade<Zoe>;    #-> C
     say %grade<Ben>;    #-> B+
 
 This is really just syntactic sugar that gets turned into the corresponding
 C<{ }> form at compile-time:
 
+    =begin code :skip-test
     %hash<foo bar>;     # same as %hash{ <foo bar> }
     %hash«foo $var»;    # same as %hash{ «foo $var» }
     %hash<<foo $var>>;  # same as %hash{ <<foo $var>> }
+    =end code
 
 You may have noted above that we avoided having to quote C<Zoe> by using
 the C<< => >> operator, but that same operator did not just put invisible
@@ -77,11 +80,11 @@ default C<Hash>, subscripts coerce keys into strings, as long as
 those keys produce something C<Cool>.  You can use C<.perl> on a
 collection to be sure whether the keys are strings or objects:
 
-    ( 1  => 1 ).perl.say             #-> 1 => 1
+    ( 1  => 1 ).perl.say;            #-> 1 => 1
     my %h; %h{1}   = 1; say %h.perl; #-> { "1" => 1 }
-    ( 1/2 => 1 ).perl.say            #-> 0.5 => 1
+    ( 1/2 => 1 ).perl.say;           #-> 0.5 => 1
     my %h; %h{1/2} = 1; say %h.perl; #-> { "0.5" => 1 }
-    ( pi => 1 ).perl.say             #-> :pi(1)
+    ( pi => 1 ).perl.say;            #-> :pi(1)
     my %h; %h{pi}  = 1; say %h.perl; #-> { "3.14159265358979" => 1 }
 
 While the invisible quotes around single names is built into C<< => >>,
@@ -163,9 +166,11 @@ words, C<@alphabet[*-1]> becomes C<@alphabet[@alphabet.elems - 1]>.
 This means that you can use arbitrary expressions which depend on the size of
 the collection:
 
+    =begin code :skip-test
     say @array[* div 2];  # select the middlemost element
     say @array[$i % *];   # wrap around a given index ("modular arithmetic")
     say @array[ -> $size { $i % $size } ];  # same as previous
+    =end code
 
 =head1 Slices
 
@@ -211,8 +216,10 @@ Be aware that slices are controlled by the I<type> of what is passed to
 
 So even a one-element list returns a slice, whereas a bare scalar value doesn't:
 
+    =begin code :skip-test
     dd @alphabet[2,];  #-> ("c",)
     dd @alphabet[2];   #-> "c"
+    =end code
 
 (The angle-bracket form for associative subscripts works out because
 L<word quoting|/language/quoting#Word_quoting:_qw> conveniently returns a
@@ -222,10 +229,12 @@ In fact, the list structure of (L<the current dimension of|#Multiple
 dimensions>) the subscript is preserved across the slice operation
 (but the kind of Iterable is not – the result is always just lists.)
 
+    =begin code :skip-test
     dd @alphabet[0, (1..2, (3,))];  #-> ("a", (("b", "c"), ("d",)))
     dd @alphabet[0, (1..2, [3,])];  #-> ("a", (("b", "c"), ("d",)))
     dd @alphabet[flat 0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
     dd flat @alphabet[0, (1..2, (3,))];  #-> ("a", "b", "c", "d")
+    =end code
 
 =head2 Truncating slices
 
@@ -243,7 +252,9 @@ collection:
 
 L<From-the-end|#From the end> indices are allowed as range end-points.
 
+    =begin code :skip-test
     say @array[*-3 .. *];       # select the last three elements
+    =end code
 
 A similar thing is done for lazy sequences, but it is often impossible to
 determine whether the sequence is infinite.  Just as often, the first part
@@ -253,7 +264,9 @@ lists, a lazy subscript will not truncate as long as it does not have to
 lazily generate values, but once it starts generating values lazily, it
 will stop if it generates a value that points to a nonexistent index.
 
+    =begin code :skip-test
     dd @letters[0, 2, 4 ... *];     # Every other element of the array.
+    =end code
 
 This feature is more for protection against accidental out-of-memory
 problems than for actual use.  Since some lazy sequences cache their
@@ -261,9 +274,11 @@ results, every time they are used in a truncation, they accumulate one
 more known element.  Things like this should probably be avoided rather
 than used for effect:
 
+    =begin code :skip-test
     my @a = 2, 3 ... *;
     dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f")
     dd flat @letters[0, 7, @a]; #-> ("a", Any, "c", "d", "e", "f", Any)
+    =end code
 
 The runaway protection is not perfect.  The indices are eagerly evaluated,
 with the only stop condition being truncation.  This is to provide
@@ -271,13 +286,17 @@ mostly consistent results when there is self-reference/mutation inside
 the indices.  As such, the following will most likely hang until all
 memory has been consumed:
 
+    =begin code :skip-test
     @letters[0 xx *];
+    =end code
 
 So, to safely use lazy indices, they should be one-shot things which
 are guaranteed to overrun the array.  The following alternate formulation
 will produce a fully lazy result (but will not truncate):
 
+    =begin code :skip-test
     my $a = (0 xx *).map({ @letters[$_] }); # "a", "a", "a" ... forever
+    =end code
 
 If you I<don't> want to specify your slice as a range/sequence but still want
 to silently skip nonexistent elements, you can use the L<#:v> adverb.
@@ -400,9 +419,11 @@ controlled using adverbs.
 Beware of the relatively loose precedence of operator adverbs, which may
 require you to add parentheses in compound expressions:
 
+    =begin code :skip-test
     if $foo || %hash<key>:exists { ... }    # WRONG, tries to adverb the || op
     if $foo || (%hash<key>:exists) { ... }  # correct
     if $foo or %hash<key>:exists { ... }    # also correct
+    =end code
 
 The supported adverbs are:
 
@@ -426,11 +447,15 @@ an undefined value, and elements that aren't part of the collection at all:
 
 May also be negated to test for non-existence:
 
+    =begin code :skip-test
     dd %fruit<apple banana>:!exists; #-> (False, True)
+    =end code
 
 To check if I<all> elements of a slice exist, use an L<all> junction:
 
+    =begin code :skip-test
     if all %fruit<apple orange banana>:exists { ... }
+    =end code
 
 C<:exists> can be combined with the L<#:delete> and L<#:p>/L<#:kv> adverbs -
 in which case the behavior is determined by those adverbs, except that any
@@ -469,8 +494,10 @@ instead.
 With the negated form of the adverb, the element is not actually deleted. This
 means you can pass a flag to make it conditional:
 
+    =begin code :skip-test
     dd %fruit<apple> :delete($flag);  # deletes the element only if $flag is
                                       # true, but always returns the value.
+    =end code
 
 Can be combined with the L<#:exists> and L<#:p>/L<#:kv>/L<#:k>/L<#:v> adverbs -
 in which case the return value will be determined by those adverbs, but the
@@ -494,7 +521,9 @@ L<Pair>, and silently skip nonexistent elements:
 
 If you I<don't> want to skip nonexistent elements, use the negated form:
 
+    =begin code :skip-test
     dd %month<Jan Foo Mar>:!p;  #-> ("Jan" => 1, "Foo" => Any, "Mar" => 3)
+    =end code
 
 Can be combined with the L<#:exists> and L<#:delete> adverbs.
 
@@ -517,13 +546,17 @@ and values:
 
 If you I<don't> want to skip nonexistent elements, use the negated form:
 
+    =begin code :skip-test
     dd %month<Jan Foo Mar>:!kv;  #-> ("Jan", 1, "Foo", Any, "Mar", 3)
+    =end code
 
 This adverb is commonly used to iterate over slices:
 
+    =begin code :skip-test
     for %month<Feb Mar>:kv -> $month, $i {
         say "$month had {Date.new(2015, $i, 1).days-in-month} days in 2015"
     }
+    =end code
 
 Can be combined with the L<#:exists> and L<#:delete> adverbs.
 
@@ -544,7 +577,9 @@ skip nonexistent elements:
 
 If you I<don't> want to skip nonexistent elements, use the negated form:
 
+    =begin code :skip-test
     dd %month<Jan Foo Mar>:!k;  #-> ("Jan", "Foo", "Mar")
+    =end code
 
 See also the L<keys> routine.
 
@@ -565,7 +600,9 @@ mutable value container), and silently skip nonexistent elements:
 
 If you I<don't> want to skip nonexistent elements, use the negated form:
 
+    =begin code :skip-test
     dd %month<Jan Foo Mar>:!v;  #-> (1, Any, 3)
+    =end code
 
 See also the L<values> routine.
 
@@ -624,6 +661,7 @@ type L<Hash>, and delegate all subscripting and iterating related functionality
 to that attribute (using a custom type constraint to make sure users don't
 insert anything invalid into it):
 
+    =begin code :skip-test
     class HTTP::Header does Associative is Iterable {
         subset StrOrArrayOfStr where Str | ( Array & {.all ~~ Str} );
 
@@ -633,18 +671,21 @@ insert anything invalid into it):
 
         method Str { #`[not shown, for brevity] }
     }
+    =end code
 
 However, HTTP header field names are supposed to be case-insensitive (and
 preferred in camel-case). We can accommodate this by taking the C<*-KEY>
 and C<push> methods out of the C<handles> list, and implementing them
 separately like this:
 
+    =begin code :skip-test
     method AT-KEY     ($key) is rw { %!fields{normalize-key $key}        }
     method EXISTS-KEY ($key)       { %!fields{normalize-key $key}:exists }
     method DELETE-KEY ($key)       { %!fields{normalize-key $key}:delete }
     method push(*@_) { #`[not shown, for brevity] }
 
     sub normalize-key ($key) { $key.subst(/\w+/, *.tc, :g) }
+    =end code
 
 Note that subscripting C<%!fields> returns an appropriate rw container, which
 our C<AT-KEY> can simply pass on.
@@ -655,6 +696,7 @@ the C<StrOrArrayOfStr> type constraint on C<%!fields>, and replace our
 C<AT-KEY> implementation with one that returns a custom C<Proxy> container
 which takes care of sanitizing values on assignment:
 
+    =begin code :skip-test
     multi method AT-KEY (::?CLASS:D: $key) is rw {
         my $element := %!fields{normalize-key $key};
 
@@ -669,6 +711,7 @@ which takes care of sanitizing values on assignment:
             }
         );
     }
+    =end code
 
 Note that declaring the method as C<multi> and restricting it to C<:D> (defined
 invocants) makes sure that the undefined case is passed through to the default
@@ -784,8 +827,10 @@ Expected to bind the value or container C<new> to the slot at position
 C<$index>, replacing any container that would be naturally found there.
 This is what is called when you write:
 
+    =begin code :skip-test
     my $x = 10;
     @numbers[5] := $x;
+    =end code
 
 The generic L<Array> class supports this in order to allow building complex
 linked data structures, but for more domain-specific types it may not make
@@ -892,8 +937,10 @@ Expected to bind the value or container C<new> to the slot associated with
 C<$key>, replacing any container that would be naturally found there.
 This is what is called when you write:
 
+    =begin code :skip-test
     my $x = 10;
     %age<Claire> := $x;
+    =end code
 
 The generic L<Hash> class supports this in order to allow building complex
 linked data structures, but for more domain-specific types it may not make
