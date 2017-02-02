@@ -4,57 +4,61 @@
 
 =SUBTITLE Using exceptions in Perl 6
 
-Exceptions in Perl 6 are a special kind of object used to signify when
-something has gone wrong, for instance, unexpected data was received, a
-network connection is no longer available, or a file is missing which was
-expected to exist.
+Exceptions in Perl 6 are objects that record error information; for example:
+that unexpected data was received; that a
+network connection is no longer available; or that a needed file is missing.
 
 All built-in exceptions inherit from L<Exception>, which provides some basic
-behavior, such as storing a backtrace and providing an interface for the
+behavior, including the storage of a backtrace and an interface for the
 backtrace printer.
 
 =head1 Ad hoc exceptions
 
-Ad hoc exceptions work just like in traditional Perl 5, one can simply use
-C<die> with a message as to what went wrong:
+Ad hoc exceptions work just like in Perl 5, where C<die> is called with
+a description of the error.
 
     die "oops, something went wrong";
-    #!> oops, something went wrong in block <unit> at my-script.p6:1
+
+    # !> oops, something went wrong in block <unit> at my-script.p6:1
 
 =head1 Typed exceptions
 
-Typed exceptions provide more information about the kind of error that
-occurred within the exception object itself.  For instance, if while
-executing C<.zombie copy> on an object the path C<foo/bar> is unavailable
-(and was expected to be available), then one could raise an
-L<X::IO::DoesNotExist> exception like so:
+Typed exceptions provide more information about the error stored
+within an exception object.
+
+For example, if while
+executing C<.zombie copy> on an object, a needed path C<foo/bar> becomes unavailable,
+then an L<X::IO::DoesNotExist> exception can be raised:
 
     die X::IO::DoesNotExist.new(:path("foo/bar"), :trying("zombie copy"))
-    #!> Failed to find 'foo/bar' while trying to do '.zombie copy'
-    #!> in block <unit> at my-script.p6:1
+
+    # !> Failed to find 'foo/bar' while trying to do '.zombie copy'
+    # !> in block <unit> at my-script.p6:1
 
 Note how the object has provided the backtrace with information about what
-went wrong so that hopefully the user of the code can find and correct the
-issue more easily.
+went wrong. A user of the code can now more easily find and correct the
+problem.
 
 =head1 Catching exceptions
 
-It is possible to handle exceptional circumstances by supplying a C<CATCH> block:
+It's possible to handle exceptional circumstances by supplying a C<CATCH> block:
 
     die X::IO::DoesNotExist.new(:path("foo/bar"), :trying("zombie copy"));
+
     CATCH {
         when X::IO { say "some kind of IO exception was caught!" }
     }
-    #!> some kind of IO exception was caught!
+
+    # !> some kind of IO exception was caught!
 
 Here, we are saying that if any exception of type C<X::IO> occurs, then the
 message C<some kind of IO exception was caught!> will be displayed.
 
-A X<C<CATCH>|CATCH> block uses smart matching similarly to how C<given/when> smart
-matches on options, thus it is possible to catch various categories of
-exceptions and handle them appropriately inside a C<when> block.
+A X<C<CATCH>|CATCH> block uses smart matching similar to how C<given/when> smart
+matches on options, thus it's possible to catch and handle various categories of
+exceptions inside a C<when> block.
 
-To handle all exceptions use a C<default> statement.
+To handle all exceptions, use a C<default> statement.
 
    CATCH {
         default {
@@ -62,17 +66,15 @@ To handle all exceptions use a C<default> statement.
         }
    }
 
-Please note that the match target is a role. To allow user defined exceptions
+Note that the match target is a role. To allow user defined exceptions
 to match in the same manner, they must implement the given role. Just existing
 in the same namespace will look alike but won't match in a C<CATCH> block.
 
 =head2  Exception handlers and enclosing blocks.
 
-After a CATCH has handled the exception, the block enclosing the CATCH is left.
+After a CATCH has handled the exception, the block enclosing the CATCH is exited.
 
-In other words, even when the exception is handled successfully, the I<rest of the code> in the enclosing block will never be executed
-as the enclosing block gets left immediately:
-
+In other words, even when the exception is handled successfully, the I<rest of the code> in the enclosing block will never be executed.
 
   die "something went wrong ...";
 
@@ -81,20 +83,15 @@ as the enclosing block gets left immediately:
       default { .Str.say; }
   }
 
-  # but this line will be never reached
-  # as once default exception handler
-  # gets executed
-  # a enclosing block - mainline of the program
-  # will be left immediately
-
-  say "This won't be said.";
+  say "This won't be said.";   # but this line will be never reached since
+                               # the enclosing block will be exited immediately
 
 Output:
 
 =for code :skip-test
 something went wrong ...
 
-Compare  with this one:
+Compare with this:
 
   CATCH {
 
@@ -108,13 +105,13 @@ Compare  with this one:
 
   say "Hi! I am at the outer block!"; # OUTPUT: «Hi! I am at the outer block!␤»
 
-See also "Resuming of Exceptions" to return control back to where the exception originated.
+See "Resuming of Exceptions", for how to return control back to where the exception originated.
 
 =head1 X<C<try>|try blocks> blocks
 
-To contain an exception use a C<try> block. Any exception that is thrown in
+To contain an exception, use a C<try> block. Any exception that is thrown in
 such a block will be caught by the implicit C<CATCH> block or a C<CATCH> block
-provided by the user. In the latter case, any exception not handled will be
+provided by the user. In the latter case, any unhandled exception will be
 rethrown.
 
     class E is Exception { method message() { "Just stop already!" } }
@@ -154,13 +151,16 @@ Output:
 A C<try>-block is a normal block and as such treats it's last statement as the
 return value of itself. We can therefore use it as a RHS.
 
+    =begin code
     say try { +"99999" } // "oh no";
     say try { +"hello" } // "oh no";
+
     # OUTPUT«99999␤oh no␤»
+    =end code
 
 =head1 Throwing exceptions
 
-One can also explicitly throw exceptions via the C<.throw> method on an
+Exceptions can be thrown explicitly with the C<.throw> method of an
 C<Exception> object.
 
 This example throws an C<AdHoc> exception, catches it and allows the code
@@ -173,9 +173,11 @@ to continue from the point of the exception by calling the C<.resume> method.
             when X::AdHoc { .resume }
         }
     }
+
     "OBAI".say;
-    #-> OHAI
-    #-> OBAI
+
+    # -> OHAI
+    # -> OBAI
 
 If the C<CATCH> block doesn't match the exception thrown, then the
 exception's payload is passed on to the backtrace printing mechanism.
@@ -185,12 +187,14 @@ exception's payload is passed on to the backtrace printing mechanism.
         "OHAI".say;
         CATCH {  }
     }
-    "OBAI".say;
-    #!> foo
-    #!> in block <unit> at my-script.p6:1
 
-This example doesn't resume from the point of the exception, however
-it continues after the enclosing block, since the exception was caught, and
+    "OBAI".say;
+
+    # !> foo
+    # !> in block <unit> at my-script.p6:1
+
+This next example doesn't resume from the point of the exception. Instead,
+it continues after the enclosing block, since the exception is caught, and then
 control continues after the C<CATCH> block.
 
     {
@@ -200,8 +204,10 @@ control continues after the C<CATCH> block.
             when X::AdHoc { }
         }
     }
+
     "OBAI".say;
-    #-> OBAI
+
+    # -> OBAI
 
 C<throw> can be viewed as the method form of C<die>, just that in this
 particular case, the sub and method forms of the routine have different
@@ -212,7 +218,7 @@ names.
 Exceptions interrupt control flow and divert it away from the statement
 following the statement that threw it. Any exception handled by the
 user can be resumed and control flow will continue with the statement
-following the statement that threw the exception. To do so call the
+following the statement that threw the exception. To do so, call the
 method C<.resume> on the exception object.
 
     CATCH { when X::AdHoc { .resume } } # this is step 2
@@ -235,7 +241,8 @@ printing a backtrace along with the message:
         }
     }
     die X::WithoutLineNumber.new(payload => "message")
-        # prints "message\n" to $*ERR and exits, no backtrace
+
+    # prints "message\n" to $*ERR and exits, no backtrace
 
 =head1 Control Exceptions
 
@@ -245,6 +252,7 @@ L<phaser|/language/phasers#Loop_Phasers>. Any unhandled control exception is
 converted to a normal exception.
 
     { return; CATCH { default { say .^name, ': ',.Str } } }
+
     # OUTPUT«X::ControlFlow::Return: Attempt to return outside of any Routine␤»
     # was CX::Return
 

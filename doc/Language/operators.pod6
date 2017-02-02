@@ -122,45 +122,69 @@ Meta operators can be parameterized with other operators or subroutines in the
 same way as functions can take functions as parameters. To use a subroutine as
 a parameter, prefix its name with a C<&>. Perl 6 will generate the actual
 combined operator in the background, allowing the mechanism to be applied to
-user defined operators. There are quite a few Meta operators with different
-semantics as explained, next.
+user defined operators. To disambiguate chained meta operators enclose the
+inner operator in square brackets. There are quite a few Meta operators with
+different semantics as explained, next.
 
 =head1 Substitution Operators
 
-    my $str = 'match string';
-    $str ~~ s/match/replacement/;
-    say $str;                     # replacement string
+=head2 C<s///> in-place substitution
 
-    say S/match/replacement/ given 'match string'; # replacement string
+    my $str = 'old string';
+    $str ~~ s/o .+ d/new/;
+    say $str; # OUTPUT«new string␤»
 
-The lower-case version (X<s///>) substitutes in-place, while the
-upper-case version (X<S///>) leaves the original alone and returns
-the resultant string.
+Operates on C<$_> topical variable, changing it in place. Uses the given
+L«C<Regex>|/type/Regex» to find portions to replace and changes them to the
+provided replacement string. Sets C<$/> to the L«C<Match>|/type/Match» object
+or, if multiple matches were made, a L«C<List>|/type/List» of C<Match> objects.
+Returns C<$/>.
 
-Both operators work on C<$_> variable and set C<$/> to the result. A very common mistake
-is to expect the smartmatch operator to B<return> the result of C<S///>. While that
-works for C<s///>, attempting to smartmatch with C<S///> will result in a warning.
-The correct way is to alias the given string by some other method, such as a C<for>
-loop or, as is shown in the example above, with a C<given> block (in this case,
-it's a postfix form of it, without curly braces).
+It's common to use this operator with the C<~~> smartmatch operator, as it
+aliases left hand side to C<$_>, which C<s///> uses.
 
-Both operators can take the same adverbs as the
-L<.subst method|/routine/subst>, which go between the C<s>/C<S> and the opening
-C</>. Whitespace can be used liberally:
+Regex captures can be referenced in the replacement part. Takes the same
+adverbs as the L«C<.subst> method|/routine/subst», which go between the C<s>
+and the opening C</>, separated with optional whitespace:
 
-    my $str = 'match string';
-    $str ~~ s:g/match/replacement/;
-    say S:i :g /match/replacement/ given 'match string';
+    my $str = 'foo muCKed into the lEn';
+
+    # replace second 'o' with 'x'
+    $str ~~ s:2nd/o/x/;
+
+    # replace 'M' or 'L' followed by non-whitespace stuff with 'd'
+    # and lower-cased version of that stuff:
+    $str ~~ s :g :i/<[ML]> (\S+)/d{lc $0}/;
+
+    say $str; # OUTPUT«fox ducked into the den␤»
 
 You can also use a different delimiter:
 
     my $str = 'foobar';
-    $str ~~ s!foo!!;
-    say S{foo} = {} given 'foobar';
+    $str ~~ s!foo!fox!;
+    $str ~~ s{bar} = ' den';
+    say $str; # OUTPUT«fox den␤»
 
-Non-matching characters can simply replace the original slashes. Matching
-characters, like braces, require an extra step where you use an
-assignment operator to assign the replacement to the match part.
+Non-paired characters can simply replace the original slashes. Paired
+characters, like braces, are used only on the match portion, with the
+substitution given by assignment (of anything: a string, a routine call, etc.).
+Note that you can't reference captures in the replacement portion when
+using the assignment form.
+
+=head2 C<S///> non-destructive substitution
+
+    say S/o .+ d/new/ with 'old string';      # OUTPUT«new string␤»
+    S:g/« (.)/$0.uc()/.say for <foo bar ber>; # OUTPUT«Foo␤Bar␤Ber␤»
+
+Same semantics as the C<s///> operator, except leaves the original string intact
+and I<returns the resultant string> instead of C<$/> (C<$/> still being set
+to the same values as with C<s///>).
+
+B<Note:> since the result is obtained as a return value, using this
+operator with the C<~~> smartmatch operator is a mistake and will issue a
+warning. To execute the substitution on a variable that isn't the C<$_> this
+operator uses, alias it to C<$_> with C<given>, C<with>, or any other way.
+Alternatively, use the L«C<.subst> method|/routine/subst».
 
 =head1 Assignment Operators
 
@@ -322,8 +346,8 @@ operator. It gives the same result as the L<reduce> routine - see there for
 details.
 
     # These two are equivalent:
-    say [+] 1, 2, 3;            # 6
-    say reduce &[+], 1, 2, 3;   # 6
+    say [+] 1, 2, 3;                # 6
+    say reduce &infix:<+>, 1, 2, 3; # 6
 
 No whitespace is allowed between the brackets and the operator. To wrap a
 function instead of an operator, provide an additional layer of brackets:
