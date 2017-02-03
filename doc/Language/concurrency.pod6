@@ -45,16 +45,18 @@ in a concurrent or asynchronous manner.
 
 =begin code
 my $p1 = Promise.new;
-say $p1.status;         # Planned;
+say $p1.status;         # OUTPUT: «Planned␤»
 $p1.keep('result');
-say $p1.status;         # Kept
-say $p1.result;         # result
+say $p1.status;         # OUTPUT: «Kept␤»
+say $p1.result;         # OUTPUT: «result␤»
                         # (since it has been kept, a result is available!)
 
 my $p2 = Promise.new;
 $p2.break('oh no');
-say $p2.status;         # Broken
-say $p2.result;         # dies with "oh no", because the promise has been broken
+say $p2.status;         # OUTPUT: «Broken␤»
+say $p2.result;         # dies, because the promise has been broken
+CATCH { default { say .^name, ': ', .Str } };
+# OUTPUT: «X::AdHoc+{X::Promise::Broken}: oh no␤»
 =end code
 
 Promises gain much of their power by being composable, for example by
@@ -65,7 +67,7 @@ chaining, usually by the L<then|/type/Promise#method_then> method:
         -> $v { say $v.result; "Second Result" }
     );
     $promise1.keep("First Result");
-    say $promise2.result;   # First Result \n Second Result
+    say $promise2.result;   # OUTPUT: «First Result␤Second Result␤»
 
 Here the L<then|/type/Promise#method_then> method schedules code to be
 executed when the first L<Promise> is kept or broken, itself returning
@@ -82,7 +84,7 @@ is illustrated with:
     my $promise2 = $promise1.then(-> $v { say "Handled but : "; say $v.result});
     $promise1.break("First Result");
     try $promise2.result;
-    say $promise2.cause;        # Handled but : \n First Result
+    say $promise2.cause;        # OUTPUT: «Handled but : ␤First Result␤»
 
 Here the C<break> will cause the code block of the C<then> to throw an
 exception when it calls the C<result> method on the original promise
@@ -110,7 +112,7 @@ for that:
     my $promise = Promise.start(
         { my $i = 0; for 1 .. 10 { $i += $_ }; $i}
     );
-    say $promise.result;    # 55
+    say $promise.result;    # OUTPUT: «55␤»
 
 Here the C<result> of the promise returned is the value returned from
 the code.  Similarly if the code fails (and the promise is thus broken),
@@ -152,7 +154,7 @@ the result of each:
         $i
     };
     my @result = await $p1, $p2;
-    say @result;            # 55 -55
+    say @result;            # OUTPUT: «[55 -55]␤»
 
 In addition to C<await>, two class methods combine several
 L<Promise> objects into a new promise: C<allof> returns a promise that
@@ -217,6 +219,8 @@ as the vow object is kept private, the status of the promise is safe:
     # Will throw an exception
     # "Access denied to keep/break this Promise; already vowed"
     $promise.keep;
+    CATCH { default { say .^name, ': ', .Str } };
+    # OUTPUT: «X::Promise::Vowed: Access denied to keep/break this Promise; already vowed␤»
 
 The methods that return a promise that will be kept or broken
 automatically such as C<in> or C<start> will do this, so it is not
@@ -421,7 +425,7 @@ and returns it, blocking until a new item is sent if the queue is empty:
 
     my $channel = Channel.new;
     $channel.send('Channel One');
-    say $channel.receive;  # 'Channel One'
+    say $channel.receive;  # OUTPUT: «Channel One␤»
 
 If the channel has been closed with the L<method
 close|/type/Channel#method_close> then any C<send> will cause the
@@ -758,7 +762,7 @@ at a time:
         }
     }
 
-    say $a; # 10
+    say $a; # OUTPUT: «10␤»
 
 C<protect> returns whatever the code block returns.
 

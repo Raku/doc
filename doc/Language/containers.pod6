@@ -52,7 +52,7 @@ Note that subroutine signatures allow passing around of containers:
     }
     my $x = 42;
     f($x);
-    say $x;         # 23
+    say $x;         # OUTPUT: «23␤»
 
 Inside the subroutine, the lexpad entry for C<$a> points to the same
 container that C<$x> points to outside the subroutine. Which is why
@@ -63,7 +63,7 @@ Likewise a routine can return a container if it is marked as C<is rw>:
     my $x = 23;
     sub f() is rw { $x };
     f() = 42;
-    say $x;         # 42
+    say $x;         # OUTPUT: «42␤»
 
 For explicit returns, C<return-rw> instead of C<return> must be used.
 
@@ -84,8 +84,8 @@ Scalar containers are transparent to type checks and most kinds of read-only
 accesses. A C<.VAR> makes them visible:
 
     my $x = 42;
-    say $x.^name;       # Int
-    say $x.VAR.^name;   # Scalar
+    say $x.^name;       # OUTPUT: «Int␤»
+    say $x.VAR.^name;   # OUTPUT: «Scalar␤»
 
 And C<is rw> on a parameter requires the presence of a writable Scalar
 container:
@@ -93,7 +93,7 @@ container:
     sub f($x is rw) { say $x };
     f 42;
     CATCH { default { say .^name, ': ', .Str } };
-    # OUTPUT«X::Parameter::RW: Parameter '$x' expected a writable container, but got Int value␤»
+    # OUTPUT: «X::Parameter::RW: Parameter '$x' expected a writable container, but got Int value␤»
 
 =head1 Binding
 
@@ -109,7 +109,7 @@ means that you cannot assign to it anymore:
     my $x := 42;
     $x = 23;
     CATCH { default { say .^name, ': ', .Str } };
-    # OUTPUT«X::AdHoc: Cannot assign to an immutable value␤»
+    # OUTPUT: «X::AdHoc: Cannot assign to an immutable value␤»
 
 You can also bind variables to other variables:
 
@@ -117,7 +117,7 @@ You can also bind variables to other variables:
     my $b = 0;
     $a := $b;
     $b = 42;
-    say $a;         # 42
+    say $a;         # OUTPUT: «42␤»
 
 Here, after the initial binding, the lexpad entries for C<$a> and C<$b> both
 point to the same scalar container, so assigning to one variable also
@@ -132,11 +132,11 @@ Sigilless variables also bind by default and so do parameters with the trait C<i
     my $a = 42;
     my \b = $a;
     b++;
-    say $a;         # 43
+    say $a;         # OUTPUT: «43␤»
 
     sub f($c is raw) { $c++ }
     f($a);
-    say $a;         # 44
+    say $a;         # OUTPUT: «44␤»
 
 =head1 Scalar containers and listy things
 
@@ -144,7 +144,7 @@ There are a number of positional container types with slightly different
 semantics in Perl 6. The most basic one is L<List|/type/List>
 It is created by the comma operator.
 
-    say (1, 2, 3).^name;    # List
+    say (1, 2, 3).^name;    # OUTPUT: «List␤»
 
 A list is immutable, which means you cannot change the number of elements
 in a list. But if one of the elements happens to be a scalar container,
@@ -152,12 +152,10 @@ you can still assign to it:
 
     my $x = 42;
     ($x, 1, 2)[0] = 23;
-    say $x;                 # 23
-    ($x, 1, 2)[1] = 23;     # Error: Cannot modify an immutable value
+    say $x;                 # OUTPUT: «23␤»
+    ($x, 1, 2)[1] = 23;     # Cannot modify an immutable value
     CATCH { default { say .^name, ': ', .Str } };
-    # OUTPUT:
-    # 23
-    # X::Assignment::RO: Cannot modify an immutable Int
+    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Int␤»
 
 So the list doesn't care about whether its elements are values or
 containers, they just store and retrieve whatever was given to them.
@@ -170,7 +168,7 @@ be containers, which means that you can always assign to elements:
 
     my @a = 1, 2, 3;
     @a[0] = 42;
-    say @a;         # 42 2 3
+    say @a;         # OUTPUT: «[42 2 3]␤»
 
 C<@a> actually stores three scalar containers. C<@a[0]> returns one of
 them, and the assignment operator replaces the integer value stored in that
@@ -186,8 +184,8 @@ the same thing: discard the old value(s), and enter some new value(s).
 
 Nevertheless, it's easy to observe how different they are:
 
-    my $x = 42; say $x.^name;   # Int
-    my @a = 42; say @a.^name;   # Array
+    my $x = 42; say $x.^name;   # OUTPUT: «Int␤»
+    my @a = 42; say @a.^name;   # OUTPUT: «Array␤»
 
 This is because the C<Scalar> container type hides itself well, but C<Array>
 makes no such effort. Also assignment to an array variable is coercive, so
@@ -196,7 +194,7 @@ you can assign a non-array value to an array variable.
 To place a non-C<Array> into an array variable, binding works:
 
     my @a := (1, 2, 3);
-    say @a.WHAT;                # (List)
+    say @a.WHAT;                # OUTPUT: «(List)␤»
 
 =head1 Binding to array elements
 
@@ -205,7 +203,7 @@ As a curious side note, Perl 6 supports binding to array elements:
     my @a = (1, 2, 3);
     @a[0] := my $x;
     $x = 42;
-    say @a;                     # 42 2 3
+    say @a;                     # OUTPUT: «[42 2 3]␤»
 
 If you've read and understood the previous explanations, it is now time to
 wonder how this can possibly work. After all, binding to a variable requires
@@ -229,7 +227,7 @@ counter-intuitive results when the array is used later.
     @a[2] = $b;          # ...but this is fine.
     @a[1, 2] := 1, 2;    # runtime error: X::Bind::Slice
     CATCH { default { say .^name, ': ', .Str } };
-    # OUTPUT«X::Bind::Slice: Cannot bind to Array slice␤»
+    # OUTPUT: «X::Bind::Slice: Cannot bind to Array slice␤»
 
 Operations that mix Lists and Arrays generally protect against such
 a thing happening accidentally.
@@ -249,23 +247,23 @@ do not flatten in list context:
 
     my @a = 1, 2, 3;
     my @b = @a, 4, 5;
-    say @b.elems;               # 3
+    say @b.elems;               # OUTPUT: «3␤»
 
 There are operations that flatten out sublists that are not inside a scalar
 container: slurpy parameters (C<*@a>) and explicit calls to C<flat>:
 
 
     my @a = 1, 2, 3;
-    say (flat @a, 4, 5).elems;  # 5
+    say (flat @a, 4, 5).elems;  # OUTPUT: «5␤»
 
     sub f(*@x) { @x.elems };
-    say f @a, 4, 5;             # 5
+    say f @a, 4, 5;             # OUTPUT: «5␤»
 
 As hinted above, scalar containers prevent that flattening:
 
     sub f(*@x) { @x.elems };
     my @a = 1, 2, 3;
-    say f $@a, 4, 5;            # 3
+    say f $@a, 4, 5;            # OUTPUT: «3␤»
 
 The C<@> character can also be used as a prefix to remove a scalar container:
 
@@ -289,7 +287,7 @@ user to L<handle|/type/Promise#method_in> timeouts.
     my @a;
     @a[0] = @a;
     put @a.perl;
-    # OUTPUT«(my \Array_54878224 = [Array_54878224,])␤»
+    # OUTPUT: «(my \Array_54878224 = [Array_54878224,])»
 
 =head1 Type Constraints
 
@@ -297,7 +295,7 @@ Any container can have a type constraint in form of a L<type object|/language/ty
 
     EVAL ‚my $i = 42; say $i.VAR.of; $i := "forty plus two"; say $i.VAR.of;‘;
     CATCH { default { say .^name, ' ', .Str } }
-    # OUTPUT«(Mu)␤X::Method::NotFound No such method 'of' for invocant of type 'Str'␤»
+    # OUTPUT: «(Mu)␤X::Method::NotFound No such method 'of' for invocant of type 'Str'␤»
 
 
 =head1 Custom containers
@@ -322,9 +320,9 @@ work with types in Perl 6.
     }
 
     my Int $a := lucky(Int);
-    say $a = 12;
+    say $a = 12;    # OUTPUT: «12␤»
     say $a = 'FOO'; # X::TypeCheck::Binding
-    say $a = 13; # X::OutOfRange
+    say $a = 13;    # X::OutOfRange
     CATCH { default { say .^name, ': ', .Str; .resume } };
 
 =end pod
