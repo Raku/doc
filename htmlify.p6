@@ -32,19 +32,32 @@ use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Pod::Convenience;
 use Pod::Htmlify;
+use OO::Monitors;
 
-&spurt.wrap(sub (|c){
-    state %seen-paths;
-    note "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
-    note "{c[0]} got empty filename" if c[0].split('/')[*-1] eq '.html';
-    note "duplicated path {c[0]}" if %seen-paths{c[0]}:exists;
-    %seen-paths{c[0]}++;
-    callsame
-});
+{
+    my monitor PathChecker {
+        has %!seen-paths;
+        method check($path) {
+            note "$path got badchar" if $path.contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+            note "$path got empty filename" if $path.split('/')[*-1] eq '.html';
+            note "duplicated path $path" if %!seen-paths{$path}:exists;
+            %!seen-paths{$path}++;
+        }
+    }
+    my $path-checker = PathChecker.new;
+    &spurt.wrap(sub (|c) {
+        $path-checker.check-path(c[0]);
+        callsame
+    });
+}
 
-my @__URLS;
+monitor UrlLog {
+    has @.URLS;
+    method log($url) { @!URLS.push($url) }
+}
+my $url-log = UrlLog.new;
 &rewrite-url.wrap(sub (|c){
-    @__URLS.push: my \r = callsame;
+    $url-log.log(my \r = callsame);
 #    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
     r
 });
@@ -224,7 +237,7 @@ sub MAIN(
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
 
-    spurt('html/links.txt', @__URLS.sort.unique.join("\n"));
+    spurt('html/links.txt', $url-log.URLS.sort.unique.join("\n"));
 }
 
 my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
