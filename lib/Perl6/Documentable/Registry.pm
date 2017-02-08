@@ -1,7 +1,8 @@
 use v6;
+use OO::Monitors;
 use Perl6::Documentable;
 
-class Perl6::Documentable::Registry {
+monitor Perl6::Documentable::Registry {
     has @.documentables;
     has Bool $.composed = False;
     has %!cache;
