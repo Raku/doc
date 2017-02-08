@@ -46,7 +46,7 @@ use OO::Monitors;
     }
     my $path-checker = PathChecker.new;
     &spurt.wrap(sub (|c) {
-        $path-checker.check-path(c[0]);
+        $path-checker.check(c[0]);
         callsame
     });
 }
