@@ -122,46 +122,67 @@ Meta operators can be parameterized with other operators or subroutines in the
 same way as functions can take functions as parameters. To use a subroutine as
 a parameter, prefix its name with a C<&>. Perl 6 will generate the actual
 combined operator in the background, allowing the mechanism to be applied to
-user defined operators. There are quite a few Meta operators with different
-semantics as explained, next.
+user defined operators. To disambiguate chained meta operators enclose the
+inner operator in square brackets. There are quite a few Meta operators with
+different semantics as explained, next.
 
 =head1 Substitution Operators
 
-    my $str = 'match string';
-    $str ~~ s/match/replacement/;
-    say $str;                     # replacement string
+=head2 C<s///> in-place substitution
 
-    say S/match/replacement/ given 'match string'; # replacement string
+    my $str = 'old string';
+    $str ~~ s/o .+ d/new/;
+    say $str; # OUTPUT«new string␤»
 
-The lower-case version (X<s///>) substitutes in-place, while the
-upper-case version (X<S///>) leaves the original alone and returns
-the resultant string.
+Operates on C<$_> topical variable, changing it in place. Uses the given
+L«C<Regex>|/type/Regex» to find portions to replace and changes them to the
+provided replacement string. Sets C<$/> to the L«C<Match>|/type/Match» object
+or, if multiple matches were made, a L«C<List>|/type/List» of C<Match> objects.
+Returns C<$/>.
 
-Both operators work on `$_` variable. Since smartmatch operator aliases
-the left hand side to `$_`, you can use lowercase `s///` with it, but
-it's a mistake to use it with uppercase `S///`, because you can't
-retrieve the modified string. The correct way is to alias the given
-string by some other method, such as a `for` loop or, as is shown in the
-example above, with a `given` block (in this case, it's a postfix form
-of it, without curly braces).
+It's common to use this operator with the C<~~> smartmatch operator, as it
+aliases left hand side to C<$_>, which C<s///> uses.
 
-Both operators can take the same adverbs as the
-L<.subst method|/routine/subst>, which go between the `s`/`S` and the opening
-`/`. Whitespace can be used liberally:
+Regex captures can be referenced in the replacement part. Takes the same
+adverbs as the L«C<.subst> method|/routine/subst», which go between the C<s>
+and the opening C</>, separated with optional whitespace:
 
-    my $str = 'match string';
-    $str ~~ s:g/match/replacement/;
-    say S:i :g /match/replacement/ given 'match string';
+    my $str = 'foo muCKed into the lEn';
+
+    # replace second 'o' with 'x'
+    $str ~~ s:2nd/o/x/;
+
+    # replace 'M' or 'L' followed by non-whitespace stuff with 'd'
+    # and lower-cased version of that stuff:
+    $str ~~ s :g :i/<[ML]> (\S+)/d{lc $0}/;
+
+    say $str; # OUTPUT«fox ducked into the den␤»
 
 You can also use a different delimiter:
 
-    my $str = 'foobar';
-    $str ~~ s!foo!!;
-    say S{foo} = {} given 'foobar';
+    my $str = 'foober';
+    $str ~~ s!foo!fox!;
+    $str ~~ s{b(.)r} = " d$0n";
+    say $str; # OUTPUT«fox den␤»
 
-Non-matching characters can simply replace the original slashes. Matching
-characters, like braces, require an extra step where you use an
-assignment operator to assign the replacement to the match part.
+Non-paired characters can simply replace the original slashes. Paired
+characters, like braces, are used only on the match portion, with the
+substitution given by assignment (of anything: a string, a routine call, etc.).
+
+=head2 C<S///> non-destructive substitution
+
+    say S/o .+ d/new/ with 'old string';      # OUTPUT«new string␤»
+    S:g/« (.)/$0.uc()/.say for <foo bar ber>; # OUTPUT«Foo␤Bar␤Ber␤»
+
+Same semantics as the C<s///> operator, except leaves the original string intact
+and I<returns the resultant string> instead of C<$/> (C<$/> still being set
+to the same values as with C<s///>).
+
+B<Note:> since the result is obtained as a return value, using this
+operator with the C<~~> smartmatch operator is a mistake and will issue a
+warning. To execute the substitution on a variable that isn't the C<$_> this
+operator uses, alias it to C<$_> with C<given>, C<with>, or any other way.
+Alternatively, use the L«C<.subst> method|/routine/subst».
 
 =head1 Assignment Operators
 
@@ -306,8 +327,8 @@ L<nodality|/language/typesystem#trait_is_nodal> of the inner operator of a
 chain. For the hyper method call operator (».) the nodality of the target
 method is significant.
 
-    say (<a b>, <c d e>)».elems        # (2 3)
-    say (<a b>, <c d e>)».&{ .elems }  # ((1 1) (1 1 1))
+    say (<a b>, <c d e>)».elems;        # (2 3)
+    say (<a b>, <c d e>)».&{ .elems };  # ((1 1) (1 1 1))
 
 You can chain hyper operators to destructure a List of Lists.
 
@@ -323,8 +344,8 @@ operator. It gives the same result as the L<reduce> routine - see there for
 details.
 
     # These two are equivalent:
-    say [+] 1, 2, 3;            # 6
-    say reduce &[+], 1, 2, 3;   # 6
+    say [+] 1, 2, 3;                # 6
+    say reduce &infix:<+>, 1, 2, 3; # 6
 
 No whitespace is allowed between the brackets and the operator. To wrap a
 function instead of an operator, provide an additional layer of brackets:
@@ -605,7 +626,9 @@ X<Hyper method call operator>. Will call a method on all elements of a C<List> o
 Take care to avoid a common mistake of expecting side-effects to occur in order. The following
 C<say> is B<not> guaranteed to produce the output in order:
 
+    =begin code :skip-test
     @a».say;  # WRONG! Could produce a␤b␤c␤ or c␤b␤a␤ or any other order
+    =end code
 
 =head2 postfix C<.postfix> / C<.postcircumfix>
 X<|.( )>X<|.[ ]>X<|.{ }>
@@ -669,9 +692,7 @@ class or role, even after it has been redefined in the child class.
 
 =head2 prefix X<C«++»|++>
 
-=begin code :skip-test
-multi sub prefix:<++>($x is rw) is assoc<non>
-=end code
+    multi sub prefix:<++>($x is rw) is assoc<non>
 
 Increments its argument by one, and returns the updated value.X<|increment operator>
 
@@ -685,9 +706,7 @@ semantics.
 
 =head2 prefix X<C«--»|-->
 
-=begin code :skip-test
-multi sub prefix:<-->($x is rw) is assoc<non>
-=end code
+    multi sub prefix:<-->($x is rw) is assoc<non>
 
 Decrements its argument by one, and returns the updated value.X<|decrement operator>
 
@@ -702,9 +721,7 @@ semantics.
 
 =head2 postfix X<C«++»|++>
 
-=begin code :skip-test
-multi sub postfix:<++>($x is rw) is assoc<non>
-=end code
+    multi sub postfix:<++>($x is rw) is assoc<non>
 
 Increments its argument by one, and returns the original value.X<|increment operator>
 
@@ -732,9 +749,7 @@ assign the resulting string to the container. A C<is rw>-container is required.
 
 =head2 postfix C«--»
 
-=begin code :skip-test
-multi sub postfix:<-->($x is rw) is assoc<non>
-=end code
+    multi sub postfix:<-->($x is rw) is assoc<non>
 
 Decrements its argument by one, and returns the original value.X<|decrement operator>
 
@@ -765,9 +780,7 @@ Crossing 0 is prohibited and throws C<X::AdHoc>.
 
 =head2 infix C«**»
 
-=begin code :skip-test
-multi sub infix:<**>(Any, Any) returns Numeric:D is assoc<right>
-=end code
+    multi sub infix:<**>(Any, Any --> Numeric:D) is assoc<right>
 
 The X<exponentiation operator> coerces both arguments to L<Numeric>
 and calculates the left-hand-side raised to the power of the right-hand side.
@@ -780,9 +793,7 @@ is carried out without loss of precision.
 
 =head2 prefix C«?»
 
-=begin code :skip-test
-multi sub prefix:<?>(Mu) returns Bool:D
-=end code
+    multi sub prefix:<?>(Mu --> Bool:D)
 
 X<Boolean context operator>.
 
@@ -791,9 +802,7 @@ Note that this collapses L<Junction>s.
 
 =head2 prefix C«!»
 
-=begin code :skip-test
-multi sub prefix:<!>(Mu) returns Bool:D
-=end code
+    multi sub prefix:<!>(Mu --> Bool:D)
 
 X<Negated boolean context operator>.
 
@@ -803,9 +812,7 @@ Note that this collapses L<Junction>s.
 
 =head2 prefix C«+»
 
-=begin code :skip-test
-multi sub prefix:<+>(Any) returns Numeric:D
-=end code
+    multi sub prefix:<+>(Any --> Numeric:D)
 
 X<Numeric context operator>.
 
@@ -813,9 +820,7 @@ Coerces the argument to L<Numeric> by calling the C<Numeric> method on it.
 
 =head2 prefix C«-»
 
-=begin code :skip-test
-multi sub prefix:<->(Any) returns Numeric:D
-=end code
+    multi sub prefix:<->(Any --> Numeric:D)
 
 X<Negative numeric context operator>.
 
@@ -824,9 +829,7 @@ and then negates the result.
 
 =head2 prefix C«~»
 
-=begin code :skip-test
-multi sub prefix:<~>(Any) returns Str:D
-=end code
+    multi sub prefix:<~>(Any --> Str:D)
 
 X<String context operator>.
 
@@ -847,9 +850,7 @@ TODO
 
 =head2 prefix C«+^»
 
-=begin code :skip-test
-multi sub prefix:<+^>(Any) returns Int:D
-=end code
+    multi sub prefix:<+^>(Any --> Int:D)
 
 X<Integer bitwise negation operator>.
 
@@ -865,9 +866,7 @@ Please note that this has not yet been implemented.
 
 =head2 prefix C«?^»
 
-=begin code :skip-test
-multi sub prefix:<?^>(Mu) returns Bool:D
-=end code
+    multi sub prefix:<?^>(Mu --> Bool:D)
 
 X<Boolean bitwise negation operator>.
 
@@ -876,9 +875,7 @@ same as C<< prefix:<!> >>.
 
 =head2 prefix C«^»
 
-=begin code :skip-test
-multi sub prefix:<^>(Any) returns Range:D
-=end code
+    multi sub prefix:<^>(Any --> Range:D)
 
 I<upto> operator.X<|upto operator>
 
@@ -892,9 +889,7 @@ excluding) the argument.
 
 =head2 infix C«*»
 
-=begin code :skip-test
-multi sub infix:<*>(Any, Any) returns Numeric:D
-=end code
+    multi sub infix:<*>(Any, Any --> Numeric:D)
 
 X<Multiplication operator>.
 
@@ -903,9 +898,7 @@ is of the wider type. See L<Numeric> for details.
 
 =head2 infix C«/»
 
-=begin code :skip-test
-multi sub infix:</>(Any, Any) returns Numeric:D
-=end code
+    multi sub infix:</>(Any, Any --> Numeric:D)
 
 X<Division operator>.
 
@@ -915,17 +908,13 @@ rule described in L<Numeric> holds.
 
 =head2 infix C«div»
 
-=begin code :skip-test
-multi sub infix:<div>(Int:D, Int:D) returns Int:D
-=end code
+    multi sub infix:<div>(Int:D, Int:D --> Int:D)
 
 X<Integer division operator>. Rounds down.
 
 =head2 infix C«%»
 
-=begin code :skip-test
-multi sub infix:<%>($x, $y) return Numeric:D
-=end code
+    multi sub infix:<%>($x, $y --> Numeric:D)
 
 X<Modulo operator>. Coerces to L<Numeric> first.
 
@@ -936,42 +925,32 @@ Generally the following identity holds:
 
 =head2 infix C«%%»
 
-=begin code :skip-test
-multi sub infix:<%%>($a, $b) returns Bool:D
-=end code
+    multi sub infix:<%%>($a, $b --> Bool:D)
 
 X<Divisibility operator>. Returns C<True> if C<$a %  $b == 0>.
 
 =head2 infix C«mod»
 
-=begin code :skip-test
-multi sub infix:<mod>(Int:D $a, Int:D $b) returns Int:D
-=end code
+    multi sub infix:<mod>(Int:D $a, Int:D $b --> Int:D)
 
 X<Integer modulo operator>. Returns the remainder of an integer modulo operation.
 
 =head2 infix C«+&»
 
-=begin code :skip-test
-multi sub infix:<+&>($a, $b) returns Int:D
-=end code
+    multi sub infix:<+&>($a, $b --> Int:D)
 
 Numeric bitwise I<AND> operator. Coerces both arguments to L<Int> and does a bitwise
 I<AND> operation assuming two's complement.X<|Numeric bitwise AND operator>
 
 =head2 infix C«+<»
 
-=begin code :skip-test
-multi sub infix:<< +< >>($a, $b) returns Int:D
-=end code
+    multi sub infix:<< +< >>($a, $b --> Int:D)
 
 Integer bit shift to the left.X<|integer bit shift operator,left>
 
 =head2 infix C«+>»
 
-=begin code :skip-test
-multi sub infix:<< +> >>($a, $b) returns Int:D
-=end code
+    multi sub infix:<< +> >>($a, $b --> Int:D)
 
 Integer bit shift to the right.X<|integer bit shift operator,right>
 
@@ -997,17 +976,13 @@ Please note that this has not yet been implemented.
 
 =head2 infix C«gcd»
 
-=begin code :skip-test
-multi sub infix:<gcd>($a, $b) returns Int:D
-=end code
+    multi sub infix:<gcd>($a, $b --> Int:D)
 
 Coerces both arguments to L<Int> and returns the greatest common divisor.X<|greatest common divisor operator>
 
 =head2 infix C«lcm»
 
-=begin code :skip-test
-multi sub infix:<lcm>($a, $b) returns Int:D
-=end code
+    multi sub infix:<lcm>($a, $b --> Int:D)
 
 Coerces both arguments to L<Int> and returns the least common multiple, that is
 the smallest integer that is evenly divisible by both arguments.X<|least common multiple operator>
@@ -1016,9 +991,7 @@ the smallest integer that is evenly divisible by both arguments.X<|least common 
 
 =head2 infix C«+»
 
-=begin code :skip-test
-multi sub infix:<+>($a, $b) returns Numeric:D
-=end code
+    multi sub infix:<+>($a, $b --> Numeric:D)
 
 X<Addition operator>.
 
@@ -1026,9 +999,7 @@ Coerces both arguments to L<Numeric> and adds them.
 
 =head2 infix C«-»
 
-=begin code :skip-test
-multi sub infix:<->($a, $b) returns Numeric:D
-=end code
+    multi sub infix:<->($a, $b --> Numeric:D)
 
 X<Subtraction operator>.
 
@@ -1037,9 +1008,7 @@ first.
 
 =head2 infix C«+|»
 
-=begin code :skip-test
-multi sub infix:<+|>($a, $b) returns Int:D
-=end code
+    multi sub infix:<+|>($a, $b --> Int:D)
 
 X<Integer bitwise OR operator>.
 
@@ -1048,9 +1017,7 @@ operation.
 
 =head2 infix C«+^»
 
-=begin code :skip-test
-multi sub infix:<+^>($a, $b) returns Int:D
-=end code
+    multi sub infix:<+^>($a, $b --> Int:D)
 
 X<Integer bitwise XOR operator>.
 
@@ -1071,9 +1038,7 @@ shorter buffer with zeroes.
 
 =head2 infix C«?|»
 
-=begin code :skip-test
-multi sub infix:<?|>($a, $b) returns Bool:D
-=end code
+    multi sub infix:<?|>($a, $b --> Bool:D)
 
 X<Boolean logical OR operator>.
 
@@ -1084,9 +1049,7 @@ operation.
 
 =head2 infix C«x»
 
-=begin code :skip-test
-sub infix:<x>($a, $b) returns Str:D
-=end code
+    sub infix:<x>($a, $b --> Str:D)
 
 X<String repetition operator>.
 
@@ -1102,9 +1065,7 @@ and C<$b> L«C<Int>|/type/Int». Returns an empty string if C<< $b <= 0 >>.
 
 =head2 infix C«xx»
 
-=begin code :skip-test
-multi sub infix:<xx>($a, $b) returns List:D
-=end code
+    multi sub infix:<xx>($a, $b --> List:D)
 
 X<List repetition operator>.
 
@@ -1129,11 +1090,8 @@ is returned.
 
 =head2 infix C«~»
 
-=begin code :skip-test
-proto sub infix:<~>(Any, Any) returns Str:D
-multi sub infix:<~>(Any,   Any)
-multi sub infix:<~>(Str:D, Str:D)
-=end code
+    multi sub infix:<~>(Any,   Any)
+    multi sub infix:<~>(Str:D, Str:D)
 
 X<String concatenation operator>.
 
@@ -1145,9 +1103,7 @@ Coerces both arguments to L<Str> and concatenates them.
 
 =head2 infix C«&»
 
-=begin code :skip-test
-multi sub infix:<&>($a, $b) returns Junction:D is assoc<list>
-=end code
+    multi sub infix:<&>($a, $b --> Junction:D) is assoc<list>
 
 X<All junction operator>.
 
@@ -1158,9 +1114,7 @@ details.
 
 =head2 infix C«|»
 
-=begin code :skip-test
-multi sub infix:<|>($a, $b) returns Junction:D is assoc<list>
-=end code
+    multi sub infix:<|>($a, $b --> Junction:D) is assoc<list>
 
 X<Any junction operator>.
 
@@ -1169,9 +1123,7 @@ details.
 
 =head2 infix C«^»
 
-=begin code :skip-test
-multi sub infix:<^>($a, $b) returns Junction:D is assoc<list>
-=end code
+    multi sub infix:<^>($a, $b --> Junction:D) is assoc<list>
 
 X<One junction operator>.
 
@@ -1182,9 +1134,7 @@ details.
 
 =head2 prefix C«temp»
 
-=begin code :skip-test
-sub prefix:<temp>(Mu $a is rw)
-=end code
+    sub prefix:<temp>(Mu $a is rw)
 
 "temporizes" the variable passed as the argument. The variable begins
 with the same value as it had in the outer scope, but can be assigned
@@ -1203,13 +1153,13 @@ restored to its original value.
 
 Note that you can also assign immediately as part of the call to temp:
 
+    =begin code :skip-test
     temp $a = "five";
+    =end code
 
 =head2 prefix C«let»
 
-=begin code :skip-test
-sub prefix:<let>(Mu $a is rw)
-=end code
+    sub prefix:<let>(Mu $a is rw)
 
 Restores the previous value if the block exits unsuccessfully. A
 successful exit means the block returned a defined value or a list.
@@ -1238,9 +1188,7 @@ unsuccessfully, resetting the answer to 42.
 
 =head2 infix C«does»
 
-=begin code :skip-test
-sub infix:<does>(Mu $obj, Mu $role) is assoc<non>
-=end code
+    sub infix:<does>(Mu $obj, Mu $role) is assoc<non>
 
 Mixes C<$role> into C<$obj> at run time. Requires C<$obj> to be mutable.
 
@@ -1252,10 +1200,8 @@ precedence.
 
 =head2 infix C«but»
 
-=begin code :skip-test
-sub infix:<but>(Mu $obj, Mu  $role) is assoc<non>
-sub infix:<but>(Mu $obj, Mu:D $obj) is assoc<non>
-=end code
+    multi sub infix:<but>(Mu $obj1, Mu   $role) is assoc<non>
+    multi sub infix:<but>(Mu $obj1, Mu:D $obj2) is assoc<non>
 
 Creates a copy of C<$obj> with C<$role> mixed in. Since C<$obj> is not
 modified, C<but> can be used to created immutable values with mixins.
@@ -1276,13 +1222,10 @@ comma. In this case conflicts will be reported at runtime.
 
 =head2 infix C«cmp»
 
-=begin code :skip-test
-proto sub infix:<cmp>(Any, Any) returns Order:D is assoc<non>
-multi sub infix:<cmp>(Any,       Any)
-multi sub infix:<cmp>(Real:D,    Real:D)
-multi sub infix:<cmp>(Str:D,     Str:D)
-multi sub infix:<cmp>(Version:D, Version:D)
-=end code
+    multi sub infix:<cmp>(Any,       Any)
+    multi sub infix:<cmp>(Real:D,    Real:D)
+    multi sub infix:<cmp>(Str:D,     Str:D)
+    multi sub infix:<cmp>(Version:D, Version:D)
 
 X<Generic, "smart" three-way comparator>.
 
@@ -1297,27 +1240,20 @@ if C<$a eqv $b>, then C<$a cmp $b> always returns C<Order::Same>.
 
 =head2 infix C«leg»
 
-=begin code :skip-test
-proto sub infix:<leg>($a, $b) returns Order:D is assoc<non>
-multi sub infix:<leg>(Any,   Any)
-multi sub infix:<leg>(Str:D, Str:D)
-=end code
+    multi sub infix:<leg>(Any,   Any)
+    multi sub infix:<leg>(Str:D, Str:D)
 
 X<String three-way comparator>. Short for I<less, equal or greater?>.
 
 Coerces both arguments to L<Str>, and then does a lexicographic comparison.
 
-=begin code :skip-test
-say 'a' leg 'b';        Less
-say 'a' leg 'a';        Same
-say 'b' leg 'a';        More
-=end code
+    say 'a' leg 'b';       # Less
+    say 'a' leg 'a';       # Same
+    say 'b' leg 'a';       # More
 
 =head2 infix C«<=>»
 
-=begin code :skip-test
-multi sub infix:«<=>»($a, $b) returns Order:D is assoc<non>
-=end code
+    multi sub infix:«<=>»($a, $b --> Order:D) is assoc<non>
 
 X<Numeric three-way comparator>.X<|spaceship operator>
 
@@ -1325,9 +1261,7 @@ Coerces both arguments to L<Real>, and then does a numeric comparison.
 
 =head2 infix C«..»
 
-=begin code :skip-test
-multi sub infix:<..>($a, $b) returns Range:D is assoc<non>
-=end code
+    multi sub infix:<..>($a, $b --> Range:D) is assoc<non>
 
 X<Range operator>
 
@@ -1335,9 +1269,7 @@ Constructs a L<Range> from the arguments.
 
 =head2 infix C«..^»
 
-=begin code :skip-test
-multi sub infix:<..^>($a, $b) returns Range:D is assoc<non>
-=end code
+    multi sub infix:<..^>($a, $b --> Range:D) is assoc<non>
 
 X<Right-open range operator>.
 
@@ -1345,9 +1277,7 @@ Constructs a L<Range> from the arguments, excluding the end point.
 
 =head2 infix C«^..»
 
-=begin code :skip-test
-multi sub infix:<^..>($a, $b) returns Range:D is assoc<non>
-=end code
+    multi sub infix:<^..>($a, $b --> Range:D) is assoc<non>
 
 X<Left-open range operator>.
 
@@ -1355,9 +1285,7 @@ Constructs a L<Range> from the arguments, excluding the start point.
 
 =head2 infix C«^..^»
 
-=begin code :skip-test
-multi sub infix:<^..^>($a, $b) returns Range:D is assoc<non>
-=end code
+    multi sub infix:<^..^>($a, $b --> Range:D) is assoc<non>
 
 X<Open range operator>
 
@@ -1367,16 +1295,13 @@ Constructs a L<Range> from the arguments, excluding both start and end point.
 
 =head2 infix C«==»
 
-=begin code :skip-test
-proto sub infix:<==>($, $) returns Bool:D is assoc:<chain>
-multi sub infix:<==>(Any, Any)
-multi sub infix:<==>(Int:D, Int:D)
-multi sub infix:<==>(Num:D, Num:D)
-multi sub infix:<==>(Rational:D, Rational:D)
-multi sub infix:<==>(Real:D, Real:D)
-multi sub infix:<==>(Complex:D, Complex:D)
-multi sub infix:<==>(Numeric:D, Numeric:D)
-=end code
+    multi sub infix:<==>(Any, Any)
+    multi sub infix:<==>(Int:D, Int:D)
+    multi sub infix:<==>(Num:D, Num:D)
+    multi sub infix:<==>(Rational:D, Rational:D)
+    multi sub infix:<==>(Real:D, Real:D)
+    multi sub infix:<==>(Complex:D, Complex:D)
+    multi sub infix:<==>(Numeric:D, Numeric:D)
 
 X<Numeric equality operator>.
 
@@ -1385,9 +1310,7 @@ if they are equal.
 
 =head2 infix C«!=»
 
-=begin code :skip-test
-proto sub infix:<!=>(Mu, Mu) returns Bool:D is assoc<chain>
-=end code
+    sub infix:<!=>(Mu, Mu --> Bool:D)
 
 X<Numeric inequality operator>.
 
@@ -1396,12 +1319,9 @@ distinct.
 
 =head2 infix C«<»
 
-=begin code :skip-test
-proto sub infix:«<»(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:«<»(Int:D, Int:D)
-multi sub infix:«<»(Num:D, Num:D)
-multi sub infix:«<»(Real:D, Real:D)
-=end code
+    multi sub infix:«<»(Int:D, Int:D)
+    multi sub infix:«<»(Num:D, Num:D)
+    multi sub infix:«<»(Real:D, Real:D)
 
 X<Numeric less than operator>.
 
@@ -1410,13 +1330,9 @@ is smaller than the second.
 
 =head2 infix C«<=»
 
-=begin code :skip-test
-proto sub infix:«<=»(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:«<=»(Int:D, Int:D)
-multi sub infix:«<=»(Num:D, Num:D)
-multi sub infix:«<=»(Real:D, Real:D)
-=end code
-
+    multi sub infix:«<=»(Int:D, Int:D)
+    multi sub infix:«<=»(Num:D, Num:D)
+    multi sub infix:«<=»(Real:D, Real:D)
 
 X<Numeric less than or equal to operator>.
 
@@ -1426,12 +1342,9 @@ is smaller than or equal to the second.
 
 =head2 infix C«>»
 
-=begin code :skip-test
-proto sub infix:«>»(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:«>»(Int:D, Int:D)
-multi sub infix:«>»(Num:D, Num:D)
-multi sub infix:«>»(Real:D, Real:D)
-=end code
+    multi sub infix:«>»(Int:D, Int:D)
+    multi sub infix:«>»(Num:D, Num:D)
+    multi sub infix:«>»(Real:D, Real:D)
 
 X<Numeric greater than operator>.
 
@@ -1440,12 +1353,9 @@ is larger than the second.
 
 =head2 infix C«>=»
 
-=begin code :skip-test
-proto sub infix:«>=»(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:«>=»(Int:D, Int:D)
-multi sub infix:«>=»(Num:D, Num:D)
-multi sub infix:«>=»(Real:D, Real:D)
-=end code
+    multi sub infix:«>=»(Int:D, Int:D)
+    multi sub infix:«>=»(Num:D, Num:D)
+    multi sub infix:«>=»(Real:D, Real:D)
 
 X<Numeric greater than or equal to operator>.
 
@@ -1454,11 +1364,8 @@ the first argument is larger than or equal to the second.
 
 =head2 infix C«eq»
 
-=begin code :skip-test
-proto sub infix:<eq>(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:<eq>(Any,   Any)
-multi sub infix:<eq>(Str:D, Str:D)
-=end code
+    multi sub infix:<eq>(Any,   Any)
+    multi sub infix:<eq>(Str:D, Str:D)
 
 X<String equality operator>.
 
@@ -1469,11 +1376,8 @@ Mnemonic: I<equal>
 
 =head2 infix C«ne»
 
-=begin code :skip-test
-proto sub infix:<ne>(Mu, Mu) returns Bool:D is assoc<chain>
-multi sub infix:<ne>(Mu,    Mu)
-multi sub infix:<ne>(Str:D, Str:D)
-=end code
+    multi sub infix:<ne>(Mu,    Mu)
+    multi sub infix:<ne>(Str:D, Str:D)
 
 X<String inequality operator>.
 
@@ -1484,11 +1388,8 @@ Mnemonic: I<not equal>
 
 =head2 infix C«gt»
 
-=begin code :skip-test
-proto sub infix:<gt>(Mu, Mu) returns Bool:D is assoc<chain>
-multi sub infix:<gt>(Mu,    Mu)
-multi sub infix:<gt>(Str:D, Str:D)
-=end code
+    multi sub infix:<gt>(Mu,    Mu)
+    multi sub infix:<gt>(Str:D, Str:D)
 
 X<String greater than operator>.
 
@@ -1500,11 +1401,8 @@ Mnemonic: I<greater than>
 
 =head2 infix C«ge»
 
-=begin code :skip-test
-proto sub infix:<ge>(Mu, Mu) returns Bool:D is assoc<chain>
-multi sub infix:<ge>(Mu,    Mu)
-multi sub infix:<ge>(Str:D, Str:D)
-=end code
+    multi sub infix:<ge>(Mu,    Mu)
+    multi sub infix:<ge>(Str:D, Str:D)
 
 X<String greater than or equal to operator>.
 
@@ -1516,11 +1414,8 @@ Mnemonic: I<greater or equal>
 
 =head2 infix C«lt»
 
-=begin code :skip-test
-proto sub infix:<lt>(Mu, Mu) returns Bool:D is assoc<chain>
-multi sub infix:<lt>(Mu,    Mu)
-multi sub infix:<lt>(Str:D, Str:D)
-=end code
+    multi sub infix:<lt>(Mu,    Mu)
+    multi sub infix:<lt>(Str:D, Str:D)
 
 X<String less than operator>.
 
@@ -1532,11 +1427,8 @@ Mnemonic: I<less than>
 
 =head2 infix C«le»
 
-=begin code :skip-test
-proto sub infix:<le>(Mu, Mu) returns Bool:D is assoc<chain>
-multi sub infix:<le>(Mu,    Mu)
-multi sub infix:<le>(Str:D, Str:D)
-=end code
+    multi sub infix:<le>(Mu,    Mu)
+    multi sub infix:<le>(Str:D, Str:D)
 
 X<String less than or equal to operator>.
 
@@ -1548,36 +1440,27 @@ Mnemonic: I<less or equal>
 
 =head2 infix C«before»
 
-=begin code :skip-test
-proto sub infix:<before>(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:<before>(Any,       Any)
-multi sub infix:<before>(Real:D,    Real:D)
-multi sub infix:<before>(Str:D,     Str:D)
-multi sub infix:<before>(Version:D, Version:D)
-=end code
+    multi sub infix:<before>(Any,       Any)
+    multi sub infix:<before>(Real:D,    Real:D)
+    multi sub infix:<before>(Str:D,     Str:D)
+    multi sub infix:<before>(Version:D, Version:D)
 
 Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
 Returns C<True> if the first argument is smaller than the second.
 
 =head2 infix C«after»
 
-=begin code :skip-test
-proto sub infix:<after>(Any, Any) returns Bool:D is assoc<chain>
-multi sub infix:<after>(Any,       Any)
-multi sub infix:<after>(Real:D,    Real:D)
-multi sub infix:<after>(Str:D,     Str:D)
-multi sub infix:<after>(Version:D, Version:D)
-=end code
+    multi sub infix:<after>(Any,       Any)
+    multi sub infix:<after>(Real:D,    Real:D)
+    multi sub infix:<after>(Str:D,     Str:D)
+    multi sub infix:<after>(Version:D, Version:D)
 
 Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
 Returns C<True> if the first argument is larger than the second.
 
 =head2 infix C«eqv»
 
-=begin code :skip-test
-proto sub infix:<eqv>(Any, Any) returns Bool:D is assoc<chain>
-proto sub infix:<eqv>(Any, Any)
-=end code
+    sub infix:<eqv>(Any, Any)
 
 X<Equivalence operator>. Returns C<True> if the two arguments are structurally
 the same, i.e. from the same type and (recursively) contain the same values.
@@ -1608,10 +1491,7 @@ implement an appropriate infix C<eqv> operator:
 
 =head2 infix C«===»
 
-=begin code :skip-test
-proto sub infix:<===>(Any, Any) returns Bool:D is assoc<chain>
-proto sub infix:<===>(Any, Any)
-=end code
+    sub infix:<===>(Any, Any)
 
 X<Value identity operator>. Returns C<True> if both arguments are the same object.
 
@@ -1634,10 +1514,7 @@ types must override method C<WHICH>.
 
 =head2 infix C«=:=»
 
-=begin code :skip-test
-proto sub infix:<=:=>(Mu \a, Mu \b) returns Bool:D is assoc<chain>
-multi sub infix:<=:=>(Mu \a, Mu \b)
-=end code
+    multi sub infix:<=:=>(Mu \a, Mu \b)
 
 X<Container identity operator>. Returns C<True> if both arguments are bound to the same
 container. If it returns C<True>, it generally means that modifying one will
@@ -1675,16 +1552,13 @@ Here is an excerpt of built-in smart-matching functionality:
 
 =head2 infix C<=~=>
 
-=begin code :skip-test
-proto sub infix:<=~=>($, $) returns Bool:D is assoc:<chain>
-multi sub infix:<=~=>(Any, Any)
-multi sub infix:<=~=>(Int:D, Int:D)
-multi sub infix:<=~=>(Num:D, Num:D)
-multi sub infix:<=~=>(Rational:D, Rational:D)
-multi sub infix:<=~=>(Real:D, Real:D)
-multi sub infix:<=~=>(Complex:D, Complex:D)
-multi sub infix:<=~=>(Numeric:D, Numeric:D)
-=end code
+    multi sub infix:<=~=>(Any, Any)
+    multi sub infix:<=~=>(Int:D, Int:D)
+    multi sub infix:<=~=>(Num:D, Num:D)
+    multi sub infix:<=~=>(Rational:D, Rational:D)
+    multi sub infix:<=~=>(Real:D, Real:D)
+    multi sub infix:<=~=>(Complex:D, Complex:D)
+    multi sub infix:<=~=>(Numeric:D, Numeric:D)
 
 The X<approximately-equal operator|infix, ≅>. Calculates the relative difference between
 the left-hand and right-hand sides and returns C<True> if the difference is
@@ -1800,9 +1674,7 @@ returns the C<$false> branch.
 
 =head2 infix C«ff»
 
-=begin code :skip-test
-sub infix:<ff>(Mu $a, Mu $b)
-=end code
+    sub infix:<ff>(Mu $a, Mu $b)
 
 X<Flipflop operator>.
 
@@ -1855,9 +1727,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«^ff»
 
-=begin code :skip-test
-sub infix:<^ff>(Mu $a, Mu $b)
-=end code
+    sub infix:<^ff>(Mu $a, Mu $b)
 
 Works like L<C<ff>>, except it does not return C<True> for items matching the
 start condition (including items also matching the stop condition).
@@ -1874,9 +1744,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«ff^»
 
-=begin code :skip-test
-sub infix:<ff^>(Mu $a, Mu $b)
-=end code
+    sub infix:<ff^>(Mu $a, Mu $b)
 
 Works like L<C<ff>>, except it does not return C<True> for items matching the
 stop condition (including items that first matched the start condition).
@@ -1891,9 +1759,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«^ff^»
 
-=begin code :skip-test
-sub infix:<^ff^>(Mu $a, Mu $b)
-=end code
+    sub infix:<^ff^>(Mu $a, Mu $b)
 
 Works like L<C<ff>>, except it does not return C<True> for items matching either
 the stop or start condition (or both).
@@ -1908,9 +1774,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«fff»
 
-=begin code :skip-test
-sub infix:<fff>(Mu $a, Mu $b)
-=end code
+    sub infix:<fff>(Mu $a, Mu $b)
 
 Performs a sed-like flipflop operation, wherein it returns C<False> until the
 left argument smartmatches against C<$_>, and after that returns C<True> until
@@ -1932,9 +1796,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«^fff»
 
-=begin code :skip-test
-sub infix:<^fff>(Mu $a, Mu $b)
-=end code
+    sub infix:<^fff>(Mu $a, Mu $b)
 
 Like L<C<fff>>, except it does not return true for matches to the left argument.
 
@@ -1948,9 +1810,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«fff^»
 
-=begin code :skip-test
-sub infix:<fff^>(Mu $a, Mu $b)
-=end code
+    sub infix:<fff^>(Mu $a, Mu $b)
 
 Like L<C<fff>>, except it does not return true for matches to the right argument.
 
@@ -1964,9 +1824,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head2 infix C«^fff^»
 
-=begin code :skip-test
-sub infix:<^fff^>(Mu $a, Mu $b)
-=end code
+    sub infix:<^fff^>(Mu $a, Mu $b)
 
 Like L<C<fff>>, except it does not return true for matches to either the left or
 right argument.
@@ -1998,9 +1856,7 @@ C<=> is parsed as item assignment or list assignment operator).
 
 =head2 infix C«=>»
 
-=begin code :skip-test
-sub infix:«=>»($key, Mu $value) returns Pair:D
-=end code
+    sub infix:«=>»($key, Mu $value --> Pair:D)
 
 L<Pair> constructor.X<|pair constructor>
 
@@ -2024,9 +1880,7 @@ create C<Pair> objects.
 
 =head2 prefix C«not»
 
-=begin code :skip-test
-multi sub prefix:<not>(Mu $x) returns Bool:D
-=end code
+    multi sub prefix:<not>(Mu $x --> Bool:D)
 
 Evaluates its argument in boolean context (and thus collapses L<Junction>s),
 and negates the result. Please note that C<not> is easy to misuse, see
@@ -2035,9 +1889,7 @@ L<traps|/language/traps#Loose_boolean_operators>.
 
 =head2 prefix C«so»
 
-=begin code :skip-test
-multi sub prefix:<so>(Mu $x) returns Bool:D
-=end code
+    multi sub prefix:<so>(Mu $x --> Bool:D)
 
 Evaluates its argument in boolean context (and thus collapses L<Junction>s),
 and returns the result.
@@ -2046,9 +1898,7 @@ and returns the result.
 
 =head2 infix C«,»
 
-=begin code :skip-test
-sub infix:<,>(*@a) is assoc<list> returns List:D
-=end code
+    sub infix:<,>(*@a --> List:D) is assoc<list>
 
 Constructs a L<List> from its arguments. Also used syntactically as the
 separator of arguments in calls.
@@ -2059,9 +1909,7 @@ Used as an argument separator just like infix C<,> and marks the argument to
 its left as the invocant. That turns what would otherwise be a function call
 into a method call.
 
-=begin code :skip-test
-substr('abc': 1);       # same as 'abc'.substr(1)
-=end code
+    substr('abc': 1);       # same as 'abc'.substr(1)
 
 Infix C<:> is only allowed after the first argument of a non-method call. In
 other positions it's a syntax error.
@@ -2070,9 +1918,7 @@ other positions it's a syntax error.
 
 =head2 infix C«Z»
 
-=begin code :skip-test
-sub infix:<Z>(**@lists) returns Seq:D is assoc<chain>
-=end code
+    sub infix:<Z>(**@lists --> Seq:D) is assoc<chain>
 
 X<Zip operator>.
 
@@ -2084,7 +1930,7 @@ values for all C<Z> operators in a chain.
     for <a b c> Z <1 2 3> -> [$l, $r] {
         say "$l:$r"
     }
-    OUTPUT«a:1␤b:2␤c:3␤»
+    # OUTPUT: «a:1␤b:2␤c:3␤»
 
 The C<Z> operator also exists as a meta operator, in which case the inner
 lists are replaced by the value from applying the operator to the
@@ -2095,9 +1941,7 @@ list:
 
 =head2 infix C«X»
 
-=begin code :skip-test
-sub infix:<X>(**@lists) returns List:D is assoc<chain>
-=end code
+    sub infix:<X>(**@lists --> List:D)
 
 Creates a cross product from all the lists, order so that the rightmost
 elements vary most rapidly:X<|cross product operator>
@@ -2117,10 +1961,8 @@ list:
 =head2 infix C«...»
 X<|...,operators>X<|…,operators>X<|lazy list,…>
 
-=begin code :skip-test
-multi sub infix:<...>(**@) is assoc<list>
-multi sub infix:<...^>(**@) is assoc<list>
-=end code
+    multi sub infix:<...>(**@) is assoc<list>
+    multi sub infix:<...^>(**@) is assoc<list>
 
 The X<sequence operator> is a generic operator to produce lazy lists.
 
@@ -2266,12 +2108,8 @@ that reduces using that operation.
 
 Reduction operators have the same associativity as the operators they are based on.
 
-=begin code
-
-say [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
-say [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
-
-=end code
+    say [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
+    say [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
 
 =head1 Loose AND precedence
 
