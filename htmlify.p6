@@ -176,7 +176,7 @@ sub MAIN(
             warn-user Q/"\$*DISTRO == macos, so Proc::Async will not be used.
             due to freezes from using Proc::Async.
             For more info see Issue #1129/;
-            $no-proc-async = True;
+            $no-proc-async := True;
         }
         if $no-proc-async {
             warn-user "Proc::Async is disabled, this build will take a very long time.";
