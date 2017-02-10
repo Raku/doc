@@ -87,9 +87,50 @@ that specifically test for definedness.
 
 =head2 Data Definitions
 
-class Point { has x } vs data Point = Point x y
+Perl6 is fundamentally an Object Oriented language. However, it also gives you the freedom
+to write in virtually any paradigm you wish. If you only want to pure functions that take an
+object and return a new object, you can certainly do so.
+
+Here is a Haskell code example:
+
+    data Point = Point x y
+    
+    moveUp :: Point -> Point
+    moveUp (Point x y) = Point x (y + 1)
+    
+And an equivalent Perl6 example:
+
+    class Point { has $.x; has $.y; }
+    
+    sub move-up(Point $p --> Point) {
+      Point.new(x => $p.x, y => $p.y + 1)
+    }
 
 =head2 Type Aliases and Subsets
+
+In Haskell, you can alias an existing type to simply increase clarity of intent and re-use
+existing types.
+
+    alias Name = String
+    
+    fullName :: Name -> Name -> Name
+    fullName first last = first ++ last
+    
+In Perl6, this is called a subset, as in a subset of an existing type.
+
+    subset Name of String;
+    
+    sub full-name(Name $first, Name $last) {
+      $first ~ $last
+    }
+    
+But subsets do not stop at aliases in Perl6. They are much more powerful. You are able to
+add further constraints like the following:
+
+    subset Name of String where { *.chars < 20 }
+    
+    full-name("12345678901234567890111", "Smith") # This does not compile, as the first parameter
+                                                  # doesn't fit the Name type 
 
 =head1 Functions
 
@@ -97,7 +138,31 @@ class Point { has x } vs data Point = Point x y
 
 =Multiple Dispatch
 
+Haskell makes heavy use of multiple dispatch in function definitions.
+
+    greeting :: String -> String
+    greeting ""    = "Hello, World!"
+    greeting "bub" = "Hey bub."
+    greeting name  = "Hello, " ++ name ++ "!"
+    
+Perl6 does this as well! You just use the `multi` keyword to signify that it is multiple dispatch.
+
+    proto greetign(Str $name --> Str) {*}
+    multi greeting('')        {'Hello, World!'}
+    multi greeting('bub')     {'Hey, bub.'}
+    multi greeting(Str $name) {"Hello, $name!"}
+    
+An interesting thing to note in the Perl6 code above is that passing values like `'bub'` is just
+syntax sugar for a `where` guard.    
+
 =Guards
+
+Using the example from the "Multiple Dispatch" section of this page, you can see the guards that are
+used behind the scenes to constrain our function arguments.
+
+    multi greeting(Str $name where { * ~~ '' }) {'Hello, World!'}
+    multi greeting(Str $name where { 'bub' })   {'Hey, bub.'}
+    multi greeting(Str $name)                   {"Hello, $name!"}
 
 =Argument Deconstruction
 
