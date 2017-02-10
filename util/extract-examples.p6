@@ -23,6 +23,7 @@ multi sub walk(Pod::Block::Code $_, @context is copy) {
         if ($content.lines.».trim.map( {(.starts-with('multi')  ||
                                          .starts-with('method') ||
                                          .starts-with('proto')  ||
+                                         .starts-with('only')   ||
                                          .starts-with('sub'))   &&
                                         (not .ends-with('}'))} ).all) {
             $content = $content.subst("\n", " \{\}\n", :g) ~ ' {' ~ '}';
@@ -50,9 +51,13 @@ my &verbose = sub (|c) {};
 
 sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v)), Bool :$force, *@files) {
     my \exclude = none(flat <. ..>, $exclude.split(','));
+    # We exclude these files from examples list
+    my @exclude-list = '5to6', 'rb', 'module', 'nativecall', 'testing', 'traps', 'packages';
 
     @files ||= gather for $source-path {
-        take .IO when .IO.f && .Str.ends-with('.pod6');
+        take .IO when .IO.f
+                      && .Str.ends-with('.pod6')
+                      && !.basename.starts-with(any @exclude-list);
         .IO.dir(test => exclude)».&?BLOCK when .IO.d
     }
 

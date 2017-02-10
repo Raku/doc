@@ -10,9 +10,7 @@ these features may be made part of the Perl 6 specification.  To use these
 features, one uses the C<experimental> pragma in program source code, for
 example, like this:
 
-=begin code
-use experimental :macros;
-=end code
+    use experimental :macros;
 
 Following is a list of current experimental features and a short
 description of each feature's purpose or a link to more details about
@@ -27,5 +25,58 @@ not yet rendered properly.
 =item X<B<macros>|macros> [TBD]
 
 =item X<B<pack>|pack> [TBD]
+
+=head1 Collation
+
+Is available in release 2017.02. To use:
+
+    use experimental :collation;
+
+Allows the use of the X<B<unicmp>|unicmp, Routine> and X<B<coll>|coll, method> operators.
+Also allows the use of the X<B<collate>|collate> method. unicmp and coll are like cmp, except
+it implements the Unicode Collation Algorithm.
+
+B<coll> and the B<collate> method are affected by the X<B<$*COLLATION>|$*COLLATION>
+variable, while B<unicmp> is not.
+Unlike the cmp operator which sorts according to codepoint, B<unicmp> and
+B<coll> sort according to how most users would expect.
+
+    use experimental :collation;
+    say 'a' unicmp 'Z'; # Less
+    say 'a' cmp 'Z'; # More
+
+B<coll> and the B<collate> method are both configurable by setting the
+B<$*COLLATION> variable.
+
+=head2 collate (method)
+
+You can use the collate method similar to how one would use the B<sort> method.
+
+    use experimental :collation;
+    say ('a', 'Z').sort; # (Z a)
+    say ('a', 'Z').collate; # (a Z)
+    say <ä a o ö>.collate; # (a ä o ö)
+    my %hash = 'aa' => 'value', 'Za' => 'second';
+    say %hash.collate; # (aa => value Za => second);
+
+=head2 Collation Levels
+
+There are four collation levels which are all configurable.
+
+While the Primary, Secondary and Tertiary mean different things for different
+scripts, for the Latin script used in English they mostly correspond with
+Primary being Alphabetic, Secondary being Diacritics and Tertiary being Case.
+
+In the below example you can see how when we disable tertiary collation which in
+Latin script generally is for case, and also disable quaternary which breaks
+any ties by checking the codepoint values of the strings, we get B<Same> back
+for B<A> and B<a>:
+
+    use experimental :collation;
+    $*COLLATION.set(:quaternary(False), :tertiary(False));
+    say 'a' coll 'A'; # Same
+
+B<Note the collation features, especially the $*COLLATION API could change
+at any time>
 
 =end pod
