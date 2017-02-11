@@ -288,11 +288,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         }
 
         if $num %% $parallel {
-            await(@pod-files);
+            await Promise.allof: @pod-files;
             @pod-files = ();
         }
 
-        LAST await(@pod-files);
+        LAST await Promise.allof: @pod-files;
     }
 }
 
@@ -695,13 +695,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await(@type-graph-images);
+            await Promise.allof: @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await(@type-graph-images);
+        LAST await Promise.allof: @type-graph-images;
     }
     say '';
 
@@ -718,11 +718,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await(@specialized-visualizations);
+            await Promise.allof: @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        LAST await(@specialized-visualizations);
+        LAST await Promise.allof: @specialized-visualizations;
     }
 }
 
