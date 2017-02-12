@@ -82,11 +82,11 @@ Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
     =head2 method do-it
 
-        method do-it(Int $how-often) returns Nil:D
+        method do-it(Int $how-often --> Nil:D)
 
     Method description here
 
-        MyFunnyRole.do-it(2);   # example output
+        MyFunnyRole.do-it(2);   # OUTPUT: «example output␤»
 
 
 When documenting a pair of a sub and a method which both do the same thing, the
@@ -95,6 +95,15 @@ more lines with the signatures. Other allowed words instead of `method` are
 `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`, `postcircumfix`,
 `term`. If you wish to hide a heading from any index prefix it with the empty
 comment `Z<>`.
+
+When providing a code example result or output, use this style:
+
+    # For the result of an expression.
+    1 + 2;     # RESULT: «3»
+    # For the output.
+    say 1 + 3; # OUTPUT: «3␤»
+    # For the explanatory comment
+    do-work;   # We call do-work sub
 
 ## Running tests
 
