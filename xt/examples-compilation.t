@@ -5,7 +5,7 @@ use File::Find;
 
 # Extract examples
 chdir $?FILE.IO.dirname.IO.dirname;
-my $p1 = run 'make', 'extract-examples';
+my $p1 = shell 'perl6 util/extract-examples.p6 --source-path=./doc/ --prefix=./examples/';
 chdir 'examples';
 
 my @files = find(dir => '.',
