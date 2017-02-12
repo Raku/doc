@@ -25,15 +25,15 @@ In Haskell, you have type level programming and then value level programming.
 
 You do not mix types and values in Haskell like the below
 
-    plusTwo 2          -- This works
-    plusTwo Integer    -- This does not work
+    plusTwo 2          -- This is valid
+    plusTwo Integer    -- This is not valid
     
 In Perl6, types (AKA type objects) can live on the same level as values
 
     sub plus-two(Int $x --> Int) { $x + 2 }
     
-    plus-two(2)    # This works
-    plus-two(Int)  # This works
+    plus-two(2)    # This is valid
+    plus-two(Int)  # This is valid
     
 I will illustrate this unique aspect of Perl6 with one more example:
 
@@ -55,7 +55,7 @@ Let's say you have a hypothetical function that parses a String to an Integer:
       Nothing -> 0
 
 In Perl6, since type objects coexist with regular objects, we have the concept of Defined
-and Undefined objects.
+and Undefined objects. Plain type objects are undefined while instansiated objects are defined.
 
     sub parse-int(Str $s --> Int) { ... }
     
@@ -91,6 +91,14 @@ that specifically test for definedness.
     # A better way
     with parse-int($string) { * } else { 0 }
     
+The `with` operator that you see above is like `if`, except it explicitly tests for definedness and then
+passes the result to the following block. Similarly, `without` tests that the object is undefined and also
+passes the result to the following block.
+
+For more explicit control flow with undefined and defined types, Perl6 introduces `andthen` and `orelse`.
+
+TODO: put code example of andthen and orelse using previous example of parse-int($string)
+    
 So in practice, Perl6 does not have the concept of a null type, but rather of defined or undefined types.
 
 =head2 Data Definitions
@@ -116,7 +124,7 @@ And an equivalent Perl6 example:
 
 The code I illustrated above is an example of a Product Type. If instead you'd like to
 write a Sum Type, there is not an exact equivalent in Perl6. The closest thing would be
-a Junction.
+an Enum.
 
     data Animal = Dog | Cat | Bird | Horse
     
@@ -124,24 +132,17 @@ a Junction.
     testAnimal Dog   = "Woof"
     testAnimal Horse = "Ney"
     
-A Perl6 Junction does not fit the same exact use cases, but it can be used in putting
+A Perl6 Enum does not fit the same exact use cases, but it can be used in putting
 constraints on types.
 
-    my $animals = 'dog'|'cat'|'bird'|'horse';
-    
-    proto sub test-animal($a where * ~~ $animals)
-    multi sub test-animal('dog')   { 'Woof' }
-    multi sub test-animal('horse') { 'Ney' }
-    
-When you smartmatch `~~` against a Junction, it checks to see that your value is in the
-Junction. If not, it evaluates to False.
+    enum Animal < Dog Cat Bird Horse >;
 
-When matching a value against a junction, you can specify that you want to match on
-any, all, none, or one of the terms within.
+    proto sub test-animal( Animal        ) {*}
+    multi sub test-animal( Dog           ) { 'Woof' }
+    multi sub test-animal( Animal::Horse ) { 'Ney'  }   # more explicit
 
-    my $good-types = Str|Array
-    
-    42 ~~ (none $good-types)     # True
+    say test-animal Animal::Dog; # more explicit
+    say test-animal Horse;
 
 =head2 Type Aliases and Subsets
 
@@ -153,18 +154,19 @@ existing types.
     fullName :: Name -> Name -> Name
     fullName first last = first ++ last
     
-In Perl6, this is called a subset, as in a subset of an existing type.
+The equivalent in Perl6 is the following.
 
-    subset Name of String;
+    my constant Name = Str;
+
+    sub full-name ( Name \first, Name \last --> Name ) { first ~ last }
+    
+It should be noted that in Perl6, one can also created a subset of an existing type.
+
+    subset Name of String where { *.chars < 20 };
     
     sub full-name(Name $first, Name $last) {
       $first ~ $last
     }
-    
-But subsets do not stop at aliases in Perl6. They are much more powerful. You are able to
-add further constraints like the following:
-
-    subset Name of String where { *.chars < 20 }
     
     full-name("12345678901234567890111", "Smith") # This does not compile, as the first parameter
                                                   # doesn't fit the Name type 
@@ -184,34 +186,72 @@ explain how Perl6 roles compare to Haskell typeclasses
 Haskell makes heavy use of multiple dispatch in function definitions.
 
     greeting :: String -> String
-    greeting ""    = "Hello, World!"
+    greeting  ""   = "Hello, World!"
     greeting "bub" = "Hey bub."
-    greeting name  = "Hello, " ++ name ++ "!"
+    greeting  name = "Hello, " ++ name ++ "!"
     
 Perl6 does this as well! You just use the `multi` keyword to signify that it is multiple dispatch.
 
-    proto greeting(Str $name --> Str) {*}
-    multi greeting('')        {'Hello, World!'}
-    multi greeting('bub')     {'Hey, bub.'}
-    multi greeting(Str $name) {"Hello, $name!"}
+    proto greeting ( Str   --> Str ) {*}
+    multi greeting ( ""    --> "Hello, World!" ) {}
+    multi greeting ( "bub" --> "Hey bub." ) {}
+    multi greeting ( \name ) { "Hello, " ~ name ~ "!" }
     
 The `proto` declarator is not necessary, but can sometimes aid in making sure that all multis
-follow your business rules.
+follow your business rules. Using a variable name in the signature of the proto would provide
+more information in error messages, and for introspection.
 
-An interesting thing to note in the Perl6 code above is that passing values like `'bub'` is just
-syntax sugar for a `where` guard.    
+    proto greeting ( Str \name --> Str ) {*}
+    
+    say &greeting.signature;                  # (Str \name --> Str)
+
+An interesting thing to note in the Perl6 code above is that passing values like `'bub'` as a
+function parameter is just syntax sugar for a `where` guard.
 
 =Guards
 
 Using the example from the "Multiple Dispatch" section of this page, you can see the guards that are
 used behind the scenes to constrain our function arguments.
 
-    multi greeting(Str $name where { * ~~ '' }) {'Hello, World!'}
-    multi greeting(Str $name where { 'bub' })   {'Hey, bub.'}
-    multi greeting(Str $name)                   {"Hello, $name!"}
+    multi greeting ( ""    --> "Hello, World!" ) {}
+    multi greeting ( "bub" --> "Hey bub." ) {}
+    
+    # The above is the same as the below
+    
+    multi greeting(Str \name where ''    ) {'Hello, World!'}
+    multi greeting(Str \name where 'bub' ) {'Hey bub.'}
+    
+    # The above is the same as the below, again.
+    
+    multi greeting(Str \name where $_ ~~ ''   ) {'Hello, World!'}
+    multi greeting(Str \name where $_ ~~ 'bub') {'Hey bub.'}
+    
+`$_` is known as the topic variable. It assumes the form of whatever is appropriate. The smart match
+operator `~~` figures out the best way to determine if the left matches the right, be it number ranges,
+strings, etc. Our three examples above go from most sugared (top), to least sugared (bottom).
+
+The bottom examples above could be wrapped in curly braces, making it more obvious that it is a code
+block. Note that a where clause may also take an explicit Callable.
+
+    multi greeting(Str \name where { $_ ~~ '' } ) {'Hello, World!'}
+    
+    multi greeting(Str \name where -> $thing { $thing ~~ '' } ) {'Hello, World!'}
+    
+    multi greeting ( Str \name where { Bool.pick } --> 'True' ){}
+    
+    multi greeting ( Str \name where &some-subroutine ){…}
     
 If you read the section in this page on subsets, you'll notice that "where" is used in the making of
 subsets as well as here. The usage of "where" in both areas is exactly the same.
+
+When using `where`, note that the order of definition is important, just like in Haskell.
+
+    multi greeting ( Str \name where '' --> 'Hello, World!' ){}
+    multi greeting ( Str \name where { Bool.pick } --> 'True' ){}
+    multi greeting ( Str \name where 'bub' --> 'Hey, bub.' ){}
+
+    say greeting ''   ; # will never say True
+    say greeting 'bub'; # about 50% of the time it will say True
 
 =Argument Deconstruction
 
