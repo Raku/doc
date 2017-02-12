@@ -892,6 +892,63 @@ that their regular expression needs to match every piece of data in the line,
 including what they want to match. Write just enough to match the data you're
 looking for, no more, no less.
 
+=head1 X<Tilde for nesting structures|tilde,regex;~,regex>
+
+The ~ operator is a helper for matching nested subrules with a
+specific terminator as the goal. It is designed to be placed between
+an opening and closing bracket, like so:
+
+    / '(' ~ ')' <expression> /
+
+However, it mostly ignores the left argument, and operates on the next
+two atoms (which may be quantified). Its operation on those next two
+atoms is to "twiddle" them so that they are actually matched in
+reverse order. Hence the expression above, at first blush, is merely
+shorthand for:
+
+    / '(' <expression> ')' /
+
+But beyond that, when it rewrites the atoms it also inserts the
+apparatus that will set up the inner expression to recognize the
+terminator, and to produce an appropriate error message if the inner
+expression does not terminate on the required closing atom. So it
+really does pay attention to the left bracket as well, and it actually
+rewrites our example to something more like:
+
+    =begin code :skip-test
+    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
+    =end code
+
+Note that you can use this construct to set up expectations for a
+closing construct even when there's no opening bracket:
+
+    / <?> ~ ')' \d+ /
+
+Here <?> returns true on the first null string.
+
+By default the error message uses the name of the current rule as an
+indicator of the abstract goal of the parser at that point. However,
+often this is not informative, especially when rules are
+named according to an internal scheme that will not make sense to the
+user. The :dba("doing business as") adverb may be used to set up a
+more informative name for what the following code is trying to parse:
+
+    token postfix:sym<[ ]> { :dba('array subscript') '[' ~ ']' <expression> }
+
+Then instead of getting a message like:
+
+    =begin code :skip-test
+    Unable to parse expression in postfix:sym<[ ]>; couldn't find
+    final ']'
+    =end code
+
+you'll get a message like:
+
+    =begin code :skip-test
+    Unable to parse expression in array subscript; couldn't find final
+    ']'
+    =end code
+
 =head1 X<Subrules|declarator,regex>
 
 Just like you can put pieces of code into subroutines, you can also put
