@@ -289,6 +289,9 @@ In Perl6 you can achieve this same thing with the given/when structure:
       when 8  { "eight" }
       default { "don't care" }
     }
+    
+Note that the order of the `when`'s is also significant, just like with the `where`'s in the
+guard section of this page.
 
 =head1 Lists
 
@@ -299,7 +302,7 @@ to the `@` sigil. Explain how you can convert an Array to a flattened list of ob
 
 data shapes become quite intuitive, but it takes a bit of practice.
 
-=head2 Map and Fold
+=head2 Fold
 
 Fold in Haskell is called Reduce in Perl6. 
 
@@ -311,9 +314,38 @@ Fold in Haskell is called Reduce in Perl6.
 However, in Perl6, if you want to use an infix operator (+ - / % etc) there is a nice little
 helper called the Reduction Metaoperator.
     
-    [+] @numbers
+    [+] @numbers    # This is the same
+    [+] 0, @numbers # as this
     
-It inserts the operator in between all values in the list and produces a result.
+It inserts the operator in between all values in the list and produces a result, just like Fold.
+
+In Haskell you, you have foldl and foldr. In Perl6, this difference is determined by the
+associativity attached to the operator/subroutine.
+
+    sub two-elem-list ( \a, \b ) { ( a, b ) }
+
+    # you can use a subroutine as an infix operator
+    say 'a' [&two-elem-list] 'b'; # (a b)
+
+    # as the reduction prefix meta operator takes an infix operator, it will work there too;
+    [[&two-elem-list]] 1..5;           # ((((1 2) 3) 4) 5)
+    say (1..5).reduce: &two-elem-list; # ((((1 2) 3) 4) 5)
+
+    # right associative
+    sub right-two-elem-list( \a, \b ) is assoc<right> { ( a, b ) }
+    say (1..5).reduce: &right-two-elem-list; # (1 (2 (3 (4 5))))
+
+    # XXX there is possibly a bug here as this currently doesn't look at
+    # XXX the associativity of &right-two-elem-list and just always does left assoc
+    say [[&right-two-elem-list]] 1..5;
+
+    # chaining
+    say [<] 1..5;            # True
+    say (1..5).reduce: &[<]; # True
+
+=head2 Map
+
+TODO
 
 =head2 Ranges
 
