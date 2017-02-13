@@ -27,29 +27,29 @@ You do not mix types and values in Haskell like the below
 
     plusTwo 2          -- This is valid
     plusTwo Integer    -- This is not valid
-    
+
 In Perl6, types (AKA type objects) can live on the same level as values
 
     sub plus-two(Int $x --> Int) { $x + 2 }
-    
+
     plus-two(2)    # This is valid
     plus-two(Int)  # This is valid
-    
+
 I will illustrate this unique aspect of Perl6 with one more example:
 
     multi sub is-string(Str $ --> True) {}
     multi sub is-string(Any $ --> False) {}
-    
+
     is-string('hello')    #True
     is-string(4)          #False
 
 =head2 Maybe
 
-In Haskell, you have a Maybe type that allows you to forgoe the worry of null types. 
+In Haskell, you have a Maybe type that allows you to forgoe the worry of null types.
 Let's say you have a hypothetical function that parses a String to an Integer:
 
     parseInt :: String -> Maybe Integer
-    
+
     case parseInt myString of
       Just x  -> x
       Nothing -> 0
@@ -58,55 +58,55 @@ In Perl6, since type objects coexist with regular objects, we have the concept o
 and Undefined objects. Plain type objects are undefined while instansiated objects are defined.
 
     sub parse-int(Str $s --> Int) { ... }
-    
+
     given parse-int($string) {
       when Int:D { $_ }
       when Int:U { 0 }
     }
-    
+
 So in Perl6 we have type constraints that indicate the definedness of a type. These are
 
 - Int:D # This is a defined Int.
 - Int:U # This is an undefined Int, AKA a type object
 - Int:_ # This is either defined or undefined.
-    
+
 If we wanted to be explicit in the above example (probably a good idea), we could add
 the `:_` constraint on the return type. This would let the user know that they should account
 for both defined and undefined return values. We could also use other methods and constructs
 that specifically test for definedness.
 
     sub parse-int(Str $s --> Int:_) { ... }
-    
+
     # One way to do it
     given parse-int($string) {
       when Int:D { $_ }
       when Int:U { 0 }
     }
-    
+
     # Another way to do it
     my Int $number = parse-int($string);
     if $number.defined { $number } else { 0 }
-    
-    
+
+
     # A better way
     with parse-int($string) { $_ } else { 0 }
 
     # With the defined-or operator
     parse-int($string) // 0
-    
+
 The `with` operator that you see above is like `if`, except it explicitly tests for definedness and then
 passes the result to the following block. Similarly, `without` tests that the object is undefined and also
 passes the result to the following block.
 
 For more natural control flow with undefined and defined types, Perl6 introduces `andthen` and `orelse`.
 
-    my $result = parse-int($string) orelse 0;    
-    
+    my $result = parse-int($string) orelse 0;
+
     sub hello() { say 'hi' }
     hello() andthen say 'bye';
 
 TODO: include a better example for andthen that makes sense. Maybe using promise objects?
-    
+
 So in practice, Perl6 does not have the concept of a null type, but rather of defined or undefined types.
 
 =head2 Data Definitions
@@ -118,14 +118,14 @@ object and return a new object, you can certainly do so.
 Here is a Haskell code example:
 
     data Point = Point x y
-    
+
     moveUp :: Point -> Point
     moveUp (Point x y) = Point x (y + 1)
-    
+
 And an equivalent Perl6 example:
 
     class Point { has $.x; has $.y; }
-    
+
     sub move-up(Point $p --> Point) {
       Point.new(x => $p.x, y => $p.y + 1)
     }
@@ -135,11 +135,11 @@ write a Sum Type, there is not an exact equivalent in Perl6. The closest thing w
 an Enum.
 
     data Animal = Dog | Cat | Bird | Horse
-    
+
     testAnimal :: Animal -> String
     testAnimal Dog   = "Woof"
     testAnimal Horse = "Ney"
-    
+
 A Perl6 Enum does not fit the same exact use cases, but it can be used in putting
 constraints on types.
 
@@ -158,30 +158,30 @@ In Haskell, you can alias an existing type to simply increase clarity of intent 
 existing types.
 
     type Name = String
-    
+
     fullName :: Name -> Name -> Name
     fullName first last = first ++ last
-    
+
 The equivalent in Perl6 is the following.
 
     my constant Name = Str;
 
     sub full-name ( Name \first, Name \last --> Name ) { first ~ last }
-    
+
 It should be noted that in Perl6, one can also create a subset of an existing type.
 
     subset Name of Str where *.chars < 20;
-    
+
     sub full-name(Name $first, Name $last) {
       $first ~ $last
     }
-    
+
     full-name("12345678901234567890111", "Smith") # This does not compile, as the first parameter
-                                                  # doesn't fit the Name type 
+                                                  # doesn't fit the Name type
 
 =head2 Typeclasses
 
-TODO 
+TODO
 
 explain how Perl6 roles compare to Haskell typeclasses
 
@@ -197,7 +197,7 @@ Haskell makes heavy use of pattern matching in function definitions.
     greeting  ""   = "Hello, World!"
     greeting "bub" = "Hey bub."
     greeting  name = "Hello, " ++ name ++ "!"
-    
+
 Perl6 does this as well! You just use the `multi` keyword to signify that it is a multiple dispatch
 function.
 
@@ -205,13 +205,13 @@ function.
     multi greeting ( ""    --> "Hello, World!" ) {}
     multi greeting ( "bub" --> "Hey bub." ) {}
     multi greeting ( \name ) { "Hello, " ~ name ~ "!" }
-    
+
 The `proto` declarator is not necessary, but can sometimes aid in making sure that all multis
 follow your business rules. Using a variable name in the signature of the proto would provide
 more information in error messages, and for introspection.
 
     proto greeting ( Str \name --> Str ) {*}
-    
+
     say &greeting.signature;                  # (Str \name --> Str)
 
 An interesting thing to note in the Perl6 code above is that passing values like `'bub'` as a
@@ -224,17 +224,17 @@ used behind the scenes to constrain our function arguments.
 
     multi greeting ( ""    --> "Hello, World!" ) {}
     multi greeting ( "bub" --> "Hey bub." ) {}
-    
+
     # The above is the same as the below
-    
+
     multi greeting(Str \name where ''    ) {'Hello, World!'}
     multi greeting(Str \name where 'bub' ) {'Hey bub.'}
-    
+
     # The above is the same as the below, again.
-    
+
     multi greeting(Str \name where $_ ~~ ''   ) {'Hello, World!'}
     multi greeting(Str \name where $_ ~~ 'bub') {'Hey bub.'}
-    
+
 `$_` is known as the topic variable. It assumes the form of whatever is appropriate. The smart match
 operator `~~` figures out the best way to determine if the left matches the right, be it number ranges,
 strings, etc. Our three examples above go from most sugared (top), to least sugared (bottom).
@@ -243,13 +243,13 @@ The bottom examples above could be wrapped in curly braces, making it more obvio
 block. Note that a where clause may also take an explicit Callable.
 
     multi greeting(Str \name where { $_ ~~ '' } ) {'Hello, World!'}
-    
+
     multi greeting(Str \name where -> $thing { $thing ~~ '' } ) {'Hello, World!'}
-    
+
     multi greeting ( Str \name where { Bool.pick } --> 'True' ){}
-    
+
     multi greeting ( Str \name where &some-subroutine ){…}
-    
+
 If you read the section in this page on subsets, you'll notice that "where" is used in the making of
 subsets as well as here. The usage of "where" in both areas is exactly the same.
 
@@ -289,7 +289,7 @@ Haskell makes heavy use of case matching like the below:
       4 -> "four"
       8 -> "eight"
       _ -> "don't care"
-      
+
 In Perl6 you can achieve this same thing with the given/when structure:
 
     given $number {
@@ -298,7 +298,7 @@ In Perl6 you can achieve this same thing with the given/when structure:
       when 8  { "eight" }
       default { "don't care" }
     }
-    
+
 Note that the order of the `when`'s is also significant, just like with the `where`'s in the
 guard section of this page.
 
@@ -313,19 +313,19 @@ data shapes become quite intuitive, but it takes a bit of practice.
 
 =head2 Fold
 
-Fold in Haskell is called Reduce in Perl6. 
+Fold in Haskell is called Reduce in Perl6.
 
     mySum = foldl `+` 0 numList
-    
-    reduce { $^a + $^b }, 0, |@numbers;       
-    @numbers.reduce({$^a + $^b}, with => 0)   
-    
+
+    reduce { $^a + $^b }, 0, |@numbers;
+    @numbers.reduce({$^a + $^b}, with => 0)
+
 However, in Perl6, if you want to use an infix operator (+ - / % etc) there is a nice little
 helper called the Reduction Metaoperator.
-    
+
     [+] @numbers    # This is the same
     [+] 0, @numbers # as this
-    
+
 It inserts the operator in between all values in the list and produces a result, just like Fold.
 
 In Haskell you, you have foldl and foldr. In Perl6, this difference is determined by the
@@ -363,7 +363,7 @@ Haskell and Perl6 both allow you to specify ranges of values.
     myRange1 = 10..100
     myRange2 = 1..        -- Infinite
     myRange3 = 'a'..'h'   -- Letters work too
-    
+
     my $range1 = 10..100
     my $range2 = 1..*      # Infinite
     my $range3 = 'a'..'h'  # Letters work too
@@ -376,7 +376,7 @@ a definite end. If a list does not have a definite end, then the list should cle
 
     (1 .. 100).is-lazy; # False
     (1 .. Inf).is-lazy; # True
-    
+
 These are the "sane defaults" that Perl6 takes pride in. But they are still defaults and can be
 changed into one or the other.
 
