@@ -52,7 +52,9 @@ my &verbose = sub (|c) {};
 sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v)), Bool :$force, *@files) {
     my \exclude = none(flat <. ..>, $exclude.split(','));
     # We exclude these files from examples list
-    my @exclude-list = '5to6', 'rb', 'module', 'nativecall', 'testing', 'traps', 'packages', 'tables', 'phasers';
+    my @exclude-list = '5to6', 'rb', 'module', 'nativecall',
+                       'testing', 'traps', 'packages', 'tables',
+                       'phasers', 'haskell';
 
     @files ||= gather for $source-path {
         take .IO when .IO.f
