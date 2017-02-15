@@ -26,7 +26,7 @@ plan +@files;
 for @files -> $file {
     $proc = run 'perl6', '-c', $file, out => '/dev/null', err => '/dev/null';
     if $proc.exitcode == 0 {
-        pass "$file is compileable";
+        pass "$file is compilable";
     } else {
         flunk "$file examples check isn't successful";
     }
