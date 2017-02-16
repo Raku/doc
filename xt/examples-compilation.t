@@ -32,7 +32,6 @@ if @*ARGS {
             | 'Language/tables.p6'
             | 'Language/testing.p6'
             | 'Language/traps.p6'
-            | 'Programs/01-debugging.p6'
          /,
     );
 }
