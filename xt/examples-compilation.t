@@ -34,7 +34,6 @@ if @*ARGS {
             | 'Language/traps.p6'
             | 'Programs/00-running.p6'
             | 'Programs/01-debugging.p6'
-            | 'Type/IO/ArgFiles.p6'
          /,
     );
 }
