@@ -39,8 +39,8 @@ multi sub walk(Pod::Block $_, @context is copy) {
 
 multi sub walk([], @context) { "" }
 
-multi sub walk(@childen, @context) {
-    (@childen.map: { walk($_, @context) }).join
+multi sub walk(@children, @context) {
+    (@children.map: { walk($_, @context) }).join
 }
 
 multi sub walk(Str $s is copy, @context) {
