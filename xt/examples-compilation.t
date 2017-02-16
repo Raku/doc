@@ -14,10 +14,29 @@ if @*ARGS {
     # don't pass examples/ as part of the path name
     @files = @*ARGS;
 } else {
-    @files = find(dir => '.',
-                 name => /'Type'|'Language' .*? .p6$/,
-                 exclude => /'exceptions.p6'|'ArgFiles.p6'/,
-                 type => 'file');
+    @files = find(
+        dir => '.',
+        type => 'file',
+        exclude => /
+            | 'Language/5to6-nutshell.p6'
+            | 'Language/5to6-perlfunc.p6'
+            | 'Language/5to6-perlop.p6'
+            | 'Language/5to6-perlsyn.p6'
+            | 'Language/5to6-perlvar.p6'
+            | 'Language/haskell-to-p6.p6'
+            | 'Language/modules.p6'
+            | 'Language/nativecall.p6'
+            | 'Language/packages.p6'
+            | 'Language/phasers.p6'
+            | 'Language/rb-nutshell.p6'
+            | 'Language/tables.p6'
+            | 'Language/testing.p6'
+            | 'Language/traps.p6'
+            | 'Programs/00-running.p6'
+            | 'Programs/01-debugging.p6'
+            | 'Type/IO/ArgFiles.p6'
+         /,
+    );
 }
 
 my $proc;
