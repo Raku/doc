@@ -23,7 +23,6 @@ if @*ARGS {
             | 'Language/5to6-perlop.p6'
             | 'Language/5to6-perlsyn.p6'
             | 'Language/5to6-perlvar.p6'
-            | 'Language/haskell-to-p6.p6'
             | 'Language/modules.p6'
             | 'Language/nativecall.p6'
             | 'Language/packages.p6'
