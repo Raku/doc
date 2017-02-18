@@ -1,48 +1,77 @@
 use v6;
 use Test;
-use lib 'lib';
-use File::Find;
+use File::Temp;
 
-# Extract examples
-chdir $?FILE.IO.dirname.IO.dirname;
-my $p1 = shell "$*EXECUTABLE-NAME util/extract-examples.p6 --source-path=./doc/ --prefix=./examples/";
-chdir 'examples';
+use lib 'lib';
+use Pod::Convenience;
 
 my @files;
 
 if @*ARGS {
-    # don't pass examples/ as part of the path name
     @files = @*ARGS;
 } else {
-    @files = find(
-        dir => '.',
-        type => 'file',
-        exclude => /
-            | 'Language/5to6-nutshell.p6'
-            | 'Language/5to6-perlfunc.p6'
-            | 'Language/5to6-perlop.p6'
-            | 'Language/5to6-perlsyn.p6'
-            | 'Language/5to6-perlvar.p6'
-            | 'Language/modules.p6'
-            | 'Language/nativecall.p6'
-            | 'Language/packages.p6'
-            | 'Language/phasers.p6'
-            | 'Language/rb-nutshell.p6'
-            | 'Language/tables.p6'
-            | 'Language/testing.p6'
-            | 'Language/traps.p6'
+    for qx<git ls-files doc>.lines -> $file {
+        next unless $file ~~ / '.pod6' $/;
+        next if $file ~~ /
+            | 'doc/Language/5to6-nutshell.pod6'
+            | 'doc/Language/5to6-perlfunc.pod6'
+            | 'doc/Language/5to6-perlop.pod6'
+            | 'doc/Language/5to6-perlsyn.pod6'
+            | 'doc/Language/5to6-perlvar.pod6'
+            | 'doc/Language/modules.pod6'
+            | 'doc/Language/nativecall.pod6'
+            | 'doc/Language/packages.pod6'
+            | 'doc/Language/phasers.pod6'
+            | 'doc/Language/rb-nutshell.pod6'
+            | 'doc/Language/tables.pod6'
+            | 'doc/Language/testing.pod6'
+            | 'doc/Language/traps.pod6'
          /,
-    );
+        push @files, $file;
+    }
+}
+
+# Extract all the examples from the given files
+my @examples;
+my $counts = BagHash.new;
+for @files -> $file {
+    for extract-pod($file.IO).contents -> $chunk {
+        if $chunk ~~ Pod::Block::Code  {
+            next if $chunk.config<skip-test>;
+            @examples.push: %(
+                'contents', $chunk.contents.join("\n"),
+                'file', $file,
+                'count', $counts{$file}++
+            );
+        }
+    }
 }
 
 my $proc;
-plan +@files;
+plan +@examples;
 
-for @files -> $file {
-    $proc = run 'perl6', '-c', $file, out => '/dev/null', err => '/dev/null';
+for @examples -> $eg {
+    my ($filename, $filehandle) = tempfile;
+
+    # Wrap each snippet in an anonymous class, and add in empty routine bodies if needed
+
+    my $code = "class :: \{\n" ~ $eg<contents>.trim.map({
+        .starts-with('multi')  ||
+        .starts-with('method') ||
+        .starts-with('proto')  ||
+        .starts-with('only')   ||
+        .starts-with('sub')
+    }).join("\n") ~ "\n\}";
+
+    $filehandle.print: $code;
+    $filehandle.close;
+
+    $proc = run $*EXECUTABLE-NAME, '-c', $filename, out => '/dev/null', err => '/dev/null';
+    my $msg = "$eg<file> chunk $eg<count> compiles";
     if $proc.exitcode == 0 {
-        pass "$file is compilable";
+        pass $msg;
     } else {
-        flunk "$file examples check isn't successful";
+        diag $eg<contents>;
+        flunk $msg;
     }
 }
