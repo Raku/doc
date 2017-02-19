@@ -892,6 +892,61 @@ that their regular expression needs to match every piece of data in the line,
 including what they want to match. Write just enough to match the data you're
 looking for, no more, no less.
 
+=head1 X<Tilde for nesting structures|tilde,regex;~,regex>
+
+The ~ operator is a helper for matching nested subrules with a
+specific terminator as the goal. It is designed to be placed between
+an opening and closing bracket, like so:
+
+    / '(' ~ ')' <expression> /
+
+However, it mostly ignores the left argument, and operates on the next
+two atoms (which may be quantified). Its operation on those next two
+atoms is to "twiddle" them so that they are actually matched in
+reverse order. Hence the expression above, at first blush, is merely
+shorthand for:
+
+    / '(' <expression> ')' /
+
+But beyond that, when it rewrites the atoms it also inserts the
+apparatus that will set up the inner expression to recognize the
+terminator, and to produce an appropriate error message if the inner
+expression does not terminate on the required closing atom. So it
+really does pay attention to the left bracket as well, and it actually
+rewrites our example to something more like:
+
+    =begin code :skip-test
+    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
+    =end code
+
+FAILGOAL is a special method that can be defined by the user and it
+will be called on parse failure:
+
+    grammar A { token TOP { '[' ~ ']' \w+  };
+                method FAILGOAL($goal) {
+                    die "Cannot find $goal near position {self.pos}"
+                }
+    }
+
+    A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
+    A.parse: '[bad';    # will throw FAILGOAL exception
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 5␤»
+
+Note that you can use this construct to set up expectations for a
+closing construct even when there's no opening bracket:
+
+    "3)"  ~~ / <?> ~ ')' \d+ /;  # RESULT: «｢3)｣»
+    "(3)" ~~ / <?> ~ ')' \d+ /;  # RESULT: «｢3)｣»
+
+Here <?> returns true on the first null string.
+
+The order of the regex capture is original:
+
+    "abc" ~~ /a ~ (c) (b)/;
+    say $0; # OUTPUT: «｢c｣␤»
+    say $1; # OUTPUT: «｢b｣␤»
+
 =head1 X<Subrules|declarator,regex>
 
 Just like you can put pieces of code into subroutines, you can also put
