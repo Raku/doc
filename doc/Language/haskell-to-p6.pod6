@@ -1,0 +1,499 @@
+=begin pod :tag<convert>
+
+=TITLE Perl 6 from Haskell - Nutshell
+
+=SUBTITLE Learning Perl 6 from Haskell, in a nutshell: What do I already know?
+
+Haskell and Perl 6 are I<very> different languages. This is obvious. However, that
+does not mean there are not similarities or shared ideas! This page attempts to
+get a Haskell user up and running with Perl 6. The Haskell user may find that they need
+not abandon all of their Haskelly thoughts while scripting in Perl 6.
+
+Note that this should not be mistaken for a beginner tutorial or overview of Perl
+6; it is intended as a technical reference for Perl 6 learners with a strong
+Haskell background.
+
+
+=head1 Types
+
+=head2 Types vs Values
+
+In Haskell, you have type level programming and then value level programming.
+
+    =begin code :skip-test
+    plusTwo :: Integer -> Integer   -- Types
+    plusTwo x = x + 2               -- Values
+    =end code
+
+You do not mix types and values in Haskell like the below
+
+    =begin code :skip-test
+    plusTwo 2          -- This is valid
+    plusTwo Integer    -- This is not valid
+    =end code
+
+In Perl 6, types (AKA type objects) live on the same level as values
+
+    =begin code
+    sub plus-two(Int $x --> Int) { $x + 2 }
+
+    plus-two(2);    # This is valid
+    plus-two(Int);  # This is valid
+    =end code
+
+I will illustrate this unique aspect of Perl 6 with one more example:
+
+    =begin code
+    multi sub is-string(Str $ --> True) {}
+    multi sub is-string(Any $ --> False) {}
+
+    is-string('hello');    #True
+    is-string(4);          #False
+    =end code
+
+=head2 Maybe
+
+In Haskell, you have a Maybe type that allows you to forgo the worry of null types.
+Let's say you have a hypothetical function that parses a String to an Integer:
+
+    =begin code :skip-test
+    parseInt :: String -> Maybe Integer
+
+    case parseInt myString of
+      Just x  -> x
+      Nothing -> 0
+    =end code
+
+In Perl 6, since type objects coexist with regular objects, we have the concept of Defined
+and Undefined objects. Plain type objects are undefined while instantiated objects are defined.
+
+    =begin code
+    sub parse-int(Str $s --> Int) { ... }
+
+    my $string = {...};
+    given parse-int($string) {
+      when Int:D { $_ }
+      when Int:U { 0 }
+    }
+    =end code
+
+So in Perl 6 we have type constraints that indicate the definedness of a type. These are
+
+    =begin code
+    Int:D; # This is a defined Int.
+    Int:U; # This is an undefined Int, AKA a type object
+    Int:_; # This is either defined or undefined.
+    =end code
+
+If we wanted to be explicit in the above example (probably a good idea), we could add
+the C<:_> constraint on the return type. This would let the user know that they should account
+for both defined and undefined return values. We could also use other methods and constructs
+that specifically test for definedness.
+
+    =begin code
+    sub parse-int(Str $s --> Int:_) { ... }
+
+    # One way to do it
+    my $string = {...};
+    given parse-int($string) {
+      when Int:D { $_ }
+      when Int:U { 0 }
+    }
+
+    # Another way to do it
+    my Int $number = parse-int($string);
+    if $number.defined { $number } else { 0 }
+
+
+    # A better way
+    with parse-int($string) { $_ } else { 0 }
+
+    # With the defined-or operator
+    parse-int($string) // 0
+    =end code
+
+The C<with> operator that you see above is like C<if>, except it explicitly tests for definedness and then
+passes the result to the following block. Similarly, C<without> tests that the object is undefined and also
+passes the result to the following block.
+
+For more natural control flow with undefined and defined types, Perl 6 introduces C<andthen> and C<orelse>.
+
+    =begin code
+    sub parse-int(Str $s --> Int:_) { ... }
+
+    my $string = {...};
+    my $result = parse-int($string) orelse 0;
+
+    sub hello() { say 'hi' }
+    hello() andthen say 'bye';
+    =end code
+
+TODO: include a better example for andthen that makes sense. Maybe using promise objects?
+
+So in practice, Perl 6 does not have the concept of a null type, but rather of defined or undefined types.
+
+=head2 Data Definitions
+
+Perl 6 is fundamentally an Object Oriented language. However, it also gives you the freedom
+to write in virtually any paradigm you wish. If you only want to pure functions that take an
+object and return a new object, you can certainly do so.
+
+Here is a Haskell code example:
+
+    =begin code :skip-test
+    data Point = Point x y
+
+    moveUp :: Point -> Point
+    moveUp (Point x y) = Point x (y + 1)
+    =end code
+
+And an equivalent Perl 6 example:
+
+    =begin code
+    class Point { has $.x; has $.y; }
+
+    sub move-up(Point $p --> Point) {
+      Point.new(x => $p.x, y => $p.y + 1)
+    }
+    =end code
+
+The code I illustrated above is an example of a Product Type. If instead you'd like to
+write a Sum Type, there is not an exact equivalent in Perl 6. The closest thing would be
+an Enum.
+
+    =begin code :skip-test
+    data Animal = Dog | Cat | Bird | Horse
+
+    testAnimal :: Animal -> String
+    testAnimal Dog   = "Woof"
+    testAnimal Horse = "Neigh"
+    =end code
+
+A Perl 6 Enum does not fit the same exact use cases, but it can be used in putting
+constraints on types.
+
+    =begin code
+    enum Animal < Dog Cat Bird Horse >;
+
+    proto sub test-animal( Animal        ) {*}
+    multi sub test-animal( Dog           ) { 'Woof' }
+    multi sub test-animal( Animal::Horse ) { 'Neigh'  }   # more explicit
+
+    say test-animal Animal::Dog; # more explicit
+    say test-animal Horse;
+    =end code
+
+=head2 Type Aliases and Subsets
+
+In Haskell, you can alias an existing type to simply increase clarity of intent and re-use
+existing types.
+
+    =begin code :skip-test
+    type Name = String
+
+    fullName :: Name -> Name -> Name
+    fullName first last = first ++ last
+    =end code
+
+The equivalent in Perl 6 is the following.
+
+    =begin code
+    my constant Name = Str;
+
+    sub full-name ( Name \first, Name \last --> Name ) { first ~ last }
+    =end code
+
+It should be noted that in Perl 6, one can also create a subset of an existing type.
+
+    =begin code :skip-test
+    subset Name of Str where *.chars < 20;
+
+    sub full-name(Name $first, Name $last) {
+      $first ~ $last
+    }
+
+    full-name("12345678901234567890111", "Smith") # This does not compile, as the first parameter
+                                                  # doesn't fit the Name type
+    =end code
+
+=head2 Typeclasses
+
+TODO
+
+explain how Perl 6 roles compare to Haskell typeclasses
+
+=head1 Functions
+
+=head2 Definitions and Signatures
+
+=Pattern Matching
+
+Haskell makes heavy use of pattern matching in function definitions.
+
+    =begin code :skip-test
+    greeting :: String -> String
+    greeting  ""   = "Hello, World!"
+    greeting "bub" = "Hey bub."
+    greeting  name = "Hello, " ++ name ++ "!"
+    =end code
+
+Perl 6 does this as well! You just use the C<multi> keyword to signify that it is a multiple dispatch
+function.
+
+    =begin code
+    proto greeting ( Str   --> Str ) {*}
+    multi greeting ( ""    --> "Hello, World!" ) {}
+    multi greeting ( "bub" --> "Hey bub." ) {}
+    multi greeting ( \name ) { "Hello, " ~ name ~ "!" }
+    =end code
+
+The C<proto> declarator is not necessary, but can sometimes aid in making sure that all multis
+follow your business rules. Using a variable name in the signature of the proto would provide
+more information in error messages, and for introspection.
+
+    =begin code
+    proto greeting ( Str \name --> Str ) {*}
+
+    say &greeting.signature;                  # (Str \name --> Str)
+    =end code
+
+An interesting thing to note in the Perl 6 code above is that passing values like C<'bub'> as a
+function parameter is just syntax sugar for a C<where> guard.
+
+=Guards
+
+Using the example from the "Pattern Matching" section of this page, you can see the guards that are
+used behind the scenes to constrain our function arguments.
+
+    =begin code
+    multi greeting ( ""    --> "Hello, World!" ) {}
+    multi greeting ( "bub" --> "Hey bub." ) {}
+
+    # The above is the same as the below
+
+    multi greeting(Str \name where ''    ) {'Hello, World!'}
+    multi greeting(Str \name where 'bub' ) {'Hey bub.'}
+
+    # The above is the same as the below, again.
+
+    multi greeting(Str \name where $_ ~~ ''   ) {'Hello, World!'}
+    multi greeting(Str \name where $_ ~~ 'bub') {'Hey bub.'}
+    =end code
+
+C<$_> is known as the topic variable. It assumes the form of whatever is appropriate. The smart match
+operator C<~~> figures out the best way to determine if the left matches the right, be it number ranges,
+strings, etc. Our three examples above go from most sugared (top), to least sugared (bottom).
+
+The bottom examples above could be wrapped in curly braces, making it more obvious that it is a code
+block. Note that a where clause may also take an explicit Callable.
+
+    =begin code :skip-test
+    multi greeting(Str \name where { $_ ~~ '' } ) {'Hello, World!'}
+
+    multi greeting(Str \name where -> $thing { $thing ~~ '' } ) {'Hello, World!'}
+
+    multi greeting ( Str \name where { Bool.pick } --> 'True' ){}
+
+    multi greeting ( Str \name where &some-subroutine ){…}
+    =end code
+
+If you read the section in this page on subsets, you'll notice that "where" is used in the making of
+subsets as well as here. The usage of "where" in both areas is exactly the same.
+
+When using C<where>, note that the order of definition is important, just like in Haskell.
+
+    =begin code
+    multi greeting ( Str \name where '' --> 'Hello, World!' ){}
+    multi greeting ( Str \name where { Bool.pick } --> 'True' ){}
+    multi greeting ( Str \name where 'bub' --> 'Hey, bub.' ){}
+
+    say greeting ''   ; # will never say True
+    say greeting 'bub'; # about 50% of the time it will say True
+    =end code
+
+=Argument Deconstruction
+
+TODO
+
+=head2 Currying
+
+TODO
+
+.assuming vs currying
+
+method chaining vs currying
+
+=head2 Composing
+
+TODO
+
+show function composition operator. Maybe explain a more perl6ish way to do this though.
+
+=head1 Case / Matching
+
+Haskell makes heavy use of case matching like the below:
+
+    =begin code :skip-test
+    case number of
+      2 -> "two"
+      4 -> "four"
+      8 -> "eight"
+      _ -> "don't care"
+    =end code
+
+In Perl 6 you can achieve this same thing with the given/when structure:
+
+    =begin code
+    my $number = {...};
+    given $number {
+      when 2  { "two" }
+      when 4  { "four" }
+      when 8  { "eight" }
+      default { "don't care" }
+    }
+    =end code
+
+Note that the order of the C<when>'s is also significant, just like with the C<where>'s in the
+guard section of this page.
+
+=head1 Lists
+
+TODO
+
+explain difference between perl6 Array, Sequence, List. Explain data shapes in regards
+to the C<@> sigil. Explain how you can convert an Array to a flattened list of objects with C<|@>
+
+data shapes become quite intuitive, but it takes a bit of practice.
+
+=head2 List Comprehensions
+
+TODO compare haskell list comprehensions to Perl 6 gather/take
+
+=head2 Fold
+
+Fold in Haskell is called Reduce in Perl 6.
+
+    =begin code :skip-test
+    mySum = foldl `+` 0 numList
+    =end code
+
+    =begin code
+    my @numbers = {...};
+    reduce { $^a + $^b }, 0, |@numbers;
+    @numbers.reduce({$^a + $^b}, with => 0)
+    =end code
+
+However, in Perl 6, if you want to use an infix operator (+ - / % etc) there is a nice little
+helper called the Reduction Metaoperator.
+
+    =begin code
+    my @numbers = {...};
+    [+] @numbers    # This is the same
+    [+] 0, @numbers # as this
+    =end code
+
+It inserts the operator in between all values in the list and produces a result, just like Fold.
+
+In Haskell you, you have foldl and foldr. In Perl 6, this difference is determined by the
+associativity attached to the operator/subroutine.
+
+    =begin code
+    sub two-elem-list ( \a, \b ) { ( a, b ) }
+
+    # you can use a subroutine as an infix operator
+    say 'a' [&two-elem-list] 'b'; # (a b)
+
+    # as the reduction prefix meta operator takes an infix operator, it will work there too;
+    [[&two-elem-list]] 1..5;           # ((((1 2) 3) 4) 5)
+    say (1..5).reduce: &two-elem-list; # ((((1 2) 3) 4) 5)
+
+    # right associative
+    sub right-two-elem-list( \a, \b ) is assoc<right> { ( a, b ) }
+    say (1..5).reduce: &right-two-elem-list; # (1 (2 (3 (4 5))))
+
+    # XXX there is possibly a bug here as this currently doesn't look at
+    # XXX the associativity of &right-two-elem-list and just always does left assoc
+    say [[&right-two-elem-list]] 1..5;
+
+    # chaining
+    say [<] 1..5;            # True
+    say (1..5).reduce: &[<]; # True
+    =end code
+
+=head2 Map
+
+TODO
+
+=head2 Ranges
+
+Haskell and Perl 6 both allow you to specify ranges of values.
+
+    =begin code :skip-test
+    myRange1 = 10..100
+    myRange2 = 1..        -- Infinite
+    myRange3 = 'a'..'h'   -- Letters work too
+    =end code
+
+    =begin code
+    my $range1 = 10..100;
+    my $range2 = 1..*;      # Infinite
+    my $range3 = 'a'..'h';  # Letters work too
+    =end code
+
+=head2 Laziness vs Eagerness
+
+In the examples above, you have the concept of laziness displayed very plainly. Perl 6 has laziness
+only where it makes the most sense. For example, in the range 10..100, this is eager because it has
+a definite end. If a list does not have a definite end, then the list should clearly be lazy.
+
+    =begin code
+    (1 .. 100).is-lazy; # False
+    (1 .. Inf).is-lazy; # True
+    =end code
+
+These are the "sane defaults" that Perl 6 takes pride in. But they are still defaults and can be
+changed into one or the other.
+
+    =begin code
+    (1 .. 100).lazy.is-lazy;       # True
+    (1 .. 100).lazy.eager.is-lazy; # False
+    =end code
+
+=head1 Contexts (let-in / where)
+
+TODO
+
+explain how C<given/when> and C<with/without> and C<for loops> open lexical scopes with the argument as the context.
+
+compare it to let/in and where constructs maybe?
+
+=head1 Parsers
+
+=head2 Parser Combinators vs Grammars
+
+TODO
+
+=end pod
+
+=begin comments
+
+### Guidelines for contributions:
+
+Headers should contain the text that a Haskell user might search for, since
+those headings will be in the Table of Contents generated for the top of
+the document.
+
+We use POD =item instead of =head3 or =head4 for identical bits that need not
+appear in the table of contents.
+
+This article does not describe in detail language features that Haskell doesn't
+have at all, instead referring to other documents.
+
+Example code and links to other documents should be favored over long
+explanations of details better found elsewhere.
+
+Finally, if a real user asks a Haskell to Perl 6 question that is not being
+answered here, please add it to the document. Even if we do not have a good
+answer yet, that will be better than losing the information about a real need.
+
+=end comments

@@ -13,10 +13,11 @@ L<Method>, the two primary code objects for code reuse.
 Routines serve as a scope limiter for C<return> (i.e. a C<return> returns
 from the innermost outer Routine).
 
-Routine is also the level at which multiness (multi subs and multi methods)
+Routine is also the level at which
+L<multiness|/language/glossary#Multi-Dispatch> (multi subs and multi methods)
 are handled.
 
-=head2 X<trait is default|trait,is default (Routine)>
+=head2 X<Trait is default|trait,is default (Routine)>
 
 There is a special trait for C<Routine>s called C<is default>. This trait is
 designed as a way to disambiguate C<multi> calls that would normally
@@ -26,16 +27,18 @@ called.
 
     multi sub f() is default { say "Hello there" }
     multi sub f() { say "Hello friend" }
-    f();   #"Hello there" is printed.
+    f();   # OUTPUT: «"Hello there"␤»
 
 The C<is default> trait can become very useful for debugging and other uses but
 keep in mind that it will only resolve an ambiguous dispatch between two C<Routine>s
 of the same precedence. If one of the C<Routine>s are narrower than another, then
 that one will be called. For example:
 
+    =begin code :skip-test
     multi sub f() is default { say "Hello there" }
     multi sub f(:$greet) { say "Hello " ~ $greet }
-    f();   #"Use of uninitialized value $greet..."
+    f();   # "Use of uninitialized value $greet..."
+    =end code
 
 In this example, the C<multi> without C<is default> was called because it was
 actually narrower than the C<Sub> with it.
@@ -58,7 +61,14 @@ Returns the package in which the routine is defined.
 
     method multi(Routine:D: --> Bool:D)
 
-Returns C<True> if the routine is a multi sub or method.
+Returns C<True> if the routine is a multi sub or method. Note that
+the name of a multi sub refers to its proto and this method would
+return false if called on it. It needs to be called on the
+candidates themselves:
+
+    multi foo ($, $) {};
+    say &foo.multi;             # OUTPUT: «False␤»
+    say &foo.candidates».multi; # OUTPUT: «(True)␤»
 
 =head2 method candidates
 
@@ -275,7 +285,7 @@ OH NOEZ
 
 but if C<inner> is marked with C<hidden-from-backtrace>
 
-=begin code
+=begin code :skip-test
 sub inner is hidden-from-backtrace { die "OH NOEZ" };
 sub outer { inner() };
 outer();

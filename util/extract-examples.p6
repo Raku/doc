@@ -39,8 +39,8 @@ multi sub walk(Pod::Block $_, @context is copy) {
 
 multi sub walk([], @context) { "" }
 
-multi sub walk(@childen, @context) {
-    (@childen.map: { walk($_, @context) }).join
+multi sub walk(@children, @context) {
+    (@children.map: { walk($_, @context) }).join
 }
 
 multi sub walk(Str $s is copy, @context) {
@@ -51,13 +51,10 @@ my &verbose = sub (|c) {};
 
 sub MAIN(Str :$source-path!, Str :$prefix!, Str :$exclude = ".git", Bool :v(:verbose($v)), Bool :$force, *@files) {
     my \exclude = none(flat <. ..>, $exclude.split(','));
-    # We exclude these files from examples list
-    my @exclude-list = '5to6', 'rb', 'module', 'nativecall', 'testing', 'traps', 'packages';
 
     @files ||= gather for $source-path {
         take .IO when .IO.f
-                      && .Str.ends-with('.pod6')
-                      && !.basename.starts-with(any @exclude-list);
+                      && .Str.ends-with('.pod6');
         .IO.dir(test => exclude)».&?BLOCK when .IO.d
     }
 
