@@ -41,7 +41,7 @@ for @files -> $file {
             @examples.push: %(
                 'contents', $chunk.contents.join("\n"),
                 'file', $file,
-                'count', $counts{$file}++
+                'count', ++$counts{$file}
             );
         }
     }
