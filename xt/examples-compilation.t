@@ -1,6 +1,6 @@
 use v6;
 use Test;
-use File::Temp;
+use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
@@ -12,21 +12,21 @@ if @*ARGS {
 } else {
     for qx<git ls-files doc>.lines -> $file {
         next unless $file ~~ / '.pod6' $/;
-        next if $file ~~ /
-            | 'doc/Language/5to6-nutshell.pod6'
-            | 'doc/Language/5to6-perlfunc.pod6'
-            | 'doc/Language/5to6-perlop.pod6'
-            | 'doc/Language/5to6-perlsyn.pod6'
-            | 'doc/Language/5to6-perlvar.pod6'
-            | 'doc/Language/modules.pod6'
-            | 'doc/Language/nativecall.pod6'
-            | 'doc/Language/packages.pod6'
-            | 'doc/Language/phasers.pod6'
-            | 'doc/Language/rb-nutshell.pod6'
-            | 'doc/Language/tables.pod6'
-            | 'doc/Language/testing.pod6'
-            | 'doc/Language/traps.pod6'
-         /,
+        next if $file eq any(<
+            doc/Language/5to6-nutshell.pod6
+            doc/Language/5to6-perlfunc.pod6
+            doc/Language/5to6-perlop.pod6
+            doc/Language/5to6-perlsyn.pod6
+            doc/Language/5to6-perlvar.pod6
+            doc/Language/modules.pod6
+            doc/Language/nativecall.pod6
+            doc/Language/packages.pod6
+            doc/Language/phasers.pod6
+            doc/Language/rb-nutshell.pod6
+            doc/Language/tables.pod6
+            doc/Language/testing.pod6
+            doc/Language/traps.pod6
+         >);
         push @files, $file;
     }
 }
@@ -50,28 +50,40 @@ for @files -> $file {
 my $proc;
 plan +@examples;
 
+my $dummy-io = IO::String.new();
 for @examples -> $eg {
-    my ($filename, $filehandle) = tempfile;
+    use MONKEY-SEE-NO-EVAL;
 
-    # Wrap each snippet in an anonymous class, and add in empty routine bodies if needed
+    # Wrap each snippet in a block so it compiles but isn't run on EVAL
+    # Further wrap in an anonymous class (so bare method works)
+    # Add in empty routine bodies if needed
 
-    my $code = "class :: \{\n" ~ $eg<contents>.trim.map({
-        .starts-with('multi')  ||
-        .starts-with('method') ||
-        .starts-with('proto')  ||
-        .starts-with('only')   ||
-        .starts-with('sub')
-    }).join("\n") ~ "\n\}";
+    my $code = "if False \{\n class :: \{";
+   
+    for $eg<contents>.lines -> $line {
+        $code ~= $line;
+        $line.trim;
+        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with('}') {
+           $code ~= " \{}";
+        }
+        $code ~= "\n";
+    }
+    $code ~= "\n}}"; 
 
-    $filehandle.print: $code;
-    $filehandle.close;
-
-    $proc = run $*EXECUTABLE-NAME, '-c', $filename, out => '/dev/null', err => '/dev/null';
     my $msg = "$eg<file> chunk $eg<count> compiles";
-    if $proc.exitcode == 0 {
-        pass $msg;
-    } else {
+
+    my $status;
+    {
+        $*OUT = $dummy-io;
+        $*ERR = $dummy-io;
+        try EVAL $code;
+        $status = $!;
+    }
+    if $status {
         diag $eg<contents>;
+        diag $status;
         flunk $msg;
+    } else {
+        pass $msg;
     }
 }
