@@ -1,0 +1,606 @@
+=begin pod
+
+=TITLE Perl 6 from Python - Nutshell
+
+=SUBTITLE Learning Perl 6 from Python, in a nutshell.
+
+This page is an attempt to provide a way to learn Perl 6
+for folks coming from a Python background.  We discuss
+the equivalent syntax in Perl 6 for a number of Python
+constructs and idioms.
+
+=head1 Basic Syntax
+
+=head2 Hello, world
+
+Let's start with printing "Hello, world!".  C<say> in Perl 6 is the
+equivalent of C<print> in Python.  Like Python 2, parentheses are
+optional.  A return is added to the end of the line.
+
+Python 2
+
+    print "Hello, world!"
+
+Python 3
+
+    print("Hello, world!")
+
+Perl 6
+
+    say "Hello, world!"
+
+=head2 Statement Separators
+
+In Python, a newline signifies the end of a statement.
+There are a few exceptions: A backslash before a newline
+continues a statement across lines.  Also if there is
+an unmatched opening parentheses, bracket, or curly
+brace, the statement continues across lines, until the
+matching braces are closed.
+
+In Perl 6, a semicolon signifies the end of a statement.
+The semicolon may be omitted if it is the last statement
+of a block.  The semicolon may also be omitted if there
+is a closing curly brace followed by a newline.
+
+Python:
+
+    print 1 + 2 + \
+        3 + 4
+    print ( 1 +
+        2 )
+
+Perl 6:
+
+    say 1 + 2 +
+        3 + 4;
+    if True { say 1 + 2 }
+
+=head2 Blocks
+
+In Python indentation is used to indicate a block.  Perl 6
+uses curly braces.
+
+Python:
+    if 1==2:
+        print "Wait, what?"
+    else:
+        print "1 is not 2."
+
+Perl 6:
+    if 1==2 {
+        say "Wait, what?"
+    } else {
+        say "1 is not 2."
+    }
+
+Parentheses are optional in both languages in expressions in conditionals,
+as shown above.
+
+=head2 Variables
+
+In Python, variables are declared and initialized at the same time:
+
+    foo = 12
+    bar = 19
+
+In Perl 6, C<my> declares a lexical variable.  A variable can be
+initialized with C<=>.  i.e. these can be written as two statements or one.
+
+    my $foo;       # declare
+    $foo = 12;     # initialize
+    my $bar = 19;  # both at once
+
+Also, as you may have noticed, variables in Perl 6 usually start with
+sigils -- symbols indicating the type of their container.  Variables
+starting with a C<$> hold scalars.  Variables starting with an C<@>
+hold arrays, and variables starting with a C<%> hold a hash (dict).
+Immutable variables can be sigil-less, if they are declared with a C<\>.
+
+Python
+    s = 10
+    l = [1,2,3]
+    d = { a : 12, b : 99 }
+
+    print s
+    print l[2]
+    print d['a']
+    # 10, 2, 12
+
+Perl 6
+    my $s = 10;
+    my @l = 1, 2, 3;
+    my %d = a => 12, b => 99;
+    my \x = 99;
+
+    say $s;
+    say @l[1];
+    say %d<a>;  # or %d{'a'}
+    say x;
+    # 10, 2, 12, 99
+
+
+=head2 Scope
+
+In Python, functions and classes create a new scope, but no other
+block constructor (e.g. loops, conditionals) creates a scope.  In Python 2,
+list comprehensions do not create a new scope, but in Python 3, they do.
+
+In Perl 6, every block creates a lexical scope.
+
+Python
+    if True:
+        x = 10
+    print x
+    # x is now 10
+
+Perl 6
+    if True {
+        my $x = 10
+    }
+    say $x
+    # error, $x is not declared in this scope
+
+    my $x;
+    if True {
+        $x = 10
+    }
+    say $x
+    # ok, x is 10
+
+Python
+   i = 10
+   for i in 1,2,3:
+       pass
+   print i
+   # i is 3
+
+Perl 6
+    my \i = 10;
+    for 1, 2, 3 -> \i {
+        # do nothing
+        }
+    say i;
+    # i is 10
+
+Lambdas in Python can be written as pointy blocks in Perl 6.
+
+Python
+    l = lambda i: i * n
+Perl 6
+    $l = -> $i { $i * $n }
+
+Pointy blocks (like all blocks) have their own scope.
+
+Another example (from the Python L<FAQ|https://docs.python.org/3/faq/programming.html#why-do-lambdas-defined-in-a-loop-with-different-values-all-return-the-same-result>):
+
+Python
+    squares = []
+    for x in range(5):
+        squares.append(lambda: x ** 2)
+    print squares[2]()
+    print squares[4]()
+    # both 16 since there is only one x
+
+Perl 6
+    my \squares = [];
+    for ^5 -> \x {
+        squares.append({ x ** 2 });
+    }
+    say squares[2]();
+    say squares[4]();
+    # 4, 16 since each loop iteration has a lexically scoped x,
+
+Note that C<^N) is like C<range(N)>.  Similarly,
+C<N..M> works like C<range(N,M)>.
+
+
+=head2 Control Flow
+
+Python has C<for> loops and C<while> loops:
+    for i in 1, 2:
+        print i
+    j = 1
+    while j < 3:
+        print j
+        j += 1
+
+    # 1, 2, 1, 2
+
+Perl 6 also has C<for> loops and C<while> loops:
+    for 1, 2 -> $i {
+        say $i
+    }
+    my $j = 1;
+    while $j < 3 {
+        say $j;
+        $j += 1
+    }
+
+(Perl 6 also has a few more looping constructs: C<repeat, until>,
+C<repeat, while>, C<until>, and C<loop>.)
+
+C<last> leaves a loop in Perl 6, and is analogous to
+C<break> in Python.  C<continue> in Python is C<next>
+in Perl 6.
+
+Python
+    for i in range(10):
+        if i==3:
+            continue
+        if i==5:
+            break
+        print i
+
+Perl 6
+    for ^10 -> $i {
+        next if $i==3;
+        last if $i==5;
+        say $i;
+    }
+
+Using C<if> as a statement modifier (as above) is acceptable
+in Perl 6, even outside of a list comprehension.
+
+The C<yield> statement in Python which produces a
+"generator" is like a C<gather>, C<take> construct
+in Perl 6.  These both print 1, 2, 3.
+
+Python
+
+    def count():
+        for i in 1, 2, 3:
+            yield i
+
+    for c in count():
+        print c
+
+Perl 6
+
+    sub count {
+        gather {
+            for 1, 2, 3 -> $i {
+                take $i
+            }
+        }
+    }
+
+    for count() -> $c {
+        say $c;
+    }
+
+
+=head2 Lambdas, Functions and Subroutines
+
+Declaring a function (subroutine) with C<def> in Python is accomplished
+with C<sub> in Perl 6.
+
+    def add(a, b):
+        return a + b
+
+    sub add(\a, \b) {
+        return a + b
+    }
+
+The "return" is optional; the value of the last expression is used as
+the return value:
+
+    sub add(\a, \b) {
+        a + b
+    }
+
+    # using variables with sigils
+    sub add($a, $b) {
+        $a + $b
+    }
+
+Python 2 functions can be called with positional arguments
+or keyword arguments.  These are determined by the caller.
+In Python 3, some arguments may be "keyword only".
+IN Perl 6 positional and named arguments are determined
+by the signature of the routine.
+
+Python
+    def speak(word,times):
+        for i in range(times):
+            print word
+    speak('hi',2)
+    speak(word='hi',times=2)
+
+Perl 6
+
+Positional parameters:
+
+    sub speak($word,$times) {
+      say $word for ^$times
+    }
+    speak('hi',2);
+
+Named parameters start with a colon:
+
+    sub speak(:$word,:$times) {
+      say $word for ^$times
+    }
+    speak(word => 'hi',times => 2);
+
+Perl 6 supports multiple dispatch, so several signatures
+could be made available by declaring a routine as a C<multi>.
+
+    multi sub speak($word,$times) {
+      say $word for ^$times
+    }
+    multi sub speak(:$word,:$times) {
+        speak($word,$times);
+    }
+    speak('hi', 2);
+    speak(word => 'hi',times => 2);
+
+Named parameters can be sent using a variety of formats:
+
+    # all the same
+    hello(name => 'world'); # fat arrow syntax
+    hello(:name('world'));  # pair constructor
+    hello :name<world>;     # <> quotes words and makes a list
+    my $name = "world";
+    hello(:$name);          # lexical var with the same name
+
+Creating an anonymous function can be done with C<sub>, with a block or with
+a pointy block.
+
+Python
+
+    square = lambda x: x ** 2
+
+Perl 6
+
+    $square = sub ($x) { $x ** 2 };  # anonymous sub
+    $square = -> $x { $x ** 2 };     # pointy block
+    $square = { $^x ** 2 };          # placeholder variable
+    $square = { $_ ** 2 };           # topic variable
+
+Placeholder variables are lexicographically ordered to form positional parameters.
+i.e. these are the same:
+
+    $power = { $^x ** $^y }
+    $power = -> $x, $y { $x ** $y }
+
+=head2 List Comprehensions
+
+Postfix modifiers and anonymous functions can be combined to make list comprehensions.
+
+Python
+
+    [ i * 2 for i in 3, 9 ]
+
+Perl 6
+
+    ( -> \i { i * 2 } for 3, 9 );
+    ( { $^i * 2 } for 3, 9 );
+    ( { $_ * 2 } for 3, 9 );
+
+Conditionals can be applied, but the C<if> comes first,
+unlike in Python where the if comes second.
+
+    [ x * 2 for x in 1,2,3 if x > 1 ]
+
+vs
+
+    ( $_ * 2 if $_ > 1 for 1, 2, 3 );
+
+For nested loops, the cross product operator C<X>
+will help:
+
+    [ i + j for i in 3,9 for j in 2,10 ]
+
+becomes either of these:
+
+    ( { $_[0] + $_[1] } for (3,9) X (2,10) );
+    ( -> (\i, \j) { i + j } for (3,9) X (2,10) );
+
+Using C<map> (which is just like Python's C<map>) is
+an alternative.
+
+=head2 Classes and Objects
+
+Here's an example from the Python L<docs|https://docs.python.org/3/tutorial/classes.html#class-and-instance-variables>.
+First, "instance variables", aka attributes in Perl 6:
+
+Python:
+    class Dog:
+        def __init__(self, name):
+            self.name = name
+
+Perl 6:
+    class Dog {
+        has $.name;
+    }
+
+Constructors by default take named arguments in Perl 6,
+and use the method C<new>.
+
+Python
+    d = Dog('Fido')
+    e = Dog('Buddy')
+    print d.name
+    print e.name
+
+Perl 6
+    my $d = Dog.new(:name<Fido>);
+    my $e = Dog.new(:name<Buddy>);
+    say $d.name;
+    say $e.name;
+
+Class attributes in Perl 6 can be declared in a few ways.  One way
+is to just declare a lexical variable and a method for accessing it.
+
+Python:
+    class Dog:
+        kind = 'canine'                # class attribute
+        def __init__(self, name):
+            self.name = name           # instance attribute
+    d = Dog('Fido')
+    e = Dog('Buddy')
+    print d.kind
+    print e.kind
+    print d.name
+    print e.name
+
+Perl 6:
+    class Dog {
+        my $kind = 'canine';           # class attribute
+        method kind { $kind }
+        has $.name;                    # instance attribute
+    }
+
+    my $d = Dog.new(:name<Fido>);
+    my $e = Dog.new(:name<Buddy>);
+    say $d.kind;
+    say $e.kind;
+    say $d.name;
+    say $e.name;
+
+To mutate attributes, in Perl 6 you'll want to use C<is rw>:
+
+Python:
+    class Dog:
+        def __init__(self, name):
+            self.name = name
+    d = Dog()
+    d.name = 'rover'
+
+Perl 6:
+    class Dog {
+        has $.name is rw;
+    }
+    my $d = Dog.new;
+    $d.name = 'rover';
+
+Inheritance is done using C<is>:
+
+Python
+    class Animal:
+        def jump:
+            print 'I am jumping'
+
+    class Dog(Animal):
+        pass
+
+    d = Dog()
+    d.jump()
+
+Perl 6
+    class Animal {
+        method jump {
+            say "I am jumping"
+        }
+    }
+
+    class Dog is Animal {
+    }
+
+    my $d = Dog.new;
+    $d.jump;
+
+Multiple inheritance is possible with multiple C<is>'s, or with C<also>.
+
+Python
+    class Dog(Animal, Friend, Pet):
+        pass
+
+Perl 6
+
+    class Dog is Animal is Friend is Pet { ... }
+
+or
+
+    class Dog is Animal {
+        also is Friend;
+        also is Pet;
+        ...
+    }
+
+=head2 Decorators
+
+Decorators in Perl 6 are a way of wrapping a function
+in another one.  In Perl 6 this is done with C<wrap>.
+
+Python
+    def greeter(f):
+        def new():
+            print 'hello'
+            f()
+        return new
+
+    @greeter
+    def world():
+        print 'world'
+
+    world();
+
+Perl 6
+    sub world {
+        say 'world'
+    }
+
+    &world.wrap(sub () {
+        say 'hello';
+        callsame;
+    });
+
+    world;
+
+An alternative would be to use a trait:
+
+    # declare the trait 'greeter'
+    multi sub trait_mod:<is>(Routine $r, :$greeter) {
+        $r.wrap(sub {
+            say "hello";
+            callsame;
+        })
+    }
+
+    sub world is greeter {
+        say 'world';
+    }
+
+    world;
+
+=head2 Context Managers
+
+Context managers in Python declare actions that happen when entering
+or exiting a scope.
+
+Here's a python context manager that prints the strings
+"hello", "world", and "bye":
+
+    class hello:
+        def __exit__(self, type, value, traceback):
+            print 'bye'
+        def __enter__(self):
+            print 'hello'
+
+    with hello():
+        print 'world'
+
+For enter and exit events, passing a block as
+as an argument would be one option:
+
+    sub hello(Block $b) {
+        say 'hello';
+        $b();
+        say 'bye';
+    }
+
+    hello {
+        say 'world';
+    }
+
+A related idea is "Phasers" which may be set up to
+run on entering or leaving a block.
+
+    {
+        LEAVE say "bye";
+        ENTER say "hello";
+        say "world";
+    }
+
