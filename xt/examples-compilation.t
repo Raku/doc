@@ -31,6 +31,12 @@ if @*ARGS {
     }
 }
 
+sub walk(Mu) {
+    when Mu { "" }
+    when Pod::FormattingCode { walk .contents}
+    default { $_ }
+}
+
 # Extract all the examples from the given files
 my @examples;
 my $counts = BagHash.new;
@@ -39,7 +45,7 @@ for @files -> $file {
         if $chunk ~~ Pod::Block::Code  {
             next if $chunk.config<skip-test>;
             @examples.push: %(
-                'contents', $chunk.contents.join("\n"),
+                'contents', $chunk.contents.map({walk $_}).join,
                 'file', $file,
                 'count', ++$counts{$file}
             );
@@ -59,16 +65,16 @@ for @examples -> $eg {
     # Add in empty routine bodies if needed
 
     my $code = "if False \{\n class :: \{";
-   
+
     for $eg<contents>.lines -> $line {
         $code ~= $line;
         $line.trim;
-        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with('}') {
+        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) {
            $code ~= " \{}";
         }
         $code ~= "\n";
     }
-    $code ~= "\n}}"; 
+    $code ~= "\n}}";
 
     my $msg = "$eg<file> chunk $eg<count> compiles";
 
