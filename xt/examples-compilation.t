@@ -30,10 +30,12 @@ if @*ARGS {
     }
 }
 
-sub walk(Mu) {
-    when Mu { "" }
-    when Pod::FormattingCode { walk .contents}
-    default { $_ }
+sub walk($arg) {
+    given $arg {
+        when Pod::FormattingCode { walk $arg.contents }
+        when Str   { $arg }
+        when Array { $arg.map({walk $_}).join }
+    }
 }
 
 # Extract all the examples from the given files
