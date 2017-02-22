@@ -1,5 +1,6 @@
 use v6;
 use Test;
+use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
@@ -57,7 +58,7 @@ for @files -> $file {
 my $proc;
 plan +@examples;
 
-my $dummy-io = IO::Handle.new;
+my $dummy-io = IO::String.new();
 for @examples -> $eg {
     use MONKEY-SEE-NO-EVAL;
 
