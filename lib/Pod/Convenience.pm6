@@ -11,18 +11,17 @@ sub pod-gist(Pod::Block $pod, $level = 0) is export {
         }
     }
     @chunks = $leading, $pod.^name, (%confs.perl if %confs), "\n";
-    for $pod.contents.list -> $c {
-        if $c ~~ Pod::Block {
-            @chunks.append: pod-gist($c, $level + 2);
-        }
-        elsif $c ~~ Str {
-            @chunks.append: $c.indent($level + 2), "\n";
-        } elsif $c ~~ Positional {
-            @chunks.append: $c.map: {
-                if $_ ~~ Pod::Block {
-                    *.&pod-gist
-                } elsif $_ ~~ Str {
-                    $_
+    for $pod.contents.list -> $contents {
+        given $contents {
+            when Pod::Block { @chunks.append: pod-gist($_, $level + 2); }
+            when Str        { @chunks.append: $_.indent($level + 2), "\n"; }
+            when Positional {
+                @chunks.append: $_.map: -> $content {
+                    if $content ~~ Pod::Block {
+                        *.&pod-gist
+                    } elsif $content ~~ Str {
+                        $content
+                    }
                 }
             }
         }
