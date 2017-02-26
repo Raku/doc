@@ -238,50 +238,82 @@ on their signature write the signature after the argument name.
 
 =head3 X«Constraining Return Types|-->;returns»
 
-The token C<-->> followed by a type will force a type check on successful
-execution of a routine. The return type arrow has to be placed at the end of
-the parameter list. The keyword C<returns> following a signature declaration
-has the same function. C<Nil> and its subclasses do B<not> abide by return
-constraints. This allows L<Failure|/type/Failure> to be returned and passed on
-down the call chain.
-
-    sub foo(--> Int) { my Int $i; $i };
-    sub baz(--> Int:D) { 1 }
-    sub bar() returns Int { 1 };
-    sub does-not-work(--> Int) { "" }; # throws X::TypeCheck::Return
-
-There are two other ways to declare a return type:
-
-    sub foo() of Int { 1 };
-    my Int sub bar { 1 };
-
-C<of> is just the real name of the C<returns> keyword, and the
-prefix(C-like) form can be used too. Although all the ways are valid,
-the C<-->> form is preferred for several reasons:
-(1) it can handle constant values while the others can't;
-(2) for consistency, it is the only form accepted on this site; and
-(3) the C<returns> form is planned for future removal.
-
-The following illustrates how to write a signature returning a constant value:
-
-=begin code :skip-test
-my 42 sub bad-answer {};       # This will fail.
-sub bad-answer2 returns 42 {}; # This too.
-sub answer(--> 42) { return; } # This doesn't.
-=end code
-
-If the type constraint is a constant expression, it is used as the return value
-of the routine. Any return statement in that routine has to be argumentless.
-
-    sub foo(--> 123) { return }
+There are multiple ways to constrain return types on a sub or method. All versions below
+are currently valid and will force a type check on successful execution of a routine.
 
 L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types,
-regardless of any type constraint.
+regardless of any type constraint. This allows L<Failure|/type/Failure> to be returned
+and passed on down the call chain.
 
     sub foo(--> Int) { Nil };
     say foo.perl; # OUTPUT: «Nil␤»
 
 Type captures and coercion types are not supported.
+
+=item C<-->>
+
+This form is preferred for several reasons:
+(1) it can handle constant values while the others can't;
+(2) for consistency, it is the only form accepted on this site;
+
+The return type arrow has to be placed at the end of the parameter list, with
+or without a C<,> before it.
+
+    =begin code
+    sub greeting(Str $name  --> Str) { say "Hello, $name" } # Valid
+    sub greeting(Str $name, --> Str) { say "Hello, $name" } # Valid
+
+    sub favorite-number(--> 42) {        } # OUTPUT: 42
+    sub favorite-number(--> 42) { return } # OUTPUT: 42
+    =end code
+    
+If the type constraint is a constant expression, it is used as the return value
+of the routine. Any return statement in that routine has to be argumentless.
+
+    =begin code :skip-test    
+    sub foo(Str $word --> 123) { say $word; return; }
+    my $value = foo("hello"); # OUTPUT: hello
+    say $value;               # OUTPUT: 123
+    
+    # The code below will not compile
+    sub foo(Str $word --> 123) { say $word; return $word; }
+    my $value = foo("hello");
+    say $value;
+    =end code
+
+=item C<returns>
+
+The keyword C<returns> following a signature declaration
+has the same function as C<-->> with two caveats.
+
+(1) This form is planned for future removal.
+(2) This form does not work with constant values
+
+    =begin code :skip-test
+    sub greeting(Str $name) returns Str { say "Hello, $name" } # Valid
+
+    sub favorite-number returns 42 {        } # This will fail.
+    =end code
+
+=item C<of>
+
+C<of> is just the real name of the C<returns> keyword.
+
+    =begin code :skip-test
+    sub foo() of Int { 42 }; # Valid
+    
+    sub foo() of 42 {  };    # This will fail.
+    =end code
+
+=item prefix(C-like) form
+
+This is similar to placing type constraints on variables like C<my Type $var = 20;>,
+except the $var is a definition for a routine.
+
+    =begin code :skip-test
+    my Int sub bar { 1 };     # Valid
+    my 42 sub bad-answer {};  # This will fail.
+    =end code
 
 =head3 X<Coercion Type|coercion type (signature)>
 
