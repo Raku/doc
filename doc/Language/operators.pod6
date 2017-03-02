@@ -2129,6 +2129,33 @@ Short-circuits. The result of the left side is bound to $_ for the
 right side, or passed as arguments if the right side is a
 L«C<Callable>|/type/Callable».
 
+A handy use of this operator is to alias a routine's return value to C<$_> and
+to do additional manipulation with it, such as printing or returning it to
+caller. Since the C<andthen> operator short-curcuits, statements on the
+right-hand side won't get executed, unless left-hand side is defined.
+
+    sub load-data {
+        rand  > .5 or return; # simulated load data failure; return Nil
+        (rand > .3 ?? 'error' !! 'good data') xx 10 # our loaded data
+    }
+    load-data.first: /good/ andthen say "$_ is good";
+    # OUTPUT: «(good data is good)␤»
+
+    load-data() andthen .return; # return loaded data, if it's defined
+    die "Failed to load data!!";
+
+The above example will print C<good data is good> only if the subroutine
+returned any items that match C</good/> and will die unless loading data
+returned defined value. The aliasing behaviour lets us pipe the values across
+the operator.
+
+The C<andthen> operator is a close relative of
+L«C<with> statement modifier|/syntax/with orwith without», and some compilers
+compile C<with> to C<andthen>, meaning these two lines have equvalent behaviour:
+
+    .say with 42;
+    42 andthen .say;
+
 =head1 Loose OR Precedence
 
 =head2 infix C«or»
