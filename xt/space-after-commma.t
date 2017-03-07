@@ -23,8 +23,6 @@ if @*ARGS {
 plan +@files;
 
 for @files -> $file {
-    my $ok = True;
-
     my $out;
     if $file ~~ / '.pod6' $/ {
         my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
@@ -33,7 +31,8 @@ for @files -> $file {
         $out = $file.IO;
     }
 
-    for $out.lines -> $line is copy {
+    my @failures;
+    for $out.lines.kv -> $i, $line is copy {
         next if $line ~~ / ^ '    '/;
 
         # ignore these cases already in docs/ that don't strictly follow rule
@@ -52,11 +51,11 @@ for @files -> $file {
         $line ~~ s:g/ '(3,)' //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
-            $ok = False;
+            @failures.push: $i+1 # line number
         }
     }
-    my $error = $file;
-    ok $ok, "$error: Must have space after comma.";
+    ok @failures == 0, "$file: Must have space after comma. "
+        ~ "(failures on lines: @failures.join(', '))";
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
