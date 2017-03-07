@@ -75,7 +75,7 @@ You can then view the examples documentation by pointing your web browser at
 You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
 installed and you will need [nodejs](https://nodejs.org) to perform highlighting.
 
---------
+---------
 
 ## Help Wanted!
 
