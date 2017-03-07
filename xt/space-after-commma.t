@@ -33,8 +33,9 @@ for @files -> $file {
         $out = $file.IO;
     }
 
-    for $out.lines -> $line is copy {
-        next if $line ~~ / ^ '    '/;
+    for $out.lines -> $line-orig {
+        next if $line-orig ~~ / ^ '    '/;
+        my $line = $line-orig;
 
         # ignore these cases already in docs/ that don't strictly follow rule
         $line ~~ s:g/ "','" //;
@@ -52,6 +53,7 @@ for @files -> $file {
         $line ~~ s:g/ '(3,)' //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
+            diag "Failure on line `$line-orig`";
             $ok = False;
         }
     }
