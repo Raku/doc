@@ -227,14 +227,15 @@ An example program that lists all files and directories recursively:
 A lazy way to find the first three files ending in ".p6" recursively starting from the current directory:
 
 =for code :skip-test
-my @stack = '.';
-my $perl-files := gather while ( @stack ) {
-    my $current = @stack.pop;
-    take $current if ($current.IO.f && $current.IO.extension ~~ rx:i/p6$/);
-    @stack.append(dir($current)>>.path) if $current.IO.d;
+my @stack = '.'.IO;
+my $perl-files = gather while @stack {
+    with @stack.pop {
+        when :d { @stack.append: .dir }
+        .take when .extension.lc.ends-with: 'p6'
+    }
 }
+.put for $perl-files[^3];
 =for code :skip-test
-say $perl-files[1..3];
 
 =head2 method e
 
