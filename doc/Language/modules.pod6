@@ -78,39 +78,57 @@ It is equivalent to:
 
 C<require> loads a compunit and imports definite symbols at runtime.
 
-    sub load-mymodule {
-       say "loading MyModule";
-       require MyModule;
-    }
-
-    load-mymodule();
+    
+    say "loading MyModule";
+    require MyModule;
 
 The compunit name can be in a runtime variable if you put it inside an
 indirect lookup.
 
-    sub load-a-module($name){
-       require ::($name);
-    }
-
-    load-a-module('MyModule');
+    my $name = 'MyModule';
+    require ::($name);
 
 The symbols provided by the loaded module will not be imported into the current
 scope. You may use L<dynamic lookup|/language/packages#index-entry-::()> or
 L<dynamic subsets|/language/typesystem#subset> to use them by providing the
 fully qualified name of a symbol.
 
-To import symbols you must define them at compile time.
+To import symbols you must define them at compile time. B<NOTE:> C<require>
+is lexically scoped:
 
     sub do-something {
        require MyModule <&something>;
+       say ::('MyModule'); # MyModule symbol exists here
        something() # &something will be defined here
     }
-
+    say ::('MyModule'); # This will NOT contain the MyModule symbol
     do-something();
     # &something will not be defined here
 
+If C<MyModule> doesn't export C<&something> then C<require> will fail.
 
-If C<MyModule> doesn't export C<&something> then it will fail.
+A C<require> with compile-time symbol will install a placeholder C<package>
+that will be updated to the loaded module, class, or package. Note that the
+placeholder will be kept, B<even if require failed to load the module.>
+This means that checking if a module loaded like this is wrong:
+
+    # *** WRONG: ***
+    try require Foo;
+    if ::('Foo') ~~ Failure { say "Failed to load Foo!"; }
+    # *** WRONG: ***
+
+As the compile-time installed package causes C<::('Foo')> to never be
+a C<Failure>. The correct way is:
+
+    # Use return value to test whether loading succeeded:
+    (try require Foo) === Nil and say "Failed to load Foo!";
+    
+    # Or use a run-time symbol lookup with require, to avoid compile-time
+    # package installation:
+    try require ::('Foo');
+    if ::('Foo') ~~ Failure {
+        say "Failed to load Foo!";
+    }
 
 =head2 Exporting and Selective Importing
 
