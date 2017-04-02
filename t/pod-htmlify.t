@@ -55,8 +55,8 @@ subtest {
     EOF
 
     my ($filename, $filehandle) = tempfile;
-    $filehandle.IO.spurt($test-svg);
-    $filehandle.flush;
+    $filehandle.spurt($test-svg);
+    $filehandle.close;
 
     my $expected-svg = q:to/EOF/;
     <svg width="66pt" height="188pt"
