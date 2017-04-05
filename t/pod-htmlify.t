@@ -55,8 +55,8 @@ subtest {
     EOF
 
     my ($filename, $filehandle) = tempfile;
-    $filehandle.spurt($test-svg);
     $filehandle.close;
+    $filename.spurt($test-svg);
 
     my $expected-svg = q:to/EOF/;
     <svg width="66pt" height="188pt"
