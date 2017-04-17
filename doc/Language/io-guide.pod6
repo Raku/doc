@@ -1,0 +1,112 @@
+=begin pod :tag<perl6>
+
+=TITLE Input/Output The Definitive Guide
+
+=SUBTITLE The dos and don'ts of Perl 6 IO
+
+
+=head1 The Wrong Way To Do Things
+
+This section describes how NOT to do Perl 6 IO.
+
+=head2 Leave $*SPEC Alone
+
+You may have heard of L«C<$*SPEC>|/language/variables#Dynamic_variables» and
+seen some code or books show its usage for splitting and joining path fragments.
+Some of the routine names it provides may even look familiar to what you've
+used in other languages.
+
+However, unless you're writing your own IO framework,
+you don't ever need to use L«C<$*SPEC>|/language/variables#Dynamic_variables»!
+L«C<$*SPEC>|/language/variables#Dynamic_variables» provides low-level stuff and
+its use will not only make your code horrible to read, you'll likely introduce
+security issues (e.g. nul bytes)!
+
+The L«C<IO::Path>|/type/IO::Path» type is the workhorse of Perl 6 worl. It
+caters to all the path manipulation needs as well as provides shortcut routines
+that let you avoid dealing with file handles. Use that instead of the
+L«C<$*SPEC>|/language/variables#Dynamic_variables» stuff.
+
+Tip: you can join path parts with C</> and feed them to
+L«C<IO::Path>|/type/IO::Path»'s routines; they'll still do The Right Thing™ with
+them, regardless of the operating system.
+
+=for code :skip-test
+# WRONG!! TOO MUCH WORK!
+my $fh = open $*SPEC.catpath: '', 'foo/bar', $file;
+my $data = $fh.slurp;
+$fh.close;
+
+# RIGHT! Use IO::Path to do all the dirty work
+my $data = 'foo/bar'.IO.add($file).slurp;
+
+=head2 Stringifying IO::Path
+
+Don't use C<.Str> method to stringify L«C<IO::Path>|/type/IO::Path» objects,
+unless you just want to display them somewhere for information purposes or
+something. The C<.Str> method returns whatever the basic path string the
+L«C<IO::Path>|/type/IO::Path» was instantiated with. It doesn't consider the
+value of L«C<$.CWD> attribute|/type/IO::Path#attribute_CWD». For example, this
+code is broken:
+
+=for code :skip-test
+# WRONG!! .Str DOES NOT USE $.CWD!
+my $path = 'foo'.IO;
+chdir 'bar';
+run <tar -cvvf archive.tar>, ~$path;
+
+The L«C<chdir>|/routine/chdir» call changed the value of the current directory,
+but the C<$path> we created is relative to the directory before that change.
+
+However, the L«C<IO::Path>|/type/IO::Path» object I<does> know what directory
+it's relative to. We just need to use L«C<.absolute>|/routine/absolute» or
+L«C<.relative>|/routine/relative» to stringify the object. Both routines return
+a L«C<Str>|/type/Str» object; they only differ in whether the result is an
+absolute or relative path. So, we can fix our code like this:
+
+=for code :skip-test
+# RIGHT!! .absolute does consider the value of $.CWD!
+my $path = 'foo'.IO;
+chdir 'bar';
+run <tar -cvvf archive.tar>, $path.absolute;
+# Also good:
+run <tar -cvvf archive.tar>, $path.relative;
+
+=head2 Be mindful of $*CWD
+
+While usually out of view, every L«C<IO::Path>|/type/IO::Path» object, by
+default, uses the current value of
+L«C<$*CWD>|/language/variables#Dynamic_variables» to set its
+L«C<$.CWD> attribute|/type/IO::Path#attribute_CWD». This means there are two
+things to pay attention to.
+
+=head3 temp the $*CWD
+
+This code is a mistake:
+
+=for code :skip-test
+# WRONG!!
+my $*CWD = "foo".IO;
+
+The C<my $*CWD> made L«C<$*CWD>|/language/variables#Dynamic_variables»
+undefined. The L«C<.IO>|/routine/IO» coercer
+then goes ahead and sets the L«C<$.CWD> attribute|/type/IO::Path#attribute_CWD»
+of the path its creating to the stringified version of the undefined C<$*CWD>;
+an empty string.
+
+The correct way to perform this operation is use
+L«C<temp>|/routine/temp» instead of C<my>. It'll localize the effect of changes
+to L«C<$*CWD>|/language/variables#Dynamic_variables», just like C<my> would,
+but it won't make it undefined, so the L«C<.IO>|/routine/IO» coercer will still
+get the correct old value:
+
+=for code :skip-test
+temp $*CWD = "foo".IO;
+
+Better yet, if you want to perform some code in localized
+L«C<$*CWD>|/language/variables#Dynamic_variables», use the
+L«C<indir> routine|/routine/indir» for that purpose.
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
