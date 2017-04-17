@@ -33,12 +33,16 @@ use Perl6::TypeGraph::Viz;
 use Pod::Convenience;
 use Pod::Htmlify;
 use OO::Monitors;
-
+# Don't include backslash in Win or forwardslash on Unix because they are used
+# as directory seperators. These are handled in lib/Pod/Htmlify.pm6
+my \badchars-ntfs = Qw[ / ? < > : * | " ];
+my \badchars-unix = Qw[ ];
+my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
 {
     my monitor PathChecker {
         has %!seen-paths;
         method check($path) {
-            note "$path got badchar" if $path.contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+            note "$path got badchar" if $path.contains(any(badchars));
             note "$path got empty filename" if $path.split('/')[*-1] eq '.html';
             note "duplicated path $path" if %!seen-paths{$path}:exists;
             %!seen-paths{$path}++;
