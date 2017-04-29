@@ -333,10 +333,48 @@ to L<Str>.
 
 =head2 method close
 
-Will close a previously opened filehandle.
+Defined as:
+
+    method close(IO::Handle:D: --> Bool:D)
+    multi sub close(IO::Handle $fh)
+
+Closes an open file handle. It's not an error to call C<close> on an
+already-closed filehandle. Returns C<True> on success.
+
+It's a common idiom to use L«C<LEAVE> phaser|/language/phasers#LEAVE» for
+closing the handles, which ensures the handle is closed regardless of how the
+block is left.
 
 =for code :skip-test
-$fh.close;
+    if $do-stuff-with-the-file {
+        my $fh = open "path-to-file";
+        LEAVE close $fh;
+        # ... do stuff with the file
+    }
+
+    sub do-stuff-with-the-file (IO $path-to-file)
+      my $fh = $path-to-file.open;
+
+      # stick a `try` on it, since this will get run even when the sub is
+      # called with wrong arguments, in which case the `$fh` will be an `Any`
+      LEAVE try close $fh;
+
+      # ... do stuff with the file
+    }
+
+    with "foo/bar".IO.open(:w) {
+        .spurt: "I ♥ Perl 6!";
+        .close;
+    }
+
+B<Note:> unlike some other languages, Perl 6 does not use reference counting,
+and so B<the file handles are NOT closed when they go out of scope>. They
+I<will> get closed when garbage collected, however an explicit C<close> is
+recommended, so that your program does not open too many files at the same time,
+triggering exceptions on further opens.
+
+As a simpler alternative, the L<IO::Path> type provides many methods that let
+you work with files without dealing with file handles directly.
 
 =head2 method flush
 
