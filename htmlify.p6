@@ -35,7 +35,7 @@ use Pod::Htmlify;
 use OO::Monitors;
 # Don't include backslash in Win or forwardslash on Unix because they are used
 # as directory seperators. These are handled in lib/Pod/Htmlify.pm6
-my \badchars-ntfs = Qw[ / ? < > : * | " ];
+my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
 my \badchars-unix = Qw[ ];
 my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
 {

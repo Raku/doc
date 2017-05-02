@@ -14,7 +14,7 @@ sub url-munge($_) is export {
     return $_;
 }
 
-my \badchars-ntfs = Qw[ / ? < > \ : * | " ];
+my \badchars-ntfs = Qw[ / ? < > \ : * | " ¥ ];
 my \badchars-unix = Qw[ / ];
 my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
 my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
