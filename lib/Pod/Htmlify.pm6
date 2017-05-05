@@ -48,12 +48,12 @@ sub rewrite-url($s) is export {
             # on-page link, we bail
             return $s;
         }
-
+        # Type
         when / ^ <[A..Z]> / {
             $r =  "/type/{escape-filename(unescape-percent($s))}";
             succeed;
         }
-
+        # Routine
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
             $r = "/routine/{escape-filename(unescape-percent($s))}";
             succeed;
@@ -77,7 +77,10 @@ sub rewrite-url($s) is export {
 
     my $file-part = $r.split('#')[0] ~ '.html';
     die "$file-part not found" unless $file-part.IO:e:f:s;
-
+    # URL's can't end with a period. So affix the suffix.
+    if $r.contains('#').not and $r.ends-with: '.' {
+        $r ~= '.html';
+    }
     return %cache{$s} = $r;
 }
 
