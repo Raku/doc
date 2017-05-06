@@ -16,7 +16,7 @@ sub url-munge($_) is export {
 
 my \badchars-ntfs = Qw[ / ? < > \ : * | " ¥ ];
 my \badchars-unix = Qw[ / ];
-my \badchars-url = Qw[ % ];
+my \badchars-url = Qw[ % ^ ];
 my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
 my @badchars = (badchars, badchars-url).flat;
 my \goodnames = @badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
@@ -25,7 +25,7 @@ my \length = @badchars.elems;
 sub replace-badchars-with-goodnames($s is copy) is export {
 #    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
 
-    loop (my int $i = 0;$i < length;$i++) {
+    loop (my int $i = 0; $i < length; $i++) {
         $s = $s.subst(@badchars[$i], goodnames[$i], :g)
     }
 
