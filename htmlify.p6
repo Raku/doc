@@ -411,7 +411,7 @@ multi write-type-source($doc) {
     }
 
     my @parts = $doc.url.split('/', :v);
-    @parts[*-1] = escape-filename @parts[*-1];
+    @parts[*-1] = replace-badchars-with-goodnames @parts[*-1];
     my $html-filename = "html" ~ @parts.join('/') ~ ".html";
     my $pod-path = pod-path-from-url($doc.url);
     spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
@@ -816,7 +816,7 @@ sub write-disambiguation-files() {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/{escape-filename $name}.html", $html;
+        spurt "html/{replace-badchars-with-goodnames $name}.html", $html;
         # spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
     }
     say '';
@@ -945,7 +945,7 @@ sub write-kind($kind) {
             );
             print '.';
             # spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
-            spurt "html/$kind/{escape-filename $name}.html", p2h($pod, $kind);
+            spurt "html/$kind/{replace-badchars-with-goodnames $name}.html", p2h($pod, $kind);
         }
     say '';
 }
@@ -957,7 +957,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     return if $name ~~ / '/' /;
-    spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
+    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
 }
 sub get-temp-filename {
     state %seen-temps;

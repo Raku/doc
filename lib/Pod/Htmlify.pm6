@@ -22,7 +22,7 @@ my @badchars = (badchars, badchars-url).flat;
 my \goodnames = @badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
 my \length = @badchars.elems;
 
-sub escape-filename($s is copy) is export {
+sub replace-badchars-with-goodnames($s is copy) is export {
 #    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
 
     loop (my int $i = 0;$i < length;$i++) {
@@ -52,29 +52,29 @@ sub rewrite-url($s) is export {
         }
         # Type
         when / ^ <[A..Z]> / {
-            $r =  "/type/{escape-filename(unescape-percent($s))}";
+            $r =  "/type/{replace-badchars-with-goodnames(unescape-percent($s))}";
             succeed;
         }
         # Routine
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
-            $r = "/routine/{escape-filename(unescape-percent($s))}";
+            $r = "/routine/{replace-badchars-with-goodnames(unescape-percent($s))}";
             succeed;
         }
 
         # Special case the really nasty ones
-        when / ^ '/routine//' $ /  { return '/routine/' ~ escape-filename('/'); succeed;  }
-        when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
+        when / ^ '/routine//' $ /  { return '/routine/' ~ replace-badchars-with-goodnames('/'); succeed;  }
+        when / ^ '/routine///' $ / { return '/routine/' ~ replace-badchars-with-goodnames('//'); succeed; }
 
         when / ^
             ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
-            $r =  $0 ~ escape-filename(unescape-percent($1)) ~ $2 ~ uri_escape($3);
+            $r =  $0 ~ replace-badchars-with-goodnames(unescape-percent($1)) ~ $2 ~ uri_escape($3);
             succeed;
         }
 
         default {
             my @parts = $s.split('#');
-            $r = escape-filename(@parts[0]) ~ '#' ~ uri_escape(@parts[1]) if @parts[1];
-            $r = escape-filename(@parts[0]) unless @parts[1];
+            $r = replace-badchars-with-goodnames(@parts[0]) ~ '#' ~ uri_escape(@parts[1]) if @parts[1];
+            $r = replace-badchars-with-goodnames(@parts[0]) unless @parts[1];
         }
     }
 
