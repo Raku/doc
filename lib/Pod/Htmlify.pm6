@@ -82,9 +82,9 @@ sub rewrite-url($s) is export {
     die "$file-part not found" unless $file-part.IO:e:f:s;
     # URL's can't end with a period. So affix the suffix.
     # If it ends with percent encoded text then we need to add .html to the end too
-    $r ~= '.html' if $r.contains('#').not
-                  && $r.ends-with( < . >.any)
-                  || $r.match: /'%' <:AHex> ** 2 /;
+    if !$r.contains('#') && ( $r.ends-with(<.>) || $r.match: / '%' <:AHex> ** 2 $ / ) {
+        $r ~= '.html';
+    }
     return %cache{$s} = $r;
 }
 
