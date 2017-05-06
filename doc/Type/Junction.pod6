@@ -103,6 +103,45 @@ a negated junction:
         say '"yes" is not a negation';
     }
 
+=head2 Failures and Exceptions
+
+L<Failures|/type/Failure> are just values like any other, as far as Junctions
+are concerned:
+
+    my $j = +any "not a number", "42", "2.1";
+    (gather $j».take).grep(Numeric).say; # OUTPUT: «(42 2.1)␤»
+
+Above, we've used prefix C<+> operator on a L<Junction> to coerce the strings
+inside of it to L<Numeric>. Since the operator returns a L<Failure> when
+L<Str> that doesn't contain a number gets coerced to C<Numeric>, one of the
+elements in the C<Junction> is a C<Failure>, but same C<Failure> rules as normal
+apply and the C<Failure> doesn't explode just because it's in a C<Junction>, and
+we can L«C<.grep>|/routine/grep» it out. The exception I<will> be thrown,
+if you try to use the C<Failure> as a value—just like were this C<Failure> on
+its own and not part of the C<Junction>:
+
+    my $j = +any "not a number", "42", "2.1";
+    try say $j == 42;
+    $! and say "Got exception: $!.^name()"; # OUTPUT: «Got exception: X::Str::Numeric␤»
+
+Note that if an exception gets thrown when I<any> of the values in a
+L<Junction> get computed, it will be thrown just as if the problematic value
+were computed on its own and not with a C<Junction>; you can't just compute the
+values that work while ignoring exceptions:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    say try calc $j; # OUTPUT: «Nil␤»
+
+Only one value above causes an exception, but the result of the
+L«C<try> block|/language/exceptions#index-entry-try_blocks-try» is still a L<Nil>.
+A possible way around it is to cheat and evaluate the values of the C<Junction>
+individually and then re-create the C<Junction> from the result:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    $j = any (gather $j».take).grep: {Nil !=== try calc $_};
+    say so $j == 42; # OUTPUT: «True␤»
 
 =head2 See Also
 
