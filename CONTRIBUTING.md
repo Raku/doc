@@ -23,7 +23,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
-- [Website Styles](#website-styles)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -194,16 +193,6 @@ Contributors may also specify one of the following tags.
 
 If you would like to contribute documentation or other bug fixes, please use
 github's Pull request feature.
-
-## Website Styles
-
-The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
-don't edit `html/css/style.css` directly, as your changes will be lost
-the next time the SASS file is processed.
-
-[SASS](http://sass-lang.com/) is a superset of CSS, so if you don't know SASS,
-just write in regular CSS. Run `app.pl` to automatically process SASS and copy
-the result over to `html/css/style.css`
 
 ## Building the documentation
 
