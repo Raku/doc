@@ -30,8 +30,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Pod::To::HTML](#podtohtml)
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
-        - [pygmentize](#pygmentize)
-        - [Inline::Python](#inlinepython)
     - [Build and view the documentation](#build-and-view-the-documentation)
 
 ## General principles
@@ -263,55 +261,6 @@ or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
 
 The SASS files are compiled when you run `make html`, or `make sass`, or
 start the development webserver (`./app-start`).
-
-#### pygmentize
-
-This program adds syntax highlighting to the code examples.  Highlighting of
-Perl 6 code was added in version 2.0, so you need at least this version if
-you wish to produced syntax highlighted documentation on your local
-computer.
-
-If you use Debian/Jessie, you can install `pygmentize` via the
-`python-pygments` package:
-
-    $ aptitude install python-pygments
-
-On Ubuntu install the package `python-pygments`:
-
-    $ sudo apt-get install python-pygments
-
-On Fedora the package is also named `python-pygments`:
-
-    $ sudo yum install python-pygments
-
-Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
-(the Python package installer):
-
-    $ pip install pygmentize
-
-#### Inline::Python
-
-`Inline::Python` is optional, however will speed up documentation builds
-using syntax highlighting.
-
-First, you'll need the Python Devel header files and libraries if they have not
-already been installed:
-
-On Debian, install the `python-dev` package:
-
-    aptitude install python-dev
-
-On Ubuntu, the package is also named `python-dev`:
-
-    sudo apt-get install python-dev
-
-On Fedora, install the `python-devel` package:
-
-    sudo yum install python-devel
-
-Use `zef` to install the `Inline::Python` module:
-
-    $ zef install Inline::Python
 
 ### Build and view the documentation
 
