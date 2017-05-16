@@ -60,6 +60,71 @@ However, don't be in a rush to stringify anything. Pass paths around as
 L<IO::Path|/type/IO::Path> objects. All the routines that operate on paths
 can handle them, so there's no need to convert them.
 
+=head2 Working with Files
+
+=head3 Writing into files
+
+=head4 Writing new content
+
+Let's make some files and write and read data from them! The
+L«C<spurt>|/routine/spurt» and L«C<slurp>|/routine/slurp» routines write and
+read the data in one chunk. Unless you're working with very large files that
+are difficult to store entirely in memory all at the same time, these two
+routines are for you.
+
+=for code :skip-test
+    "my-file.txt".IO.spurt: "I ♥ Perl 6!";
+
+The code above creates a file named C<my-file.txt> in the currect directory
+and then writes text C<I ♥ Perl 6!> into it. If Perl 6 is your first language,
+celebrate your accomplishment! Try to open the file you created with some other
+program to verify what you wrote with your program. If you already know
+some other language, you may be wondering if this guide missed anything like
+handling encoding or error conditions.
+
+However, that is all the code you need. The string will be encoded in C<utf-8>
+encoding by default and the errors are handled via the L<Failure> mechanism:
+these are exceptions you can handle using regular conditionals. In this case,
+we're letting all potential L<Failures|/type/Failure> get sunk after the
+call and so any L<Exceptions|/type/Exception> they contain will be thrown.
+
+=head4 Appending content
+
+If you wanted to add more content to the file we made in previous section, you
+could note the L«C<spurt> documentation|/routine/spurt» mentions C<:append>
+argument. However, for finer control, let's get ourselves an L<IO::Handle>
+to work with:
+
+    my $fh = 'my-file.txt'.IO.open: :a;
+    $fh.print: "I count: ";
+    $fh.print: "$_ " for ^10;
+    $fh.close;
+
+The L«C<.open>|/routine/open» method call opens our L<IO::Path> and returns
+an L<IO::Handle>. We passed C<:a> as argument, to indicate we want to open
+the file for writing in append mode.
+
+On the next couple of lines, we use the usual L«C<.print>|/routine/print»
+method on that L<IO::Handle> to print ten lines of
+text. Note that, once again, L<Failure> mechanism takes care of all the error
+checking for us. If the L«C<.open>|/routine/open» fails, it returns
+a L<Failure>, which will throw when we attempt to call method
+L«C<.print>|/routine/print» on it.
+
+Finally, we close the L<IO::Handle> by calling
+L«C<.close> documentation|/routine/close» method on it. It is
+I<imporant that you do it>, especially in large programs or ones that deal
+with a lot of files, as many systems have limits to how many files a program
+can have open at the same time. If you don't close your handles, eventually
+you'll reach that limit and the L«C<.open>|/routine/open» call will fail.
+Note that unlike some other languages, Perl 6 does not use reference counting,
+so the file handles B<are NOT closed> when the scope they're defined in is left.
+They will be closed only when they're garbage collected and failing to close
+the handles may cause your program to reach the file limit I<before> the open
+handles get a chance to get garbage collected.
+
+=head3 Reading from files
+
 =head1 The Wrong Way To Do Things
 
 This section describes how NOT to do Perl 6 IO.
