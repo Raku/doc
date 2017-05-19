@@ -193,19 +193,31 @@ Defined as:
 
 Removes a L«C<lock>|/routine/lock» from the filehandle.
 
-=head2 method words
+=head2 routine words
 
 Defined as:
 
-    method words($count = Inf)
+    multi sub words(IO::Handle:D $fh = $*ARGFILES, $count = Inf, :$close --> Seq:D)
+    multi method words(IO::Handle:D: $count = Inf, :$close --> Seq:D)
 
-Return a lazy list of the file's words (separated on whitespace), limited
-to C<$count> words.
+Similar to L«C<Str.words>|/type/Str#routine_words», separates the handle's
+stream on contiguous chunks of whitespace (as defined
+by Unicode) and returns a L<Seq> of the resultant "words." Takes an optional
+C<$count> argument that can be a non-negative L<Int>, C<Inf>, or L<Whatever>
+(which is interpreted to mean C<Inf>), to indicate only up-to C<$count> words
+must be returned. If L<Bool> C<:$close> named argument is set to C<True>,
+will automatically close the handle when the returned L<Seq> is exhausted.
+Subroutine form defaults to C<$*ARGFILES>, if no handle is provided.
 
 =for code :skip-test
-my %dict;
-++%dict{$_} for $*IN.words;
-say "Most common words: ", %dict.sort(*.value).reverse.[^5];
+my %dict := bag $*IN.words;
+say "Most common words: ", %dict.sort(-*.value).head: 5;
+
+B<NOTE:> implementations may read I<more> data than necessary when a call
+to C<.words> is made. That is, C<$handle.words(2)> may read more data than two
+"words" worth of data and subsequent calls to read methods might not read from
+the place right after the two fetched words. After a call to C<.words>, the
+file position should be treated as undefined.
 
 =head2 method split
 
