@@ -132,21 +132,37 @@ C<$enc> argument switches the encoding used by the handle.
     }
 =end code
 
-=head2 method lines
+=head2 routines lines
 
 Defined as:
 
-    method lines($limit = Inf)
+    sub lines(IO::Handle:D $fh = $*ARGFILES, $limit = Inf, :$close --> Seq:D)
+    method lines(IO::Handle:D:               $limit = Inf, :$close --> Seq:D)
 
-Return a lazy list of the file's lines read via L<get>, limited to C<$limit> lines.
-The new line separator (i.e., C<$*IN.nl-in>) will be excluded.
+Return a L<Seq> each element of which is a line from the handle (that is
+chunks deliniated by L«C<.nl-in>|/type/IO::Handle#method_nl-in»). If the
+handle's L«C<.chomp>|/type/IO::Handle#method_new» attribute is set to C<True>,
+then characters specified by L«C<.nl-in>|/type/IO::Handle#method_nl-in» will be
+stripped from each line.
 
-=for code :skip-test
-my @data;
-my $data-file = open 'readings.csv';
-for $data-file.lines -> $line {
-    @data.push($line.split(','))
-}
+Reads up to C<$limit> lines, where C<$limit> can be a non-negative L<Int>,
+C<Inf>, or L<Whatever> (which is interpreted to mean C<Inf>). If C<:$close> is
+set to C<True>, will close the handle when the file ends or C<$limit> is
+reached. Subroutine form defaults to
+L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES», if no
+handle is provided.
+
+B<NOTE:> the lines are read lazily, so ensure the returned L<Seq> is either
+L<fully reified|/language/glossary#index-entry-Reify> or is no longer needed
+when you close the handle or attempt to use any other methods that change the
+file position.
+
+=begin code :skip-test
+    say "The file contains ",
+      '50GB-file'.IO.open.lines.grep(*.contains: 'Perl').elems,
+      " lines that mention Perl";
+    # OUTPUT: «The file contains 72 lines that mention Perl␤»
+=end code
 
 =head2 method lock
 
