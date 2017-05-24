@@ -3,15 +3,14 @@ unit module Pod::Htmlify;
 use URI::Escape;
 
 #| Escape special characters in URLs if necessary
-sub url-munge($_) is export {
-    return $_ if m{^ <[a..z]>+ '://'};
-    return "/type/{uri_escape $_}" if m/^<[A..Z]>/;
-    return "/routine/{uri_escape $_}" if m/^<[a..z]>|^<-alpha>*$/;
-    # poor man's <identifier>
-    if m/ ^ '&'( \w <[[\w'-]>* ) $/ {
-        return "/routine/{uri_escape $0}";
+sub url-munge($url) is export {
+    given $url {
+        when m{^ <[a..z]>+ '://'}     { $_ }
+        when m/^<[A..Z]>/             { "/type/{uri_escape $_}" }
+        when m/^<[a..z]>|^<-alpha>*$/ { "/routine/{uri_escape $_}" }
+        when m/ ^ '&'( \w <[[\w'-]>* ) $/ { "/routine/{uri_escape $0}" } # poor man's <identifier>
+        default { $_ }
     }
-    return $_;
 }
 
 my \badchars-ntfs = Qw[ / ? < > \ : * | " ¥ ];
