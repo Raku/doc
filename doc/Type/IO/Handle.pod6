@@ -132,21 +132,37 @@ C<$enc> argument switches the encoding used by the handle.
     }
 =end code
 
-=head2 method lines
+=head2 routine lines
 
 Defined as:
 
-    method lines($limit = Inf)
+    sub lines(IO::Handle:D $fh = $*ARGFILES, $limit = Inf, :$close --> Seq:D)
+    method lines(IO::Handle:D:               $limit = Inf, :$close --> Seq:D)
 
-Return a lazy list of the file's lines read via L<get>, limited to C<$limit> lines.
-The new line separator (i.e., C<$*IN.nl-in>) will be excluded.
+Return a L<Seq> each element of which is a line from the handle (that is
+chunks delineated by L«C<.nl-in>|/type/IO::Handle#method_nl-in»). If the
+handle's L«C<.chomp>|/type/IO::Handle#method_new» attribute is set to C<True>,
+then characters specified by L«C<.nl-in>|/type/IO::Handle#method_nl-in» will be
+stripped from each line.
 
-=for code :skip-test
-my @data;
-my $data-file = open 'readings.csv';
-for $data-file.lines -> $line {
-    @data.push($line.split(','))
-}
+Reads up to C<$limit> lines, where C<$limit> can be a non-negative L<Int>,
+C<Inf>, or L<Whatever> (which is interpreted to mean C<Inf>). If C<:$close> is
+set to C<True>, will close the handle when the file ends or C<$limit> is
+reached. Subroutine form defaults to
+L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES», if no
+handle is provided.
+
+B<NOTE:> the lines are read lazily, so ensure the returned L<Seq> is either
+L<fully reified|/language/glossary#index-entry-Reify> or is no longer needed
+when you close the handle or attempt to use any other methods that change the
+file position.
+
+=begin code :skip-test
+    say "The file contains ",
+      '50GB-file'.IO.open.lines.grep(*.contains: 'Perl').elems,
+      " lines that mention Perl";
+    # OUTPUT: «The file contains 72 lines that mention Perl␤»
+=end code
 
 =head2 method lock
 
@@ -193,33 +209,49 @@ Defined as:
 
 Removes a L«C<lock>|/routine/lock» from the filehandle.
 
-=head2 method words
+=head2 routine words
 
 Defined as:
 
-    method words($count = Inf)
+    multi sub words(IO::Handle:D $fh = $*ARGFILES, $limit = Inf, :$close --> Seq:D)
+    multi method words(IO::Handle:D: $limit = Inf, :$close --> Seq:D)
 
-Return a lazy list of the file's words (separated on whitespace), limited
-to C<$count> words.
+Similar to L«C<Str.words>|/type/Str#routine_words», separates the handle's
+stream on contiguous chunks of whitespace (as defined
+by Unicode) and returns a L<Seq> of the resultant "words." Takes an optional
+C<$limit> argument that can be a non-negative L<Int>, C<Inf>, or L<Whatever>
+(which is interpreted to mean C<Inf>), to indicate only up-to C<$limit> words
+must be returned. If L<Bool> C<:$close> named argument is set to C<True>,
+will automatically close the handle when the returned L<Seq> is exhausted.
+Subroutine form defaults to
+L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES», if no handle
+is provided.
 
 =for code :skip-test
-my %dict;
-++%dict{$_} for $*IN.words;
-say "Most common words: ", %dict.sort(*.value).reverse.[^5];
+my %dict := bag $*IN.words;
+say "Most common words: ", %dict.sort(-*.value).head: 5;
+
+B<NOTE:> implementations may read I<more> data than necessary when a call
+to C<.words> is made. That is, C<$handle.words(2)> may read more data than two
+"words" worth of data and subsequent calls to read methods might not read from
+the place right after the two fetched words. After a call to C<.words>, the
+file position should be treated as undefined.
 
 =head2 method split
 
 Defined as:
 
-    multi method split(IO::Handle:D: :$close = False, :$COMB)
-    multi method split(IO::Handle:D: $splitter, :$close = False, :$COMB)
+    method split(IO::Handle:D: :$close, |c)
 
-Returns a lazy list of strings found between the splitter, just like C<split>
-on strings.
+L<Slurps|/routine/slurp> the handle's content and calls
+L«C<Str.split>|/type/Str#routine_split» on it, forwarding any of the given
+arguments. If C<:$close> named parameter is set to C<True>, will
+L<close> the invocant after slurping. It is an error to call this method on
+a handle opened in binary mode.
 
 =for code :skip-test
-my $fh = open 'path/to/file', :r;
-$fn.split(' ', close => True); # Returns file content split by a space and closes file;
+my $fh = 'path/to/file'.IO.open;
+$fh.split: '♥', :close; # Returns file content split on ♥
 
 =head2 method spurt
 
@@ -241,35 +273,31 @@ mode is undefined.
 
 Defined as:
 
-    multi method comb(IO::Handle:D: :$close = False)
-    multi method comb(IO::Handle:D: Int:D $size, :$close = False)
-    multi method comb(IO::Handle:D: $comber, :$close = False)
+    method comb(IO::Handle:D: :$close, |c)
 
-Returns a lazy list of strings combed from the handle, just like C<comb>
-on strings.
-
-=for code :skip-test
-my $fh = open 'path/to/file', :r;
-$fn.comb(/A+/); # Comb file contents by a regex.
-
-or
+L<Slurps|/routine/slurp> the handle's content and calls
+L«C<Str.split>|/type/Str#routine_comb» on it, forwarding any of the given
+arguments. If C<:$close> named parameter is set to C<True>, will
+L<close> the invocant after slurping. It is an error to call this method on
+a handle opened in binary mode.
 
 =for code :skip-test
-my $fh = open 'path/to/file', :r;
-$fn.comb(3, close => True); # Comb file contents by 3 characters and close after.
+my $fh = 'path/to/file'.IO.open;
+say "The file has {+$fh.comb: '♥', :close} ♥s in it";
 
 =head2 method print
 
 Defined as:
 
-    method print(*@text --> Bool)
+    method print(**@text --> True)
 
-Text writing; writes the given C<@text> to the filehandle.  See L<write>
+Writes the given C<@text> to the handle, coercing any non-L<Str> objects
+to L<Str> by calling L«C<.Str>|/routine/Str» method on them. See L<write>
 to write bytes.
 
 =for code :skip-test
-my $fh = open 'path/to/file', :w;
-$fh.print("some text\n");
+my $fh = 'path/to/file'.IO.open: :w;
+$fh.print: 'some text';
 $fh.close;
 
 =head2 method print-nl
@@ -278,14 +306,12 @@ Defined as:
 
     method print-nl(IO::Handle:D: --> True)
 
-Writes a newline to the filehandle. The newline marker, which is stored
-in the attribute C<$.nl-out>, defaults to C<\n> unless another marker has
-been specified in the call to L<open>.
+Writes the value of C<$.nl-out> attribute into the handle.
 
 =for code :skip-test
 my $fh = open 'path/to/file', :w, nl-out => "\r\n";
 $fh.print("some text");
-$fh.print-nl;                                        # \r\n
+$fh.print-nl; # prints \r\n
 $fh.close;
 
 =head2 method printf
@@ -541,7 +567,7 @@ This returns a value that the operating system would understand as a "file descr
 is suitable for passing to a native function that requires a file descriptor as an
 argument such as C<fcntl> or C<ioctl>.
 
-=head2 method .nl-in
+=head2 method nl-in
 
 Defined as:
 
