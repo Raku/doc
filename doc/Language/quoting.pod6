@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Quoting Constructs
 
@@ -14,10 +14,11 @@ described in more detail in the following sections.
 
 =head2 X<Literal strings: Q|quote,Q;quote,｢ ｣>
 
-=for code :allow<B>
+=for code :allow<B> :skip-test
 B<Q[>A literal stringB<]>
 B<｢>More plainly.B<｣>
 B<Q ^>Almost any non-word character can be a delimiter!B<^>
+B<Q ｢｢>Delimiters can be repeated/nested if they are adjacent.B<｣｣>
 
 Delimiters can be nested, but in the plain C<Q> form, backslash escapes
 aren't allowed.  In other words, basic C<Q> strings are as literal as
@@ -33,36 +34,69 @@ with a space. Please note that some natural languages use a left delimiting
 quote on the right side of a string. C<Q> will not support those as it relies
 on unicode properties to tell left and right delimiters apart.
 
-=for code :allow<B>
+=for code :allow<B> :skip-test
 B<Q'>this will not work!B<'>
 B<Q(>this won't work either!B<)>
 B<Q (>this is fine, because of space after QB<)>
 B<Q '>and so is thisB<'>
 
-=for code :allow<B>
+=for code :allow<B> :skip-test
 Q<Make sure you B«<»matchB«>» opening and closing delimiters>
 Q{This is still a closing curly brace → B<\>}
 
 These examples produce:
 
+    =begin code :skip-test
     A literal string
     More plainly.
     Almost any non-word character can be a delimiter!
     Make sure you <match> opening and closing delimiters
     This is still a closing curly brace → \
+    =end code
 
-The other quote forms add to this basic functionality:
+The behaviour of quoting constructs can be modified with adverbs, as explained
+in detail in later sections.
+
+=begin table
+Short       Long            Meaning
+
+:x          :exec           Execute as command and return results
+
+:w          :words          Split result on words (no quote protection)
+
+:ww         :quotewords     Split result on words (with quote protection)
+
+:q          :single         Interpolate \\, \qq[...] and escaping the delimiter with \
+
+:qq         :double         Interpolate with :s, :a, :h, :f, :c, :b
+
+:s          :scalar         Interpolate $ vars
+
+:a          :array          Interpolate @ vars
+
+:h          :hash           Interpolate % vars
+
+:f          :function       Interpolate & calls
+
+:c          :closure        Interpolate {...} expressions
+
+:b          :backslash      Interpolate \n, \t, etc. (implies :q at least)
+
+:to         :heredoc        Parse result as heredoc terminator
+
+:v          :val            Convert to allomorph if possible
+=end table
 
 =head2 X<Escaping: q|quote,q;quote,' '>
 
-    'Very plain'
-    q[This back\slash stays]
-    q[This back\\slash stays] # Identical output
-    q{This is not a closing curly brace → \}, but this is → }
-    Q :q $There are no backslashes here, only lots of \$\$\$>!$
-    '(Just kidding. There\'s no money in that string)'
-    'No $interpolation {here}!'
-    Q:q!Just a literal "\n" here!
+    'Very plain';
+    q[This back\slash stays];
+    q[This back\\slash stays]; # Identical output
+    q{This is not a closing curly brace → \}, but this is → };
+    Q :q $There are no backslashes here, only lots of \$\$\$>!$;
+    '(Just kidding. There\'s no money in that string)';
+    'No $interpolation {here}!';
+    Q:q!Just a literal "\n" here!;
 
 The C<q> form allows for escaping characters that would otherwise end the
 string using a backslash. The backslash itself can be escaped, too, as in
@@ -71,7 +105,7 @@ delimiter, but it's also available as an adverb on C<Q>, as in the fifth and
 last example above.
 
 These examples produce:
-=for code :allow<B>
+=for code :allow<B> :skip-test
 Very plain
 This back\slash stays
 This back\slash stays
@@ -83,11 +117,12 @@ Just a literal "\n" here
 
 =head2 X<Interpolation: qq|quote,qq;quote," ">
 
-=for code :allow<B L>
+=begin code :allow<B L> :skip-test
 my $color = 'blue';
 L<say> B<">My favorite color is B<$color>!B<">
 
-    My favorite color is blue!
+My favorite color is blue!
+=end code
 
 X<|\ (quoting)>
 The C<qq> form – usually written using double quotes – allows for
@@ -96,41 +131,45 @@ written within the string so that the content of the variable is inserted into
 the string. It is also possible to escape variables within a C<qq>-quoted
 string:
 
-=for code :allow<B>
+=begin code :allow<B> :skip-test
 say B<">The B<\>$color variable contains the value '$color'B<">;
 
-    The $color variable contains the value 'blue'
+The $color variable contains the value 'blue'
+=end code
 
 Another feature of C<qq> is the ability to interpolate Perl 6 code from
 within the string, using curly braces:
 
-=for code :allow<B L>
+=begin code :allow<B L> :skip-test
 my ($x, $y, $z) = 4, 3.5, 3;
 say "This room is B<$x> m by B<$y> m by B<$z> m.";
 say "Therefore its volume should be B<{ $x * $y * $z }> m³!";
 
-    This room is 4 m by 3.5 m by 3 m.
-    Therefore its volume should be 42 m³!
+This room is 4 m by 3.5 m by 3 m.
+Therefore its volume should be 42 m³!
+=end code
 
 By default, only variables with the C<$> sigil are interpolated normally.
 This way, when you write C<"documentation@perl6.org">, you aren't
 interpolating the C<@perl6> variable. If that's what you want to do, append
 a C<[]> to the variable name:
 
-=for code :allow<B>
+=begin code :allow<B> :skip-test
 my @neighbors = "Felix", "Danielle", "Lucinda";
 say "@neighborsB<[]> and I try our best to coexist peacefully."
 
-    Felix Danielle Lucinda and I try our best to coexist peacefully.
+Felix Danielle Lucinda and I try our best to coexist peacefully.
+=end code
 
 Often a method call is more appropriate.  These are allowed within C<qq>
 quotes as long as they have parentheses after the call. Thus the following
 code will work:
 
-=for code :allow<B L>
+=begin code :allow<B L> :skip-test
 say "@neighborsB<.L<join>(', ')> and I try our best to coexist peacefully."
 
-    Felix, Danielle, Lucinda and I try our best to coexist peacefully.
+Felix, Danielle, Lucinda and I try our best to coexist peacefully.
+=end code
 
 However, C<"@example.com"> produces C<@example.com>.
 
@@ -138,45 +177,47 @@ To call a subroutine use the C<&>-sigil.
 X<|& (interpolation)>
 
     say "abc&uc("def")ghi";
-    # OUTPUT«abcDEFghi␤»
+    # OUTPUT: «abcDEFghi␤»
 
 Postcircumfix operators and therefore L<subscripts|/language/subscripts> are
 interpolated as well.
 
     my %h = :1st; say "abc%h<st>ghi";
-    OUTPUT«abc1ghi␤»
+    # OUTPUT: «abc1ghi␤»
 
 To enter unicode sequences use C<\x> or C<\x[]> with the hex-code of the
 character or a list of characters.
 
     my $s = "I \x[2665] Perl 6!";
     dd $s;
-    OUTPUT«Str $s = "I ♥ Perl 6!"␤»
+    # OUTPUT: «Str $s = "I ♥ Perl 6!"␤»
     my $s = "I really \x[2661,2665,2764,1f495] Perl 6!";
     dd $s;
-    OUTPUT«Str $s = "I really ♡♥❤💕 Perl 6!"␤»
+    # OUTPUT: «Str $s = "I really ♡♥❤💕 Perl 6!"␤»
 
 You can also use unicode names with C<\c[]>.
 
     my $s = "Camelia \c[BROKEN HEART] my \c[HEAVY BLACK HEART]!";
     dd $s;
-    OUTPUT«Str $s = "Str $s = "Camelia 💔 my ❤!"␤»
+    # OUTPUT: «Str $s = "Str $s = "Camelia 💔 my ❤!"␤»
 
 Interpolation of undefined values will raise a control exception that can be
 caught in the current block with
 L<CONTROL|https://docs.perl6.org/syntax/CONTROL>.
 
+    =begin code :skip-test
     sub niler {Nil};
     my Str $a = niler;
     say("$a.html", "sometext");
     say "alive"; # this line is dead code
     CONTROL { .die };
+    =end code
 
 =head2 Word quoting: qw
 X<|qw word quote>
 
-=for code :allow<B L>
-B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words
+=for code :allow<B L> :skip-test
+B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words.list
 B<q:w {> [ ] \{ \} B<}> eqv ('[', ']', '{', '}')
 B<Q:w |> [ ] { } B<|> eqv ('[', ']', '{', '}')
 
@@ -199,93 +240,96 @@ It's easier to write and to read this:
 =head2 Word quoting: < >
 X«|< > word quote»
 
-=for code :allow<B L>
-B«<»a b cB«>» L<eqv> ('a', 'b', 'c');   # True
-B«<»a b 42B«>» L<eqv> ('a', 'b', '42'); # False, the 42 become an IntStr allomorph
-say < 42 > ~~ Int; # True
-say < 42 > ~~ Str; # Also True
+=for code :allow<B L> :skip-test
+B«<»a b cB«>» L<eqv> ('a', 'b', 'c');   # OUTPUT: «True␤»
+B«<»a b 42B«>» L<eqv> ('a', 'b', '42'); # OUTPUT: «False␤», the 42 become an IntStr allomorph
+say < 42 > ~~ Int; # OUTPUT: «True␤»
+say < 42 > ~~ Str; # OUTPUT: «True␤»
 
 The angle brackets quoting is like C<qw>, but with extra feature that lets you
 construct L<allomorphs|/language/glossary#index-entry-Allomorph> or literals
 of certain numbers:
 
     say <42 4/2 1e6 1+1i abc>.perl;
-    # OUTPUT«(IntStr.new(42, "42"), RatStr.new(2.0, "4/2"), NumStr.new(1000000e0, "1e6"), ComplexStr.new(<1+1i>, "1+1i"), "abc")␤»
+    # OUTPUT: «(IntStr.new(42, "42"), RatStr.new(2.0, "4/2"), NumStr.new(1000000e0, "1e6"), ComplexStr.new(<1+1i>, "1+1i"), "abc")␤»
 
 To construct a L«C<Rat>|/type/Rat» or L«C<Complex>|/type/Complex» literal, use angle
 brackets around the number, without any extra spaces:
 
-    say <42/10>.^name;   # Rat
-    say <1+42i>.^name;   # Complex
-    say < 42/10 >.^name; # RatStr
-    say < 1+42i >.^name; # ComplexStr
+    say <42/10>.^name;   # OUTPUT: «Rat␤»
+    say <1+42i>.^name;   # OUTPUT: «Complex␤»
+    say < 42/10 >.^name; # OUTPUT: «RatStr␤»
+    say < 1+42i >.^name; # OUTPUT: «ComplexStr␤»
 
 Compared to C<42/10> and C<1+42i>, there's no division (or addition) operation
 involved. This is useful for literals in routine signatures, for example:
 
+    =begin code :skip-test
     sub close-enough-π (<355/113>) {
         say "Your π is close enough!"
     }
-    close-enough-π 710/226; # Your π is close enough!
+    close-enough-π 710/226; # OUTPUT: «Your π is close enough!␤»
 
     # WRONG: can't do this, since it's a division operation
+
     sub compilation-failure (355/113) {}
+    =end code
 
 =head2 X<Word quoting with quote protection: qww|quote,qww>
 
 The C<qw> form of word quoting will treat quote characters literally, leaving them in the
 resulting words:
 
-    say qw{"a b" c}.perl; # ("\"a", "b\"", "c")
+    say qw{"a b" c}.perl; # OUTPUT: «("\"a", "b\"", "c")␤»
 
 Thus, if you wish to preserve quoted sub-strings as single items in the resulting words
 you need to use the C<qww> variant:
 
-    say qww{"a b" c}.perl; # ("a b", "c")
+    say qww{"a b" c}.perl; # OUTPUT: «("a b", "c")␤»
 
 =head2 X<Word quoting with interpolation: qqw|quote,qqw>
 
 The C<qw> form of word quoting doesn't interpolate variables:
 
-    my $a = 42; say qw{$a b c};  # $a b c
+    my $a = 42; say qw{$a b c};  # OUTPUT: «$a b c␤»
 
 Thus, if you wish for variables to be interpolated within the quoted string,
 you need to use the C<qqw> variant:
 
     my $a = 42;
     my @list = qqw{$a b c};
-    say @list;                # 42 b c
+    say @list;                # OUTPUT: «42 b c␤»
 
 Note that variable interpolation happens before word splitting:
 
     my $a = "a b";
     my @list = qqw{$a c};
-    .say for @list; # says "a", says "b", then says "c"
+    .say for @list; # OUTPUT: «a␤b␤c␤»
 
 =head2 X<<<Word quoting with interpolation and quote protection: qqww|quote,qqww;quote,<< >>;quote,« »>>>
 
 The C<qqw> form of word quoting will treat quote characters literally, leaving them in the
 resulting words:
 
-    my $a = 42; say qqw{"$a b" c}.perl; # ("\"42", "b\"", "c")
+    my $a = 42; say qqw{"$a b" c}.perl;  # OUTPUT: «("\"42", "b\"", "c")␤»
 
 Thus, if you wish to preserve quoted sub-strings as single items in the resulting words
 you need to use the C<qqww> variant:
 
-    my $a = 42; say qqww{"$a b" c}.perl; # ("42 b", "c")
+    my $a = 42; say qqww{"$a b" c}.perl; # OUTPUT: «("42 b", "c")␤»
 
 or equivalently:
 
-    my $a = 42; say <<"$a b" c>>.perl; # ("42 b", "c")
-    my $a = 42; say «"$a b" c».perl; # ("42 b", "c")
+    my $a = 42; say <<"$a b" c>>.perl;   # OUTPUT: «("42 b", "c")␤»
+    my $a = 42; say «"$a b" c».perl;     # OUTPUT: «("42 b", "c")␤»
 
 Quote protection happens before interpolation, and interpolation happens before word splitting,
 so quotes coming from inside interpolated variables are just literal quote characters:
 
     my $a = "1 2";
-    say qqww{"$a" $a}.perl; # ("1 2", "1", "2")
+    say qqww{"$a" $a}.perl; # OUTPUT: «("1 2", "1", "2")␤»
     my $b = "1 \"2 3\"";
-    say qqww{"$b" $b}.perl; # ("1 \"2 3\"", "1", "\"2", "3\"")
+    say qqww{"$b" $b}.perl; # OUTPUT: «("1 \"2 3\"", "1", "\"2", "3\"")␤»
 
 =head2 X<Shell quoting: qx|quote,qx>
 
@@ -303,8 +347,10 @@ prints simply C<hello>.  Nevertheless, if you have declared an environment
 variable before calling C<perl6>, this will be available within C<qx>, for
 instance
 
+    =begin code :skip-test
     WORLD="there" perl6
     > say qx{echo "hello $WORLD"}
+    =end code
 
 will now print C<hello there>.
 
@@ -312,7 +358,7 @@ The result of calling C<qx> is returned, so this information can be assigned
 to a variable for later use:
 
     my $output = qx{echo "hello!"};
-    say $output;    # hello!
+    say $output;    # OUTPUT: «hello!␤»
 
 See also L<shell|/routine/shell>, L<run|/routine/run> and L<Proc::Async> for
 other ways to execute external commands.
@@ -324,7 +370,7 @@ command, then the C<qqx> shell quoting construct should be used (this
 corresponds to Perl 5's C<qx>):
 
     my $world = "there";
-    say qqx{echo "hello $world"};  # hello there
+    say qqx{echo "hello $world"};  # OUTPUT: «hello there␤»
 
 Again, the output of the external command can be kept in a variable:
 
@@ -333,7 +379,7 @@ Again, the output of the external command can be kept in a variable:
     my $file = "/usr/share/dict/words";
     my $output = qqx{grep $option $word $file};
     # runs the command: grep -i cool /usr/share/dict/words
-    say $output;      # Cooley␤Cooley's␤Coolidge␤Coolidge's␤cool␤ ...
+    say $output;      # OUTPUT: «Cooley␤Cooley's␤Coolidge␤Coolidge's␤cool␤...»
 
 See also L<shell|/routine/shell> and L<run|/routine/run> for other ways to
 execute external commands.
@@ -351,10 +397,10 @@ string
 END
 =end code
 
-The contents of the heredoc only begin on the next line, so you can (and
+The contents of the heredoc always begin on the next line, so you can (and
 should) finish the line.
 
-=begin code
+=begin code :skip-test
 my $escaped = my-escaping-function(q:to/TERMINATOR/, language => 'html');
 Here are the contents of the heredoc.
 Potentially multiple lines.
@@ -374,7 +420,7 @@ say q:to/END/;
 
 produces this output:
 
-=begin code
+=begin code :skip-test
 Here is
 some multi line
     string
@@ -397,9 +443,11 @@ C<{\> as well as C<$> if it is not the sigil for a defined variable.  For exampl
 
 would produce:
 
-  option {
-      file "db.7.3.8";
-  };
+=begin code :skip-test
+option {
+    file "db.7.3.8";
+};
+=end code
 
 You can begin multiple Heredocs in the same line.
 

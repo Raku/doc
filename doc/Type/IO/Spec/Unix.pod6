@@ -9,133 +9,222 @@
 On object of this type is available via the variable C<$*SPEC> if the perl is
 running on a Unix-like platform.
 
+B<NOTE:> the C<IO::Spec::*> classes provide low-level path operations. Unless
+you're creating your own high-level path manipulation routines, you don't
+need to use C<IO::Spec::*>. Use L«C<IO::Path>|/type/IO::Path» instead.
+
+B<NOTE2:> no special validation is done by these classes (e.g. check whether
+path contains a null character). It is the job of higher-level classes, like
+L«C<IO::Path>|/type/IO::Path», to do that.
+
 =head1 Methods
-
-=head2 method canonpath
-
-        method canonpath(IO::Spec:D: Str $patharg, Str :$parent --> Str)
-
-=comment TODO
-
-=head2 method dir-sep
-
-        method dir-sep(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method curdir
-
-        method curdir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method updir
-
-        method updir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method curupdir
-
-        method curupdir(IO::Spec:D: --> Junction)
-
-=comment TODO
-
-=head2 method rootdir
-
-        method rootdir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method devnull
-
-        method devnull(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method basename
-
-        method basename(IO::Spec:D: Str $path --> Str)
-
-=comment TODO
-
-=head2 method extension
-
-        method extension(IO::Spec:D: Str $path --> Str)
-
-=comment TODO
-
-=head2 method tmpdir
-
-        method tmpdir(IO::Spec:D: --> IO::Path)
-
-=comment TODO
-
-=head2 method is-absolute
-
-        method is-absolute(IO::Spec:D: Str $file  --> Bool)
-
-=comment TODO
-
-=head2 method path
-
-        method path(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method splitpath
-
-        method splitpath(IO::Spec:D: Str $path, Bool :$nofile = False )
-
-=comment TODO
-
-=head2 method split
-
-        method split(IO::Spec:D: Cool:D $path is copy )
-
-=comment TODO
-
-=head2 method join
-
-        method join(IO::Spec:D: $, $dirname, $file)
-
-=comment TODO
-
-=head2 method catpath
-
-        method catpath(IO::Spec:D:  $, $dirname, $file )
-
-=comment TODO
-
-=head2 method catdir
-
-        method catdir(IO::Spec:D: *@parts )
-
-=comment TODO
-
-=head2 method splitdir
-
-        method splitdir(IO::Spec:D: Str $path )
-
-=comment TODO
-
-=head2 method catfile
-
-        method catfile(IO::Spec:D: *@parts )
-
-=comment TODO
 
 =head2 method abs2rel
 
-        method abs2rel(IO::Spec:D: Str $path is copy, Str $base is copy = Str )
+Defined as:
 
-=comment TODO
+    method abs2rel(IO::Path:D $path, IO::Path:D $base = $*CWD --> Str:D)
 
-=head2 method rel2abs
+Returns a string that represents C<$path>, but relative to C<$base> path.
+Both C<$path> and C<$base> may be relative paths C<$bar> defaults to C<$*CWD>
 
-        method rel2abs(IO::Spec:D: Str $path, Str $base? is copy)
+=head2 method basename
 
-=comment TODO
+Defined as:
+
+    method basename(Str:D $path --> Str:D)
+
+Takes a path as a string and returns a possibly-empty portion after the last
+slash:
+
+    IO::Spec::Unix.basename("foo/bar/") .perl.say; # OUTPUT: «""␤»
+    IO::Spec::Unix.basename("foo/bar/.").perl.say; # OUTPUT: «"."␤»
+    IO::Spec::Unix.basename("foo/bar")  .perl.say; # OUTPUT: «"bar"␤»
+
+=head2 method canonpath
+
+Defined as:
+
+    method canonpath(Str() $path, :$parent --> Str:D)
+
+Returns a string that is a canonical representation of C<$path>. If C<:$parent>
+is set to true, will also clean up references to parent directories. B<NOTE:>
+the routine does not access the filesystem, so no symlinks are followed.
+
+    IO::Spec::Unix.canonpath("foo//../bar/../ber").say;
+    # OUTPUT: «foo/../bar/../ber␤»
+
+    IO::Spec::Unix.canonpath("foo///./../bar/../ber").say;
+    # OUTPUT: «foo/../bar/../ber␤»
+
+    IO::Spec::Unix.canonpath("foo///./../bar/../ber", :parent).say;
+    # OUTPUT: «ber␤»
+
+=head2 method catdir
+
+Defined as:
+
+    method catdir (*@parts --> Str:D)
+
+Concatenates multiple path fragments and returns the canonical representation
+of the resultant path as a string. The C<@parts> are L«C<Str>|/type/Str» objects
+and are allowed to contain path separators.
+
+    IO::Spec::Unix.catdir(<foo/bar ber perl>).say; # OUTPUT: «foo/bar/ber/perl␤»
+
+=head2 method catfile
+
+Alias for L«C<catdir>|/routine/catdir».
+
+=head2 method catpath
+
+Defined as:
+
+    method catpath ($, Str:D $part1, Str:D $part2 --> Str:D)
+
+Takes two path fragments and concatenates them, adding or removing a path
+separator, if necessary. The first argument is ignored (it exists to maintain
+consistent interface with other C<IO::Spec> types for systems that have
+volumes).
+
+    IO::Spec::Unix.catpath($, 'some/dir', 'and/more').say;
+    # OUTPUT: «some/dir/and/more␤»
+
+=head2 method curdir
+
+Defined as:
+
+    method curdir()
+
+Returns a string representing the current directory:
+
+    say '.' eq $*SPEC.curdir; # OUTPUT: «True␤»
+
+=head2 method curupdir
+
+Defined as:
+
+    method curupdir()
+
+Returns a L«C<none>|/routine/none» L<Junction> of strings representing the
+current directory and the "one directory up":
+
+=for code :skip-test
+    my @dirs = <. foo .. bar>;
+    say @dirs.grep(* eq $*SPEC.curupdir); # OUTPUT: «(foo bar)␤»
+
+=head2 method devnull
+
+Defined as:
+
+    method devnull(--> Str:D)
+
+Returns the string C<"/dev/null"> representing the
+L<"Null device"|https://en.wikipedia.org/wiki/Null_device>:
+
+=for code :skip-test
+    $*SPEC.devnull.IO.spurt: "blah blah";
+
+=head2 method dir-sep
+
+Defined as:
+
+    method dir-sep(--> Str:D)
+
+Returns the string C<"/"> representing canonical directory separator character.
+
+=for code :skip-test
+    IO::Spec::Unix.dir-sep.say; # OUTPUT: «/␤»
+
+=head2 method extension
+
+B<NOTE:> Most users would want to use the higher-level routine
+L«C<IO::Path.extension>|/type/IO::Path#method_extension» instead of this
+lower-level version.
+
+Defined as:
+
+    method extension(Str:D $path --> Str:D)
+
+Takes a string representing a base name and returns the characters after
+the last dot (C<".">), or empty string if no dots are present. The routine makes
+no attempt to detect path separators and will return everything after the last
+dot.
+
+    $*SPEC.extension('foo.'      ).perl.say;  # OUTPUT: «""␤»
+    $*SPEC.extension('foo.txt'   ).perl.say;  # OUTPUT: «"txt"␤»
+    $*SPEC.extension('foo.tar.gz').perl.say;  # OUTPUT: «"gz"␤»
+    $*SPEC.extension('foo'       ).perl.say;  # OUTPUT: «""␤»
+    $*SPEC.extension('bar.foo/foo').perl.say; # OUTPUT: «"foo/foo"␤»
+
+=head2 method is-absolute
+
+Defined as:
+
+    method is-absolute(Str:D $path --> Bool:D)
+
+Returns C<True> if the C<$path> starts with a slash (C<"/">), even if it has
+combining character on it:
+
+    say IO::Spec::Unix.is-absolute: "/foo";        # OUTPUT: «True␤»
+    say IO::Spec::Unix.is-absolute: "/\x[308]foo"; # OUTPUT: «True␤»
+    say IO::Spec::Unix.is-absolute: "bar";         # OUTPUT: «False␤»
+
+=head2 method join
+
+=begin comment
+
+  XXX TODO: I'm not exactly sure *why* we have .join along with .catpath and
+  in what usecases join's *slightly* different behaviour is useful
+
+=end comment
+
+Defined as:
+
+    method join ($, Str:D $dir, Str:D $file --> Str:D)
+
+Similar to L«C<catpath>|/routine/catpath», takes two path fragments and
+concatenates them, adding or removing a path separator, if necessary, except
+it will return just C<$file> if both C<$dir> and C<$file> are string C<'/'>
+or if C<$dir> is the string C<'.'>. The first argument is ignored (it exists to
+maintain consistent interface with other C<IO::Spec> types for systems that have
+volumes).
+
+    IO::Spec::Unix.join($, 'foo', 'bar').say; # OUTPUT: «foo/bar␤»
+    IO::Spec::Unix.join($, '/', '/').say;     # OUTPUT: «/␤»
+    IO::Spec::Unix.join($, '.', 'foo').say;   # OUTPUT: «foo␤»
+
+=head2 method path
+
+Defined as:
+
+    method path(--> Seq:D)
+
+Splits the value of C«%*ENV<PATH>» on colons (C<":">), replaces empty parts with
+C<".">, and returns a L<Seq> with each of the resultant parts. Returns
+an empty L<Seq> if C«%*ENV<PATH>» is not set or is an empty string.
+
+    %*ENV<PATH> = 'foo:bar/ber::foo:';
+    IO::Spec::Unix.path.perl.say;
+    # OUTPUT: «("foo", "bar/ber", ".", "foo", ".").Seq␤»
+
+=head2 method tmpdir
+
+Defined as:
+
+        method tmpdir(--> IO::Path:D)
+
+Attempts to locate a system's temporary directory by checking several typical directories and environmental variables. Uses current directory if no suitable directories are found.
+
+=head2 method updir
+
+Defined as:
+
+    method updir()
+
+Returns a string representing the directory one up from current:
+
+    say '..' eq $*SPEC.updir; # OUTPUT: «True␤»
 
 =end pod
 

@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Native Calling Interface
 
@@ -203,12 +203,12 @@ a much more primitive CArray type, which you must use if working with C arrays.
 
 Here is an example of passing a C array.
 
-    sub RenderBarChart(Str, int32, CArray[Str], CArray[num]) is native("chart") { * }
+    sub RenderBarChart(Str, int32, CArray[Str], CArray[num64]) is native("chart") { * }
     my @titles := CArray[Str].new;
     @titles[0]  = 'Me';
     @titles[1]  = 'You';
     @titles[2]  = 'Hagrid';
-    my @values := CArray[num].new;
+    my @values := CArray[num64].new;
     @values[0]  = 59.5e0;
     @values[1]  = 61.2e0;
     @values[2]  = 180.7e0;
@@ -286,7 +286,22 @@ type of a native function, the memory is not managed for you by the GC.
 
 NativeCall currently doesn't put object members in containers, so assigning new values
 to them (with =) doesn't work. Instead, you have to bind new values to the private
-members: C<$!struct-member := StructObj.new;>
+members:
+
+    class MyStruct is repr('CStruct') {
+        has CArray[num64] $!arr;
+        has Str $!str;
+        has Point $!point; # Point is a user-defined class
+
+        submethod TWEAK {
+            my $arr := CArray[num64].new;
+            $arr[0] = 0.9e0;
+            $arr[1] = 0.2e0;
+            $!arr := $arr;
+            $!str := 'Perl 6 is fun';
+            $!point := Point.new;
+        }
+    }
 
 As you may have predicted by now, a null is represented by the type object of the
 struct type.
@@ -308,7 +323,7 @@ C<union> definition; using the C<CUnion> representation:
 
 CStructs and CUnions can be in turn referenced by – or embedded into
 -- a surrounding CStruct and CUnion.  To say the former we use C<has>
-as usual, and to do the latter we use use the C<HAS> declarator
+as usual, and to do the latter we use the C<HAS> declarator
 instead:
 
     class MyStruct is repr('CStruct') {

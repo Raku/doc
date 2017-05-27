@@ -5,7 +5,7 @@ use lib 'lib';
 my @files;
 
 # Every .pod6 file in the Type directory.
-@files = qx<git ls-files>.lines.grep(* ~~ /'.pod6'/).grep(* ~~ /Type/);
+@files = qx<git ls-files>.lines.grep(* ~~ /'.pod6'/).grep(* ~~ /Type | Language/);
 
 plan +@files;
 

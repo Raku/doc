@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Input/Output
 
@@ -39,13 +39,14 @@ the file for you.
 Of course, we also have the option to read a file line-by-line. The new line
 separator (i.e., C<$*IN.nl-in>) will be excluded.
 
-=for code :skip-test
+=begin code :skip-test
 for 'huge-csv'.IO.lines -> $line {
     # Do something with $line
 }
 
-    # or if you'll be processing later
-    my @lines = 'huge-csv'.IO.lines;
+# or if you'll be processing later
+my @lines = 'huge-csv'.IO.lines;
+=end code
 
 =head1 Writing to files
 
@@ -106,6 +107,28 @@ To explicitly write binary data to a file, open it with the C<:bin> option.
 The input/output operations then will take place using the C<Buf> type instead
 of the C<Str> type.
 
+=head1 Copying and renaming files
+
+Routines C<copy>, C<rename>, and C<move> are available to avoid low-level system commands.
+See details at L<copy|/routine/copy>, L<rename|/routine/rename>, and L<move|/routine/move>.
+Some examples:
+
+=begin code :skip-test
+my $filea = 'foo';
+my $fileb = 'foo.bak';
+my $filec = '/disk1/foo';  # note 'diskN' is assumed to be a physical storage device
+
+copy $filea, $fileb;              # overwrites $fileb if it exists
+copy $filea, $fileb, :createonly; # fails if $fileb exists
+
+rename $filea, 'new-foo';              # overwrites 'new-foo' if it exists
+rename $filea, 'new-foo', :createonly; # fails if 'new-foo' exists
+
+# use move when a system-level rename may not work
+move $fileb, '/disk2/foo';              # overwrites '/disk2/foo' if it exists
+move $fileb, '/disk2/foo', :createonly; # fails if '/disk2/foo' exists
+=end code
+
 =head1 Checking files and directories
 
 Use the C<e> method on an C<IO::Handle> object to test whether the file or
@@ -137,34 +160,46 @@ directory C<lib> exist, we would obtain from the existence test method C<e>
 the same result, namely that both exist:
 
 =for code :skip-test
-say "testfile".IO.e;  # True
-say "lib".IO.e;       # True
+say "testfile".IO.e;  # OUTPUT: «True␤»
+say "lib".IO.e;       # OUTPUT: «True␤»
 
 However, since only one of them is a directory, the directory test method
 C<d> will give a different result:
 
 =for code :skip-test
-say "testfile".IO.d;  # False
-say "lib".IO.d;       # True
+say "testfile".IO.d;  # OUTPUT: «False␤»
+say "lib".IO.d;       # OUTPUT: «True␤»
 
 Naturally the tables are turned if we check to see if the path is a file via
 the file test method C<f>:
 
 =for code :skip-test
-say "testfile".IO.f;  # True
-say "lib".IO.f;       # False
+say "testfile".IO.f;  # OUTPUT: «True␤»
+say "lib".IO.f;       # OUTPUT: «False␤»
+
+There are other methods that can be used to query a file or directory, some useful ones are:
+
+=begin code :skip-test
+my $f = "file";
+
+say $f.IO.modified; # return time of last file (or directory) change
+say $f.IO.accessed; # return last time file (or directory) was read
+say $f.IO.s;        # return size of file (or directory inode) in bytes
+=end code
+
+See more methods and details at L<IO::Path|/type/IO::Path>.
 
 =head1 Getting a directory listing
 
 To list the contents of the current directory, use the C<dir> function. It
 returns a list of L<IO::Path> objects.
 
-    say dir;    # "/path/to/testfile".IO "/path/to/lib".IO
+    say dir;          # OUTPUT: «"/path/to/testfile".IO "/path/to/lib".IO␤»
 
 To list the files and directories in a given directory, simply pass a path
 as an argument to C<dir>:
 
-    say dir "/etc/";    # "/etc/ld.so.conf".IO "/etc/shadow".IO ....
+    say dir "/etc/";  # OUTPUT: «"/etc/ld.so.conf".IO "/etc/shadow".IO ....␤»
 
 =head1 Creating and removing directories
 

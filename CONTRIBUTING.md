@@ -23,7 +23,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
-- [Website Styles](#website-styles)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -31,8 +30,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Pod::To::HTML](#podtohtml)
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
-        - [pygmentize](#pygmentize)
-        - [Inline::Python](#inlinepython)
     - [Build and view the documentation](#build-and-view-the-documentation)
 
 ## General principles
@@ -82,11 +79,11 @@ Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
     =head2 method do-it
 
-        method do-it(Int $how-often) returns Nil:D
+        method do-it(Int $how-often --> Nil:D)
 
     Method description here
 
-        MyFunnyRole.do-it(2);   # example output
+        MyFunnyRole.do-it(2);   # OUTPUT: «example output␤»
 
 
 When documenting a pair of a sub and a method which both do the same thing, the
@@ -95,6 +92,15 @@ more lines with the signatures. Other allowed words instead of `method` are
 `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`, `postcircumfix`,
 `term`. If you wish to hide a heading from any index prefix it with the empty
 comment `Z<>`.
+
+When providing a code example result or output, use this style:
+
+    # For the result of an expression.
+    1 + 2;     # RESULT: «3»
+    # For the output.
+    say 1 + 3; # OUTPUT: «3␤»
+    # For the explanatory comment
+    do-work;   # We call do-work sub
 
 ## Running tests
 
@@ -174,22 +180,17 @@ Report issues at https://github.com/perl6/doc/issues. You can use the
 following labels when tagging tickets:
 
 * site   - presentation issue with the website (e.g. invalid HTML)
-* docs   - missing or incorrect documentation
+* docs   - missing or incorrect documentation (use 'NOTSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
 * build  - scripts or libraries that generate the site
-* search - the search component
+* search - the search component, either for items that are on the site but not searchable, or for search functionality)
+
+Contributors may also specify one of the following tags.
 
 * LHF    - for a beginner to work on
-* big    - a big issue, may require some research
+* big    - a big issue, requires research or consensus
 
-## Website Styles
-
-The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
-don't edit `html/css/style.css` directly, as your changes will be lost
-the next time the SASS file is processed.
-
-[SASS](http://sass-lang.com/) is a superset of CSS, so if you don't know SASS,
-just write in regular CSS. Run `app.pl` to automatically process SASS and copy
-the result over to `html/css/style.css`
+If you would like to contribute documentation or other bug fixes, please use
+github's Pull request feature.
 
 ## Building the documentation
 
@@ -260,55 +261,6 @@ or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
 
 The SASS files are compiled when you run `make html`, or `make sass`, or
 start the development webserver (`./app-start`).
-
-#### pygmentize
-
-This program adds syntax highlighting to the code examples.  Highlighting of
-Perl 6 code was added in version 2.0, so you need at least this version if
-you wish to produced syntax highlighted documentation on your local
-computer.
-
-If you use Debian/Jessie, you can install `pygmentize` via the
-`python-pygments` package:
-
-    $ aptitude install python-pygments
-
-On Ubuntu install the package `python-pygments`:
-
-    $ sudo apt-get install python-pygments
-
-On Fedora the package is also named `python-pygments`:
-
-    $ sudo yum install python-pygments
-
-Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
-(the Python package installer):
-
-    $ pip install pygmentize
-
-#### Inline::Python
-
-`Inline::Python` is optional, however will speed up documentation builds
-using syntax highlighting.
-
-First, you'll need the Python Devel header files and libraries if they have not
-already been installed:
-
-On Debian, install the `python-dev` package:
-
-    aptitude install python-dev
-
-On Ubuntu, the package is also named `python-dev`:
-
-    sudo apt-get install python-dev
-
-On Fedora, install the `python-devel` package:
-
-    sudo yum install python-devel
-
-Use `zef` to install the `Inline::Python` module:
-
-    $ zef install Inline::Python
 
 ### Build and view the documentation
 

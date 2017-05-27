@@ -14,15 +14,19 @@ sub url-munge($_) is export {
     return $_;
 }
 
-constant badchars = qw[$ / \ . % ? & = # + " ' : ~ < > |];
-my \goodnames = badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
-constant length = badchars.elems;
+my \badchars-ntfs = Qw[ / ? < > \ : * | " ¥ ];
+my \badchars-unix = Qw[ / ];
+my \badchars-url = Qw[ % ^ ];
+my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
+my @badchars = (badchars, badchars-url).flat;
+my \goodnames = @badchars.map: '$' ~ *.uniname.subst(' ', '_', :g);
+my \length = @badchars.elems;
 
-sub escape-filename($s is copy) is export {
+sub replace-badchars-with-goodnames($s is copy) is export {
 #    return $s if $s ~~ m{^ <[a..z]>+ '://'}; # bail on external links
 
-    loop (my int $i = 0;$i < length;$i++) {
-        $s = $s.subst(badchars[$i], goodnames[$i], :g)
+    loop (my int $i = 0; $i < length; $i++) {
+        $s = $s.subst(@badchars[$i], goodnames[$i], :g)
     }
 
     $s
@@ -46,36 +50,41 @@ sub rewrite-url($s) is export {
             # on-page link, we bail
             return $s;
         }
-
+        # Type
         when / ^ <[A..Z]> / {
-            $r =  "/type/{escape-filename(unescape-percent($s))}";
+            $r =  "/type/{replace-badchars-with-goodnames(unescape-percent($s))}";
             succeed;
         }
-
+        # Routine
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
-            $r = "/routine/{escape-filename(unescape-percent($s))}";
+            $r = "/routine/{replace-badchars-with-goodnames(unescape-percent($s))}";
             succeed;
         }
 
-        # special case the really nasty ones
-        when / ^ '/routine//' $ / { return '/routine/' ~ escape-filename('/'); succeed; }
-        when / ^ '/routine///' $ / { return '/routine/' ~ escape-filename('//'); succeed; }
+        # Special case the really nasty ones
+        when / ^ '/routine//' $ /  { return '/routine/' ~ replace-badchars-with-goodnames('/'); succeed;  }
+        when / ^ '/routine///' $ / { return '/routine/' ~ replace-badchars-with-goodnames('//'); succeed; }
 
-        when / ^ ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
-            $r =  $0 ~ escape-filename(unescape-percent($1)) ~ $2 ~ uri_escape($3);
+        when / ^
+            ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
+            $r =  $0 ~ replace-badchars-with-goodnames(unescape-percent($1)) ~ $2 ~ uri_escape($3);
             succeed;
         }
 
         default {
             my @parts = $s.split('#');
-            $r = escape-filename(@parts[0]) ~ '#' ~ uri_escape(@parts[1]) if @parts[1];
-            $r = escape-filename(@parts[0]) unless @parts[1];
+            $r = replace-badchars-with-goodnames(@parts[0]) ~ '#' ~ uri_escape(@parts[1]) if @parts[1];
+            $r = replace-badchars-with-goodnames(@parts[0]) unless @parts[1];
         }
     }
 
     my $file-part = $r.split('#')[0] ~ '.html';
     die "$file-part not found" unless $file-part.IO:e:f:s;
-
+    # URL's can't end with a period. So affix the suffix.
+    # If it ends with percent encoded text then we need to add .html to the end too
+    if !$r.contains('#') && ( $r.ends-with(<.>) || $r.match: / '%' <:AHex> ** 2 $ / ) {
+        $r ~= '.html';
+    }
     return %cache{$s} = $r;
 }
 

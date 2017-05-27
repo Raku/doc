@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Phasers
 
@@ -21,7 +21,6 @@ Here is a summary:
 
       BEGIN {...} #  * at compile time, ASAP, only ever runs once
       CHECK {...} #  * at compile time, ALAP, only ever runs once
-       LINK {...} #  * at link time, ALAP, only ever runs once
        INIT {...} #  * at run time, ASAP, only ever runs once
         END {...} #  at run time, ALAP, only ever runs once
 
@@ -122,7 +121,6 @@ teardown usually want to happen in the opposite order from each other.
 
       BEGIN {...} #  at compile time, ASAP, only ever runs once
       CHECK {...} #  at compile time, ALAP, only ever runs once
-       LINK {...} #  at link time, ALAP, only ever runs once
     COMPOSE {...} #  when a role is composed into a class
 
     Execution Begins
@@ -187,15 +185,6 @@ Can have a return value that is provided even in later phases.
 Code that is generated at run time can still fire off C<CHECK> and C<INIT>
 phasers, though of course those phasers can't do things that would require
 travel back in time. You need a wormhole for that.
-
-=head2 X<LINK|Phasers>
-
-Runs at link time, As late as possible, only runs once.
-
-Can have a return value that is provided even in later phases.
-
-The compiler is free to ignore C<LINK> phasers compiled at run time since
-they're too late for the application-wide linking decisions.
 
 =head2 X<INIT|Phasers>
 
@@ -276,6 +265,27 @@ If a C<POST> fails or any kind of C<LEAVE> block throws an exception while the
 stack is unwinding, the unwinding continues and collects exceptions to be
 handled. When the unwinding is completed all new exceptions are thrown from
 that point.
+
+    sub answer() {
+        LEAVE say „I say after the return value.“;
+
+        42 # this is the return value
+    }
+
+B<Note:> be mindful of C<LEAVE> phasers directly in blocks of routines, as
+they will get executed even when an attempt to call the routine with wrong
+arguments is made:
+
+    sub foo (Int) {
+        say "Hello!";
+        LEAVE say "oh noes!"
+    }
+    try foo rand; # OUTPUT: «oh noes!␤»
+
+Although the subroutine's body did not get run, because the sub expects
+an L<Int> and L«C<rand>|/routine/rand» returned a L<Num>, its block was
+entered and left (when param binding failed), and so the C<LEAVE> phaser
+I<was> run.
 
 =head2 X<KEEP|Phasers>
 
