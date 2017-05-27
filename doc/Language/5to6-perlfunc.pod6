@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<convert>
 
 =TITLE 5to6-perlfunc
 
@@ -209,10 +209,12 @@ it as a method, e. g. C<$fh.chmod(0o755)>.
 =item chomp VARIABLE
 
 The behavior of C<chomp> is different than in Perl 5. It leaves the
-target unaffected and I<returns> the target with a final logical newline
-removed. I. e. C<$x = "howdy\n";$y = chomp($x);> results in C<$x>
+target unaffected and I<returns> a copy of the target with a final logical newline
+removed, e.g. C<$x = "howdy\n";$y = chomp($x);> results in C<$x>
 containing "howdy\n" and C<$y> containing "howdy". Also works as a
-method, i. e. C<$y = $x.chomp>.
+method, e.g. C<$y = $x.chomp>. As with many other methods, also works
+with assignment to modify the target in place, e.g. C<$x.=chomp> results
+in C<$x> containing "howdy".
 
 =head2 chop
 
@@ -376,7 +378,7 @@ C<$filehandle.eof>. Returns C<True> if at end of file.
 
 =item eval EXPR
 
-Replaced by C<EVAL>. Note that C<EVAL> does not do any exception handling!
+Replaced by L<EVAL|/routine/EVAL>. Note that C<EVAL> does not do any L<exception handling|/language/exceptions>!
 
 =head2 evalbytes
 
@@ -392,7 +394,21 @@ Nothing in Perl 6 exactly replicates the Perl 5 C<exec>. C<shell> and
 C<run> are similar to Perl 5's C<system>, but C<exec>'s behavior of not
 returning after executing a system command would have to be emulated by
 something like C<shell($command);exit();> or possibly C<exit
-shell($command);>
+shell($command);>.
+
+Neither of these workarounds have the behavior (on Unix-like systems)
+of I<replacing> your Perl program's process with the new program;
+notably, they will not work for the practice in some long-running
+daemons of periodically redoing exec on themselves to reset their state
+or force operating-system cleanup. Nor will they serve C<exec>'s
+function of returning stale resources to the operating system.
+
+If you want C<exec> for these behaviors, you can use an C<exec*>
+function via the C<NativeCall> interface. Consult your operating
+system manual pages for C<exec> (or other similarly-named calls such
+as C<execl>, C<execv>, C<execvp>, or C<execvpe>). (Beware: these
+calls are not generally portable between Unix-like operating system
+families.)
 
 =head2 exists
 
@@ -667,7 +683,15 @@ Works as in Perl 5, and can also be used as a method: C<%hash.keys>
 
 =item kill SIGNAL
 
-Now part of the L<Proc::Async> class, but looks to work as in Perl 5.
+No pre-defined core alternative exists. A non-portable method can be to use
+L<NativeCall|/language/nativecall>:
+
+    use NativeCall;
+    sub kill(int32, int32) is native {*};
+    kill $*PID, 9; # OUTPUT: «Killed␤»
+
+To kill processes that were started by creating a L<Proc::Async>, use
+L«C<Proc::Async.kill> method|/type/Proc::Async#method_kill».
 
 =head2 last
 
@@ -894,11 +918,7 @@ deals with newlines. Details L<here|/routine/open>.
 
 =item opendir DIRHANDLE, EXPR
 
-Not a builtin function in Perl 6. You would use the IO::Path class:
-
-    my $dir = IO::Path.new("directory");
-
-    my $dir = "directory".IO; # Same, but probably more direct
+No replacement. See L«C<&dir>/C<IO::Path.dir>|/routine/dir» for alternatives.
 
 =head2 ord
 
@@ -955,8 +975,10 @@ Replaced by C<$?PACKAGE>.
 
 =item pipe READHANDLE, WRITEHANDLE
 
-Probably replaced by something in the C<IO::Pipe> class, but this is not
-clearly documented.
+Depending on your needs, see L«C<Channel>|/type/Channel» to shuttle
+data between threads (and L<Concurrency tutorial|/language/concurrency>
+for other options), or see L«C<Proc>|/type/Proc» type for piping to
+and from processes.
 
 =head2 pop
 
@@ -1629,12 +1651,6 @@ Works as a function and a method. C<uc("ha")> and C<"ha".uc> both return "HA".
 
 Perl 6 has done away with C<ucfirst>. The title case function L<C<tc>|/routine/tc> probably
 does what you need.
-
-=head2 umask
-
-=item umask EXPR
-
-Is an C<IO> method. C<IO.umask> returns the umask.
 
 =head2 undef
 

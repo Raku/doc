@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<index>
 
 =TITLE Pragmas
 
@@ -43,7 +43,48 @@ in Rakudo as a synonym to C<use nqp> (see below).
 
 =item X<B<experimental>|experimental> allows use of experimental features
 
-=item X<B<fatal>|fatal> alters behaviour of L<fail|/language/control#fail>
+=item X<B<fatal>|fatal>
+
+A lexical pragma that makes L<Failures|/type/Failure> returned from routines
+fatal. For example, prefix C<+> on a L<Str> coerces it to L<Numeric>, but will
+return a L<Failure> if the string contains non-numeric characters. Saving that
+L<Failure> in a variable prevents it from being sunk, and so the first code
+block below reaches the C<say $x.^name;> line and prints C<Failure> in output.
+
+In the second block, the C<use fatal> pragma is enabled, so the C<say> line is
+never reached because the L<Exception> contained in the L<Failure> returned from
+prefix C<+> gets thrown and the C<CATCH> block gets run, printing the C<Caught...>
+line. Note that both blocks are the same program and C<use fatal> only affects
+the lexical block it was used in:
+
+    {
+        my $x = +"a";
+        say $x.^name;
+        CATCH { default { say "Caught {.^name}" } }
+    } # OUTPUT: «Failure␤»
+
+    {
+        use fatal;
+        my $x = +"a";
+        say $x.^name;
+        CATCH { default { say "Caught {.^name}" } }
+    } # OUTPUT: «Caught X::Str::Numeric␤»
+
+Inside of a L«C<try> blocks|/language/exceptions#index-entry-try_blocks-try», the
+C<fatal> pragma is enabled by default, and you can I<disable> it with C<no fatal>:
+
+    try {
+        my $x = +"a";
+        say $x.^name;
+        CATCH { default { say "Caught {.^name}" } }
+    } # OUTPUT: «Caught X::Str::Numeric␤»
+
+    try {
+        no fatal;
+        my $x = +"a";
+        say $x.^name;
+        CATCH { default { say "Caught {.^name}" } }
+    } # OUTPUT: «Failure␤»
 
 =item X<B<internals>|internals> [NYI]
 

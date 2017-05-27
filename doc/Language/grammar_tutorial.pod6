@@ -1,67 +1,78 @@
-=begin pod
+=begin pod :tag<tutorial>
 
 =TITLE Grammar Tutorial
 
 =SUBTITLE Why Grammars?
 
-You will always run into string parsing that will give you a headache. It is
-said that HTML, for example, cannot be broken down and parsed effectively at
-all, simply by using regular expressions to sort out the elements. Another
-example would be defining the order in which words and symbols might make up a
-language and provide meaning. This is when Perl's grammar system fits
-perfectly.
+Grammars parse strings and return data structures from those strings. Grammars can
+be used to prepare a program for execution, to determine if a program can run at
+all (if it's a valid program), to break down a web page into constituent parts,
+or to identify the different parts of a sentence, among other things.
 
 =SUBTITLE When Would I Use Grammars?
 
-Grammars are great at taking strings, trying to make sense of them, and then
-saving them into a data structure you can actually work with. If you have
-strings of some kind that you need to bring order to, or interpret, grammars
-give you some great tools to make it easier.
+If you have strings to tame or interpret, grammars provide the
+tools to do the job.
 
-Your string might be a whole file that you need to break into sections. Or
-perhaps line by line. Maybe you have a protocol like SMTP you're working with,
-and want a convenient and organized way to define which "commands" need to come
-after what data from the user to make the protocol work. Maybe you want
-to create your own string-based protocol. Maybe you're designing your own
-language.
+The string could be a file that you're looking to break into sections; perhaps a
+protocol, like SMTP, where you need to specify which "commands" come after
+what user-supplied data; maybe you're designing your own domain specific
+language. Grammars can help.
 
 =SUBTITLE The Broad Concept of Perl Grammars
 
-Regular Expressions (regex) work well to find patterns in strings and manipulate them. However, when you need to find multiple patterns at once, or need to combine patterns, or test for patterns that may surround strings, or other patterns - regular expressions alone are not adequate.
+Regular expressions work well for finding patterns in strings. However, for some
+tasks -- like finding multiple patterns at once, or
+combining patterns, or testing for patterns that may surround strings --
+regular expressions, alone, are not enough.
 
-Grammars provide a way to define how you want to examine a string using regular
-expressions, and you can group these regular expressions together to provide
-even more meaning.
+When working with HTML, you could define a grammar to recognize HTML tags, both
+the opening and closing elements, and the text in between. You could then
+organize these elements into data structures, such as arrays or hashes.
 
-For example, in the case of HTML, you could define a grammar that would recognize HTML tags, both the opening and closing elements, and the text in between, and act upon these elements as a whole by stuffing them into data structures, such as arrays or hashes, that you can then easily use. In essence, Grammars provide a means to define an entire language or specification that can be used to parse strings of arbitrary sizes and complexity.
-
-=head1 Getting More Technically into Grammars
+=head1 Getting More Technical
 
 =head2 The conceptual overview
 
-Grammars are defined as an object, just like everything else in Perl. Technically, they are normal classes with a little extra magic thrown in, which we'll get to later -- and a few limitations. You name and define a grammar exactly as you would a class, except using the "grammar" keyword instead of "class".
+Grammars are a special kind of class. You declare and define a grammar exactly
+as you would any other class, except that you use the I<grammar> keyword instead
+of I<class>.
 
     =begin code :skip-test
-    grammar My::Gram { ..methods 'n stuff... }
+    grammar My::Gram { ... }
     =end code
 
-Grammars contain elements like methods, called I<regex, token or rule>. These elements are named, just like methods are named. And each one defines a regex, token or rule (which are mostly the same thing (not really) but we'll get to that later).
-
-Once you have your grammar defined, in your program call it by name and pass in the string you want to parse, and that string will be run through the rules you defined based upon your regex, token and rule "methods".  When done, you get back a I<Match> object that has been populated with data structured and stored by the names you used to define your methods.
+Grammars are made up of methods that define a regex, a token, or a rule.
+These are all varieties of different types of match methods. Once you have a
+grammar defined, you call it and pass in a string for parsing.
 
     =begin code :skip-test
-    my $matchObject = My::Gram.parse($what-a-big-string-you-have);
+    my $matchObject = My::Gram.parse($string);
     =end code
 
-Now, you may be wondering, if I have all these regexes defined that just return their results, how does that help with parsing things that may be forwards or backwards in a string, or things that need to be combined from multiple of those regexes... and that's where grammar actions come into play.
+Now, you may be wondering, if I have all these regexes defined that just return
+their results, how does that help with parsing strings that may be ahead or backwards in a string, or things that need to be combined from many of
+those regexes... and that's where grammar actions come in.
 
-For every "method" you match in your grammar, you get an action you can call to do something funny or clever with that match. You also get an over-arching action you can use to tie them all together and custom build a data structure you might want to return, where all your crazy string parsing makes sense in your nicely ordered and defined data structure. This over-arching method is called TOP by default. We'll get more into this as well.
+For every "method" you match in your grammar, you get an action you can use
+to act on that match. You also get an over-arching action that you can use to
+tie together all your matches and to build a data structure. This over-arching
+method is called TOP by default.
 
 =head2 The technical overview
 
-Grammars are defined just like a class, but using the I<grammar> keyword in place of class. The "methods" in grammars are called either I<regex, token or rule>. Regex methods are slow but thorough -- they will look back in the string and really try. Token methods are much faster and they ignore whitespace. Rule methods are the same as token methods except that they pay attention and consume whitespace in your "regex" definitions.
+As already mentioned, grammars are declared using the I<grammar> keyword and its
+"methods" are declared with I<regex>, or I<token>, or I<rule>.
 
-When a method (regex, token or rule) matches in the grammar, that matched string is put into the Match object that will eventually be returned, and it will be keyed with the same name as the method you chose to name it.
+=item Regex methods are slow but thorough -- they will look back in the string
+and really try.
+
+=item Token methods are faster than regex methods and ignore whitespace.
+
+=item Rule methods are the same as token methods except whitespace is not ignored.
+
+When a method (regex, token or rule) matches in the grammar, that matched string
+is put into a match object and keyed with the same name as the method.
 
     =begin code
     grammar My::Gram {
@@ -70,25 +81,45 @@ When a method (regex, token or rule) matches in the grammar, that matched string
     }
     =end code
 
-So in this, if you were to my $match = My::Gram.parse( $string ) -- and your string started with the characters 'clever_text_keyword', you would get a match object back that contained 'clever_text_keyword' keyed by the name of 'thingy' in your match object. These can grow much more complex, as your needs require, as you might imagine.
+If you were to use my $match = My::Gram.parse( $string ) and your
+string started with 'clever_text_keyword', you would get a match
+object back that contained 'clever_text_keyword' keyed by the name of 'thingy'
+in your match object.
 
-Now, to mention TOP. The TOP method (regex, token or rule) is the overarching regex that must match everything (by default). If the string you pass in to parse doesn't match the TOP regex, your returned match object will be empty (Any).
+The TOP method (whether regex, token, or rule) is the overarching pattern that must
+match everything (by default). If the parsed string doesn't match the TOP regex,
+your returned match object will be empty (Any).
 
-As you can see above, in TOP, the "<thingy>" token is mentioned. The <thingy> is defined on the next line, "token thingy...". That means that 'clever_text_keyword' B<must> be the first thing in the string passed in, or the grammar parse will fail, and we'll get an empty match. This is great for recognizing malformed stuff that someone might give you that should be thrown away.
+As you can see above, in TOP, the "<thingy>" token is mentioned. The <thingy>
+is defined on the next line, "token thingy...". That means that
+'clever_text_keyword' B<must> be the first thing in the string or
+the grammar parse will fail and we'll get an empty match. This is great for
+recognizing a malformed string that should be discarded.
 
 =head1 Learning By Example - a REST Contrivance
 
-Let's suppose we'd like to parse a URL into the component parts that make up a RESTful request. Let's decide that we want the URLs to work like this:
+Let's suppose we'd like to parse a URI into the component parts that make up a
+RESTful request. We want the URIs to work like this:
 
+=item The first part of the URI will be the "subject", like a part, or a
+product, or a person.
 
-    =item1 The first part of the URI we'll call the "subject", like a part, or a product, or a person.
-    =item1 The second part of the URI we'll call the "command", like standard CRUD stuff (create, retrieve, update, or delete).
-    =item1 The third part of the URI will be arbitrary data. Perhaps the specific ID we'll be working with, or a long list of data separated by "/"'s.
-    =item1 When we get a URL, we'll want 1-3 above to be placed into a nice data structure we can use without having to do all sorts of splitting, and that can be easily altered in the future or expanded upon (or extended).
+=item The second part of the URI will be the "command", the standard CRUD
+functions (create, retrieve, update, or delete).
 
-So if we got a URI on the server of "/product/update/7/notify" we would want our grammar to give us a nice $match object that has a "I<subject>" of "product", a "I<command>" of "update" and "I<data>" of "7/notify" (for now).
+=item The third part of the URI will be arbitrary data, perhaps the specific ID
+we'll be working with or a long list of data separated by "/"'s.
 
-The first thing we do is define the grammar class. We're going to need to define our subject, command and data as well. I think we'll use token for them, since we don't care about whitespace in the regex.
+=item When we get a URI, we'll want 1-3 above to be placed into a data
+structure that we can easily work with (and later enhance).
+
+So, if we have "/product/update/7/notify", we would want
+our grammar to give us a $match object that has a "I<subject>" of
+"product", a "I<command>" of "update", and "I<data>" of "7/notify" (for now, anyway).
+
+We'll start by defining a grammar class and some match methods for the
+subject, command, and data. We'll use the token declarator since we don't care
+about whitespace.
 
     =begin code
     grammar REST {
@@ -98,9 +129,15 @@ The first thing we do is define the grammar class. We're going to need to define
     }
     =end code
 
-So far this REST grammar says we want a subject that will be just I<word> characters, a command that will be just I<word> characters, and data that will be everything else left in the string (URI in this case).
+So far, this REST grammar says we want a subject that will be just I<word>
+characters, a command that will be just I<word> characters, and data that will
+be everything else left in the string.
 
-But in our big string we get, we don't know what order these regex matches will come in. We need to be able to place these matching tokens in the larger context of our URI we'll be passing in as that string. That's what the TOP method is for. So we add it, and place our tokens by name within it, along with however else our valid string should look, coming in.
+Next, we'll want to arrange these matching tokens within the larger context of
+the URI. That's what the TOP method allows us to do. We'll add the TOP method
+and place the names of our tokens within it, together with the rest of the
+patterns that makes up the overall pattern. Note how we're building a larger
+regex from our named regexes.
 
     =begin code
     grammar REST {
@@ -111,23 +148,34 @@ But in our big string we get, we don't know what order these regex matches will 
     }
     =end code
 
-You could actually use this to extract your data from the URI for basic CRUD that has all 3 parameters included:
+With this code, we can already get the three parts of our RESTful request:
 
     =begin code :skip-test
     my $match = REST.parse('/product/update/7/notify');
     say $match;
 
-    # ｢/product/update/7/notify｣
-    #  subject => ｢product｣
-    #  command => ｢update｣
-    #  data => ｢7/notify｣
+    # OUTPUT: «｢/product/update/7/notify｣␤
+    #          subject => ｢product｣
+    #          command => ｢update｣
+    #          data => ｢7/notify｣»
     =end code
 
-Of course, the data can be accessed directly by using $match<subject> or $match<command> or $match<data> to return the values parsed. They each contain match objects you can work further with, or coerce into a string ( $match<command>.Str )
+The data can be accessed directly by using $match<subject> or
+$match<command> or $match<data> to return the values parsed. They each contain
+match objects that you can work further with, such as coercing into a string (
+$match<command>.Str ).
 
 =head2 Adding some flexibility
 
-The REST grammar so far will handle retrieves, deletes and updates ok. However, a I<create> command doesn't have the third part (the I<data> portion). This means our grammar will fail to match if we try to parse a create URL, and everyone will scream. To avoid this, we need to make that last I<data> position match optional, along with the '/' preceding it. This is easily accomplished by adding a question mark for the grouped '/' and I<data> components of the TOP token, to indicate their optional nature, just like a normal regex. So now we have:
+So far, the grammar will handle retrieves, deletes and updates. However,
+a I<create> command doesn't have the third part (the I<data> portion). This
+means the grammar will fail to match if we try to parse a create URI. To avoid
+this, we need to make that last I<data> position match optional, along with the
+'/' preceding it. This is accomplished by adding a question mark to the grouped
+'/' and I<data> components of the TOP token, to indicate their optional nature,
+just like a normal regex.
+
+So, now we have:
 
     =begin code
     grammar REST {
@@ -140,10 +188,12 @@ The REST grammar so far will handle retrieves, deletes and updates ok. However, 
     my $m = REST.parse('/product/create');
     say $m<subject>, $m<command>;
 
-    # ｢product｣｢create｣
+    # OUTPUT: «｢product｣｢create｣␤»
     =end code
 
-Let's imagine, for the sake of demonstration, that we might want to allow these same URIs to be entered in by a user from the terminal. In that case, they might put spaces between the '/'s, since users are prone to break things. If we wanted to accommodate this possibility, we could replace the '/'s in TOP with another token that allowed for spaces on either side of it.
+Next, assume that the URIs will be entered manually by a user and that the user
+might accidentally put spaces between the '/'s. If we wanted to accommodate for
+this, we could replace the '/'s in TOP with a token that allowed for spaces.
 
     =begin code
     grammar REST {
@@ -158,22 +208,26 @@ Let's imagine, for the sake of demonstration, that we might want to allow these 
     my $m = REST.parse('/ product / update /7 /notify');
     say $m;
 
-    # ｢/ product / update /7 /notify｣
-    #  slash => ｢/ ｣
-    #  subject => ｢product｣
-    #  slash => ｢ / ｣
-    #  command => ｢update｣
-    #  slash => ｢ /｣
-    #  data => ｢7 /notify｣
+    # OUTPUT: «｢/ product / update /7 /notify｣␤
+    #          slash => ｢/ ｣
+    #          subject => ｢product｣
+    #          slash => ｢ / ｣
+    #          command => ｢update｣
+    #          slash => ｢ /｣
+    #          data => ｢7 /notify｣»
     =end code
 
-We're getting some extra junk in our match object now, with those slashes, but there are some very nice ways to make a tidy return value that we'll get to.
+We're getting some extra junk in the match object now, with those slashes.
+There's techniques to clean that up that we'll get to later.
 
 =head2 Adding some constraints
 
-We want our RESTful grammar to allow for CRUD operations only. Anything else we want to fail to parse. That means our "command" above should have one of four values: create, retrieve, update or delete.
+We want our RESTful grammar to allow for CRUD operations only. Anything else we
+want to fail to parse. That means our "command" above should have one of four
+values: create, retrieve, update or delete.
 
-There are several ways to accomplish this. For example, you could change the command method:
+There are several ways to accomplish this. For example, you could change the
+command method:
 
     =begin code :skip-test
     token command { \w+ }
@@ -183,11 +237,15 @@ There are several ways to accomplish this. For example, you could change the com
     token command { 'create'|'retrieve'|'update'|'delete' }
     =end code
 
-This results in any URI coming in getting checked; where the second string between '/'s must be one of those values, or the parsing of the URI fails. Exactly what we'd like.
+For a URI to parse successfully, the second part of the string
+between '/'s must be one of those CRUD values, otherwise the parsing fails.
+Exactly what we want.
 
-There is another way, though, that can give you far greater flexibility to do interesting or unholy things with your regexes, and provide some better readability when options grow large. These are proto-regexes.
+There's another technique that provides greater flexibility and improved
+readability when options grow large: proto-regexes.
 
-To utilize these multimethods (here called proto-regexes) to constrain our command to the same values we had above, we'll replace "token command" with the following:
+To utilize these proto-regexes (multimethods, in fact) to limit ourselves to the
+valid CRUD options, we'll replace "token command" with the following:
 
     =begin code
     proto token command {*}
@@ -198,26 +256,30 @@ To utilize these multimethods (here called proto-regexes) to constrain our comma
     =end code
 
 The 'sym' keyword is used to create the various proto-regex options. Each option
-is named (e.g. sym<update>), and for that option's use, a special <sym> token is
-auto-generated, that is the case-sensitive string-literal of the name assigned.
+is named (e.g., sym<update>), and for that option's use, a special <sym> token is
+auto-generated with the same name.
 
 The <sym> token, as well as other user-defined tokens, may be used in the proto-
 regex option block to define the specific 'match condition'. Regex tokens are
-compiled forms, and once defined cannot subsequently be modified by adverb
-actions (e.g. :i). Therefore, as it's auto-generated, the special <sym> token is
-useful only where an exact match of the option name is required.
+compiled forms and, once defined, cannot subsequently be modified by adverb
+actions (e.g., :i). Therefore, as it's auto-generated, the special <sym> token
+is useful only where an exact match of the option name is required.
 
 If, for one of the proto-regex options, a match condition occurs, then the whole
 proto's search terminates. The matching data, in the form of a match object, is
-assigned to the parent proto token. If the special <sym> token was employed, and
-formed all or part of the actual match, then it is preserved as a sub-level in
-the match object, otherwise it is absent.
+assigned to the parent proto token. If the special <sym> token was employed and
+formed all or part of the actual match, then it's preserved as a sub-level in
+the match object, otherwise it's absent.
 
-Using proto-regexes like this gives us some greater flexibility. For example, instead of returning <sym>, which in this case is the entire string that was matched, we could instead enter our own string, or do other funny stuff. We could do the same with the "token subject" method, and limit it also to only parsing correctly on valid subjects (like 'part' or 'people', etc.).
+Using proto-regexes like this gives us a lot of flexibility. For example,
+instead of returning <sym>, which in this case is the entire string that was
+matched, we could instead enter our own string, or do other funny stuff. We
+could do the same with the "token subject" method and limit it also to only
+parsing correctly on valid subjects (like 'part' or 'people', etc.).
 
-=head2 Putting our RESTful grammar together so far
+=head2 Putting our RESTful grammar together
 
-This is what we've come up for processing our RESTful URIs so far:
+This is what we have for processing our RESTful URIs, so far:
 
     =begin code
     grammar REST
@@ -236,7 +298,7 @@ This is what we've come up for processing our RESTful URIs so far:
     }
     =end code
 
-Let's look at various URIs and how they behave being passed through our grammar.
+Let's look at various URIs and see how they work with our grammar.
 
     =begin code :skip-test
     my @uris = ['/product/update/7/notify',
@@ -248,24 +310,32 @@ Let's look at various URIs and how they behave being passed through our grammar.
         say "Sub: $m<subject> Cmd: $m<command> Dat: $m<data>";
     }
 
-    # Sub: product Cmd: update Dat: 7/notify
-    # Sub: product Cmd: create Dat:
-    # Sub: item Cmd: delete Dat: 4
+    # OUTPUT: «Sub: product Cmd: update Dat: 7/notify␤
+    #          Sub: product Cmd: create Dat:
+    #          Sub: item Cmd: delete Dat: 4»
     =end code
 
-So with just this part of a grammar, we're getting almost everything we need. Our URIs get efficiently parsed and we're given a nice little data structure for the variables we need to work with.
+With just this part of a grammar, we're getting almost everything we're
+looking for. The URIs get parsed and we get a data structure with the data.
 
-But look at that first line returned -- the I<data> token is returning the entire end of the URI as just one string. We need to be able to work with that 7 there. And that 4! Well, the 4 is easy... But the 7 had the extra /notify on the end, to signal the system to notify someone that a product was updated (perhaps).
-
-So let's make sure we can do stuff with our regex tokens that were matched, such as that I<data> token that returned a "7/notify". And to do so, we'll take advantage of another characteristic of these Grammar classes -- a thing called actions.
+The I<data> token returns the entire end of the URI as one string. The 4 is
+fine. However from the '7/notify', we only want the 7. To get just the 7, we'll use
+another feature of grammar classes: actions.
 
 =head1 Grammar Actions
 
-We're going to diverge from our example for a moment to talk about Perl's grammar actions. We're going to do this because, in many ways, grammar actions are separate from the grammars you define. They are a completely different class that you create, and use from your grammars to do stuff with the matches you find in your grammars.
+Grammar actions are used within grammar classes to do things with matches.
+Actions are defined in their own classes, distinct from grammar classes.
 
-You can think of grammar actions as a kind of plug-in expansion module for grammars. A lot of the time you'll be happy using grammars just on their own. But when you need to process some of those strings further, you can plug in the expansion module.
+You can think of grammar actions as a kind of plug-in expansion module for
+grammars. A lot of the time you'll be happy using grammars all by their own.
+But when you need to further process some of those strings, you can plug in the
+Actions expansion module.
 
-You do this when you first create your grammar. In addition to passing in the actual string you want to parse, you can pass in a named parameter called "actions" which should contain an instance of your actions class. From our example above, if our actions class were called REST-actions we would parse our grammar string like this
+To work with actions, you use a named parameter called
+"actions" which should contain an instance of your actions class. With the
+code above, if our actions class called REST-actions, we would parse the
+URI string like this:
 
     =begin code :skip-test
     my $matchObject = REST.parse($uri, actions => REST-actions.new);
@@ -275,17 +345,16 @@ You do this when you first create your grammar. In addition to passing in the ac
     my $matchObject = REST.parse($uri, :actions(REST-actions.new));
     =end code
 
-Grammar actions get pulled into your grammar in this way. And once there, your grammar can utilize the actions you define. And those defined actions are defined as normal methods in your action class.
+If you I<name your action methods with the same name as your grammar methods>
+(tokens, regexes, rules), then when your grammar methods match, your action
+method with the same name will get called automatically. The method will also be
+passed the corresponding match object (represented by the $/ variable).
 
-The only weird bit is that if you I<name your action methods with the same name as your grammar methods> (tokens, regexes, rules), then when your grammar methods match, your action method with the same name will get called automatically for you, and it will be passed the match object from that specific grammar token that matched.
-
-In other words, when you've attached an action class, name the methods in that class with the same names you used in your grammar class, if you want actions to be called automatically when grammar regexes match.
-
-Matching actions will get passed the Match object from the grammar token as its argument, and this can be represented by the $/ variable. This means that all your action methods should take $/ as the argument, then you get to work with that grammar match object in your action. So much for words, let's return the example scenario to try and find more solidified clarity.
+Let's turn to an example.
 
 =head1 Grammars by Example with Actions
 
-Here we are back to our grammar, as we left it.
+Here we are back to our grammar.
 
     =begin code
     grammar REST
@@ -304,9 +373,10 @@ Here we are back to our grammar, as we left it.
     }
     =end code
 
-Now we want to make sure that our data token gets parsed a little bit further, so that we can separate out an ID if we get it, from the rest of the long URL that might follow, such as "7/notify" in our example.
-
-To accomplish this we'll create an action class, and in it, create a method with the same name as the named token, rule or regex we want to process. In this case, our token is named "data".
+Recall that we want to further process the data token "7/notify", to get the 7.
+To do this, we'll create an action class that has a method with the same name as
+the named token. In this case, our token is named "data" so our method is also
+named "data".
 
     =begin code
     class REST-actions
@@ -315,17 +385,25 @@ To accomplish this we'll create an action class, and in it, create a method with
     }
     =end code
 
-Now when we pass the URL string through our grammar, the "data" token match will be passed to the action class (REST-actions) to the method "data", and we'll split that URI string by its '/' character. That way, the first element of the returned list will be our ID number (7 in the case of "7/notify").
+Now when we pass the URI string through the grammar, the "data" token match
+will be passed to the REST-actions' "data" method. The action method will split
+the string by the '/' character and the first element of the returned
+list will be the ID number (7 in the case of "7/notify").
 
-But not really.
+But not really; there's a little more.
 
 =head2 Keeping grammars with actions tidy with "make" and "made"
 
-If our grammar calls our action above on data, the data method will be called, but nothing will show up in the big TOP grammar match result returned to our program. In order to make our action results show up, we need to call "make" on that result, and that result can be many things, including strings, array or hash structures.
+If the grammar calls the action above on data, the data method will be called,
+but nothing will show up in the big TOP grammar match result returned to our
+program. In order to make the action results show up, we need to call "make" on
+that result. The result can be many things, including strings, array or
+hash structures.
 
-You can imagine that the "make" we put on our action results, places that result in a special, contained area in our whole grammar. Everything that we "make" for data structures, can be accessed later by "made".
+You can imagine that the "make" places the result in a special contained area
+for a grammar. Everything that we "make" can be accessed later by "made".
 
-So instead of our REST-actions class above, we should write
+So instead of the REST-actions class above, we should write
 
     =begin code
     class REST-actions
@@ -334,24 +412,40 @@ So instead of our REST-actions class above, we should write
     }
     =end code
 
-When we add "make" to our match split (which returns a list), our action will return a nice data structure to our grammar that will be stored separately from the "data" token of our original grammar. This way, we can still work with both if we need to.
+When we add "make" to the match split (which returns a list), the action will
+return a data structure to the grammar that will be stored separately from
+the "data" token of the original grammar. This way, we can work with both
+if we need to.
 
-Now if we want to access just our id of 7 from that long URL, we can access the first element of the list returned from the "data" action we "made" with "make":
+If we want to access just the ID of 7 from that long URI, we access the first
+element of the list returned from the "data" action that we "made" with "make":
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
 
     my $match = REST.parse($uri, actions => REST-actions.new);
 
-    say $match<data>.made[0];  # 7
-    say $match<command>.Str;   # update
+    say $match<data>.made[0];  # OUTPUT: «7␤»
+    say $match<command>.Str;   # OUTPUT: «update␤»
     =end code
 
-Here, we call "made" on our data, because we want the result of our action that we "made" (with "make"), to get our split array. That's lovely! But, wouldn't it be lovelier if we could "make" a friendlier data structure that contained all of the stuff we want, rather than having to coerce types and remember arrays?
+Here we call "made" on data, because we want the result of the action that
+we "made" (with "make") to get the split array. That's lovely! But, wouldn't
+it be lovelier if we could "make" a friendlier data structure that contained
+all of the stuff we want, rather than having to coerce types and remember
+arrays?
 
-Well, just like TOP in our grammar that over-arches and matches the entire string, our actions have a TOP method as well. We can "make" all of our individual match components, like "data" or "subject" or "command" and then we can place them in our perfect fantasy data structure which we will "make" in TOP. When we return our final match object from our grammar processing, we can then access this perfectly-imagined data structure that we've cobbled together, to make everyone's life happy and easier.
+Just like TOP, which over-arches and matches the entire
+string, actions have a TOP method as well. We can "make" all of the
+individual match components, like "data" or "subject" or "command", and then we
+can place them in a data structure that we will "make" in
+TOP. When we return the final match object, we can
+then access this data structure.
 
-To do this, all we have to do is add the method TOP to our action class, and in that method, "make" whatever data structure we like from our component pieces. So, our action class now might become
+To do this, we add the method TOP to the action class and "make" whatever data
+structure we like from the component pieces.
+
+So, our action class becomes:
 
     =begin code
     class REST-actions
@@ -366,11 +460,18 @@ To do this, all we have to do is add the method TOP to our action class, and in 
     }
     =end code
 
-Here in our TOP method, our "subject" remains the same as the subject we matched in our grammar. Also, our "command" returns the valid <sym> that was matched (create, update, retrieve, or delete). Each we coerce into .Str as well, since we don't need the full match object.
+Here in the TOP method, the "subject" remains the same as the subject we
+matched in the grammar. Also, "command" returns the valid <sym> that was
+matched (create, update, retrieve, or delete). We coerce each into .Str, as
+well, since we don't need the full match object.
 
-But what we want to be certain to do, is to use the "made" method on our $<data> object, since we want to access that split one that we "made" with "make" in our action, rather than the proper $<data> object.
+We want to make sure to use the "made" method on the
+$<data> object, since we want to access the split one that we "made" with
+"make" in our action, rather than the proper $<data> object.
 
-After we "make" something in the TOP method of a grammar action, we can then access all of our custom-made stuff by calling the "made" method on our grammar result object. From our earlier example, it now becomes
+After we "make" something in the TOP method of a grammar action, we can then
+access all the custom values by calling the "made" method on the grammar
+result object. The code now becomes
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
@@ -378,24 +479,27 @@ After we "make" something in the TOP method of a grammar action, we can then acc
     my $match = REST.parse($uri, actions => REST-actions.new);
 
     my $rest = $match.made;
-    say $rest<data>[0];   # 7
-    say $rest<command>;   # update
-    say $rest<subject>;   # product
+    say $rest<data>[0];   # OUTPUT: «7␤»
+    say $rest<command>;   # OUTPUT: «update␤»
+    say $rest<subject>;   # OUTPUT: «product␤»
     =end code
 
-Of course you could also shorten it if you knew you wouldn't need the full grammar return match object, and only wanted your custom-made data from your action's TOP.
+If the complete return match object is not needed, you could return only the made
+data from your action's TOP.
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
 
     my $rest = REST.parse($uri, actions => REST-actions.new).made;
 
-    say $rest<data>[0];   # 7
-    say $rest<command>;   # update
-    say $rest<subject>;   # product
+    say $rest<data>[0];   # OUTPUT: «7␤»
+    say $rest<command>;   # OUTPUT: «update␤»
+    say $rest<subject>;   # OUTPUT: «product␤»
     =end code
 
-Oh, did we forget to get rid of that ugly array element number? Hmm. Let's make a new thing in our grammar's custom return in TOP... how about we call it "subject-id" and have it be set to element 0 of <data>.
+Oh, did we forget to get rid of that ugly array element number? Hmm. Let's make
+something new in the grammar's custom return in TOP... how about we call it
+"subject-id" and have it set to element 0 of <data>.
 
     =begin code
     class REST-actions
@@ -418,12 +522,12 @@ Now we can do this instead
 
     my $rest = REST.parse($uri, actions => REST-actions.new).made;
 
-    say $rest<command>;    # update
-    say $rest<subject>;    # product
-    say $rest<subject-id>; # 7
+    say $rest<command>;    # OUTPUT: «update␤»
+    say $rest<subject>;    # OUTPUT: «product␤»
+    say $rest<subject-id>; # OUTPUT: «7␤»
     =end code
 
-And this is the grammar and grammar actions that got us there, to recap:
+Here's the final code:
 
     =begin code
     grammar REST
@@ -455,13 +559,14 @@ And this is the grammar and grammar actions that got us there, to recap:
     }
     =end code
 
-Hopefully this has helped introduce you to the concept of grammars in Perl and how grammars and grammar
-action classes can tie together. For further information, insights and oddities, check out the more
-advanced L<Perl Grammar Guide|https://docs.perl6.org/language/grammars>.
+Hopefully this has helped introduce you to the grammars in Perl 6 and shown you
+how grammars and grammar action classes work together. For more information,
+check out the more advanced L<Perl Grammar
+Guide|https://docs.perl6.org/language/grammars>.
 
-Also if you could use some grammar debugging, L<Grammar::Debugger|https://github.com/jnthn/grammar-debugger>
-should prove handy. For quick debugging you get nice color-coded MATCH and FAIL output for each of your grammar
-tokens, and if you like you can set breakpoints.
+For more grammar debugging, see
+L<Grammar::Debugger|https://github.com/jnthn/grammar-debugger>. This provides
+breakpoints and color-coded MATCH and FAIL output for each of your grammar
+tokens.
 
 =end pod
-

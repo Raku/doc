@@ -8,135 +8,185 @@
 
 Objects of this class are not used directly but as a sub-class specific to
 the platform perl is running on via the C<$*SPEC> variable which will contain
-an object of the appropriate type.
+an object of the appropriate type
+
+B<NOTE:> the C<IO::Spec::*> classes provide low-level path operations. Unless
+you're creating your own high-level path manipulation routines, you don't
+need to use C<IO::Spec::*>. Use L«C<IO::Path>|/type/IO::Path» instead..
+
+B<NOTE2:> no special validation is done by these classes (e.g. check whether
+path contains a null character). It is the job of higher-level classes, like
+L«C<IO::Path>|/type/IO::Path», to do that.
 
 =head1 Methods
 
-=head2 method canonpath
-
-        method canonpath(IO::Spec:D: Str $patharg, Str :$parent --> Str)
-
-=comment TODO
-
-=head2 method dir-sep
-
-        method dir-sep(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method curdir
-
-        method curdir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method updir
-
-        method updir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method curupdir
-
-        method curupdir(IO::Spec:D: --> Junction)
-
-=comment TODO
-
-=head2 method rootdir
-
-        method rootdir(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method devnull
-
-        method devnull(IO::Spec:D: --> Str)
-
-=comment TODO
-
 =head2 method basename
 
-        method basename(IO::Spec:D: Str $path --> Str)
+Defined as:
 
-=comment TODO
+    method basename(Str:D $path --> Str:D)
 
-=head2 method extension
+Takes a path as a string and returns a possibly-empty portion after the last
+slash or backslash:
 
-        method extension(IO::Spec:D: Str $path --> Str)
+    IO::Spec::Win32.basename("foo/bar/") .perl.say; # OUTPUT: «""␤»
+    IO::Spec::Win32.basename("foo/bar\\").perl.say; # OUTPUT: «""␤»
+    IO::Spec::Win32.basename("foo/bar/.").perl.say; # OUTPUT: «"."␤»
+    IO::Spec::Win32.basename("foo/bar")  .perl.say; # OUTPUT: «"bar"␤»
 
-=comment TODO
+=head2 method canonpath
 
-=head2 method tmpdir
+Defined as:
 
-        method tmpdir(IO::Spec:D: --> IO::Path)
+    method canonpath(Str() $path, :$parent --> Str:D)
 
-=comment TODO
+Returns a string that is a canonical representation of C<$path>. If C<:$parent>
+is set to true, will also clean up references to parent directories. B<NOTE:>
+the routine does not access the filesystem.
 
-=head2 method is-absolute
+    IO::Spec::Win32.canonpath("C:/foo//../bar/../ber").say;
+    # OUTPUT: «C:\foo\..\bar\..\ber␤»
 
-        method is-absolute(IO::Spec:D: Str $file  --> Bool)
+    IO::Spec::Win32.canonpath("C:/foo///./../bar/../ber").say;
+    # OUTPUT: «C:\foo\..\bar\..\ber␤»
 
-=comment TODO
-
-=head2 method path
-
-        method path(IO::Spec:D: --> Str)
-
-=comment TODO
-
-=head2 method splitpath
-
-        method splitpath(IO::Spec:D: Str $path, Bool :$nofile = False )
-
-=comment TODO
-
-=head2 method split
-
-        method split(IO::Spec:D: Cool:D $path is copy )
-
-=comment TODO
-
-=head2 method join
-
-        method join(IO::Spec:D: $, $dirname, $file)
-
-=comment TODO
-
-=head2 method catpath
-
-        method catpath(IO::Spec:D:  $, $dirname, $file )
-
-=comment TODO
+    IO::Spec::Win32.canonpath("C:/foo///./../bar/../ber", :parent).say;
+    # OUTPUT: «C:\ber␤»
 
 =head2 method catdir
 
-        method catdir(IO::Spec:D: *@parts )
+Defined as:
 
-=comment TODO
+    method catdir (*@parts --> Str:D)
 
-=head2 method splitdir
+Concatenates multiple path fragments and returns the canonical representation
+of the resultant path as a string. The C<@parts> are L«C<Str>|/type/Str» objects
+and are allowed to contain path separators.
 
-        method splitdir(IO::Spec:D: Str $path )
-
-=comment TODO
+    IO::Spec::Win32.catdir(<foo/bar ber perl>).say;
+    # OUTPUT: «foo\bar\ber\perl␤»
 
 =head2 method catfile
 
-        method catfile(IO::Spec:D: *@parts )
+Alias for L«C<catdir>|/routine/catdir».
 
-=comment TODO
+=head2 method catpath
 
-=head2 method abs2rel
+Defined as:
 
-        method abs2rel(IO::Spec:D: Str $path is copy, Str $base is copy = Str )
+    method catpath (Str:D $volume, Str:D $dir, Str:D $file --> Str:D)
 
-=comment TODO
+Concatenates a path from given volume, a chain of directories, and file.
+An empty string can be given for any of the three arguments. No attempt to
+make the path canonical is made. Use L«C<canonpath>|/routine/canonpath» for
+that purpose.
 
-=head2 method rel2abs
+    IO::Spec::Win32.catpath('C:', '/some/dir', 'foo.txt').say;
+    # OUTPUT: «C:/some/dir\foo.txt␤»
 
-        method rel2abs(IO::Spec:D: Str $path, Str $base? is copy)
+    IO::Spec::Win32.catpath('C:', '/some/dir', '').say;
+    # OUTPUT: «C:/some/dir␤»
 
-=comment TODO
+    IO::Spec::Win32.catpath('', '/some/dir', 'foo.txt').say;
+    # OUTPUT: «/some/dir\foo.txt␤»
+
+    IO::Spec::Win32.catpath('E:', '', 'foo.txt').say;
+    # OUTPUT: «E:foo.txt␤»
+
+=head2 method devnull
+
+Defined as:
+
+    method devnull(--> Str:D)
+
+Returns the string C<"nul"> representing the
+L<"Null device"|https://en.wikipedia.org/wiki/Null_device>:
+
+=for code :skip-test
+    $*SPEC.devnull.IO.spurt: "blah blah";
+
+=head2 method dir-sep
+
+Defined as:
+
+    method dir-sep(--> Str:D)
+
+Returns the string C<｢\｣> representing canonical directory separator character.
+
+=for code :skip-test
+    IO::Spec::Win32.dir-sep.say; # OUTPUT: «\␤»
+
+=head2 method is-absolute
+
+Defined as:
+
+    method is-absolute(Str:D $path --> Bool:D)
+
+Returns C<True> if the C<$path> starts with a slash (C<"/">) or backslash
+(C<"\">), even if they have combining character on them, optionally preceded by
+a volume:
+
+    say IO::Spec::Win32.is-absolute: "/foo";        # OUTPUT: «True␤»
+    say IO::Spec::Win32.is-absolute: "/\x[308]foo"; # OUTPUT: «True␤»
+    say IO::Spec::Win32.is-absolute: ｢C:\foo｣;      # OUTPUT: «True␤»
+    say IO::Spec::Win32.is-absolute: "bar";         # OUTPUT: «False␤»
+
+=head2 method join
+
+=begin comment
+
+  XXX TODO: I'm not exactly sure *why* we have .join along with .catpath and
+  in what usecases join's *slightly* different behaviour is useful
+
+=end comment
+
+Defined as:
+
+    method join (Str:D $volume, Str:D $dir, Str:D $file --> Str:D)
+
+Similar to L«C<catpath>|/routine/catpath», takes two path fragments and
+concatenates them, adding or removing a path separator, if necessary, except
+it will return just C<$file> if both C<$dir> and C<$file> are string C<'/'>
+or if C<$dir> is the string C<'.'>. The first argument is ignored (it exists to
+maintain consistent interface with other C<IO::Spec> types for systems that have
+volumes).
+
+    IO::Spec::Win32.join('C:', '/some/dir', 'foo.txt').say;
+    # OUTPUT: «C:/some/dir\and/more␤»
+
+    IO::Spec::Win32.join('C:', '.', 'foo.txt').say;
+    # OUTPUT: «C:foo.txt␤»
+
+    IO::Spec::Win32.join('C:', ｢\｣, '/').say;
+    # OUTPUT: «C:\␤»
+
+    IO::Spec::Win32.join('//server/share', ｢\｣, '/').say;
+    # OUTPUT: «//server/share␤»
+
+    IO::Spec::Win32.join('E:', '', 'foo.txt').say;
+    # OUTPUT: «E:foo.txt␤»
+
+=head2 method path
+
+Defined as:
+
+    method path(--> Seq:D)
+
+Splits the value of C«%*ENV<PATH>» (or C«%*ENV<Path>» if the former is not set)
+on semicolons (C<";">) and returns a L<Seq> with each of the resultant
+parts, always adding element C<"."> to the head. Removes all double
+quotes (C<">) it finds.
+
+    %*ENV<PATH> = 'foo;"bar"/"ber"';
+    IO::Spec::Win32.path.perl.say; # OUTPUT: «(".", "foo", "bar/ber").Seq␤»
+
+=head2 method tmpdir
+
+Defined as:
+
+        method tmpdir(--> IO::Path:D)
+
+Attempts to locate a system's temporary directory by checking several typical directories and environmental variables. Uses current directory if no suitable directories are found.
 
 =end pod
 

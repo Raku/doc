@@ -7,118 +7,369 @@
 =for code :skip-test
 class IO::Path is Cool does IO { }
 
-Built-in class for file and directory paths.
+The workhorse of IO operations.
 
-Conceptually, an C<IO::Path> object consists of a volume (think C<C:> on
-windows), a directory, and a basename.
+Conceptually, an C<IO::Path> object consists of a volume, a directory, and a
+basename. It supports both purely textual operations, and operations that access
+the file system, e.g. to resolve a path, or to read all content of a file.
 
-C<IO::Path> supports both purely textual operations, and operations that
-access the file system.
+At creation, each C<IO::Path> object is given information about the current
+working directory the path might be relative to using the C<$.CWD> attribute
+(defaults to L«C<$*CWD>|/language/variables#Dynamic_variables»), as well as
+what operating system semantics should be used for path manipulation using
+the special L«C<IO::Spec>|/type/IO::Spec» type given in the C<$.SPEC> attribute.
 
-The current working directory is available as an C<IO::Path> object in C<$*CWD>.
+The C<$.SPEC> defaults to the value of
+L«C<$*SPEC>|/language/variables#Dynamic_variables», which uses the object
+suitable for the operating system the code is currently running on. This is
+the default most code will be comfortable with.
 
-The behavior of C<IO::Path> is dependent on the operating system it runs on;
-to get reproducible behavior across operating systems, you can use one of its
-subclasses instead: L<IO::Spec::Unix>, L<IO::Spec::Win32>,
-L<IO::Spec::Cygwin>, L<IO::Spec::QNX>.
+In certain situations, e.g. testing, you may wish to force C<$*SPEC> to use one
+of the specific SPEC modules: L«C<IO::Spec::Unix>|/type/IO::Spec::Unix»,
+L«C<IO::Spec::Win32>|/type/IO::Spec::Win32»,
+L«C<IO::Spec::Cygwin>|/type/IO::Spec::Cygwin», and
+L«C<IO::Spec::QNX>|/type/IO::Spec::QNX», or to create C<IO::Path> objects via
+shortcut subclasses L«C<IO::Path::Unix>|/type/IO::Path::Unix»,
+L«C<IO::Path::Win32>|/type/IO::Path::Win32»,
+L«C<IO::Path::Cygwin>|/type/IO::Path::Cygwin», and
+L«C<IO::Path::QNX>|/type/IO::Path::QNX» that pre-set the C<$.SPEC> attribute
+for you.
 
 The rest of this document silently assumes Unix semantics in its examples,
-unless when stated otherwise.
-
-=comment TODO: Investigate if the $SPEC = $*SPEC, :$CWD = $*CWD params that
-         a bunch of these routines have in their signature in Rakudo, are
-         "official" Perl 6 API, and if so, document them here in a central
-         place so all the routine documentations can link to it without
-         having to repeat it.
+unless stated otherwise.
 
 =head1 Methods
 
 =head2 method new
 
-    multi method new(Str:D $path)
-    multi method new(:$basename!, :$dirname = '.', :$volume = '')
+Defined as:
+
+=for code :skip-test
+    multi method new(Str:D $path, IO::Spec :$SPEC = $*SPEC, Str() :$CWD = $*CWD)
+    multi method new(
+        :$basename!, :$dirname = '.', :$volume = ''
+        IO::Spec :$SPEC = $*SPEC, Str() :$CWD = $*CWD
+    )
 
 Creates a new C<IO::Path> object from a path string (which is being parsed for
 volume, directory name and basename), or from volume, directory name and
 basename passed as named arguments.
 
-=head2 method abspath
+The path's operation will be performed using C<:$SPEC> semantics (defaults to
+current L«C<$*SPEC>|/language/variables#Dynamic_variables») and will use
+C<:$CWD> as the directory the path is relative to (defaults to
+L«C<$*CWD>|/language/variables#Dynamic_variables»).
 
-    method abspath(IO::Path:D: --> Str)
+=head2 attribute CWD
 
-Returns the absolute path as a string.
+    IO::Path.new("foo", :CWD</home/camelia>)
+        .IO.CWD.say; # OUTPUT: «/home/camelia␤»
+
+Read-only. Contains implicit or explicit value of C<:$CWD> argument to C<.new>.
+
+=head2 attribute SPEC
+
+    IO::Path.new("foo", :SPEC(IO::Spec::Unix.new))\
+        .IO.SPEC.^name.say; # OUTPUT: «IO::Spec::Unix␤»
+
+Read-only. Contains implicit or explicit value of C<:$SPEC> argument to C<.new>.
+
+=head2 attribute path
+
+    IO::Path.new("foo").path.say; # OUTPUT: «foo␤»
+
+Read-only. Returns the string the object was constructed from or the value of
+C<$SPEC.join($volume, $dirname, $basename)> if multi-part version of C<.new>
+was used. B<NOTE:> this does not include the C<$.CWD>; see
+L«C<IO::Path.absolute>|/routine/absolute»
+and L«C<IO::Path.relative>|/routine/relative» for
+stringification options that include C<$.CWD>.
+
+B<NOTE:> Implementations may cache operations done with this attribute, so
+modifying its value (via cloning or Proxy) is NOT recommended and may result
+in broken C<IO::Path> objects. Create a new C<IO::Path> object instead.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(IO::Path:D: Cool:D $other --> Bool:D)
+
+Coerces the argument to C<IO::Path>, if necessary. Returns C<True> if
+L«C<.absolute>|/routine/absolute» method on both paths returns the same string.
+B<NOTE:> it's possible for two paths that superficially point to the same
+resource to NOT smartmatch as C<True>, if they were constructed differently and
+were never fully resolved:
+
+    say "foo/../bar".IO ~~ "bar".IO # False
+
+The reason is the two paths above may point to different resources when fully
+resolved (e.g. if C<foo> is a symlink). Resolve the paths before smartmatching
+to check they point to same resource:
+
+    say "foo/../bar".IO.resolve(:completely) ~~ "bar".IO.resolve(:completely) # True
 
 =head2 method basename
 
+Defined as:
+
     method basename(IO::Path:D:)
 
-Returns the basename part of the path object. That is, it returns the name of
-the file relative to its directory.
+Returns the basename part of the path object, which is the name of the
+filesystem object itself that is referenced by the path.
 
-    say IO::Path.new("docs/README.pod").basename;   # README.pod
+    "docs/README.pod".IO.basename.say; # OUTPUT: «README.pod␤»
+    "/tmp/".IO.basename.say;           # OUTPUT: «tmp␤»
+
+Note that in L«C<IO::Spec::Win32>|/type/IO::Spec::Win32» semantics, the
+C<basename> of a Windows share is C<\>, not the name of the share itself:
+
+    IO::Path::Win32.new('//server/share').basename.say; # OUTPUT: «\␤»
+
+=head2 method add
+
+Defined as:
+
+    method add(IO::Path:D: Str() $what --> IO::Path:D)
+
+Concatenates a path fragment to the invocant and returns the resultant
+C<IO::Path>.
+
+    "foo/bar".IO.add("meow")    .resolve.relative.say; # OUTPUT: «foo/bar/meow␤»
+    "foo/bar".IO.add("/meow")   .resolve.relative.say; # OUTPUT: «foo/bar/meow␤»
+    "foo/bar".IO.add("meow.txt").resolve.relative.say; # OUTPUT: «foo/bar/meow.txt␤»
+    "foo/bar".IO.add("../meow") .resolve.relative.say; # OUTPUT: «foo/meow␤»
+    "foo/bar".IO.add("../../")  .resolve.relative.say; # OUTPUT: «.␤»
+
+=head2 method child
+
+Defined as:
+
+    method child(IO::Path:D: Str() $childname --> IO::Path:D)
+
+Alias for L«C<.add>|/routine/add». B<NOTE:> C<.child> will be switched to
+secure version around 6.d release time, which will C<fail()> with non-child
+paths and is also slower, since it has to do more work. Use
+L«C<.add>|/routine/add» if your code does not need to guarantee the added
+path is in fact a child path.
+
+=head2 method cleanup
+
+Defined as:
+
+    method cleanup(IO::Path:D: --> IO::Path:D)
+
+Returns a new path that is a canonical representation of the invocant path,
+cleaning up any extraneous path parts:
+
+    "foo/./././..////bar".IO.cleanup.say;      # OUTPUT: «"foo/../bar".IO␤»
+    IO::Path::Win32.new("foo/./././..////bar")
+        .cleanup.say; "foo\..\bar".IO;         # OUTPUT: «"foo\..\bar".IO␤»
+
+Note that no file system access is made. See also
+L«C<resolve>|/routine/resolve».
+
+=head2 method comb
+
+Defined as:
+
+    method comb(IO::Path:D: |args --> Seq:D)
+
+Opens the file and processes its contents the same way
+L«C<Str.comb>|/type/Str» does, taking the same arguments. Implementations may
+slurp the file in its entirety when this method is called.
 
 =head2 method extension
 
-    method extension(IO::Path:D:)
+Defined as:
 
-Returns the extension (if any) of the path object.
+    multi method extension(IO::Path:D:                                         --> Str:D)
+    multi method extension(IO::Path:D:               Int :$parts               --> Str:D)
+    multi method extension(IO::Path:D:             Range :$parts               --> Str:D)
+    multi method extension(IO::Path:D: Str $subst,   Int :$parts, Str :$joiner --> IO::Path:D)
+    multi method extension(IO::Path:D: Str $subst, Range :$parts, Str :$joiner --> IO::Path:D)
 
-    say IO::Path.new("docs/README.pod").extension;   # pod
+Returns the extension consisting of C<$parts> parts (defaults to C<1>),
+where a "part" is defined
+as a dot followed by possibly-empty string up to the end of the string, or
+previous part. That is C<"foo.tar.gz"> has an extension of two parts: first part
+is C<"gz"> and second part is C<"tar"> and calling
+C<"foo.tar.gz".IO.extension: :2parts> gives C<"tar.gz">. If an extension with
+the specified number of C<$parts> is not found, returns an empty string.
+
+C<$parts> can be a L«C<Range>|/type/Range», specifying the minimum number of
+parts and maximum number of parts the extension should have. The routine will
+attempt to much the most parts it can. If C<$parts> range's endpoints that are
+smaller than C<0> they'll be treated as C<0>; implementations may treat
+endpoints larger than C<2⁶³-1> as C<2⁶³-1>. Ranges with C<NaN> or
+L«C<Str>|/type/Str» endpoints will cause an exception to be thrown.
+
+If C<$subst> is provided, the extension will be instead replaced with C<$subst>
+and a new C<IO::Path> object will be returned. It will be joined to the file's
+name with C<$joiner>, which defaults to an empty string when C<$subst> is
+an empty string and to C<"."> when C<$subst> is not empty. B<Note:> if as
+the result of replacement the L«C<basename>|/routine/basename» of the path
+ends up being empty, it will be assumed to be C<.> (a single dot).
+
+    # Getting an extension:
+    say "foo.tar.gz".IO.extension;               # OUTPUT: «gz␤»
+    say "foo.tar.gz".IO.extension: :2parts;      # OUTPUT: «tar.gz␤»
+    say "foo.tar.gz".IO.extension: :parts(^5);   # OUTPUT: «tar.gz␤»
+    say "foo.tar.gz".IO.extension: :parts(0..1); # OUTPUT: «gz␤»
+
+    # Replacing an extension
+    say "foo.tar.gz".IO.extension: '';                # OUTPUT: «"foo.tar".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP';             # OUTPUT: «"foo.tar.ZIP".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :0parts;    # OUTPUT: «"foo.tar.gz.ZIP".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :2parts;    # OUTPUT: «"foo.ZIP".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :parts(^5); # OUTPUT: «"foo.ZIP".IO␤»
+
+    # Replacing an extension using non-standard joiner:
+    say "foo.tar.gz".IO.extension: '',    :joiner<_>;  # OUTPUT: «"foo.tar_".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :joiner<_>;  # OUTPUT: «"foo.tar_ZIP".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :joiner<_>,
+                                           :2parts;     # OUTPUT: «"foo_ZIP".IO␤»
+    say "foo.tar.gz".IO.extension: 'ZIP', :joiner<_>,
+                                           :parts(^5);  # OUTPUT: «"foo_ZIP".IO␤»
+
+    # EDGE CASES:
+
+    # There is no 5-part extension, so returned value is an empty string
+    say "foo.tar.gz".IO.extension: :5parts; # OUTPUT: «␤»
+
+    # There is no 5-part extension, so we replaced nothing:
+    say "foo.tar.gz".IO.extension: 'ZIP', :5parts; # OUTPUT: «"foo.tar.gz".IO␤»
+
+    # Replacing a 0-part extension is just appending:
+    say "foo.tar.gz".IO.extension: 'ZIP', :0parts; # OUTPUT: «"foo.tar.gz.ZIP".IO␤»
+
+    # Replace 1-part of the extension, using '.' joiner
+    say "...".IO.extension: 'tar'; # OUTPUT: «"....tar".IO␤»
+
+    # Replace 1-part of the extension, using empty string joiner
+    say "...".IO.extension: 'tar', :joiner(''); # OUTPUT: «"...tar".IO␤»
+
+    # Remove 1-part extension; results in empty basename, so result is ".".IO
+    say ".".IO.extension: ''; # OUTPUT: «".".IO␤»
 
 =head2 method dirname
+
+Defined as:
 
     method dirname(IO::Path:D:)
 
 Returns the directory name portion of the path object. That is, it returns
-the path excluding the volume and the base name.
+the path excluding the L<volume|/routine/volume> and the
+L<base name|/routine/basename>.
 
-    say IO::Path.new("/home/camelia/myfile.p6").dirname;    # /home/camelia
-    say IO::Path.new("/home/camelia").dirname;              # /home
-    say IO::Path.new("/home").dirname;                      # /
+    say IO::Path.new("/home/camelia/myfile.p6").dirname; # OUTPUT: «/home/camelia␤»
+    say IO::Path::Win32.new("C:/home/camelia").dirname;  # OUTPUT: «/home␤»
+    say IO::Path.new("/home").dirname;                   # OUTPUT: «/␤»
 
 =head2 method volume
+
+Defined as:
 
     method volume(IO::Path:D:)
 
 Returns the volume portion of the path object. On Unix system, this is always
 the empty string.
 
-    say IO::Path::Win32.new("C:\\Windows\\registry.ini").volume;    # C:
+    say IO::Path::Win32.new("C:\\Windows\\registry.ini").volume;    # OUTPUT: «C:␤»
 
 =head2 method parts
 
-    method parts(IO::Path:D: --> Hash)
+Defined as:
 
-Returns a hash with the keys C<dirname>, C<path> and C<volume>, and as
-values the return values of the methods with the same names.
+    method parts(IO::Path:D: --> Map:D)
 
-    say IO::Path.new("/etc/passwd").parts.perl
-    # ("dirname" => "/etc", "volume" => "", "basename" => "passwd").hash
+Returns a L<Map> with the keys C<volume>, C<dirname>, C<basename> whose values
+are the same as available via methods L«C<.volume>|/routine/volume»,
+L«C<.dirname>|/routine/dirname», and L«C<.basename>|/routine/basename»
+respectively.
 
-=head2 method path
+    say IO::Path::Win32.new("C:/rakudo/perl6.bat").parts.perl;
+    # OUTPUT: «Map.new((:basename("perl6.bat"),:dirname("/rakudo"),:volume("C:")))␤»
 
-    method path(IO::Path:D: --> Str)
+=head2 method perl
 
-Returns the full path as a string.
+Defined as:
+
+    method perl(IO::Path:D: --> Str:D)
+
+Returns a string that, when given passed through L«C<EVAL>|/routine/EVAL»
+gives the original invocant back.
+
+    "foo/bar".IO.perl.say;
+    # OUTPUT: IO::Path.new("foo/bar", :SPEC(IO::Spec::Unix), :CWD("/home/camelia"))
+
+Note that this string includes the value of the C<.CWD> attribute that is set
+to L«C<$*CWD>|/language/variables#index-entry-%24%2ACWD» when the path
+object was created, by default.
+
+=head2 method gist
+
+Defined as:
+
+    method gist(IO::Path:D: --> Str:D)
+
+Returns a string, part of which contains either the value of
+L«C<.absolute>|/type/IO::Path#method_absolute» (if path is absolute) or
+L«C<.path>|/type/IO::Path#attribute_path». Note that no escaping
+of special characters is made, so e.g. C<"\b"> means a path contains a backslash
+and letter "b", not a backspace.
+
+    say "foo/bar".IO;                       # OUTPUT: «"foo/bar".IO␤»
+    say IO::Path::Win32.new: ｢C:\foo/bar\｣; # OUTPUT: «"C:\foo/bar\".IO␤»
 
 =head2 method Str
 
-    method Str(IO::Path:D:)
+Defined as:
 
-Returns the complete text that was used to create the path as a string, whether
-it was given as a single string or as named arguments.
+    method Str(IO::Path:D: --> Str)
 
-    say IO::Path.new(basename => "foo", dirname => "/bar").Str;  # /bar/foo
-    say IO::Path.new("/bar/foo").Str;                            # /bar/foo
+Alias for L«C<IO::Path.path>|/routine/path». In particular, note that default
+stringification of an C<IO::Path> does B<NOT> use the value of
+L«C<$.CWD> attribute|type/IO::Path#attribute_CWD». To stringify while
+retaining full path information use L«C<.absolute>|/routine/absolute» or
+L«C<.relative>|/routine/relative» methods.
+
+=head2 method succ
+
+Defined as:
+
+    method succ(IO::Path:D: --> IO::Path:D)
+
+Returns a new L<IO::Path> constructed from the invocant, with
+L«C<.basename>|/routine/basename» changed by calling
+L«C<Str.succ>|/type/Str#method_succ» on it.
+
+    "foo/file02.txt".IO.succ.say; # OUTPUT: «"foo/file03.txt".IO␤»
 
 =head2 method open
+
+Defined as:
 
     method open(IO::Path:D: *%opts)
 
 Opens the path as a file; the named options control the mode, and are the
 same as the L<open> function accepts.
 
+=head2 method pred
+
+Defined as:
+
+    method pred(IO::Path:D: --> IO::Path:D)
+
+Returns a new L<IO::Path> constructed from the invocant, with
+L«C<.basename>|/routine/basename» changed by calling
+L«C<Str.pred>|/type/Str#method_pred» on it.
+
+    "foo/file02.txt".IO.pred.say; # OUTPUT: «"foo/file01.txt".IO␤»
+
 =head2 method watch
+
+Defined as:
 
     method watch(IO::Path:D: --> Supply)
 
@@ -127,72 +378,121 @@ MoarVM backend at the moment.
 
 =head2 method is-absolute
 
+Defined as:
+
     method is-absolute(IO::Path:D: --> Bool)
 
 Returns C<True> if the path is an absolute path, and C<False> otherwise.
 
+    "/foo".IO.is-absolute.say; # OUTPUT: «True␤»
+    "bars".IO.is-absolute.say; # OUTPUT: «False␤»
+
+Note that on Windows a path that starts with a slash or backslash is still
+considered absolute even if no volume was given, as it is absolute for that
+particular volume:
+
+    IO::Path::Win32.new("/foo"  ).is-absolute.say; # OUTPUT: «True␤»
+    IO::Path::Win32.new("C:/foo").is-absolute.say; # OUTPUT: «True␤»
+    IO::Path::Win32.new("C:foo" ).is-absolute.say; # OUTPUT: «False␤»
+
 =head2 method is-relative
+
+Defined as:
 
     method is-relative(IO::Path:D: --> Bool)
 
 Returns C<True> if the path is a relative path, and C<False> otherwise.
+Windows caveats for L«C<.is-absolute>|/type/IO::Path#method_is-absolute»
+apply.
 
 =head2 method absolute
 
-    method absolute(IO::Path:D: $base = ~$*CWD --> Str)
+Defined as:
 
-Returns a new C<Str> object that is an absolute path, based on C<$base>.
+    multi method absolute(IO::Path:D: --> Str)
+    multi method absolute(IO::Path:D: $base --> Str)
+
+Returns a new C<Str> object that is an absolute path. If the invocant
+is not already an absolute path, it is first made absolute using C<$base>
+as base, if it is provided, or the C<.CWD> attribute the object was
+created with if it is not.
 
 =head2 method relative
 
-    method relative(IO::Path:D: $base = ~$*CWD --> Str)
+Defined as:
 
-Returns a new C<Str> object relative to the C<$base> path.
+    method relative(IO::Path:D: $base = $*CWD --> Str)
+
+Returns a new C<Str> object with the path relative to the C<$base>. If C<$base>
+is not provided, C<$*CWD> is used in its place. If the invocant is not
+an absolute path, it's first made to be absolute using the C<.CWD>
+attribute the object was created with, and then is made relative to C<$base>.
 
 =head2 method parent
 
-    method parent(IO::Path:D: --> IO::Path)
+Defined as:
 
-Removes the last portion of the path and returns the result as a new C<IO::Path>.
+    method parent(IO::Path:D: --> IO::Path:D)
 
-    my $io = IO::Path.new( "/etc/passwd" );
-    say $io.parent;                          # "/etc".IO
+Returns the parent path of the invocant. Note that no file system access
+is made, so the returned parent parent is physical and not the logical parent of
+symlinked directories.
 
-=head2 method child
-
-    method child(IO::Path:D: $childname --> IO::Path)
-
-Appends C<$childname> to the end of the path, adding path separators where
-needed and returns the result as a new C<IO::Path>.
-
-    my $io = IO::Path.new( "/bin" );
-    say $io.child('netstat');                # "/bin/netstat".IO
+    '/etc/foo'.IO.parent.say; # OUTPUT: «"/etc".IO␤»
+    '/etc/..' .IO.parent.say; # OUTPUT: «"/etc".IO␤»
+    '/etc/../'.IO.parent.say; # OUTPUT: «"/etc".IO␤»
+    './'      .IO.parent.say; # OUTPUT: «"..".IO␤»
+    'foo'     .IO.parent.say; # OUTPUT: «".".IO␤»
+    '/'       .IO.parent.say; # OUTPUT: «"/".IO␤»
+    IO::Path::Win32.new('C:/').parent.say; # OUTPUT: «"C:/".IO␤»
 
 =head2 method resolve
 
-    method resolve(IO::Path:D: --> IO::Path)
+Defined as:
+
+    method resolve(IO::Path:D: :$completely --> IO::Path)
 
 Returns a new C<IO::Path> object with all symbolic links and references to the
-parent directory (C<..>) resolved.  This means that the filesystem is examined
+parent directory (C<..>) resolved. This means that the filesystem is examined
 for each directory in the path, and any symlinks found are followed.
 
     # bar is a symlink pointing to "/baz"
     my $io = "foo/./bar/..".IO.resolve;      # now "/" (the parent of "/baz")
 
-NOTE: Currently (May 2016) this method doesn't work correctly on all platforms,
-e.g. Windows, since it assumes POSIX semantics.
+If C<:$completely>, which defaults to C<False>, is set to a true value, the
+method will L«C<fail>|/routine/fail» with C<X::IO::Resolve>
+if it cannot completely resolve the path,
+otherwise, it will resolve as much as possible, and will merely perform
+L«C<cleanup>|/routine/cleanup» of the rest of the path. The last part of the
+path does B<NOT> have to exist to C<:$completely> resolve the path.
+
+NOTE: Currently (April 2017) this method doesn't work correctly on all
+platforms, e.g. Windows, since it assumes POSIX semantics.
 
 =head2 routine dir
+
+Defined as:
 
     sub    dir(Cool $path = '.', Mu :$test = none('.', '..'))
     method dir(IO::Path:D: Mu :$test = none('.', '..'))
 
 Returns the contents of a directory as a lazy list of C<IO::Path> objects
 representing relative paths, filtered by L<smart-matching|
-/language/operators#infix_~~> their names against the C<:test> parameter.
+/language/operators#infix_~~> their names (as strings) against the C<:test>
+parameter.
+
+B<NOTE:> a C<dir> call opens a directory for reading, which counts towards
+maximum per-process open files for your program. Be sure to exhaust returned
+L<Seq> before doing something like recursively performing more C<dir> calls.
+You can exhaust it by assigning to a C<@->sigiled variable or simply looping
+over it. Note how examples below push further dirs to look through into
+an L<Array>, rather than immediately calling C<dir> on them. See also
+L«C<IO::Dir> module|https://modules.perl6.org/dist/IO::Dir» that gives you finer
+control over closing dir handles.
 
 Examples:
 
+=begin code :skip-test
     # To iterate over the contents of the current directory:
     for dir() -> $file {
         say $file;
@@ -205,8 +505,8 @@ Examples:
     }
 
     # To get the names of all .jpg and .jpeg files in ~/Downloads:
-=for code :skip-test
-my @jpegs = "%*ENV<HOME>/Downloads".IO.dir(test => /:i '.' jpe?g $/)».Str;
+    my @jpegs = $*HOME.dir: test => /:i '.' jpe?g $/;
+=end code
 
 =comment TODO: Turn the following into a FAQ entry, and link to it from here.
 
@@ -225,137 +525,300 @@ An example program that lists all files and directories recursively:
 A lazy way to find the first three files ending in ".p6" recursively starting from the current directory:
 
 =for code :skip-test
-my @stack = '.';
-my $perl-files := gather while ( @stack ) {
-    my $current = @stack.pop;
-    take $current if ($current.IO.f && $current.IO.extension ~~ rx:i/p6$/);
-    @stack.append(dir($current)>>.path) if $current.IO.d;
+my @stack = '.'.IO;
+my $perl-files = gather while @stack {
+    with @stack.pop {
+        when :d { @stack.append: .dir }
+        .take when .extension.lc eq 'p6'
+    }
 }
-=for code :skip-test
-say $perl-files[1..3];
+.put for $perl-files[^3];
 
 =head2 method e
 
-    method e(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a valid path that exists.
+    method e(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method d
 
-    method d(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and the directory exists.
+    method d(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is a directory.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method f
 
-    method f(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and the file exists.
+    method f(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is a file.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method s
 
-    method s(--> Int)
+Defined as:
 
-If the path is valid and points to a regular file the size of that file
-in bytes is returned. If the path is valid but pointing to something which
-is not a file, e.g. a directory, a L<X::IO::NotAFile> exception is thrown.
-An exception is also thrown if the path is invalid, in that case the exception
-type is L<X::IO::DoesNotExist>.
+    method s(--> Int:D)
+
+Returns the file size in bytes. May be called on paths that are directories, in
+which case the reported size is dependent on the operating system.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method l
 
-    method l(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and a symlink.
+    method l(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is a symlink.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method r
 
-    method r(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and accessible.
+    method r(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is accessible.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method w
 
-    method w(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and writable.
+    method w(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is writable.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method rw
 
-    method rw(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path, readable and writable.
+    method rw(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is readable and
+writable. The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist>
+if the path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method x
 
-    method x(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and executable.
+    method x(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is executable.
+The method will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the
+path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method rwx
 
-    method rwx(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path, executable, readable and writable.
+    method rwx(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and is executable,
+readable, and writable. The method will L«C<fail>|/routine/fail» with
+C<X::IO::DoesNotExist> if the path points to a non-existent filesystem entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
 
 =head2 method z
 
-    method z(--> Bool)
+Defined as:
 
-Returns C<Bool::True> if the invocant is a path and the size is 0.
+    method z(--> Bool:D)
+
+Returns C<True> if the invocant is a path that exists and has size of C<0>.
+May be called on paths that are directories, in
+which case the reported file size (and thus the result of this method)
+is dependent on the operating system. The method will L«C<fail>|/routine/fail»
+with C<X::IO::DoesNotExist> if the path points to a non-existent filesystem
+entity.
+
+TIP: use L«smartmatch with Pairs|/type/Pair#method_ACCEPTS» to perform multiple
+file tests.
+
+=head2 method sibling
+
+Defined as:
+
+    method sibling(IO::Path:D: Str() $sibling --> IO::Path:D)
+
+Allows to reference a sibling file or directory. Returns a new
+L«C<IO::Path>|/type/IO::Path» based on the invocant, with the
+# L«C<.basename>|/type/IO::Path#method_basename» changed to C<$sibling>. The
+C<$sibling> is allowed to be a multi-part path fragment, although
+# L«C<.add>|/type/IO::Path#method_add» is a better choice for such use.
+
+    say '.bashrc'.IO.sibling: '.bash_aliases'; # OUTPUT: «.bash_aliases".IO␤»
+    say '/home/camelia/.bashrc'.IO.sibling: '.bash_aliases';
+    # OUTPUT: «/home/camelia/.bash_aliases".IO␤»
+
+    say '/foo/' .IO.sibling: 'bar';  # OUTPUT: «/bar".IO␤»
+    say '/foo/.'.IO.sibling: 'bar';  # OUTPUT: «/foo/bar".IO␤»
+
+=head2 method words
+
+Defined as:
+
+    method words(IO::Path:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c --> Seq:D)
+
+Opens the invocant and returns its L«words|/type/IO::Handle#routine_words».
+
+The behaviour is equivalent to L<opening|/routine/open> the file specified by
+the invocant, forwarding the C<:$chomp>, C<:$enc>, and C<:$nl-in> arguments to
+L«C<IO::Handle.open>|/type/IO::Handle#routine_open», then calling
+L«C<IO::Handle.words>|/type/IO::Handle#routine_words» on that handle, forwarding
+any of the remaining arguments to that method, and returning the resultant
+L<Seq>.
+
+B<NOTE:> the words are ready lazily and the handle used under the hood won't
+get closed until the returned L<Seq> is
+L<fully reified|/language/glossary#index-entry-Reify>, so ensure it is,
+or you'll be leaking open file handles. (TIP: use the
+L«C<$limit> argument|/type/IO::Handle#routine_words»)
+
+=for code :skip-test
+my %dict := bag 'my-file.txt'.IO.words;
+say "Most common words: ", %dict.sort(-*.value).head: 5;
+
+=head2 method lines
+
+Defined as:
+
+    method lines(IO::Path:D: :$chomp = True, :$enc = 'utf8', :$nl-in = ["\x0A", "\r\n"], |c --> Seq:D)
+
+Opens the invocant and returns its L«lines|/type/IO::Handle#routine_lines».
+
+The behaviour is equivalent to L<opening|/routine/open> the file specified by
+the invocant, forwarding the C<:$chomp>, C<:$enc>, and C<:$nl-in> arguments to
+L«C<IO::Handle.open>|/type/IO::Handle#routine_open», then calling
+L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines» on that handle, forwarding
+any of the remaining arguments to that method, and returning the resultant
+L<Seq>.
+
+B<NOTE:> the lines are ready lazily and the handle used under the hood won't
+get closed until the returned L<Seq> is
+L<fully reified|/language/glossary#index-entry-Reify>, so ensure it is,
+or you'll be leaking open file handles. (TIP: use the
+L«C<$limit> argument|/type/IO::Handle#routine_lines»)
+
+=begin code :skip-test
+    say "The file contains ",
+      '50GB-file'.IO.lines.grep(*.contains: 'Perl').elems,
+      " lines that mention Perl";
+    # OUTPUT: «The file contains 72 lines that mention Perl␤»
+=end code
 
 =head2 routine slurp
 
+Defined as:
+
     multi method slurp(IO::Path:D: :$bin, :$enc)
 
-Return the file content for this path, like L<slurp|/routine/slurp>.
+Read all of the file's content and return it as either L<Buf>, if C<:$bin>
+is C<True>, or if not, as L<Str> decoded with C<:$enc> encoding, which defaults
+to C<utf8>. See L«C<&open>|/routine/open» for valid values for C<:$enc>.
 
-=head2 routine spurt
+=head2 method spurt
 
-    multi method spurt(IO::Path:D: Blob $contents, :$bin, |c)
-    multi method spurt(IO::Path:D: Cool $contents, :$bin, |c)
+Defined as:
 
-Write C<$contents> to this path, like L<spurt|/routine/spurt>.
+    method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly)
 
-=head2 routine chdir
+Opens the file path for writing, and writes all of the C<$data> into it.
+Will L«C<fail>|/routine/fail» if it cannot succeed for any reason.
+The C<$data> can be any L«C<Cool>|/type/Cool» type or any L«C<Blob>|/type/Blob»
+type. Arguments are as follows:
 
-    sub chdir(Str() $path, :$test = 'r' --> IO::Path)
-    multi method chdir(IO::Path:U: $path, :$test = 'r' --> IO::Path)
-    multi method chdir(IO::Path:D: Str() $path is copy, :$test = 'r' --> IO::Path)
+=item C<:$enc> — character encoding of the data. Takes same values as C<:$enc>
+in L«C<IO::Handle.open>|/routine/open». Defaults to C<utf8>. Ignored if C<$data>
+is a L«C<Blob>|/type/Blob».
 
-Alter the process' notion of the current working directory (as found in
-C<$*CWD>).
+=item C<:$append> — open the file in C<append> mode, preserving existing
+contents, and appending data to the end of the file.
 
-The subroutine and class method forms both change the directory relative to
-C<$*CWD> if the supplied C<$path> is not absolute.  The object method form
-changes the directory relative to the path of the invocant if C<$path> is
-not absolute.  The optional named parameter C<test> can specify a file test
-that should be applied to the target path if the operation is successful.
-The default C<test> is that the directory is readable.
+=item C<:$createonly> — L«C<fail>|/routine/fail» if the file already exists.
 
-If the directory change is successful then the L<IO::Path>
-representing the target directory is returned, otherwise it will
-L<fail|/routine/fail> with L<X::IO::Chdir>.
+=head2 method chdir
+
+Defined as:
+
+    multi method chdir(IO::Path:D: Str() $path, :$d = True, :$r, :$w, :$x)
+
+B<DEPRECATION NOTICE:> this method will be deprecated in C<6.d> language. Do
+not use it for new code. Instead, create a new path or use
+L«C<add>|/routine/add» method. For altering current working
+directory see L«C<&chdir>|/routine/chdir» and L«C<&*chdir>|/routine/&*chdir»
+subroutines.
+
+Contrary to the name, the C<.chdir> method does not change any directories,
+but merely concatenates the given C<$path> to the invocant and returns the
+resultant C<IO::Path>. Optional file tests can be performed by providing
+C<:d>, C<:r>, C<:w>, or C<:x> L«C<Bool>|/type/Bool» named arguments; when
+set to C<True>, they'll perform L«C<.d>|/routine/d», L«C<.r>|/routine/r»,
+L«C<.w>|/routine/w», and L«C<.x>|/routine/x» tests respectively. By default,
+only C<:d> is set to C<True>.
 
 =head2 routine mkdir
 
-    multi sub mkdir(Int:D $mode, *@dirnames --> List)
-    multi sub mkdir($path, $mode = 0o777 --> Bool)
-    method    mkdir(IO::Path:D: $mode = 0o777 --> Bool)
+Defined as:
 
-Creates one or more directories with the L<permissions|
-https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>
-specified as an integer (though still subject to L<umask|
-https://en.wikipedia.org/wiki/Umask>).
+    method mkdir(IO::Path:D: Int() $mode = 0o777 --> IO::Path:D)
+    sub mkdir(   IO() $path, Int() $mode = 0o777 --> IO::Path:D)
+
+Creates a new directory. See L«C<mode>|/routine/mode» for explanation and
+valid values for C<$mode>. Returns the L<IO::Path> object pointing to
+the newly created directory on success;
+L<fails|/routine/fail> with L<X::IO::Mkdir> if directory cannot be created.
 
 Creates parent directories, as needed. That is, C<mkdir "foo/bar"> will
 create C<foo> if it does not exist.
 
-Throws an exception of type L<X::IO::Mkdir> if the
-directory cannot be created, except for the C<*@dirnames> form, which
-returns the names of the directories that were successfully created.
-
 =head2 routine rmdir
+
+Defined as:
 
     sub    rmdir(IO $dir --> Bool)
     method rmdir(IO::Path:D: --> Bool)
@@ -380,16 +843,14 @@ contents you will have to do something more complex.
 
 See also L<rmtree in File::Directory::Tree|https://github.com/labster/p6-file-directory-tree>.
 
-=head2 routine chmod
+=head2 method chmod
 
-    sub    chmod($mode, *@filenames --> List)
-    method chmod(IO::Path:D: $mode --> Bool)
+Defined as:
 
-Changes the POSIX permissions of a file (or in the subroutine form, any number
-of files) to C<$mode>.
+    method chmod(IO::Path:D: Int() $mode --> Bool)
 
-The subroutine form returns the names of the files for which setting the new
-mode was successful. The method form returns True on success, and otherwise
+Changes the POSIX permissions of a file or directory to C<$mode>.
+Returns C<True> on success; on failure,
 L<fails|/routine/fail> with L<X::IO::Chmod>.
 
 The mode is expected as an integer following the L<standard numeric notation|
@@ -397,78 +858,108 @@ https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>, and is
 best written as an octal number:
 
 =for code :skip-test
-chmod 0o755, "myfile1", "myfile2"; # make two files executable by the owner
-"myfile".IO.chmod(0o444);          # make a file read-only
-$*CWD.chmod(0o544);                # make the working directory read-only
+'myfile'.IO.chmod(0o444);          # make a file read-only
+'somedir'.IO.chmod(0o777);         # set 0777 permissions on a directory
 
 Make sure you I<don't> accidentally pass the intended octal digits as a decimal
 number (or string containing a decimal number):
 
 =for code :skip-test
-chmod '0444', 'myfile';            # BAD!!! (interpreted as mode 0o674)
+'myfile'.IO.chmod:  '0444';        # BAD!!! (interpreted as mode 0o674)
+'myfile'.IO.chmod: '0o444';        # OK (an octal in a string)
+'myfile'.IO.chmod:  0o444;         # Also OK (an octal literal)
 
 =head2 routine rename
 
-    method rename(IO::Path:D: $to, :$createonly --> Bool)
-    sub    rename($from, $to, :$createonly --> Bool)
+Defined as:
 
-Renames a file. Both C<$from> (the file to be renamed) and C<$to> (the
-destination) can take arbitrary paths. If C<:createonly> is set to C<True>,
-the rename fails if a file already exists in the destination.  Returns
-C<True> upon success, or L<fails|/routine/fail> with L<X::IO::Rename> if the
-operation could not be completed.
+    method rename(IO::Path:D: IO() $to, :$createonly = False --> Bool:D)
+    sub    rename(IO() $from, IO() $to, :$createonly = False --> Bool:D)
 
-Please use L<move|/routine/move> if a file could not be moved by renaming
-(usually because the destination is on a different physical storage device).
+Renames a file or directory. Returns C<True> on success; L<fails|/routine/fail>
+with L<X::IO::Rename> if C<:$createonly> is C<True> and the C<$to> path already
+exists or if the operation failed for some other reason.
+
+B<Note:> some renames will always fail, such as when the new name is on a
+different storage device. See also: L«C<move>|/routine/move».
 
 =head2 routine copy
 
-    method copy(IO::Path:D: $to, :$createonly)
-    sub    copy($from, $to, :$createonly)
+Defined as:
 
-Copies a file, as indicated by C<$from> or the invocant, to the
-destination specified.  If C<:createonly> is set to C<True>, copy fails if a file
-already exists in the destination.  Returns C<True> upon success, or an
-appropriate C<Failure> if the operation could not be completed.
+    method copy(IO::Path:D: IO() $to, :$createonly --> Bool:D)
+    sub    copy(IO() $from, IO() $to, :$createonly --> Bool:D)
+
+Copies a file. Returns C<True> on success; L<fails|/routine/fail>
+with L<X::IO::Copy> if C<:$createonly> is C<True> and the C<$to> path already
+exists or if the operation failed for some other reason, such as when
+C<$to> and C<$from> are the same file.
 
 =head2 routine move
 
-    method move(IO::Path:D: $to, :$createonly)
-    sub    move($from, $to, :$createonly)
+Defined as:
 
-Moves a file. Both C<$from> (the file to be moved) and C<$to> (the
-destination) can take arbitrary paths. If C<:createonly> is set to C<True>,
-the move fails if a file already exists in the destination.  Returns C<True>
-upon success, or L<fails|/routine/fail> with L<X::IO::Move> if the operation
-could not be completed.
+    method move(IO::Path:D: IO() $to, :$createonly --> Bool:D)
+    sub    move(IO() $from, IO() $to, :$createonly --> Bool:D)
 
-Please use L<rename|/routine/rename> if a file can be moved by renaming
-(which is usually possible if the destination is on the same different
-physical storage device).
+Copies a file and then removes the original. If removal fails, it's possible
+to end up with two copies of the file. Returns C<True> on success;
+L<fails|/routine/fail> with L<X::IO::Move> if C<:$createonly> is C<True> and
+the C<$to> path already exists or if the operation failed for some other reason,
+such as when C<$to> and C<$from> are the same file.
+
+To avoid copying, you can use L«C<rename>|/routine/rename», if the files are on
+the same storage device. It also works with directories, while C<move> does not.
+
+=head2 method Numeric
+
+Defined as:
+
+    method Numeric(IO::Path:D: --> Numeric:D)
+
+Coerces L«C<.basename>|/routine/basename» to L<Numeric>. L<Fails|/routine/fail>
+with C<X::Str::Numeric> if base name is not numerical.
+
+=head2 method Int
+
+Defined as:
+
+    method Int(IO::Path:D: --> Int:D)
+
+Coerces L«C<.basename>|/routine/basename» to L<Int>. L<Fails|/routine/fail>
+with C<X::Str::Numeric> if base name is not numerical.
 
 =head2 routine symlink
 
-    method symlink(IO::Path:D: Str $name --> Bool)
-    sub    symlink(Str $target, Str $name --> Bool)
+Defined as:
 
-Create a new symbolic link named as $target (or the name of the invocant in
-the method form) to the existing file named C<$name>.
+    method symlink(IO::Path:D $target: IO() $link --> Bool:D)
+    sub    symlink(      IO() $target, IO() $link --> Bool:D)
 
-Both forms will return C<True> on success or L<fail|/routine/fail> with
-L<X::IO::Symlink> if the symbolic link could not be created.
+Create a new I<symbolic> link C<$link> to existing C<$target>.
+Returns C<True> on success; L<fails|/routine/fail> with
+L<X::IO::Symlink> if the symbolic link could not be created. If C<$target>
+does not exist, creates a dangling symbolic link.
+To create a hard link, see L«C<link>|/routine/link».
+
+B<Note:> on Windows, creation of symbolic links may require escalated
+privileges.
 
 =head2 routine link
 
-    method link(IO::Path:D: Str $name --> Bool)
-    sub    link(Str $target, Str $name --> Bool)
+Defined as:
 
-Create a new link named as $target (or the name of the invocant in the
-method form) to the existing file named C<$name>.
+    method link(IO::Path:D $target: IO() $link --> Bool:D)
+    sub    link(      IO() $target, IO() $link --> Bool:D)
 
-Both forms will return C<True> on success or L<fail|/routine/fail> with
-L<X::IO::Link> if the link operation could not be performed.
+Create a new I<hard> link C<$link> to existing C<$target>.
+Returns C<True> on success; L<fails|/routine/fail> with
+L<X::IO::Link> if the symbolic link could not be created.
+To create a symbolic link, see L«C<symlink>|/routine/symlink».
 
 =head2 routine unlink
+
+Defined as:
 
     method unlink(IO::Path:D: --> Bool)
     sub    unlink(*@filenames --> List)
@@ -482,11 +973,15 @@ completed.
 
 =head2 method IO
 
+Defined as:
+
     method IO(IO::Path:D: --> IO::Path)
 
 Returns the invocant.
 
 =head2 method SPEC
+
+Defined as:
 
     method SPEC(IO::Path:D: --> IO::Spec)
 
@@ -494,58 +989,8 @@ Returns the L<IO::Spec|/type/IO::Spec> object that was (implicitly) specified at
 creation time.
 
     my $io = IO::Path.new("/bin/bash");
-    say $io.SPEC;                            # (Unix)
-    say $io.SPEC.dir-sep;                    # /
-
-=head1 File test operators
-
-X<|:e> X<|:d> X<|:f> X<|:l> X<|:r> X<|:w> X<|:x> X<|:s> X<|:z> X<|:rw> X<|:rwx>
-
-=begin table
-    op       meaning
-    ==       ======
-    :e       Exists
-    :d       Directory
-    :f       File
-    :l       Symbolic link
-    :r       Readable
-    :w       Writable
-    :x       Executable
-    :s       Size
-    :z       Zero size
-    :rw      Readable and writable
-    :rwx     Readable, writable, and executable
-
-=end table
-
-Usage:
-
-If you have a string - a path to something in the filesystem:
-
-    if "path/to/directory".IO ~~ :e & :d {
-        say 'path exists and points to a directory';
-    }
-
-    my $file = "path/to/file";
-    if $file.IO ~~ :e {
-        say 'file exists';
-    }
-
-Instead of the colonpair syntax, you can use method calls too:
-
-    if 'path/to/file'.IO.e {
-        say 'file exists';
-    }
-
-If you already have an IO object in C<$file>, either by creating one yourself,
-or by getting it from another subroutine, such as C<dir>,
-you can write this:
-
-    my $path = "path/to/file".IO;
-    given $path {
-        when :f { say 'path is a file' }
-        when :d { say 'path is a directory' }
-    }
+    say $io.SPEC;                            # OUTPUT: «(Unix)␤»
+    say $io.SPEC.dir-sep;                    # OUTPUT: «/␤»
 
 =head1 File timestamp retrieval
 
@@ -554,57 +999,32 @@ on Operating Systems where these are available:
 
 =head2 method modified
 
-Return an L<Instant> object representing the timestamp when the file was
+Returns an L«C<Instant>|/type/Instant» object indicating when the file was
 last modified.
 
 =for code :skip-test
-say "path/to/file".IO.modified;   #  e.g. Instant:1424089165
-
-To obtain a human-readable form of the timestamp, call C<DateTime> method
-on the returned C<Instant>, to convert it into a L<DateTime> object:
-
-=for code :skip-test
-say "path/to/file".IO.modified.DateTime;  # e.g. 2015-02-16T12:18:50Z
+say "path/to/file".IO.modified;          # Instant:1424089165
+say "path/to/file".IO.modified.DateTime; # 2015-02-16T12:18:50Z
 
 =head2 method accessed
 
 Return an L<Instant> object representing the timestamp when the file was
-last accessed.
+last accessed. B<Note:> depending on how the filesystem was mounted, the
+last accessed time may not update on I<each access> to the file, but only
+on the first access after modifications.
 
 =for code :skip-test
-say "path/to/file".IO.accessed;   #  e.g. Instant:1424353577
-
-To obtain a human-readable form of the timestamp, use a L<DateTime> object:
-
-=for code :skip-test
-say DateTime.new("path/to/file".IO.accessed);  # e.g. 2015-02-19T13:45:42Z
-
-or more readably:
-
-=for code :skip-test
-my $access_instant = "path/to/file".IO.accessed;
-my $access_time = DateTime.new($access_instant);
-say $access_time;         # e.g. 2015-02-19T13:45:42Z
+say "path/to/file".IO.accessed;          # Instant:1424353577
+say "path/to/file".IO.accessed.DateTime; # 2015-02-19T13:45:42Z
 
 =head2 method changed
 
-Return an L<Instant> object representing the timestamp when the inode was
-last changed.
+Returns an L«C<Instant>|/type/Instant» object indicating the file or directory
+was last changed.
 
 =for code :skip-test
-"path/to/file".IO.changed;        #  e.g. Instant:1424089165
-
-To obtain a human-readable form of the timestamp, use a L<DateTime> object:
-
-=for code :skip-test
-say DateTime.new("path/to/file".IO.changed);  # e.g. 2015-02-16T12:18:50Z
-
-or more readably:
-
-=for code :skip-test
-my $change_instant = "path/to/file".IO.changed;
-my $change_time = DateTime.new($change_instant);
-say $change_time;         # e.g. 2015-02-16T12:18:50Z
+say "path/to/file".IO.changed;           # Instant:1424089165
+say "path/to/file".IO.changed.DateTime;  # 2015-02-16T12:18:50Z
 
 =head1 File permissions retrieval
 
@@ -626,9 +1046,6 @@ argument.
                                                     # permissions of file1
                                                     # to be the same as file2
 
-=head1 Related roles and classes
-
-See also the related role L<IO> and the related class L<IO::Handle>.
 
 =end pod
 

@@ -32,19 +32,36 @@ use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Pod::Convenience;
 use Pod::Htmlify;
+use OO::Monitors;
+# Don't include backslash in Win or forwardslash on Unix because they are used
+# as directory seperators. These are handled in lib/Pod/Htmlify.pm6
+my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
+my \badchars-unix = Qw[ ];
+my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
+{
+    my monitor PathChecker {
+        has %!seen-paths;
+        method check($path) {
+            note "$path got badchar" if $path.contains(any(badchars));
+            note "$path got empty filename" if $path.split('/')[*-1] eq '.html';
+            note "duplicated path $path" if %!seen-paths{$path}:exists;
+            %!seen-paths{$path}++;
+        }
+    }
+    my $path-checker = PathChecker.new;
+    &spurt.wrap(sub (|c) {
+        $path-checker.check(c[0]);
+        callsame
+    });
+}
 
-&spurt.wrap(sub (|c){
-    state %seen-paths;
-    note "{c[0]} got badchar" if c[0].contains(any(qw[\ % ? & = # + " ' : ~ < >]));
-    note "{c[0]} got empty filename" if c[0].split('/')[*-1] eq '.html';
-    note "duplicated path {c[0]}" if %seen-paths{c[0]}:exists;
-    %seen-paths{c[0]}++;
-    callsame
-});
-
-my @__URLS;
+monitor UrlLog {
+    has @.URLS;
+    method log($url) { @!URLS.push($url) }
+}
+my $url-log = UrlLog.new;
 &rewrite-url.wrap(sub (|c){
-    @__URLS.push: my \r = callsame;
+    $url-log.log(my \r = callsame);
 #    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
     r
 });
@@ -163,7 +180,7 @@ sub MAIN(
             warn-user Q/"\$*DISTRO == macos, so Proc::Async will not be used.
             due to freezes from using Proc::Async.
             For more info see Issue #1129/;
-            $no-proc-async = True;
+            $no-proc-async := True;
         }
         if $no-proc-async {
             warn-user "Proc::Async is disabled, this build will take a very long time.";
@@ -224,25 +241,7 @@ sub MAIN(
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
 
-    spurt('html/links.txt', @__URLS.sort.unique.join("\n"));
-}
-
-my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
-my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
-
-sub extract-pod(IO() $file) {
-    use nqp;
-    # The file name is enough for the id because POD files don't have depends
-    my $id = nqp::sha1(~$file);
-    my $handle = $precomp.load($id,:since($file.modified))[0];
-
-    if not $handle {
-        # precompile it
-        $precomp.precompile($file, $id, :force);
-        $handle = $precomp.load($id)[0];
-    }
-
-    return nqp::atkey($handle.unit,'$=pod')[0];
+    spurt('html/links.txt', $url-log.URLS.sort.unique.join("\n"));
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
@@ -275,11 +274,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         }
 
         if $num %% $parallel {
-            await(@pod-files);
+            await Promise.allof: @pod-files;
             @pod-files = ();
         }
 
-        LAST await(@pod-files);
+        LAST await Promise.allof: @pod-files;
     }
 }
 
@@ -412,7 +411,7 @@ multi write-type-source($doc) {
     }
 
     my @parts = $doc.url.split('/', :v);
-    @parts[*-1] = escape-filename @parts[*-1];
+    @parts[*-1] = replace-badchars-with-goodnames @parts[*-1];
     my $html-filename = "html" ~ @parts.join('/') ~ ".html";
     my $pod-path = pod-path-from-url($doc.url);
     spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
@@ -682,19 +681,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await(@type-graph-images);
-            @type-graph-images = ();
-        }
-
-        @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.png", format => 'png', size => '8,3');
-        if @type-graph-images %% $parallel {
-            await(@type-graph-images);
+            await Promise.allof: @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await(@type-graph-images);
+        LAST await Promise.allof: @type-graph-images;
     }
     say '';
 
@@ -711,17 +704,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await(@specialized-visualizations);
+            await Promise.allof: @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.png", format => 'png', size => '8,3');
-        if @specialized-visualizations %% $parallel {
-            await(@specialized-visualizations);
-            @specialized-visualizations = ();
-        }
-
-        LAST await(@specialized-visualizations);
+        LAST await Promise.allof: @specialized-visualizations;
     }
 }
 
@@ -775,7 +762,7 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: "{rewrite-url(@docs.[0].url).subst('"', '\"', :g)}" \}]] #"
+                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g) }" \}]] #"
             }
     }).flat;
 
@@ -829,7 +816,7 @@ sub write-disambiguation-files() {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/{escape-filename $name}.html", $html;
+        spurt "html/{replace-badchars-with-goodnames $name}.html", $html;
         # spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
     }
     say '';
@@ -958,7 +945,7 @@ sub write-kind($kind) {
             );
             print '.';
             # spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
-            spurt "html/$kind/{escape-filename $name}.html", p2h($pod, $kind);
+            spurt "html/$kind/{replace-badchars-with-goodnames $name}.html", p2h($pod, $kind);
         }
     say '';
 }
@@ -970,7 +957,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     return if $name ~~ / '/' /;
-    spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
+    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
 }
 sub get-temp-filename {
     state %seen-temps;

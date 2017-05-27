@@ -13,8 +13,35 @@ L<Method>, the two primary code objects for code reuse.
 Routines serve as a scope limiter for C<return> (i.e. a C<return> returns
 from the innermost outer Routine).
 
-Routine is also the level at which multiness (multi subs and multi methods)
+Routine is also the level at which
+L<multiness|/language/glossary#Multi-Dispatch> (multi subs and multi methods)
 are handled.
+
+=head2 X<Trait is default|trait,is default (Routine)>
+
+There is a special trait for C<Routine>s called C<is default>. This trait is
+designed as a way to disambiguate C<multi> calls that would normally
+throw an error because the compiler would not know which one to use. This means that
+given the following two C<Routine>s, the one with the C<is default> trait will be
+called.
+
+    multi sub f() is default { say "Hello there" }
+    multi sub f() { say "Hello friend" }
+    f();   # OUTPUT: «"Hello there"␤»
+
+The C<is default> trait can become very useful for debugging and other uses but
+keep in mind that it will only resolve an ambiguous dispatch between two C<Routine>s
+of the same precedence. If one of the C<Routine>s are narrower than another, then
+that one will be called. For example:
+
+    =begin code :skip-test
+    multi sub f() is default { say "Hello there" }
+    multi sub f(:$greet) { say "Hello " ~ $greet }
+    f();   # "Use of uninitialized value $greet..."
+    =end code
+
+In this example, the C<multi> without C<is default> was called because it was
+actually narrower than the C<Sub> with it.
 
 =head1 Methods
 
@@ -34,7 +61,14 @@ Returns the package in which the routine is defined.
 
     method multi(Routine:D: --> Bool:D)
 
-Returns C<True> if the routine is a multi sub or method.
+Returns C<True> if the routine is a multi sub or method. Note that
+the name of a multi sub refers to its proto and this method would
+return false if called on it. It needs to be called on the
+candidates themselves:
+
+    multi foo ($, $) {};
+    say &foo.multi;             # OUTPUT: «False␤»
+    say &foo.candidates».multi; # OUTPUT: «(True)␤»
 
 =head2 method candidates
 
@@ -52,7 +86,7 @@ given L<Capture|/type/Capture>, ordered by narrowest candidate first. For
 methods, the first element of the Capture needs to be the invocant:
 
     .signature.say for "foo".^can("comb")[0].cando: \(Cool, "o");
-    # (Cool $: Str $matcher, $limit = Inf, *%_)
+    # OUTPUT: «(Cool $: Str $matcher, $limit = Inf, *%_)␤»
 
 =head2 method wrap
 
@@ -64,14 +98,16 @@ original routine with the C<callsame>, C<callwith>, C<nextsame> and
 C<nextwith> dispatchers. The return value from the routine is also
 the return value from the wrapper.
 
-C<wrap> returns a wrap handler, which you can pass to L<unwrap> to restore
-the original routine.
+C<wrap> returns an instance of a private class called L<WrapHandle|/type/WrapHandle>,
+which you can pass to L<unwrap> to restore the original routine.
 
 =head2 method unwrap
 
-    method unwrap(Routine:D: $wraphandler)
+    method unwrap($wraphandle)
 
-Restores the original routine after it has been wrapped with L<wrap>.
+Restores the original routine after it has been wrapped with L<wrap>. While
+the signature allows any type to be passed, only the L<WrapHandle|/type/WrapHandle>
+type returned from C<wrap> can usefully be.
 
 =head2 method yada
 
@@ -79,8 +115,8 @@ Restores the original routine after it has been wrapped with L<wrap>.
 
 Returns C<True> if the routine is a stub
 
-    say (sub f() { ... }).yada;      # True
-    say (sub g() { 1;  }).yada;      # False
+    say (sub f() { ... }).yada;      # OUTPUT: «True␤»
+    say (sub g() { 1;  }).yada;      # OUTPUT: «False␤»
 
 =head2 trait is cached
 
@@ -251,7 +287,7 @@ OH NOEZ
 
 but if C<inner> is marked with C<hidden-from-backtrace>
 
-=begin code
+=begin code :skip-test
 sub inner is hidden-from-backtrace { die "OH NOEZ" };
 sub outer { inner() };
 outer();

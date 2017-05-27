@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Syntax
 
@@ -111,7 +111,7 @@ whitespace disambiguates possible parses.
 The most common form of comments in Perl 6 starts with a single hash character
 C<#> and goes until the end of the line.
 
-=begin code
+=begin code :skip-test
 if $age > 250 {     # catch obvious outliers
     # this is another comment!
     die "That doesn't look right"
@@ -163,6 +163,7 @@ underscore or number). You can also embed dashes C<-> or single quotes C<'>
 in the middle, but not two in a row, and only if followed immediately by an
 alphabetic character.
 
+    =begin code :skip-test
     # valid identifiers:
     x
     something-longer
@@ -170,12 +171,15 @@ alphabetic character.
     don't
     fish-food
     π
+    =end code
 
+    =begin code :skip-test
     # not valid identifiers:
     with-numbers1234-5
     42
     is-prime?
     fish--food
+    =end code
 
 Names of constants, types (including classes and modules) and routines (subs
 and methods) are identifiers, and they also appear in variable names (usually
@@ -186,7 +190,7 @@ identifiers with double colons, the right most name is inserted into existing
 or automatically created packages.
 
     my Int $Foo::Bar::buzz = 42;
-    dd $Foo::Bar::buzz; # OUTPUT«Int $v = 42␤»
+    dd $Foo::Bar::buzz; # OUTPUT: «Int $v = 42␤»
 
 Identifiers can contain colon pairs. The entire colon pair becomes part of the
 name of the identifier.
@@ -194,12 +198,30 @@ name of the identifier.
     my $foo:bar = 1;
     my $foo:bar<2> = 2;
     dd MY::.keys;
-    # OUTPUT«("\$=pod", "!UNIT_MARKER", "EXPORT", "\$_", "\$!", "::?PACKAGE",
-    # "GLOBALish", "\$¢", "\$=finish", "\$/", "\$foo:bar<1>", "\$foo:bar<2>",
-    # "\$?PACKAGE").Seq␤»
+    # OUTPUT: «("\$=pod", "!UNIT_MARKER", "EXPORT", "\$_", "\$!", "::?PACKAGE",
+    #          "GLOBALish", "\$¢", "\$=finish", "\$/", "\$foo:bar<1>", "\$foo:bar<2>",
+    #          "\$?PACKAGE").Seq␤»
+
+Colon pairs in identifiers support interpolation. Please note that resolution
+of names often happens at compile time, so interpolation values must be known
+at compile time.
+
+    constant $c = 42;
+    my $a:foo<42> = "answer";
+    say $a:foo«$c»;
+    # OUTPUT: «answer␤»
 
 Unicode superscript numerals are exponents and not part of an identifier;
 e.g. C<$x²> does the square of variable C<$x>.  Subscript numerals are TBD.
+
+=head2 Term term:<>
+
+To introduce identifiers that would defy the rules of normal names of
+identifiers use C«term:<>».
+
+    use Test; plan 1; constant &term:<👍> = &ok.assuming(True);
+    👍
+    # OUTPUT: «1..1␤ok 1 - ␤»
 
 =head1 Statements and Expressions
 
@@ -210,7 +232,9 @@ expression (and thus also a statement).
 
 The C<do> prefix turns statements into expressions. So while
 
+    =begin code :skip-test
     my $x = if True { 42 };     # Syntax error!
+    =end code
 
 is an error,
 
@@ -251,7 +275,7 @@ names or constants, but also the term C<self> which refers to an object that
 a method was called on (see L<objects|/language/objects>), and sigilless
 variables:
 
-    say Int;                # (Int)
+    say Int;                # OUTPUT: «(Int)␤»
     #   ^^^ type name (built in)
 
     constant answer = 42;
@@ -264,7 +288,7 @@ variables:
           # ^^^^ built-in term 'self'
         }
     }
-    say Foo.type-name;     # Foo
+    say Foo.type-name;     # OUTPUT: «Foo␤»
     #   ^^^ type name
 
 
@@ -274,10 +298,12 @@ Named entities, such as variables, constants, classes, modules, subs, etc, are
 part of a namespace. Nested parts of a name use C<::> to separate the
 hierarchy. Some examples:
 
+    =begin code :skip-test
     $foo                # simple identifiers
     $Foo::Bar::baz      # compound identifiers separated by ::
     $Foo::($bar)::baz   # compound identifiers that perform interpolations
     Foo::Bar::bob(23)   # function invocation given qualified name
+    =end code
 
 See the L<documentation on packages|/language/packages> for more details.
 
@@ -312,43 +338,51 @@ In all literal formats, you can use underscores to group digits;
 they don't carry any semantic information; the following literals all evaluate to the same
 number:
 
+    =begin code :skip-test
     1000000
     1_000_000
     10_00000
     100_00_00
+    =end code
 
 =head4 Int literals
 
 Integers default to signed base-10, but you can use other bases. For details,
 see L<Int|/type/Int>.
 
+    =begin code :skip-test
     -2          # actually not a literal, but unary - operator applied to numeric literal 2
     12345
     0xBEEF      # base 16
     0o755       # base 8
     :3<1201>    # arbitrary base, here base 3
+    =end code
 
 =head4 Rat literals
 
 L<Rat|/type/Rat> literals (rationals) are very common, and take the place of decimals or floats in many other languages. Integer division also results in a C<Rat>.
 
+    =begin code :skip-test
     1.0
     3.14159
     -2.5        # Not actually a literal, but still a Rat
     :3<21.0012> # Base 3 rational
     ⅔
     2/3         # Not actually a literal, but still a Rat
+    =end code
 
 =head4 Num literals
 
 Scientific notation with an integer exponent to base ten after an C<e> produces
 L<floating point number|/type/Num>:
 
+    =begin code :skip-test
     1e0
     6.022e23
     1e-9
     -2e48
     2e2.5       # error
+    =end code
 
 =head4 Complex literals
 
@@ -356,9 +390,10 @@ L<Complex|/type/Complex> numbers are written either as an imaginary number
 (which is just a rational number with postfix C<i> appended), or as a sum of
 a real and an imaginary number:
 
+    =begin code :skip-test
     1+2i
     6.123e5i    # note that this is 6.123e5 * i and not 6.123 * 10 ** (5i)
-
+    =end code
 
 =head3 Pair literals
 
@@ -369,28 +404,34 @@ constructing them: C<< key => 'value' >> and C<:key('value')>.
 
 Arrow pairs can have an expression or an identifier on the left-hand side:
 
+    =begin code :skip-test
     identifier => 42
     "identifier" => 42
     ('a' ~ 'b') => 1
+    =end code
 
 =head4 Adverbial pairs (colon pairs)
 
 Short forms without explicit values:
 
+    =begin code :skip-test
     my $thing = 42;
     :$thing                 # same as  thing => $thing
     :thing                  # same as  thing => True
     :!thing                 # same as  thing => False
+    =end code
 
 The variable form also works with other sigils, like C<:&callback> or
 C<:@elements>.
 
 Long forms with explicit values:
 
+    =begin code :skip-test
     :thing($value)              # same as  thing => $value
     :thing<quoted list>         # same as  thing => <quoted list>
     :thing['some', 'values']    # same as  thing => ['some', 'values']
     :thing{a => 'b'}            # same as  thing => { a => 'b' }
+    =end code
 
 =head3 Array literals
 
@@ -398,18 +439,23 @@ A pair of square brackets can surround an expression to form an itemized
 L<Array|/type/Array> literal; typically there is a comma-delimited list
 inside:
 
-    say ['a', 'b', 42].join(' ');   # a b 42
+    say ['a', 'b', 42].join(' ');   # OUTPUT: «a b 42␤»
     #   ^^^^^^^^^^^^^^ Array constructor
 
-The array constructor flattens non-itemized arrays and lists, but not itemized
-arrays themselves:
+If the constructor is given a single L<Iterable>, it'll clone and flatten it.
+If you want an C<Array> with just 1 element that is that C<Iterable>, ensure
+to use a comma after it:
 
     my @a = 1, 2;
-    # flattens:
-    say [@a, 3, 4].elems;       # 4
+    say [@a].perl;  # OUTPUT: «[1, 2]␤»
+    say [@a,].perl; # OUTPUT: «[[1, 2],]␤»
 
-    # does not flatten:
-    say [[@a], [3, 4]].elems;   # 2
+The C<Array> constructor does not flatten other types of contents.
+Use the L<Slip> prefix operator (C<|>) to flatten the needed items:
+
+    my @a = 1, 2;
+    say [@a, 3, 4].perl;  # OUTPUT: «[[1, 2], 3, 4]␤»
+    say [|@a, 3, 4].perl; # OUTPUT: «[1, 2, 3, 4]␤»
 
 =head3 Hash literals
 
@@ -419,9 +465,9 @@ inside. If a non-pair is used, it is assumed to be a key and the next element
 is the value. Most often this is used with simple arrow pairs.
 
     say { a => 3, b => 23, :foo, :dog<cat>, "french", "fries" };
-    # a => 3, b => 23, dog => cat, foo => True, french => fries
+    # OUTPUT: «a => 3, b => 23, dog => cat, foo => True, french => fries␤»
 
-    say {a => 73, foo => "fish"}.keys.join(" ");   # a foo
+    say {a => 73, foo => "fish"}.keys.join(" ");   # OUTPUT: «a foo␤»
     #   ^^^^^^^^^^^^^^^^^^^^^^^^ Hash constructor
 
 When assigning to a C<%> sigil variable, the curly braces are optional.
@@ -435,18 +481,20 @@ non-string keys, use a colon prefix:
 
 Note that with objects as keys, you cannot access non-string keys as strings:
 
-    :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # Any
-    :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # 42
+    :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # OUTPUT: «Any␤»
+    :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # OUTPUT: «42␤»
 
 =head3 Regex literals
 
 A L<Regex|/type/Regex> is declared with slashes like C</foo/>. Note that this C<//> syntax is shorthand for the full C<rx//> syntax.
 
+    =begin code :skip-test
     /foo/          # Short version
     rx/foo/        # Longer version
     Q :regex /foo/ # Even longer version
 
     my $r = /foo/; # Regexes can be assigned to variables
+    =end code
 
 =head3 Signature literals
 
@@ -454,10 +502,10 @@ Signatures can be used standalone for pattern matching, in addition to the
 typical usage in sub and block declarations. A standalone signature is declared
 starting with a colon:
 
-    say "match!" if 5, "fish" ~~ :(Int, Str); #=> match!
+    say "match!" if 5, "fish" ~~ :(Int, Str); # OUTPUT: «match!␤»
 
     my $sig = :(Int $a, Str);
-    say "match!" if (5, "fish") ~~ $sig; #=> match!
+    say "match!" if (5, "fish") ~~ $sig; # OUTPUT: «match!␤»
 
     given "foo", 42 {
       when :(Str, Str) { "This won't match" }
@@ -509,8 +557,10 @@ keyword, a name, some optional traits, and a body of functions.
 
 You can declare a unit of things without explicit curly brackets.
 
+    =begin code :skip-test
     unit module Gar;
     # ... stuff goes here instead of in {}'s
+    =end code
 
 =head3 Multi-dispatch declaration
 
@@ -532,17 +582,21 @@ See L<functions|/language/functions>.
 
 =comment TODO
 
+    =begin code :skip-test
     foo;   # Invoke the function foo with no arguments
     foo(); # Invoke the function foo with no arguments
     &f();  # Invoke &f, which contains a function
     &f.(); # Same as above, needed to make the following work
     my @functions = ({say 1}, {say 2}, {say 3});
     @functions>>.();
+    =end code
 
+    =begin code :skip-test
     # Method invocation. Object (instance) is $person, method is set-name-age
     $person.set-name-age('jane', 98);  # Most common way
     $person.set-name: 'jane', 98;      # Precedence drop
     set-name($person: 'jane', 98);     # Invocant marker
+    =end code
 
 =head1 Operators
 
@@ -554,11 +608,13 @@ usage.
 
 There are five types (arrangements) for operators, each taking either one or two arguments.
 
+    =begin code :skip-test
     ++$x           # prefix, operator comes before single input
     5 + 3          # infix, operator is between two inputs
     $x++           # postfix, operator is after single input
     <the blue sky> # circumfix, operator surrounds single input
     %foo<bar>      # postcircumfix, operator comes after first input and surrounds second
+    =end code
 
 =head2 Meta Operators
 
@@ -566,30 +622,34 @@ Operators can be composed. A common example of this is combining an infix
 (binary) operator with assignment. You can combine assignment with any binary
 operator.
 
+    =begin code :skip-test
     $x += 5     # Adds 5 to $x, same as $x = $x + 5
     $x min= 3   # Sets $x to the smaller of $x and 3, same as $x = $x min 3
     $x .= child # Equivalent to $x = $x.child
+    =end code
 
 Wrap an infix operator in C<[ ]> to create a new reduction operator that works
 on a single list of inputs, resulting in a single value.
 
-    [+] <1 2 3 4 5>         # 15
+    [+] <1 2 3 4 5>;        # OUTPUT: «15␤»
     (((1 + 2) + 3) + 4) + 5 # equivalent expanded version
 
 Wrap an infix operator in C<« »> (or the ASCII equivalent C<<< >>>) to create a
 new hyper operator that works pairwise on two lists.
 
-    <1 2 3> «+» <4 5 6> # <5 7 9>
+    <1 2 3> «+» <4 5 6> # OUTPUT: «<5 7 9>␤»
 
 The direction of the arrows indicates what to do when the lists are not the same size.
 
+    =begin code :skip-test
     @a «+« @b # Result is the size of @b, elements from @a will be re-used
     @a »+» @b # Result is the size of @a, elements from @b will be re-used
     @a «+» @b # Result is the size of the biggest input, the smaller one is re-used
     @a »+« @b # Exception if @a and @b are different sizes
+    =end code
 
 You can also wrap a unary operator with a hyper operator.
 
-    -« <1 2 3> # <-1 -2 -3>
+    -« <1 2 3> # OUTPUT: «<-1 -2 -3>␤»
 
 =end pod

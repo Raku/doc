@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Modules
 
@@ -74,43 +74,62 @@ It is equivalent to:
     import MyModule;
     =end code
 
+See also L<Selective Importing|/language/modules#Exporting_and_Selective_Importing> to restrict what you import.
+
 =head3 X<require|compunit>
 
 C<require> loads a compunit and imports definite symbols at runtime.
 
-    sub load-mymodule {
-       say "loading MyModule";
-       require MyModule;
-    }
-
-    load-mymodule();
+    say "loading MyModule";
+    require MyModule;
 
 The compunit name can be in a runtime variable if you put it inside an
 indirect lookup.
 
-    sub load-a-module($name){
-       require ::($name);
-    }
-
-    load-a-module('MyModule');
+    my $name = 'MyModule';
+    require ::($name);
 
 The symbols provided by the loaded module will not be imported into the current
 scope. You may use L<dynamic lookup|/language/packages#index-entry-::()> or
 L<dynamic subsets|/language/typesystem#subset> to use them by providing the
 fully qualified name of a symbol.
 
-To import symbols you must define them at compile time.
+To import symbols you must define them at compile time. B<NOTE:> C<require>
+is lexically scoped:
 
     sub do-something {
        require MyModule <&something>;
+       say ::('MyModule'); # MyModule symbol exists here
        something() # &something will be defined here
     }
-
+    say ::('MyModule'); # This will NOT contain the MyModule symbol
     do-something();
     # &something will not be defined here
 
+If C<MyModule> doesn't export C<&something> then C<require> will fail.
 
-If C<MyModule> doesn't export C<&something> then it will fail.
+A C<require> with compile-time symbol will install a placeholder C<package>
+that will be updated to the loaded module, class, or package. Note that the
+placeholder will be kept, B<even if require failed to load the module.>
+This means that checking if a module loaded like this is wrong:
+
+    # *** WRONG: ***
+    try require Foo;
+    if ::('Foo') ~~ Failure { say "Failed to load Foo!"; }
+    # *** WRONG: ***
+
+As the compile-time installed package causes C<::('Foo')> to never be
+a C<Failure>. The correct way is:
+
+    # Use return value to test whether loading succeeded:
+    (try require Foo) === Nil and say "Failed to load Foo!";
+
+    # Or use a run-time symbol lookup with require, to avoid compile-time
+    # package installation:
+    try require ::('Foo');
+    if ::('Foo') ~~ Failure {
+        say "Failed to load Foo!";
+    }
 
 =head2 Exporting and Selective Importing
 
@@ -255,8 +274,8 @@ dynamically. For example:
     =begin code
     # main.pl
     use MyModule;
-    say sqrt-of-four; # -> 2
-    say log-of-zero;  # -> -Inf
+    say sqrt-of-four; # OUTPUT: «2␤»
+    say log-of-zero;  # OUTPUT: «-Inf␤»
     =end code
 
 =head3 EXPORT
@@ -291,7 +310,7 @@ the values are the desired values. The names should include the sigil
     say @array;
     say %hash;
     doit();
-    say ShortName.new; # -> MyModule::Class.new
+    say ShortName.new; # OUTPUT: «MyModule::Class.new␤»
     =end code
 
 Note, C<EXPORT> can't be declared inside a package because
@@ -347,7 +366,7 @@ L<Cool>s.
 
     =begin code
     use MakeQuestionable Cool;
-    say 0?, 1?, {}?, { a => "b" }?; # False True False True
+    say 0?, 1?, {}?, { a => "b" }?; # OUTPUT: «False True False True␤»
     =end code
 
 =head2 Introspection
@@ -357,12 +376,12 @@ the module.
 
     use URI::Escape;
     dd URI::Escape::EXPORT::.keys;
-    # OUTPUT«("DEFAULT", "ALL").Seq»
+    # OUTPUT: «("DEFAULT", "ALL").Seq»
 
 Then use the tag you like and pick the symbol by its name.
 
     dd URI::Escape::EXPORT::DEFAULT::.keys;
-    # OUTPUT«("\&uri-escape", "\&uri_escape", "\&uri-unescape", "\&uri_unescape").Seq»
+    # OUTPUT: «("\&uri-escape", "\&uri_escape", "\&uri-unescape", "\&uri_unescape").Seq»
     my &escape-uri = URI::Escape::EXPORT::DEFAULT::<&uri_escape>;
 
 =head2 Finding Modules
@@ -443,6 +462,19 @@ To share your module, do the following:
     copy/paste the raw form of L<its license|https://github.com/rakudo/rakudo/blob/nom/LICENSE>
     into your own C<LICENSE> file.
 
+    =item The license field in META6.json
+    The license field should be one of the standardized names listed here:
+    https://spdx.org/licenses/, in the case of the B<Artistic 2.0> license which
+    is what many of our ecosystem modules use, its identifier is
+    C<Artistic-2.0>. Having standardized identifiers make it easy for humans
+    and computers alike to know which license was actually used by looking at
+    the metadata!
+
+    =item My license is not on spdx.org or using your own license
+    If you can't find your license on C<spdx.org> or you use your own license,
+    you should put the licenses name in the license field, and under
+    more details here https://design.perl6.org/S22.html#license
+
     =item If you don't yet have any tests, you can leave out the C<t>
     directory and C<basic.t> file for now. For more info on how to write
     tests (for now), you might have a look at how other modules use
@@ -467,13 +499,14 @@ To share your module, do the following:
     =begin item
     Make your X<C<META6.json>|META6.json> file look something like this:
 
-    =for code :allow<R>
+    =begin code :allow<R>
     {
         "perl" : "6.c",
         "name" : "Vortex::TotalPerspective",
         "version" : "0.1.0",
         "description" : "Wonderful simulation to get some perspective.",
         "authors" : [ "R<Your Name>" ],
+        "license" : "Artistic-2.0",
         "provides" : {
             "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.pm"
         },
@@ -481,6 +514,7 @@ To share your module, do the following:
         "resources" : [ ],
         "source-url" : "git://github.com/R<you>/Vortex-TotalPerspective.git"
     }
+    =end code
 
     For choosing a version numbering scheme, perhaps use
     "major.minor.patch" (see L<the spec on versioning |

@@ -11,7 +11,9 @@ some exceptions listed in the following. For details of a methods parameter
 list see L<Signature|/type/Signature>.
 
 To create a method outside a L<class definition|/language/typesystem#Methods>,
-use the declarators C<my> and C<method>:
+use the declarators C<my> and C<method>. If an
+L<identifier|/language/syntax#Identifiers> is provided the methods name will be
+injected into the scope specified by the declarator.
 
     my $m = method ($invocant: $param) {
         say "$invocant: '$param'";
@@ -19,7 +21,7 @@ use the declarators C<my> and C<method>:
     "greeting".$m("hello");         # greeting: 'hello'
 
     <a b c>.&(my method (List:D:){dd self; self}).say;
-    # OUTPUT«("a", "b", "c")␤(a b c)␤»
+    # OUTPUT: «("a", "b", "c")␤(a b c)␤»
 
 The invocant of a method defaults to C<self>. A type constraint including a
 type-smiley can be used and is honored both for methods defined in a class and
@@ -30,10 +32,12 @@ for free floating methods. Call the latter with C<.&> on an object.
     }
     my $i = 1;
     $i.&m(<a>);
-    # OUTPUT«Int␤»
+    # OUTPUT: «Int␤»
 
+X<|extra named arguments>
 Methods will ignore extra named arguments where other types of C<Routine> will
-throw at runtime. Extra arguments will be forwarded by C<nextsame> and friends.
+throw at runtime. Extra arguments will be forwarded by
+L<nextsame|/language/functions#index-entry-nextsame-nextsame> and friends.
 
     class A {
         multi method m(:$a, :$b) { say "2 named" }
@@ -43,6 +47,51 @@ throw at runtime. Extra arguments will be forwarded by C<nextsame> and friends.
         method m(:$a) { say "1 named"; nextsame }
     }
     B.m( :1a, :2b );
-    # OUTPUT«1 named␤2 named␤»
+    # OUTPUT: «1 named␤2 named␤»
+
+=head2 sub lastcall
+
+    sub lastcall(--> True)
+
+Truncates the current dispatch chain, which means any calls to
+C<nextsame>, C<callsame>, C<nextwith>, and C<callwith> will not
+find any of the next candidates. Note that since C<samewith>
+restarts the dispatch from the start, it's not affected by the
+truncation of current chain with C<lastcall>.
+
+Consider example below. C<foo(6)> uses C<nextsame>
+when C<lastcall> hasn't been called, and so it reaches the C<Any>
+candidate. C<foo(2)> calls C<nextsame> as well, but since
+C<lastcall> was called first, the dispatch chain was truncated and
+the C<Any> candidate was not reached. The last call, C<foo(1)>,
+calls C<lastcall> too, however, it then uses C<samewith>, which
+isn't affected by it, and so the dispatch re-starts from scratch,
+hits the C<Int> candidate with the new argument C<6>, and then
+proceeds to the C<Any> candidate via C<nextsame> (which
+isn't affected by the C<lastcall> that was used before the
+C<samewith> was called):
+
+    multi foo (Int $_) {
+        say "Int: $_";
+        lastcall   when *.is-prime;
+        nextsame   when *  %% 2;
+        samewith 6 when * !%% 2;
+    }
+    multi foo (Any $x) { say "Any $x" }
+
+    foo 6; say '----';
+    foo 2; say '----';
+    foo 1;
+
+    # OUTPUT:
+    # Int: 6
+    # Any 6
+    # ----
+    # Int: 2
+    # ----
+    # Int: 1
+    # Int: 6
+    # Any 6
+
 
 =end pod

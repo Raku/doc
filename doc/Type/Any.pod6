@@ -41,8 +41,8 @@ Defined as:
 Interprets the invocant as a list and creates an
 C<any>-L<Junction|/type/Junction> from it.
 
-    say so 2 == <1 2 3>.any;        # True
-    say so 5 == <1 2 3>.any;        # False
+    say so 2 == <1 2 3>.any;        # OUTPUT: «True␤»
+    say so 5 == <1 2 3>.any;        # OUTPUT: «False␤»
 
 =head2 method all
 
@@ -53,8 +53,8 @@ Defined as:
 Interprets the invocant as a list and creates an
 C<all>-L<Junction|/type/Junction> from it.
 
-    say so 1 < <2 3 4>.all;         # True
-    say so 3 < <2 3 4>.all;         # False
+    say so 1 < <2 3 4>.all;         # OUTPUT: «True␤»
+    say so 3 < <2 3 4>.all;         # OUTPUT: «False␤»
 
 =head2 method one
 
@@ -65,8 +65,8 @@ Defined as:
 Interprets the invocant as a list and creates a
 C<one>-L<Junction|/type/Junction> from it.
 
-    say so 1 == (1, 2, 3).one;      # True
-    say so 1 == (1, 2, 1).one;      # False
+    say so 1 == (1, 2, 3).one;      # OUTPUT: «True␤»
+    say so 1 == (1, 2, 1).one;      # OUTPUT: «False␤»
 
 =head2 method none
 
@@ -77,17 +77,25 @@ Defined as:
 Interprets the invocant as a list and creates a
 C<none>-L<Junction|/type/Junction> from it.
 
-    say so 1 == (1, 2, 3).none;     # False
-    say so 4 == (1, 2, 3).none;     # True
+    say so 1 == (1, 2, 3).none;     # OUTPUT: «False␤»
+    say so 4 == (1, 2, 3).none;     # OUTPUT: «True␤»
 
 =head2 method list
 
+Defined as:
+
+    method list(--> List:D)
+
 Interprets the invocant as a list, and returns that L<List|/type/List>.
 
-    say 42.list.^name;           # List
-    say 42.list.elems;           # 1
+    say 42.list.^name;           # OUTPUT: «List␤»
+    say 42.list.elems;           # OUTPUT: «1␤»
 
 =head2 method push
+
+Defined as:
+
+    method push(|values --> Positional:D)
 
 The method push is defined for undefined invocants and allows for
 autovivifying undefined to an empty C<Array>, unless the undefined value
@@ -95,37 +103,44 @@ implements C<Positional> already.  The argument provided will then be pushed
 into the newly created Array.
 
     my %h;
-    dd %h<a>; # Any (and therefor undefined)
+    dd %h<a>;      # Any (and therefore undefined)
     %h<a>.push(1); # .push on Any
-    dd %h; # «Hash %h = {:a($[1])}␤» # please note the Array
+    dd %h;         # «Hash %h = {:a($[1])}␤» # please note the Array
 
 =head2 routine reverse
 
 Defined as:
 
-    multi sub    reverse(*@list  --> List:D)
-    multi method reverse(List:D: --> List:D)
+    multi sub    reverse(*@list  --> Seq:D)
+    multi method reverse(List:D: --> Seq:D)
 
-Returns a list with the same elements in reverse order.
+Returns a L«C<Seq>|/type/Seq» with the same elements in reverse order.
 
 Note that C<reverse> always refers to reversing elements of a list;
 to reverse the characters in a string, use L<flip>.
 
 Examples:
 
-    say <hello world!>.reverse;     # (world! hello)
-    say reverse ^10;                # (9 8 7 6 5 4 3 2 1 0)
+    say <hello world!>.reverse;     # OUTPUT: «(world! hello)␤»
+    say reverse ^10;                # OUTPUT: «(9 8 7 6 5 4 3 2 1 0)␤»
 
 =head2 method sort
 
+Defined as:
+
+    multi method sort()
+    multi method sort(&by)
+
 Sorts iterables with C<infix:<cmp>> or given code object and returns a new C<List>.
+Optionally, takes a L<Callable> as a positional parameter, specifying how to
+sort.
 
 Examples:
 
-    say <b c a>.sort;                           # (a b c)
-    say 'bca'.comb.sort.join;                   # abc
-    say 'bca'.comb.sort({$^b cmp $^a}).join;    # cba
-    say '231'.comb.sort(&infix:«<=>»).join;     # 123
+    say <b c a>.sort;                           # OUTPUT: «(a b c)␤»
+    say 'bca'.comb.sort.join;                   # OUTPUT: «abc␤»
+    say 'bca'.comb.sort({$^b cmp $^a}).join;    # OUTPUT: «cba␤»
+    say '231'.comb.sort(&infix:«<=>»).join;     # OUTPUT: «123␤»
 
 =head2 method map
 
@@ -154,7 +169,7 @@ the return values of C<&block>, unless the element does the C<Iterable> role.
 For those elements C<deepmap> will descend recursively into the sublist.
 
     dd [[1,2,3],[[4,5],6,7]].deepmap(*+1);
-    # OUTPUT«[[2, 3, 4], [[5, 6], 7, 8]]␤»
+    # OUTPUT: «[[2, 3, 4], [[5, 6], 7, 8]]␤»
 
 =head2 method duckmap
 
@@ -166,56 +181,76 @@ C<duckmap> will apply C<&block> on each element and return a new list with
 defined return values of the block. For undefined return values, C<duckmap>
 will try to descend into the element if that element implements C<Iterable>.
 
-    my @a = [1,[2,3],4];
-    dd @a.duckmap({ $_ ~~ Int ?? $_++ !! Any });
-    # OUTPUT«(1, (2, 3), 4)␤»
+    <a b c d e f g>.duckmap(-> $_ where <c d e>.any { .uc }).say;
+    # OUTPUT: «(a b C D E f g)␤»
+    (('d', 'e'), 'f').duckmap(-> $_ where <e f>.any { .uc }).say;
+    # OUTPUT: «((d E) F)␤»
 
 =head2 method flat
 
-Interprets the invocant as a list, flattens it, and returns that list.
-Please note that C<.flat> will not solve the
-L<halting problem|https://en.wikipedia.org/wiki/Halting_problem> for you.
-If you flat an infinite list C<.flat> may return that infinite list, eating
-all your RAM in the process.
+Defined as:
 
-    say ((1, 2), (3)).elems;        # 2
-    say ((1, 2), (3)).flat.elems;   # 3
+    method flat(--> Seq:D) is nodal
 
-Please not that C<flat> does not recurse into sub lists. You have to recurse by
-hand or reconsider your data structures. A single level of nesting can often be
-handled with L<destructuring|/type/Signature#Destructuring_Parameters> in
-signatures. For deeper structures you may consider
-L<gather/take|/syntax/gather take> to create a lazy list.
+Interprets the invocant as a list, flattens
+L<non-containerized|/language/containers> L<Iterables|/type/Iterable>
+into a flat list, and returns that list. Keep in mind L<Map> and
+L<Hash> types are L<Iterable> and so will be flattened into lists
+of pairs.
 
-    my @a = [[1,2,3],[[4,5],6,7]];
-    say gather deepmap *.take, @a;
-    # (1 2 3 4 5 6 7)
+    say ((1, 2), (3), %(:42a));      # OUTPUT: «((1 2) 3 {a => 42})␤»
+    say ((1, 2), (3), %(:42a)).flat; # OUTPUT: «(1 2 3 a => 42)␤»
+
+Note that L<Arrays|/type/Array> containerize their elements by default, and so
+C<flat> will not flatten them. You can use
+L<hyper method call|/language/operators#index-entry-postfix_».> to call
+L«C<.List>|/routine/List» method on all the inner L<Iterables|/type/Iterable>
+and so de-containerize them, so that C<flat> can flatten them:
+
+    say [[1, 2, 3], [(4, 5), 6, 7]]      .flat; # OUTPUT: «([1 2 3] [(4 5) 6 7])␤»
+    say [[1, 2, 3], [(4, 5), 6, 7]]».List.flat; # OUTPUT: «(1 2 3 4 5 6 7)␤»
+
+For more fine-tuned options, see L«C<deepmap>|/routine/deepmap»,
+L«C<duckmap>|/routine/duckmap», and
+L<signature destructuring|/type/Signature#Destructuring_Parameters>
 
 =head2 method eager
+
+Defined as:
+
+    method eager(--> Seq:D) is nodal
 
 Interprets the invocant as a list, evaluates it eagerly, and returns that
 list.
 
-    say (1..10).eager;              # (1 2 3 4 5 6 7 8 9 10)
+    say (1..10).eager;              # OUTPUT: «(1 2 3 4 5 6 7 8 9 10)␤»
 
 =head2 method elems
+
+Defined as:
+
+    method elems(--> Int:D) is nodal
 
 Interprets the invocant as a list, and returns the number of elements in the
 list.
 
-    say 42.elems;                   # 1
-    say <a b c>.elems;              # 3
+    say 42.elems;                   # OUTPUT: «1␤»
+    say <a b c>.elems;              # OUTPUT: «3␤»
 
 =head2 method end
 
+    method end(--> Any:D) is nodal
+
 Interprets the invocant as a list, and returns the last index of that list.
 
-    say 6.end;                      # 0
-    say <a b c>.end;                # 2
+    say 6.end;                      # OUTPUT: «0␤»
+    say <a b c>.end;                # OUTPUT: «2␤»
 
 =head2 method pairup
 
-    method pairup(--> List)
+Defined as:
+
+    method pairup(--> Seq:D) is nodal
 
 Interprets the invocant as a list, and constructs a list of
 L<pairs|/type/Pair> from it, in the same way that assignment to a
@@ -224,9 +259,11 @@ constructs a pair from them, unless the item in the key position already is a
 pair (in which case the pair is passed is passed through, and the next
 list item, if any, is considered to be a key again).
 
-    say (a => 1, 'b', 'c').pairup.perl;     # (:a(1), :b("c")).Seq
+    say (a => 1, 'b', 'c').pairup.perl;     # OUTPUT: «(:a(1), :b("c")).Seq␤»
 
 =head2 sub exit
+
+Defined as:
 
     sub exit(Int() $status = 0)
 
@@ -247,14 +284,526 @@ Defined as:
 
 Forces given object to be evaluated in item context and returns the value of it.
 
-    say item([1,2,3]).perl;              # $[1, 2, 3]
-    say item({ apple => 10 }).perl;      # ${:apple(10)}
-    say item("abc").perl;                # "abc"
+    say item([1,2,3]).perl;              # OUTPUT: «$[1, 2, 3]␤»
+    say item({ apple => 10 }).perl;      # OUTPUT: «${:apple(10)}␤»
+    say item("abc").perl;                # OUTPUT: «"abc"␤»
 
 You can also use C<$> as item contextualizer.
 
-    say $[1,2,3].perl;                   # $[1, 2, 3]
-    say $("abc").perl;                   # "abc"
+    say $[1,2,3].perl;                   # OUTPUT: «$[1, 2, 3]␤»
+    say $("abc").perl;                   # OUTPUT: «"abc"␤»
+
+=head2 method Array
+
+Defined as:
+
+    method Array(--> Array:D) is nodal
+
+Coerce the invocant to L<Array|/type/Array>.
+
+=head2 method List
+
+Defined as:
+
+    method List(--> List:D) is nodal
+
+Coerce the invocant to L<List|/type/List>.
+
+=head2 method Hash
+
+Defined as:
+
+    method Hash(--> Hash:D) is nodal
+
+Coerce the invocant to L<Hash|/type/Hash>.
+
+=head2 method hash
+
+Defined as:
+
+    method hash(--> Hash:D) is nodal
+
+Coerce the invocant to L<Hash|/type/Hash>.
+
+=head2 method Slip
+
+Defined as:
+
+    method Slip(--> Slip:D) is nodal
+
+Coerce the invocant to L<Slip|/type/Slip>.
+
+=head2 method Map
+
+Defined as:
+
+    method Map(--> Map:D) is nodal
+
+Coerce the invocant to L<Map|/type/Map>.
+
+=head2 method Bag
+
+Defined as:
+
+    method Bag(--> Bag:D) is nodal
+
+Coerce the invocant to L<Bag|/type/Bag>, whereby C<Positionals> are treated as
+lists of values.
+
+=head2 method BagHash
+
+Defined as:
+
+    method BagHash(--> BagHash:D) is nodal
+
+Coerce the invocant to L<BagHash|/type/BagHash>, whereby C<Positionals> are
+treated as lists of values.
+
+=head2 method Set
+
+Defined as:
+
+    method Set(--> Set:D) is nodal
+
+Coerce the invocant to L<Set|/type/Set>, whereby C<Positionals> are treated as
+lists of values.
+
+=head2 method SetHash
+
+Defined as:
+
+    method SetHash(--> SetHash:D) is nodal
+
+Coerce the invocant to L<SetHash|/type/BSetash>, whereby C<Positionals> are
+treated as lists of values.
+
+=head2 method Mix
+
+Defined as:
+
+    method Mix(--> Mix:D) is nodal
+
+Coerce the invocant to L<Mix|/type/Mix>, whereby C<Positionals> are treated as
+lists of values.
+
+=head2 method MixHash
+
+Defined as:
+
+    method MixHash(--> MixHash:D) is nodal
+
+Coerce the invocant to L<MixHash|/type/MixHash>, whereby C<Positionals> are
+treated as lists of values.
+
+=head2 method Supply
+
+Defined as:
+
+    method Supply(--> Supply:D) is nodal
+
+Coerce the invocant first to a C<List> and then to a L<Supply|/type/Supply>.
+
+=head2 method min
+
+Defined As:
+
+    multi method min(--> Any:D)
+    multi method min(&by --> Any:D)
+
+Coerces to Iterable and returns the numerically smallest element. If a
+C<Callable> positional argument is provided it is called with each element
+and its smallest return values is returned.
+
+=head2 method max
+
+Defined As:
+
+    multi method max(--> Any:D)
+    multi method max(&by --> Any:D)
+
+Coerces to Iterable and returns the numerically biggest element. If a
+C<Callable> positional argument is provided it is called with each element
+and its biggest return values is returned.
+
+=head2 method minmax
+
+Defined As:
+
+    multi method minmax(--> List:D)
+    multi method minmax(&by --> List:D)
+
+Returns a list containing the smallest and the biggest element. If a
+C<Callable> positional argument is provided each element is filtered and
+then numerically compared.
+
+=head2 method minpairs
+
+Defined As:
+
+    multi method minpairs(Any:D: --> Seq:D)
+
+Calls L«C<.pairs>|/routine/pairs» and returns a L«C<Seq>|/type/Seq» with
+all of the Pairs with minimum values, as judged by the
+L«C<cmp> operator|/routine/cmp»:
+
+    <a b c a b c>.minpairs.perl.put; # OUTPUT: «(0 => "a", 3 => "a").Seq␤»
+    %(:42a, :75b).minpairs.perl.put; # OUTPUT: «(:a(42),).Seq␤»
+
+=head2 method maxpairs
+
+Defined As:
+
+    multi method maxpairs(Any:D: --> Seq:D)
+
+Calls L«C<.pairs>|/routine/pairs» and returns a L«C<Seq>|/type/Seq» with
+all of the Pairs with maximum values, as judged by the
+L«C<cmp> operator|/routine/cmp»:
+
+    <a b c a b c>.maxpairs.perl.put; # OUTPUT: «(2 => "c", 5 => "c").Seq␤»
+    %(:42a, :75b).maxpairs.perl.put; # OUTPUT: «(:b(75),).Seq␤»
+
+=head2 method sum
+
+Defined As:
+
+=for code :skip-test
+    method sum(--> TODO)
+
+TODO
+
+=head2 method keys
+
+Defined As:
+
+=for code :skip-test
+    method keys(--> TODO)
+
+TODO
+
+=head2 method flatmap
+
+Defined As:
+
+=for code :skip-test
+    method flatmap(--> TODO)
+
+TODO
+
+=head2 method roll
+
+Defined As:
+
+=for code :skip-test
+    method roll(--> TODO)
+
+TODO
+
+=head2 method pick
+
+Defined As:
+
+=for code :skip-test
+    method pick(--> TODO)
+
+TODO
+
+=head2 method head
+
+Defined As:
+
+=for code :skip-test
+    method head(--> TODO)
+
+TODO
+
+=head2 method tail
+
+Defined As:
+
+=for code :skip-test
+    method tail(--> TODO)
+
+TODO
+
+=head2 method skip
+
+Defined As:
+
+=for code :skip-test
+    method skip(--> TODO)
+
+TODO
+
+=head2 method prepend
+
+Defined As:
+
+=for code :skip-test
+    method prepend(--> TODO)
+
+TODO
+
+=head2 method unshift
+
+Defined As:
+
+=for code :skip-test
+    method unshift(--> TODO)
+
+TODO
+
+=head2 method first
+
+Defined As:
+
+=for code :skip-test
+    method first(--> TODO)
+
+TODO
+
+=head2 method unique
+
+Defined As:
+
+=for code :skip-test
+    method unique
+
+Treats the C<Any> as a 1-item list and uses
+L«C<List.unique>|/type/List#routine_unique» on it.
+
+=head2 method repeated
+
+Defined As:
+
+=for code :skip-test
+    method repeated(--> TODO)
+
+TODO
+
+=head2 method squish
+
+Defined As:
+
+=for code :skip-test
+    method squish(--> TODO)
+
+TODO
+
+=head2 method reduce
+
+Defined As:
+
+=for code :skip-test
+    method reduce(--> TODO)
+
+TODO
+
+=head2 method permutations
+
+Defined As:
+
+=for code :skip-test
+    method permutations(--> TODO)
+
+TODO
+
+=head2 method categorize
+
+Defined As:
+
+=for code :skip-test
+    method categorize(--> TODO)
+
+TODO
+
+=head2 method classify
+
+Defined As:
+
+=for code :skip-test
+    method classify(--> TODO)
+
+TODO
+
+=head2 method produce
+
+Defined As:
+
+=for code :skip-test
+    method produce(--> TODO)
+
+TODO
+
+=head2 method rotor
+
+Defined As:
+
+=for code :skip-test
+    method rotor(--> TODO)
+
+TODO
+
+=head2 method pairs
+
+Defined As:
+
+=for code :skip-test
+    method pairs(--> TODO)
+
+TODO
+
+=head2 method antipairs
+
+Defined As:
+
+=for code :skip-test
+    method antipairs(--> TODO)
+
+TODO
+
+=head2 method kv
+
+Defined As:
+
+=for code :skip-test
+    method kv(--> TODO)
+
+TODO
+
+=head2 method tree
+
+Defined As:
+
+=for code :skip-test
+    method tree(--> TODO)
+
+TODO
+
+=head2 method nl-out
+
+Defined As:
+
+=for code :skip-test
+    method nl-out(--> TODO)
+
+TODO
+
+=head2 method invert
+
+Defined As:
+
+=for code :skip-test
+    method invert(--> TODO)
+
+TODO
+
+=head2 method combinations
+
+Defined As:
+
+=for code :skip-test
+    method combinations(--> TODO)
+
+TODO
+
+=head2 method print-nl
+
+Defined As:
+
+=for code :skip-test
+    method print-nl(--> TODO)
+
+TODO
+
+=head2 method nodemap
+
+Defined As:
+
+=for code :skip-test
+    method nodemap(--> TODO)
+
+TODO
+
+=head2 method iterator
+
+Defined As:
+
+=for code :skip-test
+    method iterator(--> TODO)
+
+TODO
+
+=head2 method grep
+
+Defined As:
+
+=for code :skip-test
+    method grep(--> TODO)
+
+TODO
+
+=head2 method match
+
+Defined As:
+
+=for code :skip-test
+    method match(--> TODO)
+
+TODO
+
+=head2 method append
+
+Defined As:
+
+=for code :skip-test
+    method append(--> TODO)
+
+TODO
+
+=head2 method join
+
+Defined As:
+
+=for code :skip-test
+    method join(--> TODO)
+
+TODO
+
+=head2 method values
+
+Defined As:
+
+=for code :skip-test
+    method values(--> TODO)
+
+TODO
+
+=head2 method collate
+
+Defined As:
+
+=for code :skip-test
+    method collate(--> TODO)
+
+TODO
+
+=head2 method batch
+
+Defined As:
+
+=for code :skip-test
+    method batch(--> TODO)
+
+TODO
+
+=head2 method cache
+
+Defined As:
+
+=for code :skip-test
+    method cache(--> TODO)
+
+TODO
 
 =end pod
 

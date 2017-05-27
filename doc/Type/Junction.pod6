@@ -61,7 +61,7 @@ Usage examples:
         so $x %% none(2..$x.sqrt);
     }
     my @primes_ending_in_1 = grep &is_prime & / 1$ /, 2..100;
-    say @primes_ending_in_1;        # [11 31 41 61 71]
+    say @primes_ending_in_1;        # OUTPUT: «[11 31 41 61 71]␤»
 
     my @exclude = <~ .git>;
     for dir(".") { say .Str if .Str.ends-with(none @exclude) }
@@ -75,7 +75,7 @@ produce an empty list:
 To express "all, but at least one", you can use C<@a && all(@a)>
 
     my @a = ();
-    say so @a && all(@a);   # False
+    say so @a && all(@a);   # OUTPUT: «False␤»
 
 Negated operators are special-cased when it comes to autothreading.
 C<$a !op $b> is rewritten internally as C<!($a op $b)>. The outer
@@ -103,8 +103,47 @@ a negated junction:
         say '"yes" is not a negation';
     }
 
+=head2 Failures and Exceptions
 
-=head1 See Also
+L<Failures|/type/Failure> are just values like any other, as far as Junctions
+are concerned:
+
+    my $j = +any "not a number", "42", "2.1";
+    (gather $j».take).grep(Numeric).say; # OUTPUT: «(42 2.1)␤»
+
+Above, we've used prefix C<+> operator on a L<Junction> to coerce the strings
+inside of it to L<Numeric>. Since the operator returns a L<Failure> when
+L<Str> that doesn't contain a number gets coerced to C<Numeric>, one of the
+elements in the C<Junction> is a C<Failure>, but same C<Failure> rules as normal
+apply and the C<Failure> doesn't explode just because it's in a C<Junction>, and
+we can L«C<.grep>|/routine/grep» it out. The exception I<will> be thrown,
+if you try to use the C<Failure> as a value—just like were this C<Failure> on
+its own and not part of the C<Junction>:
+
+    my $j = +any "not a number", "42", "2.1";
+    try say $j == 42;
+    $! and say "Got exception: $!.^name()"; # OUTPUT: «Got exception: X::Str::Numeric␤»
+
+Note that if an exception gets thrown when I<any> of the values in a
+L<Junction> get computed, it will be thrown just as if the problematic value
+were computed on its own and not with a C<Junction>; you can't just compute the
+values that work while ignoring exceptions:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    say try calc $j; # OUTPUT: «Nil␤»
+
+Only one value above causes an exception, but the result of the
+L«C<try> block|/language/exceptions#index-entry-try_blocks-try» is still a L<Nil>.
+A possible way around it is to cheat and evaluate the values of the C<Junction>
+individually and then re-create the C<Junction> from the result:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    $j = any (gather $j».take).grep: {Nil !=== try calc $_};
+    say so $j == 42; # OUTPUT: «True␤»
+
+=head2 See Also
 
 =item L<http://perlgeek.de/blog-en/perl-5-to-6/08-junctions.html>
 =item L<http://perl6maven.com/perl6-is-a-value-in-a-given-list-of-values>

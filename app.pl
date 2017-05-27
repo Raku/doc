@@ -35,7 +35,7 @@ app->hook(
     before_dispatch => sub {
         my $c = shift;
         $c->req->url->path( $c->req->url->path =~ s/::/\$COLON\$COLON/gr )
-            if $c->req->url->path =~ m{^/type/};
+            if $c->req->url->path =~ m{^/type/} and $^O =~ m/MSWin/i;
     }
 );
 

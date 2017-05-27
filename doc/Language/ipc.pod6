@@ -1,4 +1,4 @@
-=begin pod
+=begin pod :tag<perl6>
 
 =TITLE Inter-Process Communication
 
@@ -28,13 +28,21 @@ Caution should be taken when using C<shell> with user input.
 =head1 X<proc|Proc object>
 
 Both C<run> and C<shell> return a L<Proc|/type/Proc> object, which can be used
-to communicate with the process in more detail.
+to communicate with the process in more detail. Please note that unless you close
+all output pipes, the program will usually not terminate.
 
     my $git = run 'git', 'log', '--oneline', :out;
     for $git.out.lines -> $line {
         my ($sha, $subject) = $line.split: ' ', 2;
         say "$subject [$sha]";
     }
+    $git.out.close();
+
+If the program fails (exits with a non-zero exit code), it will throw
+an exception when the returned L<Proc> object is sunk. You can save it into
+a variable, even anonymous one, to prevent the sinking:
+
+    $ = run '/bin/false'; # does not sink the Proc and so does not throw
 
 You can tell the C<Proc> object to capture output as a file handle by passing
 the C<:out> and C<:err> flags. You may also pass input via the C<:in> flag.
@@ -42,6 +50,7 @@ the C<:out> and C<:err> flags. You may also pass input via the C<:in> flag.
     my $echo = run 'echo', 'Hello, world', :out;
     my $cat  = run 'cat', '-n', :in($echo.out), :out;
     say $cat.out.get;
+    $cat.out.close();
 
 You may also use C<Proc> to capture the PID, send signals to the application,
 and check the exitcode.
@@ -61,6 +70,7 @@ you will want to make use of L<Proc::Async|/type/Proc::Async>. This class
 provides support for asynchronous communication with a program, as well as the
 ability to send signals to that program.
 
+    =begin code :skip-test
     # Get ready to run the program
     my $log = Proc::Async.new('tail', '-f',  '/var/log/system.log');
     $log.stdout.tap(-> $buf { print $buf });
@@ -75,6 +85,7 @@ ability to send signals to that program.
 
     # Wait for the program to finish
     await $done;
+    =end code
 
 Here is a small program that uses the "tail" program to print out the contents
 of the log named C<system.log> for 10 seconds and then tells the program to stop

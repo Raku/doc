@@ -2,17 +2,158 @@
 
 =TITLE role IO
 
-=SUBTITLE Input/output related object
+=SUBTITLE Input/output related routines
 
-    role IO { }
-
-The IO role provides no functionality itself; it simply marks that a
-particular object relates to input/output.
-
-Please note that coercion via L<Cool.IO|/type/Cool#method_IO> leads to
-L<IO::Path|/type/IO::Path>. This is the exception from the rule.
+The role provides no methods, but exists so that C<IO()> coercers, which coerce
+to L<IO::Path>, correctly type-check the resultant value. The role is done
+by L<IO::Path> and L<IO::Special>.
 
 =head1 Routines
+
+=head2 sub chdir
+
+Defined as:
+
+    sub chdir(IO() $path, :$d = True, :$r, :$w, :$x --> IO::Path:D)
+
+Changes value of C<$*CWD> variable to the provided C<$path>, optionally ensuring
+the new path passes several file tests. B<NOTE:> that this routine does I<NOT>
+alter the process's current directory (see
+L«C<&*chdir>|/routine/&*chdir»).
+
+Returns L«C<IO::Path>|/type/IO::Path»
+representing new C<$*CWD> on success. On failure, returns
+L«C<Failure>|/type/Failure» and leaves C<$*CWD> untouched.
+The C<$path> can be any object with an IO method that returns an
+L«C<IO::Path>|/type/IO::Path» object. The available file tests are:
+
+=item C<:d> — check L«C<.d>|/routine/d» returns C<True>
+
+=item C<:r> — check L«C<.r>|/routine/d» returns C<True>
+
+=item C<:w> — check L«C<.w>|/routine/d» returns C<True>
+
+=item C<:x> — check L«C<.x>|/routine/d» returns C<True>
+
+By default, only C<:d> test is performed.
+
+=for code :skip-test
+    chdir         '/tmp'; # change $*CWD to '/tmp' and check its .d is True
+    chdir :r, :w, '/tmp'; # … check its .r and .w are True
+    chdir '/not-there';   # returns Failure
+
+Note that the following construct is a mistake:
+
+=for code :skip-test
+    # WRONG! DO NOT DO THIS!
+    my $*CWD = chdir '/tmp/';
+
+Use L«C<indir>|/routine/indir» instead.
+
+=head2 sub &*chdir
+
+Defined as:
+
+=for code :skip-test
+    PROCESS:<&chdir> = sub (IO() $path --> IO::Path:D)
+
+Changes value of C<$*CWD> variable to the provided C<$path> and sets
+the process's current directory to the value of
+L«C<$path.absolute>|/routine/absolute». B<NOTE:> that in most cases,
+you want to use L«C<chdir>|/routine/chdir» routine instead.
+
+Returns L«C<IO::Path>|/type/IO::Path»
+representing new C<$*CWD> on success. On failure, returns
+L«C<Failure>|/type/Failure» and leaves C<$*CWD> untouched.
+The C<$path> can be any object with an IO method that returns an
+L«C<IO::Path>|/type/IO::Path» object.
+
+Note that unlike regular L«C<chdir>|/routine/chdir», there are no arguments
+to specify which file tests to perform.
+
+=for code :skip-test
+    &*chdir('/tmp');  # change $*CWD and process's current directory to '/tmp'
+    &*chdir('/not-there'); # returns Failure
+
+Note that the following construct is a mistake:
+
+=for code :skip-test
+    # WRONG! DO NOT DO THIS!
+    my $*CWD = &*chdir('/tmp');
+
+Use the following, instead; or see L«C<indir>|/routine/indir» if
+you do not need to change process's current directory:
+
+=for code :skip-test
+    temp $*CWD;
+    &*chdir('/tmp');
+
+=head2 sub chmod
+
+Defined as:
+
+    sub chmod(Int() $mode, *@filenames --> List)
+
+Coerces all C<@filenames> to L«C<IO::Path>|/type/IO::Path» and calls
+L«C<IO::Path.chmod>|/type/IO::Path#method_chmod» with C<$mode> on them.
+Returns a L«C<List>|/type/List» containing a subset of C<@filenames> for which
+C<chmod> was successfully executed.
+
+    chmod 0o755, <myfile1  myfile2>; # make two files executable by the owner
+
+=head2 sub indir
+
+Defined as:
+
+    sub indir(IO() $path, &code, :$d = True, :$r, :$w, :$x --> Mu)
+
+Takes L«C<Callable>|/type/Callable» C<&code> and executes it after locally (to
+C<&code>) changing C<$*CWD> variable to C<$path>, optionally ensuring
+the new path passes several file tests. B<NOTE:> that this routine does I<NOT>
+alter the process's current directory (see
+L«C<&*chdir>|/routine/$AMPERSAND*chdir»). The C<$*CWD> outside of the C<&code>
+is not affected, even if C<&code> explicitly assigns a new value to C<$*CWD>.
+
+Returns the return value of C<&code> on success. On failure to successfully
+change C<$*CWD>, returns L«C<Failure>|/type/Failure». B<WARNING:> keep in
+mind that lazily evaluated things might end up NOT having the C<$*CWD> set
+by C<indir> in their dynamic scope by the type they're actually evaluated.
+Either ensure the generators have their C<$*CWD> set or
+L<eagerly evaluate|/routine/eager> them before returning the results from
+C<indir>:
+
+    say indir("/tmp", {
+        gather { take ".".IO }
+    })».CWD; # OUTPUT: «(/home/camelia)␤»
+
+    say indir("/tmp", {
+        eager gather { take ".".IO }
+    })».CWD; # OUTPUT: «(/tmp)␤»
+
+    say indir("/tmp", {
+        my $cwd = $*CWD;
+        gather { temp $*CWD = $cwd; take ".".IO }
+    })».CWD; # OUTPUT: «(/tmp)␤»
+
+The routine's C<$path> argument can be any object with an IO method that
+returns an L«C<IO::Path>|/type/IO::Path» object. The available file
+tests are:
+
+=item C<:d> — check L«C<.d>|/routine/d» returns C<True>
+
+=item C<:r> — check L«C<.r>|/routine/d» returns C<True>
+
+=item C<:w> — check L«C<.w>|/routine/d» returns C<True>
+
+=item C<:x> — check L«C<.x>|/routine/d» returns C<True>
+
+By default, only C<:d> test is performed.
+
+    say $*CWD;                   # OUTPUT: «"/home/camelia".IO␤»
+    indir '/tmp', { say $*CWD }; # OUTPUT: «"/tmp".IO␤»
+    say $*CWD;                   # OUTPUT: «"/home/camelia".IO␤»
+
+    indir '/not-there', {;};     # returns Failure; path does not exist
 
 =head2 sub print
 
@@ -33,7 +174,7 @@ displays
 Hi there!How are you?0123456789101112131415161718192021222324252627282930313233343536373839404142434445464748495051525354555657585960616263646566676869707172737475767778798081828384858687888990919293949596979899100101
 
 To print text implicitly including the trailing newline character, use
-L<say|/type/IO#sub_say>.
+L<put|/type/IO#sub_put>.
 
 =head2 sub put
 
@@ -71,43 +212,46 @@ printing.  Hence the following C<say> statements for the respective
 containers are equivalent:
 
     my @array = qw{1 2 3 4};
-    say @array;       # [1 2 3 4]
-    say @array.gist;  # [1 2 3 4]
+    say @array;       # OUTPUT: «[1 2 3 4]␤»
+    say @array.gist;  # OUTPUT: «[1 2 3 4]␤»
 
     my %hash = "a" => 1, "b" => 2, "c" => 3;
-    say %hash;        # {a => 1, b => 2, c => 3}
-    say %hash.gist;   # {a => 1, b => 2, c => 3}
+    say %hash;        # OUTPUT: «{a => 1, b => 2, c => 3}␤»
+    say %hash.gist;   # OUTPUT: «{a => 1, b => 2, c => 3}␤»
 
-=head2 sub note
+=head2 routine note
 
-Print the given text, followed by a newline C<"\n"> on C<$*ERR> (standard
-error).  Before printing, call the C<.gist> method on any non-C<Str>
-objects.
+Defined as:
 
-C<note> is effectively C<say>, only it writes its output to the standard
-error stream.  For instance:
+    method note(Mu: -->Bool:D)
+    multi sub note(            --> Bool:D)
+    multi sub note(Str:D $note --> Bool:D)
+    multi sub note(**@args     --> Bool:D)
 
-    if ("path/to/pirate/treasure".IO.e) {
-        say "Found pirate treasure!";
-    }
-    else {
-        note "Could not find pirate treasure.  Are you sure it exists?";
-    }
+Like L«C<say>|/routine/say», except prints output to L«C<$*ERR>|/language/variables#index-entry-%24%2AERR» handle (STDERR).
+If no arguments are given to subroutine forms, will use string C<"Noted">.
 
-will report (on the standard output stream) that treasure has been found if
-it exists or will note on the error stream that it couldn't be found if it
-doesn't exist.
+=begin code :skip-test
+    note;       # STDERR OUTPUT: «Noted␤»
+    note 'foo'; # STDERR OUTPUT: «foo␤»
+    note 1..*;  # STDERR OUTPUT: «1..Inf␤»
+=end code
 
 =head2 sub prompt
 
-    sub prompt($msg)
+    multi prompt()
+    multi prompt($msg)
 
-Prints C<$msg> to standard output and waits for the user to type something
-and finish with an ENTER.  Returns the string typed in without the trailing
-newline.
+L<Prints|/routine/print> C<$msg> to C<$*OUT> handle, if C<$msg> was provided,
+then L<gets|/routine/get> a line of input from C<$*IN> handle. By default,
+this is equivalent to printing C<$msg> to
+L<STDOUT|https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29>, reading a line from
+L<STDIN|https://en.wikipedia.org/wiki/Standard_streams#Standard_input_.28stdin.29>,
+removing the trailing new line, and returning the resultant string.
 
 =for code :skip-test
-my $name = prompt("Hi, what's your name? ");
+my $name = prompt "What's your name? ";
+say "Hi, $name! Nice to meet you!";
 
 =head2 sub open
 
@@ -116,7 +260,9 @@ my $fh = open(IO::Path() $path, :$r, :$w, :$a, :$rw,
               :$bin, :$enc, :$nl-in, :$nl-out, :$chomp)
 
 Opens the C<$path> (by default in text mode) with the given options,
-returning an L<IO::Handle> object.
+returning an L<IO::Handle> object. In order to close the L<IO::Handle>
+one needs to call L<close|/routine/close> explicitly or use a L<LEAVE|/syntax/LEAVE>
+phaser.
 
 =head3 File mode options
 
@@ -184,13 +330,24 @@ is C<False>, implying text semantics.
 
 The encoding to use if opened in text mode.
 
-    # open explicitly as utf8
-    my $fh = open("path-to-file", enc => "utf8");
-    my $fh = open("path-to-file", enc => "utf-8");  # this form also works
-    # open with latin1 encoding
-    my $fh = open("path-to-file", enc => "latin1");
+    my $fh1 = open 'path-to-file';                # default, utf-8
+    my $fh2 = open 'path-to-file', :enc<latin-1>; # explicit, latin-1
 
-Defaults to "utf8".
+Defaults to C<utf8>. The values are case-insensitive. The available encodings
+vary by implementation and backend. On Rakudo MoarVM the following are
+supported:
+
+=for code :skip-test
+  utf8
+  utf16
+  utf8-c8
+  iso-8859-1
+  windows-1252
+  ascii
+
+Implementation may choose to also provide support for aliases, e.g. Rakudo
+allows aliases C<latin-1> for C<iso-8859-1> encoding and dashed utf versions:
+C<utf-8> and C<utf-16>.
 
 =head3 Newline options
 
@@ -212,26 +369,6 @@ C<.lines> and C<.get>.  Defaults to C<True>.
     my $fh = open("path-to-file", chomp => False);
     say $fh.get();     # returns line including newline char
 
-=head2 method close
-
-To close an open file handle, simply call its
-L<close|/type/IO::Handle#method_close> method:
-
-    my $fh = open("path-to-file");
-    # ... do stuff with the file
-    $fh.close;
-
-It is also possible to call this as a sub, thus the example above can be
-written equivalently like so:
-
-    my $fh = open("path-to-file");
-    # ... do stuff with the file
-    close $fh;
-
-When a file was opened for writing, closing it is important to ensure that all
-contents are actually written to the file. You may want to consider using a
-L<LEAVE|/language/phasers#LEAVE> phaser to guard against exceptions.
-
 =head2 sub slurp
 
 Slurps the contents of the entire file into a C<Str> (or C<Buf> if C<:bin>).
@@ -250,24 +387,13 @@ exist, or is a directory.
 
 =head2 sub spurt
 
-=for code :skip-test
-sub spurt($where, $what,
-    Str  :$enc        = 'utf8',
-    Bool :$bin        = False,
-    Bool :$append      = False,
-    Bool :$createonly = False
-    --> Bool )
+Defined as:
 
-Writes the indicated contents (2nd positional parameter, C<$what>) to the
-location indicated by the first positional parameter, C<$where> (which can
-either be a string or an C<IO::Path> object).  To write to an C<IO::Handle>,
-use the L<print> method.
+    multi spurt(IO() $path, |c)
 
-If a file needs to be opened for writing, it will also be C<close>d.  Returns
-C<True> on success, or the appropriate C<Failure> if something went wrong.
-
-These named parameters are optional and only have meaning if the first
-positional parameter was B<not> an C<IO::Handle>:
+The C<$path> can be any object with an IO method that returns an
+L«C<IO::Path>|/type/IO::Path» object. Calls L«C<IO::Path.spurt>|/routine/spurt»
+on the C<$path>, forwarding any of the remaining arguments.
 
 =head3 Options
 
@@ -311,10 +437,19 @@ C<False>.
 
     sub run(*@args ($, *@) --> Proc)
 
-Runs an external command without involving a shell (if possible).
+Runs an external command without involving a shell and returns a Proc object.
 
-See L<Proc|/type/Proc> for more details, for example on how to capture
-output.
+    run 'touch', '>foo.txt';
+
+    run Q:w{rm >foo.txt}; # Another way to use run, using word quoting for the
+                          # arguments
+
+To capture output you can use the C<:out> argument:
+
+    my $proc = run 'echo', 'Perl 6 is Great!', :out;
+    say $proc.out.get; # OUTPUT: Perl 6 is Great!
+
+See L<Proc|/type/Proc> and L<Proc::Async|/type/Proc::Async> for more details.
 
 =head2 sub shell
 
@@ -322,7 +457,9 @@ output.
 
 Runs a command through the system shell. All shell meta characters are
 interpreted by the shell, including pipes, redirects, environment variable
-substitutions and so on. See L<run|/type/IO#sub_run> if you don't want that.
+substitutions and so on. Shell escapes are a severe security concern and can
+cause confusion with unusual file names. Use L<run|/type/IO#sub_run> if you
+want to be safe.
 
 The return value is of L<type Proc|/type/Proc>.
 
