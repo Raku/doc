@@ -19,6 +19,14 @@ L«C<Str.comb>|/type/Str#routine_comb» does, taking the same arguments, closing
 the handle when done if C<$close> is set to a true value. Implementations may
 slurp the file in its entirety when this method is called.
 
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
+
+=for code :skip-test
+my $fh = 'path/to/file'.IO.open;
+say "The file has {+$fh.comb: '♥', :close} ♥s in it";
+
 =head2 routine get
 
 Defined as:
@@ -32,6 +40,10 @@ if the handle's C<.chomp> attribute is set to C<True>. Returns
 C<Nil>, if no more input as available. The subroutine form defaults to
 L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES» if no handle
 is given.
+
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
 
 =begin code :skip-test
     $*IN.get.say;              # Read one line from the standard input
@@ -50,11 +62,13 @@ Defined as:
     method getc(IO::Handle:D: --> Str:D)
     multi sub getc (IO::Handle $fh = $*ARGFILES --> Str:D)
 
-Reads a single character from the input stream. The subroutine form defaults
-to L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES» if no handle
-is given. Returns C<Nil>, if no more input as available, otherwise operation
-will block, waiting for at least one character to be available; these caveats
-apply:
+Reads a single character from the input stream. Attempting to call this method
+when the handle is L<in binary mode|/type/IO::Handle#method_encoding> will
+result in C<X::IO::BinaryMode> exception being thrown. The subroutine form
+defaults to L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES» if
+no handle is given. Returns C<Nil>, if no more input as available, otherwise
+operation will block, waiting for at least one character to be available; these
+caveats apply:
 
 =head3 Buffering terminals
 
@@ -115,19 +129,20 @@ handle.
 Defined as:
 
     multi method encoding(IO::Handle:D: --> Str:D)
-    multi method encoding(IO::Handle:D: Str:D $enc --> Str:D)
+    multi method encoding(IO::Handle:D: $enc --> Str:D)
 
 Returns a L<Str> representing the encoding currently used by
-the handle, defaulting to C<"utf8">. A special value C<"bin"> indicates the
-file handle is currently in binary mode. Specifying an optional positional
-C<$enc> argument switches the encoding used by the handle.
+the handle, defaulting to C<"utf8">. C<Nil> indicates the file handle is
+currently in binary mode. Specifying an optional positional C<$enc> argument
+switches the encoding used by the handle; specify C<Nil> as encoding to put the
+handle into binary mode.
 
 =begin code :skip-test
     with 'foo'.IO {
         .spurt: "First line is text, then:\nBinary";
         my $fh will leave {.close} = .open;
         $fh.get.say;         # OUTPUT: «First line is text, then:␤»
-        $fh.encoding: 'bin';
+        $fh.encoding: Nil;
         $fh.slurp.say;       # OUTPUT: «Buf[uint8]:0x<42 69 6e 61 72 79>␤»
     }
 =end code
@@ -151,6 +166,10 @@ set to C<True>, will close the handle when the file ends or C<$limit> is
 reached. Subroutine form defaults to
 L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES», if no
 handle is provided.
+
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
 
 B<NOTE:> the lines are read lazily, so ensure the returned L<Seq> is either
 L<fully reified|/language/glossary#index-entry-Reify> or is no longer needed
@@ -227,6 +246,10 @@ Subroutine form defaults to
 L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES», if no handle
 is provided.
 
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
+
 =for code :skip-test
 my %dict := bag $*IN.words;
 say "Most common words: ", %dict.sort(-*.value).head: 5;
@@ -246,8 +269,11 @@ Defined as:
 L<Slurps|/routine/slurp> the handle's content and calls
 L«C<Str.split>|/type/Str#routine_split» on it, forwarding any of the given
 arguments. If C<:$close> named parameter is set to C<True>, will
-L<close> the invocant after slurping. It is an error to call this method on
-a handle opened in binary mode.
+L<close> the invocant after slurping.
+
+Attempting to call this method when the handle is L<in binary
+mode|/type/IO::Handle#method_encoding> will result in C<X::IO::BinaryMode>
+exception being thrown.
 
 =for code :skip-test
 my $fh = 'path/to/file'.IO.open;
@@ -269,22 +295,6 @@ Behaviour for spurting a L«C<Cool>|/type/Cool» when the handle is in binary
 mode or spurting a L«C<Blob>|/type/Blob» when the handle is NOT in binary
 mode is undefined.
 
-=head2 method comb
-
-Defined as:
-
-    method comb(IO::Handle:D: :$close, |c)
-
-L<Slurps|/routine/slurp> the handle's content and calls
-L«C<Str.split>|/type/Str#routine_comb» on it, forwarding any of the given
-arguments. If C<:$close> named parameter is set to C<True>, will
-L<close> the invocant after slurping. It is an error to call this method on
-a handle opened in binary mode.
-
-=for code :skip-test
-my $fh = 'path/to/file'.IO.open;
-say "The file has {+$fh.comb: '♥', :close} ♥s in it";
-
 =head2 method print
 
 Defined as:
@@ -294,6 +304,10 @@ Defined as:
 Writes the given C<@text> to the handle, coercing any non-L<Str> objects
 to L<Str> by calling L«C<.Str>|/routine/Str» method on them. See L<write>
 to write bytes.
+
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
 
 =for code :skip-test
 my $fh = 'path/to/file'.IO.open: :w;
@@ -308,9 +322,13 @@ Defined as:
 
 Writes the value of C<$.nl-out> attribute into the handle.
 
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
+
 =for code :skip-test
-my $fh = open 'path/to/file', :w, nl-out => "\r\n";
-$fh.print("some text");
+my $fh = 'path/to/file'.IO.open: :w, :nl-out("\r\n");
+$fh.print: "some text";
 $fh.print-nl; # prints \r\n
 $fh.close;
 
@@ -324,6 +342,10 @@ Formats a string based on the given format and arguments and C<.print>s the
 result into the filehandle.
 See L<sub sprintf|https://docs.perl6.org/type/Str#sub_sprintf> for details
 on acceptable format directives.
+
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
 
 =for code :skip-test
 my $fh = open 'path/to/file', :w;
@@ -341,6 +363,10 @@ that it stringifies its arguments by calling C<.gist> on them and
 auto-appends a newline, with a call to L<print-nl|/type/IO::Handle#method_print-nl>,
 after the final argument.
 
+Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
+
 =for code :skip-test
 my $fh = open 'path/to/file', :w;
 $fh.say(Complex.new(3, 4));        # RESULT: «3+4i\n»
@@ -353,6 +379,8 @@ Defined as:
     method read(IO::Handle:D: Int(Cool:D) $bytes --> Blob)
 
 Binary reading; reads and returns up to C<$bytes> bytes from the filehandle.
+This method can be called even when the handle is not
+L<in binary mode|/type/IO::Handle#method_encoding>.
 
 =head2 method readchars
 
@@ -361,16 +389,18 @@ Defined as:
     method readchars(IO::Handle:D: Int(Cool:D) $chars --> Str)
 
 Reading chars; reads and returns up to C<$chars> chars (graphemes) from the
-filehandle.
+filehandle. Attempting to call this method when the handle is
+L<in binary mode|/type/IO::Handle#method_encoding> will result in
+C<X::IO::BinaryMode> exception being thrown.
 
 =head2 method write
 
 Defined as:
 
-    method write(IO::Handle:D: Blob:D $buf)
+    method write(IO::Handle:D: Blob:D $buf --> True)
 
-Binary writing; writes C<$buf> to the filehandle.  See L<print> to write
-characters.
+Writes C<$buf> to the filehandle. This method can be called even when the
+handle is not L<in binary mode|/type/IO::Handle#method_encoding>.
 
 =head2 method seek
 
