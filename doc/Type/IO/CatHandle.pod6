@@ -1,0 +1,795 @@
+=begin pod
+
+=TITLE class IO::CatHandle
+
+=SUBTITLE Use multiple IO handles as if they were one
+
+   class IO::CatHandle is IO::Handle { }
+
+I<(available in Rakudo since version 2017.06)>
+
+The C<IO::CatHandle> class provides a means to create an L<IO::Handle> that
+seamlessly gathers input from multiple L<IO::Handle> and L<IO::Pipe> sources.
+
+All of the L<IO::Handle>'s methods are implemented, and while attempt
+to use write methods will (currently) throw, an L<IO::CatHandle> is usable
+anywhere a read-only L<IO::Handle> can be used.
+
+=head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    method new(*@handles, :&on-switch, :$chomp = True, :$nl-in = ["\n", "\r\n"], Str :$encoding, Bool :$bin)
+
+Creates a new L<IO::CatHandle> object.
+
+The C<@handles> positional argument
+indicates a source of handles for the C<IO::CatHandle> to read from and
+can a mixed collection of L<Cool>, L<IO::Path>, and L<IO::Handle> (including
+L<IO::Pipe>) objects. As input from L<IO::CatHandle> is processed (so operations
+won't happen during C<.new> call, but only when C<@handles>' data is needed),
+it will walk through C<@handles> list, processing each argument as follows:
+the L<Cool> objects will be coerced to L<IO::Path>; L<IO::Path> objects will be
+opened for reading using the L<IO::CatHandle>'s (invocant's) attributes for
+L«C<open>|/routine/open» calls; un-opened L<IO::Handle> objects will be opened
+in the same fashion as L<IO::Path> objects; and already opened
+L<IO::Handle> objects will have all of their attributes set to the attributes
+of the invocant L<IO::CatHandle>. In short, all the C<@handles> end up
+as L<IO::Handle> objects opened in the same mode and with the same attributes
+as the invocant L<IO::CatHandle>.
+
+See L«C<.on-switch> method|/type/IO::CatHandle#method_on-switch» for details
+on the C<:&on-switch> named argument, which by default is not set.
+
+The L«C<:$encoding>|/type/IO::CatHandle#method_encoding» specifies the
+handle's encoding and accepts the same values as
+L«C<IO::Handle.encoding>|/type/IO::Handle#method_encoding». Set
+C<:$bin> named argument to C<True> if you wish the handle to be in binary mode.
+Attempting to specify both defined C<:$encoding> and C<True> C<:$bin> is
+a fatal error resulting in C<X::IO::BinaryAndEncoding> exception thrown.
+If C<:$encoding> is not set and nor C<:$bin> is not set to a true value,
+the handle will default to C<utf8> encoding.
+
+The C<:$chomp> and C<:$nl-in> arguments have the same meaning as in
+L<IO::Handle|/type/IO::Handle> and take and default to the same values.
+
+=head2 method chomp
+
+Defined as:
+
+    method chomp(IO::CatHandle:D:) is rw
+
+Sets the invocant's C<$.chomp> attribute to the assigned value. All source
+handles, including the active one will use the provided C<$.chomp> value.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC\n";
+    (my $f2 = 'bar'.IO).spurt: "D\nE\n";
+    with IO::CatHandle.new: $f1, $f2 {
+        # .chomp is True by default:
+        (.get xx 2).perl.say; # OUTPUT: «("A", "B").Seq␤»
+
+        .chomp = False;
+        (.get xx 3).perl.say; # OUTPUT: «("C\n", "D\n", "E\n").Seq␤»
+        .close
+    }
+=end code
+
+=head2 method nl-in
+
+Defined as:
+
+    method nl-in(IO::CatHandle:D:) is rw
+
+Sets the invocant's C<$.nl-in> attribute to the assigned value, which
+can be a L<Str> or a L<List> of L<Str>, where each L<Str> object
+represents the end-of-line string. All source handles, including the active one
+will use the provided C<$.nl-in> value. Note that source handle boundary
+is always counted as a new line break.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
+    (my $f2 = 'bar'.IO).spurt: "DxEx";
+    with IO::CatHandle.new: $f1, $f2 {
+        # .nl-in is ["\n", "\r\n"] by default:
+        (.get xx 2).perl.say; # OUTPUT: «("A", "B").Seq␤»
+
+        .nl-in = 'x';
+        (.get xx 3).perl.say; # OUTPUT: «("C", "D", "E").Seq␤»
+        .close
+    }
+=end code
+
+=head2 method close
+
+Defined as:
+
+    method close(IO::CatHandle:D: --> True)
+
+Closes the currently active source handle, as well as any already-open source
+handles, and empties the source handle queue. Unlike a regular
+L<IO::Handle>, an explicit call to C<.close> is often not necessary on a
+CatHandle, as merely exhausting all the input closes all the handles that
+need to be closed.
+
+=begin code :skip-test
+    with IO::CatHandle.new: @bunch-of-handles {
+        say .readchars: 42;
+        .close; # we are done; close all the open handles
+    }
+=end code
+
+=head2 method comb
+
+Defined as:
+
+    method comb(IO::CatHandle:D: |args --> Seq:D)
+
+Read the handle and processes its contents the same way
+L«C<Str.comb>|/type/Str» does, taking the same arguments. B<Implementations may
+slurp the contents of all the source handles> in their entirety when this method
+is called.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+    IO::CatHandle.new($f1, $f2).comb(2).perl.say;
+    # OUTPUT: «("fo", "ob", "ar").Seq␤»
+=end code
+
+=head2 method DESTROY
+
+Defined as:
+
+    method DESTROY(IO::CatHandle:D:)
+
+Calls L«C<.close>|/type/IO::CatHandle#method_close».
+This method isn't to be used directly, but is something that's called during
+garbage collection.
+
+=head2 method encoding
+
+Defined as:
+
+    multi method encoding(IO::CatHandle:D:)
+    multi method encoding(IO::CatHandle:D: $new-encoding)
+
+Sets the invocant's C<$.encoding> attribute to the provided value. Valid values
+are the same as those accepted by
+L«C<IO::Handle.encoding>|/type/IO::Handle#method_encoding» (use value
+L<Nil> to switch to binary mode). All source handles, including the active one
+will use the provided C<$.encoding> value.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'I ♥ Perl';
+    (my $f2 = 'bar'.IO).spurt: 'meow';
+    with IO::CatHandle.new: $f1, $f2 {
+        # .encoding is 'utf8' by default:
+        .readchars(5).say; # OUTPUT: «I ♥ P␤»
+
+        .encoding: Nil; # switch to binary mode
+        .slurp.say; # OUTPUT: «Buf[uint8]:0x<72 6c 6d 65 6f 77>␤»
+    }
+=end code
+
+=head2 method eof
+
+Defined as:
+
+    method eof(IO::CatHandle:D: --> Bool:D)
+
+Returns C<True> if the read operations have exhausted the source handle
+queue, including the contents of the last handle. B<Note:> calling this
+method may cause one or more
+L«C<.on-switch>|/type/IO::CatHandle#method_on-switch» calls, while
+the source handle queue is examined, and the L<source handle queue may get
+exhausted|/type/IO::CatHandle#method_next-handle>.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+    with IO::CatHandle.new: :on-switch{ print 'SWITCH! ' }, $f1, $f2 {
+                       # OUTPUT: «SWITCH! »
+        .eof.say;      # OUTPUT: «False␤»
+        .readchars(3);
+        .eof.say;      # OUTPUT: «SWITCH! False␤»
+
+        .slurp;        # OUTPUT: «SWITCH! »
+        .eof.say;      # OUTPUT: «True␤»
+    }
+=end code
+
+=head2 method get
+
+Defined as:
+
+    method get(IO::CatHandle:D: --> Bool:D)
+
+Returns a single line of input from the handle, with the new line string
+defined by the value(s) of
+L«C<$.nl-in> attribute|/type/IO::CatHandle#method_nl-in», which will be removed
+from the line if L«C<$.chomp> attribute|/type/IO::CatHandle#method_chomp»
+attribute is set to C<True>. Returns C<Nil> when there is no more input.
+It is an error to call this method when the handle is
+L<in binary mode|/type/IO::CatHandle#method_encoding>, resulting in
+C<X::IO::BinaryMode> exception being thrown.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "a\nb\nc";
+    (my $f2 = 'bar'.IO).spurt: "d\ne";
+    my $cat = IO::CatHandle.new: $f1, $f2;
+    .say while $_ = $cat.get; # OUTPUT: «a␤b␤c␤d␤e␤»
+=end code :skip-test
+
+=head2 method getc
+
+Defined as:
+
+    method getc(IO::CatHandle:D: --> Bool:D)
+
+Returns a single character of input from the handle. All
+the caveats described in L«C<IO::Handle.getc>|/type/IO::Handle#method_getc»
+apply. Returns C<Nil> when there is no more input.
+It is an error to call this method when the handle is
+L<in binary mode|/type/IO::CatHandle#method_encoding>, resulting in
+C<X::IO::BinaryMode> exception being thrown.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'I ♥ Perl';
+    (my $f2 = 'bar'.IO).spurt: 'meow';
+    my $cat = IO::CatHandle.new: $f1, $f2;
+    .say while $_ = $cat.getc; # OUTPUT: «I␤ ␤♥␤ ␤P␤e␤r␤l␤m␤e␤o␤w␤»
+=end code :skip-test
+
+=head2 method IO
+
+Defined as:
+
+    method IO(IO::CatHandle:D:)
+
+Alias for L«C<.path>|/type/IO::CatHandle#method_path»
+
+=head2 method lines
+
+Defined as:
+
+    method lines(IO::CatHandle:D: $limit = Inf, :$close --> Seq:D)
+
+Same as L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines». Note that
+a boundary between source handles is considered to be a newline break.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "foo\nbar";
+    (my $f2 = 'bar'.IO).spurt: 'meow';
+    IO::CatHandle.new($f1, $f2).lines.perl.say;
+    # OUTPUT: «("foo", "bar", "meow").Seq␤»
+=end code
+
+=head2 method lock
+
+Defined as:
+
+    method lock(IO::CatHandle:D: Bool:D :$non-blocking = False, Bool:D :$shared = False --> True)
+
+Same as L«C<IO::Handle.lock>|/type/IO::Handle#method_lock». Returns L<Nil>
+if the L<source handle queue has been
+exhausted|/type/IO::CatHandle#method_next-handle>.
+
+Locks only the currently active source handle. The
+L«C<.on-switch>|/type/IO::CatHandle#method_on-switch» L<Callable> can be
+used to conveniently lock/unlock the handles as they're being processed
+by the CatHandle.
+
+=head2 method native-descriptor
+
+Defined as:
+
+    method native-descriptor(IO::CatHandle:D: --> Int:D)
+
+Returns the L«native-descriptor|/type/IO::Handle#method_native-descriptor»
+of the currently active source handle or L<Nil> if the L<source handle queue has
+been exhausted|/type/IO::CatHandle#method_next-handle>.
+
+Since the CatHandle closes a source handle, once it's done with it,
+it's possible for successive source handles to have the same native descriptor,
+if they were passed to L<.new|/type/IO::CatHandle#method_new> as L<Cool> or
+L<IO::Path> objects.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+    with IO::CatHandle.new: $f1, $f2, $*IN {
+        repeat { .native-descriptor.say } while .next-handle;
+        # OUTPUT: «13␤13␤9␤»
+    }
+=end code
+
+=head2 method next-handle
+
+Defined as:
+
+    method next-handle(IO::CatHandle:D: --> IO::Handle:D)
+
+Switches the active source handle to the next handle in the source handle
+queue, which is the sources given in C<@handles> attribute to
+L«C<.new>|/type/IO::CatHandle#method_new». The return value is the currently
+active source handle or C<Nil> if the source handle queue has been exhausted.
+
+Coerces L<Cool> source "handles" to L<IO::Path>; opens L<IO::Path> and unopened
+L<IO::Handle> source handles for reading using the invocant's
+L«C<$.nl-in>|/type/IO::CatHandle#method_nl-in»,
+L«C<$.chomp>|/type/IO::CatHandle#method_chomp», and
+L«C<$.encoding>|/type/IO::CatHandle#method_encoding» attributes;
+those same attributes of already-opened L<IO::Handle> objects will be changed to
+the values of the invocant's attributes.
+
+This method is called automatically whenever CatHandle's methods require
+a switch to the next source handle, triggers
+L«C<.on-switch>|/type/IO::CatHandle#method_on-switch» L<Callable> to be called,
+and is called once during L<.new|/type/IO::CatHandle#method_new> call. The
+C<.on-switch> will continue to be triggered each time this method is called,
+even after the source handle queue has been exhausted. Note
+that generally reaching the EOF of the currently active source handle does not
+trigger the C<.next-handle> call, but rather further read operations that
+need more data do.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "a\nb";
+    (my $f2 = 'bar'.IO).spurt: "c\nd";
+    with IO::CatHandle.new: :on-switch{ say '▸ Switching' }, $f1, $f2 {
+        say 'one';
+        .next-handle.^name.say;
+        say 'two';
+        .next-handle.^name.say;
+        say 'three';
+        .next-handle.^name.say;
+        # OUTPUT:
+        # ▸ Switching
+        # one
+        # ▸ Switching
+        # IO::Handle
+        # two
+        # ▸ Switching
+        # Nil
+        # three
+        # ▸ Switching
+        # Nil
+    }
+=end code
+
+=head2 method on-switch
+
+Defined as:
+
+    has &.on-switch is rw
+
+One of the attributes that can be set during
+L«C<.new>|/type/IO::CatHandle#method_new» call and changed later by assigning
+to. By default is not specified. Takes a L<Callable> with
+L«C<.count>|/type/Code#method_count» of C<0>, C<1>, C<2>, or C<Inf>. Gets
+called each time L«C<.next-handle>|/type/IO::CatHandle#method_next-handle»
+is called, which happens once during L«C<.new>|/type/IO::CatHandle#method_new»
+call and then each time a source handle is switched to the next one in the
+queue, or when the L«C<.next-handle>|/type/IO::CatHandle#method_next-handle»
+method is called manually.
+
+If the L«C<.count>|/type/Code#method_count» of C<&.on-switch> is C<0>, it
+receives no arguments, if it's C<1>, it receives the currently active handle,
+and if it's C<2> or C<Inf>, it receives the currently active handle, and the
+last active handle as positional arguments (in that order). On the very
+first C<&.on-switch> execution, the "last active handle" argument is
+C<Nil>. Upon source handle queue exhaustion the "currently active handle"
+argument is C<Nil>, and all the executions made afterwards have both arguments
+as C<Nil>.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
+    (my $f2 = 'bar'.IO).spurt: "D\nE";
+
+    my $line;
+    my $cat = IO::CatHandle.new: :on-switch{ $line = 1 }, $f1, $f2;
+    say "{$cat.path}:{$line++} $_" for $cat.lines;
+    # OUTPUT:
+    # foo:1 A
+    # foo:2 B
+    # foo:3 C
+    # bar:1 D
+    # bar:2 E
+=end code
+
+=begin code :skip-test
+    my @old-stuff;
+    sub on-switch ($new, $old) {
+        $new and $new.seek: 1, SeekFromBeginning;
+        $old and @old-stuff.push: $old.open.slurp: :close;
+    }
+
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
+    (my $f2 = 'bar'.IO).spurt: "D\nE";
+    my $cat = IO::CatHandle.new: :&on-switch, $f1, $f2;
+    $cat.lines.perl.say; # OUTPUT: «("", "B", "C", "", "E").Seq␤»
+    @old-stuff.perl.say; # OUTPUT: «["A\nB\nC", "D\nE"]␤»
+=end code
+
+=head2 method open
+
+Defined as:
+
+    method open(IO::CatHandle:D: --> IO::CatHandle:D)
+
+Returns the invocant. The intent of this method is to merely make CatHandle
+workable with things that open L<IO::Handle>. You never have to call this method
+intentionally.
+
+=head2 method opened
+
+Defined as:
+
+    method opened(IO::CatHandle:D: --> Bool:D)
+
+Returns C<True> if the invocant has any source handles, C<False> otherwise.
+
+=begin code :skip-test
+    say IO::CatHandle.new      .opened; # OUTPUT: «False␤»
+    say IO::CatHandle.new($*IN).opened; # OUTPUT: «True␤»
+
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
+    with IO::CatHandle.new: $f1 {
+        .opened.say; # OUTPUT: «True␤»
+        .slurp;
+        .opened.say; # OUTPUT: «False␤»
+    }
+=end code
+
+=head2 method path
+
+Defined as:
+
+    method path(IO::CatHandle:D:)
+
+Returns the value of L«C<.path> attribute|/type/IO::Handle#method_path»
+of the currently active source handle, or L<Nil> if the L<source handle queue
+has been exhausted|/type/IO::CatHandle#method_next-handle>. Basically, if your
+CatHandle is based on files, this is the way to get the path of the file the
+CatHandle is currently reading from.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
+    (my $f2 = 'bar'.IO).spurt: "D\nE";
+
+    my $line;
+    my $cat = IO::CatHandle.new: :on-switch{ $line = 1 }, $f1, $f2;
+    say "{$cat.path}:{$line++} $_" for $cat.lines;
+    # OUTPUT:
+    # foo:1 A
+    # foo:2 B
+    # foo:3 C
+    # bar:1 D
+    # bar:2 E
+=end code
+
+=head2 method read
+
+Defined as:
+
+    method read(IO::CatHandle:D: Int(Cool:D) $bytes --> Buf:D)
+
+Reads up to C<$bytes> bytes from the handle and returns them in a L<Buf>.
+It is permitted to call this method on handles that are not in binary mode.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'meow';
+    (my $f2 = 'bar'.IO).spurt: Blob.new: 4, 5, 6;
+    with IO::CatHandle.new: :bin, $f1, $f2 {
+        say .read: 2;    # OUTPUT: «Buf[uint8]:0x<6d 65>␤»
+        say .read: 2000; # OUTPUT: «Buf[uint8]:0x<6f 77 04 05 06>␤»
+    }
+
+    # Non-binary mode is OK too:
+    with IO::CatHandle.new: $f1, $f2 {
+        say .get;        # OUTPUT: «meow␤»
+        say .read: 2000; # OUTPUT: «Buf[uint8]:0x<04 05 06>␤»
+    }
+=end code
+
+=head2 method readchars
+
+Defined as:
+
+    method readchars(IO::CatHandle:D: Int(Cool:D) $chars = 65536 --> Str:D)
+
+Returns a L<Str> of up to C<$chars> characters read from the handle.
+C<$chars> defaults to an implementation-specific value (in Rakudo, the value of
+C<$*DEFAULT-READ-ELEMS>, which by default is set to C<65536>).
+It is B<NOT> permitted to call this method on handles opened in binary
+mode and doing so will result in C<X::IO::BinaryMode> exception being thrown.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'Perl loves to';
+    (my $f2 = 'bar'.IO).spurt: ' meow';
+
+    with IO::CatHandle.new: $f1, $f2 {
+        say .readchars: 11;   # OUTPUT: «Perl loves ␤»
+        say .readchars: 1000; # OUTPUT: «to meow␤»
+    }
+=end code
+
+=head2 method seek
+
+Defined as:
+
+    method seek(IO::CatHandle:D: |c)
+
+Calls L«C<.seek>|/type/IO::Handle#method_seek» on the currently active source
+handle, forwarding it all the arguments, and returns the result.
+Returns L<Nil> if the L<source handle
+queue has been exhausted|/type/IO::CatHandle#method_next-handle>.
+B<NOTE:> this method does I<NOT> perform any source handle switching, so
+seeking past the end of the current source handle will I<NOT> seek to the next
+source handle in the queue and seeking past the beginning of the current
+source handle is a fatal error. Also see
+L«C<.next-handle>|/type/IO::CatHandle#method_next-handle», to learn the
+details on when source handles are switched.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+
+    with IO::CatHandle.new: $f1, $f2 {
+        .get.say;                     # OUTPUT: «foo␤»
+        .seek: -2, SeekFromCurrent;
+        .readchars(2).say;            # OUTPUT: «oo␤»
+        .seek: 1000, SeekFromCurrent; # this doesn't switch to second handle!
+        .readchars(3).say;            # OUTPUT: «bar␤»
+        try .seek: -4;                # this won't seek to previous handle!
+        say ~$!;                      # OUTPUT: «Failed to seek in filehandle: 22␤»
+    }
+=end code
+
+=head2 method tell
+
+Defined as:
+
+    method tell(IO::CatHandle:D: --> Int:D)
+
+Calls L«C<.tell>|/type/IO::Handle#method_tell» on the currently active source
+handle and returns the result. Returns L<Nil> if the L<source handle
+queue has been exhausted|/type/IO::CatHandle#method_next-handle>.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+
+    with IO::CatHandle.new: $f1, $f2 {
+        .get.say;                   # OUTPUT: «foo␤»
+        .tell.say;                  # OUTPUT: «3␤»
+        .seek: -2, SeekFromCurrent;
+        .tell.say;                  # OUTPUT: «1␤»
+        say .readchars: 3;          # OUTPUT: «oob␤»
+         .tell.say;                 # OUTPUT: «2␤»
+    }
+=end code
+
+=head2 method slurp
+
+Defined as:
+
+    method slurp(IO::CatHandle:D:)
+
+Reads all of the available input from all the source handles and returns it
+as a L<Buf> if the handle is in
+L<binary mode|/type/IO::CatHandle#method_encoding> or as a L<Str> otherwise.
+Returns L<Nil> if the L<source handle
+queue has been exhausted|/type/IO::CatHandle#method_next-handle>.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+
+    IO::CatHandle.new(      $f1, $f2).slurp.say; # OUTPUT: «foobar␤»
+    IO::CatHandle.new(:bin, $f1, $f2).slurp.say; # OUTPUT: «Buf[uint8]:0x<66 6f 6f 62 61 72>␤»
+    IO::CatHandle.new                .slurp.say; # OUTPUT: «Nil␤»
+=end code
+
+=head2 method split
+
+Defined as:
+
+    method split(IO::CatHandle:D: |args --> Seq:D)
+
+Read the handle and processes its contents the same way
+L«C<Str.split>|/type/Str» does, taking the same arguments. B<Implementations may
+slurp the contents of all the source handles> in their entirety when this method
+is called.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+    IO::CatHandle.new($f1, $f2).split(/o+/).perl.say;
+    # OUTPUT: «("f", "bar").Seq␤»
+=end code
+
+=head2 method Str
+
+Defined as:
+
+    method Str(IO::CatHandle:D: --> Str:D)
+
+Calls L«C<.Str>|/type/IO::Handle#method_Str» on the currently active source
+handle and returns the result. If the L<source handle
+queue has been exhausted|/type/IO::CatHandle#method_next-handle>, returns
+an implementation-defined string (C«'<closed IO::CatHandle>'» in Rakudo).
+
+=head2 method Supply
+
+Defined as:
+
+    method Supply(IO::CatHandle:D: :$size = 65536 --> Supply:D)
+
+Returns a L<Supply> fed with either
+L«C<.read>|/type/IO::CatHandle#method_read», if the handle is in
+L<binary mode|/type/IO::CatHandle#method_encoding>, or with
+L«C<.readchars>|/type/IO::CatHandle#method_readchars», if it isn't, with
+reads of C<:$size> bytes or characters. C<:$size> defaults to an implementation-specific value (in Rakudo, the value of
+C<$*DEFAULT-READ-ELEMS>, which by default is set to C<65536>).
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    (my $f2 = 'bar'.IO).spurt: 'bar';
+    react whenever IO::CatHandle.new($f1, $f2).Supply: :2size {.say}
+    # OUTPUT: «fo␤ob␤ar␤»
+
+    react whenever IO::CatHandle.new(:bin, $f1, $f2).Supply: :2size {.say}
+    # OUTPUT: «Buf[uint8]:0x<66 6f>␤Buf[uint8]:0x<6f 62>␤Buf[uint8]:0x<61 72>␤»
+=end code
+
+=head2 method t
+
+Defined as:
+
+    method t(IO::CatHandle:D: --> Bool:D)
+
+Calls L«C<.t>|/type/IO::Handle#method_t» (tells if the handle is a TTY)
+on the currently active source handle and returns the result.
+If the L<source handle queue has been
+exhausted|/type/IO::CatHandle#method_next-handle>, returns C<False>.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo';
+    with IO::CatHandle.new: $f1, $*IN {
+        repeat { .t.say } while .next-handle; # OUTPUT: «False␤True␤»
+    }
+=end code
+
+=head2 method unlock
+
+Defined as:
+
+    method unlock(IO::CatHandle:D:)
+
+Same as L«C<IO::Handle.unlock>|/type/IO::Handle#method_lock». Returns L<Nil>
+if the L<source handle queue has been
+exhausted|/type/IO::CatHandle#method_next-handle>.
+
+Unlocks only the currently active source handle. The
+L«C<.on-switch>|/type/IO::CatHandle#method_on-switch» L<Callable> can be
+used to conveniently lock/unlock the handles as they're being processed
+by the CatHandle.
+
+=head2 method words
+
+Defined as:
+
+    method words(IO::CatHandle:D: $limit = Inf, :$close --> Seq:D)
+
+Same as L«C<IO::Handle.words>|/type/IO::Handle#routine_words» (including
+the caveat about more data read than needed to make some number of words).
+Note that a boundary between source handles is considered to be word boundary.
+
+=begin code :skip-test
+    (my $f1 = 'foo'.IO).spurt: 'foo bar';
+    (my $f2 = 'bar'.IO).spurt: 'meow';
+    IO::CatHandle.new($f1, $f2).words.perl.say;
+    # OUTPUT: «("foo", "bar", "meow").Seq␤»
+=end code
+
+=head1 NYI Methods
+
+In Rakudo, the L<IO::CatHandle> type overrides these methods to throw C<X::NYI>
+exception. If you have a good idea for how these methods should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method flush
+
+Defined as:
+
+    multi method flush(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method nl-out
+
+Defined as:
+
+    multi method nl-out(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method print
+
+Defined as:
+
+    multi method print(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method printf
+
+Defined as:
+
+    multi method printf(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method print-nl
+
+Defined as:
+
+    multi method print-nl(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method put
+
+Defined as:
+
+    multi method put(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method say
+
+Defined as:
+
+    multi method say(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method write
+
+Defined as:
+
+    multi method write(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers
+about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
