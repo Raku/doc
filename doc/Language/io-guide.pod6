@@ -95,6 +95,7 @@ could note the L«C<spurt> documentation|/routine/spurt» mentions C<:append>
 argument. However, for finer control, let's get ourselves an L<IO::Handle>
 to work with:
 
+=for code :skip-test
     my $fh = 'my-file.txt'.IO.open: :a;
     $fh.print: "I count: ";
     $fh.print: "$_ " for ^10;
@@ -124,6 +125,92 @@ the handles may cause your program to reach the file limit I<before> the open
 handles get a chance to get garbage collected.
 
 =head3 Reading from files
+
+=head4 Using IO::Path
+
+We've seen in previous sections that writing stuff to files is a single-line
+of code in Perl 6. Reading from them, is similarly easy:
+
+=for code :skip-test
+    say 'my-file.txt'.IO.slurp;        # OUTPUT: «I ♥ Perl!␤»
+    say 'my-file.txt'.IO.slurp: :bin;  # OUTPUT: «Buf[uint8]:0x<49 20 e2 99 a5 20 50 65 72 6c 21>␤»
+
+The L«C<.slurp>|/routine/slurp» method reads entire contents of the file
+and returns them as a single L<Str> object, or as a L<Buf> object, if binary
+mode was requested, by specifying C<:bin> named argument.
+
+Since L«slurping|/routine/slurp» loads the entire file into memory, it's not
+ideal for working with huge files.
+
+The L<IO::Path> type offers two other handy methods:
+L«C<.words>|/type/IO::Path#method_words» and
+L«C<.lines>|/type/IO::Path#method_lines» that lazily read the file in smaller
+chunks and return L<Seq> objects that (by default) don't keep already-consumed
+values around.
+
+Here's an example that finds lines in a text file that mention Perl and prints
+them out. Despite the file itself being too large to fit into available
+L<RAM|https://en.wikipedia.org/wiki/Random-access_memory>, the program will
+not have any issues running, as the contents are processed in small chunks:
+
+=for code :skip-test
+    .say for '500-PetaByte-File.txt'.IO.lines.grep: *.contains: 'Perl';
+
+Here's another example that prints the first 100 words from a file, without
+loading it entirely:
+
+=for code :skip-test
+    .say for '500-PetaByte-File.txt'.IO.words: 100
+
+Note that we did this by passing a limit argument to
+L«C<.words>|/type/IO::Path#method_words» instead of, say, using
+L<a list indexing operation\/language/operators#index-entry-array_indexing_operator-array_subscript_operator-array_indexing_operator>.
+The reason for that is there's still a file handle in use under the hood, and
+until you fully consume the returned L<Seq>, the handle will remain open.
+If nothing references the L<Seq>, eventually the handle will get closed, during
+a garbage collection run, but in large programs that work with a lot of files,
+it's best to ensure all the handles get closed right away. So, always ensure
+the L<Seq> from L<IO::Path>'s
+L«C<.words>|/type/IO::Path#method_words» and
+L«C<.lines>|/type/IO::Path#method_lines» methods is
+L<fully reified|/language/glossary#index-entry-Reify>; and the limit argument
+is there to help you with that.
+
+=head4 Using IO::Handle
+
+Of course, you can read from files using L<IO::Handle> type, which gives you
+a lot finer control over what you're doing:
+
+=begin code :skip-test
+    given 'some-file.txt'.IO.open {
+        say .readchars: 8;  # OUTPUT: «I ♥ Perl␤»
+        .seek: 1, SeekFromCurrent;
+        say .readchars: 15;  # OUTPUT: «I ♥ Programming␤»
+        .close
+    }
+=end code
+
+The L<IO::Handle> gives you
+L«.read|/type/IO::Handle#method_read»,
+L«.readchars|/type/IO::Handle#method_readchars»,
+L«.get|/type/IO::Handle#routine_get»,
+L«.getc|/type/IO::Handle#method_getc»,
+L«.words|/type/IO::Handle#routine_words»,
+L«.lines|/type/IO::Handle#routine_lines»,
+L«.slurp|/type/IO::Handle#routine_slurp»,
+L«.comb|/type/IO::Handle#method_comb»,
+L«.split|/type/IO::Handle#method_split»,
+and L«.Supply|/type/IO::Handle#method_Supply»
+methods to read data from it. Plenty of
+options; and the catch is you need to close the handle when you're done with it.
+
+Unlike some languages, the handle won't get automatically closed when the
+scope it's defined in is left. Instead, it'll remain open until it's garbage
+collected. To make the closing business easier, some of the methods let you
+specify C<:close> argument, you can also use
+L«C<will leave> trait|/language/phasers#index-entry-will_trait», or the
+C<does auto-close> trait provided by
+L«C<Trait::IO>|https://modules.perl6.org/dist/Trait::IO» module.
 
 =head1 The Wrong Way To Do Things
 
