@@ -241,125 +241,27 @@ say "Hi, $name! Nice to meet you!";
 
 =head2 sub open
 
-=for code :skip-test
-my $fh = open(IO::Path() $path, :$r, :$w, :$a, :$rw,
-              :$bin, :$enc, :$nl-in, :$nl-out, :$chomp)
+    multi sub open(IO() $path, |args --> IO::Handle:D)
 
-Opens the C<$path> (by default in text mode) with the given options,
-returning an L<IO::Handle> object. In order to close the L<IO::Handle>
-one needs to call L<close|/routine/close> explicitly or use a L<LEAVE|/syntax/LEAVE>
-phaser.
+Creates L<a handle|/type/IO::Handle> with the given C<$path>, and calls
+L«C<IO::Handle.open>|/type/IO::Handle», passing any of the remaining arguments
+to it. Note that L<IO::Path> type provides numerious methods for reading and
+writing from files, so in many common cases you do not need to C<open> files
+or deal with L<IO::Handle> type directly.
 
-=head3 File mode options
+=begin code :skip-test
+    my $fh = open :w, '/tmp/some-file.txt';
+    $fh.say: 'I ♥ writing Perl code';
+    $fh.close;
 
-=item read-only mode, C<:r>
+    $fh = open '/tmp/some-file.txt';
+    print $fh.readchars: 4;
+    $fh.seek: 7, SeekFromCurrent;
+    say $fh.readchars: 4;
+    $fh.close;
 
-Open the file as read only, e.g.:
-
-=for code :skip-test
-my $fh = open("path/to/file", :r);
-
-This is the default mode for C<open>.
-
-Write-related methods on the returned C<IO::Handle> object will fail in this
-mode:
-
-    my $fh = open("test");   # the file "test" already exists
-    $fh.print("new text\n"); # fails
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::AdHoc: Failed to write bytes to filehandle: bad file descriptor␤»
-
-=item write-only mode, C<:w>
-
-Open the file for writing, creating it if it doesn't exist or overwriting
-the file if it does exist, e.g.:
-
-    my $fh = open("path-to-file", :w);
-
-Read-related methods will fail in this mode:
-
-    my $fh = open("test", :w);
-    $fh.print("stuff\n");
-    $fh.print("more stuff\n");
-    $fh.seek(0);      # return to the start of the file
-    $fh.get();        # fails
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «Reading from filehandle failed: bad file descriptor␤»
-
-=item read-write mode, C<:rw>
-
-Open the file for reading and writing, creating the file if it doesn't
-exist or overwriting the file if it already exists.
-
-    my $fh = open("path-to-file", :rw);
-
-=item append mode, C<:a>
-
-Open the file for appending.  If the file does not exist, create it.  If the
-file already exists, append data to it.
-
-    my $fh = open("path-to-file", :a);
-
-=head3 Encoding options
-
-=item binary mode, C<:bin>
-
-Open the file in binary mode (byte mode):
-
-    my $fh = open("path-to-file", :bin);
-
-A file opened with C<:bin> may still be processed line-by-line, but IO will
-be in terms of L<Buf|/type/Buf> rather than L<Str|/type/Str> types.  Default
-is C<False>, implying text semantics.
-
-=item text mode encoding, C<:enc>
-
-The encoding to use if opened in text mode.
-
-    my $fh1 = open 'path-to-file';                # default, utf-8
-    my $fh2 = open 'path-to-file', :enc<latin-1>; # explicit, latin-1
-
-Defaults to C<utf8>. Attempting to set the encoding while C<:bin> is true
-will cause C<X::IO::BinaryAndEncoding> exception to be thrown. Note that
-specifying L<Str> type object or C<Nil> as encoding is the same as not
-specifying the argument at all; use C<:bin> argument if you want to enable
-binary mode.
-
-The values are case-insensitive. The available encodings
-vary by implementation and backend. On Rakudo MoarVM the following are
-supported:
-
-=for code :skip-test
-  utf8
-  utf16
-  utf8-c8
-  iso-8859-1
-  windows-1252
-  ascii
-
-Implementation may choose to also provide support for aliases, e.g. Rakudo
-allows aliases C<latin-1> for C<iso-8859-1> encoding and dashed utf versions:
-C<utf-8> and C<utf-16>.
-
-=head3 Newline options
-
-=item end-of-line (EOL) marker, C<:nl-in>, C<:nl-out>
-
-C<nl-in> is the marker used to indicate the end of a line of
-text. Only used in text mode. Defaults to C<["\n", "\r\n"]> and does
-not include C<"\r">. C<nl-out> defaults to C<"\n">.
-
-    # explicitly use CR-LF as EOL character
-    my $fh = open("path-to-file", nl-in => "\r\n");
-
-=item chomp mode, C<:chomp>
-
-Whether or not to remove newline characters from text obtained with
-C<.lines> and C<.get>.  Defaults to C<True>.
-
-    # don't remove newline characters from input
-    my $fh = open("path-to-file", chomp => False);
-    say $fh.get();     # returns line including newline char
+    # OUTPUT: «I ♥ Perl␤»
+=end code
 
 =head2 sub slurp
 

@@ -8,6 +8,67 @@
 
 =head1 Methods
 
+=head2 method open
+
+Defined as:
+
+    method open(IO::Handle:D: :$r, :$w, :$x, :$a, :$update, :$rw, :$rx, :$ra, Str :$mode, :$create, :$append, :$truncate, :$exclusive, :$bin, :$enc, :$chomp = $!chomp, :$nl-in = $!nl-in, Str:D :$nl-out = $!nl-out --> IO::Handle:D)
+
+Opens the handle in one of the modes. L<Fails|/routine/fail> with appropriate
+exception if the open fails.
+
+See description of individual methods for the accepted values and behaviour
+of L«C<:$chomp>|/type/IO::Handle#method_chomp»,
+L«C<:$nl-in>|/type/IO::Handle#method_nl-in»,
+L«C<:$nl-out>|/type/IO::Handle#method_nl-out», and
+L«C<:$enc>|/type/IO::Handle#method_encoding». The values for parameters default
+to the invocant attributes and if any of them are provided, the attributes will
+be updated to the new values. Specify C<:$bin> set to C<True> instead of
+C<:$enc> to indicate the handle should be opened in binary mode. Specifying
+undefined value as C<:$enc> is equivalent to not specifying C<:$enc> at all.
+Specifying both a defined encoding as C<:$enc> and C<:$bin> set to true will
+cause C<X::IO::BinaryAndEncoding> exception to be thrown.
+
+The open mode defaults to non-exclusive, read only (same as specifying
+C<:r>) and can be controlled by a mix of the following arguments:
+
+=begin code :skip-test
+    :r      same as specifying   :mode<ro>
+
+    :w      same as specifying   :mode<wo>, :create, :truncate
+    :a      same as specifying   :mode<wo>, :create, :append
+    :x      same as specifying   :mode<wo>, :create, :exclusive
+
+    :update same as specifying   :mode<rw>
+    :rw     same as specifying   :mode<rw>, :create
+    :ra     same as specifying   :mode<rw>, :create, :append
+    :rx     same as specifying   :mode<rw>, :create, :exclusive
+=end code
+
+Support for combinations of modes I<other> than what is listed above
+is implementation-dependent and should be assumed unsupported. That is,
+specifying, for example, C<.open(:r :create)> or
+C<.open(:mode<wo> :append :truncate)> might work or might cause the Universe
+to implode, depending on a particular implementation.
+
+The mode details are:
+
+=begin code
+    :mode<ro>  means "read only"
+    :mode<wo>  means "write only"
+    :mode<rw>  means "read and write"
+
+    :create    means the file will be created, if it does not exist
+    :truncate  means the file will be emptied, if it exists
+    :exclusive means .open will fail if the file already exists
+    :append    means writes will be done at the end of file's current contents
+=end code
+
+Attempts to open a directory, write to a handle opened in read-only mode
+or read from a handle opened in write-only mode,
+or using text-reading methods on a handle opened in binary mode will
+fail or throw.
+
 =head2 method comb
 
 Defined as:
@@ -148,6 +209,22 @@ the handle, defaulting to C<"utf8">. C<Nil> indicates the file handle is
 currently in binary mode. Specifying an optional positional C<$enc> argument
 switches the encoding used by the handle; specify C<Nil> as encoding to put the
 handle into binary mode.
+
+The accepted values for encoding are case-insensitive. The available encodings
+vary by implementation and backend. On Rakudo MoarVM the following are
+supported:
+
+=for code :skip-test
+  utf8
+  utf16
+  utf8-c8
+  iso-8859-1
+  windows-1252
+  ascii
+
+Implementation may choose to also provide support for aliases, e.g. Rakudo
+allows aliases C<latin-1> for C<iso-8859-1> encoding and dashed utf versions:
+C<utf-8> and C<utf-16>.
 
 =begin code :skip-test
     with 'foo'.IO {
