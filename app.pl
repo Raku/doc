@@ -1,9 +1,9 @@
 #!/usr/bin/env perl
 
 use File::Spec::Functions 'catfile';
-use Mojolicious 6.58;
+use Mojolicious 7.31;
 use Mojolicious::Lite;
-use Mojo::Util qw/spurt/;
+use Mojo::File qw/path/;
 
 app->static->paths(['html']);
 
@@ -20,8 +20,8 @@ if ( eval { require Mojolicious::Plugin::AssetPack; 1; } ) {
     app->log->debug(
         "Processing SASS and copying the results over to $style_sheet..."
     );
-    spurt app->asset->processed('app.css')->map("content")->join
-        => $style_sheet;
+    path($style_sheet)->spurt(
+        app->asset->processed('app.css')->map("content")->join);
     app->log->debug('...Done');
 }
 else {
