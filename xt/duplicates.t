@@ -51,14 +51,14 @@ for @files -> $file {
         $line = $last-word ~ " " ~ $line;
         $last-word = "";
 
-        next if $in-code; 
+        next if $in-code;
 
         my @line-dupes = ($line ~~ m:g/:i << (<alpha>+) >> \s+ << $0 >> /).map(~*[0]);
         for @line-dupes -> $dupe {
             next if $safe-dups ∋ ~$dupe[0];
             @dupes.push: "“" ~ $dupe[0] ~ "” on line $line-num";
         }
-        
+
         next if $is-pod;
         $line ~~ m/ << (<alpha>+) \s* $/;
         if ?$/ {
