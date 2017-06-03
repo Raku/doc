@@ -41,7 +41,7 @@ tightest to loosest:
     X  Comma operator    , :
     X  List infix        Z minmax X X~ X* Xeqv ...
     R  List prefix       print push say die map substr ... [+] [*] any Z=
-    X  Loose and         and andthen
+    X  Loose and         and andthen notandthen
     X  Loose or          or xor orelse
     X  Sequencer         <==, ==>, <<==, ==>>
     N  Terminator        ; {...}, unless, extra ), ], }
@@ -2213,10 +2213,52 @@ the operator.
 
 The C<andthen> operator is a close relative of
 L«C<with> statement modifier|/syntax/with orwith without», and some compilers
-compile C<with> to C<andthen>, meaning these two lines have equivalent behaviour:
+compile C<with> to C<andthen>, meaning these two lines have equivalent
+behaviour:
 
     .say with 42;
     42 andthen .say;
+
+=head2 infix C«notandthen»
+
+Returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
+the first L<defined|/routine/defined> argument, otherwise the last argument.
+Last argument is returned as-is, without being checked for definedness at all.
+Short-circuits. The result of the left side is bound to C<$_> for the
+right side, or passed as arguments if the right side is a
+L«C<Callable>|/type/Callable», whose L<count> must be C<0> or C<1>.
+
+At first glance, L<notandthen> might appear to be the same thing as L<orelse>
+operator. The difference is subtle: L<notandthen> returns
+L«C<Empty>|/type/Slip#index-entry-Empty-Empty» when it encounters a
+L<defined> item (that isn't the last item), whereas L<orelse> returns that
+item. In other words, L<notandthen> is a means to act when items aren't
+defined, whereas L<orlese> is a means to obtain the first defined item:
+
+=begin code
+    sub all-sensors-down     { [notandthen] |@_, True             }
+    sub first-working-sensor { [orelse]     |@_, 'default sensor' }
+
+    all-sensors-down Nil, Nil, Nil
+      and say 'OMG! All sensors are down!'; # OUTPUT:«OMG! All sensors are down!␤»
+    say first-working-sensor Nil, Nil, Nil; # OUTPUT:«default sensor␤»
+
+    all-sensors-down Nil, 42, Nil
+      and say 'OMG! All sensors are down!'; # No output
+    say first-working-sensor Nil, 42, Nil;  # OUTPUT:«42␤»
+=end code
+
+The C<andthen> operator is a close relative of
+L«C<without> statement modifier|/syntax/with orwith without», and some compilers
+compile C<without> to C<notandthen>, meaning these two lines have equivalent
+behaviour:
+
+=begin code
+    sub good-things { fail }
+
+    'boo'.say without good-things;
+    good-things() notandthen 'boo'.say;
+=end code
 
 =head1 Loose OR Precedence
 
