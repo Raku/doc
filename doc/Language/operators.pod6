@@ -2227,10 +2227,33 @@ to misuse, see L<traps|/language/traps#Loose_boolean_operators>.
 
 =head2 infix C«orelse»
 
-Similar to C<infix //>. Returns the first defined argument, or else the
-last argument. Short-circuits. The result of the left side is bound to $_ for the
-right side, or passed as arguments if the right side is a
-L«C<Callable>|/type/Callable».
+Similar to C<infix //>, except with looser precendence and C<$_> aliasing.
+
+Returns the first defined argument, or else the last argument. Last argument
+is returned as-is, without being checked for definedness at all.
+Short-circuits. The result of the left side is bound to
+C<$_> for the right side, or passed as an argument if the right side is a
+L«C<Callable>|/type/Callable», whose L<count> must be C<0> or C<1>.
+
+This operator is useful to handle L<Failures|/type/Failure> returned by
+routines, since more often than not, the expected value would be L<defined>,
+while a L<Failure> never is:
+
+    sub meows { ++$ < 4 ?? fail 'out of meows!' !! '🐱' }
+
+    sub meows-processor1 { meows() orelse .return } # return handled Failure
+    sub meows-processor2 { meows() orelse .&fail  } # return re-armed Failure
+    sub meows-processor3 {
+        # Use non-Failure output, or else print a message that stuff's wrong
+        meows() andthen .say orelse ‘something's wrong’.say;
+    }
+
+    say "{.^name}, {.handled}"  # OUTPUT: «Failure, True␤»
+        given meows-processor1;
+    say "{.^name}, {.handled}"  # OUTPUT: «Failure, False␤»
+        given meows-processor2;
+    meows-processor3;           # OUTPUT: «something's wrong␤»
+    meows-processor3;           # OUTPUT: «🐱␤»
 
 =head1 Sequencer Precedence
 
