@@ -13,16 +13,39 @@ sequence. Users usually don't have to care about iterators, their usage
 is hidden behind iteration APIs such as C<for @list { }>, L<map>, L<grep>
 and list indexing with C<.[$idx]>.
 
-Iterators generally only allow one iteration over the sequence; afterwards
-they are exhausted.
-
 The main API is the C<pull-one> method, which either returns the next value,
 or the sentinel value C<IterationEnd> if no more elements are available. Each
 class implementing C<Iterator> must provide a C<pull-one> method. All other
 Iterator API methods can be implemented in terms of C<pull-one>, but also
 overridden for performance reasons.
 
-Note: The only valid use of the sentinel value C<IterationEnd> in a program
+=head1 IterationEnd
+
+Iterators only allow one iteration over the entire sequence. It's forbidden
+to make attempts to fetch more data, once C<IterationEnd> has been generated,
+and behaviour for doing so is undefed. For example, the following L<Seq>
+will not cause the L<die> to be called under normal use, because
+L<pull-one> will never be called after it returns C<IterationEnd>:
+
+=for code :skip-test
+    my $seq = Seq.new: class :: does Iterator {
+        method pull-one {
+            state $x = 2;
+            $x or die "You're under arrest for violation of Iterator protocol!";
+            --$x ?? $x !! IterationEnd
+        }
+    }.new;
+    .pull-one.say xx 10 with $seq.iterator;
+
+    # 1
+    #
+    # You're under arrest for violation of Iterator protocol!
+    #   in method pull-one at foo.p6 line 4
+    #   in block  at foo.p6 line 8
+    #   in block <unit> at foo.p6 line 8
+=end code
+
+The only valid use of the sentinel value C<IterationEnd> in a program
 is identity comparison (using C<=:=>) with the result of a method in the
 iterator API. Any other behavior is undefined and implementation dependent.
 
