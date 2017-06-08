@@ -137,7 +137,7 @@ C<BUILDALL> mechanism instead:
 (Note that C<BUILDALL> is a method, not a submethod. That's because by
 default, there is only one such method per class hierarchy, whereas C<BUILD>
 is explicitly called per class. Which also explains why you need the
-C<nextsame> inside C<BUILDALL>, but not inside C<BUILD>).
+C<callsame> inside C<BUILDALL>, but not inside C<BUILD>).
 
 =head1 Regexes
 
@@ -244,8 +244,15 @@ Interpolation in string literals can be too clever for your own good.
     "$foo(" ~ @args ~ ")" # Perl 6 understands that as:
     $foo( ~ @args ~ ")"   # and will produce very confusing error messages
 
-You can avoid those problems by surrounding all variables with C<{}>, with or
-without using C<Q:c> as your quoting construct.
+You can avoid those problems using non-interpolating single quotes and switching
+to more liberal interpolation with C<\qq[]> escape sequence:
+
+    my $a = 1;
+    say '\qq[$a]()$b()';
+    OUTPUT: «1()$b()␤»
+
+Another alternative is to use C<Q:c> quoter, and use code blocks C<{}> for
+all interpolation:
 
     my $a = 1;
     say Q:c«{$a}()$b()»;
@@ -257,6 +264,34 @@ There are methods that Str inherits from Any that work on iterables like lists. 
 
     say "cba".sort;              # OUTPUT: «(cba)␤» (what is wrong)
     say "cba".comb.sort.join;    # OUTPUT: «abc␤»
+
+=head2 IO::Path Stringification
+
+Partly for historical reasons and partly by design, an L<IO::Path> object
+L<stringifies|/type/IO::Path#method_Str> without considering its
+L«C<CWD> attribute|/type/IO::Path#attribute_CWD», which means if you L<chdir>
+and then stringify an L<IO::Path>, the resultant string won't reference
+the original filesystem object:
+
+=begin code
+    with 'foo'.IO {
+        .Str.say;       # OUTPUT: «foo␤»
+        .relative.say;  # OUTPUT: «foo␤»
+
+        chdir "/tmp";
+        .Str.say;       # OUTPUT: «foo␤»
+        .relative.say   # OUTPUT: «../home/camelia/foo␤»
+    }
+=end code
+
+The easy way to avoid this issue is to not stringify an L<IO::Path> object at all.
+Core routines that work with paths can take an L<IO::Path> object, so you don't
+need to stringify the paths.
+
+If you do have a case where you need a stringified version of an L<IO::Path>, use
+L<absolute> or L<relative> methods to stringify it into an absolute or relative
+path, respectively.
+
 
 =head1 Operators
 

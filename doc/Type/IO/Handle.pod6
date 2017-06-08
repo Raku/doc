@@ -12,7 +12,14 @@
 
 Defined as:
 
-    method open(IO::Handle:D: :$r, :$w, :$x, :$a, :$update, :$rw, :$rx, :$ra, Str :$mode, :$create, :$append, :$truncate, :$exclusive, :$bin, :$enc, :$chomp = $!chomp, :$nl-in = $!nl-in, Str:D :$nl-out = $!nl-out --> IO::Handle:D)
+=for code :skip-test
+    method open(IO::Handle:D:
+        :$bin, :$enc, :$chomp, :$nl-in, Str:D :$nl-out,
+        Str :$mode,
+        :$r, :$w, :$a, :$x, :$update, :$rw, :$rx, :$ra,
+        :$create, :$append, :$truncate, :$exclusive,
+        --> IO::Handle:D
+    )
 
 Opens the handle in one of the modes. L<Fails|/routine/fail> with appropriate
 exception if the open fails.
@@ -22,7 +29,7 @@ of L«C<:$chomp>|/type/IO::Handle#method_chomp»,
 L«C<:$nl-in>|/type/IO::Handle#method_nl-in»,
 L«C<:$nl-out>|/type/IO::Handle#method_nl-out», and
 L«C<:$enc>|/type/IO::Handle#method_encoding». The values for parameters default
-to the invocant attributes and if any of them are provided, the attributes will
+to the invocant's attributes and if any of them are provided, the attributes will
 be updated to the new values. Specify C<:$bin> set to C<True> instead of
 C<:$enc> to indicate the handle should be opened in binary mode. Specifying
 undefined value as C<:$enc> is equivalent to not specifying C<:$enc> at all.
@@ -68,6 +75,15 @@ Attempts to open a directory, write to a handle opened in read-only mode
 or read from a handle opened in write-only mode,
 or using text-reading methods on a handle opened in binary mode will
 fail or throw.
+
+B<Note:> unlike some other languages, Perl 6 does not use reference counting,
+and so B<the file handles are NOT closed when they go out of scope>. While
+they I<will> get closed when garbage collected, garbage collection isn't
+guaranteed to get run. This means B<you must> use an explicit C<close> on
+handles opened for writing, to avoid data loss, and an explicit C<close>
+is I<recommended> on handles opened for reading as well, so that your program
+does not open too many files at the same time, triggering exceptions on further
+C<open> calls.
 
 =head2 method comb
 
@@ -291,7 +307,7 @@ You can use C<lock> again to replace an existing lock with another one.
 Use L«C<close>|/routine/close» the filehandle or use
 L«C<unlock>|/routine/unlock» to remove a lock.
 
-=for code :skip-test
+=begin code :skip-test
 # One program writes, the other reads, and thanks to locks either
 # will wait for the other to finish before proceeding to read/write
 
@@ -308,6 +324,7 @@ given "foo".IO.open {
     .slurp.say; # OUTPUT: «I ♥ Perl 6!␤»
     .close;
 }
+=end code
 
 =head2 method unlock
 
