@@ -572,8 +572,62 @@ Use C<migrate> to join the values into a single supply again.
 
     method migrate(Supply:D: --> Supply:D)
 
-Creates a supply that acts like the last supply emitted to the given supply
-of supplies (usually created with C<start>).
+Takes a Supply which itself has values that are of type Supply as input. Each
+time the outer Supply emits a new Supply, this will be tapped and its values
+emitted. Any previously tapped Supply will be closed. This is useful for migrating
+between different data sources, and only paying attention to the latest one.
+
+For example, imagine an application where the user can switch between different
+stocks. When they switch to a new one, a connection is established to a web socket
+to get the latest values, and any previous connection should be closed. Each stream
+of values coming over the web socket would be represented as a Supply, which
+themselves are emitted into a Supply of latest data sources to watch.
+The migrate method could be used to flatten this supply of supplies into a single
+Supply of the current values that the user cares about.
+
+Here is a simple simulation of such a program:
+
+=begin code :skip-test
+my Supplier $stock-sources .= new;
+
+sub watch-stock($symbol) {
+    $stock-sources.emit: supply {
+        say "Starting to watch $symbol";
+        whenever Supply.interval(1) {
+            emit "$symbol: 111." ~ 99.rand.Int;
+        }
+        CLOSE say "Lost interest in $symbol";
+    }
+}
+
+$stock-sources.Supply.migrate.tap: *.say;
+
+watch-stock('GOOG');
+sleep 3;
+watch-stock('AAPL');
+sleep 3;
+
+$stock-sources.Supply.migrate.tap: *.say;
+
+watch-stock('GOOG');
+sleep 3;
+watch-stock('AAPL');
+sleep 3;
+=end code
+
+Which produces output like:
+
+=begin code
+Starting to watch GOOG
+GOOG: 111.67
+GOOG: 111.20
+GOOG: 111.37
+Lost interest in GOOG
+Starting to watch AAPL
+AAPL: 111.55
+AAPL: 111.6
+AAPL: 111.6
+=end code
 
 =head1 Methods that combine supplies
 
