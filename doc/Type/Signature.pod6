@@ -49,7 +49,7 @@ closure.
 
     f(&won't-work);
     CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::AdHoc: Constraint type check failed for parameter '&c'␤»
+    # OUTPUT: «X::TypeCheck::Binding::Parameter: Constraint type check failed in binding to parameter '&c'␤»
 
     f(-> Int { 'this works too' } );
 
@@ -188,7 +188,7 @@ can be used to that effect.
     f(42);
     f(<a>);
     CATCH { default { say .^name, ' ==> ', .Str }  }
-    # OUTPUT: «[42]␤Constraint type check failed for parameter '@a'␤  in sub f at ...»
+    # OUTPUT: «[42]␤Constraint type check failed in binding to parameter '@a' ...»
 
 =head3 Constraining named Arguments
 
@@ -198,7 +198,7 @@ part of the L<colon-pair|/type/Pair>.
     sub f(Int :$i){};
     f :i<forty-two>;
     CATCH { default { say .^name, ' ==> ', .Str }  }
-    # OUTPUT: «X::TypeCheck::Binding ==> Type check failed in binding to $i; expected Int but got Str ("forty-two")␤»
+    # OUTPUT: «X::TypeCheck::Binding::Parameter ==> Type check failed in binding to parameter '$i'; expected Int but got Str ("forty-two")␤»
 
 =head3 X<Constraining Defined and Undefined Values|
          type constraint,:D;type constraint,:U;type constraint,:_>
@@ -210,11 +210,10 @@ correct type.
         my @lines = $s.lines;
         @lines[0 .. min @lines.elems, $limit].join("\n")
     }
-    say (limit-lines "a \n b \n c \n d \n", 3).perl; # "a \n b \n c "
+    say (limit-lines "a \n b \n c \n d \n", 3).perl; # "a \n b \n c \n d "
     say limit-lines Str, 3;
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::Multi::NoMatch: Cannot resolve caller lines(Str: ); none of these signatures match:
-    #     (Cool:D $: |c is raw)
     #     (Str:D $: :$count!, *%_)
     #     (Str:D $: $limit, *%_)
     #     (Str:D $: *%_)»
@@ -226,8 +225,8 @@ use the C<:D> type constraint.
     sub limit-lines(Str:D $s, Int $limit) { };
     say limit-lines Str, 3;
     CATCH { default { put .^name ~ '--' ~~ .Str } };
-    # OUTPUT: «X::AdHoc--Parameter '$s' requires an instance of type Str, but a
-    #           type object was passed.  Did you forget a .new?»
+    # OUTPUT: «Parameter '$s' of routine 'limit-lines' must be an object instance of type 'Str',
+    #          not a type object of type 'Str'.  Did you forget a '.new'?»
 
 This is much better than the way the program failed before, since here the
 reason for failure is clearer.
@@ -267,7 +266,7 @@ and passed on down the call chain.
     sub foo(--> Int) { Nil };
     say foo.perl; # OUTPUT: «Nil␤»
 
-Type captures and coercion types are not supported.
+Type captures are not supported.
 
 =item C<-->>
 
@@ -327,7 +326,7 @@ C<of> is just the real name of the C<returns> keyword.
 =item prefix(C-like) form
 
 This is similar to placing type constraints on variables like C<my Type $var = 20;>,
-except the $var is a definition for a routine.
+except the C<$var> is a definition for a routine.
 
     =begin code :skip-test
     my Int sub bar { 1 };     # Valid
@@ -348,7 +347,7 @@ be omitted.
     augment class Str { method Date() { Date.new(self) } };
     sub foo(Date(Str) $d) { say $d.WHAT; say $d };
     foo "2016-12-01";
-    # OUTPUT: «Date.new(2016,11,1)␤»
+    # OUTPUT: «(Date)␤2016-12-01␤»
 
 =head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%,slurpy argument (Signature)>
 
@@ -525,17 +524,17 @@ L<Pair|/type/Pair> with C<|> to turn it into a named argument.
     multi f(:$named) { note &?ROUTINE.signature };
     multi f(:$also-named) { note &?ROUTINE.signature };
     for 'named', 'also-named' -> $n {
-        f(|($n => rand))                    # RESULT: «(:$named)␤(:$also-named)␤»
+        f(|($n => rand))                    # OUTPUT: «(:$named)␤(:$also-named)␤»
     }
 
     my $pair = :named(1);
-    f |$pair;                               # RESULT: «(:$named)␤»
+    f |$pair;                               # OUTPUT: «(:$named)␤»
 
 The same can be used to convert a C<Hash> into named arguments.
 
     sub f(:$also-named) { note &?ROUTINE.signature };
     my %pairs = also-named => 4;
-    f |%pairs;                              # «(:$also-named)␤»
+    f |%pairs;                              # OUTPUT: «(:$also-named)␤»
 
 A C<Hash> that contains a list may prove problematic when slipped into named
 arguments. To avoid the extra layer of containers coerce to L<Map|/type/Map>
@@ -711,7 +710,7 @@ to the signature. Returns C<Inf> if there is a slurpy positional parameter.
 
 Whatever the Signature's return constraint is:
 
-    :($a, $b --> Int).returns # RESULT: «Int»
+    :($a, $b --> Int).returns # RESULT: «(Int)»
 
 =head2 method ACCEPTS
 
