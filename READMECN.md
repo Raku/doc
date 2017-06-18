@@ -23,105 +23,95 @@
 
 ## 使用
 
-With a Rakudo `perl6` executable in `PATH`, try
+通过Rakudo安装目录`perl6`可以运行
 
     ./bin/p6doc Type::Str
 
-to see the documentation for class `Str`, or
+查看类Str的文档，或者通过
 
     ./bin/p6doc Type::Str.split
 
-to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via `panda` or
-`zef`. You can also do
+查看类Str的方法split的文档。你可以跳过./bin部分，如果你通过panda或者zef安装了此模块的话
+你也可执行
 
     p6doc -f slurp
 
-to browse the documentation of standard functions. Depending on your
-disk speed and Rakudo version, it might take a while.
+
+来浏览标准函数的文档的，根据你硬盘的速度和Rakudo版本，这个命令可能要慢一点
 
 -------
 
-## Building the HTML documentation
+## 生成HTML文档
 
-Install dependencies by running the following in the checkout directory:
 
-    panda installdeps .       # if you use panda
-    zef --depsonly install .  # if you use zef
+在你项目checkout目录通过以下命令安装依赖包
 
-If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
-following, to update the shims for installed executables:
+    panda installdeps .       # panda
+    zef --depsonly install .  # zef
+
+如果你用的是[`rakudobrew`](https://github.com/tadzik/rakudobrew), 你也可以通过执行下面的命令能够
+升级各个模块。
 
     rakudobrew rehash
 
-In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running
+同时你也必须安装graphviz依赖,用来生成各种图形，在Debian系统你可以通过以下命令安装
 
     sudo apt-get install graphviz
 
-To build the documentation web pages, simply run
+通过以下命令生成文档的web页面：
 
     $ make html
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
 
+页面生成以后，你就可以在本地浏览。你通过以下命名启动app.pl的程序（Mojo程序）
+
     $ make run
 
-You can then view the examples documentation by pointing your web browser at
-[http://localhost:3000](http://localhost:3000).
+这样你就可以通过浏览器输入网址[http://localhost:3000](http://localhost:3000)浏览文档
 
-You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
-installed and you will need [nodejs](https://nodejs.org) to perform highlighting.
+注意：你必须安装了 [Mojolicious](https://metacpan.org/pod/Mojolicious)
+你还的需要[nodejs](https://nodejs.org)来实现高亮。
 
 ---------
 
-## Help Wanted!
+## 给予帮助!
 
-Perl 6 is not a small language, and documenting it takes a lot of effort.
-Any help is appreciated.
 
-Here are some ways to help us:
+Perl6工程 并非一个小项目，项目文档需要投入大量的人力精力，我们感谢你给予任何的帮助。
+您可以通过各种方式帮助我们:
 
- * add missing documentation for classes, roles, methods or operators
- * add usage examples to existing documentation
- * proofread and correct the documentation
- * tell us about missing documentation by opening issues on github.
- * Do a `git grep TODO` in this repository, and replace the TODO items by
-   actual documentation.
+ * 给类，角色，方法或者操作符等补充缺失的文档
+ * 给已有的文档补充使用实例
+ * 校对所有文档
+ * 通过github提交问题报告缺失的文档
+ * 通过本仓库的 `git grep TODO` ，找出TODO项并将其文档化
+ * 将本项目国际化（翻译成各国语言）
 
-[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
-documentation parts that are known to be missing and [CONTRIBUTING](CONTRIBUTING.md)
-explains briefly how to get started contributing documentation.
+[项目问题](https://github.com/perl6/doc/issues) 项目问题页面列出了当前的问题和已知缺失的文档
+和 [CONTRIBUTING](CONTRIBUTING.md) 简要说明如何开始提供文档。
 
 --------
 
-## Some notes:
+## 答疑解惑:
 
-**Q:** Why aren't you embedding the docs in the CORE sources?<br>
-**A:** Several reasons:
+**Q:** 为什么本文当没有嵌入到Perl6语言中?<br>
+**A:** 有几个原因:
 
-  1. This documentation is intended to be universal with
-     respect to a given version of the specification,
-     and not necessarily tied to any specific Perl 6
-     implementation.
-  2. Implementations' handling of embedded POD is still
-     a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the perl6 Github account invites
-     more potential contributors and editors.
+  1. 本文档的意在独立于给定版本，不于任何给定的perl6版本挂钩。 
+  2. POD的解析和嵌如项目还不是很稳定，为了避免对运行时造成影响。
+  3. 独立于perl6的Github仓库可以让更多的人参编辑做出贡献。
 
-**Q:** Should I include methods from superclasses or roles<br>
-**A:** No. The HTML version already includes methods from superclasses and
-       roles, and the `p6doc` script will be taught about those as well.
+**Q:** 我需要从superclasses或者roles中引入方法不<br>
+**A:** 不需要. HTML版本已经引入了所有的superclasses和roles方法,我们可以通过`p6doc`脚本学习之。
 
-**Q:** Which license is this stuff under?<br>
-**A:** Both code and documentation are available under the Artistic License 2.0
-       as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
-       text.
+**Q:** 项目的许可协议是?<br>
+**A:** 所有的代码和文档都基于the Artistic License 2.0 发行，查看[LICENSE](LICENSE)全文。
 
 --------
 
-## Vision
+## 版本
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
@@ -130,18 +120,18 @@ explains briefly how to get started contributing documentation.
 >
 >    -- moritz
 
+
+我希望p6doc和doc.perl6.org成为人们了解perl6特性的首要资源，不管是语言，内建类新和例程。我希望
+对每位perl6程序员和需要了解perl6的人都给予最大的版本
+                                                         -- moritz
 --------
 
-## Wishlist stuff:
+## 想要的格式:
 
- *  Perl 6 implementations could embed `P<...>` tags in their source
-    code that would then inline the corresponding entry from `p6doc`.
-    This would enable things like `&say.WHY` to (dynamically!)
-    retrieve the documentation string from `p6doc`, without having
-    to duplicate the documentation in the `CORE.setting` sources
-    or to encode the documentation into the binaries.
-
-    Example:
+ *  Perl6实现通过在源代码中嵌入`P<...>`，作为相应的p6doc入口，这将使诸如 `&say.WHY`的文档条目成动态获取！
+而，而不需要在 `CORE.setting`资源中复制这些文档或者将其编码到二进制文件中。
+    
+     例如:
 
         # In Rakudo's src/core/IO.pm:
 
