@@ -44,7 +44,7 @@
 ## 生成HTML文档
 
 
-在你项目checkout目录通过以下命令安装依赖包
+在你的项目目录通过以下命令安装依赖包
 
     panda installdeps .       # panda
     zef --depsonly install .  # zef
