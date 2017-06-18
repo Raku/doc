@@ -17,7 +17,9 @@ Additionally, all Unicode codepoint names/named seq/emoji sequences are now case
 
     say "\c[latin capital letter E]"; # OUTPUT: «E␤» (U+0045)
 
-=head1 Name Aliases
+=head1 Entering Unicode Codepoints and Codepoint Sequences
+
+=head2 Name Aliases
 
 By name alias. Name Aliases are used mainly for codepoints without an official
 name, for abbreviations, or for corrections (Unicode names never change).
@@ -41,7 +43,7 @@ Abbreviations:
     say "\c[ZWJ]".uniname;  # OUTPUT: «ZERO WIDTH JOINER␤»
     say "\c[NBSP]".uniname; # OUTPUT: «NO-BREAK SPACE␤»
 
-=head1 Named Sequences
+=head2 Named Sequences
 
 You can also use any of the L<Named Sequences|http://www.unicode.org/Public/UCD/latest/ucd/NamedSequences.txt>,
 these are not single codepoints, but sequences of them. [Starting in 2017.02]
@@ -49,7 +51,7 @@ these are not single codepoints, but sequences of them. [Starting in 2017.02]
     say "\c[LATIN CAPITAL LETTER E WITH VERTICAL LINE BELOW AND ACUTE]";      # OUTPUT: «É̩␤»
     say "\c[LATIN CAPITAL LETTER E WITH VERTICAL LINE BELOW AND ACUTE]".ords; # OUTPUT: «(201 809)␤»
 
-=head2 Emoji Sequences
+=head3 Emoji Sequences
 
 Rakudo has support for Emoji 4.0 (the latest non-draft release) sequences.
 For all of them see:
@@ -60,5 +62,51 @@ commas to separate different codepoints/sequences inside the same C<\c> sequence
 
     say "\c[woman gesturing OK]";         # OUTPUT: «🙆‍♀️␤»
     say "\c[family: man woman girl boy]"; # OUTPUT: «👨‍👩‍👧‍👦␤»
+
+=head1 File Handles and I/O
+
+Perl6 applies X<normalization> by default to all input and output it makes.
+What does this mean? For example á can be represented 2 ways. Either using
+one codepoint:
+
+    á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
+
+Or two codepoints:
+
+    a +  ́ (U+61 "LATIN SMALL LETTER A" + "U+301 COMBINING ACUTE ACCENT")
+
+Perl 6 will turn both these inputs into one codepoint, as is specified for
+normalization form canonical (B<X<NFC>>). In most cases this is useful and means
+that two inputs that are equivilant both are treated the same, and any text
+you process or output from Perl 6 will be in this "canonical" form.
+
+One case where we don't default to this, is for file handles. This is because
+file handles must be accessed exactly as the bytes are written on the disk.
+
+You can use UTF8-C8 with any file handle to read the exact bytes as they are
+on disk. They may look funny when printed out, if you print it out using a
+UTF8 handle. If you print it out to a handle where the output is UTF8-C8,
+then it will render as you would normally expect, and be a byte for byte exact
+copy. More technical details on UTF8-C8 on MoarVM below.
+
+=head2 X<UT8-C8>
+
+X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
+However, upon encountering a byte sequence that will either not decode as
+valid UTF-8, or that would not round-trip due to normalization, it will use
+NFG synthetics to keep track of the original bytes involved. This means that
+encoding back to UTF-8 Clean-8 will be able to recreate the bytes as they
+originally existed. The synthetics contain 4 codepoints:
+
+=item The codepoint 0x10FFFD (which is a private use codepoint)
+=item The codepoint 'x'
+=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
+=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
+
+Under normal UTF-8 encoding, this means the unrepresentable characters will
+come out as something like `?xFF`.
+
+UTF-8 Clean-8 is used in places where MoarVM receives strings from the
+environment, command line arguments, and file system queries.
 
 =end pod
