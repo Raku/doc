@@ -38,7 +38,6 @@ if @*ARGS {
             doc/Language/rb-nutshell.pod6
             doc/Language/tables.pod6
             doc/Language/testing.pod6
-            doc/Language/traps.pod6
          >);
         push @files, $file;
     }
