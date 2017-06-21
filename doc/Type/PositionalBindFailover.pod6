@@ -2,13 +2,15 @@
 
 =TITLE role PositionalBindFailover
 
-=SUBTITLE Failover for binding an Iterable to a Positional
+=SUBTITLE Failover for binding to a Positional
 
     role PositionalBindFailover { ... }
 
-This role provides an interface by which an L<Iterable|/type/Iterable> can
-be coerced into a L<Positional|/type/Positional>, so that you can for example
-write:
+This role provides an interface by which an object can
+be coerced into a L<Positional> when binding to L<Positional> parameters.
+
+For example, L<Seq> type is not L<Positional>, but you can still write
+the following, because it L<does> C<PositionalBindFailover> role:
 
     sub fifths(@a) {        # @a is constraint to Positional
         @a[4];
@@ -26,6 +28,22 @@ But the signature binder recognizes that C<Seq> does the
 C<PositionalBindFailover> role, and calls its C<cache> method to coerce it to
 a L<List|/type/List>, which does the C<Positional> role.
 
+The same happens with custom classes that do the role; they simply
+need to provide an C<iterator> method that produces an L<Iterator>:
+
+    class Foo does PositionalBindFailover {
+        method iterator {
+            class :: does Iterator {
+                method pull-one {
+                    once return 42;
+                    IterationEnd
+                }
+            }.new
+        }
+    }
+
+    sub first-five (@a) { @a[^5].say }
+    first-five Foo.new; # OUTPUT: # OUTPUT: «(42 Nil Nil Nil Nil)␤»
 
 =head1 Methods
 
