@@ -62,8 +62,6 @@
 
     $ make html
 
-After the pages have been generated, you can view them on your local
-computer by starting the included `app.pl` program:
 
 页面生成以后，你就可以在本地浏览。你通过以下命名启动app.pl的程序（Mojo程序）
 
@@ -99,9 +97,9 @@ Perl6工程 并非一个小项目，项目文档需要投入大量的人力精�
 **Q:** 为什么本文当没有嵌入到Perl6语言中?<br>
 **A:** 有几个原因:
 
-  1. 本文档的意在独立于给定版本，不于任何给定的perl6版本挂钩。 
-  2. POD的解析和嵌如项目还不是很稳定，为了避免对运行时造成影响。
-  3. 独立于perl6的Github仓库可以让更多的人参编辑做出贡献。
+  1. 本文档的意在独立于给定版本，不与任何给定的perl6版本挂钩。 
+  2. POD的解析和嵌如工程还不是很稳定，为了避免对运行时造成影响。
+  3. 独立于perl6的Github仓库可以让更多的人参与编辑做出贡献。
 
 **Q:** 我需要从superclasses或者roles中引入方法不<br>
 **A:** 不需要. HTML版本已经引入了所有的superclasses和roles方法,我们可以通过`p6doc`脚本学习之。
