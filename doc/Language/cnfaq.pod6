@@ -265,95 +265,90 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
 更多信息，可以浏览 L<containers|/language/containers>。
 
 
-=head2 What's up with array references and automatic dereferencing? Do I still need the C<@> sigil?
+=head2 数组引用和自动解引用是怎么回事?需要C<@>前缀么？
 
-In Perl 6, nearly everything is a reference, so talking about taking
-references doesn't make much sense. Unlike Perl 5, scalar variables
-can also contain arrays directly:
+在perl6中，一切皆引用，所以专门谈论引用意义不大。不像perl5，标量变量也能直接包含数组：
 
     my @a = 1, 2, 3;
-    say @a;                 # OUTPUT: «[1 2 3]␤»
-    say @a.WHAT;            # OUTPUT: «(Array)␤»
+    say @a;                 # 输出: «[1 2 3]␤»
+    say @a.WHAT;            # 输出: «(Array)␤»
 
     my $scalar = @a;
-    say $scalar;            # OUTPUT: «[1 2 3]␤»
-    say $scalar.WHAT;       # OUTPUT: «(Array)␤»
+    say $scalar;            # 输出: «[1 2 3]␤»
+    say $scalar.WHAT;       # 输出: «(Array)␤»
 
-The big difference is that arrays inside a scalar act as one value in list
-context, whereas arrays will be happily iterated over.
+最大的不同是插入标量中的数组当为列表上下文的一个值，而数组则会循环迭代。
 
     =begin code :skip-test
     my @a = 1, 2, 3;
     my $s = @a;
 
-    for @a { ... }          # loop body executed 3 times
-    for $s { ... }          # loop body executed only once
+    for @a { ... }          # 循环3次
+    for $s { ... }          # 只会循环一次
 
     my @flat = flat @a, @a;
-    say @flat.elems;            # OUTPUT: «6␤»
+    say @flat.elems;            # 输出: «6␤»
 
     my @nested = flat $s, $s;
-    say @nested.elems;          # OUTPUT: «2␤»
+    say @nested.elems;          # 输出: «2␤»
     =end code
 
-You can force flattening with C<@( ... )> or by calling the C<.list> method
-on an expression, and item context (not flattening) with C<$( ... )>
-or by calling the C<.item> method on an expression.
+你可以用C<@( ... )> 或者 用表达式的C<.list>方法，强制展开，或者为成员上下文（不能展开）
 
 
-=head2 Why sigils? Couldn't you do without them?
+=head2 为什么要用sigil? 不能没有他们么?
 X<|sigils (FAQ)>
 
-There are several reasons:
+有几个原因:
 
-=item they make it easy to interpolate variables into strings
+=item  便于解释变量为字符串
 
-=item they form micro-namespaces for different variables and twigils, thus avoiding name clashes
+=item  给不同种类的变量和twigils隔离为微命名空间，避免命名冲突
 
-=item they allow easy single/plural distinction
+=item  可以便捷地区分单复数
 
-=item they work like natural languages that use mandatory noun markers, so our brains are built to handle it
+=item  就像自然语言中的强制性动名词标记，是大脑最直白处理的方式
 
-=item they aren't mandatory, since you can declare sigilless names (if you don't mind the ambiguity)
+=item  但他也不是强制的，你也可以自定义sigil（如果你介意引起歧义的话）
 
-=head2 "Type Str does not support associative indexing."
+=head2 "Str类型不支持关联索引"
 
-You likely tried to mix string interpolation and HTML.
+你可能是想混用字符解释器和HTML
 
     =begin code :skip-test
     my $foo = "abc";
     say "$foo<html-tag>";
     =end code
 
-Perl 6 thinks C<$foo> to be a Hash and C«<html-tag>» to be a string literal
-hash key. Use a closure to help it to understand you.
+perl6认为C<$foo>为一个哈希，而C«<html-tag>»会被当成字符哈希键。我们用一个
+大括号来加深理解：
 
     my $foo = "abc";
     say "{$foo}<html-tag>";
 
-=head2 Does Perl 6 have coroutines? What about C<yield>?
+=head2 perl6中有协程么? C<yield>呢?
 X<|coroutine (FAQ)>
 
-Perl 6 has no C<yield> statement like Python does, but it does offer similar
-functionality through lazy lists. There are two popular ways to write
-routines that return lazy lists:
+perl6没有像python一样的C<yield>语句，但是它通过懒列表提供类似地函数式功能。
+有两种普遍的方法写协程，返回懒列表
+
 
     =begin code :skip-test
-    # first method, gather/take
+    # 第一种方法, gather/take
     my @values = gather while have_data() {
         # do some computations
         take some_data();
         # do more computations
     }
 
-    # second method, use .map or similar method
-    # on a lazy list
+    # 第二种方法, 对一个懒列表使用.map或者类似的方法
+    
     my @squares = (1..*).map(-> \x { x² });
     =end code
 
-=head2 Why can't I initialize private attributes from the new method, and how can I fix this?
+=head2 为什么我不能从new方法初始一个私有属性，我该怎么操作?
 
-Code like
+诸如下面代码：
 
     class A {
         has $!x;
@@ -363,12 +358,10 @@ Code like
     }
     A.new(x => 5).show-x;
 
-does not print 5. Private attributes are I<private>, which means invisible to
-the outside. If the default constructor could initialize them, they would leak
-into the public API.
+输出不为5。私有属性是I<private>，这意味着对外不可见。如果默认构造函数可以初始化他们的话，
+他们就可能暴露在公共API.
 
-If you still want it to work, you can add a C<submethod BUILD> that
-initializes them:
+如果你坚持要这样做，可以增加一个C<submethod BUILD>来初始化他们：
 
     class B {
         has $!x;
@@ -379,87 +372,68 @@ initializes them:
     }
     B.new(x => 5).show-x;
 
-C<BUILD> is called by the default constructor (indirectly, see
-L<Object Construction|/language/objects#Object_Construction>
-for more details) with all the named arguments that the user passes to the
-constructor. C<:$!x> is a named parameter with name C<x>, and when called
-with a named argument of name C<x>, its value is bound to the attribute C<$!x>.
+C<BUILD>会被默认的构造函数调用（间接地，查看
+L<Object Construction|/language/objects#Object_Construction>了解更多），构造函数调用
+所有用户传递过来的命名的参数。C<:$!x> 是命名为C<x>的命名参数，当带 C<x>命名参数被调用
+时，他的值会被绑定到属性 C<$!x>。
 
-But don't do that. If the name is public, there is no downside to
-declaring it that way with C<$.x> since the external view is readonly
-by default, and you can still access it internally with C<$!x>.
+如果不这样做。如果名称是公有的，这样定义C<$.x>也是没有害处。因为默认外部视图是只读的，
+你仍然只能通过内部地 C<$!x>操作它。
 
-=head2 How and why do C<say>, C<put> and C<print> differ?
+=head2 C<say>, C<put> 和 C<print> 有啥区别?
 
-The most obvious difference is that C<say> and C<put> append
-a newline at the end of the output, and C<print> does not.
+最明显地差异是 C<say>和 C<put>输出会自带换行符，但是C<print>没有。
 
-But there's another difference: C<print> and C<put> converts its
-arguments to a string by calling the C<Str> method on each item
-passed to, C<say> uses the C<gist> method instead. The former
-is meant for computers, the latter for human interpretation.
+其他的不同时：C<print>和C<put>通过调用C<Str>方法把所有参数项会当成一个字符串，C<say>则
+是用 C<gist>方法。前者适合机器，后者更人性化。
 
-Or phrased differently, C<$obj.Str> gives a string representation,
-C<$obj.gist> a short summary of that object suitable for fast recognition
-by the programmer, and C<$obj.perl> gives a Perlish representation.
+或者完全的不同，C<$obj.Str> 给出一个字符表达，C<$obj.gist>给出一个简单对象总结，适合开发人员
+辨别。 C<$obj.perl>会给出一个perl式的表达。
 
-Example: type objects, also known as "undefined values", stringify
-to an empty string and warn, whereas the C<gist> method returns the name
-of the type, followed by an empty pair of parenthesis (to indicate there's
-nothing in that value except the type).
+例如：类型对象，也叫做“未定义值”，字符化结果为一个空串，并且给予警告。而C<gist>方法会返回
+类型的名称，紧跟着一个空括弧（表示除了类型外没有任何值）。 
 
-    my Date $x;     # $x now contains the Date type object
-    print $x;       # empty string plus warning
-    say $x;         # OUTPUT: «(Date)␤»
+    my Date $x;     # $x包含一个Date类型对象
+    print $x;       # 输出为空和警告
+    say $x;         # 输出: «(Date)␤»
 
-So, C<say> is optimized for debugging; display is optimized for people; and C<print>
-and C<put> are most suitable for producing output for other programs
-to consume.
+所以，C<say>更适合做调试；显示是人优化过的； C<print>和C<put>更适合给其他应用输出结果。
 
-C<put> is thus sort of a hybrid between C<print> and C<say>;
-like C<print>, its output is suitable for other programs,
+C<put>是介于C<print>和C<say>之间的调和。和C<print>一样适合为其他程序输出结果，同时也像
+C<say>一样输出结果自带换行。
 and like C<say>, it adds a newline at the end of the output.
 
-=head2 What's the difference between C<token> and C<rule> ?
+=head2 C<token>和C<rule>有何不同 ?
 
-C<regex>, C<token> and C<rule> introduce regexes, but with
-slightly different semantics.
+<regex>,C<token>和C<rule> 都用于引入正则表达式，但是语法上略有不同。
 
-C<token> implies the C<:ratchet> or C<:r> modifier, which prevents the
-rule from backtracking.
+C<token>意味着C<:ratchet>或者C<:r>修饰符，这会防止规则被回溯。
 
-C<rule> implies both the C<:ratchet> and C<:sigspace> (short C<:s>)
-modifier, which means a rule doesn't backtrace, and it treats
-whitespace in the text of the regex as C«<.ws>» calls (i.e.,
-matches whitespace, which is optional except between two word
-characters). Whitespace at the start of the regex and at the start
-of each branch of an alternation is ignored.
+C<rule> 表示C<:ratchet>和C<:sigspace>（简写为C<:s>）修饰符，意味着规则不可以回溯，并且将
+正则表达式中空白符号作为 C«<.ws>» 调用(不捕获)（例如，可以用来匹配空格，除了两单词之间的空格）。
+正则表达式开头和每个可选分支|的开头空白会被忽略。
 
-C<regex> declares a plain regex without any implied modifiers.
+C<regex> 定义一个没有任何暗示修饰符的纯正则.
 
-=head2 What's the difference between C<die> and C<fail>?
+=head2 C<die>和C<fail>有啥不同?
 
-C<die> throws an exception.
+C<die>抛出一个异常.
 
-C<fail> returns a C<Failure> object.  (If the caller has declared C<use fatal;>
-in the calling lexical scope, C<fail> throws an exception instead of returning.)
+C<fail> 返回一个C<Failure>对象.（如果在词法范围内调用定义过 C<use fatal;>），C<fail>抛出一个异常
+而不是返回)。  
 
-A C<Failure> is an "unthrown" or "lazy" exception. It's an object that
-contains the exception, and throws the exception if you try to use the C<Failure>
-as an ordinary object, or ignore it in sink context.
+C<Failure>是一个非抛出或者“懒”异常。它一个包含了异常的对象，如果你想用 C<Failure>作为普通对象
+抛出一个异常。或者在sink上下文中忽略它。
 
-A C<Failure> returns C<False> from a C<defined> check, and you can extract
-the exception with the C<exception> method.
+C<Failure>在C<defined>检查中返回C<False>，你可以用 C<exception>方法抽取异常。
 
-=head2 Why is C<wantarray> or C<want> gone? Can I return different things in different contexts?
+=head2 为什么C<wantarray>和C<want> 不见了?  我怎么才能不同上下文中返回不同的类型?
 
-Perl 5 has the L<C<wantarray>|/language/5to6-perlfunc#wantarray> function that
-tells you whether it's called in void, scalar or list context. Perl 6 has no
-equivalent construct because context does not flow inwards; i.e., a routine would need
-time travel to know which context it's called in because context is lazy (known
-only when the results are used later).
+perl5用L<C<wantarray>|/language/5to6-perlfunc#wantarray>函数来测试调用的对象是void，scalar或者列表。
+perl6没有这样的结构，因为perl6的上下文不会向内流；例如，一个例程不需要知道哪个上下文被调用了，
+因为上下文是懒的（只有在最后结果被使用时候才会知道）。
 
-For example, Perl 6 has multiple dispatch. So, in a code example like
+例如，perl6有多调度器，所以，下面的代码：
 
     =begin code :skip-test
     multi w(Int $x) { say 'Int' }
@@ -467,27 +441,20 @@ For example, Perl 6 has multiple dispatch. So, in a code example like
     w(f());
     =end code
 
-there's no way to determine if the caller of sub C<f> wants a string or
-an integer, because it's not yet known what the caller is. In general
-this requires solving the halting problem, which even Perl 6 compiler
-writers have trouble with.
+没有办法知道调用的 sub C<f>需要一个字符串或者整数，由于它自己现在也不知道会调用啥
+一般来讲，这需要解决halting问题，对perl编译器作者也是个头疼的问题。
 
-One way to achieve context sensitivity in Perl 6 is to return an object
-that knows how to respond to method calls that are typical for a context.
-In Perl 6, this is actually a L<lot easier|/language/5to6-perlfunc#wantarray>
-than it may sound, and other features of the language either mitigate the
-need to do so in the first place or make it possible to cover most of the
-use cases of wantarray.
+实现perl6上下文敏感的一个方法是返回一个对象。它知道如何响应上下文中典型的方法调用。
+在perl6中，相比较它听起来，这实际上是一个L<lot easier|/language/5to6-perlfunc#wantarray>，
+和其他语言的其他特性，既可以减轻首先需要的并且最大可能是覆盖到wantarray的用例。
 
-For example, regex matches return L<Match objects that know how to respond
-to list indexing, hash indexing, and that can turn into the matched
-string|/type/Match>.
+例如，regex匹配返回L<匹配对象，知道如何影响列表索引，哈希索引。并且可以变成匹配字符串|/type/Match>
 
-=head2 What's the difference between C<Pointer> and C<OpaquePointer>?
+=head2 C<Pointer>和C<OpaquePointer>有什么不同?
 
-C<OpaquePointer> is deprecated and has been replaced with C<Pointer>.
+C<OpaquePointer>已经过时，被C<Pointer>取代了.
 
-=head1 Perl 6 Implementation
+=head1 Perl6实现
 X<|Perl 6 Implementation (FAQ)>
 
 =head2 What Perl 6 Implementations are available?
