@@ -589,23 +589,3 @@ perl5程序员应该了解perl了内置了更多的函数，简单的基准性�
     }
     print $current;
     =end code
-
-# POD ERRORS
-
-Hey! **The above document had some coding errors, which are explained below:**
-
-- Around line 310:
-
-    '=item' outside of any '=over'
-
-- Around line 320:
-
-    You forgot a '=back' before '=head2'
-
-- Around line 515:
-
-    '=item' outside of any '=over'
-
-- Around line 608:
-
-    You forgot a '=back' before '=head2'
