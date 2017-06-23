@@ -6,6 +6,10 @@
 
 (如果你通过 github浏览本仓库, 显示可能会部分不协调的,因为使用Perl 6 Pod格式, github用的 Perl 5 POD).
 
+## 文档中文化进度
+
+[FAQ 100%](cndoc/cnfaq.md) 
+
 ## 安装
 
 
