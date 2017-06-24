@@ -60,13 +60,19 @@ occurrence is stored in the hash:
     my %h = a => 1, a => 2;
     say %h<a>;                  # OUTPUT: «2␤»
 
-To assign to a variable without the C<%> sigil, you may use curly braces:
+To assign to a variable without the C<%> sigil, you may use the C<%()> hash
+constructor:
 
-    my $h = { a => 1, b => 2 }; # *See Note*
+    my $h = %( a => 1, b => 2 );
     say $h.WHAT;                # OUTPUT: «(Hash)␤»
     say $h<a>;                  # OUTPUT: «1␤»
 
-B<NOTE:> If one or more values reference the topic variable, C<$_>, the
+B<NOTE:> Hashes can also be constructed with C<{ }> similarly to how they are
+in Perl 5. It is recommended to use the C<%()> hash constructor, as braces
+are reserved for creating L<Block|/type/Block> objects and therefore braces
+only create Hash objects in specific circumstances.
+
+If one or more values reference the topic variable, C<$_>, the
 right-hand side of the assignment will be interpreted as a L<Block|/type/Block>,
 not a Hash:
 
@@ -79,63 +85,22 @@ not a Hash:
     sub lookup-user (Hash $h) { #`(Do something...) $h }
 
     my @names = map {
+        # While this creates a hash:
+        my $query = { name => "$person<firstName> $person<lastName>" };
+        say $query.WHAT;     # OUTPUT: «(Hash)␤»
+        # And this also makes a hash
+        # Doing this will create a Block. Oh no!
         my $query = { name => "$_<firstName> $_<lastName>" };
-        say $query.WHAT;       # OUTPUT: «(Block)␤»
-        say $query<name>;      # fails
+        say $query2.WHAT;       # OUTPUT: «(Block)␤»
+        say $query2<name>;      # fails
+        
         CATCH { default { put .^name, ': ', .Str } };
         # OUTPUT: «X::AdHoc: Type Block does not support associative indexing.␤»
         lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
     }, @people;
 
-Instead, you should either:
-
-=begin item
-1) use the C<%()> hash constructor:
-
-=for code :skip-test
-my  $query = %( name => "$_<firstName> $_<lastName>" );
-say $query.WHAT;         # OUTPUT: «(Hash)␤»
-say $query<name>;        # Andy Adams, Beth Burke, etc.
-=end item
-
-=begin item
-2) assign to a Hash type (C<%>) directly:
-
-=for code :skip-test
-my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
-say %query.WHAT;         # OUTPUT: «(Hash)␤»
-say %query<name>;        # Andy Adams, Beth Burke, etc.
-=end item
-
-=begin item
-or 3) simply avoid the issue altogether by explicitly providing a name for
-the topic variable:
-
-    my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" }
-    ];
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
-    my @names = map -> $person {
-        my $query = { name => "$person<firstName> $person<lastName>" };
-        say $query.WHAT;     # OUTPUT: «(Hash)␤»
-        say $query<name>;    # Andy Adams, Beth Burke, etc.
-
-       lookup-user($query);
-    }, @people;
-=end item
-
-Even in the final case, however, specifying a Hash type (C<%>) is still the
-most idiomatic and unambiguous solution:
-
-    my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" }
-    ];
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
-    my @names = @people.map: -> $person {
-        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
-    };
+Instead, you should use the C<%()> hash constructor and only use C<{}> for
+creating Block's.
 
 =head2 Slices
 
@@ -155,6 +120,10 @@ Note that with objects as keys, you cannot access non-string keys as strings:
 
     :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # Any
     :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # 42
+
+Note: The same pitfalls explained about C<{}> sometimes creating Block's also
+apply to C<:{}>. At this time there is no C<%()> version for creating non-string
+keys.
 
 =head2 Constraint value types
 
