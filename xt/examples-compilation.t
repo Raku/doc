@@ -30,7 +30,6 @@ if @*ARGS {
             doc/Language/5to6-perlop.pod6
             doc/Language/modules.pod6
             doc/Language/nativecall.pod6
-            doc/Language/packages.pod6
             doc/Language/phasers.pod6
             doc/Language/pod.pod6
             doc/Language/py-nutshell.pod6
