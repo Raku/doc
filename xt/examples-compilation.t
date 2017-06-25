@@ -57,10 +57,13 @@ my $counts = BagHash.new;
 for @files -> $file {
     for extract-pod($file.IO).contents -> $chunk {
         if $chunk ~~ Pod::Block::Code  {
+            if $chunk.config<lang> && $chunk.config<lang> ne 'perl6' {
+                next; # Only testing Perl 6 snippets.
+            }
             my $todo = False;
             if $chunk.config<skip-test> {
                 %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
-        }
+            }
             @examples.push: %(
                 'contents', $chunk.contents.map({walk $_}).join,
                 'file', $file,
