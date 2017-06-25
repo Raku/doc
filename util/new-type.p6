@@ -15,7 +15,7 @@ sub MAIN($typename, :$kind='class') {
 
     $path ~= "/$filename";
 
-    spurt $path.IO, Q:s:to/TEMPLATE/;
+    spurt $path.IO, Q:q:to/HEADER/;
         =begin pod
 
         =TITLE $kind $typename
@@ -25,6 +25,9 @@ sub MAIN($typename, :$kind='class') {
             $kind $typename is SuperClass { ... }
 
         Synopsis goes here
+
+        HEADER
+    spurt $path.IO, Q:c:to/BODY/;
 
         =head1 Methods
 
@@ -37,7 +40,7 @@ sub MAIN($typename, :$kind='class') {
         =end pod
 
         # vim: expandtab shiftwidth=4 ft=perl6
-        TEMPLATE
+        BODY
 
     say "'$path' written";
     say "(remember to 'git add $path')";
