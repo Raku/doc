@@ -10,7 +10,7 @@
 
 [FAQ 100%](cndoc/cnfaq.md) 
 
-[5to6-nutshell 50%](来源于https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc) 
+[5to6-nutshell 50%][来源于](https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc) 
 
 ## 安装
 
