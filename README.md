@@ -9,6 +9,7 @@
 ## 文档中文化进度
 
 [FAQ 100%](cndoc/cnfaq.md) 
+
 [5to6-nutshell 50%](来源于https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc) 
 
 ## 安装
