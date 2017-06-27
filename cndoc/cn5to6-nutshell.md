@@ -1310,9 +1310,8 @@ Jeff Goff的围绕Perl::Critic框架的用于Perl5的模块 Perl::ToPerl6 ，目
 # 翻译知识的其他来源
 
 - [https://perlgeek.de/en/article/5-to-6](https://perlgeek.de/en/article/5-to-6)
-=item [https://github.com/Util/Blue\_Tiger/](https://github.com/Util/Blue_Tiger/)
-=item [https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/](https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/)
-=item [http://www.perlfoundation.org/perl6/index.cgi?perl\_6\_delta\_tablet](http://www.perlfoundation.org/perl6/index.cgi?perl_6_delta_tablet)
+- [https://github.com/Util/Blue\_Tiger/](https://github.com/Util/Blue_Tiger/)
+- [https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/](https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/)
+- [http://www.perlfoundation.org/perl6/index.cgi?perl\_6\_delta\_tablet](http://www.perlfoundation.org/perl6/index.cgi?perl_6_delta_tablet)
 
-    \# vim: expandtab shiftwidth=4 ft=perl6
 
