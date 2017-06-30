@@ -1,0 +1,1758 @@
+=begin pod :tag<convert>
+
+=TITLE 5to6-perlfunc
+
+=SUBTITLE Perl5到Perl6函数速查
+
+=head1 概述
+
+本文档是尽最大可能列出Perl5内建函数，在perl6中替代函数以及可能的用法上的差异。
+
+=head1 备注
+
+此文档不会具体的解释函数，仅尝试引导你从Perl5的 perlfunc文档过渡到他们在Per6的
+对应的功能和提法， 如果想了解Perl6函数的完整文档，请参阅 Perl6文档。
+
+通用的理念是：Perl6比Perl5 更面向对象，在Perl6中，一切皆对象，然而如果你不想这么做的话，
+perl6足够灵活到可以让你避免使用面向对象风格。 意思就是，不管怎样，有很多函数调用由 
+C<function(@args)>风格变为了现在的 C<@args.function>风格（很少情况下，仅有方法调用），
+这在下面的正文中会很显然，不过这可以让更快的进入意境。
+
+还有，除非另有说明，“function”一词意思就是一个C<function(@args)>风格的函数，同时“method”
+一词代表一个C<@args.function>风格的函数。
+
+=head1 Perl函数列表
+
+=head2 文件测试
+
+=item -X FILEHANDLE
+
+=item -X EXPR
+
+=item -X DIRHANDLE
+
+=item -X
+
+对于文件测试 Perl 6给了你两种选择，你可以使用智能匹配(C<~~>)或者调用对应的方法。
+在Perl6中进行文件测试，你不必像传统方式一样需要打开一个文件句柄（当然你仍然可以
+使用文件句柄）， 简单的向文件名字后面追加C<.IO>即可。 下面是使用智能匹配检测一个
+文件是否可读的示例：
+
+    '/path/to/file'.IO ~~ :r
+
+你仍然可以利用一个已经打开的文件句柄完成测试，现在我们有一个文件句柄C<$fh>，用这种
+方法实现同样功能的列子为：
+
+    $fh.r
+
+大多数之前的文件测试都有和智能匹配一起使用的带冒号的版本：
+
+    :e 是否存在
+    :d 目录
+    :f 文件
+    :l 符号连接
+    :r 可读
+    :w 可写
+    :x 可执行
+    :s 大小
+    :z 零大小
+
+所有这些测试也都可以作为方法使用（不加冒号）。
+
+下面的三种测试I<只有>方法调用版本：
+
+    $fh.modified; # -M $fh
+    $fh.accessed; # -A $fh
+    $fh.changed;  # -C $fh
+
+Perl5中其它的文件测试操作在还未在 Perl6中实现。
+详细文件测试的文档请访问L<File test operators|/type/IO::Path#File_test_operators>。
+
+L<io|/language/io>.有更多的关于读写文件的信息，还有下面的C<open()>小节对你也会有帮助。
+
+=head2 abs
+
+=item abs VALUE
+
+作为函数(C<abs($x)>)，或者类方法。需要注意的是，方法绑定的优先级大于-（负号），所以，
+C<-15.abs>将作为 C<-(15.abs)>求值， 结果是-15，对这种情况，你需要做类似于C<(-15).abs>的处理。
+
+在缺少一个值的时候，abs可以工作在C<$_>上面，但是不是一个函数，而是一个方法，你需要用C<.abs>
+替换比较简单的C<abs>来调用它。
+
+=head2 accept
+
+=item accept NEWSOCKET, GENERICSOCKET
+
+C<accept> 是一个在服务器端调用的方法，例如C<$server.accept()>，该方法不再是返回一个封装的地址，
+而是返回一个socket，最通常常用于某些类型IO::Socket对象。
+
+=head2 alarm
+
+=item alarm SECONDS
+
+[需要进一步研究]已经没有C<alarm()>了，有建议用新的并发特性取代它，比如C<Promise.in>，但是为了
+真正模拟它可能需要进一步研究。
+
+=head2 atan2
+
+=item atan2 Y, X
+
+即可以作为函数又可以作为方法使用,下面的两种方式是等价的
+
+    atan2(100);
+    100.atan2;
+
+=head2 bind
+
+=item bind SOCKET, NAME
+
+[需要进一步研究]在Perl6没有和socket相关函数C<bind()>类似的函数，据估计，socket绑定在创建
+一个新的socket对象的时候完成。
+
+=head2 binmode
+
+=item binmode FILEHANDLE
+
+作为替代方法，你可以在打开文件的时候使用C<:bin>文件模式，比如C<my $fh = open("path/to/file", :bin);>。
+
+=head2 bless
+
+=item bless REF, CLASSNAME
+
+因为Perl6中类的创建发生了改变，可能会比 Perl5中更少被用到，现在它是一个方法也是一个函数。 Perl6文档中说，
+它可以创建一个和invocant类型一样的新的对象，使用命名参数初始化属性，然后返回 创建的对象。如果你正在移植
+一个Perl5的模块到Perl6，很有可能你想使用C<new>来创建对象，而不是C<bless>，虽然有些情况下，后者也还很有用。
+
+=head2 break
+
+=item break
+
+在Perl6中被移除，如果你想跳出C<given>结构块，你可能需要了解下C<proceed>和C<succeed>，具体地址为:
+L<here|/language/control#proceed>。
+
+=head2 caller
+
+=item caller EXPR
+
+在Perl6中有两种不同的方式获取调用者的信息，基础功能现在通过L<callframe>提供。 然而，Perl6不仅为子例程，
+而且为一般的块结构调用帧，所以可能存在多个帧可供查看。下面的代码可以获取 C<caller>可以返回的基本信息：
+
+    my $frame   = callframe(0); # 或者直接callframe()
+    my ($subroutine, $package);
+    if $frame.code ~~ Routine {
+        $subroutine = $frame.code.name;
+        $package    = $frame.code.package;
+    }
+    my $file    = $frame.file;
+    my $line    = $frame.line;
+
+Perl5中的C<caller>返回的其它其他的细节在Perl6中都没有意义。
+
+你还可以通过使用动态变量L<&?ROUTINE>, L<&?BLOCK>, L<$?PACKAGE>,L<$?FILE>和L<$?LINE>获取当前的帧
+或者例程帧的一些信息。在许多情况下，https://docs.perl6.org/type/Backtrace[Backtrace]是获取调用栈信息
+的更好的方法。
+
+=head2 chdir
+
+=item chdir EXPR
+
+和perl5一样。
+
+=head2 chmod
+
+=item chmod LIST
+
+和Perl5中一样的函数，只是8进制数的表示有些不大一样（是C<0o755>而不是C<0755>），你也能把它作为方法使用，
+比如C<$fh.chmod(0o755)>。
+
+=head2 chomp
+
+=item chomp VARIABLE
+
+C<chomp>的行为和Perl5中有些不同，它对目标不产生影响，而是返回一个去除逻辑换行符的新的目标,例如
+C<$x = "howdy\n";$y = chomp($x);>结果C<$x>为“howdy\n”以及C<$y>为“howdy”。同样也可以作为方法使用，
+例如C<$y = $x.chomp>。和其他很多方法一样，它也可以以修改并赋值模式运行，例如C<$x.=chomp>，结果C<$x>
+的值为"howdy"。
+
+=head2 chop
+
+=item chop VARIABLE
+
+和C<chomp>一样，在Perl6中，它返回被截取以后的字符串，而不是直接截取替换，比如C<$x = "howdy";$y = chop($x);>，
+结果是C<$x>为“howdy”以及C<$y>为“howd”。同样可以做为方法使用：C<$y = $x.chop>。
+
+=head2 chown
+
+=item chown LIST
+
+C<chown>已经去除.
+
+=head2 chr
+
+=item chr NUMBER
+
+和Perl5的相似，把目标强制转换成整数，然后返回其Unicode码指向的字符， 可以作为函数或者方法使用：
+
+    chr(65); # "A"
+    65.chr;  # "A"
+
+=head2 chroot
+
+=item chroot FILENAME
+
+似乎在Perl6中不存在。
+
+=head2 close
+
+=item close FILEHANDLE
+
+和Perl5中一样，关闭一个文件句柄，返回一个布尔值。C<close $fh>和 C<$fh.close>都是可以的。
+
+=head2 closedir
+
+=item closedir DIRHANDLE
+
+Perl6中未提供C<closedir>函数。他的功能可以用IO::Dir的一个方法代替。
+
+=head2 connect
+
+=item connect SOCKET, NAME
+
+使用L<connect|/routine/connect>用来从L<IO::Socket::Async|/type/IO::Socket::Async>去同步socket
+或者创建一个同步的socketL<IO::Socket::INET|/type/IO::Socket::INET>。
+
+=head2 continue
+
+=item continue BLOCK
+
+=item continue
+
+perl6中新建C<NEXT>块取代C<continue>块，和perl5C<continue;> 语法更像的是C<proceed>/C<succeed>用法。
+
+=head2 cos
+
+=item cos EXPR
+
+和Perl5中一样,同时也能作为对象方法使用,例如C<(1/60000).cos>。
+
+=head2 crypt
+
+=item crypt PLAINTEXT, SALT
+
+Perl6还未实现。
+
+=head2 dbm functions
+
+=item dbmclose HASH
+
+=item dbmopen HASH, DBNAME, MASK
+
+这些函数在Perl5中很大程度上被取代了，不太可能出现在Perl6中（尽管Perl6的数据库
+实现还未成熟的）。
+
+=head2 defined
+
+=item defined EXPR
+
+它可能能以你期望的那样工作，但是从技术上讲对于类型对象它返回C<False>，其它情况返回C<True>。
+它使得当你没有为一个东西赋值时C<$num.perl>会返回C<Any>或者当你赋值了返回当前值更有意义。 
+当然，你也可以作为一个方法使用它:C<$num.defined>。
+
+=head2 delete
+
+=item delete EXPR
+
+Perl6通过使用C<:delete>副词的新副词语法取代了它，例如C<my $deleted_value = %hash{$key}:delete;>和
+C<my $deleted_value = @array[$i]:delete;>。
+
+=head2 die
+
+=item die LIST
+
+和Perl5版本功能相似，但是Perl6的异常机制比Perl5更强大，更灵活，参见L<exceptions|/language/exceptions>。
+如果你想忽略堆栈踪迹和位置，就像Perl5中的C<die "...\n"> ，可用：
+
+    note "...";
+    exit 1;
+
+=head2 do
+
+=item do BLOCK
+
+和Perl5版本的功能相似，不过注意C<do>和BLOCK之间必须留空白。
+
+=item do EXPR
+
+被Perl6的C<EVALFILE>取代了。
+
+=head2 dump
+
+=item dump LABEL
+
+根据S29描述,C<dump>已被废弃。
+
+=head2 each
+
+=item each HASH
+
+没有完全等效的函数，不过你可以使用C<%hash.kv>，它会返回一个键值列表，比如： 
+C<< for %hash.kv -> $k, $v { say "$k: $v" } >>
+
+顺便，我们这里的C<< -> >>称为箭头语句块，虽然文档中有很多这种例子，但是并没有
+一个关于它是如何运作的清晰的解释。 
+L<https://design.perl6.org/S04.html#The_for_statement>对你可能有些帮助，还有设计文档的
+L<https://design.perl6.org/S06.html#%22Pointy_blocks%22>， 另外还有L<https://en.wikibooks.org/wiki/Perl_6_Programming/Blocks_and_Closures#Pointy_Blocks>
+
+=head2 eof
+
+=item eof FILEHANDLE
+
+在Perl6中没有eof函数了，只能作为一个对象方法，例如C<$filehandle.eof>，如果文件已经到达末尾
+它会返回C<True>。 
+
+=head2 eval
+
+=item eval EXPR
+
+=item eval EXPR
+
+被L<EVAL|/routine/EVAL>代替。注意C<EVAL> 不做任何L<异常处理|/language/exceptions>!
+
+=head2 evalbytes
+
+=item evalbytes EXPR
+
+Perl6中不存在。
+
+=head2 exec
+
+=item exec LIST
+
+Perl6中没有提供跟Perl5中的C<exec>类似的函数，C<shell>和C<run>类似于Perl5中的C<system>，
+但是C<exec>执行系统命令不返回结果的特性，需要用C<shell($command);exit();>或者
+C<exit shell($command);>来实现。
+
+但是这些解决方法都不能实现用一个新程序来I<接替>I<replacing>你当前perl进程的行为。
+注意到，他们不可能作为长时间运行的守护程序，定时的通过重新执行exec来反馈他们的状态
+或者强制执行系统清理。他们也不能实现C<exec>给操作系统返回错误值的功能
+
+如果你想用C<exec>的这些功能，你可以通过C<NativeCall>调用 C<exec*>系函数。请查看系统的
+C<exec>函数使用手册。（或者其他类似的系统调用函数，比如C<execl>, C<execv>, C<execvp>,
+或者C<execvpe>）。（注意，这些函数通常不同的系统之间表现也是不同的）。
+
+=head2 exists
+
+=item exists EXPR
+
+Perl6不提供这样的函数,用后缀副词代替:
+
+    %hash{$key}:exists;
+    @array[$i]:exists;
+
+=head2 exit
+
+=item exit EXPR
+
+和perl5几乎一样。
+
+=head2 exp
+
+=item exp EXPR
+
+和perl5一样,也能作为对象方法：C<5.exp>
+
+=head2 fc
+
+=item fc EXPR
+
+和perl5几乎一样。
+
+=head2 fcntl
+
+=item fcntl FILEHANDLE, FUNCTION, SCALAR
+
+Perl6未提供。
+
+=head2 __FILE__
+
+=item __FILE__
+
+用C<$?FILE>代替。
+
+=head2 fileno
+
+=item fileno FILEHANDLE
+
+S32说明作为对象方法，目前还未实现。
+
+=head2 flock
+
+=item flock FILEHANDLE, OPERATION
+
+目前还未实现。
+
+=head2 fork
+
+=item fork
+
+未作为内建函数，可以通过C<NativeCall>接口使用。例如：C<use NativeCall; sub fork returns int32 is
+native { * }; say fork;>。
+
+=head2 formats
+
+=item format
+
+=item formline PICTURE, LIST
+
+Perl6中没有内建的formats.
+
+=head2 getc
+
+=item getc FILEHANDLE
+
+和Perl5一样从输入流中读取一个字符，也可以作为一个对象方法调用：C<$filehandle.getc>。
+
+=head2 getlogin
+
+=item getlogin
+
+S32中在列，目前还未实现。
+
+=head2 getpeername
+
+=item getpeername SOCKET
+
+S29中在列, 但是对其实现还未明确。
+
+=head2 getpgrp
+
+=item getpgrp PID
+
+还未实现。
+
+=head2 getpriority
+
+=item getpriority WHICH, WHO
+
+还未实现。
+
+=head2 get and set functions
+
+=item getpwnam NAME
+
+=item getgrnam NAME
+
+=item gethostbyname NAME
+
+=item getnetbyname NAME
+
+=item getprotobyname NAME
+
+=item getpwuid UID
+
+=item getgrgid GID
+
+=item getservbyname NAME, PROTO
+
+=item gethostbyaddr ADDR, ADDRTYPE
+
+=item getnetbyaddr ADDR, ADDRTYPE
+
+=item getprotobynumber NUMBER
+
+=item getservbyport PORT, PROTO
+
+=item getpwent
+
+=item getgrent
+
+=item gethostent
+
+=item getnetent
+
+=item getprotoent
+
+=item getservent
+
+=item setpwent
+
+=item setgrent
+
+=item sethostent STAYOPEN
+
+=item setnetent STAYOPEN
+
+=item setprotoent STAYOPEN
+
+=item setservent STAYOPEN
+
+=item endpwent
+
+=item endgrent
+
+=item endhostent
+
+=item endnetent
+
+=item endprotoent
+
+=item endservent
+
+[需要进一步研究]似乎这个列表中的函数可以被一些Roles比如 User,Group等处理。
+
+=head2 getsock*
+
+=item getsockname SOCKET
+
+=item getsockopt SOCKET, LEVEL, OPTNAME
+
+[需要进一步研究]现在看起来可能被实现成某种IO::Socket对象，但是具体细节不详。
+
+=head2 glob
+
+=item glob EXPR
+
+在S32中有实例，但是似乎没有实现。
+
+=head2 gmtime
+
+=item gmtime EXPR
+
+C<localtime>, C<gmtime>的各种功能似乎在DateTime对象里，为获取一个UTC格式的当前时间的C<DateTime>对象，
+可以用： C<my $gmtime = DateTime.now.utc>。
+
+=head2 goto
+
+=item goto LABEL
+
+=item goto EXPR
+
+=item goto &NAME
+
+[需要深入研究]S04有提到, 但是没有完整的文档.
+
+=head2 grep
+
+=item grep BLOCK LIST
+
+=item grep EXPR, LIST
+
+在Perl6依然存在，不过需要注意的是代码块之后需要一个逗号，例如
+ C<@foo = grep { $_ = "bars" }, @baz>。
+也可以作为对象方法使用： C<@foo = @bar.grep(/^f/)>。
+
+=head2 hex
+
+=item hex EXPR
+
+用副词形式C<:16>取代了，例如：C<:16("aF")>返回175。
+
+另外，可以使用 C<.base>方法得到同样的结果：C<0xaF.base(10)>。
+
+碰巧 C<.Str>默认显示的是10进制，所以如果你C<say 0xaF>，它依然会打印175，
+但这样不够直观，不是最好的方式。
+
+=head2 import
+
+=item import LIST
+
+首先在Perl5中它一直不是内建的函数，在Perl6中，典型地，函数可以声明为导出或者不导出，
+所有可导出的函数可一起导出，同时，有选择的导出也行，但是这超出了本文档的范围，详见
+L<this section|/language/5to6-nutshell#Importing_specific_functions_from_a_module>。
+
+=head2 index
+
+=item index STR, SUBSTR, POSITION
+
+和perl5表现一样，同时可作为对象方法：
+C<"howdy!".index("how"); # 0>
+
+=head2 int
+
+=item int EXPR
+
+在Perl6里面它是和Perl5中一样的truncate（截断）函数（也可作为对象方法），你直接使用它作为
+Perl5代码的移植版本，但是在Perl6中，你可以对一个数字方便地直接调用C<int>方法。 
+C<3.9.Int; # 3>和C<3.9.truncate>等效。
+
+=head2 ioctl
+
+=item ioctl FILEHANDLE, FUNCTION, SCALAR
+
+目前还未实现。
+
+=head2 join
+
+=item join EXPR, LIST
+
+和Perl5中表现一致，也可以作为对象方法：C<@x.join(",")>
+
+=head2 keys
+
+=item keys HASH
+
+和Perl5中表现一致，也可以作为对象方法：C<%hash.keys>
+
+=head2 kill
+
+=item kill SIGNAL, LIST
+
+=item kill SIGNAL
+
+无预定义的核心对应项存在，一种不是方便的方法是通过调用L<NativeCall|/language/nativecall>
+接口：
+
+    use NativeCall;
+    sub kill(int32, int32) is native {*};
+    kill $*PID, 9; # OUTPUT: «Killed␤»
+
+傻进程可以通过创建Proc::ASync，然后使用L«C<Proc::Async.kill> method|/type/Proc::Async#method_kill»。
+
+=head2 last
+
+=item last LABEL
+
+=item last EXPR
+
+=item last
+
+和perl5一样.
+
+=head2 lc
+
+=item lc EXPR
+
+和Perl5中表现一致，也可以作为对象方法：C<"UGH".lc>
+
+=head2 lcfirst
+
+=item lcfirst EXPR
+
+未定义。
+
+=head2 length
+
+=item length EXPR
+
+被C<chars>取代，通常作为一个方法使用(C<$string.chars>),也能作为函数用。
+
+=head2 __LINE__
+
+=item __LINE__
+
+被C<$?LINE>取代。
+
+=head2 link
+
+=item link OLDFILE, NEWFILE
+
+See L<link>
+
+=head2 listen
+
+=item listen SOCKET, QUEUESIZE
+
+文档中没有明确的描述，似乎C<listen>是IO::Socket对象的一个方法。
+
+=head2 local
+
+=item local EXPR
+
+Perl6中相应的是C<temp>。然而他不像C<local>，指定的变量的值，不会马上重置：
+它保持他的原始值，直到赋值给它。
+
+
+=head2 localtime
+
+=item localtime EXPR
+
+C<localtime>的大部分的功能都可以在C<DateTime>中找到，C<localtime>特定的部分如下：
+
+=begin code
+
+my $d = DateTime.now;
+$sec  = $d.second; # 可能包含小数秒
+$min  = $d.minute;
+$hour = $d.hour;
+$mday = $d.day-of-month; # 或者$d.day; 1..31
+$mon  = $d.month; # 1..12
+$year = $d.year;
+$wday = $d.day-of-week; # 1 => Monday, 2 => Tuesday,等等.
+$yday = $d.day-of-year; # 1..366
+
+=end code
+
+注意在Perl6中的范围并不是0开始的，上面的例子已经显示这点。
+
+好像没有一种明确的方式可以得到Perl5中的C<$isdst>对应的值，Perl5中提供的C<scalar(localtime)>
+已经不可用了,C<$d.Str>会返回类似“2015-06-29T12:49:31-04:00”的字串。
+
+=head2 lock
+
+=item lock THING
+
+Perl6中,是Lock类的一个方法。
+
+=head2 log
+
+=item log EXPR
+
+Perl6中也可用，也可以作为对象方法：例如C<log(2)>和C<2.log>等效。
+
+=head2 lstat
+
+=item lstat FILEHANDLE
+
+=item lstat EXPR
+
+=item lstat DIRHANDLE
+
+=item lstat
+
+可能在Perl6中的C<IO>类的某处实现了，具体目前还不是很清楚。
+
+=head2 m//
+
+=item m//
+
+正则表达式在Perl6中有点不一样，但是匹配操作依然存在，如果你想重写Perl5的代码，
+最重要的区别就是C<=~>被智能匹配运算符C<~~>取代，类似地，C<!~>被C<!~~>取代，
+正则操作的设置都是副词并且复杂，具体请浏览L<Adverbs|/language/regexes#Adverbs>。
+
+=head2 map
+
+=item map BLOCK LIST
+
+=item map EXPR, LIST
+
+作为一个函数,和Perl5中不同的地方是，其代码块后面必须跟着一个逗号，同时也能作为一个方法使用： 
+C<@new = @old.map: { $_ * 2 }> 。
+
+=head2 mkdir
+
+=item mkdir FILENAME, MASK
+
+=item mkdir FILENAME
+
+和Perl5一样
+
+=item mkdir
+
+不带参数的形式(隐式$_为变量C<$_>)Perl6中不允许。
+
+=head2 msg*
+
+=item msgctl ID, CMD, ARG
+
+=item msgget KEY, FLAGS
+
+=item msgrcv ID, VAR, SIZE, TYPE, FLAGS
+
+=item msgsnd ID, MSG, FLAGS
+
+无内建地支持，可能会出现在某些扩展模块中。
+
+=head2 my
+
+=item my VARLIST
+
+=item my TYPE VARLIST
+
+=item my VARLIST : ATTRS
+
+=item my TYPE VARLIST : ATTRS
+
+和Perl5一样。
+
+=head2 next
+
+=item next LABEL
+
+=item next EXPR
+
+=item next
+
+Perl中无差异。
+
+=head2 no
+
+=item no MODULE VERSION
+
+=item no MODULE LIST
+
+=item no MODULE
+
+=item no VERSION
+
+在Perl6中，它是类似于C<strict>一样的编译指示，但是作用对象不是模块，
+并不清楚它是否有版本功能， 因为目前有些东西有争议，我觉得没有。
+
+=head2 oct
+
+=item oct
+
+被副词格式C<:8>取代,例如：C<:8("100")>返回 64。
+
+如果你想处理C<0x>, C<0o>,或者C<0b>开头的字符串，你可以使用C«prefix:<+>»操作符。
+
+=head2 open
+
+=item open FILEHANDLE, EXPR
+
+=item open FILEHANDLE, MODE, EXPR
+
+=item open FILEHANDLE, MODE, EXPR, LIST
+
+=item open FILEHANDLE, MODE, REFERENCE
+
+=item open FILEHANDLE
+
+相对于Perl5最明显的改变就是文件模式的语法，以只读方式打开一个文件，你需要使用C<open("file", :r)>，
+以只写、读写以及追加的方式打开需要分别使用 C<:w>, C<:rw>和C<:a>，另外还有
+一些关于编码以及如何处理换行的选项，具体参见L<here|/routine/open>。
+
+=head2 opendir
+
+=item opendir DIRHANDLE, EXPR
+
+No replacement. See L«C<&dir>/C<IO::Path.dir>|/routine/dir» for alternatives.
+
+=head2 ord
+
+=item ord EXPR
+
+Same as in Perl 5. May be used as a method: C<"howdy!".ord; # 104>
+
+=head2 our
+
+=item our VARLIST
+
+=item our TYPE VARLIST
+
+=item our VARLIST : ATTRS
+
+=item our TYPE VARLIST : ATTRS
+
+The same in Perl 6.
+
+=head2 pack
+
+=item pack TEMPLATE, LIST
+
+Available in Perl 6. The template options are currently more restricted
+than they are in Perl 5. The current documented list can be found at
+L<unpack|/routine/unpack>.
+
+=head2 package
+
+=item package NAMESPACE
+
+=item package NAMESPACE VERSION
+
+=item package NAMESPACE BLOCK
+
+=item package NAMESPACE VERSION BLOCK
+
+S10 indicates that C<package> can be used in Perl 6, but only with a
+block. I. e. C<package Foo { ... }> means that the code within the block
+would be in package Foo. There is a special case where a declaration of
+the form C<package Foo;> as the first statement in a file indicates that
+the rest of the file is Perl 5 code, but the usefulness of this is
+unclear. In fact, as modules and classes are declared with distinct
+keywords (such as C<class>), it's unlikely you will use C<package>
+directly in Perl 6.
+
+=head2 __PACKAGE__
+
+=item __PACKAGE__
+
+Replaced by C<$?PACKAGE>.
+
+=head2 pipe
+
+=item pipe READHANDLE, WRITEHANDLE
+
+Depending on your needs, see L«C<Channel>|/type/Channel» to shuttle
+data between threads (and L<Concurrency tutorial|/language/concurrency>
+for other options), or see L«C<Proc>|/type/Proc» type for piping to
+and from processes.
+
+=head2 pop
+
+=item pop ARRAY
+
+Works in Perl 6, and can also be used as a method. I. e. C<my $x = pop
+@a;> and C<my $x = @a.pop;> are equivalent.
+
+=head2 pos
+
+=item pos SCALAR
+
+Not available in Perl 6. The closest equivalent is the C<:c> adverb,
+which defaults to C<$/.to> if C<$/> is true, and C<0> if it isn't. For
+information on C<:c>, see
+L<Continue|/language/regexes#Continue>.
+
+=head2 print
+
+=item print FILEHANDLE LIST
+
+=item print FILEHANDLE
+
+=item print LIST
+
+=item print
+
+C<print> can be used as a function in Perl 6, writing to standard
+out. To use C<print> as a function with a filehandle I<instead> of
+standard out, you can use a method call: C<$fh.print("howdy!")>
+
+=head2 printf
+
+=item printf FORMAT, LIST
+
+=item printf
+
+Perl 6 version is similar; see
+L<sprintf|https://docs.perl6.org/type/Str#sub_sprintf> for details
+on acceptable format directives. To print to a filehandle other than
+STDOUT, use the L«C<.printf>|/type/printf» method on that filehandle.
+
+=head2 prototype
+
+=item prototype FUNCTION
+
+Not available in Perl 6. The closest equivalent is
+C<.signature>. E. g. C<say &sprintf.signature> results in "(Cool
+$format, *@args)".
+
+=head2 push
+
+=item push ARRAY, LIST
+
+Works as in Perl 5, as well as being available as a method:
+C<@a.push("foo");>. I<Note:> the flattening behaviour is different in Perl 6:
+C<@b.push: @a> will push C<@a> into C<@b> as a single element. See also the
+L<append method|/type/Array#method_append>.
+
+=head2 quoting
+
+=item q/STRING/
+
+=item qq/STRING/
+
+=item qw/STRING/
+
+=item qx/STRING/
+
+These survive the transition to Perl 6. Some notes:
+
+    q/.../ # is still equivalent to using single quotes.
+    qq/.../ # is still equivalent to using double quotes.
+    qw/.../ # is more commonly rendered as C<< <...> >> in Perl 6.
+
+There are some added quoting constructs and equivalents, as explained at
+L<quoting|/language/quoting>.
+
+=item qr/STRING/
+X<|qr (Perl 5)>
+
+Has been replaced by C<rx/.../>.
+
+=item quotemeta EXPR
+
+No direct equivalent, i.e. nothing that just returns the string with all
+the ASCII non-word characters backslashed. In regexes, however, using
+C<$foo> will treat C<$foo> as a literal string, and using C<< <$foo> >>
+will interpret the contents of C<$foo> as regex code. Note that the
+angle brackets are doing something different here than they do outside a
+regex. For more information on this, see
+L<https://design.perl6.org/S05.html#Extensible_metasyntax_(%3C...%3E)>
+
+=head2 rand
+
+=item rand EXPR
+
+C<rand> by itself works as it does in Perl 5, but you can no longer give
+it an argument. You can, however, use it as a method on a number to get
+that behavior. I. e. the Perl 5 C<rand(100)> is equivalent to
+C<100.rand> in Perl 6. Additionally, you can get a random integer by
+using something like C<(^100).pick>. For I<why> you are able to do that,
+see L<^ operator|/language/operators#prefix_%5E> and
+L<pick|/routine/pick>.
+
+=head2 read
+
+=item read FILEHANDLE, SCALAR, LENGTH, OFFSET
+
+C<read> is found in C<IO::Handle> and C<IO::Socket> in Perl 6. It reads
+the specified number of bytes (rather than characters) from the relevant
+handle or socket. The use of an offset available in Perl 5 is not
+documented to exist at this time.
+
+=head2 readdir
+
+=item readdir DIRHANDLE
+
+Not a builtin function. To iterate through the contents of a directory,
+take a look at L<dir routine|/type/IO::Path#routine_dir>.
+
+=head2 readline
+
+=item readline
+
+Not available in Perl 6. You most likely want to use the C<.lines>
+method in some way. For more detailed information on reading from files,
+see L<io|/language/io>.
+
+=head2 readlink
+
+=item readlink EXPR
+
+Appears to be gone from Perl 6.
+
+=head2 readpipe
+
+=item readpipe EXPR
+
+=item readpipe
+
+Doesn't appear to be working in Perl 6, but C<qx//> is functional, so it might
+be lurking around in some class that isn't obvious.
+
+=head2 recv
+
+=item recv SOCKET, SCALAR, LENGTH, FLAGS
+
+Appears to be in IO::Socket. Not extensively documented at this time.
+
+=head2 redo
+
+=item redo LABEL
+
+=item redo EXPR
+
+=item redo
+
+Unchanged in Perl 6.
+
+=head2 ref
+
+=item ref EXPR
+
+Gone. To quote S29, "If you really want the type name, you can
+use C<$var.WHAT.perl>.  If you really want P5 ref
+semantics, use C<Perl5::p5ref>." Except that C<Perl5::p5ref> does not seem to
+currently exist...
+
+=head2 rename
+
+=item rename OLDNAME, NEWNAME
+
+Still available in Perl 6.
+
+=head2 requires
+
+=item require VERSION
+
+No equivalent.
+
+=head2 reset
+
+=item reset EXPR
+
+No equivalent.
+
+=head2 return
+
+=item return EXPR
+
+Appears to be available in Perl 6, although not clearly documented.
+
+=head2 reverse
+
+=item reverse LIST
+
+In Perl 6, this only reverses the elements of a list. C<reverse(@a)>
+or C<@a.reverse>. To reverse the characters in a string, use the
+C<.flip> method.
+
+=head2 rewinddir
+
+=item rewinddir DIRHANDLE
+
+[NEEDS FURTHER RESEARCH] There does not appear to be an obvious direct
+equivalent. It is possible that some incantation in C<IO::Path> may serve, but
+it's not clear what it would be.
+
+=head2 rindex
+
+=item rindex STR, SUBSTR, POSITION
+
+Works as in Perl 5, and may also be used as a method. E. g. C<$x =
+"babaganush";say $x.rindex("a");say $x.rindex("a", 3); # 5, 3>
+
+=head2 rmdir
+
+=item rmdir FILENAME
+
+Works in Perl 6 and can also be used as a method. C<rmdir "Foo";> and
+C<"Foo".IO.rmdir;> are equivalent.
+
+=head2 s///
+
+=item s///
+
+Regular expression syntax is somewhat different in Perl 6, but the
+substitution operator exists. If you're trying to rewrite some
+Perl 5 code, the most important difference is that C<=~> is replaced
+by the smart match operator, C<~~>. Similarly, C<!~> is C<!~~>.
+Options for regex operators are adverbs and are complicated. For
+details, see L<Adverbs page|/language/regexes#Adverbs>
+
+=head2 say
+
+=item say FILEHANDLE
+
+=item say LIST
+
+=item say
+
+C<say> can be used as a function, defaulting to standard out. To use
+C<say> as a function with a filehandle I<instead> of standard out, you
+need to put a colon after the filehandle. I. e. C<say $fh: "Howdy!">.
+The use of the colon as an "invocant marker" here is discussed at
+L<https://design.perl6.org/S03.html#line_4019>. Alternately, you can use
+a method call: C<$fh.say("howdy!")>
+
+=head2 scalar
+
+=item scalar EXPR
+
+Gone. Apparently "very" gone.
+
+=head2 seek
+
+=item seek FILEHANDLE, POSITION, WHENCE
+
+Not documented in a any real way yet, but listed under the C<IO::Handle>
+class.
+
+=head2 seekdir
+
+=item seekdir DIRHANDLE, POS
+
+Not currently documented, but looks to be something that would be implemented
+in one of the C<IO> classes, likely C<IO::Path>.
+
+=head2 select
+
+=item select FILEHANDLE
+
+"[S]elect as a global concept is dead." When I asked around about C<select>, I
+was told that $*OUT and such are overridable in dynamic scope, and that
+C<IO::Capture::Simple> (at L<https://github.com/sergot/IO-Capture-Simple>) may
+be of use for something you might be doing with the value of C<select>.
+
+=head2 semctl
+
+=item semctl ID, SEMNUM, CMD, ARG
+
+No longer in core.
+
+=head2 semget
+
+=item semget KEY, NSEMS, FLAGS
+
+No longer in core.
+
+=head2 semop
+
+=item semop KEY, OPSTRING
+
+No longer in core.
+
+=head2 send
+
+=item send SOCKET, MSG, FLAGS, TO
+
+Can be found in the C<IO::Socket> class.
+
+=head2 setpgrp
+
+=item setpgrp PID, PGRP
+
+No longer in core. Will probably wind up in a POSIX module.
+
+=head2 setpriority
+
+=item setpriority WHICH, WHO, PRIORITY
+
+No longer in core. Will probably wind up in a POSIX module.
+
+=head2 setsockopt
+
+=item setsockopt SOCKET, LEVEL, OPTNAME, OPTVAL
+
+Not documented, but probably hiding in an C<IO> class somewhere.
+
+=head2 shift
+
+=item shift ARRAY
+
+=item shift EXPR
+
+=item shift
+
+Works as a method as well as a function. C<shift @a> and C<@a.shift> are
+equivalent.
+
+=head2 shm*
+
+=item shmctl ID, CMD, ARG
+
+=item shmget KEY, SIZE, FLAGS
+
+=item shmread ID, VAR, POS, SIZE
+
+=item shmwrite ID, STRING, POS, SIZE
+
+Gone from the core. May turn up in a module somewhere.
+
+=head2 shutdown
+
+=item shutdown SOCKET, HOW
+
+Not documented, but likely moved into C<IO::Socket>.
+
+=head2 sin
+
+=item sin EXPR
+
+Works as a function and also as a method. C<sin(2)> and C<2.sin> are
+equivalent.
+
+=head2 sleep
+
+=item sleep EXPR
+
+Still works as in Perl 5. As of this writing, works as a method, but
+that is deprecated and will be removed soon.
+
+=head2 sockets
+
+=item socket SOCKET, DOMAIN, TYPE, PROTOCOL
+
+=item socketpair SOCKET1, SOCKET2, DOMAIN, TYPE, PROTOCOL
+
+Not currently documented, but will likely wind up in C<IO::Socket>.
+
+=head2 sort
+
+=item sort SUBNAME LIST
+
+C<sort> exists in Perl 6, but is somewhat different. C<$a> and C<$b> are
+no longer special (See L<5to6-perlvar>) and sort routines no
+longer return positive integers, negative integers, or 0, but rather
+C<Order::Less>, C<Order::Same>, or C<Order::More> objects. See
+L<sort|/routine/sort> for details. May also be used as a
+method I. e. C<sort(@a)> is equivalent to C<@a.sort>.
+
+=head2 splice
+
+=item splice ARRAY, OFFSET, LENGTH
+
+=item splice ARRAY, OFFSET
+
+=item splice ARRAY
+
+=item splice EXPR, OFFSET, LENGTH, LIST
+
+=item splice EXPR, OFFSET, LENGTH
+
+=item splice EXPR, OFFSET
+
+=item splice EXPR
+
+Available in Perl 6. Can also be used as a method. C<< splice(@foo, 2, 3,
+<M N O P>); >> is equivalent to C<< @foo.splice(2, 3, <M N O P>); >>.
+
+=head2 split
+
+=item split /PATTERN/, EXPR, LIMIT
+
+=item split /PATTERN/, EXPR
+
+=item split /PATTERN/
+
+
+Works mostly as in Perl 5. There are some exceptions, though. To get the
+special behavior of using the empty string, you must actually use the
+empty string - the special case of the empty pattern C<//> being treated
+as the empty string does not apply. If you use a regex for the split, it
+will use the regex, while a literal string will be treated literally. If
+you wish to have the delimiters included in the resulting list, you need
+to use the named parameter C<:all>, like this: C<split(';', "a;b;c",
+:all) # a ; b ; c> Empty chunks are not removed from the result list as
+they are in Perl 5. For that behavior, see C<comb>. Details on C<split>
+are L<here|/routine/split>. Unsurprisingly, C<split>
+also now works as a method: C<"a;b;c".split(';')>
+
+=item split
+
+The zero argument version must now be called with an explicit empty string, as
+described above.
+
+=head2 sprintf
+
+=item sprintf FORMAT, LIST
+
+Works as in Perl 5. The formats currently available are:
+
+=table
+    %   a literal percent sign
+    c   a character with the given codepoint
+    s   a string
+    d   a signed integer, in decimal
+    u   an unsigned integer, in decimal
+    o   an unsigned integer, in octal
+    x   an unsigned integer, in hexadecimal
+    e   a floating-point number, in scientific notation
+    f   a floating-point number, in fixed decimal notation
+    g   a floating-point number, in %e or %f notation
+    X   like x, but using uppercase letters
+    E   like e, but using an uppercase "E"
+    G   like g, but with an uppercase "E" (if applicable)
+
+Compatibility:
+
+=table
+    i   a synonym for %d
+    D   a synonym for %ld
+    U   a synonym for %lu
+    O   a synonym for %lo
+    F   a synonym for %f
+
+Perl 5 (non-)compatibility:
+
+=table
+    n   produces a runtime exception
+    p   produces a runtime exception
+
+There are modifiers for integers, but they're mainly no-ops, as the
+semantics aren't settled:
+
+=table
+    h   interpret integer as native "short" (typically int16)
+    l   interpret integer as native "long" (typically int32 or int64)
+    ll  interpret integer as native "long long" (typically int64)
+    L   interpret integer as native "long long" (typically uint64)
+    q   interpret integer as native "quads" (typically int64 or larger)
+
+=head2 sqrt
+
+=item sqrt EXPR
+
+Works as a function and a method. C<sqrt(4)> and C<4.sqrt> are equivalent.
+
+=head2 srand
+
+=item srand EXPR
+
+Available in Perl 6.
+
+=head2 stat
+
+=item stat EXPR
+
+=item stat DIRHANDLE
+
+=item stat
+
+Likely implemented somewhere in C<IO>, but it is not clear where at
+this time.
+
+=head2 state
+
+=item state VARLIST
+
+=item state TYPE VARLIST
+
+=item state VARLIST : ATTRS
+
+=item state TYPE VARLIST : ATTRS
+
+Available in Perl 6, see L<state|/syntax/state>.
+
+=head2 study
+
+=item study SCALAR
+
+=item study
+
+C<study> is no more.
+
+=head2 sub
+
+=item sub NAME BLOCK
+
+=item sub NAME(PROTO) BLOCK
+
+=item sub NAME : ATTRS BLOCK
+
+=item sub NAME(PROTO) : ATTRS BLOCK
+
+Unsurprisingly, we still have subroutines! You can have a signature in
+your subroutine which allows you to specify arguments. Nevertheless, in
+the absence of a signature (and only in the absence of a signature),
+C<@_> still contains what is passed to the function. So, in theory, you
+don't need to change that aspect of a function if porting from Perl 5 to
+Perl 6 (although you should probably consider the option of using a
+signature). For all the gory details, see
+L<functions|/language/functions>.
+
+=head2 __SUB__
+
+=item __SUB__
+
+Replaced by C<&?ROUTINE>.
+
+=head2 substr
+
+=item substr EXPR, OFFSET, LENGTH, REPLACEMENT
+
+=item substr EXPR, OFFSET, LENGTH
+
+=item substr EXPR, OFFSET
+
+Can be used as a function or a method. C<substr("hola!", 1, 3)> and
+C<"hola!".substr(1, 3)> both return "ola".
+
+=head2 symlink
+
+=item symlink OLDFILE, NEWFILE
+
+See L<symlink>
+
+=head2 syscall
+
+=item syscall NUMBER, LIST
+
+Not a builtin in Perl 6. Most likely out in a module somewhere, but it's
+currently unclear where.
+
+=head2 sys*
+
+=item sysopen FILEHANDLE, FILENAME, MODE
+
+=item sysopen FILEHANDLE, FILENAME, MODE, PERMS
+
+=item sysread FILEHANDLE, SCALAR, LENGTH, OFFSET
+
+=item sysread FILEHANDLE, SCALAR, LENGTH
+
+=item sysseek FILEHANDLE, POSITION, WHENCE
+
+As with the non-sys versions of these functions, are probably lurking in the
+C<IO> classes somewhere.
+
+=head2 system
+
+=item system LIST
+
+=item system PROGRAM LIST
+
+For this, you probably want (L<run|/routine/run>)
+or (L<shell routine|/routine/shell>).
+
+=head2 syswrite
+
+=item syswrite FILEHANDLE, SCALAR, LENGTH, OFFSET
+
+=item syswrite FILEHANDLE, SCALAR, LENGTH
+
+=item syswrite FILEHANDLE, SCALAR
+
+As with C<sysopen> and friends, this has moved into the C<IO> classes.
+
+=head2 tell
+
+=item tell FILEHANDLE
+
+In C<IO::Handle>, but not yet documented, beyond a mention.
+
+=head2 telldir
+
+=item telldir DIRHANDLE
+
+Possibly in C<IO::Path>, but not yet documented.
+
+=head2 tie
+
+=item tie VARIABLE, CLASSNAME, LIST
+
+=item tied VARIABLE
+
+[NEEDS FURTHER RESEARCH] S29 indicates that variable tying has been
+replaced by container types. Unfortunately, what this means in practical
+terms has not been obviously specified.
+
+=head2 time
+
+=item time
+
+"Returns an Int representing the current time." Although I<how> it represents the
+current time isn't in the documentation currently, it appears to still be
+seconds since epoch, as in Perl 5.
+
+=head2 times
+
+=item times
+
+Not available in Perl 6.
+
+=head2 tr///
+
+=item tr///
+
+Works similarly to how it does in Perl 5. The one caveat is that ranges are specified differently.
+Instead of using a range "a-z", you would use "a..z", i. e. with Perl's
+range operator. In Perl 6, C<tr///> has a method version, which is
+better documented, called C<.trans>. C<.trans> uses a list of pairs, as
+follows: C<< $x.trans(['a'..'c'] => ['A'..'C'], ['d'..'q'] =>
+['D'..'Q'], ['r'..'z'] => ['R'..'Z']); >> A much more extensive
+description of the uses of C<.trans> can be found at
+L<https://design.perl6.org/S05.html#Transliteration>. The C<y///>
+equivalent has been done away with.
+
+=head2 truncate
+
+=item truncate FILEHANDLE, LENGTH
+
+=item truncate EXPR, LENGTH
+
+Most likely somewhere in C<IO::Handle>, but not currently documented.
+
+=head2 uc
+
+=item uc EXPR
+
+Works as a function and a method. C<uc("ha")> and C<"ha".uc> both return "HA".
+
+=head2 ucfirst
+
+=item ucfirst EXPR
+
+=item ucfirst
+
+Perl 6 has done away with C<ucfirst>. The title case function L<C<tc>|/routine/tc> probably
+does what you need.
+
+=head2 undef
+
+=item undef EXPR
+
+There is no C<undef> in Perl 6. You can't undefine a function, and the closest
+equivalent value is probably C<Nil>, but you'll likely have no use for that.
+If you were using something like C<(undef, $file, $line) = caller;>, you would
+just get the filename and line number directly in Perl 6 instead of discarding
+the first result of C<caller>. C<caller> has been replaced by C<callframe> in
+Perl 6, so the equivalent statement would be C<($file, $line) =
+callframe.annotations<file line>;>
+
+=head2 unlink
+
+=item unlink LIST
+
+Still available. Usable as a method: C<"filename".IO.unlink>
+
+=item unlink
+
+The zero argument (implicit C<$_>) version of unlink is not available in Perl
+6.
+
+=head2 unpack
+
+=item unpack TEMPLATE, EXPR
+
+=item unpack TEMPLATE
+
+Available in Perl 6. The template options are currently more restricted
+than they are in Perl 5. The current documented list can be found
+L<here|/routine/unpack>.
+
+
+=head2 unshift
+
+=item unshift ARRAY, LIST
+
+=item unshift EXPR, LIST
+
+Available in Perl 6. Can be used as a method. C<unshift(@a, "blah")> is
+equivalent to C<@a.unshift("blah")>.
+
+=head2 untie
+
+=item untie VARIABLE
+
+[NEEDS FURTHER RESEARCH] Functions for tying variables seem to be replaced in
+Perl 6 by container types, as mentioned in S29. This has become no clearer
+since I wrote the entry for C<tie>, above.
+
+=head2 use
+
+=item use Module VERSION LIST
+
+=item use Module VERSION
+
+=item use Module LIST
+
+=item use Module
+
+=item use VERSION
+
+In Perl 5, this requires a minimum version of the perl executable in
+order to run. In Perl 6, this requires a version of the specification,
+(e.g. C<6.c>), which can be implemented by various perl6 executables.
+
+=head2 utime
+
+=item utime LIST
+
+No equivalent.
+
+=head2 values
+
+=item values HASH
+
+=item values ARRAY
+
+=item values EXPR
+
+Available in Perl 6. Can also be used as a method. C<values %hash> is
+equivalent to C<%hash.values>.
+
+
+=head2 vec
+
+=item vec EXPR, OFFSET, BITS
+
+S29 says "Should replace C<vec> with declared buffer/array of C<bit>,
+C<uint2>, C<uint4>, etc." It is unclear, however, that this has actually
+happened.
+
+=head2 wait
+
+=item wait
+
+[NEEDS FURTHER RESEARCH] Unclear where this has gone. There's a C<wait>
+method in C<Supply>, and an C<await> method in both C<Channel> and
+C<Promise>. Which, if any or all, of these is a direct equivalent of
+Perl 5's C<wait> is unclear.
+
+=head2 waitpid
+
+=item waitpid PID, FLAGS
+
+As with C<wait>, the disposition of this is unclear.
+
+=head2 wantarray
+
+=item wantarray
+
+There is no C<wantarray> in Perl 6, because L<reasons|/language/faq#Why_is_wantarray_or_want_gone?_Can_I_return_different_things_in_different_contexts?>.
+
+There are very easy ways to cover many of the use cases which wantarray filled.
+
+First, since Perl 6 does not need special reference syntax to contain
+a C<List> or C<Array> in a C<Scalar>, simply returning a list may be
+all that is needed:
+
+    sub listofstuff {
+        return 1, 2, 3;
+    }
+    my $a = listofstuff();
+    print $a;                      # prints "123"
+    print join("<", listofstuff()) # prints "1<2<3"
+
+One of the most common use cases is to provide either an array of lines
+or elements, or a prettier string than would be produced by simply
+printing the array.  One can mix in a custom C<.Str> method for this
+purpose:
+
+    sub prettylist(*@origlist) {
+        @origlist but role {
+            method Str { self.join("<") }
+        }
+    }
+    print prettylist(1, 2, 3);  # prints "1<2<3"
+    print join(">", prettylist(3, 2, 1)); # prints "3>2>1"
+
+In the above example, the returned list may be lazy, and the C<.Str> method
+is not called until stringification happens, so no extra work is done
+to generate something which is not asked for.
+
+Another use case is to create methods which are mutators when called
+in void context but produce copies during assignment.  It is generally
+considered better form in Perl 6 not to do so, since users can quite
+easily turn any copy-producing method into a mutator using the C<.=>
+operator:
+
+    my $a = "foo\n";
+    $a.ords.say; # says "(102 111 111 10)"
+    $a .= chomp;
+    $a.ords.say; # says "(102 111 111)"
+
+However if you have your heart set on using the same function
+name for both operations, you can get most of the way there by mixing in
+a C<.sink> method, which will be called when the result finds itself
+in void context.  There are some caveats however, so again, this is
+not advised:
+
+    multi sub increment($b is rw) {
+        ($b + 1) does role { method sink { $b++ } }
+    }
+    multi sub increment($b) {
+        $b + 1
+    }
+    my $a = 1;
+    increment($a);
+    say $a;                 # says "2"
+    my $b = increment($a);
+    say $a, $b;             # says "2 3"
+    # ...users will just have to be aware that they should not accidentally
+    # sink a stored value later, though this requires some effort to
+    # actually do:
+    sub identity($c is rw) { $c };
+    $a = 1;
+    $b = increment($a);
+    identity($b);
+    $a.say;                  # says "2"
+
+=head2 warn
+
+=item warn LIST
+
+C<warn> throws an exception. To simply print a message to C<$*ERR>, you
+would use the C<note> function. For more on exceptions, see
+L<Exceptions|/language/exceptions>.
+
+=head2 write
+
+=item write FILEHANDLE
+
+=item write EXPR
+
+=item write
+
+Formats are gone from Perl 6, so this no longer works.
+
+=head2 y///
+
+=item y///
+
+This synonym for C<tr///> is gone. For functionality, see the entry for
+C<tr///>.
+
+=end pod

@@ -4,7 +4,7 @@
 
 ## Rakudo和Perl 6 有啥区别?
 
-正确的说法是， [Rakudo](http://rakudo.org/) 是perl的的实现。它是目前最完全的实现版本，目前还存在其他几个实现，将来也许
+正确的说法是， [Rakudo](http://rakudo.org/) 是perl6的的实现。它是目前最完全的实现版本，目前还存在其他几个实现，将来也许
 会有更多的实现。Perl 6是语言的定义。目前来讲，Perl 6和Rakudo名称可以通用。
 
 ## 第一个perl版本是6.0.0?
