@@ -500,12 +500,42 @@ done 5
 
 =head2 method stable
 
-    method stable(Supply:D: $seconds, :$scheduler = $*SCHEDULER --> Supply:D)
+    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER --> Supply:D)
 
 Creates a new supply that only passes on a value flowing through the given
-supply if it wasn't superseded by another value in the given time (in seconds).
-Optionally uses another scheduler than the default scheduler, using the
-C<:scheduler> parameter.
+supply if it wasn't superseded by another value in the given C<$time> (in
+seconds). Optionally uses another scheduler than the default scheduler,
+using the C<:scheduler> parameter.
+
+To clarify the above, if, during the timeout C<$time>, additional values
+are emitted to the C<Supplier> all but the last one will be thrown away.
+Each time an additional value is emitted to the C<Supplier>, during the
+timeout, C<$time> is reset.
+
+This method can be quite useful when handling UI input, where it is not desired
+to perform an operation until the user has stopped typing for a while rather
+than on every keystroke.
+
+=begin code
+my $supplier = Supplier.new;
+my $supply1 = $supplier.Supply;
+$supply1.tap(-> $v { say "Supply1 got: $v" });
+$supplier.emit(42);
+
+my Supply $supply2 = $supply1.stable(5);
+$supply2.tap(-> $v { say "Supply2 got: $v" });
+sleep(3);
+$supplier.emit(43);  # will not be seen by $supply2 but will reset $time
+$supplier.emit(44);
+sleep(10);
+# OUTPUT: «Supply1 got: 42␤Supply1 got: 43␤Supply1 got: 44␤Supply2 got: 44␤»
+=end code
+
+As can be seen above, C<$supply1> received all values emitted to the C<Supplier>
+while C<$supply2> only received one value. The 43 was thrown away because it
+was followed by another 'last' value 44 which was retained and sent to C<$supply2>
+after approx. eight seconds, this due to the fact that the timeout <$time> was
+reset after three seconds.
 
 =head2 method reduce
 
