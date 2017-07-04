@@ -97,13 +97,12 @@ $.extend( $.ui.autocomplete, {
         return value.replace( /[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&" );
     },
     filter: function( array, term ) {
-        var max_distance = 2;
         var len = term.length;
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex( term ), "i" );
+        var OK_distance = len > 9 ? 4 : len > 6 ? 3 : len > 4 ? 2 : 1;
         return $.grep( array, function( value ) {
             if (len >=2 ) {
-                var OK_distance = Math.min(max_distance, len -1);
-                var result = sift4( value.value, term, Math.max(5, len+1), Math.max(3, len-1));
+                var result = sift4( value.value, term, 4, 0);
                 if (result <=OK_distance) {
                     return true;
                 }
