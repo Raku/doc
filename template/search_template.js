@@ -1,3 +1,5 @@
+var current_search = "";
+
 $(function(){
   $.widget( "custom.catcomplete", $.ui.autocomplete, {
     _create: function() {
@@ -22,13 +24,31 @@ $(function(){
         // Sort by category alphabetically; 5to6 items would both have
         // the same category if we reached this point and category sort
         // will happen only on non-5to6 items
-        if ( a.category.toLowerCase() < b.category.toLowerCase() ) {return -1}
-        if ( a.category.toLowerCase() > b.category.toLowerCase() ) {return  1}
+        var a_cat = a.category.toLowerCase();
+        var b_cat = b.category.toLowerCase();
+        if ( a_cat < b_cat ) {return -1}
+        if ( a_cat > b_cat ) {return  1}
 
         // We reach this point when categories are the same; so
         // we sort items by value
-        if ( a.value.toLowerCase() < b.value.toLowerCase() ) {return -1}
-        if ( a.value.toLowerCase() > b.value.toLowerCase() ) {return  1}
+
+        var a_val = a.value.toLowerCase();
+        var b_val = b.value.toLowerCase();
+
+        // exact matches preferred
+        if ( a_val == current_search) {return -1}
+        if ( b_val == current_search) {return  1}
+
+        var a_sw = a_val.startsWith(current_search);
+        var b_sw = b_val.startsWith(current_search);
+        // initial matches preferred
+        if (a_sw && !b_sw) { return -1}
+        if (b_sw && !a_sw) { return  1}
+
+        // default
+        if ( a_val < b_val ) {return -1}
+        if ( a_val > b_val ) {return  1}
+
         return 0;
       }
       $.each( items.sort(sortBy), function( index, item ) {
@@ -97,6 +117,7 @@ $.extend( $.ui.autocomplete, {
         return value.replace( /[\-\[\]{}()*+?.,\\\^$|#\s]/g, "\\$&" );
     },
     filter: function( array, term ) {
+        current_search = term.toLowerCase();
         var len = term.length;
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex( term ), "i" );
         var OK_distance = len > 9 ? 4 : len > 6 ? 3 : len > 4 ? 2 : 1;
