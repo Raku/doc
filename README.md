@@ -8,13 +8,15 @@
 
 ## 文档中文化进度
 
-[FAQ 100%](cndoc/cnfaq.md) 
+[Perl6常见问题 100%](cndoc/cnfaq.md) 
 
 [感谢araraloren的翻译](https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F)
 
-[5to6-nutshell 100%](cndoc/cn5to6-nutshell.md)
+[从Perl5到Perl6初步 100%](cndoc/cn5to6-nutshell.md)
 
-[5to6-perlfunc 100%](cndoc/cn5to6-perlfunc.md)
+[从Perl5到Perl6指南——函数 100%](cndoc/cn5to6-perlfunc.md)
+
+[从Perl5到Perl6指南——变量 100%](cndoc/cn5to6-perlvar.md)
 
 ## 安装
 
