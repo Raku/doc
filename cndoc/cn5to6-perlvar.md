@@ -330,12 +330,12 @@ Perl5中与之相关的性能问题不会再产生。
         # 3: c
         # 4: d
 
-    对[IO::CatHandle](https://metacpan.org/pod/IO::CatHandle)类型(L«`$*ARGFILES`|/language/variables#index-entry-%24%2AARGFILES»
-    是这种)，你可以用L«`on-switch`|/type/IO::CatHandle#method\_on-switch»钩子，
+    对[IO::CatHandle](https://metacpan.org/pod/IO::CatHandle)类型([$*ARGFILES](/language/variables#index-entry-%24%2AARGFILES)
+    是这种)，你可以用[on-switch](/type/IO::CatHandle#method\_on-switch)钩子，
     在句柄变化时候重置行号，并且通过手动增加。
 
-    你也可以用L«`IO::CatHandle::AutoLines`|https://modules.perl6.org/repo/IO::CatHandle::AutoLines»
-    and L«`LN`|https://modules.perl6.org/repo/LN» 简单地实现这个功能。
+    你也可以用[IO::CatHandle::AutoLines](https://modules.perl6.org/repo/IO::CatHandle::AutoLines)
+    和[LN](https://modules.perl6.org/repo/LN)简单地实现这个功能。
 
 - $INPUT\_RECORD\_SEPARATOR
 - $RS
