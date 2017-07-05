@@ -147,7 +147,7 @@ default, there is only one such method per class hierarchy, whereas C<BUILD>
 is explicitly called per class. Which also explains why you need the
 C<callsame> inside C<BUILDALL>, but not inside C<BUILD>).
 
-=head1 Regexes
+=head1 Whitespace
 
 =head2 Whitespace in Regexes does not match literally
 
@@ -167,6 +167,70 @@ Ways to match whitespace:
       you actually want it to do
 =item with C<m:s/a b/> or C<m:sigspace/a b/>, the blank in the regexes
       matches arbitrary whitespace
+
+=head2 Ambiguities in Parsing
+
+While some languages will let get away with removing as much whitespace
+as possible between tokens, Perl 6 is less forgiving. The overarching
+mantra is we discourage code golf, so don't scrimp on whitespace (the
+more serious underlying reason behind these restrictions is
+single-pass parsing and ability to parse Perl 6 programs with virtually
+no L<backtracking|https://en.wikipedia.org/wiki/Backtracking>)).
+
+The common areas you should watch out for are:
+
+=head3 Block vs. Hash slice ambiguity
+
+=begin code :skip-test
+    # WRONG; trying to hash-slice a list:
+    while ($++ > 5){ .say }
+    
+    # RIGHT:
+    while ($++ > 5) { .say }
+    
+    # EVEN BETTER; Perl 6 does not require parentheses there
+    while $++ > 5 { .say }
+=end code
+
+=head3 Reduction vs. Array constructor ambiguity
+
+=begin code :skip-test
+    # WRONG; ambiguity with `[<]` meta op
+    my @a = [[<foo>],];
+    
+    # RIGHT; reductions cannot have spaces in them, so put one in
+    my @a = [[ <foo>],]; 
+      
+    # No ambiguity here, natural spaces between items suffice to resolve it
+    my @a = [[<foo bar ber>],]; 
+=end code
+
+=head3 The «» quoters vs. Hyper ambiguity
+
+=begin code :skip-test
+    my $foo = 'bar ber';
+    
+    # WRONG; ambiguity whether `$foo»` means end of quoter or to hyper a postfix
+    my @a = «foo $foo»;
+    
+    # RIGHT; put a space in to resolve ambiguity
+    my @a = «foo $foo »;
+    
+    # Also good; use different delimiters
+    my @a = qqww|foo $foo|;
+    
+    
+    # WRONG; is it a hyper in the middle or end of quoters?
+    my @a = «foo $foo».uc() Perl»;
+    
+    # RIGHT; simply use Texas version of hyper
+    my @a = «foo $foo>>.uc() Perl»;
+    
+    # Also good; use different delimiters
+    my @a = qqww|foo $foo».uc() Perl|;
+=end code
+
+=head3 
 
 =head1 Captures
 
