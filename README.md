@@ -18,6 +18,8 @@
 
 [从Perl5到Perl6指南——变量 100%](cndoc/cn5to6-perlvar.md)
 
+[从Perl5到Perl6指南——操作符 100%](cndoc/cn5to6-perlop.md)
+
 ## 安装
 
 
