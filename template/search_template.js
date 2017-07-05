@@ -6,6 +6,13 @@ $(function(){
       this._super();
       this.widget().menu( "option", "items", "> :not(.ui-autocomplete-category)" );
     },
+    _renderItem: function( ul, item) {
+        var regex = new RegExp('(' + current_search + ')', 'ig');
+        var text = item.label.replace(regex, '<b>$1</b>');
+        return $( "<li>" )
+            .append( $( "<div>" ).html(text) )
+            .appendTo( ul );
+    },
     _renderMenu: function( ul, items ) {
       var that = this,
       currentCategory = "";
