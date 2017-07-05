@@ -125,10 +125,21 @@ $.extend( $.ui.autocomplete, {
     },
     filter: function( array, term ) {
         current_search = term.toLowerCase();
+
+        var search_method = false;
+        if (term.startsWith(".")) {
+            search_method = true;
+            term = term.substr(1);
+        }
+
         var len = term.length;
         var matcher = new RegExp( $.ui.autocomplete.escapeRegex( term ), "i" );
         var OK_distance = len > 9 ? 4 : len > 6 ? 3 : len > 4 ? 2 : 1;
         return $.grep( array, function( value ) {
+            console.log(value);
+            if (search_method && value.category != 'Method') {
+                return false;
+            }
             if (len >=2 ) {
                 var result = sift4( value.value, term, 4, 0);
                 if (result <=OK_distance) {
