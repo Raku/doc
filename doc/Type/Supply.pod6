@@ -322,11 +322,19 @@ to be updated every so many seconds.
 
 Creates a "head" supply with the same semantics as L<List.head|/type/List#routine_head>.
 
+    my $s = Supply.from-list(4, 10, 3, 2);
+    my $hs = $s.head(2);
+    $hs.tap(&say);           # OUTPUT: «4␤10␤»
+
 =head2 method tail
 
     method tail(Supply:D: Int(Cool) $number = 1 --> Supply:D)
 
 Creates a "tail" supply with the same semantics as L<List.tail|/type/List#routine_tail>.
+
+    my $s = Supply.from-list(4, 10, 3, 2);
+    my $ts = $s.tail(2);
+    $ts.tap(&say);           # OUTPUT: «3␤2␤»
 
 =head2 method rotor
 
@@ -492,12 +500,42 @@ done 5
 
 =head2 method stable
 
-    method stable(Supply:D: $seconds, :$scheduler = $*SCHEDULER --> Supply:D)
+    method stable(Supply:D: $time, :$scheduler = $*SCHEDULER --> Supply:D)
 
 Creates a new supply that only passes on a value flowing through the given
-supply if it wasn't superseded by another value in the given time (in seconds).
-Optionally uses another scheduler than the default scheduler, using the
-C<:scheduler> parameter.
+supply if it wasn't superseded by another value in the given C<$time> (in
+seconds). Optionally uses another scheduler than the default scheduler,
+using the C<:scheduler> parameter.
+
+To clarify the above, if, during the timeout C<$time>, additional values
+are emitted to the C<Supplier> all but the last one will be thrown away.
+Each time an additional value is emitted to the C<Supplier>, during the
+timeout, C<$time> is reset.
+
+This method can be quite useful when handling UI input, where it is not desired
+to perform an operation until the user has stopped typing for a while rather
+than on every keystroke.
+
+=begin code
+my $supplier = Supplier.new;
+my $supply1 = $supplier.Supply;
+$supply1.tap(-> $v { say "Supply1 got: $v" });
+$supplier.emit(42);
+
+my Supply $supply2 = $supply1.stable(5);
+$supply2.tap(-> $v { say "Supply2 got: $v" });
+sleep(3);
+$supplier.emit(43);  # will not be seen by $supply2 but will reset $time
+$supplier.emit(44);
+sleep(10);
+# OUTPUT: «Supply1 got: 42␤Supply1 got: 43␤Supply1 got: 44␤Supply2 got: 44␤»
+=end code
+
+As can be seen above, C<$supply1> received all values emitted to the C<Supplier>
+while C<$supply2> only received one value. The 43 was thrown away because it
+was followed by another 'last' value 44 which was retained and sent to C<$supply2>
+after approximately eight seconds, this due to the fact that the timeout C<$time> was
+reset after three seconds.
 
 =head2 method reduce
 
@@ -532,6 +570,10 @@ C<True>.
 
 Creates a supply that will emit the characters coming in word for word from a
 supply that's usually created by some asynchronous I/O operation.
+
+    my $s = Supply.from-list("Hello Word!".comb);
+    my $ws = $s.words;
+    $ws.tap(&say);           # OUTPUT: «Hello␤Word!␤»
 
 =head2 method unique
 
@@ -623,7 +665,7 @@ Supply of the current values that the user cares about.
 
 Here is a simple simulation of such a program:
 
-=begin code :skip-test
+=begin code
 my Supplier $stock-sources .= new;
 
 sub watch-stock($symbol) {
@@ -722,14 +764,14 @@ L<enum|/language/typesystem#enum>.
 
 =head2 method IO::Notification.watch-path
 
-=for code :skip-test
+=for code
 method watch-path($path --> Supply:D)
 
 Creates a supply to which the OS will emit values to indicate changes on the
 file system for the given path.  Also has a shortcut with the C<watch> method
 on an IO object, like this:
 
-=for code :skip-test
+=for code
 IO::Notification.watch-path(".").act( { say "$^file changed" } );
 ".".IO.watch.act(                     { say "$^file changed" } );   # same
 

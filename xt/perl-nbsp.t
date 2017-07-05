@@ -1,7 +1,16 @@
 use v6;
 use Test;
 
-my @files = qqx<git ls-files doc>.lines;
+my @files;
+
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    for qx<git ls-files>.lines -> $file {
+        next unless $file ~~ / '.pod6' $/;
+        push @files, $file;
+    }
+}
 
 plan +@files;
 

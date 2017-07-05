@@ -212,8 +212,10 @@ You declare each candidate with the C<multi> declarator:
     congratulate 'Larry';       # OUTPUT: «Happy birthday, Larry␤»
     congratulate 'Bob', 45;     # OUTPUT: «Happy 45th birthday, Bob␤»
 
-Dispatch can happen on the number of arguments (the L<arity|/type/Routine#(Code)_method_arity>), but also on the
-type:
+Dispatch can happen on the number of arguments (the L<arity|/type/Routine#(Code)_method_arity>), the
+type of arguments but also on additional assertions which can be placed on them. For more information
+about type constraints see the documentation for the L<Signature|/type/Signature#Type_Constraints>
+class.
 
     multi as-json(Bool $d) { $d ?? 'true' !! 'false'; }
     multi as-json(Real $d) { ~$d }
@@ -248,6 +250,9 @@ object:
 
     $congrats.congratulate('promotion','Cindy'); # OUTPUT: «Hooray for your promotion, Cindy␤»
     $congrats.congratulate('birthday','Bob');    # OUTPUT: «Happy birthday, Bob␤»
+
+Unlike C<sub>, if you use named parameters with multi methods, the parameters must
+be required parameters to behave as expected.
 
 =head3 X<proto|declarator>
 
@@ -800,7 +805,7 @@ Coercion types can help you to have a specific type inside a routine, but
 accept wider input. When the routine is called, the argument is automatically
 converted to the narrower type.
 
-=begin code :skip-test
+=begin code
 sub double(Int(Cool) $x) {
     2 * $x
 }
@@ -818,7 +823,7 @@ to C<Int()>.
 The coercion works by looking for a method with the same name
 as the target type. You can define coercions for your own types like so:
 
-=begin code :skip-test
+=begin code
 class Bar {...}
 
 class Foo {
@@ -868,6 +873,36 @@ call L<exit|https://docs.perl6.org/routine/exit>.
 
         exit 1;
     }
+
+=head2 C<%*SUB-MAIN-OPTS>
+
+It's possible to alter how arguments are processed before they're passed
+to C<sub MAIN {}> by setting options in C<%*SUB-MAIN-OPTS> hash.  Due to the
+nature of dynamic variables, one needs to set up its own C<%*SUB-MAIN-OPTS>
+hash and fill it with the appropriate settings.  For instance:
+
+    my %*SUB-MAIN-OPTS =
+      :named-anywhere,    # allow named variables at any location
+      :!foo,              # don't allow foo
+    ;
+    sub MAIN ($a, $b, :$c, :$d) {
+        say "Accepted!"
+    }
+
+Available options are:
+
+=head3 C<named-anywhere>
+
+By default, named arguments to the program cannot be given after any positional
+arguments are specified. However, if C«%*SUB-MAIN-OPTS<named-anywhere>» is
+set to a truthy value, named arguments can be specified anywhere, even after
+positional parameter. For example, the above program can be called with:
+
+=begin code :skip-test
+
+    perl6 example.p6 1 --c=2 3 --d=4
+
+=end code
 
 =head1 C<sub USAGE>
 X<|USAGE>

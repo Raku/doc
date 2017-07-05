@@ -5,6 +5,18 @@ use IO::String;
 use lib 'lib';
 use Pod::Convenience;
 
+=begin overview
+
+Test all of the code samples in the document files. Wrap snippets
+in enough boilerplate that we are just compiling and not executing
+wherever possible. Allow some magic for method declarations to
+avoid requiring a body.
+
+Skip any bits marked :skip-test unless the environment variable
+P6_DOC_TEST_FUDGE is set to a true value.
+
+=end overview
+
 my @files;
 
 if @*ARGS {
@@ -16,17 +28,13 @@ if @*ARGS {
             doc/Language/5to6-nutshell.pod6
             doc/Language/5to6-perlfunc.pod6
             doc/Language/5to6-perlop.pod6
-            doc/Language/5to6-perlsyn.pod6
             doc/Language/modules.pod6
-            doc/Language/nativecall.pod6
-            doc/Language/packages.pod6
             doc/Language/phasers.pod6
             doc/Language/pod.pod6
             doc/Language/py-nutshell.pod6
             doc/Language/rb-nutshell.pod6
             doc/Language/tables.pod6
             doc/Language/testing.pod6
-            doc/Language/traps.pod6
          >);
         push @files, $file;
     }
@@ -46,11 +54,18 @@ my $counts = BagHash.new;
 for @files -> $file {
     for extract-pod($file.IO).contents -> $chunk {
         if $chunk ~~ Pod::Block::Code  {
-            next if $chunk.config<skip-test>;
+            if $chunk.config<lang> && $chunk.config<lang> ne 'perl6' {
+                next; # Only testing Perl 6 snippets.
+            }
+            my $todo = False;
+            if $chunk.config<skip-test> {
+                %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
+            }
             @examples.push: %(
                 'contents', $chunk.contents.map({walk $_}).join,
                 'file', $file,
-                'count', ++$counts{$file}
+                'count', ++$counts{$file},
+                'todo', $todo,
             );
         }
     }
@@ -88,6 +103,7 @@ for @examples -> $eg {
         try EVAL $code;
         $status = $!;
     }
+    todo(1) if $eg<todo>;
     if $status {
         diag $eg<contents>;
         diag $status;

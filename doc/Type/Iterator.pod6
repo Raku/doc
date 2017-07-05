@@ -20,6 +20,7 @@ Iterator API methods can be implemented in terms of C<pull-one>, but also
 overridden for performance reasons.
 
 =head1 IterationEnd
+X<|IterationEnd>
 
 Iterators only allow one iteration over the entire sequence. It's forbidden
 to make attempts to fetch more data, once C<IterationEnd> has been generated,
@@ -27,22 +28,22 @@ and behavior for doing so is undefined. For example, the following L<Seq>
 will not cause the L<die> to be called under normal use, because
 L<pull-one> will never be called after it returns C<IterationEnd>:
 
-=begin code :skip-test
-    my $seq = Seq.new: class :: does Iterator {
-        method pull-one {
-            state $x = 2;
-            $x or die "You're under arrest for violation of Iterator protocol!";
-            --$x ?? $x !! IterationEnd
-        }
-    }.new;
-    .pull-one.say xx 10 with $seq.iterator;
+=begin code
+my $seq = Seq.new: class :: does Iterator {
+    method pull-one {
+        state $x = 2;
+        $x or die "You're under arrest for violation of Iterator protocol!";
+        --$x ?? $x !! IterationEnd
+    }
+}.new;
+.pull-one.say xx 10 with $seq.iterator;
 
-    # 1
-    #
-    # You're under arrest for violation of Iterator protocol!
-    #   in method pull-one at foo.p6 line 4
-    #   in block  at foo.p6 line 8
-    #   in block <unit> at foo.p6 line 8
+# 1
+#
+# You're under arrest for violation of Iterator protocol!
+#   in method pull-one at foo.p6 line 4
+#   in block  at foo.p6 line 8
+#   in block <unit> at foo.p6 line 8
 =end code
 
 The only valid use of the sentinel value C<IterationEnd> in a program
@@ -84,7 +85,7 @@ C<$count>.
 
     my @array;
     say (1 .. Inf).iterator.push-exactly(@array, 3); # OUTPUT: «3␤»
-    say @array; # [1 2 3]
+    say @array; # OUTPUT: «[1 2 3]␤»
 
 =head2 method push-at-least
 
@@ -105,7 +106,7 @@ produce more elements to achieve better performance.
 
     my @array;
     say (1 .. Inf).iterator.push-at-least(@array, 10); # OUTPUT: «10␤»
-    say @array; # [1 2 3 4 5 6 7 8 9 10]
+    say @array; # OUTPUT: «[1 2 3 4 5 6 7 8 9 10]␤»
 
 =head2 method push-all
 
@@ -198,5 +199,33 @@ or C<IterationEnd> if there were not enough values:
     say $i.skip-at-least-pull-one(2);
     say $i.skip-at-least-pull-one(20) =:= IterationEnd;
     # OUTPUT: «c␤True␤»
+
+=head2 method count-only
+
+By default is not implemented, but expected implementation for types that
+do this role is:
+
+    method count-only(--> Int:D) { ... }
+
+The method returns the number of elements the C<Iterator> can still produce.
+B<Important:> it's expected the C<Iterators> that implement this method can
+produce that number B<without> exhausting themselves. In other words,
+it's expected the user of the class will be able to still L<pull-one>
+after calling this method, and eventually receive as many items as the
+return value of this method indicated.
+
+=head2 method bool-only
+
+By default is not implemented, but expected implementation for types that
+do this role is:
+
+    method bool-only(--> Bool:D) { ... }
+
+The method returns C<True> if there are elements that can be generated
+by this L<Iterator> by, for example, calling L<pull-one>, and C<False>
+otherwise. B<Important:> it's expected the C<Iterators> that implement
+this method can produce that answer B<without> exhausting themselves.
+In other words, it's expected the user of the class will be able to
+still L<pull-one> after calling this method.
 
 =end pod

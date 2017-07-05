@@ -128,6 +128,13 @@ for a file. Use the pod-config option `skip-test` to skip them.
         your-example-here();
     =end code
 
+In other cases, the snippet of code isn't Perl 6; in that case, mark the
+language, which will also skip the test.
+
+    =begin code :lang<tcl>
+        puts "this is not Perl"
+    =end code
+
 ### Catching expected exception
 
 Some tests will throw exceptions that would stop the execution of the extracted
