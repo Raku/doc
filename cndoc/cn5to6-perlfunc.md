@@ -143,10 +143,17 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
         my $line    = $frame.line;
 
     Perl5中的`caller`返回的其它其他的细节在Perl6中都没有意义。
+    
+   你还可以通过使用动态变量获取当前的帧或者例程帧的一些信息,这些动态变量包括：
 
-    你还可以通过使用动态变量[&?ROUTINE](https://metacpan.org/pod/&?ROUTINE), [&?BLOCK](https://metacpan.org/pod/&?BLOCK), [$?PACKAGE](https://metacpan.org/pod/$?PACKAGE),[$?FILE](https://metacpan.org/pod/$?FILE)和[$?LINE](https://metacpan.org/pod/$?LINE)获取当前的帧
-    或者例程帧的一些信息。在许多情况下，https://docs.perl6.org/type/Backtrace\[Backtrace\]是获取调用栈信息
-    的更好的方法。
+   [&?ROUTINE](/language/variables#Compile-time_variables)，
+   [&?BLOCK](/language/variables#Compile-time_variables),
+   [$?PACKAGE](/language/variables#Compile-time_variables),
+   [$?FILE](/language/variables#Compile-time_variables),和
+   [$?LINE](/language/variables#Compile-time_variables)
+
+在许多情况下，[Backtrace](https://docs.perl6.org/type/Backtrace)是获取调用栈信息
+的更好的方法。
 
 ## chdir
 
