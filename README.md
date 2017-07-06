@@ -8,17 +8,19 @@
 
 ## 文档中文化进度
 
-[Perl6常见问题 100%](cndoc/cnfaq.md) 
+[Perl6常见问题](cndoc/cnfaq.md) 
 
 [感谢araraloren的翻译](https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F)
 
-[从Perl5到Perl6初步 100%](cndoc/cn5to6-nutshell.md)
+[从Perl5到Perl6初步](cndoc/cn5to6-nutshell.md)
 
-[从Perl5到Perl6指南——函数 100%](cndoc/cn5to6-perlfunc.md)
+[从Perl5到Perl6指南——语法](cndoc/cn5to6-perlsyn.md)
 
-[从Perl5到Perl6指南——变量 100%](cndoc/cn5to6-perlvar.md)
+[从Perl5到Perl6指南——函数](cndoc/cn5to6-perlfunc.md)
 
-[从Perl5到Perl6指南——操作符 100%](cndoc/cn5to6-perlop.md)
+[从Perl5到Perl6指南——变量](cndoc/cn5to6-perlvar.md)
+
+[从Perl5到Perl6指南——操作符](cndoc/cn5to6-perlop.md)
 
 ## 安装
 
@@ -133,7 +135,7 @@ Perl6工程 并非一个小项目，项目文档需要投入大量的人力精�
 >    -- moritz
 
 
-> 我希望p6doc和doc.perl6.org成为人们了解perl6特性的首要资源，不管是语言，内建类新和例程。我希望
+> 我希望p6doc和doc.perl6.org成为人们了解perl6特性的首要资源，不管是语言，内建类型和例程。我希望
 > 对每位perl6程序员和需要了解perl6的人都给予最大的帮助
                                                          -- moritz
 --------
