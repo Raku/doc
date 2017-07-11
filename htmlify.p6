@@ -430,7 +430,6 @@ sub find-references(:$pod!, :$url, :$origin) {
         $index-name-attr = qq[index-entry{@indices ?? '-' !! ''}{@indices.join('-')}{$index-text ?? '-' !! ''}$index-text].subst('_', '__', :g).subst(' ', '_', :g).subst('%', '%25', :g).subst('#', '%23', :g);
 
        register-reference(:$pod, :$origin, url => $url ~ '#' ~ $index-name-attr);
-       # register-reference(:$pod, :$origin, :$url);
 }
     elsif $pod.?contents {
         for $pod.contents -> $sub-pod {
@@ -817,7 +816,6 @@ sub write-disambiguation-files() {
         }
         my $html = p2h($pod, 'routine');
         spurt "html/{replace-badchars-with-goodnames $name}.html", $html;
-        # spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
     }
     say '';
 }
@@ -836,7 +834,6 @@ sub write-index-files() {
     say 'Writing html/programs.html ...';
     spurt 'html/programs.html', p2h(pod-with-title(
         'Perl 6 Programs Documentation',
-        #pod-table($*DR.lookup('programs', :by<kind>).sort(*.name).map({[
         pod-table($*DR.lookup('programs', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
@@ -944,7 +941,6 @@ sub write-kind($kind) {
                 })
             );
             print '.';
-            # spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
             spurt "html/$kind/{replace-badchars-with-goodnames $name}.html", p2h($pod, $kind);
         }
     say '';
