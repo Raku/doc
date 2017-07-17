@@ -22,6 +22,8 @@
 
 [从Perl5到Perl6指南——操作符](cndoc/cn5to6-perlop.md)
 
+[从Ruby到Perl6初步 20%](cnrb-nutshell.pod6)
+
 ## 安装
 
 
