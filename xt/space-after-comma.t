@@ -16,7 +16,8 @@ if @*ARGS {
     for qx<git ls-files>.lines -> $file {
         next unless $file ~~ / '.' ('pod6') $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-        next if $file ~~ / 'doc/Type/IO/Spec/Unix.pod6' $/ ; # Issue #1414
+        next if $file ~~ / 'doc/Type/IO/Spec/Unix.pod6' $/; # Issue #1414
+        next if $file ~~ / 'doc/Type/List.pod6' $/;         # Issue #1414
         push @files, $file;
     }
 }
