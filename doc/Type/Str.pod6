@@ -826,20 +826,29 @@ of type L<Cool> are coerced to C<Str> for literal matching.
     my $another-string = $some-string.subst(/foo/, "string"); # gives 'Some string'
     $some-string.=subst(/foo/, "string"); # in-place substitution. $some-string is now 'Some string'
 
-=head3 Closures
+=head3 Callable
 
-The replacement can be a closure:
+The replacement can be a L<Callable> in which the current L<Match> object will be
+placed in the C<$/> variable, as well as the C<$_> topic variable.
+No thunking of arguments is done, so you need to use a L<Callable> replacement, to
+refer to any of the captures made in the regex:
 
+    # Using capture from $/ variable (the $0 is the first positional capture)
+    say 'abc123defg'.subst(/(\d+)/, { " before $0 after " });
+    # OUTPUT: «abc before 123 after defg␤»
+        
+    # Using capture from $/ variable (the $<foo> is a named capture)
+    say 'abc123defg'.subst(/$<foo=\d+/, { " before $<foo> after " });
+    # OUTPUT: «abc before 123 after defg␤»
+    
+    # Using WhateverCode to operate on the Match given in $_:
+    say "abc123defg".subst(/(\d+)/, *.flip);
+    # OUTPUT: «abc321defg␤»
+
+    # Using a Callable to generate substitution without involving current Match:
     my $i = 41;
     my $str = "The answer is secret.";
     my $real-answer = $str.subst(/secret/, {++$i}); # The answer to everything
-
-=head3 Captures
-
-If you are going to use captures, you have to use a closure like so:
-
-    say 'abc123defg'.subst(/(\d+)/, { " before $0 after " })
-    # OUTPUT: «abc before 123 after defg␤»
 
 =head3 More Examples
 
