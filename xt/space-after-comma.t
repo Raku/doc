@@ -16,8 +16,6 @@ if @*ARGS {
     for qx<git ls-files>.lines -> $file {
         next unless $file ~~ / '.' ('pod6') $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-        next if $file ~~ / 'doc/Type/IO/Spec/Unix.pod6' $/; # Issue #1414
-        next if $file ~~ / 'doc/Type/List.pod6' $/;         # Issue #1414
         push @files, $file;
     }
 }
@@ -27,15 +25,17 @@ plan +@files;
 for @files -> $file {
     my $ok = True;
 
-    my $out;
+    my $output = "";
+
     if $file ~~ / '.pod6' $/ {
-        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
-        $out = $pod2text.out;
+        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        $a.stdout.tap(-> $buf { $output = $output ~ $buf });
+        await $a.start;
     } else {
-        $out = $file.IO;
+        $output = $file.IO.slurp;
     }
 
-    for $out.lines -> $line-orig {
+    for $output.lines -> $line-orig {
         next if $line-orig ~~ / ^ '    '/;
         my $line = $line-orig;
 
