@@ -135,6 +135,14 @@ language, which will also skip the test.
         puts "this is not Perl"
     =end code
 
+Finally, you can disable certain checks with :ok-test, allowing us to
+generally fail certain styles, but allow them when it is explicitly the
+point of the code.
+
+    =begin code :ok-test<WHAT>
+        say 42.WHAT;
+    =end
+
 ### Catching expected exception
 
 Some tests will throw exceptions that would stop the execution of the extracted
