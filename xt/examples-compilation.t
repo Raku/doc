@@ -34,7 +34,6 @@ if @*ARGS {
             doc/Language/py-nutshell.pod6
             doc/Language/rb-nutshell.pod6
             doc/Language/tables.pod6
-            doc/Language/testing.pod6
          >);
         push @files, $file;
     }
