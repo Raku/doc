@@ -28,7 +28,6 @@ if @*ARGS {
             doc/Language/5to6-nutshell.pod6
             doc/Language/5to6-perlfunc.pod6
             doc/Language/5to6-perlop.pod6
-            doc/Language/modules.pod6
             doc/Language/pod.pod6
             doc/Language/tables.pod6
          >);
