@@ -126,8 +126,8 @@ Defined as:
 
 Returns a sequence of the list elements, in order.
 
-    say (1,2,3,4).WHAT;        # OUTPUT: «(List)␤»
-    say (1,2,3,4).values.WHAT; # OUTPUT: «(Seq)␤»
+    say (1,2,3,4).^name;        # OUTPUT: «List␤»
+    say (1,2,3,4).values.^name; # OUTPUT: «Seq␤»
 
 =head2 routine kv
 
@@ -192,7 +192,7 @@ Invokes C<&code> for each element and gathers the return values in a sequence
     and returns it. This happens lazily, i.e. C<&code> is only invoked when the
 return values are accessed.Examples:
 
-    say ('hello', 1, 22/7, 42, 'world').map: { .WHAT.perl } # OUTPUT: «(Str Int Rat Int Str)␤»
+    say ('hello', 1, 22/7, 42, 'world').map: { .^name } # OUTPUT: «(Str Int Rat Int Str)␤»
     say map *.Str.chars, 'hello', 1, 22/7, 42, 'world';     # OUTPUT: «(5 1 8 2 5)␤»
 
 C<map> inspects the arity of the code object, and tries to pass as many
@@ -337,6 +337,12 @@ Examples:
     # OUTPUT: «(0 hello 2 3.142857 4 world)␤»
     say grep { .Str.chars > 3 }, :p, 'hello', 1, 22/7, 42, 'world';
     # OUTPUT: «(0 => hello 2 => 3.142857 4 => world)␤»
+
+Note that if you want to grep for elements that do not match a regular
+expression, you should use the following syntax, with a block:
+
+    say <a b c d e f>.grep({! /<[aeiou]>/})
+    # OUTPUT: «b c d f␤»
 
 =head2 routine first
 
@@ -634,20 +640,22 @@ Examples:
 Defined as:
 
     multi sub    sort(*@elems      --> Seq:D)
-    multi sub    sort(&by, *@elems --> Seq:D)
+    multi sub    sort(&custom-routine-to-use, *@elems --> Seq:D)
     multi method sort(List:D:      --> Seq:D)
-    multi method sort(List:D: &by  --> Seq:D)
+    multi method sort(List:D: &custom-routine-to-use  --> Seq:D)
 
 Sorts the list, smallest element first. By default C<< infix:<cmp> >>
 is used for comparing list elements.
 
-If C<&by> is provided, and it accepts two arguments,
+If C<&custom-routine-to-use> is provided, and it accepts two arguments,
 it is invoked for pairs of list elements, and should return
 C<Order::Less>, C<Order::Same> or C<Order::More>.
 
-If C<&by> accepts only one argument, the list elements are sorted
-according to C<< by($a) cmp by($b) >>. The return values of C<&by> are
-cached, so that C<&by> is only called once per list element.
+If C<&custom-routine-to-use> accepts only one argument, the list elements are
+sorted according to
+C<< custom-routine-to-use($a) cmp custom-routine-to-use($b) >>. The return
+values of C<&custom-routine-to-use> are cached, so that
+C<&custom-routine-to-use> is only called once per list element.
 
 Examples:
 
@@ -1074,7 +1082,7 @@ C<with> parameter with a meta-operator :
 
     .say for <1 2 3> Z* [1, 2, 3] Z* (1, 2, 3);        # same output
 
-=head2 sub roundrobin
+=head2 routine roundrobin
 
 Defined as:
 

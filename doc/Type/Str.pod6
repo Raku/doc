@@ -280,7 +280,7 @@ Returns C<False> if the string is empty, C<True> otherwise.
     multi method parse-base(Str:D $num: Int:D $radix --> Numeric)
 
 Performs the reverse of L«C<base>|/routine/base» by converting a string
-with a base-C<$radix> number to its base-10 L«C<Numeric>|/type/Numeric»
+with a base-C<$radix> number to its L«C<Numeric>|/type/Numeric»
 equivalent. Will L«C<fail>|/routine/fail» if radix is not in range C<2..36>
 or of the string being parsed contains characters that are not valid
 for the specified base.
@@ -826,20 +826,30 @@ of type L<Cool> are coerced to C<Str> for literal matching.
     my $another-string = $some-string.subst(/foo/, "string"); # gives 'Some string'
     $some-string.=subst(/foo/, "string"); # in-place substitution. $some-string is now 'Some string'
 
-=head3 Closures
+=head3 Callable
 
-The replacement can be a closure:
+The replacement can be a L<Callable> in which the current L<Match> object will be
+placed in the C<$/> variable, as well as the C<$_> topic variable.
+Using a L<Callable> as replacement is how you can refer to any of the captures
+created in the regex:
 
+    # Using capture from $/ variable (the $0 is the first positional capture)
+    say 'abc123defg'.subst(/(\d+)/, { " before $0 after " });
+    # OUTPUT: «abc before 123 after defg␤»
+
+    # Using capture from $/ variable (the $<foo> is a named capture)
+    say 'abc123defg'.subst(/$<foo>=\d+/, { " before $<foo> after " });
+    # OUTPUT: «abc before 123 after defg␤»
+
+    # Using WhateverCode to operate on the Match given in $_:
+    say 'abc123defg'.subst(/(\d+)/, "[ " ~ *.flip ~ " ]");
+    # OUTPUT: «abc[ 321 ]defg␤»
+
+    # Using a Callable to generate substitution without involving current Match:
     my $i = 41;
     my $str = "The answer is secret.";
-    my $real-answer = $str.subst(/secret/, {++$i}); # The answer to everything
-
-=head3 Captures
-
-If you are going to use captures, you have to use a closure like so:
-
-    say 'abc123defg'.subst(/(\d+)/, { " before $0 after " })
-    # OUTPUT: «abc before 123 after defg␤»
+    say $str.subst(/secret/, {++$i}); # The answer to everything
+    # OUTPUT: «The answer is 42.␤»
 
 =head3 More Examples
 
@@ -1219,10 +1229,10 @@ be parsed.  If the C<:val-or-fail> adverb is provided it will return an
 L<X::Str::Numeric|/type/X::Str::Numeric> rather than the original string if it
 cannot parse the string as a number.
 
-    say val("42").WHAT;    # OUTPUT: «(IntStr)␤»
-    say val("42e0").WHAT;  # OUTPUT: «(NumStr)␤»
-    say val("42.0").WHAT;  # OUTPUT: «(RatStr)␤»
-    say val("42+0i").WHAT; # OUTPUT: «(ComplexStr)␤»
+    say val("42").^name;    # OUTPUT: «IntStr␤»
+    say val("42e0").^name;  # OUTPUT: «NumStr␤»
+    say val("42.0").^name;  # OUTPUT: «RatStr␤»
+    say val("42+0i").^name; # OUTPUT: «ComplexStr␤»
 
 =end pod
 

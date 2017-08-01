@@ -25,15 +25,17 @@ plan +@files;
 for @files -> $file {
     my $ok = True;
 
-    my $out;
+    my $output = "";
+
     if $file ~~ / '.pod6' $/ {
-        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
-        $out = $pod2text.out;
+        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        $a.stdout.tap(-> $buf { $output = $output ~ $buf });
+        await $a.start;
     } else {
-        $out = $file.IO;
+        $output = $file.IO.slurp;
     }
 
-    for $out.lines -> $line-orig {
+    for $output.lines -> $line-orig {
         next if $line-orig ~~ / ^ '    '/;
         my $line = $line-orig;
 

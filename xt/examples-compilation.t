@@ -32,9 +32,7 @@ if @*ARGS {
             doc/Language/phasers.pod6
             doc/Language/pod.pod6
             doc/Language/py-nutshell.pod6
-            doc/Language/rb-nutshell.pod6
             doc/Language/tables.pod6
-            doc/Language/testing.pod6
          >);
         push @files, $file;
     }
@@ -63,9 +61,10 @@ for @files -> $file {
             }
             @examples.push: %(
                 'contents', $chunk.contents.map({walk $_}).join,
-                'file', $file,
-                'count', ++$counts{$file},
-                'todo', $todo,
+                'file',    $file,
+                'count',   ++$counts{$file},
+                'todo',    $todo,
+                'ok-test', $chunk.config<ok-test> // "",
             );
         }
     }
@@ -77,6 +76,12 @@ plan +@examples;
 my $dummy-io = IO::String.new();
 for @examples -> $eg {
     use MONKEY-SEE-NO-EVAL;
+
+    # #1355 - don't like .WHAT in examples
+    if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
+        flunk "$eg<file> chunk $eg<count>" ~ ' uses .WHAT: try .^name instead';
+        next;
+    }
 
     # Wrap each snippet in a block so it compiles but isn't run on EVAL
     # Further wrap in an anonymous class (so bare method works)

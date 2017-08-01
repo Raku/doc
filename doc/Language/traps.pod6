@@ -147,7 +147,7 @@ default, there is only one such method per class hierarchy, whereas C<BUILD>
 is explicitly called per class. Which also explains why you need the
 C<callsame> inside C<BUILDALL>, but not inside C<BUILD>).
 
-=head1 Regexes
+=head1 Whitespace
 
 =head2 Whitespace in Regexes does not match literally
 
@@ -168,6 +168,47 @@ Ways to match whitespace:
 =item with C<m:s/a b/> or C<m:sigspace/a b/>, the blank in the regexes
       matches arbitrary whitespace
 
+=head2 Ambiguities in Parsing
+
+While some languages will let you get away with removing as much whitespace
+between tokens as possible, Perl 6 is less forgiving. The overarching
+mantra is we discourage code golf, so don't scrimp on whitespace (the
+more serious underlying reason behind these restrictions is
+single-pass parsing and ability to parse Perl 6 programs with virtually
+no L<backtracking|https://en.wikipedia.org/wiki/Backtracking>).
+
+The common areas you should watch out for are:
+
+=head3 Block vs. Hash slice ambiguity
+
+=for code :skip-test
+    # WRONG; trying to hash-slice a Bool:
+    while ($++ > 5){ .say }
+
+=begin code
+    # RIGHT:
+    while ($++ > 5) { .say }
+
+    # EVEN BETTER; Perl 6 does not require parentheses there:
+    while $++ > 5 { .say }
+=end code
+
+=head3 Reduction vs. Array constructor ambiguity
+
+=for code :skip-test
+    # WRONG; ambiguity with `[<]` meta op:
+    my @a = [[<foo>],];
+
+=begin code
+    # RIGHT; reductions cannot have spaces in them, so put one in:
+    my @a = [[ <foo>],];
+
+    # No ambiguity here, natural spaces between items suffice to resolve it:
+    my @a = [[<foo bar ber>],];
+=end code
+
+=head3
+
 =head1 Captures
 
 =head2 Containers versus values in a Capture
@@ -187,6 +228,92 @@ Instead, use an expression that produces a value when you want a value.
 
 =for code
     my $a = 2; say join ",", (+$a, ++$a); # OUTPUT: «2,3␤»
+
+=head1 Cool tricks
+
+Perl6 includes a L<Cool|/type/Cool> class, which provides some of the DWIM
+behaviors we got used to in Perl5 by coercing arguments when necessary.
+However, DWIM is never perfect.
+
+=head2 Strings are not Lists, so beware indexing
+
+In Perl6, L<strings|/type/Str> are not lists of characters. One
+L<cannot iterate|#Strings_are_not_iterable> over them or index into them as you can
+with L<lists|/type/List>, despite the name of the L<.index routine|/type/Str#routine_index>.
+
+=head2 Lists become strings, so beware .index()ing
+
+L<List|/type/List> inherits from L<Cool|/type/Cool/>, which provides access to
+L<.index|/type/Str#routine_index>. Because of the way C<.index>
+L<coerces|/type/List#method_Str> a List into a L<Str|/type/Str>, this can
+sometimes appear to be returning the index of an element in the list, but
+that is not how the behavior is defined.
+
+=for code
+    my @a = <a b c d>;
+    say @a.index(‘a’);    # 0
+    say @a.index('c');    # 4 -- not 2!
+    say @a.index('b c');  # 2 -- not undefined!
+    say @a.index(<a b>);  # 0 -- not undefined!
+
+These same caveats apply to L<.rindex|/type/Str#routine_rindex>.
+
+=head2 Lists become strings, so beware .contains
+
+Similarly, L<.contains|/type/List#(Cool)_method_contains> does not look for
+elements in the list.
+
+=for code
+    my @menu = <hamburger fries milkshake>;
+    say @menu.contains('hamburger');            # True
+    say @menu.contains('hot dog');              # False
+    say @menu.contains('milk');                 # True!
+    say @menu.contains('er fr');                # True!
+    say @menu.contains(<es mi>);                # True!
+
+If you actually want to check for the presence of an element, use the
+L<(cont)|/routine/(cont)> operator for single elements, and the
+L<superset|/routine/(%3E%3D)> and L<strict superset|/routine/(%3E)>
+operators for multiple elements.
+
+=for code
+    my @menu = <hamburger fries milkshake>;
+    say @menu (cont) 'fries';                   # True
+    say @menu (cont) 'milk';                    # False
+    say @menu (>) <hamburger fries>;            # True
+    say @menu (>) <milkshake fries>;            # True (! NB: order doesn't matter)
+
+If you are doing a lot of element testing, you may be better off using
+a L<Set|/type/Set>.
+
+=head2 Numeric literals are parsed before coercion
+
+Experienced programmers will probably not be surprised by this, but
+Numeric literals will be parsed into their numeric value before being
+coerced into a string, which may create nonintuitive results.
+
+=for code
+    say 0xff.contains(55);      # True
+    say 0xff.contains(0xf);     # False
+    say 12_345.contains("23");  # True
+    say 12_345.contains("2_");  # False
+
+=head2 Getting a random item from a List
+
+A common task is to retrieve one or more random elements from a collection,
+but C<List.rand> isn't the way to do that. L<Cool|/type/Cool> provides
+L<rand|/routine/rand#class_Cool>, but that first coerces the List into
+the number of items in the list, and returns a random real number
+between 0 and that value. To get random elements, see L<pick|/routine/pick>
+and L<roll|/routine/roll>.
+
+=for code
+    my @colors = <red orange yellow green blue indigo violet>;
+    say @colors.rand;       # 2.21921955680514
+    say @colors.pick;       # orange
+    say @colors.roll;       # blue
+    say @colors.pick(2);    # yellow violet  (cannot repeat)
+    say @colors.roll(3);    # red green red  (can repeat)
 
 =head1 Arrays
 
@@ -255,11 +382,11 @@ Interpolation in string literals can be too clever for your own good.
 
 =for code :skip-test
     "$foo<html></html>" # Perl 6 understands that as:
-    $foo<html> ~ '</html>'
+    "$foo{'html'}{'/html'}"
 
 =for code :skip-test
     "$foo(" ~ @args ~ ")" # Perl 6 understands that as:
-    $foo( ~ @args ~ ")"   # and will produce very confusing error messages
+    "$foo(' ~ @args ~ ')"
 
 You can avoid those problems using non-interpolating single quotes and switching
 to more liberal interpolation with C<\qq[]> escape sequence:
@@ -279,11 +406,31 @@ all interpolation:
 
 =head2 Strings are not iterable
 
-There are methods that Str inherits from Any that work on iterables like lists. Iterators on Strings contain one element that is the whole string. To use C<sort>, C<reverse> and friends, you need to split the string into a list first.
+There are methods that L<Str|/type/Str> inherits from L<Any|/type/Any> that work on iterables like lists. Iterators on strings contain one element that is the whole string. To use list-based methods like C<sort>, C<reverse>, you need to convert the string into a list first.
 
 =for code
-    say "cba".sort;              # OUTPUT: «(cba)␤» (what is wrong)
+    say "cba".sort;              # OUTPUT: «(cba)␤»
     say "cba".comb.sort.join;    # OUTPUT: «abc␤»
+
+=head2 Allomorphs Generally Follow Numeric Semantics
+
+L<Str> C<"0"> is C<True>, while L<Numeric> is C<False>. So what's the L<Bool> value of
+L<allomorph|/language/glossary#index-entry-Allomorph> C«<0>»?
+
+In general, allomorphs follow L<Numeric> semantics, so the ones that I<numerically> evaluate
+to zero are C<False>:
+
+    say so   <0>; # OUTPUT: «False␤»
+    say so <0e0>; # OUTPUT: «False␤»
+    say so <0.0>; # OUTPUT: «False␤»
+
+To force comparison being done for the L<Stringy> part of the allomorph, use
+L«prefix C<~> operator|/routine/~» or the L<Str> method to coerce the allomorph
+to L<Str>, or use the L<chars> routine to test whether the allomorph has any length:
+
+    say so      ~<0>;     # OUTPUT: «True␤»
+    say so       <0>.Str; # OUTPUT: «True␤»
+    say so chars <0>;     # OUTPUT: «True␤»
 
 =head1 Operators
 
@@ -385,7 +532,7 @@ The loose precedence of C<..> can lead to some errors.  It is usually best to pa
 
 =head2 Loose boolean operators
 
-The precedence of C<and>, C<or>, etc. is looser then routine calls. This can
+The precedence of C<and>, C<or>, etc. is looser than routine calls. This can
 have surprising results for calls to routines that would be operators or
 statements in other languages like C<return>, C<last> and many others.
 
@@ -414,7 +561,7 @@ to a power, use parentheses:
     say (-1)²;   # OUTPUT: «1␤»
     say (-1)**2; # OUTPUT: «1␤»
 
-The operator infix:<but> is narrower then the list constructor. When providing
+The operator infix:<but> is narrower than the list constructor. When providing
 a list of roles to mix in, always use parentheses.
 
 =for code
