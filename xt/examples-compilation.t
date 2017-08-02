@@ -24,13 +24,6 @@ if @*ARGS {
 } else {
     for qx<git ls-files doc>.lines -> $file {
         next unless $file ~~ / '.pod6' $/;
-        next if $file eq any(<
-            doc/Language/5to6-nutshell.pod6
-            doc/Language/5to6-perlfunc.pod6
-            doc/Language/5to6-perlop.pod6
-            doc/Language/pod.pod6
-            doc/Language/tables.pod6
-         >);
         push @files, $file;
     }
 }
