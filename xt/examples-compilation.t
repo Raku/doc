@@ -57,11 +57,12 @@ for @files -> $file {
                 %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
             }
             @examples.push: %(
-                'contents', $chunk.contents.map({walk $_}).join,
-                'file',    $file,
-                'count',   ++$counts{$file},
-                'todo',    $todo,
-                'ok-test', $chunk.config<ok-test> // "",
+                'contents',  $chunk.contents.map({walk $_}).join,
+                'file',      $file,
+                'count',     ++$counts{$file},
+                'todo',      $todo,
+                'ok-test',   $chunk.config<ok-test> // "",
+                'preamble',  $chunk.config<preamble> // "",
             );
         }
     }
@@ -84,7 +85,8 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = "if False \{\n class :: \{";
+    my $code = "if False \{\n class :: \{\n";
+    $code ~= $eg<preamble> ~ ";\n";
 
     for $eg<contents>.lines -> $line {
         $code ~= $line;

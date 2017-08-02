@@ -135,6 +135,18 @@ language, which will also skip the test.
         puts "this is not Perl"
     =end code
 
+When writing examples, it's often helpful to refer to things that aren't
+defined in that snippet; you don't want to have to have a full working
+example in the code.
+
+    =begin code :preamble<no strict;>
+        $x = pi;
+    =end code
+
+    =begin code :preamble<my $x; sub frob {...};>
+        $x = frob();
+    =end code
+
 Finally, you can disable certain checks with :ok-test, allowing us to
 generally fail certain styles, but allow them when it is explicitly the
 point of the code.
