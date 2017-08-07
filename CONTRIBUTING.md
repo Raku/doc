@@ -147,13 +147,26 @@ example in the code.
         $x = frob();
     =end code
 
-Finally, you can disable certain checks with :ok-test, allowing us to
+You can disable certain checks with :ok-test, allowing us to
 generally fail certain styles, but allow them when it is explicitly the
 point of the code.
 
     =begin code :ok-test<WHAT>
         say 42.WHAT;
     =end
+
+If a code snippet looks like a method declaration, it's automatically
+wrapped in additional code so you don't have to specify a body in the docs.
+Multi-line method signatures are much harder to detect, so if you have a
+method body that spans likes, use the :method tag:
+
+    =begin code :method
+        method arg (
+            Bool $one,
+            Bool $two
+        )
+    =end code
+
 
 ### Catching expected exception
 
