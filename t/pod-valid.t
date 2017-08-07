@@ -9,6 +9,7 @@ Insure any text that isn't a code example has a space after each comma.
 =end overview
 
 my @files;
+my $max-jobs = 3;
 
 if @*ARGS {
     @files = @*ARGS;
@@ -21,13 +22,21 @@ if @*ARGS {
 
 plan +@files;
 
-for @files -> $file {
+sub test-it($job) {
+    ok !$job.exitcode, "{$job.command[*-1]} has valid Pod6"
+}
 
+my @jobs;
+for @files -> $file {
     my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
     $p.stdout.tap(-> $buf {});
     $p.stderr.tap(-> $buf {});
-    my $r = await $p.start;
-    ok !$r.exitcode, "$file has valid POD6"
+    push @jobs: $p.start;
+    if +@jobs > $max-jobs {
+        test-it(await @jobs.shift);
+    }
 }
+
+for @jobs.map: {await $_} -> $r { test-it($r) }
 
 # vim: expandtab shiftwidth=4 ft=perl6
