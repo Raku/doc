@@ -9,7 +9,7 @@ Insure any text that isn't a code example has a space after each comma.
 =end overview
 
 my @files;
-my $max-jobs = 3;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 if @*ARGS {
     @files = @*ARGS;
