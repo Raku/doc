@@ -14,7 +14,7 @@ if @*ARGS {
     @files = @*ARGS;
 } else {
     for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.' ('pod6') $/;
+        next unless $file ~~ / '.' ('pod6'|'md') $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
         push @files, $file;
     }
@@ -53,6 +53,7 @@ for @files -> $file {
         $line ~~ s:g/ '"a,b"' //;
         $line ~~ s:g/ '($var,)' //;
         $line ~~ s:g/ '(3,)' //;
+        $line ~~ s:g/ << 'thing,category' >> //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
             diag "Failure on line `$line-orig`";
