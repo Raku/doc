@@ -15,7 +15,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Documenting types](#documenting-types)
-- [Writing and Testing examples](#writing-and-testing-examples)
+- [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
     - [Invisible index anchors](#invisible-index-anchors)
     - [Viewport size](#viewport-size)
@@ -112,9 +112,9 @@ tests about whitespace and spelling that might be difficult to get right
 on an initial commit, and shouldn't be considered to break the build. If
 you're contributing a patch or pull request, please make sure this passes.
 
-## Writing and testing examples
+## Writing and Testing Examples
 
-See [EXAMPLES].
+See [Writing and Testing Examples](EXAMPLES.md)
 
 ## Testing method completeness
 
