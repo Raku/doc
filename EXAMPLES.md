@@ -7,8 +7,8 @@ blocks are considered.
 
 ## Testing Examples
 
-The file `xt/examples-compilation.t` will test code. This file is run
-as part of `make xtest`. Each sample 
+The file `xt/examples-compilation.t` will test the code from all the
+examples. This file is run as part of `make xtest`.
 
 Note that method signatures are also compiled. They have an implied block
 added to insure valid compilation.
@@ -20,7 +20,7 @@ runtime code is executed, and that a class is available if needed.
 
 While our goal is to test every example of Perl 6 in the repository, some
 blocks are not easy to test. Here are some ways you can skip the test or
-finesse it. 
+finesse it.
 
 ### Other languages
 
@@ -32,8 +32,8 @@ We're just testing Perl 6 here: to skip another language, use `:lang`
 
 ### Allow .WHAT
 
-One of the checks is to dissaude using `.WHAT` in tests; However, rarely
-that is the explicit point of the test. You can whitelist it:
+One of the checks is to dissuade using `.WHAT` in tests; However, in rare
+cases that is the explicit point of the test, so you can explicitly allow it:
 
     =begin code :ok-test<WHAT>
         say 42.WHAT;
