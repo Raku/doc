@@ -15,8 +15,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Documenting types](#documenting-types)
-- [Testing examples](#testing-examples)
-    - [Skipping tests](#skipping-tests)
+- [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
     - [Invisible index anchors](#invisible-index-anchors)
     - [Viewport size](#viewport-size)
@@ -113,45 +112,9 @@ tests about whitespace and spelling that might be difficult to get right
 on an initial commit, and shouldn't be considered to break the build. If
 you're contributing a patch or pull request, please make sure this passes.
 
-## Testing examples
+## Writing and Testing Examples
 
-To export examples from all .pod6-files use `make extract-examples`. To run
-individual tests pick the right .p6-file from `examples/` as a parameter to
-`perl6`.
-
-### Skipping tests
-
-Some examples fail with compile time exceptions and would interrupt the test
-for a file. Use the pod-config option `skip-test` to skip them.
-
-    =begin code :skip-test
-        your-example-here();
-    =end code
-
-In other cases, the snippet of code isn't Perl 6; in that case, mark the
-language, which will also skip the test.
-
-    =begin code :lang<tcl>
-        puts "this is not Perl"
-    =end code
-
-Finally, you can disable certain checks with :ok-test, allowing us to
-generally fail certain styles, but allow them when it is explicitly the
-point of the code.
-
-    =begin code :ok-test<WHAT>
-        say 42.WHAT;
-    =end
-
-### Catching expected exception
-
-Some tests will throw exceptions that would stop the execution of the extracted
-test file. Use the pod-option `catch-all` to have a default handler installed
-for a single example.
-
-    =begin code :catch-all
-        exception-generator-here();
-    =end code
+See [Writing and Testing Examples](EXAMPLES.md)
 
 ## Testing method completeness
 

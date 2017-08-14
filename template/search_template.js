@@ -7,7 +7,9 @@ $(function(){
       this.widget().menu( "option", "items", "> :not(.ui-autocomplete-category)" );
     },
     _renderItem: function( ul, item) {
-        var regex = new RegExp('(' + current_search + ')', 'ig');
+        var regex = new RegExp('('
+            + current_search.replace(/[-[\]{}()*+?.,\\^$|#\s]/g, '\\$&')
+            + ')', 'ig');
         var text = item.label.replace(regex, '<b>$1</b>');
         return $( "<li>" )
             .append( $( "<div>" ).html(text) )

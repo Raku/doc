@@ -14,26 +14,23 @@ if @*ARGS {
     @files = @*ARGS;
 } else {
     for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.' ('pod6') $/;
+        next unless $file ~~ / '.' ('pod6'|'md') $/;
         next if $file ~~ / 'contributors.pod6' $/; # names are hard.
         push @files, $file;
     }
 }
 
 plan +@files;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
+my %output;
 
-for @files -> $file {
+sub test-promise($promise) {
+    my $file = $promise.command[*-1];
+    test-it(%output{$file}, $file);
+}
+
+sub test-it(Str $output, Str $file) {
     my $ok = True;
-
-    my $output = "";
-
-    if $file ~~ / '.pod6' $/ {
-        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        $a.stdout.tap(-> $buf { $output = $output ~ $buf });
-        await $a.start;
-    } else {
-        $output = $file.IO.slurp;
-    }
 
     for $output.lines -> $line-orig {
         next if $line-orig ~~ / ^ '    '/;
@@ -53,6 +50,7 @@ for @files -> $file {
         $line ~~ s:g/ '"a,b"' //;
         $line ~~ s:g/ '($var,)' //;
         $line ~~ s:g/ '(3,)' //;
+        $line ~~ s:g/ << 'thing,category' >> //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
             diag "Failure on line `$line-orig`";
@@ -62,5 +60,25 @@ for @files -> $file {
     my $error = $file;
     ok $ok, "$error: Must have space after comma.";
 }
+
+my @jobs;
+for @files -> $file {
+
+    my $output = "";
+
+    if $file ~~ / '.pod6' $/ {
+        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        %output{$file} = "";
+        $a.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        push @jobs: $a.start;
+        if +@jobs > $max-jobs {
+            test-promise(await @jobs.shift)
+        }
+    } else {
+        test-it($file.IO.slurp, $file);
+    }
+}
+
+for @jobs.map: {await $_} -> $r { test-promise($r) }
 
 # vim: expandtab shiftwidth=4 ft=perl6

@@ -30,7 +30,7 @@ bigpage:
 
 # Common tests that are run by travis with every commit
 test:
-	prove --exec perl6 -r t
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
 
 # Extended tests
 xtest:

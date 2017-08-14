@@ -24,16 +24,6 @@ if @*ARGS {
 } else {
     for qx<git ls-files doc>.lines -> $file {
         next unless $file ~~ / '.pod6' $/;
-        next if $file eq any(<
-            doc/Language/5to6-nutshell.pod6
-            doc/Language/5to6-perlfunc.pod6
-            doc/Language/5to6-perlop.pod6
-            doc/Language/modules.pod6
-            doc/Language/phasers.pod6
-            doc/Language/pod.pod6
-            doc/Language/py-nutshell.pod6
-            doc/Language/tables.pod6
-         >);
         push @files, $file;
     }
 }
@@ -60,11 +50,13 @@ for @files -> $file {
                 %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
             }
             @examples.push: %(
-                'contents', $chunk.contents.map({walk $_}).join,
-                'file',    $file,
-                'count',   ++$counts{$file},
-                'todo',    $todo,
-                'ok-test', $chunk.config<ok-test> // "",
+                'contents',  $chunk.contents.map({walk $_}).join,
+                'file',      $file,
+                'count',     ++$counts{$file},
+                'todo',      $todo,
+                'ok-test',   $chunk.config<ok-test> // "",
+                'preamble',  $chunk.config<preamble> // "",
+                'method',    $chunk.config<method> // False,
             );
         }
     }
@@ -87,16 +79,18 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = "if False \{\n class :: \{";
+    my $code = "if False \{\n class :: \{\n";
+    $code ~= $eg<preamble> ~ ";\n";
 
     for $eg<contents>.lines -> $line {
         $code ~= $line;
         $line.trim;
-        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) {
+        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) && !$eg<method> {
            $code ~= " \{}";
         }
-        $code ~= "\n";
+        $code ~= "\n" unless $eg<method>;
     }
+    $code ~= "\{}\n" if $eg<method>;
     $code ~= "\n}}";
 
     my $msg = "$eg<file> chunk $eg<count> compiles";
