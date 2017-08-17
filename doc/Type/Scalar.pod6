@@ -87,4 +87,156 @@ variables.
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Int␤»
 
+=head1 Atomic Operations on Scalar
+
+A C<Scalar> can have its value changed using a hardware-supported atomic
+compare and swap operation. This is useful when implementing lock free data
+structures and algorithms. It may also be fetched and assigned to in an
+"atomic" fashion, which ensures appropriate memory barriering and prevents
+unwanted optimizations of memory accesses.
+
+A C<Scalar> that will be used with an atomic operation should B<always> be
+explcitly initialized with a value before any atomic operations are
+performed upon it. This is to avoid races with lazy allocation and
+auto-vivification. For example:
+
+    cas(@a[5], $expected, $value)
+
+Will work in principle since an C<Array> consists of C<Scalar> containers.
+However, the container is only bound into the array upon initial assignment.
+Therefore, there would be a race to do that binding. The C<Scalar> atomic
+operations will never check for or do any such auto-vivification, so as to
+make such bugs much more evident (rather than only observed under stress).
+
+=head1 Routines
+
+=head2 atomic-assign
+
+Defined as:
+
+    multi sub atomic-assign($target is rw, $value)
+
+Performs an atomic assignment of C<$value> into the C<Scalar> C<$target>. The
+C<atomic-assign> routine ensures that any required barriers are performed such
+that the changed value will be "published" to other threads.
+
+=head2 atomic-fetch
+
+    multi sub atomic-fetch($target is rw)
+
+Performs an atomic read of the value in the C<Scalar> C<$target> and returns
+the read value. Using this routine instead of simply using the variable
+ensures that the latest update to the variable from other threads will be seen,
+both by doing any required hardware barriers and also preventing the compiler
+from lifting reads. For example:
+
+    my $started = False;
+    start { atomic-assign($started, True) }
+    until atomic-fetch($started) { }
+
+Is certain to terminate, while in:
+
+    my $started = False;
+    start { atomic-assign($started, True) }
+    until $started { }
+
+It would be legal for a compiler to observe that C<$started> is not updated in
+the loop, and so lift the read out of the loop, thus causing the program to
+never terminate.
+
+=head2 cas
+
+Defined as:
+
+    multi sub cas($target is rw, $expected, $value)
+    multi sub cas($target is rw, &operation)
+
+Performs an atomic compare and swap of the value in the C<Scalar> C<$target>.
+The first form has semantics like:
+
+    my $seen = $target;
+    if $seen<> =:= $expected<> {
+        $target = $value;
+    }
+    return $seen;
+
+Except it is performed as a single hardware-supported atomic instruction, as
+if all memory access to C<$target> were blocked while it took place. Therefore
+it is safe to attempt the operation from multiple threads without any other
+synchronization. Since it is a reference comparison, this operation is usually
+not sensible on value types.
+
+For example:
+
+    constant NOT_STARTED = Any.new;
+    constant STARTED = Any.new;
+    my $master = NOT_STARTED;
+    await start { 
+        if cas($master, NOT_STARTED, STARTED) === Any {
+            say "Master!"
+        }
+    } xx 4
+
+Will reliably only ever print C<Master!> one time, as only one of the threads
+will be successful in changing the C<Scalar> from C<NOT_STARTED> to
+C<STARTED>.
+
+The second form, taking a code object, will first do an atomic fetch of the
+current value and invoke the code object with it. It will then try to do an
+atomic compare and swap of the target, using the value passed to the code
+object as C<$exepcted> and the result of the code object as C<$value>. If
+this fails, it will read the latest value, and retry, until a CAS operation
+succeeds.
+
+Therefore, an item could be added to the head of a linked list in a lock free
+manner as follows:
+
+    class Node {
+        has $.value;
+        has Node $.next;
+    }
+    my Node $head = Node;
+    await start {
+        for ^1000 -> $value {
+            cas $head, -> $next { Node.new(:$value, :$next) }
+        }
+    } xx 4;
+
+This will reliably build up a linked list of 4000 items, with 4 nodes with
+each value ranging from 0 up to 999.
+
+=head1 Operators
+
+=head2 infix ⚛=
+
+    multi sub infix:<⚛=>($target is rw, $value)
+
+Performs an atomic assignment of C<$value> into the C<Scalar> C<$target>. The
+C<⚛=> operator ensures that any required barriers are performed such that the
+changed value will be "published" to other threads.
+
+=head2 prefix ⚛
+
+    multi sub prefix:<⚛>($target is rw)
+
+Performs an atomic read of the value in the C<Scalar> C<$target> and returns
+the read value. Using this operator instead of simply using the variable
+ensures that the latest update to the variable from other threads will be seen,
+both by doing any required hardware barriers and also preventing the compiler
+from lifting reads. For example:
+
+    my $started = False;
+    start { $started ⚛= True }
+    until ⚛$started { }
+
+Is certain to terminate, while in:
+
+    my $started = False;
+    start { $started ⚛= True }
+    until $started { }
+
+It would be legal for a compiler to observe that C<$started> is not updated in
+the loop, and so lift the read out of the loop, thus causing the program to
+never terminate.
+
 =end pod
