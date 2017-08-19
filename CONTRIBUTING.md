@@ -186,7 +186,7 @@ computer.  To do this you will need:
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
-    only `nodejs` and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
+    `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
 
 ### Dependency installation
 
