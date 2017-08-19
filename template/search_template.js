@@ -109,7 +109,46 @@ $(function(){
                   url: "/type/Signature#index-entry-Long_Names"
               }, ITEMS ];
           var results = $.ui.autocomplete.filter(items, request.term);
-          response(results.slice(0, 50));
+          function trim_results(results, term) {
+              var cutoff = 50;
+              if (results.length < cutoff) {
+                  return results;
+              }
+              // Prefer exact matches, then starting matches.
+              var exacts = [];
+              var prefixes = [];
+              var rest = [];
+              for (var ii = 0; ii <results.length; ii++) {
+                  if (results[ii].value.toLowerCase() == term.toLowerCase()) {
+                      exacts.push(ii);
+                  } else if (results[ii].value.toLowerCase().startsWith(term.toLowerCase())) {
+                  prefixes.push(ii);
+                  } else {
+                      rest.push(ii);
+                  }
+              }
+              var keeps = [];
+              var pos = 0;
+              while (keeps.length <= cutoff && pos < exacts.length) {
+                  keeps.push(exacts[pos++]);
+              }
+              pos = 0;
+              while (keeps.length <= cutoff && pos < prefixes.length) {
+                  keeps.push(prefixes[pos++]);
+              }
+              pos = 0;
+              while (keeps.length <= cutoff && pos < rest.length) {
+                  keeps.push(rest[pos++]);
+              }
+              var filtered = [];
+              for (pos = 0; pos < results.length; pos++) {
+                  if (keeps.indexOf(pos) != -1) {
+                      filtered.push(results[pos]);
+                  }
+              }
+              return filtered;
+          };
+          response(trim_results(results, request.term));
       },
       select: function (event, ui) { window.location.href = ui.item.url; },
       autoFocus: true
