@@ -55,6 +55,9 @@ method body that spans likes, use the `:method` tag:
 
 This helps keep the method detection logic in the test code simple.
 
+Conversely, sometimes the method detection is overeager; you can disable it
+entirely with `:method<False>`
+
 ### Preambles
 
 When writing examples, it's often helpful to refer to things that aren't
