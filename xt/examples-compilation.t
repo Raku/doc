@@ -84,8 +84,7 @@ for @examples -> $eg {
 
     for $eg<contents>.lines -> $line {
         $code ~= $line;
-        $line.trim;
-        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) && $eg<method> eq "" {
+        if $line.trim.starts-with(any(<multi method proto only sub>)) && !$line.trim.ends-with(any('}',',')) && $eg<method> eq "" {
            $code ~= " \{}";
         }
         if $eg<method> eq "" || $eg<method> eq "False" {
