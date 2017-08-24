@@ -3,4 +3,4 @@
 # Test only the most recent commits for spelling issues.
 # (much faster than running the whole xt/aspell.t test)
 
-perl6 xt/aspell.t $(git llog | egrep '^M.*\.(pod6|md)$' | head -40 | sort -u | awk '{print $2}')
+perl6 xt/aspell.t $(git llog | egrep '^M.*\.(pod6|md)$' | grep -v 'contributors.pod6' | head -40 | sort -u | awk '{print $2}')

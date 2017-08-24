@@ -56,7 +56,7 @@ for @files -> $file {
                 'todo',      $todo,
                 'ok-test',   $chunk.config<ok-test> // "",
                 'preamble',  $chunk.config<preamble> // "",
-                'method',    $chunk.config<method> // False,
+                'method',    $chunk.config<method> // "",
             );
         }
     }
@@ -79,18 +79,19 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = "if False \{\n class :: \{\n";
+    my $code = "if False \{\nclass :: \{\n";
     $code ~= $eg<preamble> ~ ";\n";
 
     for $eg<contents>.lines -> $line {
         $code ~= $line;
-        $line.trim;
-        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) && !$eg<method> {
+        if $line.trim.starts-with(any(<multi method proto only sub>)) && !$line.trim.ends-with(any('}',',')) && $eg<method> eq "" {
            $code ~= " \{}";
         }
-        $code ~= "\n" unless $eg<method>;
+        if $eg<method> eq "" || $eg<method> eq "False" {
+            $code ~= "\n";
+        }
     }
-    $code ~= "\{}\n" if $eg<method>;
+    $code ~= "\{}\n" if $eg<method> eq "True";
     $code ~= "\n}}";
 
     my $msg = "$eg<file> chunk $eg<count> compiles";
