@@ -11,7 +11,7 @@
 NO，perl 6 第一个正式发布版是v6.c（c代笔Christmas圣诞节）。
 接下来发布的版本是带点版本（比如，v6.3.2）,或者大版本的话（v6.d）
 
-运行C<perl6 -v>会输出编译器版本号：
+运行`perl6 -v`会输出编译器版本号：
 
     $ perl6 -v
 
@@ -21,8 +21,8 @@ implementing Perl 6.c“。
 ## Perl v6.d 大概什么时候发布?
 
 2018年内某时间点。这是实现6.d特性的第一个版本，具体日期后面会发布。
-实际上通过使用C<use v6.d.PREVIEW>我们已经在6.c的编译支持了很多6.d的新特性
-L<pragma|https://docs.perl6.org/language/pragmas>。
+实际上通过使用`use v6.d.PREVIEW`我们已经在6.c的编译支持了很多6.d的新特性
+[pragma](https://docs.perl6.org/language/pragmas)。
 
 ## perl6开始之旅,我应该安装什么?
 
@@ -34,28 +34,27 @@ Windows用户可以通过Rakudo Star MSI安装. 你必须事先安装Windows Git
 
 Linux用户直接下载Rakudo Star [http://www.perl6.org/downloads/](http://www.perl6.org/downloads/) ，然后编译安装.
 
-Linux和Mac 用户也可以通过操作系统发行方或者第三方的二进制包安装,发行方包可能版本会老一点.
+Linux和Mac用户也可以通过操作系统发行方或者第三方的二进制包安装,发行方包可能版本会老一点.
 
 我们也提供Rakudo Star docker容器的镜像，地址为 [https://hub.docker.com/\_/rakudo-star/](https://hub.docker.com/_/rakudo-star/)
 
 ## 对于perl老司机我对 Rakudo的开发感兴趣，有啥好的建议？
+X<|rakudobrew (FAQ)>
 
-    X<|rakudobrew (FAQ)>
+最简便的方法是clone仓库[the repository](https://github.com/rakudo/rakudo)并且对其编译
+[从源码编译文档](https://github.com/zoffixznet/r#table-of-contents)。
 
-最简便的方法是clone仓库L<the repository|https://github.com/rakudo/rakudo>并且编译他
-L<build from source|https://github.com/zoffixznet/r#table-of-contents>。
-
-部分人也可以选择 L<rakudobrew|https://github.com/tadzik/rakudobrew>这允许我们安装多版本
+部分人也可以选择[rakudobrew](https://github.com/tadzik/rakudobrew)这允许我们安装多版本
 rakudo，从中选择自己喜欢的版本。请先浏览文档
-<rakudobrew|https://github.com/tadzik/rakudobrew#making-new-scripts-available>
+[rakudobrew](https://github.com/tadzik/rakudobrew#making-new-scripts-available)
 这个工具相当于perl5的perlbrew或者python，ruby的相应的多版本管理工具。
 
 ## 上哪里找Perl6的文档?
 
-请浏览L<官方文档站|https://docs.perl6.org/> (特别是他的L
-<"Language"部分|https://docs.perl6.org/language.html>。还有L<资源页|https://perl6.org/resources/>。
-你可以通过L<在线perl6频道|https://webchat.freenode.net/?channels=#perl6>寻求帮助
-或者L<搜索聊天记录|https://www.google.com/search?q=site:irclog.perlgeek.de+inurl:perl6>。
+请浏览[官方文档站](https://docs.perl6.org/)(特别是他的L
+["Language"部分](https://docs.perl6.org/language.html)。还有[资源页](https://perl6.org/resources/))。
+你可以通过[在线perl6频道](https://webchat.freenode.net/?channels=#perl6)寻求帮助
+或者[搜索聊天记录](https://www.google.com/search?q=site:irclog.perlgeek.de+inurl:perl6)。
 
 ## Perl6 specification是什么?
 
@@ -83,10 +82,10 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 
 ## Perl6有没有CPAN?
 
-有，和Per5的L<CPAN|http://cpan.org/>一样,CPAN已经完全支持Perl6。唯一的区别是用L<PAUSE|http://pause.perl.org/>
-升级模块时候，你必须选择C<Perl 6>为目标目录。L«C<App::Mi6> tool|https://modules.perl6.org/l/App::Mi6»
-模块可用于，简化这个更新流程。最新版本的L«C<zef>模块安装|https://modules.perl6.org/l/zef»
-自动的检查CPAN上最新版本的模块，以及GitHubL<GitHub-based ecosystem|https://github.com/perl6/ecosystem/>。
+有，和Per5的[CPAN](http://cpan.org/)一样,CPAN已经完全支持Perl6。唯一的区别是用[PAUSE](http://pause.perl.org/)
+升级模块时候，你必须选择`Perl 6`为目标目录。[`App::Mi6`]tool](https://modules.perl6.org/l/App::Mi6)
+模块可用于，简化这个更新流程。最新版本的[`zef`模块安装](https://modules.perl6.org/l/zef)
+自动的检查CPAN上最新版本的模块，以及[GitHub-based ecosystem](https://github.com/perl6/ecosystem/)。
 
 ## 我能在Perl6中使用perl模块么?
 
@@ -107,28 +106,28 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 
 ## Rakudo有核心的标准库么?
 
-L<Rakudo Star发行包|https://rakudo.perl6.org/downloads/star/>携带很多有用的了
-L<模块|https://github.com/rakudo/star/tree/master/modules>。
-Rakudo编译器发布仅仅包括一些最常用的L<基本模块|https://docs.perl6.org/language/modules-core>。
-更多的模块在L<ecosystem|http://modules.perl6.org/>。
+[Rakudo Star发行包](https://rakudo.perl6.org/downloads/star/)携带很多有用的了
+[模块](https://github.com/rakudo/star/tree/master/modules)。
+Rakudo编译器发布仅仅包括一些最常用的[基本模块](https://docs.perl6.org/language/modules-core)。
+更多的模块在[ecosystem](http://modules.perl6.org/)。
 
 ## 有没有类似B::Deparse的模块？我如何处理AST?
 
-使用C<--target=optimize>命令行选项来预览程序中的AST。例如：
-C<perl6 --target=optimize -e 'say "hi"'>。
-静态优化后，C<optimize>赋给AST处理目标，同时目标 C<ast>给予AST前面的步骤。
-可通过运行C<perl6 --stagestats -e "">得到所有可用目标的列表。
+使用`--target=optimize`命令行选项来预览程序中的AST。例如：
+`perl6 --target=optimize -e 'say "hi"'`。
+静态优化后，`optimize`赋给AST处理目标，同时目标 `ast`给予AST前面的步骤。
+可通过运行`perl6 --stagestats -e ""`得到所有可用目标的列表。
 
 # 语言特性
 
 ## 我怎么样能dump出Perl6的数据结构 (和perl5的Data::Dumper一样有类似的模块么?）
 
-典型地是使用L<say>例程，对"gist" 对象的dump使用L<gist>方法。更多细节可以通过
-L<perl>方法，这通常会返回 L<EVAL>样式的代码表示。
+典型地是使用`say`例程，对"gist" 对象的dump使用`gist`方法。更多细节可以通过
+`perl`方法，这通常会返回 `EVAL`样式的代码表示。
 
-如果使用是L<rakudo implementation|http://rakudo.org>，你可以使用其特有的
-L«non-standard C<dd> routine|/programs/01-debugging#Dumper_function_dd»例程来dump
-他的输出与L<perl>类似，包含更多多的信息。例如:
+如果使用是[rakudo implementation](http://rakudo.org)，你可以使用其特有的
+[non-standard `dd` routine](/programs/01-debugging#Dumper_function_dd)例程来dump
+他的输出与`perl`类似，包含更多多的信息。例如:
 
        my $foo = { foo => 'bar' };
        say $foo.perl;   # 输出: «${:foo("bar")}␤»
@@ -137,14 +136,14 @@ L«non-standard C<dd> routine|/programs/01-debugging#Dumper_function_dd»例程�
        # 在rakudo实现中，支持非标准的例程
        dd $foo;         # 输出: «Hash $foo = ${:foo("bar")}␤»
 
-同时perl6生态系统也有几个L<专门的模块|https://modules.perl6.org/s/dump>提供更完善
+同时perl6生态系统也有几个[专门的模块](https://modules.perl6.org/s/dump)提供更完善
 的数据结构dump，包括支持带彩色的输出等。
 
 ## Perl6命令行(REPL)下我如何得到输入命令的历史?
 
-请安装 L<Linenoise|https://github.com/hoelzro/p6-linenoise/> 模块.
+请安装[Linenoise](https://github.com/hoelzro/p6-linenoise/) 模块.
 
-对Unix系的操作系统另外还有一个方法就是使用rlwrap.在debian系操作系统可以通过
+对Unix系的操作系统另外还有一个方法就是使用rlwrap。在debian系操作系统可以通过
 运行以下命令安装。
 
     for code :lang<shell>
@@ -166,25 +165,25 @@ L«non-standard C<dd> routine|/programs/01-debugging#Dumper_function_dd»例程�
 
 ## `(Any)` 是啥?
 
-L<Any|/type/Any>是最高层的基类，其它绝大多数类都继承它。L<Any>类型对象最为变量和参数
-未明确指类型时候的L<默认值|/type/Attribute#index-entry-trait_is_default_%28Attribute%29-Trait_is_default>
-这意味着当你答应一个没有任何值L<gist>变量时候会输出C<(Any)>。比如使用 L«C<say> routine|/routine/say»:
+[Any](/type/Any)是最高层的基类，其它绝大多数类都继承它。`Any`类型对象最为变量和参数
+未明确指类型时候的[默认值](/type/Attribute#index-entry-trait_is_default_%28Attribute%29-Trait_is_default)
+这意味着当你答应一个没有任何值`gist`变量时候会输出`(Any)`。比如使用[`say` routine](/routine/say):
 
-=begin code
-my $foo;
-say $foo; # 输出: «(Any)␤»
-
-my Int $baz;
-say $baz; # 输出: «(Int)␤»
-
-my $bar = 70;
-say $bar; # 输出: «70␤»
-=end code
+    =begin code
+    my $foo;
+    say $foo; # 输出: «(Any)␤»
+    
+    my Int $baz;
+    say $baz; # 输出: «(Int)␤»
+    
+    my $bar = 70;
+    say $bar; # 输出: «70␤»
+    =end code
 
 为了测试一个变量是否具有定义的值，使用L<DEFINITE>和L<defined>例程。其他几个测试定义与否结构有：
-L«C<with>, C<orwith>,以及C<without>|/syntax/with%20orwith%20without»语句，
-L«C<//>|/routine/$SOLIDUS$SOLIDUS»，L<andthen>, L<notandthen>,以及L<orelse>操作符。还有
-L<type constraint smileys|/type/Signature#Constraining_Defined_and_Undefined_Values>。
+[`with`, `orwith`,以及`without`](/syntax/with%20orwith%20without)语句，
+[`<//>`(/routine/$SOLIDUS$SOLIDUS)，`andthen`, `notandthen`,以及`orelse`操作符。还有
+[type constraint smileys](/type/Signature#Constraining_Defined_and_Undefined_Values)。
 
 ## `so`是什么?
 
@@ -264,7 +263,7 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
 变量的操作，操作是会生成一个新的字符串对象。同样，C<$i++>也是工作C<$i>变量上，并不是对
 值本身的操作。
 
-知道这点后，我们一般就不会试图去修改一个字符串（比如C<'hello' ~~ s/h/H/;#这事不能正常工作的）
+知道这点后，我们一般就不会试图去修改一个字符串（比如`'hello' ~~ s/h/H/`）
 但是可能不经意间使用 `map`做了这样事情:
 
       my @foo = <hello world>.map: { s/h/H/ } ; # 抛出异常，
@@ -279,7 +278,7 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
      my @foo = <hello world>.map: { S/h/H/ };  # ['Hello','world']
      my @bar = <hello world>».subst: 'h', 'H'; # ['Hello','world']
 
-更多信息，可以浏览 L<containers|/language/containers>。
+更多信息，可以浏览 [containers](/language/containers)。
 
 ## 数组引用和自动解引用是怎么回事?需要`@`前缀么？
 
@@ -493,7 +492,7 @@ NQP是以下各部分构成 (1) NQP代码, (2) 底层虚拟机使用的各种语
 关于这个问题教主Larry这样回答的：
 [Rule 1](http://perldoc.perl.org/5.12.4/perlhack.html#DESCRIPTION)
 
-… As opposed to some other name that didn't imply all the things
+… As opposed to some other name that did not imply all the things
 that the higher number might indicate on other languages.
 
 … 相比较换个不能说明任何事情的名字，一个高的版本号也可能暗示是一个完全不同语言。
