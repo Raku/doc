@@ -51,10 +51,10 @@ rakudo，从中选择自己喜欢的版本。请先浏览文档
 
 ## 上哪里找Perl6的文档?
 
-请浏览[官方文档站](https://docs.perl6.org/)(特别是他的L
-["Language"部分](https://docs.perl6.org/language.html)。还有[资源页](https://perl6.org/resources/))。
+请浏览[官方文档站](https://docs.perl6.org/)(特别是他的["Language"部分](https://docs.perl6.org/language.html)。
+还有[资源页](https://perl6.org/resources/))。
 你可以通过[在线perl6频道](https://webchat.freenode.net/?channels=#perl6)寻求帮助
-或者[搜索聊天记录](https://www.google.com/search?q=site:irclog.perlgeek.de+inurl:perl6)。
+或者通过谷歌[搜索聊天记录](https://www.google.com/search?q=site:irclog.perlgeek.de+inurl:perl6)。
 
 ## Perl6 specification是什么?
 
@@ -71,8 +71,8 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 
 ## 作为一个perl程序员，我想知道Perl5和Perl6的不同点是啥?
 
-本文档的L<Language部分|https://docs.perl6.org/language.html>，有几个C<5to6->的指导
-其中最主要的是L<5to6-nutshell guide|https://docs.perl6.org/language/5to6-nutshell>。
+本文档的[Language部分](https://docs.perl6.org/language.html)，有几个`5to6-`的指导教程。
+其中最主要的是[5to6-nutshell guide](https://docs.perl6.org/language/5to6-nutshell)。
 
 ## 我是一位Ruby程序，我该怎么快速入门perl6?
 
@@ -83,7 +83,7 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 ## Perl6有没有CPAN?
 
 有，和Per5的[CPAN](http://cpan.org/)一样,CPAN已经完全支持Perl6。唯一的区别是用[PAUSE](http://pause.perl.org/)
-升级模块时候，你必须选择`Perl 6`为目标目录。[`App::Mi6`]tool](https://modules.perl6.org/l/App::Mi6)
+升级模块时候，你必须选择`Perl 6`为目标目录。[`App::Mi6`工具](https://modules.perl6.org/l/App::Mi6)
 模块可用于，简化这个更新流程。最新版本的[`zef`模块安装](https://modules.perl6.org/l/zef)
 自动的检查CPAN上最新版本的模块，以及[GitHub-based ecosystem](https://github.com/perl6/ecosystem/)。
 
