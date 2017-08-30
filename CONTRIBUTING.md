@@ -159,6 +159,8 @@ following labels when tagging tickets:
 
 * site   - presentation issue with the website (e.g. invalid HTML)
 * docs   - missing or incorrect documentation (use 'NOTSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
+    * new - this is a new doc item that requires fresh text
+    * update - this is an existing doc item that requires some analysis or editing
 * build  - scripts or libraries that generate the site
 * search - the search component, either for items that are on the site but not searchable, or for search functionality)
 
