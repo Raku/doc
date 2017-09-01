@@ -524,47 +524,25 @@ say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
 
 =head2 Object Cloning
 
-The C<Mu> parent class, from which all classes inherit, supplies a
-method named L<clone>, which is somewhat magical in that it can copy
-values from an object's private attributes to create a new object.
-This cloning is shallow since it only binds attributes to
-the same values contained in the original object; it does
-not make copies of those values.
+The cloning is done using L<clone> method available on all objects, which
+shallow-clones both public and private attributes. New values for I<public>
+attributes can be supplied as named arguments.
 
-As with C<new>, public attributes can be set to initial values.
-These override values received from the original object.  (See
-the documentation for Mu's L<clone> for an example.)
+=begin code
+class Foo {
+    has $.foo = 42;
+    has $.bar = 100;
+}
 
-Note that since C<clone> is not a C<submethod>, a class which provides
-its own C<clone> method will replace the C<Mu> method.  There is no
-automatic mechanism like C<BUILDALL> for cloning.  For example, if one
-wished to make clone deeper for a particular class, one would will
-probably want to use C<callwith> or C<nextwith> to push the deeper
-copies to superclasses:
+my $o1 = Foo.new;
+my $o2 = $o1.clone: :bar(5000);
+say $o1; # Foo.new(foo => 42, bar => 100)
+say $o2; # Foo.new(foo => 42, bar => 5000)
+=end code
 
-    class A {
-        has $.a;
-        #...
-        method clone {
-            nextwith(:a($.a.clone))
-        }
-    }
-
-This works well for simple classes, but in some cases one might need
-to follow C<BUILDALL>'s lead and work in reverse method resolution
-order:
-
-    =begin code :preamble<class A {};>
-    class B is A {
-        has $.b;
-        #...
-        method clone {
-            my $obj = callsame;
-            $obj.b = $!b.clone(:seed($obj.a.generate_seed));
-            $obj
-        }
-    }
-    =end code
+See L«documentation for C<Mu.clone>|/routine/clone» for details on how
+non-scalar attributes get cloned, as well as examples of implementing your
+own custom clone methods.
 
 =head1 X<Roles|declarator,role>
 
