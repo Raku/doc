@@ -23,11 +23,11 @@ execution path.
 
 With a Rakudo `perl6` executable in `PATH`, try
 
-    ./bin/p6doc Type::Str
+    ./bin/p6doc Str
 
 to see the documentation for class `Str`, or
 
-    ./bin/p6doc Type::Str.split
+    ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
 skip the `./bin` part if you have installed it via `panda` or
