@@ -760,6 +760,45 @@ Another viable option is to avoid using L<chdir>. For example, you can
 pass C<cwd> named argument to L<run> without having to change your
 current directory.
 
+=head2 Splitting the Input Data Into Lines
+
+There is a difference between using C<.lines> on
+L«C<IO::Handle>|/type/IO::Handle#method_lines» and on a
+L«C<Str>|/type/Str#method_lines». The trap arises if you start
+assuming that both split data the same way.
+
+=begin code :skip-test
+    dd $_ for $*IN.lines # or just ｢lines｣
+    # OUTPUT:
+    # "foox"
+    # "fooy\rbar"
+    # "fooz"
+=end code
+
+As you can see in the example above, there was a line which contained
+C<\r> (“carriage return” control character). However, the input is
+split strictly by C<\n>, so C<\r> was kept as part of the string.
+
+On the other hand, L«C<Str.lines>|/type/Str#method_lines» attempts to
+be “smart” about processing data from different operating
+systems. Therefore, it will split by all possible variations of a
+newline.
+
+=begin code :skip-test
+    dd $_ for $*IN.slurp.lines # or just ｢slurp.lines｣
+    # OUTPUT:
+    # "foox"
+    # "fooy"
+    # "bar"
+    # "fooz"
+=end code
+
+The rule is quite simple: use
+L«C<IO::Handle.lines>|/type/IO::Handle#method_lines» when working with
+programmatically generated output, and
+L«C<Str.lines>|/type/Str#method_lines» when working with user-written
+texts.
+
 =head1 Exception Handling
 
 =head2 Sunk C<Proc>
