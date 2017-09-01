@@ -2,12 +2,15 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-An HTML version of this documentation can be found at https://docs.perl6.org/. This is currently the recommended way to consume the documentation.
+An HTML version of this documentation can be found at https://docs.perl6.org/.
+This is currently the recommended way to consume the documentation.
+
+There is also a command line tool called "p6doc".
 
 (If you are browsing this repository via GitHub, it will not display most
 files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
 
-## Install
+## Install p6doc
 
 This module is available via the Perl 6 module ecosystem. Use
 
@@ -16,13 +19,7 @@ This module is available via the Perl 6 module ecosystem. Use
 to install the binaries and make it available in your binaries
 execution path.
 
-Once it has been downloaded, run
-
-    p6doc-index build
-
-to build the index.
-
-## Use
+## Use p6doc
 
 With a Rakudo `perl6` executable in `PATH`, try
 
