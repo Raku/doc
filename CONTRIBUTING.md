@@ -56,10 +56,10 @@ you want to improve, commit your changes, and create a pull request. Should
 questions come up in the process feel free to ask in
 [#perl6 IRC channel](https://perl6.org/community/irc).
 
-If the documentation for a type does not exist create the skeleton of the doc
+If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 MyFunnyRole
+    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
@@ -105,7 +105,7 @@ When providing a code example result or output, use this style:
 
 Any contributions should pass the `make test` target. This insures basic
 integrity of the documentation, and is run automatically by a corresponding
-travis build. Even edits made via the github editor should pass this test.
+travis build. Even edits made via the GitHub editor should pass this test.
 
 The repo should also pass `make xtest` most of the time - this includes
 tests about whitespace and spelling that might be difficult to get right
