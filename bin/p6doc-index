@@ -29,7 +29,9 @@ multi sub MAIN('build') {
 
     # XXX should index more than this - currently only core pod
     for ($*REPO.repo-chain()>>.Str X~ "{$*SPEC.dir-sep}doc{$*SPEC.dir-sep}").grep: *.IO.d  -> $lib_path is copy {
-        my @files =  find(:dir($lib_path),:type('file')).map({.IO});
+
+    # for p6doc -f only looking under "Type" directory is useful (and faster)
+        my @files =  find(:dir($lib_path ~ "Type"),:type('file')).map({.IO});
 
         for @files -> $f {
             my $file = $f.path;
@@ -41,11 +43,7 @@ multi sub MAIN('build') {
             for open( $file.Str).lines -> $row {
                 if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
                     $section = $1.Str if $1.defined;
-                    %words{$section}.push([$pod, $section]);
-                }
-                if $row ~~ /X\<(.*?)\>/ and $section {
-                    my $x = $0.Str if $0.defined;
-                    %words{$x}.push([$pod, $section]) if $x ~~ m/^<alpha>/;
+                    %words{$section}.push([$pod, $section]) if $section ~~ m/^("method "|"sub "|"routine ")/;
                 }
             }
         }
