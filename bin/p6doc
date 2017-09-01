@@ -1,6 +1,9 @@
 #!/usr/bin/env perl6
-use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+
+use v6;
 use JSON::Fast;
+use File::Find;
+use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
 
 my $PROGRAM-NAME = "p6doc";
 
@@ -71,7 +74,17 @@ sub show-docs(Str $path, :$section, :$no-pager) {
 }
 
 sub USAGE() {
-    say 'What documentation do you want to read?';
+    say "You want to maintain the index?";
+    say "To build an index for '$PROGRAM-NAME -f'";
+    say "          $PROGRAM-NAME build";
+    say "\nTo list the index keys";
+    say "          $PROGRAM-NAME list";
+    say "\nTo display module name(s) containing key";
+    say "          $PROGRAM-NAME lookup";
+    say "\nTo show where the index file lives";
+    say "          $PROGRAM-NAME path-to-index";
+
+    say "\nWhat documentation do you want to read?";
     say "Examples: $PROGRAM-NAME Str";
     say "          $PROGRAM-NAME Str.split";
     say "          $PROGRAM-NAME faq";
@@ -85,7 +98,7 @@ sub USAGE() {
     say "          $PROGRAM-NAME -f Type::Array.push";
 
     say "\nYou can bypass the pager and print straight to stdout:";
-    say "          $PROGRAM-NAME -n Str"
+    say "          $PROGRAM-NAME -n Str";
 }
 
 multi sub MAIN($docee, Bool :$n) {
@@ -120,7 +133,7 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
             show-docs($m, :section($method), :no-pager($n));
         } else {
             say 'In order to use unqualified sub and method names like "p6doc -f say"';
-            say 'you will need to run "p6doc-index build" to build index.data.';
+            say 'you will need to run "p6doc build" to build index.data.';
             say 'Otherwise use "p6doc -f Type::Str.split" instead of "p6doc -f split" for now.';
             exit 2;
         }
@@ -132,6 +145,67 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
 
 multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
     show-docs($file, :no-pager($n));
+}
+
+# index related
+
+multi sub MAIN('path-to-index') {
+    say INDEX if INDEX.IO.e;
+}
+
+multi sub MAIN('build') {
+    my %words;
+
+    # XXX should index more than this - currently only core pod
+    for ($*REPO.repo-chain()>>.Str X~ "{$*SPEC.dir-sep}doc{$*SPEC.dir-sep}").grep: *.IO.d  -> $lib_path is copy {
+
+    # for p6doc -f only looking under "Type" directory is useful (and faster)
+        my @files =  find(:dir($lib_path ~ "Type"),:type('file')).map({.IO});
+
+        for @files -> $f {
+            my $file = $f.path;
+            next if $file !~~ /\.pod6?$/;
+            my $pod = substr($file.Str, 0 , $file.Str.chars -4);
+            $pod.=subst($lib_path,"");
+            $pod.=subst(/"{$*SPEC.dir-sep}"/,'::',:g);
+            my $section = '';
+            for open( $file.Str).lines -> $row {
+                if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
+                    $section = $1.Str if $1.defined;
+                    %words{$section}.push([$pod, $section]) if $section ~~ m/^("method "|"sub "|"routine ")/;
+                }
+            }
+        }
+    }
+
+    my $out = open(INDEX, :w);
+    $out.print(%words.perl);
+    $out.close;
+}
+
+multi sub MAIN('list') {
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
+        for %data.keys.sort -> $name {
+            say $name
+        #    my $newdoc = %data{$docee}[0][0] ~ "." ~ %data{$docee}[0][1];
+        #    return MAIN($newdoc, :f);
+        }
+    } else {
+        say "First run   $*PROGRAM-NAME build    to create the index";
+        exit;
+    }
+}
+
+multi sub MAIN('lookup', $key) {
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
+        die "not found" unless %data{$key};
+        say %data{$key}.split(" ").[0];
+    } else {
+        say "First run   $*PROGRAM-NAME build    to create the index";
+        exit;
+    }
 }
 
 sub disambiguate-f-search($docee, %data) {
