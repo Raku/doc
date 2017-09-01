@@ -122,21 +122,19 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
     my ($package, $method) = $docee.split('.');
     if ! $method {
         my %hits;
-        if INDEX.IO ~~ :e {
+        if INDEX.IO !~~ :e {
+            say "building index on first run. Please wait...";
+            build_index();
 
-            my %data = EVALFILE INDEX;
-
-            my $final-docee = disambiguate-f-search($docee, %data);
-            ($package, $method) = $final-docee.split('.');
-
-            my $m = locate-module($package);
-            show-docs($m, :section($method), :no-pager($n));
-        } else {
-            say 'In order to use unqualified sub and method names like "p6doc -f say"';
-            say 'you will need to run "p6doc build" to build index.data.';
-            say 'Otherwise use "p6doc -f Type::Str.split" instead of "p6doc -f split" for now.';
-            exit 2;
         }
+
+        my %data = EVALFILE INDEX;
+
+        my $final-docee = disambiguate-f-search($docee, %data);
+        ($package, $method) = $final-docee.split('.');
+
+        my $m = locate-module($package);
+        show-docs($m, :section($method), :no-pager($n));
     } else {
         my $m = locate-module($package);
         show-docs($m, :section($method), :no-pager($n));
@@ -154,12 +152,16 @@ multi sub MAIN('path-to-index') {
 }
 
 multi sub MAIN('build') {
+    build_index();
+}
+
+sub build_index {
     my %words;
 
     # XXX should index more than this - currently only core pod
     for ($*REPO.repo-chain()>>.Str X~ "{$*SPEC.dir-sep}doc{$*SPEC.dir-sep}").grep: *.IO.d  -> $lib_path is copy {
 
-    # for p6doc -f only looking under "Type" directory is useful (and faster)
+        # for p6doc -f only looking under "Type" directory is useful (and faster)
         my @files =  find(:dir($lib_path ~ "Type"),:type('file')).map({.IO});
 
         for @files -> $f {
@@ -181,6 +183,7 @@ multi sub MAIN('build') {
     my $out = open(INDEX, :w);
     $out.print(%words.perl);
     $out.close;
+
 }
 
 multi sub MAIN('list') {
