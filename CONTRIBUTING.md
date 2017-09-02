@@ -190,7 +190,7 @@ computer.  To do this you will need:
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
     `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
     - Debian instructions:
-      - Get more modern nodejs than in repos: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
+      - Get more modern nodejs than in package manager: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
       - Run `make init-highlights` to initialize highlights
       - If that still isn't working try running `npm install node-gyp -g` and try running make command again
 
