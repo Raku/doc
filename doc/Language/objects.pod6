@@ -264,6 +264,54 @@ Method names can be resolved at runtime with the C<.""> operator.
     A.new."$name"().say;
     # OUTPUT: «(Any)␤»
 
+A method's signature can have an I<invocant> as its first parameter
+followed by a comma, which allows for the method to refer to the object
+it was called on.
+
+    class Foo {
+        method greet($me: $person) {
+            say "Hi, I am $me.^name(), nice to meet you, $person";
+        }
+    }
+    Foo.new.greet("Bob");    # OUTPUT: «Hi, I am Foo, nice to meet you, Bob␤»
+
+Providing an invocant in the method signature also allows for defining
+the method as either as a class method, or as an object method, through
+the use of L<type constraints|/type/Signature#Type_Constraints>. The
+C<::?CLASS> variable can be used to provide the class name at compile
+time, combined with either C<:U> (for class methods) or C<:D> (for
+instance methods).
+
+    class Pizza {
+        has $!radius = 42;
+        has @.ingredients;
+
+        # class method: construct from a list of ingredients
+        method from-ingredients(::?CLASS:U $pizza: @ingredients) {
+            $pizza.new( ingredients => @ingredients );
+        }
+
+        # instance method
+        method get-radius(::?CLASS:D:) { $!radius }
+    }
+    my $p = Pizza.from-ingredients: <cheese pepperoni vegetables>
+    say $p.ingredients;     # OUTPUT: «[cheese pepperoni vegetables]␤»
+    say $p.get-radius;      # OUTPUT: «42␤»
+    say Pizza.get-radius;   # This will fail.
+    CATCH { default { put .^name ~ '--' ~~ .Str } };
+    # OUTPUT: «Invocant of method 'get-radius' must be an object instance of type 'Pizza',
+    #          not a type object of type 'Pizza'.  Did you forget a '.new'?»
+
+A method can be both a class and object method by using the
+L<multi|/syntax/multi> declarator:
+
+    class C {
+        multi method f(::?CLASS:U:) { say "class method"  }
+        multi method f(::?CLASS:D:) { say "object method" }
+    }
+    C.f;       # OUTPUT: «class method␤»
+    C.new.f;   # OUTPUT: «object method␤»
+
 =head2 self
 
 Inside a method, the term C<self> is available, which is bound to the invocant
