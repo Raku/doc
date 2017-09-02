@@ -264,6 +264,8 @@ Method names can be resolved at runtime with the C<.""> operator.
     A.new."$name"().say;
     # OUTPUT: «(Any)␤»
 
+=head2 Class and Instance Methods
+
 A method's signature can have an I<invocant> as its first parameter
 followed by a colon, which allows for the method to refer to the object
 it was called on.
@@ -314,11 +316,35 @@ L<multi|/syntax/multi> declarator:
 
 =head2 self
 
-Inside a method, the term C<self> is available, which is bound to the invocant
-(the object the method was called on). C<self> can be
-used to call further methods on the invocant. Within methods, C<$.origin> works
-the same as C<self.origin>, however the colon-syntax for
-method arguments is only supported for method calls using self, not the shortcut.
+Inside a method, the term C<self> is available, which is bound to the
+invocant.  C<self> can be used to call further methods on the invocant,
+including constructors:
+
+    class Box {
+      has $.data;
+
+      method make-new-box-from() {
+          self.new: data => $!data;
+      }
+    }
+
+C<self> can be used in class or instance methods as well, though beware
+of trying to invoke one type of method from the other:
+
+    class C {
+        method g()            { 42     }
+        method f(::?CLASS:U:) { self.g }
+        method d(::?CLASS:D:) { self.f }
+    }
+    C.f;        # OUTPUT: «42␤»
+    C.new.d;    # This will fail.
+    CATCH { default { put .^name ~ '--' ~ .Str } };
+    # OUTPUT: «Invocant of method 'f' must be a type object of type 'C',
+    #          not an object instance of type 'C'.  Did you forget a 'multi'?»
+
+Within methods, C<$.origin> works the same as C<self.origin>, however
+the colon-syntax for method arguments is only supported for method calls
+using C<self>, not the shortcut.
 
 Note that if the relevant methods C<bless>, C<CREATE> of
 L<Mu> are not overloaded, C<self> will point to the type object in those
