@@ -124,6 +124,7 @@ sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
         :header(header-html $selection),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
+        :css-url(''), # disable Pod::To::HTML's default CSS
     ;
 }
 
