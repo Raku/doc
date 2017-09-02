@@ -57,7 +57,7 @@ help:
 
 run:
 	@echo "Starting local server…"
-	perl app.pl daemon
+	morbo -w assets app.pl
 
 clean-html:
 	rm -rf html/*.html html/.*.html \
