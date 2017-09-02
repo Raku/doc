@@ -14,27 +14,32 @@ moment.
 C<Proc::Async> allows you to run external commands asynchronously, capturing
 standard output and error handles, and optionally write to its standard input.
 
-    # command with arguments
-    my $proc = Proc::Async.new('echo', 'foo', 'bar');
+=begin code :skip-test<io>
+    my $line-source = Proc::Async.new("perl6", "bin/line-source.p6", :w);
 
-    # subscribe to new output from out and err handles:
-    $proc.stdout.tap(-> $v { print "Output: $v" }, quit => { say 'caught exception ' ~ .^name });
-    $proc.stderr.tap(-> $v { print "Error:  $v" });
-
-    say "Starting...";
-    my $promise = $proc.start;
-
-    # wait for the external program to terminate
-    await $promise;
-    say "Done.";
-
-This produces the following output:
-
-=begin code :skip-test
-Starting...
-Output: foo bar
-Done.
+    react {
+         whenever $line-source.stdout.lines -> $l is copy {
+             put $l.chop;
+         }
+         whenever $line-source.start { 
+             say "exitcode: ", .exitcode;
+             done;
+         }
+         whenever signal(SIGINT) {
+             $line-source.close-stdin;
+             exit 0;
+         }
+         whenever Promise.in(2) {
+             whenever $line-source.put('some command') {
+                 $line-source.close-stdin;
+             }
+         }
+    }
 =end code
+
+This will start a script read and print its output. Handle CTRL-C and write a
+line of text to its STDIN after about 2 seconds. When the script terminates the
+exit code is written to STDOUT.
 
 An example that opens an external program for writing:
 
