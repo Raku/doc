@@ -918,7 +918,9 @@ sub write-kind($kind) {
         .categorize({.name})
         .kv.map: -> $name, @docs {
             my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
+            my $subkind = @subkinds.squish(with => &infix:<~~>) == 1
+                          ?? @subkinds.list[0]
+                          !! $kind;
             my $pod = pod-with-title(
                 "Documentation for $subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),
