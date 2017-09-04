@@ -18,6 +18,7 @@ method open(IO::Handle:D:
     Str :$mode,
     :$r, :$w, :$a, :$x, :$update, :$rw, :$rx, :$ra,
     :$create, :$append, :$truncate, :$exclusive,
+    :$buffer
     --> IO::Handle:D
 )
 
@@ -83,14 +84,27 @@ modes in this case will result in exception being thrown.
 
 In B<6.d> language, path C<'-'> has no special meaning.
 
+Passing the C<:buffer> named argument enables output buffering for the handle,
+while C<:!buffer> disables it. The output buffer size is implementation defined.
+Passing an C<Int> allows the buffer size to be specified (the units are bytes);
+C<:0buffer> is equivalent to disabling output buffering. If a value other than
+an C<Int> or a C<Bool> is passed, it will be coerced into an C<Int>.
+
+When no output buffering options are specified, then the default will be
+C<:buffer> for non-TTY handles, and C<:!buffer> for TTY handles. A Perl 6
+implementation is required to flush the output buffers of C<< PROCESS::<$OUT> >>
+and C<< PROCESS::<$ERR> >> at program exit. All other handles should be
+explicitly closed to ensure that output buffers are flushed as part of the
+closing.
+
 B<Note:> unlike some other languages, Perl 6 does not use reference counting,
-and so B<the file handles are NOT closed when they go out of scope>. While
-they I<will> get closed when garbage collected, garbage collection isn't
-guaranteed to get run. This means B<you must> use an explicit C<close> on
-handles opened for writing, to avoid data loss, and an explicit C<close>
-is I<recommended> on handles opened for reading as well, so that your program
-does not open too many files at the same time, triggering exceptions on further
-C<open> calls.
+and so B<the file handles are NOT flushed or closed when they go out of scope
+nor reliably at program exit>. While they I<will> get closed when garbage
+collected, garbage collection isn't guaranteed to get run. This means B<you must>
+use an explicit C<close> on handles opened for writing, to avoid data loss, and
+an explicit C<close> is I<recommended> on handles opened for reading as well, so
+that your program does not open too many files at the same time, triggering
+exceptions on further C<open> calls.
 
 =head2 method comb
 
