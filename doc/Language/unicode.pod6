@@ -8,6 +8,58 @@ Perl 6 has a high level of support of Unicode. This document aims to be both an
 overview as well as describe Unicode features which don't belong in the documentation
 for routines and methods.
 
+For an overview on MoarVM's internal representation of strings, see the
+L<MoarVM string documentation|https://github.com/MoarVM/MoarVM/blob/master/docs/strings.asciidoc>.
+
+=head1 File Handles and I/O
+
+Perl6 applies X<normalization> by default to all input and output except for
+file names which are stored as L<C<UTF8-C8>|#UTF8-C8>.
+What does this mean? For example á can be represented 2 ways. Either using
+one codepoint:
+
+=for code :skip-test
+    á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
+
+Or two codepoints:
+
+=for code :skip-test
+    a +  ́ (U+61 "LATIN SMALL LETTER A" + U+301 "COMBINING ACUTE ACCENT")
+
+Perl 6 will turn both these inputs into one codepoint, as is specified for
+normalization form canonical (B<X<NFC>>). In most cases this is useful and means
+that two inputs that are equivalent both are treated the same, and any text
+you process or output from Perl 6 will be in this "canonical" form.
+
+One case where we don't default to this, is for file handles. This is because
+file handles must be accessed exactly as the bytes are written on the disk.
+
+You can use L<UTF8-C8|#UTF8-C8> with any file handle to read the exact bytes as they are
+on disk. They may look funny when printed out, if you print it out using a
+UTF8 handle. If you print it out to a handle where the output is UTF8-C8,
+then it will render as you would normally expect, and be a byte for byte exact
+copy. More technical details on L<UTF8-C8|#UTF8-C8> on MoarVM below.
+
+=head2 X<UTF8-C8>
+
+X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
+However, upon encountering a byte sequence that will either not decode as
+valid UTF-8, or that would not round-trip due to normalization, it will use
+NFG synthetics to keep track of the original bytes involved. This means that
+encoding back to UTF-8 Clean-8 will be able to recreate the bytes as they
+originally existed. The synthetics contain 4 codepoints:
+
+=item The codepoint 0x10FFFD (which is a private use codepoint)
+=item The codepoint 'x'
+=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
+=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
+
+Under normal UTF-8 encoding, this means the unrepresentable characters will
+come out as something like `?xFF`.
+
+UTF-8 Clean-8 is used in places where MoarVM receives strings from the
+environment, command line arguments, and file system queries.
+
 =head1 Entering Unicode Codepoints and Codepoint Sequences
 
 You can enter Unicode codepoints by number (decimal as well as hexadecimal).  For example, the character named
@@ -84,52 +136,5 @@ commas to separate different codepoints/sequences inside the same C<\c> sequence
     say "\c[woman gesturing OK]";         # OUTPUT: «🙆‍♀️␤»
     say "\c[family: man woman girl boy]"; # OUTPUT: «👨‍👩‍👧‍👦␤»
 
-=head1 File Handles and I/O
-
-Perl6 applies X<normalization> by default to all input and output it makes.
-What does this mean? For example á can be represented 2 ways. Either using
-one codepoint:
-
-=for code :skip-test
-    á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
-
-Or two codepoints:
-
-=for code :skip-test
-    a +  ́ (U+61 "LATIN SMALL LETTER A" + U+301 "COMBINING ACUTE ACCENT")
-
-Perl 6 will turn both these inputs into one codepoint, as is specified for
-normalization form canonical (B<X<NFC>>). In most cases this is useful and means
-that two inputs that are equivalent both are treated the same, and any text
-you process or output from Perl 6 will be in this "canonical" form.
-
-One case where we don't default to this, is for file handles. This is because
-file handles must be accessed exactly as the bytes are written on the disk.
-
-You can use UTF8-C8 with any file handle to read the exact bytes as they are
-on disk. They may look funny when printed out, if you print it out using a
-UTF8 handle. If you print it out to a handle where the output is UTF8-C8,
-then it will render as you would normally expect, and be a byte for byte exact
-copy. More technical details on UTF8-C8 on MoarVM below.
-
-=head2 X<UTF8-C8>
-
-X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
-However, upon encountering a byte sequence that will either not decode as
-valid UTF-8, or that would not round-trip due to normalization, it will use
-NFG synthetics to keep track of the original bytes involved. This means that
-encoding back to UTF-8 Clean-8 will be able to recreate the bytes as they
-originally existed. The synthetics contain 4 codepoints:
-
-=item The codepoint 0x10FFFD (which is a private use codepoint)
-=item The codepoint 'x'
-=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
-=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
-
-Under normal UTF-8 encoding, this means the unrepresentable characters will
-come out as something like `?xFF`.
-
-UTF-8 Clean-8 is used in places where MoarVM receives strings from the
-environment, command line arguments, and file system queries.
 
 =end pod

@@ -252,7 +252,7 @@ Like L«C<map>|/type/Any#method_map» iterates over the elements of the invocant
 list, feeding each element in turn to the code reference, and assembling the
 return values from these invocations in a result list.
 
-It is considered B<bad practice> to use flatmap. Instead of C<.flatmap( )>,
+The use of C<flatmap> B<is strongly discouraged>. Instead of C<.flatmap( )>,
 please use C<.map( ).flat> as it is clear when the C<.flat> is called and is
 not confusing like C<.flatmap>.
 
@@ -309,6 +309,26 @@ Examples:
     say ('hello', 1, 22/7, 42, 'world').grep: Int;              # OUTPUT: «(1 42)␤»
     say grep { .Str.chars > 3 }, 'hello', 1, 22/7, 42, 'world'; # OUTPUT: «(hello 3.142857 world)␤»
 
+
+Note that if you want to grep for elements that do not match, you can
+use a C<none>-L<Junction|/type/Junction>:
+
+    say <a b 6 d 8 0>.grep(none Int);           # OUTPUT: «(a b d)␤»
+    say <a b c d e f>.grep(none /<[aeiou]>/);   # OUTPUT: «(b c d f)␤»
+
+Another option to grep for elements that do not match a regex is to
+use a block:
+
+    say <a b c d e f>.grep({! /<[aeiou]>/})     # OUTPUT: «(b c d f)␤»
+
+The reason the example above works is because a regex in boolean
+context applies itself to C<$_>. In this case, C<!> boolifies the
+C«/<[aeiou]>/» regex and negates the result. Smartmatching against a
+L<Callable> (in this case a L<Block>) returns the value returned from
+that callable, so the boolified result of a regex is then used to
+decide whether the current value should be kept in the result of a
+grep.
+
 The optional named parameters C<:k>, C<:kv>, C<:p>, C<:v> provide the same
 functionality as on slices:
 
@@ -337,12 +357,6 @@ Examples:
     # OUTPUT: «(0 hello 2 3.142857 4 world)␤»
     say grep { .Str.chars > 3 }, :p, 'hello', 1, 22/7, 42, 'world';
     # OUTPUT: «(0 => hello 2 => 3.142857 4 => world)␤»
-
-Note that if you want to grep for elements that do not match a regular
-expression, you should use the following syntax, with a block:
-
-    say <a b c d e f>.grep({! /<[aeiou]>/})
-    # OUTPUT: «b c d f␤»
 
 =head2 routine first
 
@@ -731,8 +745,8 @@ Examples:
 
 Defined as:
 
-    multi sub    squish(*@values, :&as --> Seq:D)
-    multi method squish(List:D:  :&as --> Seq:D)
+    multi sub    squish(*@values, :&as, :&with --> Seq:D)
+    multi method squish(List:D:   :&as, :&with --> Seq:D)
 
 Returns a sequence of values from the invocant/argument list where runs
 of more than one value are replaced with only the first instance.
@@ -749,6 +763,13 @@ Examples:
 
 The optional C<:as> parameter, just like with L<C<unique>>, allows values to be
 temporarily transformed before comparison.
+
+The optional C<:with> parameter is used to set an appropriate comparison operator:
+
+    say [42, "42"].squish;                      # OUTPUT: «(42 42)␤»
+    # Note that the second item in the result is still Str
+    say [42, "42"].squish(with => &infix:<eq>); # OUTPUT: «(42)␤»
+    # The resulting item is Int
 
 =head2 routine reduce
 

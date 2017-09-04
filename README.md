@@ -1,7 +1,5 @@
 # p6doc -- Perl6的'perldoc'
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
-
 该文档的html版本链接为： https://docs.perl6.org/.
 
 (如果你通过 github浏览本仓库, 显示可能会部分不协调的,因为使用Perl 6 Pod格式, github用的 Perl 5 POD).
@@ -43,11 +41,11 @@
 
 通过Rakudo安装目录`perl6`可以运行
 
-    ./bin/p6doc Type::Str
+    ./bin/p6doc Str
 
 查看类Str的文档，或者通过
 
-    ./bin/p6doc Type::Str.split
+    ./bin/p6doc Str.split
 
 查看类Str的方法split的文档。你可以跳过./bin部分，如果你通过panda或者zef安装了此模块的话
 你也可执行
@@ -57,7 +55,6 @@
 
 来浏览标准函数的文档的，根据你硬盘的速度和Rakudo版本，这个命令可能要慢一点
 
--------
 
 ## 生成HTML文档
 
@@ -90,7 +87,6 @@
 注意：你必须安装了 [Mojolicious](https://metacpan.org/pod/Mojolicious)
 你还的需要[nodejs](https://nodejs.org)来实现高亮。
 
----------
 
 ## 给予帮助!
 

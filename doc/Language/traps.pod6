@@ -26,9 +26,9 @@ Constants are computed at compile time, so if you use them in modules keep in mi
 their values will be frozen due to pre-compilation:
 
 =for code :skip-test
-    # WRONG (most likely):
-    unit module Something::Or::Other;
-    constant $config-file = "config.txt".IO.slurp;
+# WRONG (most likely):
+unit module Something::Or::Other;
+constant $config-file = "config.txt".IO.slurp;
 
 The C<$config-file> will be slurped during precompilation and changes to
 C<config.txt> file won't be re-loaded when you start the script again; only when
@@ -40,9 +40,9 @@ behaviour similar to constants, so use that instead, if you want the value
 to get updated:
 
 =for code :skip-test
-    # Good; file gets updated from 'config.txt' file on each script run:
-    unit module Something::Or::Other;
-    my $config-file := "config.txt".IO.slurp;
+# Good; file gets updated from 'config.txt' file on each script run:
+unit module Something::Or::Other;
+my $config-file := "config.txt".IO.slurp;
 
 =head1 Objects
 
@@ -55,19 +55,19 @@ case.
 For example
 
 =begin code
-    use v6.c;
-    class Point {
-        has $.x;
-        has $.y;
-        method double {
-            $.x *= 2;   # WRONG
-            $.y *= 2;   # WRONG
-            self;
-        }
+use v6.c;
+class Point {
+    has $.x;
+    has $.y;
+    method double {
+        $.x *= 2;   # WRONG
+        $.y *= 2;   # WRONG
+        self;
     }
+}
 
-    say Point.new(x => 1, y => -2).double.x
-    # OUTPUT: «Cannot assign to an immutable value␤»
+say Point.new(x => 1, y => -2).double.x
+# OUTPUT: «Cannot assign to an immutable value␤»
 =end code
 
 in the first line marked with C<# WRONG>, because C<$.x>, short for C<$(
@@ -80,11 +80,11 @@ method is automatically generated.
 Thus the correct way to write method C<double> is
 
 =for code :skip-test
-        method double {
-            $!x *= 2;
-            $!y *= 2;
-            self;
-        }
+    method double {
+        $!x *= 2;
+        $!y *= 2;
+        self;
+    }
 
 which operates on the attributes directly.
 
@@ -94,52 +94,56 @@ When you define your own C<BUILD> submethod, you must take care of
 initializing all attributes yourself. For example
 
 =begin code
-    use v6.c;
-    class A {
-        has $.x;
-        has $.y;
-        submethod BUILD {
-            $!y = 18;
-        }
+use v6.c;
+class A {
+    has $.x;
+    has $.y;
+    submethod BUILD {
+        $!y = 18;
     }
+}
 
-    say A.new(x => 42).x;       # OUTPUT: «Any␤»
+say A.new(x => 42).x;       # OUTPUT: «Any␤»
 =end code
 
 leaves C<$!x> uninitialized, because the custom C<BUILD> doesn't initialize
 it.
 
+B<Note:> Consider using L<TWEAK>
+instead. L<Rakudo|/language/glossary#Rakudo> supports L<TWEAK> method
+since release 2016.11.
+
 One possible remedy is to explicitly initialize the attribute in C<BUILD>:
 
 =for code :skip-test
-        submethod BUILD(:$x) {
-            $!y = 18;
-            $!x := $x;
-        }
+    submethod BUILD(:$x) {
+        $!y = 18;
+        $!x := $x;
+    }
 
 which can be shortened to:
 
 =for code :skip-test
-        submethod BUILD(:$!x) {
-            $!y = 18;
-        }
+    submethod BUILD(:$!x) {
+        $!y = 18;
+    }
 
 Another, more general approach is to leave C<BUILD> alone, and hook into the
 C<BUILDALL> mechanism instead:
 
 =begin code
-    use v6.c;
-    class A {
-        has $.x;
-        has $.y;
-        method BUILDALL(|c) {
-            callsame;
-            $!y = 18;
-            self
-        }
+use v6.c;
+class A {
+    has $.x;
+    has $.y;
+    method BUILDALL(|c) {
+        callsame;
+        $!y = 18;
+        self
     }
+}
 
-    say A.new(x => 42).x;       # OUTPUT: «42␤»
+say A.new(x => 42).x;       # OUTPUT: «42␤»
 =end code
 
 (Note that C<BUILDALL> is a method, not a submethod. That's because by
@@ -152,7 +156,7 @@ C<callsame> inside C<BUILDALL>, but not inside C<BUILD>).
 =head2 Whitespace in Regexes does not match literally
 
 =for code
-    say 'a b' ~~ /a b/; # OUTPUT: «False␤»
+say 'a b' ~~ /a b/; # OUTPUT: «False␤»
 
 Whitespace in regexes is, by default, considered an optional filler without
 semantics, just like in the rest of the Perl 6 language.
@@ -182,32 +186,40 @@ The common areas you should watch out for are:
 =head3 Block vs. Hash slice ambiguity
 
 =for code :skip-test
-    # WRONG; trying to hash-slice a Bool:
-    while ($++ > 5){ .say }
+# WRONG; trying to hash-slice a Bool:
+while ($++ > 5){ .say }
 
 =begin code
-    # RIGHT:
-    while ($++ > 5) { .say }
+# RIGHT:
+while ($++ > 5) { .say }
 
-    # EVEN BETTER; Perl 6 does not require parentheses there:
-    while $++ > 5 { .say }
+# EVEN BETTER; Perl 6 does not require parentheses there:
+while $++ > 5 { .say }
 =end code
 
 =head3 Reduction vs. Array constructor ambiguity
 
 =for code :skip-test
-    # WRONG; ambiguity with `[<]` meta op:
-    my @a = [[<foo>],];
+# WRONG; ambiguity with `[<]` meta op:
+my @a = [[<foo>],];
 
 =begin code
-    # RIGHT; reductions cannot have spaces in them, so put one in:
-    my @a = [[ <foo>],];
+# RIGHT; reductions cannot have spaces in them, so put one in:
+my @a = [[ <foo>],];
 
-    # No ambiguity here, natural spaces between items suffice to resolve it:
-    my @a = [[<foo bar ber>],];
+# No ambiguity here, natural spaces between items suffice to resolve it:
+my @a = [[<foo bar ber>],];
 =end code
 
-=head3
+=head3 Less than vs. Word quoting/Associative indexing
+=for code :skip-test
+# WRONG; trying to index 3 associatively
+say 3<5>4
+
+=begin code
+# RIGHT; prefer some extra whitespace around infix operators
+say 3 < 5 > 4
+=end code
 
 =head1 Captures
 
@@ -217,7 +229,7 @@ Beginners might expect a variable in a C<Capture> to supply its current
 value when that C<Capture> is later used.  For example:
 
 =for code
-    my $a = 2; say join ",", ($a, ++$a):  # OUTPUT: «3,3␤»
+my $a = 2; say join ",", ($a, ++$a):  # OUTPUT: «3,3␤»
 
 Here the C<Capture> contained the B<container> pointed to by C<$a> and the
 B<value> of the result of the expression C<++$a>.  Since the C<Capture> must
@@ -227,7 +239,7 @@ looks inside the container in C<$a> and so it may already be incremented.
 Instead, use an expression that produces a value when you want a value.
 
 =for code
-    my $a = 2; say join ",", (+$a, ++$a); # OUTPUT: «2,3␤»
+my $a = 2; say join ",", (+$a, ++$a); # OUTPUT: «2,3␤»
 
 =head1 Cool tricks
 
@@ -250,11 +262,11 @@ sometimes appear to be returning the index of an element in the list, but
 that is not how the behavior is defined.
 
 =for code
-    my @a = <a b c d>;
-    say @a.index(‘a’);    # 0
-    say @a.index('c');    # 4 -- not 2!
-    say @a.index('b c');  # 2 -- not undefined!
-    say @a.index(<a b>);  # 0 -- not undefined!
+my @a = <a b c d>;
+say @a.index(‘a’);    # 0
+say @a.index('c');    # 4 -- not 2!
+say @a.index('b c');  # 2 -- not undefined!
+say @a.index(<a b>);  # 0 -- not undefined!
 
 These same caveats apply to L<.rindex|/type/Str#routine_rindex>.
 
@@ -264,12 +276,12 @@ Similarly, L<.contains|/type/List#(Cool)_method_contains> does not look for
 elements in the list.
 
 =for code
-    my @menu = <hamburger fries milkshake>;
-    say @menu.contains('hamburger');            # True
-    say @menu.contains('hot dog');              # False
-    say @menu.contains('milk');                 # True!
-    say @menu.contains('er fr');                # True!
-    say @menu.contains(<es mi>);                # True!
+my @menu = <hamburger fries milkshake>;
+say @menu.contains('hamburger');            # True
+say @menu.contains('hot dog');              # False
+say @menu.contains('milk');                 # True!
+say @menu.contains('er fr');                # True!
+say @menu.contains(<es mi>);                # True!
 
 If you actually want to check for the presence of an element, use the
 L<(cont)|/routine/(cont)> operator for single elements, and the
@@ -277,11 +289,11 @@ L<superset|/routine/(%3E%3D)> and L<strict superset|/routine/(%3E)>
 operators for multiple elements.
 
 =for code
-    my @menu = <hamburger fries milkshake>;
-    say @menu (cont) 'fries';                   # True
-    say @menu (cont) 'milk';                    # False
-    say @menu (>) <hamburger fries>;            # True
-    say @menu (>) <milkshake fries>;            # True (! NB: order doesn't matter)
+my @menu = <hamburger fries milkshake>;
+say @menu (cont) 'fries';                   # True
+say @menu (cont) 'milk';                    # False
+say @menu (>) <hamburger fries>;            # True
+say @menu (>) <milkshake fries>;            # True (! NB: order doesn't matter)
 
 If you are doing a lot of element testing, you may be better off using
 a L<Set|/type/Set>.
@@ -293,10 +305,10 @@ Numeric literals will be parsed into their numeric value before being
 coerced into a string, which may create nonintuitive results.
 
 =for code
-    say 0xff.contains(55);      # True
-    say 0xff.contains(0xf);     # False
-    say 12_345.contains("23");  # True
-    say 12_345.contains("2_");  # False
+say 0xff.contains(55);      # True
+say 0xff.contains(0xf);     # False
+say 12_345.contains("23");  # True
+say 12_345.contains("2_");  # False
 
 =head2 Getting a random item from a List
 
@@ -308,12 +320,12 @@ between 0 and that value. To get random elements, see L<pick|/routine/pick>
 and L<roll|/routine/roll>.
 
 =for code
-    my @colors = <red orange yellow green blue indigo violet>;
-    say @colors.rand;       # 2.21921955680514
-    say @colors.pick;       # orange
-    say @colors.roll;       # blue
-    say @colors.pick(2);    # yellow violet  (cannot repeat)
-    say @colors.roll(3);    # red green red  (can repeat)
+my @colors = <red orange yellow green blue indigo violet>;
+say @colors.rand;       # 2.21921955680514
+say @colors.pick;       # orange
+say @colors.roll;       # blue
+say @colors.pick(2);    # yellow violet  (cannot repeat)
+say @colors.roll(3);    # red green red  (can repeat)
 
 =head1 Arrays
 
@@ -323,52 +335,52 @@ In Perl 5 one could reference the last element of an array by asking for the
 "-1th" element of the array, e.g.:
 
 =for code :lang<perl5>
-    my @array = qw{victor alice bob charlie eve};
-    say @array[-1];    # OUTPUT: «eve␤»
+my @array = qw{victor alice bob charlie eve};
+say @array[-1];    # OUTPUT: «eve␤»
 
 In Perl 6 it is not possible to use negative subscripts, however the same is
 achieved by actually using a function, namely C<*-1>.  Thus accessing the
 last element of an array becomes:
 
 =for code
-    my @array = qw{victor alice bob charlie eve};
-    say @array[*-1];   # OUTPUT: «eve␤»
+my @array = qw{victor alice bob charlie eve};
+say @array[*-1];   # OUTPUT: «eve␤»
 
 Yet another way is to utilize the array's tail method:
 
 =for code
-    my @array = qw{victor alice bob charlie eve};
-    say @array.tail;      # OUTPUT: «eve␤»
-    say @array.tail(2);   # OUTPUT: «(charlie eve)␤»
+my @array = qw{victor alice bob charlie eve};
+say @array.tail;      # OUTPUT: «eve␤»
+say @array.tail(2);   # OUTPUT: «(charlie eve)␤»
 
 =head2 Typed Array parameters
 
 Quite often new users will happen to write something like:
 
 =for code
-    sub foo(Array @a) { ... }
+sub foo(Array @a) { ... }
 
 ...before they have gotten far enough in the documentation to realize that
 this is asking for an Array of Arrays.  To say that C<@a> should only accept
 Arrays, use instead:
 
 =for code
-    sub foo(@a where Array) { ... }
+sub foo(@a where Array) { ... }
 
 It is also common to expect this to work, when it does not:
 
 =for code
-    sub bar(Int @a) { 42.say };
-    bar([1, 2, 3]);             # expected Positional[Int] but got Array
+sub bar(Int @a) { 42.say };
+bar([1, 2, 3]);             # expected Positional[Int] but got Array
 
 The problem here is that [1, 2, 3] is not an C<Array[Int]>, it is a plain
 old Array that just happens to have Ints in it.  To get it to work,
 the argument must also be an C<Array[Int]>.
 
 =for code :skip-test
-    my Int @b = 1, 2, 3;
-    bar(@b);                    # OUTPUT: «42␤»
-    bar(Array[Int].new(1, 2, 3));
+my Int @b = 1, 2, 3;
+bar(@b);                    # OUTPUT: «42␤»
+bar(Array[Int].new(1, 2, 3));
 
 This may seem inconvenient, but on the upside it moves the type-check
 on what is assigned to C<@b> to where the assignment happens, rather
@@ -381,36 +393,59 @@ than requiring every element to be checked on every call.
 Interpolation in string literals can be too clever for your own good.
 
 =for code :skip-test
-    "$foo<html></html>" # Perl 6 understands that as:
-    "$foo{'html'}{'/html'}"
+"$foo<html></html>" # Perl 6 understands that as:
+"$foo{'html'}{'/html'}"
 
 =for code :skip-test
-    "$foo(" ~ @args ~ ")" # Perl 6 understands that as:
-    "$foo(' ~ @args ~ ')"
+"$foo(" ~ @args ~ ")" # Perl 6 understands that as:
+"$foo(' ~ @args ~ ')"
 
 You can avoid those problems using non-interpolating single quotes and switching
 to more liberal interpolation with C<\qq[]> escape sequence:
 
 =for code
-    my $a = 1;
-    say '\qq[$a]()$b()';
-    # OUTPUT: «1()$b()␤»
+my $a = 1;
+say '\qq[$a]()$b()';
+# OUTPUT: «1()$b()␤»
 
 Another alternative is to use C<Q:c> quoter, and use code blocks C<{}> for
 all interpolation:
 
 =for code
-    my $a = 1;
-    say Q:c«{$a}()$b()»;
-    # OUTPUT: «1()$b()␤»
+my $a = 1;
+say Q:c«{$a}()$b()»;
+# OUTPUT: «1()$b()␤»
 
 =head2 Strings are not iterable
 
 There are methods that L<Str|/type/Str> inherits from L<Any|/type/Any> that work on iterables like lists. Iterators on strings contain one element that is the whole string. To use list-based methods like C<sort>, C<reverse>, you need to convert the string into a list first.
 
 =for code
-    say "cba".sort;              # OUTPUT: «(cba)␤»
-    say "cba".comb.sort.join;    # OUTPUT: «abc␤»
+say "cba".sort;              # OUTPUT: «(cba)␤»
+say "cba".comb.sort.join;    # OUTPUT: «abc␤»
+
+=head2 C<.chars> Gets the Number of Graphemes, not Codepoints
+
+In Perl 6, L«C<.chars>|chars>» returns the number of graphemes, or user visible characters.
+These graphemes could be made up of a letter plus an accent for example.
+If you need the number of codepoints, you should use L«C<.codes>|codes». If you need
+the number of bytes when encoded as UTF8, you should use C<.encode.bytes> to
+encode the string as UTF8 and then get the number of bytes.
+
+    say "\c[LATIN SMALL LETTER J WITH CARON, COMBINING DOT BELOW]"; # OUTPUT: «ǰ̣»
+    say 'ǰ̣'.codes;        # OUTPUT: «2»
+    say 'ǰ̣'.chars;        # OUTPUT: «1»
+    say 'ǰ̣'.encode.bytes; # OUTPUT: «4»
+
+For more information on how strings work in Perl 6, see the L<Unicode page|/language/unicode>.
+
+=head2 All Text is Normalized By Default
+
+Perl 6 normalizes all text into Unicode NFC form (Normalization Form Canonical).
+Filenames are the only text not normalized by default. If you are expecting
+your strings to maintain a byte for byte representation as the original,
+you need to use L«C<UTF8-C8>|/language/unicode#UTF8-C8» when reading or writing
+to any filehandles.
 
 =head2 Allomorphs Generally Follow Numeric Semantics
 
@@ -447,30 +482,30 @@ In some languages, using strings as range end points, considers the entire strin
 should be; loosely treating the strings as numbers in a large base. Here's Perl 5 version:
 
 =for code :skip-test
-    say join ", ", "az".."bc";
-    # OUTPUT: «az, ba, bb, bc␤»
+say join ", ", "az".."bc";
+# OUTPUT: «az, ba, bb, bc␤»
 
 Such a range in Perl 6 will produce a different result, where I<each letter> will be ranged to a corresponding letter in the
 end point, producing more complex sequences:
 
 =for code
-    say join ", ", "az".."bc";
-    #`{ OUTPUT: «
-        az, ay, ax, aw, av, au, at, as, ar, aq, ap, ao, an, am, al, ak, aj, ai, ah,
-        ag, af, ae, ad, ac, bz, by, bx, bw, bv, bu, bt, bs, br, bq, bp, bo, bn, bm,
-        bl, bk, bj, bi, bh, bg, bf, be, bd, bc
-    ␤»}
+say join ", ", "az".."bc";
+#`{ OUTPUT: «
+    az, ay, ax, aw, av, au, at, as, ar, aq, ap, ao, an, am, al, ak, aj, ai, ah,
+    ag, af, ae, ad, ac, bz, by, bx, bw, bv, bu, bt, bs, br, bq, bp, bo, bn, bm,
+    bl, bk, bj, bi, bh, bg, bf, be, bd, bc
+␤»}
 
 =for code
-    say join ", ", "r2".."t3";
-    # OUTPUT: «r2, r3, s2, s3, t2, t3␤»
+say join ", ", "r2".."t3";
+# OUTPUT: «r2, r3, s2, s3, t2, t3␤»
 
 To achieve simpler behaviour, similar to the Perl 5 example above, use a sequence operator that calls C<.succ> method on the
 starting string:
 
 =for code
-    say join ", ", ("az", *.succ ... "bc");
-    # OUTPUT: «az, ba, bb, bc␤»
+say join ", ", ("az", *.succ ... "bc");
+# OUTPUT: «az, ba, bb, bc␤»
 
 =head2 Topicalizing Operators
 
@@ -479,22 +514,22 @@ In conjunction with implicit method calls on the topic this can lead to
 surprising results.
 
 =for code
-    my &method = { note $_; $_ };
-    $_ = 'object';
-    say .&method;
-    # OUTPUT: «object␤object␤»
-    say 'topic' ~~ .&method;
-    # OUTPUT: «topic␤True␤»
+my &method = { note $_; $_ };
+$_ = 'object';
+say .&method;
+# OUTPUT: «object␤object␤»
+say 'topic' ~~ .&method;
+# OUTPUT: «topic␤True␤»
 
 In many cases flipping the method call to the LHS will work.
 
 =for code
-    my &method = { note $_; $_ };
-    $_ = 'object';
-    say .&method;
-    # OUTPUT: «object␤object␤»
-    say .&method ~~ 'topic';
-    # OUTPUT: «object␤False␤»
+my &method = { note $_; $_ };
+$_ = 'object';
+say .&method;
+# OUTPUT: «object␤object␤»
+say .&method ~~ 'topic';
+# OUTPUT: «object␤False␤»
 
 =head2 Fat Arrow and Constants
 
@@ -503,10 +538,60 @@ without checking the scope for constants or C<\>-sigiled variables. Use
 explicit scoping to get what you mean.
 
 =for code
-    constant V = 'x';
-    my %h = V => 'oi‽', ::V => 42;
-    say %h.perl
-    # OUTPUT: «{:V("oi‽"), :x(42)}␤»
+constant V = 'x';
+my %h = V => 'oi‽', ::V => 42;
+say %h.perl
+# OUTPUT: «{:V("oi‽"), :x(42)}␤»
+
+=head1 Regexes
+
+=head2 C«<{$x}>» vs C«$($x)»: Implicit EVAL
+
+Sometimes you may need to match a generated string in a regex. The
+right way to do it is to use C<$(…)> syntax.
+
+=for code
+my $x = ‘ailemac’;
+say ‘I ♥ camelia’ ~~ / $($x.flip) / # OUTPUT: «｢camelia｣␤»
+
+However, there is a wrong way to write it, and the problem is that
+it works I<sometimes>.
+
+=for code
+my $x = ‘ailemac’;
+#                    ⚠ ↓↓ WRONG ↓↓ ⚠
+say ‘I ♥ camelia’ ~~ / <{$x.flip}> / # OUTPUT: «｢camelia｣␤»
+
+Internally it EVAL-s the given string inside an anonymous regex, and
+that works alright with simple strings. However, it immediately breaks
+with more complicated inputs. For example:
+
+=begin comment
+Backtraces from EVALs are less than awesome (RT #132015).
+The output was modified a little bit so that there's no distraction.
+=end comment
+=for code :skip-test
+my $x = ‘ailemac#’;
+#                    ⚠ ↓↓ WRONG ↓↓ ⚠
+say ‘I ♥ camelia’ ~~ / <{$x.flip}> / # OUTPUT: «｢camelia｣␤»
+# OUTPUT:
+# ===SORRY!===
+# Regex not terminated.
+# at EVAL_0:1
+# ------> anon regex { #camelia}⏏<EOL>
+# Malformed regex
+# at EVAL_0:1
+# ------> anon regex { #camelia}⏏<EOL>
+#     expecting any of:
+#         infix stopper
+
+Therefore, try not to use C«<{}>» unless you really need EVAL.
+
+Note that even though EVAL is normally considered unsafe, in this case
+it is restricted to a set of safe operations (which is why it works
+without L<MONKEY-SEE-NO-EVAL> pragma). In theory, careless use of
+C«<{}>» will only result in an exception being thrown, and should not
+introduce security issues.
 
 =head1 Common Precedence Mistakes
 
@@ -515,20 +600,20 @@ explicit scoping to get what you mean.
 Adverbs do have a precedence that may not follow the order of operators that is displayed on your screen. If two operators of equal precedence are followed by an adverb it will pick the first operator it finds in the abstract syntax tree. Use parentheses to help Perl 6 understand what you mean or use operators with looser precedence.
 
 =for code
-    my %x = a => 42;
-    say !%x<b>:exists;            # dies with X::AdHoc
-    say %x<b>:!exists;            # this works
-    say !(%x<b>:exists);          # works too
-    say not %x<b>:exists;         # works as well
-    say True unless %x<b>:exists; # avoid negation altogether
+my %x = a => 42;
+say !%x<b>:exists;            # dies with X::AdHoc
+say %x<b>:!exists;            # this works
+say !(%x<b>:exists);          # works too
+say not %x<b>:exists;         # works as well
+say True unless %x<b>:exists; # avoid negation altogether
 
 =head2 Ranges and Precedence
 
 The loose precedence of C<..> can lead to some errors.  It is usually best to parenthesize ranges when you want to operate on the entire range.
 
 =for code
-    1..3.say;    # says "3" (and warns about useless "..")
-    (1..3).say;  # says "1..3"
+1..3.say;    # says "3" (and warns about useless "..")
+(1..3).say;  # says "1..3"
 
 =head2 Loose boolean operators
 
@@ -537,18 +622,18 @@ have surprising results for calls to routines that would be operators or
 statements in other languages like C<return>, C<last> and many others.
 
 =for code
-    sub f {
-        return True and False;
-        # this is actually
-        # (return True) and False;
-    }
-    say f; # OUTPUT: «True␤»
+sub f {
+    return True and False;
+    # this is actually
+    # (return True) and False;
+}
+say f; # OUTPUT: «True␤»
 
 =head2 Exponentiation Operator and Prefix Minus
 
 =for code
-    say -1²;   # OUTPUT: «-1␤»
-    say -1**2; # OUTPUT: «-1␤»
+say -1²;   # OUTPUT: «-1␤»
+say -1**2; # OUTPUT: «-1␤»
 
 When performing a
 L<regular mathematical calculation|http://www.wolframalpha.com/input/?i=-1%C2%B2>,
@@ -558,8 +643,8 @@ tighter than that of the prefix C<->. If you wish to raise a negative number
 to a power, use parentheses:
 
 =for code
-    say (-1)²;   # OUTPUT: «1␤»
-    say (-1)**2; # OUTPUT: «1␤»
+say (-1)²;   # OUTPUT: «1␤»
+say (-1)**2; # OUTPUT: «1␤»
 
 =head2 C<but> in List Construction
 
@@ -567,19 +652,19 @@ The operator infix:<but> is narrower than the list constructor. When providing
 a list of roles to mix in, always use parentheses.
 
 =for code
-    role R1 { method m {} }
-    role R2 { method n {} }
-    my $a = 1 but R1,R2; # R2 is in sink context
-    say $a.^name;
-    # OUTPUT: «Int+{R1}␤»
+role R1 { method m {} }
+role R2 { method n {} }
+my $a = 1 but R1,R2; # R2 is in sink context
+say $a.^name;
+# OUTPUT: «Int+{R1}␤»
 
 =head1 Subroutine and method calls
 
 Subroutine and method calls can be made using one of two forms:
 
 =for code :skip-test
-  foo(...); # function call form, where ... represent the required arguments
-  foo ...;  # list op form, where ... represent the required arguments
+foo(...); # function call form, where ... represent the required arguments
+foo ...;  # list op form, where ... represent the required arguments
 
 The function call form can cause problems for the unwary when
 whitespace is added after the function or method name and before the
@@ -588,27 +673,27 @@ opening parenthesis.
 First we consider functions with zero or one parameter:
 
 =for code
-  sub foo() { say 'no arg' }
-  sub bar($a) { say "one arg: $a" }
+sub foo() { say 'no arg' }
+sub bar($a) { say "one arg: $a" }
 
 Then execute each with and without a space after the name:
 
 =for code :skip-test
-  foo();    # okay: no arg
-  foo ();   # FAIL: Too many positionals passed; expected 0 arguments but got 1
-  bar($a);  # okay: one arg: 1
-  bar ($a); # okay: one arg: 1
+foo();    # okay: no arg
+foo ();   # FAIL: Too many positionals passed; expected 0 arguments but got 1
+bar($a);  # okay: one arg: 1
+bar ($a); # okay: one arg: 1
 
 Now declare a function of two parameters:
 
 =for code
-  sub foo($a, $b) { say "two args: $a, $b" }
+sub foo($a, $b) { say "two args: $a, $b" }
 
 Execute it with and without the space after the name:
 
 =for code :skip-test
-  foo($a, $b);  # okay: two args: 1, 2
-  foo ($a, $b); # FAIL: Too few positionals passed; expected 2 arguments but got 1
+foo($a, $b);  # okay: two args: 1, 2
+foo ($a, $b); # FAIL: Too few positionals passed; expected 2 arguments but got 1
 
 The lesson is: "be careful with spaces following sub and method names
 when using the function call format."  As a general rule, good
@@ -631,25 +716,25 @@ code may accept them as well, but be sure the arguments you pass when calling
 your routines are actually named parameters:
 
 =for code
-    sub foo($a, :$b) { ... }
-    foo(1, 'b' => 2); # FAIL: Too many positionals passed; expected 1 argument but got 2
+sub foo($a, :$b) { ... }
+foo(1, 'b' => 2); # FAIL: Too many positionals passed; expected 1 argument but got 2
 
 What happened? That second argument is not a named parameter argument, but a
 L<Pair|/type/Pair> passed as a positional argument. If you want a named
 parameter it has to look like a name to Perl:
 
 =begin code :skip-test
-    foo(1, b => 2); # okay
-    foo(1, :b(2));  # okay
-    foo(1, :b<it>); # okay
+foo(1, b => 2); # okay
+foo(1, :b(2));  # okay
+foo(1, :b<it>); # okay
 
-    my $b = 2;
-    foo(1, :b($b)); # okay, but redundant
-    foo(1, :$b);    # okay
+my $b = 2;
+foo(1, :b($b)); # okay, but redundant
+foo(1, :$b);    # okay
 
-    # Or even...
-    my %arg = 'b' => 2;
-    foo(1, |%arg);  # okay too
+# Or even...
+my %arg = 'b' => 2;
+foo(1, |%arg);  # okay too
 =end code
 
 That last one may be confusing, but since it uses the C<|> prefix on a
@@ -659,14 +744,14 @@ If you really do want to pass them as pairs you should use a L<List|/type/List>
 or L<Capture|/type/Capture> instead:
 
 =for code :skip-test
-    my $list = ('b' => 2); # this is a List containing a single Pair
-    foo(|$list, :$b); # okay: we passed the pair 'b' => 2 to the first argument
-    foo(1, |$list);   # FAIL: Too many positionals passed; expected 1 argument but got 2
+my $list = ('b' => 2); # this is a List containing a single Pair
+foo(|$list, :$b); # okay: we passed the pair 'b' => 2 to the first argument
+foo(1, |$list);   # FAIL: Too many positionals passed; expected 1 argument but got 2
 
 =for code :skip-test
-    my $cap = \('b' => 2); # a Capture with a single positional value
-    foo(|$cap, :$b); # okay: we passed the pair 'b' => 2 to the first argument
-    foo(1, |$cap);   # FAIL: Too many positionals passed; expected 1 argument but got 2
+my $cap = \('b' => 2); # a Capture with a single positional value
+foo(|$cap, :$b); # okay: we passed the pair 'b' => 2 to the first argument
+foo(1, |$cap);   # FAIL: Too many positionals passed; expected 1 argument but got 2
 
 A Capture is usually the best option for this as it works exactly like the usual
 capturing of routine arguments during a regular call.
@@ -674,6 +759,34 @@ capturing of routine arguments during a regular call.
 The nice thing about the distinction here is that it gives the developer the
 option of passing pairs as either named or positional arguments, which can be
 handy in various instances.
+
+=head2 Argument Count Limit
+
+While it is typically unnoticeable, there is a backend-dependent
+argument count limit. Any code that does flattening of arbitrarily
+sized arrays into arguments won't work if there are too many elements.
+
+=for code
+my @a = 1 xx 9999;
+my @b;
+@b.push: |@a;
+say @b.elems # OUTPUT: «9999␤»
+
+=for code
+my @a = 1 xx 999999;
+my @b;
+@b.push: |@a; # OUTPUT: «Too many arguments in flattening array.␤  in block <unit> at <tmp> line 1␤␤»
+
+Avoid this trap by rewriting the code so that there is no
+flattening. In the example above, you can replace C<push> with
+C<append>. This way, no flattening is required because the array can
+be passed as is.
+
+=for code
+my @a = 1 xx 999999;
+my @b;
+@b.append: @a;
+say @b.elems # OUTPUT: «999999␤»
 
 =head1 Input and Output
 
@@ -697,18 +810,22 @@ See L«C<IO::CatHandle.close>|/type/IO::CatHandle#method_close» for details.
 Partly for historical reasons and partly by design, an L<IO::Path> object
 L<stringifies|/type/IO::Path#method_Str> without considering its
 L«C<CWD> attribute|/type/IO::Path#attribute_CWD», which means if you L<chdir>
-and then stringify an L<IO::Path>, the resultant string won't reference
-the original filesystem object:
+and then stringify an L<IO::Path>, or stringify an L<IO::Path> with custom
+C<$!CWD> attribute, the resultant string won't reference the original
+filesystem object:
 
-=begin code
-    with 'foo'.IO {
-        .Str.say;       # OUTPUT: «foo␤»
-        .relative.say;  # OUTPUT: «foo␤»
+=begin code :skip-test
+with 'foo'.IO {
+    .Str.say;       # OUTPUT: «foo␤»
+    .relative.say;  # OUTPUT: «foo␤»
 
-        chdir "/tmp";
-        .Str.say;       # OUTPUT: «foo␤»
-        .relative.say   # OUTPUT: «../home/camelia/foo␤»
-    }
+    chdir "/tmp";
+    .Str.say;       # OUTPUT: «foo␤»
+    .relative.say   # OUTPUT: «../home/camelia/foo␤»
+}
+
+# Deletes ./foo, not /bar/foo
+unlink IO::Path.new("foo", :CWD</bar>).Str
 =end code
 
 The easy way to avoid this issue is to not stringify an L<IO::Path> object at all.
@@ -719,6 +836,63 @@ If you do have a case where you need a stringified version of an L<IO::Path>, us
 L<absolute> or L<relative> methods to stringify it into an absolute or relative
 path, respectively.
 
+If you are facing this issue because you use L<chdir> in your code,
+consider rewriting it in a way that does not involve changing the
+current directory. For example, you can pass C<cwd> named argument to
+L<run> without having to use C<chdir> around it.
+
+=head2 Splitting the Input Data Into Lines
+
+There is a difference between using C<.lines> on
+L«C<IO::Handle>|/type/IO::Handle#routine_lines» and on a
+L«C<Str>|/type/Str#routine_lines». The trap arises if you start
+assuming that both split data the same way.
+
+=begin code :skip-test
+dd $_ for $*IN.lines # or just ｢lines｣
+# OUTPUT:
+# "foox"
+# "fooy\rbar"
+# "fooz"
+=end code
+
+As you can see in the example above, there was a line which contained
+C<\r> (“carriage return” control character). However, the input is
+split strictly by C<\n>, so C<\r> was kept as part of the string.
+
+On the other hand, L«C<Str.lines>|/type/Str#routine_lines» attempts to
+be “smart” about processing data from different operating
+systems. Therefore, it will split by all possible variations of a
+newline.
+
+=begin code :skip-test
+dd $_ for $*IN.slurp.lines # or just ｢slurp.lines｣
+# OUTPUT:
+# "foox"
+# "fooy"
+# "bar"
+# "fooz"
+=end code
+
+The rule is quite simple: use
+L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines» when working with
+programmatically generated output, and
+L«C<Str.lines>|/type/Str#routine_lines» when working with user-written
+texts.
+
+Use C<$data.split(“\n”)> in cases where you need the behavior of
+L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines» but the original
+L<IO::Handle> is not available.
+
+=comment RT #131923
+
+If you are using L<Proc::Async>, then there is currently no easy way
+to make it split data the right way. You can try reading the whole
+output and then using L«C<Str.split>|/type/Str#routine_split» (not viable
+if you are dealing with large data) or writing your own logic to split
+the incoming data the way you need. Same applies if your data
+is null-separated.
+
 =head1 Exception Handling
 
 =head2 Sunk C<Proc>
@@ -728,26 +902,26 @@ won't be exception-like, but B<sinking it> will cause an L<X::Proc::Unsuccessful
 exception to be thrown. That means this construct will throw, despite the C<try> in place:
 
 =for code
-    try run("perl6", "-e", "exit 42");
-    say "still alive";
-    # OUTPUT: «The spawned process exited unsuccessfully (exit code: 42)␤»
+try run("perl6", "-e", "exit 42");
+say "still alive";
+# OUTPUT: «The spawned process exited unsuccessfully (exit code: 42)␤»
 
 This is because C<try> receives a C<Proc> and returns it, at which point it sinks and
 throws. Explicitly sinking it inside the C<try> avoids the issue
 and ensures the exception is thrown inside the C<try>:
 
 =for code
-    try sink run("perl6", "-e", "exit 42");
-    say "still alive";
-    # OUTPUT: «still alive␤»
+try sink run("perl6", "-e", "exit 42");
+say "still alive";
+# OUTPUT: «still alive␤»
 
 If you're not interested in catching any exceptions, then use an anonymous
 variable to keep the returned C<Proc> in; this way it'll never sink:
 
 =for code
-    $ = run("perl6", "-e", "exit 42");
-    say "still alive";
-    # OUTPUT: «still alive␤»
+$ = run("perl6", "-e", "exit 42");
+say "still alive";
+# OUTPUT: «still alive␤»
 
 
 =head1 Using Shortcuts
@@ -757,34 +931,60 @@ variable to keep the returned C<Proc> in; this way it'll never sink:
 Using the C<^> twigil can save a fair amount of time and space when writing out small blocks of code. As an example:
 
 =for code
-    for 1..8 -> $a, $b { say $a + $b; }
+for 1..8 -> $a, $b { say $a + $b; }
 
 can be shortened to just
 
 =for code
-    for 1..8 { say $^a + $^b; }
+for 1..8 { say $^a + $^b; }
 
 The trouble arises when a person wants to use more complex names for the variables, instead of just one letter. The C<^> twigil is able to have the positional variables be out of order and named whatever you want, but assigns values based on the variable's Unicode ordering. In the above example, we can have C<$^a> and C<$^b> switch places, and those variables will keep their positional values. This is because the Unicode character 'a' comes before the character 'b'. For example:
 
 =for code
-    #In order
-    sub f1 { say "$^first $^second"; }
-    f1 "Hello", "there";    # OUTPUT: «Hello There␤»
+# In order
+sub f1 { say "$^first $^second"; }
+f1 "Hello", "there";    # OUTPUT: «Hello There␤»
 
 =for code
-    #Out of order
-    sub f2 { say "$^second $^first"; }
-    f2 "Hello", "there";    # OUTPUT: «there Hello␤»
+# Out of order
+sub f2 { say "$^second $^first"; }
+f2 "Hello", "there";    # OUTPUT: «there Hello␤»
 
 Due to the variables allowed to be called anything, this can cause some problems if you are not accustomed to how Perl 6 handles these variables.
 
 =begin code
-    # BAD NAMING: alphabetically `four` comes first and gets value `1` in it:
-    for 1..4 { say "$^one $^two $^three $^four"; }    # OUTPUT: «2 4 3 1␤»
+# BAD NAMING: alphabetically `four` comes first and gets value `1` in it:
+for 1..4 { say "$^one $^two $^three $^four"; }    # OUTPUT: «2 4 3 1␤»
 
-    # GOOD NAMING: variables' naming makes it clear how they sort alphabetically:
-    for 1..4 { say "$^a $^b $^c $^d"; }               # OUTPUT: «1 2 3 4␤»
+# GOOD NAMING: variables' naming makes it clear how they sort alphabetically:
+for 1..4 { say "$^a $^b $^c $^d"; }               # OUTPUT: «1 2 3 4␤»
 =end code
+
+
+=head2 Using C<»> and C<map> interchangeably
+
+While C<»> may look like a cute way to write C<map>, they are
+completely different. There are two main problems with using this
+shortcut.
+
+First of all, the execution order is not guaranteed for C<»> (even
+though some implementations may do it otherwise):
+
+=comment This is an actual output from Rakudo 2015.09
+=begin code :skip-test
+<a b c d>».say # OUTPUT: «d␤b␤c␤a␤»
+=end code
+
+Secondly, C<»> functions more like L<deepmap> rather than L<map>:
+=begin code :skip-test
+say (<a b c d>, <x y z>).map: *.elems × -1     # OUTPUT: «(-4 -3)␤»
+say (<a b c d>, <x y z>)».&(*.elems × -1)      # OUTPUT: «((-1 -1 -1 -1) (-1 -1 -1))␤»
+say (<a b c d>, <x y z>).deepmap: *.elems × -1 # OUTPUT: «((-1 -1 -1 -1) (-1 -1 -1))␤»
+=end code
+
+The bottom line is that C<map> and C<»> are not interchangeable, but
+using one instead of the other is OK as long as you understand the
+differences.
 
 =head1 Scope
 
@@ -793,32 +993,32 @@ Due to the variables allowed to be called anything, this can cause some problems
 The C<once> block is a block of code that will only run once when its parent block is run. As an example:
 
 =for code
-    my $var = 0;
-    for 1..10 {
-        once { $var++; }
-    }
-    say "Variable = $var";    # OUTPUT: «Variable = 1␤»
+my $var = 0;
+for 1..10 {
+    once { $var++; }
+}
+say "Variable = $var";    # OUTPUT: «Variable = 1␤»
 
 This functionality also applies to other code blocks like C<sub> and C<while>, not just C<for> loops. Problems arise though, when trying to nest C<once> blocks inside of other code blocks:
 
 =for code
-    my $var = 0;
-    for 1..10 {
-        do { once { $var++; } }
-    }
-    say "Variable = $var";    # OUTPUT: «Variable = 10␤»
+my $var = 0;
+for 1..10 {
+    do { once { $var++; } }
+}
+say "Variable = $var";    # OUTPUT: «Variable = 10␤»
 
 In the above example, the C<once> block was nested inside of a code block which was inside of a C<for> loop code block. This causes the C<once> block to run multiple times, because the C<once> block uses state variables to determine whether it has run previously. This means that if the parent code block goes out of scope, then the state variable the C<once> block uses to keep track of if it has run previously, goes out of scope as well. This is why C<once> blocks and C<state> variables can cause some unwanted behaviour when buried within more than one code block.
 
 If you want to have something that will emulate the functionality of a once block, but still work when buried a few code blocks deep, we can manually build the functionality of a C<once> block. Using the above example, we can change it so that it will only run once, even when inside the C<do> block by changing the scope of the C<state> variable.
 
 =for code
-    my $var = 0;
-    for 1..10 {
-        state $run-code = True;
-        do { if ($run-code) { $run-code = False; $var++; } }
-    }
-    say "Variable = $var";    # OUTPUT: «Variable = 1␤»
+my $var = 0;
+for 1..10 {
+    state $run-code = True;
+    do { if ($run-code) { $run-code = False; $var++; } }
+}
+say "Variable = $var";    # OUTPUT: «Variable = 1␤»
 
 In this example, we essentially manually build a C<once> block by making a C<state> variable called C<$run-code> at the highest level that will be run more than once, then checking to see if C<$run-code> is C<True> using a regular C<if>. If the variable C<$run-code> is C<True>, then make the variable C<False> and continue with the code that should only be completed once.
 
@@ -828,13 +1028,13 @@ Using a C<once> block inside a class method will cause the once state to carry a
 For example:
 
 =for code
-    class A {
-        method sayit() { once say 'hi' }
-    }
-    my $a = A.new;
-    $a.sayit;      # OUTPUT: «hi␤»
-    my $b = A.new;
-    $b.sayit;      # nothing
+class A {
+    method sayit() { once say 'hi' }
+}
+my $a = A.new;
+$a.sayit;      # OUTPUT: «hi␤»
+my $b = A.new;
+$b.sayit;      # nothing
 
 =end pod
 

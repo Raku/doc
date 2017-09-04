@@ -162,9 +162,9 @@ Returns the object it is called on.
 
     method clone(*%twiddles)
 
-Creates a shallow clone of the invocant. Alternative values for I<public>
-attributes can be provided via named arguments with names matching the
-attributes' names.
+Creates a shallow clone of the invocant, including shallow cloning of private
+attributes. Alternative values for I<public> attributes can be provided via
+named arguments with names matching the attributes' names.
 
 =begin code
 class Point2D {
@@ -178,6 +178,57 @@ my $p = Point2D.new(x => 2, y => 3);
 
 say $p;                     # OUTPUT: «Point(2, 3)␤»
 say $p.clone(y => -5);      # OUTPUT: «Point(2, -5)␤»
+=end code
+
+Note that C<.clone> does not go the extra mile to shallow-copy C<@.> and C<%.>
+sigiled attributes and, if modified, the modifications will still be available
+in the original object:
+
+=begin code
+class Foo {
+    has $.foo is rw = 42;
+    has &.boo is rw = { say "Hi" };
+    has @.bar       = <a b>;
+    has %.baz       = <a b c d>;
+}
+
+my $o1 = Foo.new;
+with my $o2 = $o1.clone {
+    .foo = 70;
+    .bar = <Z Y>;
+    .baz = <Z Y X W>;
+    .boo = { say "Bye" };
+}
+
+# Hash and Array attribute modifications in clone appear in original as well:
+say $o1;    # OUTPUT: «Foo.new(foo => 42, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+say $o2;    # OUTPUT: «Foo.new(foo => 70, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+$o1.boo.(); # OUTPUT: «Hi␤»
+$o2.boo.(); # OUTPUT: «Bye␤»
+=end code
+
+To clone those, you could implement your own C<.clone> that clones the
+appropriate attributes and passes the new values to C<Mu.clone>, for example,
+via L<nextwith>. Alternatively, your own C<.clone> could clone self first
+(using C<self.Mu::clone> or L<callsame>) and then manipulate the clone as needed,
+before returning it.
+
+=begin code
+class Bar {
+    has @.foo = <a b>;
+    has %.bar = <a b c d>;
+    method clone { nextwith :foo(@!foo.clone) :bar(%!bar.clone) }
+}
+
+my $o1 = Bar.new;
+with my $o2 = $o1.clone {
+    .foo = <Z Y>;
+    .bar = <Z Y X W>;
+}
+
+# Hash and Array attribute modifications in clone do not affect original:
+say $o1; # OUTPUT: «Bar.new(foo => ["a", "b"], bar => {:a("b"), :c("d")})␤»
+say $o2; # OUTPUT: «Bar.new(foo => ["Z", "Y"], bar => {:X("W"), :Z("Y")})␤»
 =end code
 
 =head2 method new

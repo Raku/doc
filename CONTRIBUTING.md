@@ -56,10 +56,10 @@ you want to improve, commit your changes, and create a pull request. Should
 questions come up in the process feel free to ask in
 [#perl6 IRC channel](https://perl6.org/community/irc).
 
-If the documentation for a type does not exist create the skeleton of the doc
+If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 MyFunnyRole
+    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
@@ -105,7 +105,7 @@ When providing a code example result or output, use this style:
 
 Any contributions should pass the `make test` target. This insures basic
 integrity of the documentation, and is run automatically by a corresponding
-travis build. Even edits made via the github editor should pass this test.
+travis build. Even edits made via the GitHub editor should pass this test.
 
 The repo should also pass `make xtest` most of the time - this includes
 tests about whitespace and spelling that might be difficult to get right
@@ -159,6 +159,8 @@ following labels when tagging tickets:
 
 * site   - presentation issue with the website (e.g. invalid HTML)
 * docs   - missing or incorrect documentation (use 'NOTSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
+    * new - this is a new doc item that requires fresh text
+    * update - this is an existing doc item that requires some analysis or editing
 * build  - scripts or libraries that generate the site
 * search - the search component, either for items that are on the site but not searchable, or for search functionality)
 
@@ -187,6 +189,10 @@ computer.  To do this you will need:
   - [SASS](http://sass-lang.com/) Compiler
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
     `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
+    - Debian instructions:
+      - Get more modern nodejs than in package manager: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
+      - Run `make init-highlights` to initialize highlights
+      - If that still isn't working try running `npm install node-gyp -g` and try running make command again
 
 ### Dependency installation
 

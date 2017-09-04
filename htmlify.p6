@@ -124,6 +124,7 @@ sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
         :header(header-html $selection),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
+        :css-url(''), # disable Pod::To::HTML's default CSS
     ;
 }
 
@@ -918,7 +919,9 @@ sub write-kind($kind) {
         .categorize({.name})
         .kv.map: -> $name, @docs {
             my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
+            my $subkind = @subkinds.squish(with => &infix:<~~>) == 1
+                          ?? @subkinds.list[0]
+                          !! $kind;
             my $pod = pod-with-title(
                 "Documentation for $subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),

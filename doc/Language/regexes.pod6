@@ -195,6 +195,7 @@ Predefined subrules:
     <punct>            Punctuation and Symbols (only Punct beyond ASCII)
     <space>   \s       Whitespace
     <upper>   <:Lu>    Uppercase characters
+    <?same>            Matches between two identical characters
     <?wb>              Word Boundary (zero-width assertion, ? suppress capture)
     <?ww>              Within Word (zero-width assertion, ? suppress capture)
     <xdigit>           Hexadecimal digit [0-9A-Fa-f]
@@ -406,8 +407,20 @@ say so 'aaaa' ~~ /a ** 1^..*/;    # OUTPUT: «True␤» -- there are 2 or more '
 To more easily match things like comma separated values, you can tack on a
 C<%> modifier to any of the above quantifiers to specify a separator that must
 occur between each of the matches. For example, C<a+ % ','> will match
-C<a> or C<a,a> or C<a,a,a> or so on, but it will not match C<a,> or C<a,a,>.
-To match those as well, use C<%%> instead of C<%>.
+C<a> or C<a,a> or C<a,a,a> or so on. To also match trailing delimiters
+( C<a,> or C<a,a,> ), you can use C<%%> instead of C<%>.
+
+The quantifier interacts with `%` and controls the number of overall
+repetitions that can match successfully, so C<a* % ','> also matches the empty
+string. If you want match words delimited by commas, you might need to nest an
+ordinary and a modified quantifier:
+
+=begin code
+say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
+say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
+=end code
+
+
 
 =head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
 
@@ -474,6 +487,25 @@ In regexes branches separated by C<|>, the longest match wins, independent of
 the lexical ordering in the regexes.
 
     say ('abc' ~~ / a | .b /).Str;    # OUTPUT: «ab␤»
+
+=head1 X<Conjunction: C<&&>|regex,&&>
+
+Matches successfully if all `&&`-delimited segments match the same substring
+of the target string. The segments are evaluated left to right.
+
+This can be useful for augmenting an existing regex. For example if you have
+a regex `quoted` that matches a quoted string, `/ <quoted> && <-[x]>* /`
+matches a quoted string that does not contain the character `x`. Note that you
+cannot easily obtain the same behavior with a look-ahead, because a look-ahead
+doesn't stop looking when the quoted string stops matching.
+
+=head1 X<Conjunction: C<&>|regex,&>
+
+Much like C<&&> in a regex, it matches successfully if all segments
+separated by `&` match the same part of the target string.
+
+C<&> (unlike C<&&>) is considered declarative, and notionally all the
+segments can be evaluated in parallel, or in any order the compiler chooses.
 
 =head1 Anchors
 

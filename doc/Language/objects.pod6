@@ -264,29 +264,96 @@ Method names can be resolved at runtime with the C<.""> operator.
     A.new."$name"().say;
     # OUTPUT: «(Any)␤»
 
+=head2 Class and Instance Methods
+
+A method's signature can have an I<invocant> as its first parameter
+followed by a colon, which allows for the method to refer to the object
+it was called on.
+
+    class Foo {
+        method greet($me: $person) {
+            say "Hi, I am $me.^name(), nice to meet you, $person";
+        }
+    }
+    Foo.new.greet("Bob");    # OUTPUT: «Hi, I am Foo, nice to meet you, Bob␤»
+
+Providing an invocant in the method signature also allows for defining
+the method as either as a class method, or as an object method, through
+the use of L<type constraints|/type/Signature#Type_Constraints>. The
+C<::?CLASS> variable can be used to provide the class name at compile
+time, combined with either C<:U> (for class methods) or C<:D> (for
+instance methods).
+
+    class Pizza {
+        has $!radius = 42;
+        has @.ingredients;
+
+        # class method: construct from a list of ingredients
+        method from-ingredients(::?CLASS:U $pizza: @ingredients) {
+            $pizza.new( ingredients => @ingredients );
+        }
+
+        # instance method
+        method get-radius(::?CLASS:D:) { $!radius }
+    }
+    my $p = Pizza.from-ingredients: <cheese pepperoni vegetables>;
+    say $p.ingredients;     # OUTPUT: «[cheese pepperoni vegetables]␤»
+    say $p.get-radius;      # OUTPUT: «42␤»
+    say Pizza.get-radius;   # This will fail.
+    CATCH { default { put .^name ~ '--' ~ .Str } };
+    # OUTPUT: «Invocant of method 'get-radius' must be an object instance of type 'Pizza',
+    #          not a type object of type 'Pizza'.  Did you forget a '.new'?»
+
+A method can be both a class and object method by using the
+L<multi|/syntax/multi> declarator:
+
+    class C {
+        multi method f(::?CLASS:U:) { say "class method"  }
+        multi method f(::?CLASS:D:) { say "object method" }
+    }
+    C.f;       # OUTPUT: «class method␤»
+    C.new.f;   # OUTPUT: «object method␤»
+
 =head2 self
 
-Inside a method, the term C<self> is available, which is bound to the invocant
-(the object the method was called on). C<self> can be
-used to call further methods on the invocant. Within methods, C<$.origin> works
-the same as C<self.origin>, however the colon-syntax for
-method arguments is only supported for method calls using self, not the shortcut.
+Inside a method, the term C<self> is available, which is bound to the
+invocant.  C<self> can be used to call further methods on the invocant,
+including constructors:
 
-Note that if the relevant methods C<bless>, C<CREATE>, C<BUILDALL> of
+    class Box {
+      has $.data;
+
+      method make-new-box-from() {
+          self.new: data => $!data;
+      }
+    }
+
+C<self> can be used in class or instance methods as well, though beware
+of trying to invoke one type of method from the other:
+
+    class C {
+        method g()            { 42     }
+        method f(::?CLASS:U:) { self.g }
+        method d(::?CLASS:D:) { self.f }
+    }
+    C.f;        # OUTPUT: «42␤»
+    C.new.d;    # This will fail.
+    CATCH { default { put .^name ~ '--' ~ .Str } };
+    # OUTPUT: «Invocant of method 'f' must be a type object of type 'C',
+    #          not an object instance of type 'C'.  Did you forget a 'multi'?»
+
+Within methods, C<$.origin> works the same as C<self.origin>, however
+the colon-syntax for method arguments is only supported for method calls
+using C<self>, not the shortcut.
+
+Note that if the relevant methods C<bless>, C<CREATE> of
 L<Mu> are not overloaded, C<self> will point to the type object in those
 methods.
 
-Since user defined constructors are called on type objects, C<self> will point
-to the type object in constructors and the submethod BUILD. Initializers are
-also called before object construction time. This can be used to access class
-attributes in initializers.
-
-    class C {
-        my $.local = 42;
-        has $.x = self.local
-    };
-    say C.new.x
-    # OUTPUT: «42␤»
+On the other hand, C<BUILDALL> and the submethods C<BUILD> and C<TWEAK> are
+called on instances, in different stages of initialization. In the latter two
+submethods, submethods of the same name from subclasses have not yet run, so
+you should not rely on potentially virtual method calls inside these methods.
 
 =head2 Private Methods
 
@@ -531,47 +598,25 @@ say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
 
 =head2 Object Cloning
 
-The C<Mu> parent class, from which all classes inherit, supplies a
-method named L<clone>, which is somewhat magical in that it can copy
-values from an object's private attributes to create a new object.
-This cloning is shallow since it only binds attributes to
-the same values contained in the original object; it does
-not make copies of those values.
+The cloning is done using L<clone> method available on all objects, which
+shallow-clones both public and private attributes. New values for I<public>
+attributes can be supplied as named arguments.
 
-As with C<new>, public attributes can be set to initial values.
-These override values received from the original object.  (See
-the documentation for Mu's L<clone> for an example.)
+=begin code
+class Foo {
+    has $.foo = 42;
+    has $.bar = 100;
+}
 
-Note that since C<clone> is not a C<submethod>, a class which provides
-its own C<clone> method will replace the C<Mu> method.  There is no
-automatic mechanism like C<BUILDALL> for cloning.  For example, if one
-wished to make clone deeper for a particular class, one would will
-probably want to use C<callwith> or C<nextwith> to push the deeper
-copies to superclasses:
+my $o1 = Foo.new;
+my $o2 = $o1.clone: :bar(5000);
+say $o1; # Foo.new(foo => 42, bar => 100)
+say $o2; # Foo.new(foo => 42, bar => 5000)
+=end code
 
-    class A {
-        has $.a;
-        #...
-        method clone {
-            nextwith(:a($.a.clone))
-        }
-    }
-
-This works well for simple classes, but in some cases one might need
-to follow C<BUILDALL>'s lead and work in reverse method resolution
-order:
-
-    =begin code :preamble<class A {};>
-    class B is A {
-        has $.b;
-        #...
-        method clone {
-            my $obj = callsame;
-            $obj.b = $!b.clone(:seed($obj.a.generate_seed));
-            $obj
-        }
-    }
-    =end code
+See L«documentation for C<Mu.clone>|/routine/clone» for details on how
+non-scalar attributes get cloned, as well as examples of implementing your
+own custom clone methods.
 
 =head1 X<Roles|declarator,role>
 

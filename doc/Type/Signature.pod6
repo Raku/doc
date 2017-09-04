@@ -220,22 +220,26 @@ correct type.
     #     (Str:D $: *%_)»
     say limit-lines "a \n b", Int # Always returns the max number of lines
 
-In this case, we really only want to deal with defined strings. To do this, we
-use the C<:D> type constraint.
+In the code above, we really only want to deal with defined strings. To
+do this, we use the C<:D> type constraint.  This constraint checks the
+value passed is an I<object instance>, in a similar fashion to calling
+the C<.DEFINITE> method on the value:
 
     sub limit-lines(Str:D $s, Int $limit) { };
     say limit-lines Str, 3;
-    CATCH { default { put .^name ~ '--' ~~ .Str } };
+    CATCH { default { put .^name ~ '--' ~ .Str } };
     # OUTPUT: «Parameter '$s' of routine 'limit-lines' must be an object instance of type 'Str',
     #          not a type object of type 'Str'.  Did you forget a '.new'?»
 
 This is much better than the way the program failed before, since here the
 reason for failure is clearer.
 
-It's also possible undefined types are the only ones that make sense for a
-routine to accept. This can be constrained with the C<:U> type constraint. For
-example, we can turn the C<&limit-lines> into a multi function to make use of
-the C<:U> constraint.
+It's also possible that undefined types are the only ones that make
+sense for a routine to accept. This can be done with the C<:U> type
+constraint, which checks the value passed if it is a I<type object>,
+rather than an object instance. For example, we can turn the
+C<&limit-lines> into a multi function to make use of the C<:U>
+constraint:
 
 =for code :allow<B L>
 multi limit-lines(Str $s, Int:D $limit) { }
@@ -244,6 +248,33 @@ say limit-lines "a \n b \n c", Int; # OUTPUT: «"a \n b \n c"␤»
 
 For explicitly indicating the normal behaviour, C<:_> can be used, but this is
 unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
+
+To recap, here is a quick illustration of these type constraints, also
+known collectively as I<type smileys>:
+
+    # Checking a type object
+    say Int ~~ Any:D;    # OUTPUT: «False␤»
+    say Int ~~ Any:U;    # OUTPUT: «True␤»
+    say Int ~~ Any:_;    # OUTPUT: «True␤»
+
+    # Checking an object instance
+    say 42 ~~ Any:D;     # OUTPUT: «True␤»
+    say 42 ~~ Any:U;     # OUTPUT: «False␤»
+    say 42 ~~ Any:_;     # OUTPUT: «True␤»
+
+    # Checking a user-supplied class
+    class Foo {};
+    say Foo ~~ Any:D;    # OUTPUT: «False␤»
+    say Foo ~~ Any:U;    # OUTPUT: «True␤»
+    say Foo ~~ Any:_;    # OUTPUT: «True␤»
+    my $f = Foo.new;
+    say $f  ~~ Any:D;    # OUTPUT: «True␤»
+    say $f  ~~ Any:U;    # OUTPUT: «False␤»
+    say $f  ~~ Any:_;    # OUTPUT: «True␤»
+
+The L<Classes and Objects|/language/classtut#Starting_with_class>
+document further elaborates on the concepts of instances and type
+objects and discovering them with the C<.DEFINITE> method.
 
 =head3 X«Constraining signatures of Callables|function reference (constrain)»
 

@@ -170,12 +170,65 @@ Calculating 43th prime
 Marks a subroutine as I<pure>, that is, it asserts that for the same input, it
 will always produce the same output without any additional side effects.
 
-This is a promise by the programmer to the compiler that it can constant-fold
+You can mark function as pure even if they throw exceptions in edge cases,
+or if they modify temporary objects; hence the C<is pure> trait can cover
+cases that the compiler cannot deduce on its own. On the other hand, you might
+not want to constant-fold functions that produce a large return value (such
+as the string or list repetition operators, infix C<x> and C<xx>) even if they
+are pure, to avoid large precompilation files.
+
+The C<is pure> trait is a promise by the programmer to the compiler that it
+can constant-fold
 calls to such functions when the arguments are known at compile time.
 
     sub double(Numeric:D $x) is pure {
         2 * $x;
     }
+
+To see it an action with a particular compiler you can try this example:
+
+    sub double-pure($a) is pure {
+        say ‘pure’;
+        $a × 2
+    }
+    sub double-dirty($a) {
+        say ‘dirty’;
+        $a × 2
+    }
+    BEGIN { say ‘Begin’ }
+    say ‘Start’;
+    say double-pure(40) + double-pure(40) for ^2;
+    say ‘Middle’;
+    say double-dirty(5) + double-dirty(5) for ^2;
+    say ‘End’
+
+    # Example output:
+    # Begin
+    # pure
+    # pure
+    # Start
+    # 160
+    # 160
+    # Middle
+    # dirty
+    # dirty
+    # 20
+    # dirty
+    # dirty
+    # 20
+    # End
+
+Essentially this allows the compiler to perform some operations at
+compile time. The benefits of constant-folding I<may> include better
+performance, especially in cases when the folded code is precompiled.
+
+In addition, using a pure function or operator in sink context (that is,
+where the result is discarded) may lead to a warning. The code
+
+    sub double($x) is pure { 2 * $x };
+    double(21);
+    say "anything";
+    # WARNING: «Useless use of "double(21)" in expression "double(21)" in sink context (line 2)»
 
 =head2 trait is rw
 

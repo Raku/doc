@@ -29,21 +29,29 @@ will not cause the L<die> to be called under normal use, because
 L<pull-one> will never be called after it returns C<IterationEnd>:
 
 =begin code
-my $seq = Seq.new: class :: does Iterator {
-    method pull-one {
-        state $x = 2;
-        $x or die "You're under arrest for violation of Iterator protocol!";
-        --$x ?? $x !! IterationEnd
+class SkippingArray is Array {
+    # skip all undefined values while iterating
+    method iterator {
+        class :: does Iterator {
+            has $.index is rw = 0;
+            has $.array is required;
+            method pull-one {
+                $.index++ while !$.array.AT-POS($.index).defined && $.array.elems > $.index;
+                $.array.elems > $.index ?? $.array.AT-POS($.index++) !! IterationEnd
+            }
+        }.new(array => self)
     }
-}.new;
-.pull-one.say xx 10 with $seq.iterator;
+}
 
-# 1
-#
-# You're under arrest for violation of Iterator protocol!
-#   in method pull-one at foo.p6 line 4
-#   in block  at foo.p6 line 8
-#   in block <unit> at foo.p6 line 8
+my @a := SkippingArray.new;
+
+@a.append: 1, Any, 3, Int, 5, Mu, 7;
+
+for @a -> $a, $b {
+    say [$a, $b];
+};
+
+# OUTPUT: «[1 3]␤[5 8]␤»
 =end code
 
 The only valid use of the sentinel value C<IterationEnd> in a program
