@@ -93,14 +93,18 @@ sub footer-html($pod-path) is export {
     my $footer = slurp 'template/footer.html';
     $footer.subst-mutate(/DATETIME/, ~DateTime.now.utc.truncated-to('seconds'));
     my $pod-url;
+    my $edit-url;
     my $gh-link = q[<a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>];
     if $pod-path eq "unknown" {
         $pod-url = "the sources at $gh-link";
+        $edit-url = "";
     }
     else {
-        $pod-url = "<a href='https://github.com/perl6/doc/raw/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
+        $pod-url = "<a href='https://github.com/perl6/doc/blob/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
+        $edit-url = "<a href='https://github.com/perl6/doc/edit/master/doc/$pod-path'>Edit this page\</a\>.";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
+    $footer.subst-mutate(/EDITURL/, $edit-url);
     state $source-commit = qx/git rev-parse --short HEAD/.chomp;
     $footer.subst-mutate(:g, /SOURCECOMMIT/, $source-commit);
 
