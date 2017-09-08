@@ -97,11 +97,11 @@ sub footer-html($pod-path) is export {
     my $gh-link = q[<a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>];
     if $pod-path eq "unknown" {
         $pod-url = "the sources at $gh-link";
-        $edit-url = "";
+        $edit-url = ".";
     }
     else {
-        $pod-url = "<a href='https://github.com/perl6/doc/blob/master/doc/$pod-path'>$pod-path\</a\> from $gh-link";
-        $edit-url = "<a href='https://github.com/perl6/doc/edit/master/doc/$pod-path'>Edit this page\</a\>.";
+        $pod-url = "<a href='https://github.com/perl6/doc/blob/master/doc/$pod-path'>$pod-path\</a\> at $gh-link";
+        $edit-url = " or <a href='https://github.com/perl6/doc/edit/master/doc/$pod-path'>edit this page\</a\>.";
     }
     $footer.subst-mutate(/SOURCEURL/, $pod-url);
     $footer.subst-mutate(/EDITURL/, $edit-url);
