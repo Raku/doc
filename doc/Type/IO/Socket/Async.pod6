@@ -13,27 +13,25 @@ Here is the equivalent example to that in L<IO::Socket::INET> of a simple
 echo server that listens on port 3333:
 
 =begin code :skip-test<IO>
-loop {
-    react {
-        whenever IO::Socket::Async.listen('0.0.0.0', 8080) -> $conn {
-            react { 
-                whenever $conn.Supply.lines {
-                    say .Str;
+react {
+    whenever IO::Socket::Async.listen('0.0.0.0', 8080) -> $conn {
+        whenever $conn.Supply.lines {
+            say .Str;
 
-                    { await $conn.print(.Str ~ "\n") } for 
-                    "HTTP/1.1 200 OK",
-                    "Content-Type: text/html; charset=UTF-8",
-                    "Content-Encoding: UTF-8",
-                    "",
-                    "<html><body>Hello World!</body></html>";
+            { try $conn.print(.Str ~ "\n") } for
+            "HTTP/1.1 200 OK",
+            "Content-Type: text/html; charset=UTF-8",
+            "Content-Encoding: UTF-8",
+            "",
+            "<html><body>Hello World!</body></html>";
 
-                    $conn.close;
-                    done;
-                }
-            }
-            CATCH { default { say .^name, ': ', .Str; say "handled in $?LINE"; } }
+            $conn.close;
+        }
+        CLOSE {
+            note „{now} connection closed“;
         }
     }
+    CATCH { default { say .^name, ': ', .Str; say "handled in $?LINE"; } }
 }
 =end code
 
