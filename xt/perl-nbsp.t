@@ -1,7 +1,16 @@
 use v6;
 use Test;
 
-my @files = qqx<git ls-files doc>.lines;
+my @files;
+
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    for qx<git ls-files>.lines -> $file {
+        next unless $file ~~ / '.pod6' $/;
+        push @files, $file;
+    }
+}
 
 plan +@files;
 
@@ -13,7 +22,7 @@ for @files.sort -> $file {
         if $line ~~ / ^ \s+ / {
             next;
         }
-        for $line ~~ m:g/ 'Perl' $<space>=(\s+) \d / -> $match {
+        for $line ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
             my $spaces = ~$match<space>;
             if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
                 $ok = False; last;

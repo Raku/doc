@@ -195,8 +195,9 @@ Predefined subrules:
     <punct>            Punctuation and Symbols (only Punct beyond ASCII)
     <space>   \s       Whitespace
     <upper>   <:Lu>    Uppercase characters
-    <|wb>               Word Boundary (zero-width assertion)
-    <ww>               Within Word (zero-width assertion)
+    <?same>            Matches between two identical characters
+    <?wb>              Word Boundary (zero-width assertion, ? suppress capture)
+    <?ww>              Within Word (zero-width assertion, ? suppress capture)
     <xdigit>           Hexadecimal digit [0-9A-Fa-f]
     =end code
 
@@ -406,8 +407,20 @@ say so 'aaaa' ~~ /a ** 1^..*/;    # OUTPUT: «True␤» -- there are 2 or more '
 To more easily match things like comma separated values, you can tack on a
 C<%> modifier to any of the above quantifiers to specify a separator that must
 occur between each of the matches. For example, C<a+ % ','> will match
-C<a> or C<a,a> or C<a,a,a> or so on, but it will not match C<a,> or C<a,a,>.
-To match those as well, use C<%%> instead of C<%>.
+C<a> or C<a,a> or C<a,a,a> or so on. To also match trailing delimiters
+( C<a,> or C<a,a,> ), you can use C<%%> instead of C<%>.
+
+The quantifier interacts with `%` and controls the number of overall
+repetitions that can match successfully, so C<a* % ','> also matches the empty
+string. If you want match words delimited by commas, you might need to nest an
+ordinary and a modified quantifier:
+
+=begin code
+say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
+say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
+=end code
+
+
 
 =head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
 
@@ -424,7 +437,16 @@ matching:
 'abababa' ~~ /a .*? a/ && say ~$/;   # OUTPUT: «aba␤»
 =end code
 
-You can also explicitly request greedy matching with the C<!> modifier.
+You can also enable frugal matching for general quantifiers:
+
+=begin code
+my token A { f o **? 1^..8 };
+my token B { o+ bar };
+'foooobar' ~~ /<A><B>/   # OUTPUT: «foooobar␤»
+# this match doesn't fail
+=end code
+
+Greedy matching can be explicitly requested with the C<!> modifier.
 
 =head2 X<Preventing backtracking: C<:>|regex,:>
 
@@ -466,6 +488,25 @@ the lexical ordering in the regexes.
 
     say ('abc' ~~ / a | .b /).Str;    # OUTPUT: «ab␤»
 
+=head1 X<Conjunction: C<&&>|regex,&&>
+
+Matches successfully if all `&&`-delimited segments match the same substring
+of the target string. The segments are evaluated left to right.
+
+This can be useful for augmenting an existing regex. For example if you have
+a regex `quoted` that matches a quoted string, `/ <quoted> && <-[x]>* /`
+matches a quoted string that does not contain the character `x`. Note that you
+cannot easily obtain the same behavior with a look-ahead, because a look-ahead
+doesn't stop looking when the quoted string stops matching.
+
+=head1 X<Conjunction: C<&>|regex,&>
+
+Much like C<&&> in a regex, it matches successfully if all segments
+separated by `&` match the same part of the target string.
+
+C<&> (unlike C<&&>) is considered declarative, and notionally all the
+segments can be evaluated in parallel, or in any order the compiler chooses.
+
 =head1 Anchors
 
 The regex engine tries to find a match inside a string by searching from
@@ -506,7 +547,7 @@ Likewise, C<$> matches the end of a B<string>, not the end of a B<line>.
 
 The following is a multi-line string:
 
-    my $str = q:to/EOS/;
+    my $str = chomp q:to/EOS/;
        Keep it secret
        and keep it safe
        EOS
@@ -709,7 +750,7 @@ Named captures can also be nested using regular capture group syntax:
 
     if 'abc-abc-abc' ~~ / $<string>=( [ $<part>=[abc] ]* % '-' ) / {
         say ~$<string>;         # OUTPUT: «abc-abc-abc␤»
-        say ~$<string><part>;   # OUTPUT: «[abc, abc, abc]␤»
+        say ~$<string><part>;   # OUTPUT: «abc abc abc␤»
     }
 
 Coercing the match object to a hash gives you easy programmatic access to
@@ -766,7 +807,19 @@ Note that neither the colon C<:> nor balancing delimiters such as C<{}> or
 C<()> can be substitution delimiters. Colons clash with adverbs such as C<s:i/Foo/bar/>
 and the other delimiters are used for other purposes.
 
-Like the C<m//> operator, whitespace is ignored in general. Comments, as in
+If you use balancing brackets, the substitution works like this instead:
+
+    s[replace] = 'with';
+
+The right-hand side is now a (not quoted) Perl 6 expression, in which C<$/>
+is available as the current match:
+
+    $_ = 'some 11 words 21';
+    s:g[ \d+ ] =  2 * $/;
+    .say;                    # OUTPUT: «some 22 words 42␤»
+
+Like the C<m//> operator, whitespace is ignored in the regex part of a
+substitution. Comments, as in
 Perl 6 in general, start with the hash character C<#> and go to the end of
 the current line.
 
@@ -795,7 +848,7 @@ By default, substitutions are only done on the first match:
 
     $_ = 'There can be twly two';
     s/tw/on/;                     # replace 'tw' with 'on' once
-    .say;                         # OUTPUT: «there can be only two␤»
+    .say;                         # OUTPUT: «There can be only two␤»
 
 =head2 Wildcards and character classes
 
@@ -1118,7 +1171,7 @@ shortcut to declaring a ratcheting regex:
 The B<C<:sigspace>> or B<C<:s>> adverb makes whitespace significant in a
 regex.
 
-    =begin code :allow<B> :skip-test
+    =begin code :allow<B>
     say so "I used Photoshop®"   ~~ m:i/   photo shop /;      # OUTPUT: «True␤»
     say so "I used a photo shop" ~~ m:iB<:s>/ photo shop /;   # OUTPUT: «True␤»
     say so "I used Photoshop®"   ~~ m:iB<:s>/ photo shop /;   # OUTPUT: «False␤»
@@ -1143,7 +1196,7 @@ becomes C«foo+ <.ws>».
 
 In all, this code:
 
-    =begin code :allow<B> :skip-test
+    =begin code :allow<B>
     rx :s {
         ^^
         {
@@ -1163,7 +1216,7 @@ In all, this code:
 
 Becomes:
 
-    =begin code :allow<B> :skip-test
+    =begin code :allow<B>
     rx {
         ^^ B«<.ws>»
         {

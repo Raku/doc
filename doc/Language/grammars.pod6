@@ -86,7 +86,7 @@ X<|protoregex>
 If you have a lot of alternations, it may become difficult to produce
 readable code or subclass your grammar. In the Actions class below, the
 ternary in C<method TOP> is less than ideal and it becomes even worse the more
-operations we we add:
+operations we add:
 
     grammar Calculator {
         token TOP { [ <add> | <sub> ] }
@@ -192,10 +192,21 @@ Is the same as:
 
     token entry { <key> <.ws> ’=’ <.ws> <value> <.ws> } # . = non-capturing
 
-The default C<ws> matches "whitespace", such a sequence of spaces (of whatever
-type), newlines, unspaces, or heredocs.
+The default C<ws> matches one or more whitespace characters (C<\s>) or a
+word boundary (C«<|w>»):
 
-It's perfectly fine to provide your own C<ws> token:
+    # First <.ws> matches word boundary at the start of the line
+    # and second <.ws> matches the whitespace between 'b' and 'c'
+    say 'ab   c' ~~ /<.ws> ab <.ws> c /; # OUTPUT: «｢ab   c｣␤»
+
+    # Failed match: there is neither any whitespace nor a word
+    # boundary between 'a' and 'b'
+    say 'ab' ~~ /. <.ws> b/;             # OUTPUT: «Nil␤»
+
+    # Successful match: there is a word boundary between ')' and 'b'
+    say ')b' ~~ /. <.ws> b/;             # OUTPUT: «｢)b｣␤»
+
+You can also redefine the default C<ws> token:
 
     grammar Foo {
         rule TOP { \d \d }
@@ -329,9 +340,15 @@ grammar KeyValuePairs {
 }
 
 class KeyValuePairsActions {
-    method identifier($/) { $/.make: ~$/                          }
     method pair      ($/) { $/.make: $<key>.made => $<value>.made }
-    method TOP       ($/) { $/.make: $<pair>».made                }
+    method identifier($/) {
+        # subroutine `make` is the same as calling .make on $/
+        make ~$/
+    }
+    method TOP ($match) {
+        # can use any variable name for parameter, not just $/
+        $match.make: $match<pair>».made
+    }
 }
 
 my  $res = KeyValuePairs.parse(q:to/EOI/, :actions(KeyValuePairsActions)).made;

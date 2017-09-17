@@ -35,12 +35,12 @@ on context you may have to be explicit when assigning colon lists.
     # OUTPUT: «{:a1, :b2}␤»
 
     my $manna = :a1:b2:c3;
-    say $manna.WHAT;
-    # OUTPUT: «(Pair)␤»
+    say $manna.^name;
+    # OUTPUT: «Pair␤»
 
     $manna = (:a1:b2:c3);
-    say $manna.WHAT;
-    # OUTPUT: «(List)␤»
+    say $manna.^name;
+    # OUTPUT: «List␤»
 
 Any variable can be turned into a C<Pair> of its name and its value.
 
@@ -49,6 +49,46 @@ Any variable can be turned into a C<Pair> of its name and its value.
     dd %h;  # OUTPUT: «Hash %h = {:bar(10)}␤»
 
 =head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    multi method new(Pair: Mu  $key, Mu  $value)
+    multi method new(Pair: Mu :$key, Mu :$value)
+
+Constructs a new L<Pair> object.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(Pair:D $: %topic)
+    multi method ACCEPTS(Pair:D $: Pair:D $topic)
+    multi method ACCEPTS(Pair:D $: Mu $topic)
+
+If C<topic> is an L<Associative>, looks up the value using invocant's key in
+it and checks invocant's value C<.ACCEPTS> that value:
+
+    say %(:42a) ~~ :42a; # OUTPUT: «True␤»
+    say %(:42a) ~~ :10a; # OUTPUT: «False␤»
+
+If C<topic> is another L<Pair>, checks the invocant's value C<.ACCEPTS> the
+C<topic's> value. Note that the keys are not considered and can be different:
+
+    say :42a ~~ :42a; # OUTPUT: «True␤»
+    say :42z ~~ :42a; # OUTPUT: «True␤»
+    say :10z ~~ :42a; # OUTPUT: «False␤»
+
+If C<topic> is any other value, uses the invocant's key as the name of the
+method to call on C<topic> and check's its L«C<.Bool>|/routine/Bool» is the same
+as C<.Bool> of the invocant's value. This form can be used to check L<Bool> values
+of multiple methods on the same object, such as L<IO::Path>, by using
+L<Junctions|/type/Junction>:
+
+    say "foo" .IO ~~ :f & :rw; # OUTPUT: «False␤»
+    say "/tmp".IO ~~ :!f;      # OUTPUT: «True␤»
+    say "."   .IO ~~ :f | :d;  # OUTPUT: «True␤»
 
 =head2 method antipair
 
@@ -95,7 +135,7 @@ I<key> parts, and then compares the I<value> parts if the keys are equal.
 
     my $a = (Apple => 1);
     my $b = (Apple => 2);
-    say $a cmp $b;
+    say $a cmp $b; # OUTPUT: «Less␤»
 
 =head2 method fmt
 
@@ -108,7 +148,7 @@ parts of the C<Pair> formatted. Here's an example:
 
     my $pair = :Earth(1);
     say $pair.fmt("%s is %.3f AU away from the sun")
-    # Prints "Earth is 1.000 AU away from the sun"
+    # OUTPUT: «Earth is 1.000 AU away from the sun␤»
 
 For more about format strings, see L<sprintf>.
 
@@ -124,8 +164,8 @@ method on C<Hash>, which returns all its entries as a list of keys and
 values.
 
     my $p = (Perl => 6);
-    say $p.kv[0];
-    say $p.kv[1];
+    say $p.kv[0]; # OUTPUT: «Perl␤»
+    say $p.kv[1]; # OUTPUT: «6␤»
 
 =head2 method pairs
 
@@ -136,8 +176,8 @@ Defined as:
 Returns a list of one C<Pair>, namely this one.
 
     my $p = (Perl => 6);
-    say $p.pairs.WHAT; # OUTPUT: «(List)␤»
-    say $p.pairs[0];   # OUTPUT: «(Pair)␤»
+    say $p.pairs.^name; # OUTPUT: «List␤»
+    say $p.pairs[0];    # OUTPUT: «Perl => 6␤»
 
 =head2 method antipairs
 
@@ -149,33 +189,36 @@ Returns a L<List|/type/List> containing the L<antipair|/type/Pair#method_antipai
 of the invocant.
 
     my $p = (6 => 'Perl').antipairs;
-    say $p.WHAT;                                      # OUTPUT: «(List)␤»
+    say $p.^name;                                     # OUTPUT: «List␤»
     say $p.first;                                     # OUTPUT: «Perl => 6␤»
-    say $p.first.WHAT;                                # OUTPUT: «(Pair)␤»
+    say $p.first.^name;                               # OUTPUT: «Pair␤»
 
 =head2 method invert
 
 Defined as:
 
-    method invert(Pair:D:)
+    method invert(Pair:D: --> Seq:D)
 
-Returns a new C<Pair> object with key and value exchanged, just like
-L<antipair|/type/Pair#method_antipair>, unless the value of the invocant does
-the L<Iterable|/type/Iterable> role. In the latter case an C<Iterable> structure
-of C<Pair>s is returned since C<invert> expands iterable values into multiple
-pairs.
+Returns a L<Seq>. If the C<.value> of the invocant is I<NOT> an
+L<Iterable|/type/Iterable>, the L<Seq> will contain a single L<Pair> whose
+C<.key> is the C<.value> of the invocant and whose C<.value> is the C<.key> of
+the invocant:
 
-    my Pair $p1 = (6 => 'Perl');
-    say $p1.invert;                                   # OUTPUT: «Perl => 6␤»
-    say $p1.invert.WHAT;                              # OUTPUT: «(Pair)␤»
+    :foo<bar>.invert.perl.say; # OUTPUT: «(:bar("foo"),).Seq»
 
-    my Pair $p2 = ('Perl' => (5, 6));
-    say $p2.invert;                                   # OUTPUT: «(5 => Perl 6 => Perl)␤»
-    say $p2.invert.WHAT;                              # OUTPUT: «(List)␤»
+If invocant's C<.value> I<is> an L<Iterable|/type/Iterable>, the returned L<Seq>
+will contain the same number of L<Pair>s as items in the C<.value>, with each
+of those items a C<.key> of a pair and the C<.key> of the invocant the C<.value>
+of that pair:
 
-    my Pair $p3 = ('Perl' => { cool => 'language'});
-    say $p3.invert;                                   # OUTPUT: «{cool => language => Perl}␤»
-    say $p3.invert.WHAT;                              # OUTPUT: «(Hash)␤»
+    :foo<Perl is great>.invert.perl.say;
+    # OUTPUT: «(:Perl("foo"), :is("foo"), :great("foo")).Seq»
+
+    :foo{ :42a, :72b }.invert.perl.say;
+    # OUTPUT: «((:a(42)) => "foo", (:b(72)) => "foo").Seq»
+
+To perform the exact C<.key> and C<.value> swap, use
+L«C<.antipair> method|/type/Pair#method_antipair».
 
 =head2 method keys
 
@@ -226,6 +269,6 @@ Returns a string representation of the invocant formatted
 as I<key ~ \t ~ value>.
 
     my $b = eggs => 3;
-    say $b.Str;                                       # eggs  3
+    say $b.Str;                                       # OUTPUT: «eggs  3␤»
 
 =end pod

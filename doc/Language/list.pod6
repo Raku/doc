@@ -17,21 +17,54 @@ with parentheses, so:
 
     1, 2;        # This is two-element list
     (1, 2);      # This is also a List, in parentheses
-    (1; 2);      # same List
+    (1; 2);      # same List (see below)
     (1);         # This is not a List, just a 1 in parentheses
     (1,);        # This is a one-element List
 
+There is one exception, empty lists are created with just parenthesis:
+
+=for code :skip-test
+    ();          # This is an empty List
+    (,);         # This is a syntax error
+
+Note that hanging commas are just fine as long as the beginning and
+end of a list are clear, so feel free to use them for easy code editing.
+
 Parentheses can be used to mark the beginning and end of a C<List>, so:
 
-    (1, 2), (1, 2) # This is a list of two lists.
+    (1, 2), (1, 2); # This is a list of two lists.
 
-Multidimensional literal C<List>s are created combining comma and semicolon.
-They can be used in routine argument lists and subscripts.
+C<List>s of C<List>s can also be created by combining comma and semicolon.
+This is also called multi-dimensional syntax, because it is most often used to
+index multidimensional arrays.
 
     say so (1,2; 3,4) eqv ((1,2), (3,4));
     # OUTPUT: «True␤»
-    say('foo';); # a list with one element and the empty list
+    say so (1,2; 3,4;) eqv ((1,2), (3,4));
+    # OUTPUT: «True␤»
+    say so ("foo";) eqv ("foo") eqv (("foo")); # not a list
+    # OUTPUT: «True␤»
+
+Unlike a comma, a hanging semicolon does not create a multidimensional list
+in a literal.  However, be aware that this behavior changes in most argument
+lists, where the exact behavior depends on the function... but will usually
+be:
+
+    say('foo';);   # a list with one element and the empty list
     # OUTPUT: «(foo)()␤»
+    say(('foo';)); # no list, just the string "foo"
+    # OUTPUT: «foo␤»
+
+Because the semicolon doubles as a
+L<statement terminator|/language/control#statements>
+it will end a literal list when used at the top level, instead creating
+a statement list.  If you want to create a statement list inside parenthesis,
+use a sigil before the parenthesis:
+
+    say so (42) eqv $(my $a = 42; $a;);
+    # OUTPUT: «True␤»
+    say so (42,42) eqv (my $a = 42; $a;);
+    # OUTPUT: «True␤»
 
 Individual elements can be pulled out of a list using a subscript.  The
 first element of a list is at index number zero:
@@ -41,6 +74,7 @@ first element of a list is at index number zero:
     say (1, 2)[1];  # says 2
     say (1, 2)[2];  # says Nil
     say (1, 2)[-1]; # Error
+    say ((<a b>,<c d>),(<e f>,<g h>))[1;0;1]; # says "f"
     =end code
 
 =head1 The @ sigil
@@ -60,7 +94,7 @@ One of the ways C<@>-sigiled variables act like lists is by always supporting
 L<positional subscripting|/language/subscripts>. Anything bound to a C<@>-sigiled
 value must support the L<Positional|/type/Positional> role which guarantees this:
 
-    =begin code :skip-test
+    =begin code
     my @a := 1; # Type check failed in binding; expected Positional but got Int
     =end code
 
@@ -168,7 +202,7 @@ stored for later use. To create a lazy list use
 L<gather/take|/language/control#gather/take> or the
 L<sequence operator|/language/operators#infix_...>. You can also write a class that
 implements the role L<Iterable|/type/Iterable> and returns C<True> on a call to
-L<lazy|/routine/lazy>. Please note that some methods like C<elems> may cause the
+L<is-lazy|/routine/is-lazy>. Please note that some methods like C<elems> may cause the
 entire list to be computed what will fail if the list is also infinite.
 
     my @l = 1,2,4,8...Inf;
@@ -181,7 +215,7 @@ The lists we have talked about so far (C<List>, C<Seq> and C<Slip>)
 are all immutable.  This means you cannot remove elements from them,
 or re-bind existing elements:
 
-    =begin code :skip-test
+    =begin code
     (1, 2, 3)[0]:delete; # Error Can not remove elements from a List
     (1, 2, 3)[0] := 0;   # Error Cannot use bind operator with this left-hand side
     (1, 2, 3)[0] = 0;    # Error Cannot modify an immutable Int
@@ -285,7 +319,7 @@ of pair forms happens.
 Most C<Positional> types will enforce an integer coercion on each element
 of a slice index, so pairs appearing there will generate an error, anyway:
 
-    =begin code :skip-test
+    =begin code
     (1, 2, 3)[1, 2, :c(3)] # OUTPUT: «Method 'Int' not found for invocant of class 'Pair'␤»
     =end code
 
@@ -345,7 +379,7 @@ is of type C<Array[Int]> and one can create one with C<Array[Int].new>.  If
 you intend to use an C<@>-sigiled variable only for this purpose, you may
 change its type by specifying the type of the elements when declaring it:
 
-    =begin code :skip-test
+    =begin code
     my Int @a = 1, 2, 3;              # An Array that contains only Ints
     my @b := Array[Int].new(1, 2, 3); # Same thing, but the variable is not typed
     say @b eqv @a;                    # says True.
@@ -363,7 +397,7 @@ In the above example we bound a typed Array object to a C<@>-sigil variable for
 which no type had been specified.  The other way around does not work – you may
 not bind an Array that has the wrong type to a typed C<@>-sigiled variable:
 
-    =begin code :skip-test
+    =begin code
     my @a := Array[Int].new(1, 2, 3);     # fine
     @a := Array[Str].new("a", "b");       # fine, can be re-bound
     my Int @b := Array[Int].new(1, 2, 3); # fine

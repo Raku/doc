@@ -31,6 +31,19 @@ so it's best to use it from the start.
 
 ### Language
 
+##### 'say' vs 'put'
+
+While there is no hard and fast rule about which of these routines to use
+in a given situation, please try to follow these guidelines.
+
+When generating output in examples intended to be read by a user, use 'say'.
+Additionally, add a comment showing the intended output, e.g.:
+
+    say 3.^name; #OUTPUT: «Int␤»
+
+For examples where a particular format is required, or exact data is expected
+(e.g. for something sent over a network connection), prefer 'put'.
+
 ##### 'parameter' vs 'argument'
 
 * Argument: what it looks like to the caller

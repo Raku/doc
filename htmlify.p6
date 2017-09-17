@@ -22,23 +22,27 @@ use v6;
 
 BEGIN say 'Initializing ...';
 
+use lib 'lib';
 use JSON::Fast;
 use Pod::To::HTML;
 use URI::Escape;
 
-use lib 'lib';
 use Perl6::Documentable::Registry;
 use Perl6::TypeGraph;
 use Perl6::TypeGraph::Viz;
 use Pod::Convenience;
 use Pod::Htmlify;
 use OO::Monitors;
-
+# Don't include backslash in Win or forwardslash on Unix because they are used
+# as directory seperators. These are handled in lib/Pod/Htmlify.pm6
+my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
+my \badchars-unix = Qw[ ];
+my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
 {
     my monitor PathChecker {
         has %!seen-paths;
         method check($path) {
-            note "$path got badchar" if $path.contains(any(qw[\ % ? & = # + " ' : ~ < >]));
+            note "$path got badchar" if $path.contains(any(badchars));
             note "$path got empty filename" if $path.split('/')[*-1] eq '.html';
             note "duplicated path $path" if %!seen-paths{$path}:exists;
             %!seen-paths{$path}++;
@@ -120,6 +124,7 @@ sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
         :header(header-html $selection),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
+        :css-url(''), # disable Pod::To::HTML's default CSS
     ;
 }
 
@@ -238,24 +243,6 @@ sub MAIN(
     }
 
     spurt('html/links.txt', $url-log.URLS.sort.unique.join("\n"));
-}
-
-my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
-my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
-
-sub extract-pod(IO() $file) {
-    use nqp;
-    # The file name is enough for the id because POD files don't have depends
-    my $id = nqp::sha1(~$file);
-    my $handle = $precomp.load($id,:since($file.modified))[0];
-
-    if not $handle {
-        # precompile it
-        $precomp.precompile($file, $id, :force);
-        $handle = $precomp.load($id)[0];
-    }
-
-    return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
@@ -425,7 +412,7 @@ multi write-type-source($doc) {
     }
 
     my @parts = $doc.url.split('/', :v);
-    @parts[*-1] = escape-filename @parts[*-1];
+    @parts[*-1] = replace-badchars-with-goodnames @parts[*-1];
     my $html-filename = "html" ~ @parts.join('/') ~ ".html";
     my $pod-path = pod-path-from-url($doc.url);
     spurt $html-filename, p2h($pod, $what, pod-path => $pod-path);
@@ -444,7 +431,6 @@ sub find-references(:$pod!, :$url, :$origin) {
         $index-name-attr = qq[index-entry{@indices ?? '-' !! ''}{@indices.join('-')}{$index-text ?? '-' !! ''}$index-text].subst('_', '__', :g).subst(' ', '_', :g).subst('%', '%25', :g).subst('#', '%23', :g);
 
        register-reference(:$pod, :$origin, url => $url ~ '#' ~ $index-name-attr);
-       # register-reference(:$pod, :$origin, :$url);
 }
     elsif $pod.?contents {
         for $pod.contents -> $sub-pod {
@@ -776,7 +762,7 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: "{rewrite-url(@docs.[0].url).subst('"', '\"', :g)}" \}]] #"
+                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g) }" \}]] #"
             }
     }).flat;
 
@@ -830,8 +816,7 @@ sub write-disambiguation-files() {
                 });
         }
         my $html = p2h($pod, 'routine');
-        spurt "html/{escape-filename $name}.html", $html;
-        # spurt "html/$name.subst(/<[/\\]>/,'_',:g).html", $html;
+        spurt "html/{replace-badchars-with-goodnames $name}.html", $html;
     }
     say '';
 }
@@ -850,7 +835,6 @@ sub write-index-files() {
     say 'Writing html/programs.html ...';
     spurt 'html/programs.html', p2h(pod-with-title(
         'Perl 6 Programs Documentation',
-        #pod-table($*DR.lookup('programs', :by<kind>).sort(*.name).map({[
         pod-table($*DR.lookup('programs', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
@@ -935,7 +919,9 @@ sub write-kind($kind) {
         .categorize({.name})
         .kv.map: -> $name, @docs {
             my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
+            my $subkind = @subkinds.squish(with => &infix:<~~>) == 1
+                          ?? @subkinds.list[0]
+                          !! $kind;
             my $pod = pod-with-title(
                 "Documentation for $subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),
@@ -958,8 +944,7 @@ sub write-kind($kind) {
                 })
             );
             print '.';
-            # spurt "html/$kind/$name.subst(/<[/\\]>/,'_',:g).html", p2h($pod, $kind);
-            spurt "html/$kind/{escape-filename $name}.html", p2h($pod, $kind);
+            spurt "html/$kind/{replace-badchars-with-goodnames $name}.html", p2h($pod, $kind);
         }
     say '';
 }
@@ -971,7 +956,7 @@ sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
         @$pod,
     );
     return if $name ~~ / '/' /;
-    spurt "html/routine/{escape-filename $type}.{escape-filename $name}.html", p2h($p, 'routine');
+    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
 }
 sub get-temp-filename {
     state %seen-temps;

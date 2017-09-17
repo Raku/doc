@@ -55,6 +55,44 @@ corresponding parameters.
 
     say &slow.assuming(10000000).&bench; # OUTPUT: «(10000000 7.5508834)␤»
 
+For a sub with arity greater than one, you can use C<Whatever> C<*> for all of the positional parameters that are not "assumed".
+
+    sub first-and-last ( $first, $last ) {
+        say "Name is $first $last";
+    }
+
+    my &surname-smith = &first-and-last.assuming( *, 'Smith' );
+
+    &surname-smith.( 'Joe' ); # OUTPUT: «Name is Joe Smith␤»
+
+You can handle any combination of assumed and not assumed positional parameters:
+
+    sub longer-names ( $first, $middle, $last, $suffix ) {
+        say "Name is $first $middle $last $suffix";
+    }
+
+    my &surname-public = &longer-names.assuming( *, *, 'Public', * );
+
+    &surname-public.( 'Joe', 'Q.', 'Jr.'); # OUTPUT: «Name is Joe Q. Public Jr.␤»
+
+Named parameters can be assumed as well:
+
+    sub foo { say "$^a $^b $:foo $:bar" }
+    &foo.assuming(13, :42foo)(24, :72bar); # OUTPUT: «13 24 42 72␤»
+
+And you can use C<.assuming> on all types of L<Callables|/type/Callable>,
+including L<Methods|/type/Method> and L<Blocks|/type/Block>:
+
+    # We use a Whatever star for the invocant:
+    my &comber = Str.^lookup('comb').assuming: *, /P \w+/;
+    say comber 'Perl is awesome! Python is great! And PHP is OK too';
+    # OUTPUT: «(Perl Python PHP)␤»
+
+    my &learner = {
+        "It took me $:months months to learn $^lang"
+    }.assuming: 'Perl 6';
+    say learner :6months;  # OUTPUT: «It took me 6 months to learn Perl 6␤»
+
 =comment according to design docs it's Callable but in rakudo it's assuming is in Block
 
 =head1 Operators
@@ -64,8 +102,10 @@ X<|∘,function combinator>X<|o,function combinator>
 
 The function composition operator C«infix:<∘>» or C«infix:<o>» combines two functions, so
 that the left function is called with the return value of the right function.
-If the L«C<.count>|/routine/count» of the left function is more than 1, the return
+If the L«C<.count>|/routine/count» of the left function is greater than 1, the return
 value of the right function will be L<slipped|/type/Slip> into the left function.
+
+Both C<.count> and C<.arity> of the RHS will be maintained.
 
     sub f($p){ say 'f'; $p / 2 }
     sub g($p){ say 'g'; $p * 2 }

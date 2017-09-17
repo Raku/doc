@@ -1,6 +1,12 @@
 #!/usr/bin/env perl6
-use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+
+use v6;
 use JSON::Fast;
+use File::Find;
+use MONKEY-SEE-NO-EVAL; # until we have a better serialisation
+
+# use Terminal::ANSIColor if available
+%*ENV<POD_TO_TEXT_ANSI>=1;
 
 my $PROGRAM-NAME = "p6doc";
 
@@ -49,9 +55,10 @@ sub locate-module(Str $modulename) {
     return $m;
 }
 
-sub show-docs(Str $path, :$section, :$no-pager) {
+sub show-docs(Str $path, :$section, :$no-pager, :$package is copy) {
+
     my $pager;
-    $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less') unless $no-pager;
+    $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less -r') unless $no-pager;
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ ) {
         say "No Pod found in $path";
         return;
@@ -65,13 +72,29 @@ sub show-docs(Str $path, :$section, :$no-pager) {
         $doc-command-str ~= " --doc"
     }
     $doc-command-str ~= " $path ";
+    if $package.DEFINITE {
+        my $cs = ";";
+        $cs = "&" if $*DISTRO.is-win;
+        $package ~~ s/"Type::"//;
+        $doc-command-str = "echo \"In {$package}\"$cs" ~ $doc-command-str;
+    }
     $doc-command-str ~= " | $pager" if $pager;
     say "launching '$doc-command-str'" if DEBUG;
     shell $doc-command-str;
 }
 
 sub USAGE() {
-    say 'What documentation do you want to read?';
+    say "You want to maintain the index?";
+    say "To build an index for '$PROGRAM-NAME -f'";
+    say "          $PROGRAM-NAME build";
+    say "\nTo list the index keys";
+    say "          $PROGRAM-NAME list";
+    say "\nTo display module name(s) containing key";
+    say "          $PROGRAM-NAME lookup";
+    say "\nTo show where the index file lives";
+    say "          $PROGRAM-NAME path-to-index";
+
+    say "\nWhat documentation do you want to read?";
     say "Examples: $PROGRAM-NAME Str";
     say "          $PROGRAM-NAME Str.split";
     say "          $PROGRAM-NAME faq";
@@ -80,17 +103,17 @@ sub USAGE() {
     say "\nYou can list some top level documents:";
     say "          $PROGRAM-NAME -l";
 
-    say "\nYou can also look up specific method/routine definitions:";
+    say "\nYou can also look up specific method/routine/sub definitions:";
     say "          $PROGRAM-NAME -f hyper";
-    say "          $PROGRAM-NAME -f Type::Array.push";
+    say "          $PROGRAM-NAME -f Array.push";
 
     say "\nYou can bypass the pager and print straight to stdout:";
-    say "          $PROGRAM-NAME -n Str"
+    say "          $PROGRAM-NAME -n Str";
 }
 
 multi sub MAIN($docee, Bool :$n) {
     return MAIN($docee, :f, :$n) if defined $docee.index('.');
-    show-docs(locate-module($docee), :no-pager($n));
+    show-docs(locate-module($docee), :no-pager($n), :package($docee));
 }
 
 multi sub MAIN(Bool :$l!) {
@@ -109,24 +132,22 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
     my ($package, $method) = $docee.split('.');
     if ! $method {
         my %hits;
-        if INDEX.IO ~~ :e {
+        if INDEX.IO !~~ :e {
+            say "building index on first run. Please wait...";
+            build_index();
 
-            my %data = EVALFILE INDEX;
-
-            my $final-docee = disambiguate-f-search($docee, %data);
-            ($package, $method) = $final-docee.split('.');
-
-            my $m = locate-module($package);
-            show-docs($m, :section($method), :no-pager($n));
-        } else {
-            say 'In order to use unqualified sub and method names like "p6doc -f say"';
-            say 'you will need to run "p6doc-index build" to build index.data.';
-            say 'Otherwise use "p6doc -f Type::Str.split" instead of "p6doc -f split" for now.';
-            exit 2;
         }
+
+        my %data = EVALFILE INDEX;
+
+        my $final-docee = disambiguate-f-search($docee, %data);
+        ($package, $method) = $final-docee.split('.');
+
+        my $m = locate-module($package);
+        show-docs($m, :section($method), :no-pager($n), :$package);
     } else {
         my $m = locate-module($package);
-        show-docs($m, :section($method), :no-pager($n));
+        show-docs($m, :section($method), :no-pager($n), :$package);
     }
 }
 
@@ -134,10 +155,76 @@ multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
     show-docs($file, :no-pager($n));
 }
 
+# index related
+
+multi sub MAIN('path-to-index') {
+    say INDEX if INDEX.IO.e;
+}
+
+multi sub MAIN('build') {
+    build_index();
+}
+
+sub build_index {
+    my %words;
+
+    # XXX should index more than this - currently only core pod
+    for ($*REPO.repo-chain()>>.Str X~ "{$*SPEC.dir-sep}doc{$*SPEC.dir-sep}").grep: *.IO.d  -> $lib_path is copy {
+
+        # for p6doc -f only looking under "Type" directory is useful (and faster)
+        my @files =  find(:dir($lib_path ~ "Type"),:type('file')).map({.IO});
+
+        for @files -> $f {
+            my $file = $f.path;
+            next if $file !~~ /\.pod6?$/;
+            my $pod = substr($file.Str, 0 , $file.Str.chars -4);
+            $pod.=subst($lib_path,"");
+            $pod.=subst(/"{$*SPEC.dir-sep}"/,'::',:g);
+            my $section = '';
+            for open( $file.Str).lines -> $row {
+                if $row ~~ /^\=(item|head\d) \s+ (.*?) \s*$/ {
+                    $section = $1.Str if $1.defined;
+                    %words{$section}.push([$pod, $section]) if $section ~~ m/^("method "|"sub "|"routine ")/;
+                }
+            }
+        }
+    }
+
+    my $out = open(INDEX, :w);
+    $out.print(%words.perl);
+    $out.close;
+
+}
+
+multi sub MAIN('list') {
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
+        for %data.keys.sort -> $name {
+            say $name
+        #    my $newdoc = %data{$docee}[0][0] ~ "." ~ %data{$docee}[0][1];
+        #    return MAIN($newdoc, :f);
+        }
+    } else {
+        say "First run   $*PROGRAM-NAME build    to create the index";
+        exit;
+    }
+}
+
+multi sub MAIN('lookup', $key) {
+    if INDEX.IO ~~ :e {
+        my %data = EVAL slurp INDEX;
+        die "not found" unless %data{$key};
+        say %data{$key}.split(" ").[0];
+    } else {
+        say "First run   $*PROGRAM-NAME build    to create the index";
+        exit;
+    }
+}
+
 sub disambiguate-f-search($docee, %data) {
     my %found;
 
-    for <routine method> -> $pref {
+    for <routine method sub> -> $pref {
         my $ndocee = $pref ~ " " ~ $docee;
 
         if %data{$ndocee} {
@@ -216,7 +303,11 @@ sub prompt-with-options(%options, %found) {
 }
 
 sub locate-curli-module($module) {
-    my $cu = $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
+    my $cu = try $*REPO.need(CompUnit::DependencySpecification.new(:short-name($module)));
+    unless $cu.DEFINITE {
+        note "No such type '$module'";
+        exit 1;
+    }
     return ~ $cu.repo.prefix.child('sources/' ~ $cu.repo-id);
 }
 

@@ -23,6 +23,7 @@ tightest to loosest:
     N  Autoincrement     ++ --
     R  Exponentiation    **
     L  Symbolic unary    ! + - ~ ? | || +^ ~^ ?^ ^
+    L  Dotty infix       .= .
     L  Multiplicative    * / % %% +& +< +> ~& ~< ~> ?& div mod gcd lcm
     L  Additive          + - +| +^ ~| ~^ ?| ?^
     L  Replication       x xx
@@ -35,12 +36,12 @@ tightest to loosest:
     X  Tight and         &&
     X  Tight or          || ^^ // min max
     R  Conditional       ?? !! ff fff
-    R  Item assignment   = => += -= **= xx= .=
+    R  Item assignment   = => += -= **= xx=
     L  Loose unary       so not
     X  Comma operator    , :
     X  List infix        Z minmax X X~ X* Xeqv ...
     R  List prefix       print push say die map substr ... [+] [*] any Z=
-    X  Loose and         and andthen
+    X  Loose and         and andthen notandthen
     X  Loose or          or xor orelse
     X  Sequencer         <==, ==>, <<==, ==>>
     N  Terminator        ; {...}, unless, extra ), ], }
@@ -212,6 +213,7 @@ Although not strictly operators, methods can be used in the same fashion.
     $a .= round;      # RESULT: «3»
 
 =head1 Negated Relational Operators
+X<|! (negation meta operator)>X<|!==>X<|!eq>
 
 The result of a relational operator returning C<Bool> can be negated by
 prefixing with C<!>. To avoid visual confusion with the C<!!> operator,
@@ -241,7 +243,7 @@ with C<R>. Associativity of operands is reversed as well.
 Hyper operators apply a given operator enclosed by C<«> and C<»> to one or two
 lists, returning the resulting list. The pointy part of C<«> or C<»> has to
 point to the shorter list. A list with just one element is fine too. If one of
-the lists is shorter then the other, the operator will cycle over the shorter
+the lists is shorter than the other, the operator will cycle over the shorter
 list until all elements of the longer list are processed.
 
     say (1, 2, 3) »*» 2;          # OUTPUT: «(2 4 6)␤»
@@ -531,7 +533,7 @@ its argument using the same rules as the L<interpolating quote-words operator|
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     my $fruit = "kiwi";
-    say %color«cherry $fruit».perl;   # OUTPUT: «("red", "green")␤»
+    say %color«cherry "$fruit"».perl;   # OUTPUT: «("red", "green")␤»
 
 This is not a real operator, just syntactic sugar that is turned into the
 C<{ }> postcircumfix operator at compile-time.
@@ -620,8 +622,10 @@ X<Hyper method call operator>. Will call a method on all elements of a C<List> o
     say @a».&foo;                     # So we can pretend to have a method call with a sub that got a good first positional argument.
     say @a».&{ .ord};                 # Blocks have an implicit positional arguments that lands in $_. The latter can be omitted for method calls.
 
-Take care to avoid a common mistake of expecting side-effects to occur in order. The following
-C<say> is B<not> guaranteed to produce the output in order:
+Take care to avoid a
+L<common mistake|/language/traps#Using_»_and_map_interchangeably> of expecting
+side-effects to occur in order. The following C<say> is B<not>
+guaranteed to produce the output in order:
 
     =begin code :skip-test
     @a».say;  # WRONG! Could produce a␤b␤c␤ or c␤b␤a␤ or any other order
@@ -654,7 +658,7 @@ call.
 If the postfix is an identifier, however, it will be interpreted as a normal
 method call.
 
-=begin code :skip-test
+=begin code
 1.i # No such method 'i' for invocant of type 'Int'
 =end code
 
@@ -882,6 +886,42 @@ excluding) the argument.
     say ^5;         # OUTPUT: «0..^5␤»
     for ^5 { }      # 5 iterations
 
+=head1 Dotty Infix Precedence
+
+These operators are like their Method Postfix counterparts, but require
+surrounding whitespace (before and/or after) to distinguish them.
+
+=head2 infix C«.=»
+
+Calls the right-side method on the value in the left-side container,
+replacing the resulting value in the left-side container.
+
+In most cases this behaves identically to the postfix mutator, but the
+precedence is lower so:
+
+=for code :skip-test
+    my $a = -5
+    say ++$a.=abs
+    # OUTPUT: «6␤»
+    say ++$a .= abs
+    # OUTPUT: «Cannot modify an immutable Int␤
+    #           in block <unit> at <tmp> line 1␤␤»
+
+=head2 infix C«.»
+
+Calls the following method (whose name must be alphabetic) on the left-side
+invocant.
+
+Note that the infix form of the operator has a slightly lower precedence
+than postfix C<.meth>.
+
+    say -5.abs;      # like: -(5.abs)
+    # OUTPUT: «-5␤»
+    say -5 . abs;    # like: (-5) . abs
+    # OUTPUT: «5␤»
+    say -5 .abs;     # following whitespace is optional
+    # OUTPUT: «5␤»
+
 =head1 Multiplicative Precedence
 
 =head2 infix C«*»
@@ -1089,10 +1129,11 @@ is returned.
 
     multi sub infix:<~>(Any,   Any)
     multi sub infix:<~>(Str:D, Str:D)
+    multi sub infix:<~>(Buf:D, Buf:D)
 
 X<String concatenation operator>.
 
-Coerces both arguments to L<Str> and concatenates them.
+Coerces both arguments to L<Str> and concatenates them. If both arguments are L<Buf>, a combined buffer is returned.
 
     say 'ab' ~ 'c';     # OUTPUT: «abc␤»
 
@@ -1207,7 +1248,7 @@ Instead of a role, you can provide an instantiated object. In this case,
 the operator will create a role for you automatically. The role will contain
 a single method named the same as C<$obj.^name> and that returns C<$obj>:
 
-    =begin code :skip-test
+    =begin code
     say 42 but 'forty two'; # OUTPUT: «forty two␤»
 
     my $s = 12 but class Warbles { method hi { 'hello' } }.new;
@@ -1316,6 +1357,14 @@ X<Numeric inequality operator>.
 Coerces both arguments to L<Numeric> (if necessary), and returns C<True> if they are
 distinct.
 
+Is an alias to C«!==».
+
+=head2 infix C«≠»
+
+Numeric inequality operator.
+
+Equivalent to L«!=», at codepoint U+2260 (NOT EQUAL TO).
+
 =head2 infix C«<»
 
     multi sub infix:«<»(Int:D, Int:D)
@@ -1338,6 +1387,11 @@ X<Numeric less than or equal to operator>.
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if the first argument
 is smaller than or equal to the second.
 
+=head2 infix C«≤»
+
+Numeric less than or equal to operator.
+
+Equivalent to L«<=», at codepoint U+2264 (LESS-THAN OR EQUAL TO).
 
 =head2 infix C«>»
 
@@ -1360,6 +1414,12 @@ X<Numeric greater than or equal to operator>.
 
 Coerces both arguments to L<Real> (if necessary), and returns C<True> if
 the first argument is larger than or equal to the second.
+
+=head2 infix C«≥»
+
+Numeric greater than or equal to operator.
+
+Equivalent to L«>=», at codepoint U+2265 (GREATER-THAN OR EQUAL TO).
 
 =head2 infix C«eq»
 
@@ -1479,7 +1539,7 @@ equivalent:
     say A.new(a => 5) eqv A.new(a => 5);  # OUTPUT: «True␤»
 
 Although the above example works as intended the C<eqv> code has to fall back
-to a slower code path in in order to do its job. One way to avoid this is to
+to a slower code path in order to do its job. One way to avoid this is to
 implement an appropriate infix C<eqv> operator:
 
     my class A {
@@ -1959,7 +2019,7 @@ list:
     # produces (1a9 1b9 1c9 2a9 2b9 2c9 3a9 3b9 3c9)
 
 =head2 infix C«...»
-X<|...,operators>X<|…,operators>X<|lazy list,…>
+X<|...,operators>X<|...^,operators>X<|…,operators>X<|…^,operators>X<|lazy list,…>
 
     multi sub infix:<...>(**@) is assoc<list>
     multi sub infix:<...^>(**@) is assoc<list>
@@ -2057,6 +2117,9 @@ different.
 This will output 43, since C<$b> and C<$a> both represented the same
 object.
 
+Please note that C<:=> is a compile time construct. As such it can not be
+referred to at runtime and thus can't be used as an argument to meta operators.
+
 =head2 infix C«::=»
 
 X<Read-only binding operator>. See L<C<infix :=>|:=>.
@@ -2124,16 +2187,89 @@ to misuse, see L<traps|/language/traps#Loose_boolean_operators>.
 =head2 infix C«andthen»
 
 Returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
-the first undefined argument, otherwise the last argument.
-Short-circuits. The result of the left side is bound to $_ for the
+the first L<undefined|/routine/defined> argument, otherwise the last argument.
+Last argument
+is returned as-is, without being checked for definedness at all.
+Short-circuits. The result of the left side is bound to C<$_> for the
 right side, or passed as arguments if the right side is a
-L«C<Callable>|/type/Callable».
+L«C<Callable>|/type/Callable», whose L<count> must be C<0> or C<1>.
+
+A handy use of this operator is to alias a routine's return value to C<$_> and
+to do additional manipulation with it, such as printing or returning it to
+caller. Since the C<andthen> operator short-circuits, statements on the
+right-hand side won't get executed, unless left-hand side is defined (tip:
+L<Failures|/type/Failure> are never defined, so you can handle them with
+this operator).
+
+    sub load-data {
+        rand  > .5 or return; # simulated load data failure; return Nil
+        (rand > .3 ?? 'error' !! 'good data') xx 10 # our loaded data
+    }
+    load-data.first: /good/ andthen say "$_ is good";
+    # OUTPUT: «(good data is good)␤»
+
+    load-data() andthen .return; # return loaded data, if it's defined
+    die "Failed to load data!!";
+
+The above example will print C<good data is good> only if the subroutine
+returned any items that match C</good/> and will die unless loading data
+returned defined value. The aliasing behaviour lets us pipe the values across
+the operator.
+
+The C<andthen> operator is a close relative of
+L«C<with> statement modifier|/syntax/with orwith without», and some compilers
+compile C<with> to C<andthen>, meaning these two lines have equivalent
+behaviour:
+
+    .say with 42;
+    42 andthen .say;
+
+=head2 infix C«notandthen»
+
+Returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
+the first L<defined|/routine/defined> argument, otherwise the last argument.
+Last argument is returned as-is, without being checked for definedness at all.
+Short-circuits. The result of the left side is bound to C<$_> for the
+right side, or passed as arguments if the right side is a
+L«C<Callable>|/type/Callable», whose L<count> must be C<0> or C<1>.
+
+At first glance, L<notandthen> might appear to be the same thing as L<orelse>
+operator. The difference is subtle: L<notandthen> returns
+L«C<Empty>|/type/Slip#index-entry-Empty-Empty» when it encounters a
+L<defined> item (that isn't the last item), whereas L<orelse> returns that
+item. In other words, L<notandthen> is a means to act when items aren't
+defined, whereas L<orelse> is a means to obtain the first defined item:
+
+=begin code
+    sub all-sensors-down     { [notandthen] |@_, True             }
+    sub first-working-sensor { [orelse]     |@_, 'default sensor' }
+
+    all-sensors-down Nil, Nil, Nil
+      and say 'OMG! All sensors are down!'; # OUTPUT:«OMG! All sensors are down!␤»
+    say first-working-sensor Nil, Nil, Nil; # OUTPUT:«default sensor␤»
+
+    all-sensors-down Nil, 42, Nil
+      and say 'OMG! All sensors are down!'; # No output
+    say first-working-sensor Nil, 42, Nil;  # OUTPUT:«42␤»
+=end code
+
+The C<andthen> operator is a close relative of
+L«C<without> statement modifier|/syntax/with orwith without», and some compilers
+compile C<without> to C<notandthen>, meaning these two lines have equivalent
+behaviour:
+
+=begin code
+    sub good-things { fail }
+
+    'boo'.say without good-things;
+    good-things() notandthen 'boo'.say;
+=end code
 
 =head1 Loose OR Precedence
 
 =head2 infix C«or»
 
-Same as C<infix ||>, except with looser precedence.
+Same as L<infix C<||>|#infix || >, except with looser precedence.
 
 Returns the first argument that evaluates to C<True> in boolean context,
 or otherwise the last argument, it short-circuits. Please note that C<or> is easy
@@ -2142,10 +2278,47 @@ to misuse, see L<traps|/language/traps#Loose_boolean_operators>.
 
 =head2 infix C«orelse»
 
-Similar to C<infix //>. Returns the first defined argument, or else the
-last argument. Short-circuits. The result of the left side is bound to $_ for the
-right side, or passed as arguments if the right side is a
-L«C<Callable>|/type/Callable».
+Similar to C<infix //>, except with looser precedence and C<$_> aliasing.
+
+Returns the first defined argument, or else the last argument. Last argument
+is returned as-is, without being checked for definedness at all.
+Short-circuits. The result of the left side is bound to
+C<$_> for the right side, or passed as an argument if the right side is a
+L«C<Callable>|/type/Callable», whose L<count> must be C<0> or C<1>.
+
+This operator is useful to handle L<Failures|/type/Failure> returned by
+routines, since more often than not, the expected value would be L<defined>,
+while a L<Failure> never is:
+
+    sub meows { ++$ < 4 ?? fail 'out of meows!' !! '🐱' }
+
+    sub meows-processor1 { meows() orelse .return } # return handled Failure
+    sub meows-processor2 { meows() orelse fail $_ } # return re-armed Failure
+    sub meows-processor3 {
+        # Use non-Failure output, or else print a message that stuff's wrong
+        meows() andthen .say orelse ‘something's wrong’.say;
+    }
+
+    say "{.^name}, {.handled}"  # OUTPUT: «Failure, True␤»
+        given meows-processor1;
+    say "{.^name}, {.handled}"  # OUTPUT: «Failure, False␤»
+        given meows-processor2;
+    meows-processor3;           # OUTPUT: «something's wrong␤»
+    meows-processor3;           # OUTPUT: «🐱␤»
+
+=head2 infix C«xor»
+
+Same as L<infix C<^^>|#infix ^^>, except with looser precedence.
+
+Returns the operand that evaluates to C<True> in boolean context, if and
+only if the other operand evaluates to C<False> in boolean context. If
+both operands evaluate to C<False>, returns the last argument. If both
+operands evaluate to C<True>, returns C<Nil>.
+
+When chaining, returns the operand that evaluates to C<True>, if and
+only if there is one such operand. If more than one operand is true,
+it short-circuits after evaluating the second and returns C<Nil>. If all
+operands are false, returns the last one.
 
 =head1 Sequencer Precedence
 

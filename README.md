@@ -1,13 +1,16 @@
-# p6doc -- an attempt to write something like 'perldoc' for Perl 6
+# Official Perl 6 Documentation
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
 An HTML version of this documentation can be found at https://docs.perl6.org/.
+This is currently the recommended way to consume the documentation.
 
-(If you are browsing this repository via github, it will not display most
-files correctly, because this is Perl 6 Pod, and github assumes Perl 5 POD).
+There is also a command line tool called "p6doc".
 
-## Install
+(If you are browsing this repository via GitHub, it will not display most
+files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
+
+## Install p6doc
 
 This module is available via the Perl 6 module ecosystem. Use
 
@@ -16,21 +19,15 @@ This module is available via the Perl 6 module ecosystem. Use
 to install the binaries and make it available in your binaries
 execution path.
 
-Once it has been downloaded, run
-
-    p6doc-index build
-
-to build the index.
-
-## Use
+## Use p6doc
 
 With a Rakudo `perl6` executable in `PATH`, try
 
-    ./bin/p6doc Type::Str
+    ./bin/p6doc Str
 
 to see the documentation for class `Str`, or
 
-    ./bin/p6doc Type::Str.split
+    ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
 skip the `./bin` part if you have installed it via `panda` or
@@ -47,8 +44,7 @@ disk speed and Rakudo version, it might take a while.
 
 Install dependencies by running the following in the checkout directory:
 
-    panda installdeps .       # if you use panda
-    zef --depsonly install .  # if you use zef
+    zef --depsonly install .
 
 If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
 following, to update the shims for installed executables:
@@ -75,7 +71,7 @@ You can then view the examples documentation by pointing your web browser at
 You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
 installed and you will need [nodejs](https://nodejs.org) to perform highlighting.
 
---------
+---------
 
 ## Help Wanted!
 
@@ -166,3 +162,4 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))

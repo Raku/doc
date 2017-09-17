@@ -15,15 +15,13 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Documenting types](#documenting-types)
-- [Testing examples](#testing-examples)
-    - [Skipping tests](#skipping-tests)
+- [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
     - [Invisible index anchors](#invisible-index-anchors)
     - [Viewport size](#viewport-size)
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
-- [Website Styles](#website-styles)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -31,8 +29,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Pod::To::HTML](#podtohtml)
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
-        - [pygmentize](#pygmentize)
-        - [Inline::Python](#inlinepython)
     - [Build and view the documentation](#build-and-view-the-documentation)
 
 ## General principles
@@ -60,10 +56,10 @@ you want to improve, commit your changes, and create a pull request. Should
 questions come up in the process feel free to ask in
 [#perl6 IRC channel](https://perl6.org/community/irc).
 
-If the documentation for a type does not exist create the skeleton of the doc
+If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 MyFunnyRole
+    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
@@ -109,37 +105,16 @@ When providing a code example result or output, use this style:
 
 Any contributions should pass the `make test` target. This insures basic
 integrity of the documentation, and is run automatically by a corresponding
-travis build. Even edits made via the github editor should pass this test.
+travis build. Even edits made via the GitHub editor should pass this test.
 
 The repo should also pass `make xtest` most of the time - this includes
 tests about whitespace and spelling that might be difficult to get right
 on an initial commit, and shouldn't be considered to break the build. If
 you're contributing a patch or pull request, please make sure this passes.
 
-## Testing examples
+## Writing and Testing Examples
 
-To export examples from all .pod6-files use `make extract-examples`. To run
-individual tests pick the right .p6-file from `examples/` as a parameter to
-`perl6`.
-
-### Skipping tests
-
-Some examples fail with compile time exceptions and would interrupt the test
-for a file. Use the pod-config option `skip-test` to skip them.
-
-    =begin code :skip-test
-        your-example-here();
-    =end code
-
-### Catching expected exception
-
-Some tests will throw exceptions that would stop the execution of the extracted
-test file. Use the pod-option `catch-all` to have a default handler installed
-for a single example.
-
-    =begin code :catch-all
-        exception-generator-here();
-    =end code
+See [Writing and Testing Examples](EXAMPLES.md)
 
 ## Testing method completeness
 
@@ -184,6 +159,8 @@ following labels when tagging tickets:
 
 * site   - presentation issue with the website (e.g. invalid HTML)
 * docs   - missing or incorrect documentation (use 'NOTSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
+    * new - this is a new doc item that requires fresh text
+    * update - this is an existing doc item that requires some analysis or editing
 * build  - scripts or libraries that generate the site
 * search - the search component, either for items that are on the site but not searchable, or for search functionality)
 
@@ -194,16 +171,6 @@ Contributors may also specify one of the following tags.
 
 If you would like to contribute documentation or other bug fixes, please use
 github's Pull request feature.
-
-## Website Styles
-
-The `html/css/style.css` file is built from `assets/sass/style.sass`. Please
-don't edit `html/css/style.css` directly, as your changes will be lost
-the next time the SASS file is processed.
-
-[SASS](http://sass-lang.com/) is a superset of CSS, so if you don't know SASS,
-just write in regular CSS. Run `app.pl` to automatically process SASS and copy
-the result over to `html/css/style.css`
 
 ## Building the documentation
 
@@ -221,7 +188,11 @@ computer.  To do this you will need:
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
-    only `nodejs` and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
+    `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
+    - Debian instructions:
+      - Get more modern nodejs than in package manager: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
+      - Run `make init-highlights` to initialize highlights
+      - If that still isn't working try running `npm install node-gyp -g` and try running make command again
 
 ### Dependency installation
 
@@ -274,55 +245,6 @@ or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
 
 The SASS files are compiled when you run `make html`, or `make sass`, or
 start the development webserver (`./app-start`).
-
-#### pygmentize
-
-This program adds syntax highlighting to the code examples.  Highlighting of
-Perl 6 code was added in version 2.0, so you need at least this version if
-you wish to produced syntax highlighted documentation on your local
-computer.
-
-If you use Debian/Jessie, you can install `pygmentize` via the
-`python-pygments` package:
-
-    $ aptitude install python-pygments
-
-On Ubuntu install the package `python-pygments`:
-
-    $ sudo apt-get install python-pygments
-
-On Fedora the package is also named `python-pygments`:
-
-    $ sudo yum install python-pygments
-
-Otherwise, you probably need to use [`pip`](https://pip.pypa.io/en/latest/)
-(the Python package installer):
-
-    $ pip install pygmentize
-
-#### Inline::Python
-
-`Inline::Python` is optional, however will speed up documentation builds
-using syntax highlighting.
-
-First, you'll need the Python Devel header files and libraries if they have not
-already been installed:
-
-On Debian, install the `python-dev` package:
-
-    aptitude install python-dev
-
-On Ubuntu, the package is also named `python-dev`:
-
-    sudo apt-get install python-dev
-
-On Fedora, install the `python-devel` package:
-
-    sudo yum install python-devel
-
-Use `zef` to install the `Inline::Python` module:
-
-    $ zef install Inline::Python
 
 ### Build and view the documentation
 

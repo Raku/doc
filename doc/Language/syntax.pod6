@@ -59,6 +59,7 @@ if True {say "Hello"}
 though you can't leave out any of the remaining whitespace.
 
 =head2 X<Unspace|syntax,\>
+X<|syntax,Unspace>
 
 In many places where the compiler would not allow a space you can use any
 whitespace that is quoted with a backslash. Unspaces in tokens are not
@@ -70,32 +71,81 @@ routine argument lists.
     sub long-name-alignment(+@l) { +@l };
     alignment\         (1,2,3,4).say;
     long-name-alignment(3,5)\   .say;
+    say Inf+Inf\i;
 
-=head2 Separating Statements
+=head2 Separating Statements with Semicolons
 
 A Perl 6 program is a list of statements, separated by semicolons C<;>.
-A semicolon after the final statement (or after the final statement inside a
-block) is optional, though it's good form to include it.
-
-A closing curly brace followed by a newline character implies a statement
-separator, which is why you don't need to write a semicolon after an C<if>
-statement block.
 
 =begin code
-if True {
-    say "Hello";
-}
+say "Hello";
 say "world";
 =end code
 
-Both semicolons are optional here, but leaving them out increases the chance
-of syntax errors when adding more lines later.
+A semicolon after the final statement (or after the final statement inside a
+block) is optional.
 
-You do need to include a semicolon between the C<if> block and the say statement if you want them all on one line.
+=begin code
+say "Hello";
+say "world"
+=end code
+
+=begin code
+if True {
+    say "Hello"
+}
+say "world"
+=end code
+
+=head2 Implied Separator Rule (for statements ending in blocks)
+
+Complete statements ending in bare blocks can omit the trailing semicolon, if no
+additional statements on the same line follow the block's closing curly
+brace C<}>. This is called the "implied separator rule". For example, you
+don't need to write a semicolon after an C<if> statement block as seen above, and
+below.
+
+=begin code
+if True { say "Hello" }
+say "world";
+=end code
+
+However, semicolons are required to separate a block from trailing statements in
+the same line.
 
 =begin code
 if True { say "Hello" }; say "world";
 #                     ^^^ this ; is required
+=end code
+
+This implied statement separator rule applies in other ways, besides control
+statements, that could end with a bare block. For example, in combination with
+the colon C<:> syntax for method calls.
+
+=begin code
+my @names = <Foo Bar Baz>;
+my @upper-case-names = @names.map: { .uc }    # OUTPUT: [FOO BAR BAZ]
+=end code
+
+For a series of blocks that are part of the same C<if>/C<elsif>/C<else> (or similar)
+construct, the implied separator rule only applies at the end of the last block of that series.
+These three are equivalent:
+
+=begin code
+if True { say "Hello" } else { say "Goodbye" }; say "world";
+#                                            ^^^ this ; is required
+=end code
+
+=begin code
+if True { say "Hello" } else { say "Goodbye" } # <- implied statement separator
+say "world";
+=end code
+
+=begin code
+if True { say "Hello" }   # still in the middle of an if/else statement
+else    { say "Goodbye" } # <- no semicolon required because it ends in a block
+                          #    without trailing statements in the same line
+say "world";
 =end code
 
 =head2 Comments
@@ -216,12 +266,28 @@ e.g. C<$x²> does the square of variable C<$x>.  Subscript numerals are TBD.
 
 =head2 Term term:<>
 
-To introduce identifiers that would defy the rules of normal names of
-identifiers use C«term:<>».
+You can use C«term:<>» to introduce new terms.
+
+This is handy for introducing constants that defy the rules of normal identifiers:
 
     use Test; plan 1; constant &term:<👍> = &ok.assuming(True);
     👍
     # OUTPUT: «1..1␤ok 1 - ␤»
+
+But terms don't have to be constant: you can also use them for functions that
+don't take any arguments, and force the parser to expect an operator after them.
+
+For instance:
+
+    sub term:<dice> { (1..6).pick };
+    say dice + dice;
+
+can print any number between 1 and 12.
+
+If instead we had declared `dice` as a regular `sub dice() {
+(1...6).pick }`, the expression `dice + dice` would be parsed as
+`dice(+(dice()))`, resulting in an error because `sub dice` expects zero
+arguments.
 
 =head1 Statements and Expressions
 
@@ -414,7 +480,7 @@ Arrow pairs can have an expression or an identifier on the left-hand side:
 
 Short forms without explicit values:
 
-    =begin code :skip-test
+    =begin code
     my $thing = 42;
     :$thing                 # same as  thing => $thing
     :thing                  # same as  thing => True
@@ -442,15 +508,20 @@ inside:
     say ['a', 'b', 42].join(' ');   # OUTPUT: «a b 42␤»
     #   ^^^^^^^^^^^^^^ Array constructor
 
-The array constructor flattens non-itemized arrays and lists, but not itemized
-arrays themselves:
+If the constructor is given a single L<Iterable>, it'll clone and flatten it.
+If you want an C<Array> with just 1 element that is that C<Iterable>, ensure
+to use a comma after it:
 
     my @a = 1, 2;
-    # flattens:
-    say [@a, 3, 4].elems;       # OUTPUT: «4␤»
+    say [@a].perl;  # OUTPUT: «[1, 2]␤»
+    say [@a,].perl; # OUTPUT: «[[1, 2],]␤»
 
-    # does not flatten:
-    say [[@a], [3, 4]].elems;   # OUTPUT: «2␤»
+The C<Array> constructor does not flatten other types of contents.
+Use the L<Slip> prefix operator (C<|>) to flatten the needed items:
+
+    my @a = 1, 2;
+    say [@a, 3, 4].perl;  # OUTPUT: «[[1, 2], 3, 4]␤»
+    say [|@a, 3, 4].perl; # OUTPUT: «[1, 2, 3, 4]␤»
 
 =head3 Hash literals
 
@@ -476,8 +547,8 @@ non-string keys, use a colon prefix:
 
 Note that with objects as keys, you cannot access non-string keys as strings:
 
-    :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # OUTPUT: «Any␤»
-    :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # OUTPUT: «42␤»
+    say :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # OUTPUT: «(Any)␤»
+    say :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # OUTPUT: «42␤»
 
 =head3 Regex literals
 
@@ -589,8 +660,8 @@ See L<functions|/language/functions>.
     =begin code :skip-test
     # Method invocation. Object (instance) is $person, method is set-name-age
     $person.set-name-age('jane', 98);  # Most common way
-    $person.set-name: 'jane', 98;      # Precedence drop
-    set-name($person: 'jane', 98);     # Invocant marker
+    $person.set-name-age: 'jane', 98;      # Precedence drop
+    set-name-age($person: 'jane', 98);     # Invocant marker
     =end code
 
 =head1 Operators
@@ -626,13 +697,13 @@ operator.
 Wrap an infix operator in C<[ ]> to create a new reduction operator that works
 on a single list of inputs, resulting in a single value.
 
-    [+] <1 2 3 4 5>;        # OUTPUT: «15␤»
+    say [+] <1 2 3 4 5>;    # OUTPUT: «15␤»
     (((1 + 2) + 3) + 4) + 5 # equivalent expanded version
 
 Wrap an infix operator in C<« »> (or the ASCII equivalent C<<< >>>) to create a
 new hyper operator that works pairwise on two lists.
 
-    <1 2 3> «+» <4 5 6> # OUTPUT: «<5 7 9>␤»
+    say <1 2 3> «+» <4 5 6> # OUTPUT: «(5 7 9)␤»
 
 The direction of the arrows indicates what to do when the lists are not the same size.
 
@@ -645,6 +716,6 @@ The direction of the arrows indicates what to do when the lists are not the same
 
 You can also wrap a unary operator with a hyper operator.
 
-    -« <1 2 3> # OUTPUT: «<-1 -2 -3>␤»
+    say -« <1 2 3> # OUTPUT: «(-1 -2 -3)␤»
 
 =end pod

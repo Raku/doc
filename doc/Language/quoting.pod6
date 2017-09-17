@@ -18,13 +18,14 @@ described in more detail in the following sections.
 B<Q[>A literal stringB<]>
 B<｢>More plainly.B<｣>
 B<Q ^>Almost any non-word character can be a delimiter!B<^>
+B<Q ｢｢>Delimiters can be repeated/nested if they are adjacent.B<｣｣>
 
 Delimiters can be nested, but in the plain C<Q> form, backslash escapes
 aren't allowed.  In other words, basic C<Q> strings are as literal as
 possible.
 
 Some delimiters are not allowed immediately after C<Q>, C<q>, or C<qq>. Any
-characters that are allowed in L<identifiers|language/syntax#Identifiers> are
+characters that are allowed in L<identifiers|/language/syntax#Identifiers> are
 not allowed to be used, since in such a case, the quoting construct together
 with such characters are interpreted as an identifier. In addition, C<( )> is
 not allowed because that is interpreted as a function call. If you still wish
@@ -53,7 +54,38 @@ These examples produce:
     This is still a closing curly brace → \
     =end code
 
-The other quote forms add to this basic functionality:
+The behaviour of quoting constructs can be modified with adverbs, as explained
+in detail in later sections.
+
+=begin table
+Short       Long            Meaning
+
+:x          :exec           Execute as command and return results
+
+:w          :words          Split result on words (no quote protection)
+
+:ww         :quotewords     Split result on words (with quote protection)
+
+:q          :single         Interpolate \\, \qq[...] and escaping the delimiter with \
+
+:qq         :double         Interpolate with :s, :a, :h, :f, :c, :b
+
+:s          :scalar         Interpolate $ vars
+
+:a          :array          Interpolate @ vars
+
+:h          :hash           Interpolate % vars
+
+:f          :function       Interpolate & calls
+
+:c          :closure        Interpolate {...} expressions
+
+:b          :backslash      Interpolate \n, \t, etc. (implies :q at least)
+
+:to         :heredoc        Parse result as heredoc terminator
+
+:v          :val            Convert to allomorph if possible
+=end table
 
 =head2 X<Escaping: q|quote,q;quote,' '>
 
@@ -156,24 +188,26 @@ interpolated as well.
 To enter unicode sequences use C<\x> or C<\x[]> with the hex-code of the
 character or a list of characters.
 
-    my $s = "I \x[2665] Perl 6!";
+    my $s = "I \x2665 Perl 6!";
     dd $s;
     # OUTPUT: «Str $s = "I ♥ Perl 6!"␤»
     my $s = "I really \x[2661,2665,2764,1f495] Perl 6!";
     dd $s;
     # OUTPUT: «Str $s = "I really ♡♥❤💕 Perl 6!"␤»
 
-You can also use unicode names with C<\c[]>.
+You can also use L«unicode names|/language/unicode#Entering_Unicode_Codepoints_and_Codepoint_Sequences»
+, L<named sequences|/language/unicode#Named_Sequences>
+and L<name aliases|/language/unicode#Name_Aliases> with L«\c[]|/language/unicode#Entering_Unicode_Codepoints_and_Codepoint_Sequences».
 
     my $s = "Camelia \c[BROKEN HEART] my \c[HEAVY BLACK HEART]!";
     dd $s;
-    # OUTPUT: «Str $s = "Str $s = "Camelia 💔 my ❤!"␤»
+    # OUTPUT: «Str $s = "Camelia 💔 my ❤!"␤»
 
 Interpolation of undefined values will raise a control exception that can be
 caught in the current block with
 L<CONTROL|https://docs.perl6.org/syntax/CONTROL>.
 
-    =begin code :skip-test
+    =begin code
     sub niler {Nil};
     my Str $a = niler;
     say("$a.html", "sometext");
@@ -185,7 +219,7 @@ L<CONTROL|https://docs.perl6.org/syntax/CONTROL>.
 X<|qw word quote>
 
 =for code :allow<B L> :skip-test
-B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words
+B<qw|>! @ # $ % ^ & * \| < > B<|> eqv '! @ # $ % ^ & * | < >'.words.list
 B<q:w {> [ ] \{ \} B<}> eqv ('[', ']', '{', '}')
 B<Q:w |> [ ] { } B<|> eqv ('[', ']', '{', '}')
 
@@ -208,9 +242,9 @@ It's easier to write and to read this:
 =head2 Word quoting: < >
 X«|< > word quote»
 
-=for code :allow<B L> :skip-test
-B«<»a b cB«>» L<eqv> ('a', 'b', 'c');   # OUTPUT: «True␤»
-B«<»a b 42B«>» L<eqv> ('a', 'b', '42'); # OUTPUT: «False␤», the 42 become an IntStr allomorph
+=for code :allow<B L>
+say B«<»a b cB«>» L<eqv> ('a', 'b', 'c');   # OUTPUT: «True␤»
+say B«<»a b 42B«>» L<eqv> ('a', 'b', '42'); # OUTPUT: «False␤», the 42 become an IntStr allomorph
 say < 42 > ~~ Int; # OUTPUT: «True␤»
 say < 42 > ~~ Str; # OUTPUT: «True␤»
 
@@ -266,7 +300,7 @@ you need to use the C<qqw> variant:
 
     my $a = 42;
     my @list = qqw{$a b c};
-    say @list;                # OUTPUT: «42 b c␤»
+    say @list;                # OUTPUT: «[42 b c]␤»
 
 Note that variable interpolation happens before word splitting:
 
@@ -365,7 +399,7 @@ string
 END
 =end code
 
-The contents of the heredoc only begin on the next line, so you can (and
+The contents of the heredoc always begin on the next line, so you can (and
 should) finish the line.
 
 =begin code :skip-test

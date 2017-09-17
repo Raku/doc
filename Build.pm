@@ -7,7 +7,7 @@ use File::Find;
 class Build {
     method build($workdir) {
         my $doc-dir   = $workdir.IO.child('doc');
-        my $dest-pref = $*REPO.repo-chain.first(*.?can-install).prefix.child("doc");
+        my $dest-pref = $*REPO.repo-chain.grep(/site/).first.prefix.child("doc");
         mkdir($dest-pref) unless $dest-pref.d;
 
         my @files = find(dir => "$workdir/doc", type => 'file').list;

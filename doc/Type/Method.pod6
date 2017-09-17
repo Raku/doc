@@ -53,11 +53,45 @@ L<nextsame|/language/functions#index-entry-nextsame-nextsame> and friends.
 
     sub lastcall(--> True)
 
-To stop dispatch in a multi method chain of the current class call C<lastcall>.
-Any call for L<nextsame|/language/functions#index-entry-nextsame-nextsame> and
-friends will continue in the next dispatcher loop (typically a parent class)
-after C<lastcall> is called. Please note that C<lastcall> appears to be a sub
-it acts more like a L<control|/language/control> statement and will always
-operate on the current scope.
+Truncates the current dispatch chain, which means any calls to
+C<nextsame>, C<callsame>, C<nextwith>, and C<callwith> will not
+find any of the next candidates. Note that since C<samewith>
+restarts the dispatch from the start, it's not affected by the
+truncation of current chain with C<lastcall>.
+
+Consider example below. C<foo(6)> uses C<nextsame>
+when C<lastcall> hasn't been called, and so it reaches the C<Any>
+candidate. C<foo(2)> calls C<nextsame> as well, but since
+C<lastcall> was called first, the dispatch chain was truncated and
+the C<Any> candidate was not reached. The last call, C<foo(1)>,
+calls C<lastcall> too, however, it then uses C<samewith>, which
+isn't affected by it, and so the dispatch re-starts from scratch,
+hits the C<Int> candidate with the new argument C<6>, and then
+proceeds to the C<Any> candidate via C<nextsame> (which
+isn't affected by the C<lastcall> that was used before the
+C<samewith> was called):
+
+    multi foo (Int $_) {
+        say "Int: $_";
+        lastcall   when *.is-prime;
+        nextsame   when *  %% 2;
+        samewith 6 when * !%% 2;
+    }
+    multi foo (Any $x) { say "Any $x" }
+
+    foo 6; say '----';
+    foo 2; say '----';
+    foo 1;
+
+    # OUTPUT:
+    # Int: 6
+    # Any 6
+    # ----
+    # Int: 2
+    # ----
+    # Int: 1
+    # Int: 6
+    # Any 6
+
 
 =end pod

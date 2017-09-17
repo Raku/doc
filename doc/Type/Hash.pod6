@@ -24,7 +24,7 @@ for lists of literal strings, with and without interpolation.
     dd %h<oranges bananas>;
     # OUTPUT: «("round", "bendy")␤»
     my $fruit = 'bananas';
-    dd %h«oranges $fruit»;
+    dd %h«oranges "$fruit"»;
     # OUTPUT: «("round", "bendy")␤»
 
 You can add new pairs simply by assigning to an unused key:
@@ -51,7 +51,7 @@ If a L<Pair> is encountered where a value is expected, it is used as a
 hash value:
 
     my %h = 'a', 'b' => 'c';
-    say %h<a>.WHAT;             # OUTPUT: «(Pair)␤»
+    say %h<a>.^name;            # OUTPUT: «Pair␤»
     say %h<a>.key;              # OUTPUT: «b␤»
 
 If the same key appears more than once, the value associated with its last
@@ -60,82 +60,49 @@ occurrence is stored in the hash:
     my %h = a => 1, a => 2;
     say %h<a>;                  # OUTPUT: «2␤»
 
-To assign to a variable without the C<%> sigil, you may use curly braces:
+To assign a hash to a variable which does not have the C<%> sigil, you may use the C<%()> hash
+constructor:
 
-    my $h = { a => 1, b => 2 }; # *See Note*
-    say $h.WHAT;                # OUTPUT: «Hash␤»
+    my $h = %( a => 1, b => 2 );
+    say $h.^name;               # OUTPUT: «Hash␤»
     say $h<a>;                  # OUTPUT: «1␤»
 
-B<NOTE:> If one or more values reference the topic variable, C<$_>, the
+B<NOTE:> Hashes can also be constructed with C<{ }> similarly to how they are
+in Perl 5. It is recommended to use the C<%()> hash constructor, as braces
+are reserved for creating L<Block|/type/Block> objects and therefore braces
+only create Hash objects in specific circumstances.
+
+If one or more values reference the topic variable, C<$_>, the
 right-hand side of the assignment will be interpreted as a L<Block|/type/Block>,
 not a Hash:
 
-    my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" },
-        # ...
-    ];
+=begin code :skip-test
+my @people = [
+    { id => "1A", firstName => "Andy", lastName => "Adams" },
+    { id => "2B", firstName => "Beth", lastName => "Burke" },
+    # ...
+];
 
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
+sub lookup-user (Hash $h) { #`(Do something...) $h }
 
-    my @names = map {
-        my $query = { name => "$_<firstName> $_<lastName>" };
-        say $query.WHAT;       # OUTPUT: «Block␤»
-        say $query<name>;      # fails
-        CATCH { default { put .^name, ': ', .Str } };
-        # OUTPUT: «X::AdHoc: Type Block does not support associative indexing.␤»
-        lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
-    }, @people;
+my @names = map {
+    # While this creates a hash:
+    my $query = { name => "$person<firstName> $person<lastName>" };
+    say $query.^name;      # OUTPUT: «Hash␤»
+    # And this also makes a hash
+    # Doing this will create a Block. Oh no!
+    my $query = { name => "$_<firstName> $_<lastName>" };
+    say $query2.^name;       # OUTPUT: «Block␤»
+    say $query2<name>;      # fails
 
-Instead, you should either:
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::AdHoc: Type Block does not support associative indexing.␤»
+    lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
+}, @people;
+=end code
 
-=begin item
-1) use the C<%()> hash constructor:
-
-=for code :skip-test
-my  $query = %( name => "$_<firstName> $_<lastName>" );
-say $query.WHAT;         # OUTPUT: «Hash␤»
-say $query<name>;        # Andy Adams, Beth Burke, etc.
-=end item
-
-=begin item
-2) assign to a Hash type (C<%>) directly:
-
-=for code :skip-test
-my  %query = name => "$_<firstName> $_<lastName>";   # No braces required
-say %query.WHAT;         # OUTPUT: «Hash␤»
-say %query<name>;        # Andy Adams, Beth Burke, etc.
-=end item
-
-=begin item
-or 3) simply avoid the issue altogether by explicitly providing a name for
-the topic variable:
-
-    my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" }
-    ];
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
-    my @names = map -> $person {
-        my $query = { name => "$person<firstName> $person<lastName>" };
-        say $query.WHAT;     # OUTPUT: «Hash␤»
-        say $query<name>;    # Andy Adams, Beth Burke, etc.
-
-       lookup-user($query);
-    }, @people;
-=end item
-
-Even in the final case, however, specifying a Hash type (C<%>) is still the
-most idiomatic and unambiguous solution:
-
-    my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" }
-    ];
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
-    my @names = @people.map: -> $person {
-        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
-    };
+This would have been avoided if you had used the C<%()> hash constructor.
+Only use curly braces for creating Blocks.
 
 =head2 Slices
 
@@ -155,6 +122,10 @@ Note that with objects as keys, you cannot access non-string keys as strings:
 
     :{ -1 => 41, 0 => 42, 1 => 43 }<0>;  # Any
     :{ -1 => 41, 0 => 42, 1 => 43 }{0};  # 42
+
+Note: The same pitfalls explained about C<{}> sometimes creating Block's also
+apply to C<:{}>. At this time there is no C<%()> version for creating non-string
+keys.
 
 =head2 Constraint value types
 
@@ -270,7 +241,7 @@ C<.keys> is undefined and one anonymous list is never L<===> to another.
     my $second-instant = now;
     %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
     say ($first-instant, $second-instant) ~~ %intervals.keys;       # OUTPUT: «False␤»
-    say ($first-instant, $second-instant) ~~ %intervals.keys.sort;  # OUTPUT: «True␤»
+    say ($first-instant, $second-instant) ~~ %intervals.keys.sort;  # OUTPUT: «False␤»
     say ($first-instant, $second-instant) === %intervals.keys.sort; # OUTPUT: «False␤»
     say $first-instant === %intervals.keys.sort[0];                 # OUTPUT: «True␤»
 
@@ -326,7 +297,7 @@ Defined as:
     multi method classify-list(%mapper, *@list, :&as --> Hash:D)
     multi method classify-list(@mapper, *@list, :&as --> Hash:D)
 
-Populates a L«C<Hash>|/type/Hash by classifying the
+Populates a L«C<Hash>|/type/Hash» by classifying the
 possibly-empty C<@list> of values using the given C<mapper>, optionally
 altering the values using the C<:&as> L«C<Callable>|/type/Callable». The
 C<@list> cannot be lazy.
@@ -407,7 +378,7 @@ Defined as:
     multi method categorize-list(%mapper, *@list, :&as --> Hash:D)
     multi method categorize-list(@mapper, *@list, :&as --> Hash:D)
 
-Populates a L«C<Hash>|/type/Hash by classifying the
+Populates a L«C<Hash>|/type/Hash» by classifying the
 possibly-empty C<@list> of values using the given C<mapper>, optionally
 altering the values using the C<:&as> L«C<Callable>|/type/Callable». The
 C<@list> cannot be lazy.
@@ -448,7 +419,7 @@ Notice how some items, e.g. C<6> and C<7>, are present in several categories.
 
 In multi-level categorization, the categories produced by the mapper can are
 L<Iterables|/type/Iterable> and categorization combines features
-of C<classify|/routine/classify>, by producing nested hashes of classifications
+of L<classify>, by producing nested hashes of classifications
 for each category.
 
     say % .categorize-list: {
@@ -545,6 +516,15 @@ Note that such a initialization could also be written as
     my %wc = 'hash' => 323, 'pair' => 322, 'pipe' => 323;
     my %inv .= push: %wc.invert.unique;
 
+B<Note:> Compared to L«C<append>|/routine/append», C<push> will add the given
+value as is, whereas C<append> will L«C<slip>|/routine/slip» it in:
+
+    my %ha = :a[42, ]; %ha.push: "a" => <a b c a>;
+    say %ha; # OUTPUT: «{a => [42 (a b c a)]}␤»
+
+    my %hb = :a[42, ]; %hb.append: "a" => <a b c a>;
+    say %hb; # OUTPUT: «{a => [42 a b c a]}␤»
+
 =head2 method append
 
 Defined as:
@@ -565,6 +545,16 @@ arguments|/type/Signature#Positional_vs._Named> to C<.append>.
     %h.append('a', 2);
     # OUTPUT: «{{a => [1 2], b => 2, c => 3, d => 4}␤»
 
+B<Note:> Compared to L«C<push>|/routine/push», C<append> will
+L«C<slip>|/routine/slip» in the given value, whereas C<push> will add it as
+is:
+
+    my %hb = :a[42, ]; %hb.append: "a" => <a b c a>;
+    say %hb; # OUTPUT: «{a => [42 a b c a]}␤»
+
+    my %ha = :a[42, ]; %ha.push: "a" => <a b c a>;
+    say %ha; # OUTPUT: «{a => [42 (a b c a)]}␤»
+
 =head2 method default
 
 Defined as:
@@ -574,7 +564,7 @@ Defined as:
 Returns the default value of the invocant, i.e. the value which is returned
 when a non existing key is used to access an element in the C<Hash>.
 Unless the C<Hash> is declared as having a default value by using the
-L<is default|/routine/is default> trait the method returns the type object
+L<is default|/routine/is default (Variable)> trait the method returns the type object
 C<(Any)>.
 
     my %h1 = 'apples' => 3, 'oranges' => 7;
@@ -621,13 +611,40 @@ returns C<(Mu)>.
     my Int %h2 = 'oranges' => 7;             # (values must be of type Int)
     say %h2.of;                              # OUTPUT: «(Int)␤»
 
+=head2 routine dynamic
+
+Defined as:
+
+    method dynamic(--> Bool:D)
+
+Returns C<True> if the invocant has been declared with the L<is dynamic|/routine/is dynamic>
+trait.
+
+    my %a;
+    say %a.dynamic;                          # OUTPUT: «False␤»
+
+    my %b is dynamic;
+    say %b.dynamic;                          # OUTPUT: «True␤»
+
+If you declare a variable with the C<*> twigil C<is dynamic> is implied.
+
+    my %*b;
+    say %*b.dynamic;                         # OUTPUT: «True␤»
+
+Note that in the L<Scalar> case you have to use the C<VAR> method in
+order to get correct information.
+
+    my $s is dynamic = %('apples' => 5);
+    say $s.dynamic;                          # OUTPUT: «False␤»  (wrong, don't do this)
+    say $s.VAR.dynamic;                      # OUTPUT: «True␤»   (correct approach)
+
 =head1 Subscript Adverbs
 
 Some methods are implemented as adverbs on subscripts.
 
 =head2 C<:exists>
 
-The adverb C<:exists> returns C<Bool::True> if a key exists in the Hash. If more then one key is supplied it returns a C<List> of C<Bool>.
+The adverb C<:exists> returns C<Bool::True> if a key exists in the Hash. If more than one key is supplied it returns a C<List> of C<Bool>.
 
     my %h = a => 1, b => 2;
     say %h<a>:exists;   # OUTPUT: «True␤»

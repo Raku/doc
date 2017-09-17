@@ -48,14 +48,17 @@ the importing statement.
 
 C<need> loads a C<compunit> at compile time.
 
-    need MyModule;
+=for code :skip-test
+need MyModule;
 
 Any packages in the namespace defined within will also be available.
 
-    # MyModule.pm
-    unit module MyModule;
+=begin code :skip-test
+# MyModule.pm
+unit module MyModule;
 
-    class MyModule::Class { ... }
+class MyModule::Class {}
+=end code
 
 C<MyModule::Class> will be defined when C<MyModule> is loaded.
 
@@ -63,54 +66,76 @@ C<MyModule::Class> will be defined when C<MyModule> is loaded.
 
 =head3 X<use|compunit>
 
-C<use> loads and then imports from a compunit at compile time.
+C<use> loads and then imports from a compunit at compile time. It will look for
+files that end in C<.pm> or C<.pm6>. See L<here|#Finding_Modules> for where the
+runtime will look for modules.
 
-    use MyModule;
+=for code :skip-test
+use MyModule;
 
 It is equivalent to:
 
-    =begin code :allow<L>
-    L<need|/language/modules#need> MyModule;
-    import MyModule;
-    =end code
+=begin code :allow<L> :skip-test
+L<need|/language/modules#need> MyModule;
+import MyModule;
+=end code
+
+See also L<Selective Importing|/language/modules#Exporting_and_Selective_Importing> to restrict what you import.
 
 =head3 X<require|compunit>
 
 C<require> loads a compunit and imports definite symbols at runtime.
 
-    sub load-mymodule {
-       say "loading MyModule";
-       require MyModule;
-    }
-
-    load-mymodule();
+    say "loading MyModule";
+    require MyModule;
 
 The compunit name can be in a runtime variable if you put it inside an
 indirect lookup.
 
-    sub load-a-module($name){
-       require ::($name);
-    }
-
-    load-a-module('MyModule');
+    my $name = 'MyModule';
+    require ::($name);
 
 The symbols provided by the loaded module will not be imported into the current
 scope. You may use L<dynamic lookup|/language/packages#index-entry-::()> or
 L<dynamic subsets|/language/typesystem#subset> to use them by providing the
 fully qualified name of a symbol.
 
-To import symbols you must define them at compile time.
+To import symbols you must define them at compile time. B<NOTE:> C<require>
+is lexically scoped:
 
     sub do-something {
        require MyModule <&something>;
+       say ::('MyModule'); # MyModule symbol exists here
        something() # &something will be defined here
     }
-
+    say ::('MyModule'); # This will NOT contain the MyModule symbol
     do-something();
     # &something will not be defined here
 
+If C<MyModule> doesn't export C<&something> then C<require> will fail.
 
-If C<MyModule> doesn't export C<&something> then it will fail.
+A C<require> with compile-time symbol will install a placeholder C<package>
+that will be updated to the loaded module, class, or package. Note that the
+placeholder will be kept, B<even if require failed to load the module.>
+This means that checking if a module loaded like this is wrong:
+
+    # *** WRONG: ***
+    try require Foo;
+    if ::('Foo') ~~ Failure { say "Failed to load Foo!"; }
+    # *** WRONG: ***
+
+As the compile-time installed package causes C<::('Foo')> to never be
+a C<Failure>. The correct way is:
+
+    # Use return value to test whether loading succeeded:
+    (try require Foo) === Nil and say "Failed to load Foo!";
+
+    # Or use a run-time symbol lookup with require, to avoid compile-time
+    # package installation:
+    try require ::('Foo');
+    if ::('Foo') ~~ Failure {
+        say "Failed to load Foo!";
+    }
 
 =head2 Exporting and Selective Importing
 
@@ -119,7 +144,7 @@ If C<MyModule> doesn't export C<&something> then it will fail.
 Packages, subroutines, variables, constants and enums are exported by marking
 them with the L<is export> trait (also note the tags available for indicating authors and versions).
 
-    =begin code
+    =begin code :skip-test
     unit module MyModule:ver<1.0.3>:auth<John Hancock (jhancock@example.com)>;
     our $var is export = 3;
     sub foo is export { ... };
@@ -137,7 +162,7 @@ them with the L<is export> trait (also note the tags available for indicating au
 As with all traits, if applied to a routine, "is export" should appear after
 any argument list.
 
-    =begin code
+    =begin code :skip-test
     sub foo(Str $string) is export { ... }
     =end code
 
@@ -145,7 +170,7 @@ You can pass named parameters to C<is export> to group symbols for exporting
 so that the importer can pick and choose. There are three predefined
 tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
 
-    =begin code
+    =begin code :skip-test
     # lib/MyModule.pm
     unit module MyModule;
     sub bag        is export             { ... }
@@ -155,7 +180,7 @@ tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
     sub underpants is export(:ALL)       { ... }
     =end code
 
-    =begin code
+    =begin code :skip-test
     # main.pl
     use lib 'lib';
     use MyModule;          # bag, pants
@@ -171,13 +196,13 @@ task at the moment (see RT #127305). One way the author can provide
 such access is to give each C<export> trait its own unique tag. (And the tag
 can be the object name!) Then the user can either (1) import all objects:
 
-    =begin code
+    =begin code :skip-test
     use Foo :ALL;
     =end code
 
 or (2) import one or more objects selectively:
 
-    =begin code
+    =begin code :skip-test
     use Foo :bar, :s5;
     =end code
 
@@ -192,7 +217,7 @@ no matter whether the using program adds any tag or not.
 
 4. Multiple import tags may be used (separated by commas).  For example:
 
-    =begin code
+    =begin code :skip-test
     # main.pl
     use lib 'lib';
     use MyModule :day, :night; # pants, sunglasses, torch
@@ -213,7 +238,7 @@ scoped package in the C<EXPORT> namespace. For example, C<is
 export(:FOO)> will add the target to the C<UNIT::EXPORT::FOO>
 package. This is what Perl 6 is really using to decide what to import.
 
-    =begin code
+    =begin code :skip-test
     unit module MyModule;
 
     sub foo is export { ... }
@@ -222,7 +247,7 @@ package. This is what Perl 6 is really using to decide what to import.
 
 Is the same as:
 
-    =begin code
+    =begin code :skip-test
     unit module MyModule;
 
     my package EXPORT::DEFAULT {
@@ -238,7 +263,7 @@ For most purposes C<is export> is sufficient but the C<EXPORT>
 packages are useful when you want to produce the exported symbols
 dynamically. For example:
 
-    =begin code
+    =begin code :skip-test
     # lib/MyModule.pm
     unit module MyModule;
 
@@ -252,7 +277,7 @@ dynamically. For example:
 
     =end code
 
-    =begin code
+    =begin code :skip-test
     # main.pl
     use MyModule;
     say sqrt-of-four; # OUTPUT: «2␤»
@@ -267,7 +292,7 @@ must return a L<Map>, where the keys are the symbol names and
 the values are the desired values. The names should include the sigil
 (if any) for the associated type.
 
-    =begin code
+    =begin code :skip-test
     # lib/MyModule.pm
 
     class MyModule::Class { ... }
@@ -283,7 +308,7 @@ the values are the desired values. The names should include the sigil
     }
     =end code
 
-    =begin code
+    =begin code :skip-test
     # main.pl
     use lib 'lib';
     use MyModule;
@@ -295,8 +320,7 @@ the values are the desired values. The names should include the sigil
     =end code
 
 Note, C<EXPORT> can't be declared inside a package because
-presently Rakudo (2015.09) treats C<EXPORT> as part of the
-compunit rather than the package.
+it is part of the compunit rather than the package.
 
 Whereas C<UNIT::EXPORT> packages deal with the named parameters passed
 to C<use>, the C<EXPORT> sub handles positional parameters. If you
@@ -322,7 +346,7 @@ passing C<:DEFAULT> to C<use> along with your positional parameters.
     sub shy is export { say "you found me!" }
     =end code
 
-    =begin code
+    =begin code :skip-test
     # main.pl
     use lib 'lib';
     use MyModule 'foo';
@@ -335,7 +359,7 @@ You can combine `EXPORT` with type captures for interesting
 effect. This example creates a `?` postfix which will only work on
 L<Cool>s.
 
-    =begin code
+    =begin code :skip-test
     # lib/MakeQuestionable.pm
     sub EXPORT(::Questionable) {
         my multi postfix:<?>(Questionable $_) { .so };
@@ -345,7 +369,7 @@ L<Cool>s.
     }
     =end code
 
-    =begin code
+    =begin code :skip-test
     use MakeQuestionable Cool;
     say 0?, 1?, {}?, { a => "b" }?; # OUTPUT: «False True False True␤»
     =end code
@@ -367,13 +391,24 @@ Then use the tag you like and pick the symbol by its name.
 
 =head2 Finding Modules
 
+It is up to the module installer to know where C<compunit> expects modules to
+be placed. There will be a location provided by the distribution and in the
+current home directory. In any case, letting the module installer deal with
+your modules is a safe bet.
+
+    =begin code :skip-test<io>
+    cd your-module-dir
+    zef --force install .
+    =end code
+
 X<|use lib>
 A user may have a collection of modules not found in the normal ecosystem,
 maintained by a module or package manager, but needed regularly.  Instead of
 using the C<use lib> pragma one can use the C<PERL6LIB> environment variable to
 point to module locations.  For example:
 
-    export PERL6LIB=/path/to/my-modules,/path/to/more/modules
+=for code :lang<shell>
+export PERL6LIB=/path/to/my-modules,/path/to/more/modules
 
 Note that the comma (',') is used as the directory separator (instead
 of the colon (':') as with Perl 5 for C<PERL5LIB> or C<PERLLIB>).
@@ -407,28 +442,32 @@ To share your module, do the following:
     =begin item
     Make your project directory look like this:
 
-        Vortex-TotalPerspective/
-        |-- lib
-        |   `-- Vortex
-        |       `-- TotalPerspective.pm
-        |-- doc
-        |   `-- Vortex
-        |       `-- TotalPerspective.pod6
-        |-- LICENSE
-        |-- META6.json
-        |-- README.md
-        `-- t
-            `-- basic.t
+=begin code :skip-test
+Vortex-TotalPerspective/
+|-- lib
+|   `-- Vortex
+|       `-- TotalPerspective.pm
+|-- doc
+|   `-- Vortex
+|       `-- TotalPerspective.pod6
+|-- LICENSE
+|-- META6.json
+|-- README.md
+`-- t
+    `-- basic.t
+=end code
 
     If your project contains other modules that help the main module do
     its job, they should go in your lib directory like so:
 
-        lib
-        `-- Vortex
-            |-- TotalPerspective.pm
-            `-- TotalPerspective
-                |-- FairyCake.pm
-                `-- Gargravarr.pm
+=begin code :skip-test
+lib
+`-- Vortex
+    |-- TotalPerspective.pm
+    `-- TotalPerspective
+        |-- FairyCake.pm
+        `-- Gargravarr.pm
+=end code
     =end item
 
     =item If you have any additional files (such as templates or a dynamic
@@ -442,6 +481,19 @@ To share your module, do the following:
     you might just use the same one that Rakudo Perl 6 uses. Just
     copy/paste the raw form of L<its license|https://github.com/rakudo/rakudo/blob/nom/LICENSE>
     into your own C<LICENSE> file.
+
+    =item The license field in META6.json
+    The license field should be one of the standardized names listed here:
+    https://spdx.org/licenses/, in the case of the B<Artistic 2.0> license which
+    is what many of our ecosystem modules use, its identifier is
+    C<Artistic-2.0>. Having standardized identifiers make it easy for humans
+    and computers alike to know which license was actually used by looking at
+    the metadata!
+
+    =item My license is not on spdx.org or using your own license
+    If you can't find your license on C<spdx.org> or you use your own license,
+    you should put the licenses name in the license field, and under
+    more details here https://design.perl6.org/S22.html#license
 
     =item If you don't yet have any tests, you can leave out the C<t>
     directory and C<basic.t> file for now. For more info on how to write
@@ -474,6 +526,7 @@ To share your module, do the following:
         "version" : "0.1.0",
         "description" : "Wonderful simulation to get some perspective.",
         "authors" : [ "R<Your Name>" ],
+        "license" : "Artistic-2.0",
         "provides" : {
             "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.pm"
         },
@@ -541,7 +594,8 @@ B<That's it! Thanks for contributing to the Perl 6 community!>
 If you'd like to try out installing your module, use the X<zef> module
 installer tool which is included with Rakudo Star Perl 6:
 
-=code zef install Vortex::TotalPerspective
+=for code :lang<shell>
+$ zef install Vortex::TotalPerspective
 
 This will download your module to its own working directory (C<~/.zef>),
 build it there, and install the module into your local Perl 6 installation directory.
@@ -563,10 +617,11 @@ infrastructure. B<Volunteers needed!>
 
 The rough plan is:
 
-        1. fix EVAL precomp bug (nine)
-        2. get Repository API straight
-        3. get zef up to speed
-        4. continue with the metacpan fork for perl6 (jdv79)
+=for code :skip-test<should be numbered items>
+1. fix EVAL precomp bug (nine)
+2. get Repository API straight
+3. get zef up to speed
+4. continue with the metacpan fork for perl6 (jdv79)
 
 The repository with jdv's fork can be found at L<https://github.com/jdv/metacpan-web>
 

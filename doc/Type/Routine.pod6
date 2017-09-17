@@ -34,7 +34,7 @@ keep in mind that it will only resolve an ambiguous dispatch between two C<Routi
 of the same precedence. If one of the C<Routine>s are narrower than another, then
 that one will be called. For example:
 
-    =begin code :skip-test
+    =begin code
     multi sub f() is default { say "Hello there" }
     multi sub f(:$greet) { say "Hello " ~ $greet }
     f();   # "Use of uninitialized value $greet..."
@@ -98,14 +98,16 @@ original routine with the C<callsame>, C<callwith>, C<nextsame> and
 C<nextwith> dispatchers. The return value from the routine is also
 the return value from the wrapper.
 
-C<wrap> returns a wrap handler, which you can pass to L<unwrap> to restore
-the original routine.
+C<wrap> returns an instance of a private class called L<WrapHandle|/type/WrapHandle>,
+which you can pass to L<unwrap> to restore the original routine.
 
 =head2 method unwrap
 
-    method unwrap(Routine:D: $wraphandler)
+    method unwrap($wraphandle)
 
-Restores the original routine after it has been wrapped with L<wrap>.
+Restores the original routine after it has been wrapped with L<wrap>. While
+the signature allows any type to be passed, only the L<WrapHandle|/type/WrapHandle>
+type returned from C<wrap> can usefully be.
 
 =head2 method yada
 
@@ -168,12 +170,65 @@ Calculating 43th prime
 Marks a subroutine as I<pure>, that is, it asserts that for the same input, it
 will always produce the same output without any additional side effects.
 
-This is a promise by the programmer to the compiler that it can constant-fold
+You can mark function as pure even if they throw exceptions in edge cases,
+or if they modify temporary objects; hence the C<is pure> trait can cover
+cases that the compiler cannot deduce on its own. On the other hand, you might
+not want to constant-fold functions that produce a large return value (such
+as the string or list repetition operators, infix C<x> and C<xx>) even if they
+are pure, to avoid large precompilation files.
+
+The C<is pure> trait is a promise by the programmer to the compiler that it
+can constant-fold
 calls to such functions when the arguments are known at compile time.
 
     sub double(Numeric:D $x) is pure {
         2 * $x;
     }
+
+To see it an action with a particular compiler you can try this example:
+
+    sub double-pure($a) is pure {
+        say ‘pure’;
+        $a × 2
+    }
+    sub double-dirty($a) {
+        say ‘dirty’;
+        $a × 2
+    }
+    BEGIN { say ‘Begin’ }
+    say ‘Start’;
+    say double-pure(40) + double-pure(40) for ^2;
+    say ‘Middle’;
+    say double-dirty(5) + double-dirty(5) for ^2;
+    say ‘End’
+
+    # Example output:
+    # Begin
+    # pure
+    # pure
+    # Start
+    # 160
+    # 160
+    # Middle
+    # dirty
+    # dirty
+    # 20
+    # dirty
+    # dirty
+    # 20
+    # End
+
+Essentially this allows the compiler to perform some operations at
+compile time. The benefits of constant-folding I<may> include better
+performance, especially in cases when the folded code is precompiled.
+
+In addition, using a pure function or operator in sink context (that is,
+where the result is discarded) may lead to a warning. The code
+
+    sub double($x) is pure { 2 * $x };
+    double(21);
+    say "anything";
+    # WARNING: «Useless use of "double(21)" in expression "double(21)" in sink context (line 2)»
 
 =head2 trait is rw
 
@@ -268,7 +323,7 @@ adapted, so that this message will disappear!
 
 Hides a routine from showing up in a default backtrace. For example
 
-=begin code :skip-test
+=begin code
 sub inner { die "OH NOEZ" };
 sub outer { inner() };
 outer();
@@ -285,7 +340,7 @@ OH NOEZ
 
 but if C<inner> is marked with C<hidden-from-backtrace>
 
-=begin code :skip-test
+=begin code
 sub inner is hidden-from-backtrace { die "OH NOEZ" };
 sub outer { inner() };
 outer();
