@@ -678,6 +678,24 @@ access all elements:
         say $/.list.join: ', '  # OUTPUT: «a, c␤»
     }
 
+Each capture is a separate L<Match> object, so nested captures nest. In
+the following example, the third capture is accessed by following the
+tree structure, instead of just referencing third capture, as it would
+be done in some other regex engines:
+
+    say "abc" ~~ /(.(.(.)))/;
+    # OUTPUT:
+    # ｢abc｣
+    #    0 => ｢abc｣
+    #        0 => ｢bc｣
+    #            0 => ｢c｣
+
+    say $/[0][0][0]; # OUTPUT: «｢c｣␤»
+
+This also means you can't reference an outer capture from within a capture
+using var
+
+
 =head2 Non-capturing grouping
 
 The parentheses in regexes perform a double role: they group the regex
@@ -733,6 +751,17 @@ Captures can be nested, in which case they are numbered per level
         say "Outer: $0";                # Outer: abc
         say "Inner: $0[0] and $0[1]";   # Inner: b and c
     }
+
+If you need to refer to a capture from within another capture, store
+it in a variable first:
+
+    # !!WRONG!! The $0 refers to a capture *inside* the second capture
+    say "11" ~~ /(\d) ($0)/; # OUTPUT: «Nil␤»
+
+    # CORRECT: $0 is saved into a variable outside the second capture
+    # before it is used inside (the `{}` is needed to update the current match)
+    say "11" ~~ /(\d) {} :my $c = $0; ($c)/;
+    # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
 
 =head2 Named captures
 
