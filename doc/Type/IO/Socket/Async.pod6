@@ -9,18 +9,29 @@
 C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
 server and the client side.
 
-Here is the equivalent example to that in L<IO::Socket::INET> of a simple
-echo server that listens on port 3333:
+Here is a simple example of a simple "hello world"
+http server that listens on port 3333:
 
-=begin code
-use v6.c;
-
+=begin code :skip-test<IO>
 react {
-    whenever IO::Socket::Async.listen('localhost', 3333) -> $conn {
-        whenever $conn.Supply(:bin) -> $buf {
-            await $conn.write: $buf
+    whenever IO::Socket::Async.listen('0.0.0.0', 8080) -> $conn {
+        whenever $conn.Supply.lines {
+            say .Str;
+
+            { try $conn.print(.Str ~ "\n") } for
+            "HTTP/1.1 200 OK",
+            "Content-Type: text/html; charset=UTF-8",
+            "Content-Encoding: UTF-8",
+            "",
+            "<html><body>Hello World!</body></html>";
+
+            $conn.close;
+        }
+        CLOSE {
+            note „{now} connection closed“;
         }
     }
+    CATCH { default { say .^name, ': ', .Str; say "handled in $?LINE"; } }
 }
 =end code
 
