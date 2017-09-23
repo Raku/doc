@@ -1,0 +1,59 @@
+=begin pod :tag<perl6>
+
+=TITLE Enumeration
+
+=SUBTITLE Using the enum type
+
+=head1 X<An example using the enum type|enum, example>
+
+In Perl 6 the C<enum> type is much more complex than in some other languages, and the details
+are found in its type description here: L<enum|/language/typesystem#enum>.
+
+This short document will give a simple example of its use similar to use in C-like languages.
+
+Say we have a program that needs to write to various directories so we want a function that,
+given a directory name, tests it for (1) its existence and (2) whether it can be written to by
+the user of the program.  The results of the test will determine what actions the program
+takes next.
+
+=begin code
+# the directory will have one of these three statuses from the user's perspective:
+enum DirStat <CanWrite NoDir NoWrite>;
+sub check-dir-status($dir --> DirStat) {
+    if $dir.IO.d {
+        # dir exists, can the program user write to it?
+        my $f = "$dir/.tmp";
+        spurt $f, "some text";
+        CATCH {
+            # unable to write for some reason
+            return NoWrite;
+        }
+        # if we get here we must have successfully written to the dir
+        unlink $f;
+        return CanWrite;
+    }
+    # if we get here the dir must not exist
+    return NoDir;
+}
+
+# test each of three directories by a non-root user
+my $dirs =
+    '/tmp',  # normally writeable by any user
+    '/',     # writeable only by root
+    '~/tmp'; # a non-existent dir in the user's home dir
+for @dirs -> $dir {
+    my $stat = check-dir-status $dir;
+    say "status of dir '$dir': $stat";
+    if $stat ~~ CanWrite {
+        say "  user can write to dir: $dir";
+}
+# output
+#   status of dir '/tmp': CanWrite
+#     user can write to dir: /tmp
+#   status of dir '/': NoWrite
+#   status of dir '~/tmp': NoDir
+=end code
+
+=end pod
+
+# vim: expandtab shiftwidth=4 ft=perl6
