@@ -243,7 +243,7 @@ with C<R>. Associativity of operands is reversed as well.
 Hyper operators apply a given operator enclosed by C<«> and C<»> to one or two
 lists, returning the resulting list. The pointy part of C<«> or C<»> has to
 point to the shorter list. A list with just one element is fine too. If one of
-the lists is shorter then the other, the operator will cycle over the shorter
+the lists is shorter than the other, the operator will cycle over the shorter
 list until all elements of the longer list are processed.
 
     say (1, 2, 3) »*» 2;          # OUTPUT: «(2 4 6)␤»
@@ -1529,6 +1529,16 @@ the same, i.e. from the same type and (recursively) contain the same values.
     say 1 eqv 2;                    # OUTPUT: «False␤»
     say 1 eqv 1.0;                  # OUTPUT: «False␤»
 
+Lazy L«C<Iterables>|/type/Iterable» cannot be compared, as
+they're assumed to be infinite. However, the operator will do its best and
+return C<False> if the two lazy C<Iterables> are of different types or
+if only one C<Iterable> is lazy.
+
+    say (1…∞) eqv (1…∞).List; # Both lazy, but different types;   OUTPUT: «False␤»
+    say (1…∞) eqv (1…3);      # Same types, but only one is lazy; OUTPUT: «False␤»
+    (try say (1…∞) eqv (1…∞)) # Both lazy and of the same type. Cannot compare; throws.
+        orelse say $!.^name;  # OUTPUT: «X::Cannot::Lazy␤»
+
 The default C<eqv> operator even works with arbitrary objects. E.g., C<eqv>
 will consider two instances of the same object as being structurally
 equivalent:
@@ -1538,7 +1548,7 @@ equivalent:
     }
     say A.new(a => 5) eqv A.new(a => 5);  # OUTPUT: «True␤»
 
-Although the above example works as intended the C<eqv> code has to fall back
+Although the above example works as intended the C<eqv> code might fall back
 to a slower code path in order to do its job. One way to avoid this is to
 implement an appropriate infix C<eqv> operator:
 

@@ -44,7 +44,7 @@ must be used in conjunction with the atomic operations.
 
 =head1 Routines
 
-=head2 atomic-assign
+=head2 sub atomic-assign
 
 Defined as:
 
@@ -59,7 +59,7 @@ silently truncated. The C<atomic-assign> routine ensures that any required
 barriers are performed such that the changed value will be "published" to
 other threads.
 
-=head2 atomic-fetch
+=head2 sub atomic-fetch
 
 Defined as:
 
@@ -85,7 +85,7 @@ It would be legal for a compiler to observe that C<$i> is not updated in the
 loop, and so lift the read out of the loop, thus causing the program to never
 terminate.
 
-=head2 atomic-fetch-inc
+=head2 sub atomic-fetch-inc
 
 Defined as:
 
@@ -96,7 +96,7 @@ hardware-provided atomic operations. Since the operation is atomic, it is safe
 to use without acquiring a lock. Returns the value as seen before incrementing
 it. Overflow will wrap around silently.
 
-=head2 atomic-fetch-dec
+=head2 sub atomic-fetch-dec
 
 Defined as:
 
@@ -107,7 +107,7 @@ hardware-provided atomic operations. Since the operation is atomic, it is safe
 to use without acquiring a lock. Returns the value as seen before decrementing
 it. Overflow will wrap around silently.
 
-=head2 atomic-fetch-add
+=head2 sub atomic-fetch-add
 
 Defined as:
 
@@ -122,7 +122,7 @@ unbox to a 64-bit integer, an exception will be thrown. If C<$value> otherwise
 overflows C<atomicint> then it will be silently truncated before the addition
 is performed.
 
-=head2 atomic-fetch-sub
+=head2 sub atomic-fetch-sub
 
 Defined as:
 
@@ -137,7 +137,7 @@ too big to unbox to a 64-bit integer, an exception will be thrown. If C<$value>
 otherwise overflows C<atomicint> then it will be silently truncated before the
 subtraction is performed.
 
-=head2 cas
+=head2 sub cas
 
 Defined as:
 
@@ -149,18 +149,18 @@ Performs an atomic compare and swap of the native integer value in location
 C<$target>. The first two forms have semantics like:
 
 =for code :preamble<no strict;>
-    my int $seen = $target;
-    if $seen == $expected {
-        $target = $value;
-    }
-    return $seen;
+my int $seen = $target;
+if $seen == $expected {
+    $target = $value;
+}
+return $seen;
 
 Except it is performed as a single hardware-supported atomic instruction, as
 if all memory access to C<$target> were blocked while it took place. Therefore
 it is safe to attempt the operation from multiple threads without any other
 synchronization. For example:
 
-    my int $master = 0;
+    my atomicint $master = 0;
     await start {
         if cas($master, 0, 1) == 0 {
             say "Master!"
@@ -184,7 +184,7 @@ succeeds. Therefore, an atomic multiply of an C<atomicint> C<$i> by 2 could
 be implemented as:
 
 =for code :preamble<no strict;>
-    cas $i, -> int $current { $current * 2 }
+cas $i, -> int $current { $current * 2 }
 
 If another thread changed the value while C<$current * 2> was being calculated
 then the block would be called again with the latest value for a further

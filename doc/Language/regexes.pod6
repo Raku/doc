@@ -4,6 +4,8 @@
 
 =SUBTITLE Pattern matching against strings
 
+X<|Regular Expressions>
+
 Regular expressions, I<regexes> for short, are a sequence of characters that
 describe a pattern of text. Pattern matching is the process of matching
 those patterns to actual text.
@@ -734,6 +736,17 @@ Captures can be nested, in which case they are numbered per level
         say "Inner: $0[0] and $0[1]";   # Inner: b and c
     }
 
+If you need to refer to a capture from within another capture, store
+it in a variable first:
+
+    # !!WRONG!! The $0 refers to a capture *inside* the second capture
+    say "11" ~~ /(\d) ($0)/; # OUTPUT: «Nil␤»
+
+    # CORRECT: $0 is saved into a variable outside the second capture
+    # before it is used inside (the `{}` is needed to update the current match)
+    say "11" ~~ /(\d) {} :my $c = $0; ($c)/;
+    # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
+
 =head2 Named captures
 
 Instead of numbering captures, you can also give them names. The generic --
@@ -1259,6 +1272,18 @@ Grammars provide an easy way to override what C«<.ws>» matches:
 
 When parsing file formats where some whitespace (for example, vertical
 whitespace) is significant, it's advisable to override C<ws>.
+
+=head3 Perl 5 compatibility adverb
+
+The B<C<:Perl5>> or B<C<:P5>> adverb switch the Regex parsing and matching
+to the way Perl 5 regexes behave:
+
+    so 'hello world' ~~ m:Perl5/^hello (world)/;   # OUTPUT: «True␤»
+    so 'hello world' ~~ m/^hello (world)/;         # OUTPUT: «False␤»
+    so 'hello world' ~~ m/^ 'hello ' ('world')/;   # OUTPUT: «True␤»
+
+The regular behavior is recommended and more idiomatic in Perl 6 of course,
+but the B<C<:Perl5>> adverb can be useful when compatibility with Perl5 is required.
 
 =head2 Matching adverbs
 
