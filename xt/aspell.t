@@ -30,6 +30,7 @@ if @*ARGS {
 }
 
 plan +@files;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 my $proc = shell('aspell -v');
 if $proc.exitcode {
@@ -44,21 +45,31 @@ $dict.say("xt/words.pws".IO.slurp.chomp);
 $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
+my %output;
 for @files -> $file {
-    my $fixer;
-
     if $file ~~ / '.pod6' $/ {
-        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
+        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
+        $fixer.bind-stdin: $pod.stdout: :bin;
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        await $pod.start, $fixer.start, $proc.start;
     } else {
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        await $fixer.start, $proc.start;
     }
 
-    my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>, :in($fixer.out), :out);
-
-    $proc.out.get; # dump first line.
     my $count;
-    for $proc.out.lines -> $line {
+    for %output{$file}.lines -> $line {
+        FIRST next; # dump first line
         next if $line eq '';
         diag $line;
         $count++;
