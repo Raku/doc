@@ -46,26 +46,11 @@ $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
 my %output;
-for @files -> $file {
-    if $file ~~ / '.pod6' $/ {
-        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
-        $fixer.bind-stdin: $pod.stdout: :bin;
-        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
-        $proc.bind-stdin: $fixer.stdout: :bin;
-        %output{$file}="";
-        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
-        $proc.stderr.tap(-> $buf {});
-        await $pod.start, $fixer.start, $proc.start;
-    } else {
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
-        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
-        $proc.bind-stdin: $fixer.stdout: :bin;
-        %output{$file}="";
-        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
-        $proc.stderr.tap(-> $buf {});
-        await $fixer.start, $proc.start;
-    }
+
+sub test-it($promises) {
+
+    my $tasks = await |$promises;
+    my $file = $tasks[0].command[*-1];
 
     my $count;
     for %output{$file}.lines -> $line {
@@ -78,5 +63,36 @@ for @files -> $file {
     my $so-many  = $count // "no";
     ok !$count, "$file has $so-many spelling errors";
 }
+
+my @jobs;
+
+for @files -> $file {
+    if $file ~~ / '.pod6' $/ {
+        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
+        $fixer.bind-stdin: $pod.stdout: :bin;
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$pod.start, $fixer.start, $proc.start];
+    } else {
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$fixer.start, $proc.start];
+    }
+
+    if +@jobs > $max-jobs {
+        test-it(@jobs.shift);
+    }
+}
+
+
+@jobs.map({test-it($_)});
 
 # vim: expandtab shiftwidth=4 ft=perl6
