@@ -4,15 +4,23 @@ use lib 'lib';
 
 my @files;
 
-for qx<git ls-files>.lines -> $file {
-    next if $file eq "LICENSE"|"Makefile";
-    next if $file ~~ / 'custom-theme'/;
-    next if $file ~~ / 'jquery'/;
-    next if $file ~~ / '.png' $/;
-    next if $file ~~ / '.ico' $/;
-    next if $file ~~ / 'util/trigger-rebuild.txt' /;
-
-    push @files, $file;
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    if %*ENV<TEST_FILES> {
+        @files = %*ENV<TEST_FILES>.split(',');
+    } else {
+        for qx<git ls-files>.lines -> $file {
+            next if $file eq "LICENSE"|"Makefile";
+            next if $file ~~ / 'custom-theme'/;
+            next if $file ~~ / 'jquery'/;
+            next if $file ~~ / '.png' $/;
+            next if $file ~~ / '.ico' $/;
+            next if $file ~~ / 'util/trigger-rebuild.txt' /;
+        
+            push @files, $file;
+        }
+    }
 }
 
 plan +@files;
