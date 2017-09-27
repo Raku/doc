@@ -12,9 +12,11 @@ if @*ARGS {
     if %*ENV<TEST_FILES> {
         @files = %*ENV<TEST_FILES>.split(',');
     } else {
-        @files = qx<git ls-files>.lines.grep(* ~~ /'.pod6'/).grep(* ~~ /Type | Language/);
+        @files = qx<git ls-files>.lines;
     }
 }
+
+@files = @files.grep(* ~~ /'.pod6'/).grep(* ~~ /Type | Language/);
 
 plan +@files;
 

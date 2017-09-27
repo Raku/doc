@@ -24,12 +24,10 @@ if @*ARGS {
     if %*ENV<TEST_FILES> {
         @files = %*ENV<TEST_FILES>.split(',');
     } else {
-        for qx<git ls-files>.lines -> $file {
-            next unless $file ~~ / '.' ('pod6'|'md') $/;
-            push @files, $file;
-        }
+        @files = qx<git ls-files>.lines;
     }
 }
+@files = @files.grep({$_.ends-with('.pod6') or $_.ends-with('.md')});
 
 plan +@files;
 

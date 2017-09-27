@@ -25,12 +25,11 @@ if @*ARGS {
     if %*ENV<TEST_FILES> {
         @files = %*ENV<TEST_FILES>.split(',');
     } else { 
-        for qx<git ls-files doc>.lines -> $file {
-            next unless $file ~~ / '.pod6' $/;
-            push @files, $file;
-        }
+        @files = qx<git ls-files doc>.lines;
     }
 }
+
+@files = @files.grep({$_.ends-with('.pod6')});
 
 sub walk($arg) {
     given $arg {
