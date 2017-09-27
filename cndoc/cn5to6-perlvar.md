@@ -170,7 +170,7 @@
 - $BASETIME
 - $^T
 
-    被$\*INITTIME取代。不像Perl5，它不是从公元纪元开始的秒数，而是一个Instant对象，使用以原子
+    被`$*INIT-INSTAN`取代。不像Perl5，它不是从公元纪元开始的秒数，而是一个`Instant`对象，使用以原子
     秒为单位的小数表示。
 
 - $PERL\_VERSION
@@ -185,8 +185,7 @@
 - $EXECUTABLE\_NAME
 - $^X
 
-    被`$*EXECUTABLE-NAME`取代。 注意它在Perl6中是一个`IO`对象，所以使用`~$*EXECUTABLE-NAME`
-    将会得到一个接近于Perl5实现的`Str`。
+   被`$*EXECUTABLE-NAME`取代。注意到Perl 6中还有`$*EXECUTABLE`是个<IO>对象。
 
 ## 正则相关变量
 
