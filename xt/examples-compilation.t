@@ -24,7 +24,7 @@ if @*ARGS {
 } else {
     if %*ENV<TEST_FILES> {
         @files = %*ENV<TEST_FILES>.split(',');
-    } else { 
+    } else {
         @files = qx<git ls-files doc>.lines;
     }
 }
