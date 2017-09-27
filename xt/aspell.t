@@ -22,14 +22,18 @@ my @files;
 if @*ARGS {
     @files = @*ARGS;
 } else {
-    for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.' ('pod6'|'md') $/;
-        next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-        push @files, $file;
+    if %*ENV<TEST_FILES> {
+        @files = %*ENV<TEST_FILES>.split(',');
+    } else {
+        @files = qx<git ls-files>.lines;
     }
 }
 
+@files = @files.grep({$_.ends-with('.pod6') or $_.ends-with('.md')})\
+               .grep({! $_.ends-with('contributors.pod6')});
+
 plan +@files;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 my $proc = shell('aspell -v');
 if $proc.exitcode {
@@ -44,21 +48,16 @@ $dict.say("xt/words.pws".IO.slurp.chomp);
 $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
-for @files -> $file {
-    my $fixer;
+my %output;
 
-    if $file ~~ / '.pod6' $/ {
-        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
-    } else {
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
-    }
+sub test-it($promises) {
 
-    my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>, :in($fixer.out), :out);
+    my $tasks = await |$promises;
+    my $file = $tasks[0].command[*-1];
 
-    $proc.out.get; # dump first line.
     my $count;
-    for $proc.out.lines -> $line {
+    for %output{$file}.lines -> $line {
+        FIRST next; # dump first line
         next if $line eq '';
         diag $line;
         $count++;
@@ -67,5 +66,36 @@ for @files -> $file {
     my $so-many  = $count // "no";
     ok !$count, "$file has $so-many spelling errors";
 }
+
+my @jobs;
+
+for @files -> $file {
+    if $file ~~ / '.pod6' $/ {
+        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
+        $fixer.bind-stdin: $pod.stdout: :bin;
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$pod.start, $fixer.start, $proc.start];
+    } else {
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
+        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$fixer.start, $proc.start];
+    }
+
+    if +@jobs > $max-jobs {
+        test-it(@jobs.shift);
+    }
+}
+
+
+@jobs.map({test-it($_)});
 
 # vim: expandtab shiftwidth=4 ft=perl6

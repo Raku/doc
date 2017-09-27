@@ -14,11 +14,13 @@ my $max-jobs = %*ENV<TEST_THREADS> // 2;
 if @*ARGS {
     @files = @*ARGS;
 } else {
-    for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.pod6' $/;
-        push @files, $file;
+    if %*ENV<TEST_FILES> {
+        @files = %*ENV<TEST_FILES>.split(',');
+    } else {
+        @files = qx<git ls-files>.lines;
     }
 }
+@files = @files.grep(/'.pod6'$/);
 
 plan +@files;
 

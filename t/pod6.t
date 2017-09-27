@@ -2,7 +2,17 @@ use v6;
 use Test;
 use lib 'lib';
 
-my @files = qx<git ls-files>.lines;
+my @files;
+
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    if %*ENV<TEST_FILES> {
+        @files = %*ENV<TEST_FILES>.split(',');
+    } else {
+        @files= qx<git ls-files>.lines;
+    }
+}
 
 plan +@files;
 

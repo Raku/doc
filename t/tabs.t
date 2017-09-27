@@ -4,15 +4,20 @@ use lib 'lib';
 
 my @files;
 
-for qx<git ls-files>.lines -> $file {
-    next if $file eq "LICENSE"|"Makefile";
-    next if $file ~~ / 'custom-theme'/;
-    next if $file ~~ / 'jquery'/;
-    next if $file ~~ / '.png' $/;
-    next if $file ~~ / '.ico' $/;
-
-    push @files, $file;
+if @*ARGS {
+    @files = @*ARGS;
+} else {
+    if %*ENV<TEST_FILES> {
+        @files = %*ENV<TEST_FILES>.split(',');
+    } else {
+        @files = qx<git ls-files>.lines;
+    }
 }
+@files = @files.grep({$_ ne 'LICENSE'|'Makefile'})\
+               .grep({! $_.contains('custom-theme')})\
+               .grep({! $_.contains('jquery')})\
+               .grep({! $_.ends-with('.png')})\
+               .grep({! $_.ends-with('.ico')});
 
 plan +@files;
 
