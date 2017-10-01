@@ -370,38 +370,59 @@ The C<?> quantifier makes the preceding atom match zero or once.
 
 =head2 X<General quantifier: C<** min..max>|regex quantifier,**>
 
-To quantify an atom an arbitrary number of times, you can write something like
-C<a ** 2..5> to match the character C<a> at least twice and at most 5 times.
+To quantify an atom an arbitrary number of times, use C<**> quantifier.
+The quantifier takes a single L<Int> or a L<Range> on the right hand side
+that specifies the number of times to match. If L<Range> is specified,
+the end-points specify the minimum and maximum number of times to match.
 
 =begin code
-say so 'a' ~~ /a ** 2..5/;        # OUTPUT: «False␤»
-say so  'aaa' ~~ /a ** 2..5/;     # OUTPUT: «True␤»
+say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
+say 'a'       ~~ /\w **  2..5/;  # OUTPUT: «Nil␤»
+say 'abc'     ~~ /\w **  2..5/;  # OUTPUT: «｢abc｣␤»
+say 'abcdefg' ~~ /\w **  2..5/;  # OUTPUT: «｢abcde｣␤»
+say 'abcdefg' ~~ /\w ** 2^..^5/; # OUTPUT: «｢abcd｣␤»
+say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
 =end code
 
-If the minimal and maximal number of matches are the same, a single integer
-is possible: C<a ** 5> matches C<a> exactly five times.
+Only basic literal syntax for the right hand side of the quantifier
+is supported, to avoid ambiguities with other regex constructs. If you need
+to use a more complex expression—for example a L<Range> made from
+variables—enclose the L<Range> into curly braces:
 
 =begin code
-say so 'aaaaa' ~~ /a ** 5/;       # OUTPUT: «True␤»
+my $start = 3;
+say 'abcdefg' ~~ /\w ** {$start .. $start+2}/; # OUTPUT: «｢abcde｣␤»
+say 'abcdefg' ~~ /\w ** {π.Int}/;              # OUTPUT: «｢abc｣␤»
 =end code
 
-It's also possible to use non inclusive ranges using a caret:
+Negative values are treated like zero:
 
 =begin code
-say so 'a'    ~~ /a ** 1^..^6/;   # OUTPUT: «False␤» -- there are 2 to 5 'a's in a row
-say so 'aaaa' ~~ /a ** 1^..^6/;   # OUTPUT: «True␤»
+say 'abcdefg' ~~ /\w ** {-Inf}/;     # OUTPUT: «｢｣␤»
+say 'abcdefg' ~~ /\w ** {-42}/;      # OUTPUT: «｢｣␤»
+say 'abcdefg' ~~ /\w ** {-10..-42}/; # OUTPUT: «｢｣␤»
+say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
 =end code
 
-This includes the numeric ranges starting from 0:
+If then, the resultant value is C<Inf>
+or C<NaN> or the resultant L<Range> is empty, non-Numeric, contains C<NaN>
+end-points, or has mimimum effective end-point as C<Inf>, the
+C<X::Syntax::Regex::QuantifierValue> exception will be thrown:
 
 =begin code
-say so 'aaa' ~~ /a ** ^6/;        # OUTPUT: «True␤» -- there are 0 to 5 'a's in a row
-=end code
+(try say 'abcdefg' ~~ /\w ** {42..10}/  ) orelse say ($!.^name, $!.empty-range);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+(try say 'abcdefg' ~~ /\w ** {Inf..Inf}/) orelse say ($!.^name, $!.inf);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+(try say 'abcdefg' ~~ /\w ** {NaN..42}/ ) orelse say ($!.^name, $!.non-numeric-range);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+(try say 'abcdefg' ~~ /\w ** {"a".."c"}/) orelse say ($!.^name, $!.non-numeric-range);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
 
-or a Whatever C<*> operator for an infinite range with a non inclusive minimum:
-
-=begin code
-say so 'aaaa' ~~ /a ** 1^..*/;    # OUTPUT: «True␤» -- there are 2 or more 'a's in a row
+(try say 'abcdefg' ~~ /\w ** {Inf}/) orelse say ($!.^name, $!.inf);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+(try say 'abcdefg' ~~ /\w ** {NaN}/) orelse say ($!.^name, $!.non-numeric);
+    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
 =end code
 
 =head2 X<Modified quantifier: C<%>|regex,%;regex,%%>
