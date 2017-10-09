@@ -750,23 +750,30 @@ Whatever the Signature's return constraint is:
 
 =head2 method ACCEPTS
 
+    multi method ACCEPTS(Signature:D: Signature: $topic)
     multi method ACCEPTS(Signature:D: Capture $topic)
-    multi method ACCEPTS(Signature:D: @topic)
-    multi method ACCEPTS(Signature:D: %topic)
-    multi method ACCEPTS(Signature:D: Signature $topic)
+    multi method ACCEPTS(Signature:D: Mu \topic)
 
-The first three see if the argument could be bound to the capture,
-i.e., if a function with that C<Signature> would be able to be called
-with the C<$topic>:
-
-    (1, 2, :foo) ~~ :($a, $b, :foo($bar));   # RESULT: «True»
-    <a b c d> ~~ :(Int $a);                  # RESULT: «False»
-
-The last returns C<True> if anything accepted by C<$topic> would also
-be accepted by the C<Signature>.
+If C<$topic> is a L<Signature> returns C<True> if anything accepted by C<$topic>
+would also be accepted by the invocant, otherwise returns C<False>:
 
     :($a, $b) ~~ :($foo, $bar, $baz?);   # RESULT: «True»
     :(Int $n) ~~ :(Str);                 # RESULT: «False»
+
+The C<$topic> is a L<Capture>, returns C<True> if it can be bound to the
+invocant, i.e., if a function with invocant's C<Signature> would be able to be
+called with the C<$topic>:
+
+    \(1, 2, :foo) ~~ :($a, $b, :foo($bar)); # RESULT: «True»
+    \(1, :bar)    ~~ :($a);                 # RESULT: «False»
+
+Lastly, the candidate with C<Mu> C<topic> converts C<topic> to L<Capture>
+and follows the same semantics as L<Capture> C<$topic>:
+
+    <a b c d>  ~~ :(Int $a);      # RESULT: «False»
+    42         ~~ :(Int);         # RESULT: «False» (Int.Capture throws)
+    set(<a b>) ~~ :(:$a, :$b);    # RESULT: «True»
+
 
 =head2 method Capture
 
