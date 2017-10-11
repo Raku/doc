@@ -113,6 +113,8 @@ You can assign to multiple keys at the same time with a slice.
 
 =head2 Non-string keys
 
+X<|non-string keys>X<|:{}>
+
 By default keys in C<{ }> are forced to strings. To compose a hash with
 non-string keys, use a colon prefix:
 
@@ -126,6 +128,63 @@ Note that with objects as keys, you cannot access non-string keys as strings:
 Note: The same pitfalls explained about C<{}> sometimes creating Block's also
 apply to C<:{}>. At this time there is no C<%()> version for creating non-string
 keys.
+
+Hash keys are stored as L<Str> values in a normal hash. In many cases this is
+sufficient, but sometimes you want the hash to preserve the objects you are using
+as keys I<as the *exact* objects you are providing to the hash to use as keys>.
+In these moments you want an object hash!
+
+    my %intervals{Instant};
+    my $first-instant = now;
+    %intervals{ $first-instant } = "Our first milestone.";
+    sleep 1;
+    my $second-instant = now;
+    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
+    for %intervals.sort -> (:$key, :$value) {
+        state $last-instant //= $key;
+        say "We noted '$value' at $key, with an interval of {$key - $last-instant}";
+        $last-instant = $key;
+    }
+
+This example uses an object hash that only accepts keys of type L<Instant> to
+implement a rudimentary, yet type-safe, logging mechanism. We utilize a named L<state|/language/variables#The_state_Declarator>
+variable for keeping track of the previous C<Instant> so that we can provide an interval.
+
+The whole point of object hashes is to keep keys as objects-in-themselves.
+Currently object hashes utilize the L<WHICH|/routine/WHICH> method of an object, which returns a
+unique identifier for every mutable object. This is the keystone upon which the object
+identity operator (L<===>) rests. Order and containers really matter here as the order of
+C<.keys> is undefined and one anonymous list is never L<===> to another.
+
+    my %intervals{Instant};
+    my $first-instant = now;
+    %intervals{ $first-instant } = "Our first milestone.";
+    sleep 1;
+    my $second-instant = now;
+    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
+    say ($first-instant, $second-instant) ~~ %intervals.keys;       # OUTPUT: «False␤»
+    say ($first-instant, $second-instant) ~~ %intervals.keys.sort;  # OUTPUT: «False␤»
+    say ($first-instant, $second-instant) === %intervals.keys.sort; # OUTPUT: «False␤»
+    say $first-instant === %intervals.keys.sort[0];                 # OUTPUT: «True␤»
+
+Since C<Instant> defines its own comparison methods, in our example a sort according to
+L<cmp> will always provide the earliest instant object as the first element in the L<List>
+it returns.
+
+If you would like to accept any object whatsoever in your hash, you can use L<Any>!
+
+    my %h{Any};
+    %h{(now)} = "This is an Instant";
+    %h{(DateTime.now)} = "This is a DateTime, which is not an Instant";
+    %h{"completely different"} = "Monty Python references are neither DateTimes nor Instants";
+
+There is a more concise syntax which uses binding.
+
+    my %h := :{ (now) => "Instant", (DateTime.now) => "DateTime" };
+
+The binding is necessary because an object hash is about very solid, specific objects,
+which is something that binding is great at keeping track of but about which assignment doesn't
+concern itself much.
 
 =head2 Constraint value types
 
@@ -203,66 +262,6 @@ pairs can be accessed in the same way as with plain C<.kv>:
 
 You can also loop over a C<Hash> using
 L<destructuring|/type/Signature#Destructuring_Parameters>.
-
-=head2 Object hashes and type constraints
-X<|object hash>X<|:{}>
-
-Hash keys are stored as L<Str> values in a normal hash. In many cases this is
-sufficient, but sometimes you want the hash to preserve the objects you are using
-as keys I<as the *exact* objects you are providing to the hash to use as keys>.
-In these moments you want an object hash!
-
-    my %intervals{Instant};
-    my $first-instant = now;
-    %intervals{ $first-instant } = "Our first milestone.";
-    sleep 1;
-    my $second-instant = now;
-    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
-    for %intervals.sort -> (:$key, :$value) {
-        state $last-instant //= $key;
-        say "We noted '$value' at $key, with an interval of {$key - $last-instant}";
-        $last-instant = $key;
-    }
-
-This example uses an object hash that only accepts keys of type L<Instant> to
-implement a rudimentary, yet type-safe, logging mechanism. We utilize a named L<state|/language/variables#The_state_Declarator>
-variable for keeping track of the previous C<Instant> so that we can provide an interval.
-
-The whole point of object hashes is to keep keys as objects-in-themselves.
-Currently object hashes utilize the L<WHICH|/routine/WHICH> method of an object, which returns a
-unique identifier for every mutable object. This is the keystone upon which the object
-identity operator (L<===>) rests. Order and containers really matter here as the order of
-C<.keys> is undefined and one anonymous list is never L<===> to another.
-
-    my %intervals{Instant};
-    my $first-instant = now;
-    %intervals{ $first-instant } = "Our first milestone.";
-    sleep 1;
-    my $second-instant = now;
-    %intervals{ $second-instant } = "Logging this Instant for spurious raisins.";
-    say ($first-instant, $second-instant) ~~ %intervals.keys;       # OUTPUT: «False␤»
-    say ($first-instant, $second-instant) ~~ %intervals.keys.sort;  # OUTPUT: «False␤»
-    say ($first-instant, $second-instant) === %intervals.keys.sort; # OUTPUT: «False␤»
-    say $first-instant === %intervals.keys.sort[0];                 # OUTPUT: «True␤»
-
-Since C<Instant> defines its own comparison methods, in our example a sort according to
-L<cmp> will always provide the earliest instant object as the first element in the L<List>
-it returns.
-
-If you would like to accept any object whatsoever in your hash, you can use L<Any>!
-
-    my %h{Any};
-    %h{(now)} = "This is an Instant";
-    %h{(DateTime.now)} = "This is a DateTime, which is not an Instant";
-    %h{"completely different"} = "Monty Python references are neither DateTimes nor Instants";
-
-There is a more concise syntax which uses binding.
-
-    my %h := :{ (now) => "Instant", (DateTime.now) => "DateTime" };
-
-The binding is necessary because an object hash is about very solid, specific objects,
-which is something that binding is great at keeping track of but about which assignment doesn't
-concern itself much.
 
 =head2 In place editing of values
 
