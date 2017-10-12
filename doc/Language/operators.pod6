@@ -1195,6 +1195,33 @@ You can also assign immediately as part of the call to temp:
     temp $a = "five";
     =end code
 
+Be warned the C<temp> effects get removed once the block is left. If
+you were to access the value from, say, within a L<Promise> after
+the C<temp> was undone, you'd get the original value, not the C<temp> one:
+
+    =begin code
+    my $v = "original";
+    {
+        temp $v = "new one";
+        start {
+            say "[PROMISE] Value before block is left: `$v`";
+            sleep 1;
+            say "[PROMISE] Block was left while we slept; value is now `$v`";
+        }
+        sleep ½;
+        say "About to leave the block; value is `$v`";
+    }
+    say "Left the block; value is now `$v`";
+    sleep 2;
+
+    # OUTPUT:
+    # [PROMISE] Value before block is left: `new one`
+    # About to leave the block; value is `new one`
+    # Left the block; value is now `original`
+    # [PROMISE] Block was left while we slept; value is now `original`
+    =end code
+
+
 =head2 prefix C«let»
 
     sub prefix:<let>(Mu $a is rw)
