@@ -18,7 +18,7 @@ method open(IO::Handle:D:
     Str :$mode,
     :$r, :$w, :$a, :$x, :$update, :$rw, :$rx, :$ra,
     :$create, :$append, :$truncate, :$exclusive,
-    :$buffer
+    :$out-buffer, :$in-buffer
     --> IO::Handle:D
 )
 
@@ -84,24 +84,15 @@ modes in this case will result in exception being thrown.
 
 In B<6.d> language, path C<'-'> has no special meaning.
 
-Passing the C<:buffer> named argument enables output buffering for the handle,
-while C<:!buffer> disables it. The output buffer size is implementation defined.
-Passing an C<Int> allows the buffer size to be specified (the units are bytes);
-C<:0buffer> is equivalent to disabling output buffering. If a value other than
-an C<Int> or a C<Bool> is passed, it will be coerced into an C<Int>.
-
-When no output buffering options are specified, then the default will be
-C<:buffer> for non-TTY handles, and C<:!buffer> for TTY handles. A Perl 6
-implementation is required to flush the output buffers of C<< PROCESS::<$OUT> >>
-and C<< PROCESS::<$ERR> >> at program exit. All other handles should be
-explicitly closed to ensure that output buffers are flushed as part of the
-closing.
+The C<:out-buffer> and C<:in-buffer> control input and output buffering
+and by default behave as if values were C<Nil>.
+See methods L<out-buffer> and L<in-buffer> for details.
 
 B<Note:> unlike some other languages, Perl 6 does not use reference counting,
-and so B<the file handles are NOT flushed or closed when they go out of scope
-nor reliably at program exit>. While they I<will> get closed when garbage
-collected, garbage collection isn't guaranteed to get run. This means B<you must>
-use an explicit C<close> on handles opened for writing, to avoid data loss, and
+and so B<the file handles are NOT flushed or closed when they go out of scope>.
+While they I<will> get closed when garbage collected, garbage collection isn't
+guaranteed to get run. This means I<you should> use an explicit C<close> on
+handles opened for writing, to avoid data loss, and
 an explicit C<close> is I<recommended> on handles opened for reading as well, so
 that your program does not open too many files at the same time, triggering
 exceptions on further C<open> calls.
@@ -487,6 +478,37 @@ C<X::IO::BinaryMode> exception being thrown.
 my $fh = open 'path/to/file', :w;
 $fh.printf: "The value is %d\n", 32;
 $fh.close;
+
+=head2 method out-buffer
+
+Defined as:
+
+    method out-buffer(--> Int:D) is rw
+
+Controls output buffering and can be set via an argument to L<open>. Takes
+an C<int> as the size of the buffer to use (zero is acceptable). Can take
+a L<Bool>: C<True> means to use default, implementation-defined buffer size;
+C<False> means to disable buffering (equivalent to using C<0> as buffer size).
+
+Lastly, can take a C<Nil> to enable TTY-based buffering control: if
+the handle L<is a TTY|/routine/t>, the buffering is disabled, otherwise,
+default, implementation-defined buffer size is used.
+
+=head2 method in-buffer
+
+Defined as:
+
+    method in-buffer(--> Int:D) is rw
+
+Controls input buffering and can be set via an argument to L<open>.
+Implementations may do partial or no input buffering on
+L<binary|/routine/encoding> handles.
+
+Takes an C<int> as the size of the buffer to use (zero is acceptable). Can
+also take a L<Bool>: C<True> means to use default, implementation-defined buffer
+size; C<False> means to disable buffering (equivalent to using C<0> as buffer
+size). C<Nil> is also accepted and means to use default, implementation-defined
+buffer size
 
 =head2 method put
 
