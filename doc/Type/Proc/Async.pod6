@@ -155,6 +155,8 @@ Note that you cannot call C<stdout> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
 
+Use L«C<.Supply>|/type/Proc::Async#method_Supply>» for merged STDOUT and STDERR.
+
 =head2 method stderr
 
     method stderr(Proc::Async:D: :$bin --> Supply:D)
@@ -181,6 +183,8 @@ captured at all.
 Note that you cannot call C<stderr> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
+
+Use L«C<.Supply>|/type/Proc::Async#method_Supply>» for merged STDOUT and STDERR.
 
 =head2 method w
 
@@ -297,6 +301,32 @@ L<X::Proc::Async::OpenForWriting> exception will the thrown.
 
 C<start> must have been called before calling method say, otherwise an
 L<X::Proc::Async::MustBeStarted> exception is thrown.
+
+=head2 method Supply
+
+    multi method Supply(Proc::Async:D: :$bin!)
+    multi method Supply(Proc::Async:D: :$enc, :$translate-nl)
+
+Returns a L<Supply> of merged L<stdout> and L<stderr> streams. If C<:$bin>
+named argument is provided, the C<Supply> will be binary, producing L<Buf>
+objects, otherwise, it will be in character mode, producing L<Str> objects and
+C<:$enc> named argument can specify L<encoding> to use.
+The C<:$translate-nl> option specifies whether new line endings should be
+translated for to match those used by the current operating system (e.g.
+C<\r\n> on Windows).
+
+    =for code
+    react {
+        with Proc::Async.new: «"$*EXECUTABLE" -e 'say 42; note 100'» {
+            whenever .Supply { .print }  # OUTPUT: «42␤100␤»
+            whenever .start {}
+        }
+    }
+
+It is an error to create both binary and non-binary
+L«C<.Supply>|/type/Proc::Async#method_Supply>». It is also an error
+to use both L«C<.Supply>|/type/Proc::Async#method_Supply>» and either
+L<stderr> or L<stdout> supplies.
 
 =head2 method close-stdin
 
