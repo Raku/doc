@@ -690,7 +690,7 @@ Defined as:
     multi method sort(List:D:      --> Seq:D)
     multi method sort(List:D: &custom-routine-to-use  --> Seq:D)
 
-Sorts the list, smallest element first. By default C<< infix:<cmp> >>
+Sorts the list, smallest element first. By default L«C<< infix:<cmp> >>|/routine/cmp»
 is used for comparing list elements.
 
 If C<&custom-routine-to-use> is provided, and it accepts two arguments,
@@ -708,6 +708,25 @@ Examples:
     say (3, -4, 7, -1, 2, 0).sort;                  # OUTPUT: «(-4 -1 0 2 3 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: *.abs;           # OUTPUT: «(0 -1 2 3 -4 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a }; # OUTPUT: «(7 3 2 0 -4 -1)␤»
+
+Additionally, if C<&custom-routine-to-use> returns a C<List>, elements will be
+sorted based upon multiple values with subsequent values in the C<List> being
+used to break the tie if the comparison between the prior elements evaluate to
+C<Order::Same>.
+
+    my @resistance = (
+        %( first-name => 'Kyle',  last-name => 'Reese'  ),
+        %( first-name => 'Sarah', last-name => 'Connor' ),
+        %( first-name => 'John',  last-name => 'Connor' ),
+    );
+    .say for @resistance.sort: { .<last-name>, .<first-name> };
+
+    #`(
+    OUTPUT:
+      {first-name => John, last-name => Connor}
+      {first-name => Sarah, last-name => Connor}
+      {first-name => Kyle, last-name => Reese}
+    )
 
 =head2 routine unique
 
@@ -1219,6 +1238,31 @@ value of C<.from> called on the first element of the list.
 Assumes the C<List> contains L«C<Match> objects|/type/Match», such as the
 C<$/> variable being a C<List>, when using C<:g> modifier in regexes. Returns the
 value of C<.to> called on the last element of the list.
+
+=head1 Operators
+
+=head2 infix C«cmp»
+
+    multi sub infix:<cmp>(List @a, List @b)
+
+Evaluates C<Lists> by comparing element C<@a[$i]> with C<@b[$i]> (for some
+C<Int $i>, beginning at 0) and returning C<Order::Less>, C<Order::Same>, or
+C<Order::More> depending on if and how the values differ. If the operation
+evaluates to C<Order::Same>, C<@a[$i + 1]> is compared with C<@b[$i + 1]>. This
+is repeated until one is greater than the other or all elements are exhausted.
+
+If the C<Lists> are of different lengths, at most only C<$n> comparisons will be
+made (where C<$n = @a.elems min @b.elems>). If all of those comparisons evaluate
+to C<Order::Same>, the final value is selected based upon which C<List> is
+longer.
+
+    say (1, 2, 3) cmp (1, 2, 3);   # OUTPUT: «Same␤»
+    say (4, 5, 6) cmp (4, 5, 7);   # OUTPUT: «Less␤»
+    say (7, 8, 9) cmp (7, 8, 8);   # OUTPUT: «More␤»
+
+    say (1, 2)    cmp (1, 2, 3);   # OUTPUT: «Less␤»
+    say (1, 2, 3) cmp (1, 2);      # OUTPUT: «More␤»
+    say (9).List  cmp (^10).List;  # OUTPUT: «More␤»
 
 =end pod
 
