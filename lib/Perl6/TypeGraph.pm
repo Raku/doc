@@ -69,9 +69,13 @@ class Perl6::TypeGraph {
         }
         for %.types.values -> $t {
             # roles that have a superclass actually apply that superclass
-            # to the class that does them, so mimic that here:
-            for $t.roles -> $r {
+            # to the class that does them, so mimic that here, including
+            # parent roles
+            my @roles = $t.roles;
+            while @roles {
+                my $r = @roles.shift;
                 $t.super.append: $r.super if $r.super;
+                @roles.append: $r.roles if $r.roles;
             }
             # non-roles default to superclass Any
             if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {
