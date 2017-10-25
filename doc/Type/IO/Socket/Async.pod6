@@ -15,35 +15,40 @@ http server that listens on port 3333:
 =begin code :skip-test<IO>
 react {
     whenever IO::Socket::Async.listen('0.0.0.0', 3333) -> $conn {
-        whenever $conn.Supply.lines {
-            say .Str;
+        whenever $conn.Supply.lines -> $line {
+            $conn.print: qq:heredoc/END/;
+                HTTP/1.1 200 OK
+                Content-Type: text/html; charset=UTF-8
+                Content-Encoding: UTF-8
 
-            { try $conn.print(.Str ~ "\n") } for
-            "HTTP/1.1 200 OK",
-            "Content-Type: text/html; charset=UTF-8",
-            "Content-Encoding: UTF-8",
-            "",
-            "<html><body>Hello World!</body></html>";
-
+                <html>
+                <body>
+                    <h1>Hello World!</h1>
+                    <p>{ $line }</p>
+                </body>
+                </html>
+                END
             $conn.close;
         }
-        CLOSE {
-            note „{now} connection closed“;
+    }
+    CATCH {
+        default {
+            say .^name, ': ', .Str;
+            say "handled in $?LINE";
         }
     }
-    CATCH { default { say .^name, ': ', .Str; say "handled in $?LINE"; } }
 }
 =end code
 
 And a client that connects to it, and prints out what the server answers:
 
 =begin code
-await IO::Socket::Async.connect('localhost', 3333).then( -> $promise {
+await IO::Socket::Async.connect('127.0.0.1', 3333).then( -> $promise {
     given $promise.result {
-        .print('Hello, Perl 6');
+        .print("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n");
         react {
             whenever .Supply() -> $v {
-                $v.say;
+                $v.print;
                 done;
             }
         }
