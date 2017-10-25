@@ -12,6 +12,7 @@ class Perl6::TypeGraph {
         token rolesig    { '[' <-[ \[\] ]>* ']' } # TODO might need to be become better
         rule  inherits   { 'is' <longname>             }
         rule  roles      { 'does' <longname><rolesig>? }
+        rule  aka        { 'aka' <longname> }
 
         rule TOP {
             ^
@@ -20,7 +21,7 @@ class Perl6::TypeGraph {
             <type=longname><rolesig>?
             :my $*CURRENT_TYPE;
             { $*CURRENT_TYPE = $<type>.ast }
-            [ <inherits> | <roles>]*
+            [ <inherits> | <roles> | <aka> ]*
             $
         }
     }
@@ -45,6 +46,9 @@ class Perl6::TypeGraph {
             }
             method roles($/) {
                 $*CURRENT_TYPE.roles.append: $<longname>.ast;
+            }
+            method aka($/) {
+                $*CURRENT_TYPE.aka = $<longname>.ast;
             }
         }
         my @categories;
