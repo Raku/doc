@@ -161,15 +161,6 @@ sub MAIN(
     Bool :$no-proc-async    = False,
     Int  :$parallel = 1,
 ) {
-
-    # TODO: For the moment rakudo doc pod files were copied
-    #       from its repo to subdir doc/Programs and modified to Perl 6 pod.
-    #       The rakudo install needs
-    #       to (1) copy those files to its installation directory (share/pod)
-    #       and (2) use Perl 5's pod2man to convert them to man pages in
-    #       the installation directory (share/man).
-    #
-    #       Then they can be copied to doc/Programs.
     if !$no-highlight {
         if ! $coffee-exe.IO.f {
             say "Could not find $coffee-exe, did you run `make init-highlights`?";
