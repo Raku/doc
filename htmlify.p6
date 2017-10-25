@@ -64,7 +64,6 @@ monitor UrlLog {
 my $url-log = UrlLog.new;
 &rewrite-url.wrap(sub (|c){
     $url-log.log(my \r = callsame);
-#    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
     r
 });
 
@@ -83,8 +82,6 @@ my @menu =
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
-#    ('module', 'Modules'   ) => (),
-#    ('formalities',''      ) => ();
 ;
 
 my $head = slurp 'template/head.html';
@@ -328,7 +325,6 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     }
 }
 
-# XXX: Generalize
 multi write-type-source($doc) {
     sub href_escape($ref) {
         # only valid for things preceded by a protocol, slash, or hash
