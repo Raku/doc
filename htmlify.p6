@@ -150,7 +150,6 @@ sub recursive-dir($dir) {
 # in Rakudo you risk segfaults, weird errors, etc.
 my $proc;
 my $proc-supply;
-my $proc-prom;
 my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee';
 sub MAIN(
     Bool :$typegraph = False,
@@ -158,7 +157,6 @@ sub MAIN(
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
-    Bool :$no-proc-async    = False,
     Int  :$parallel = 1,
 ) {
     if !$no-highlight {
@@ -166,13 +164,8 @@ sub MAIN(
             say "Could not find $coffee-exe, did you run `make init-highlights`?";
             exit 1;
         }
-        if $no-proc-async {
-            warn-user "Proc::Async is disabled, this build will take a very long time.";
-        }
-        else {
-            $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
-            $proc-supply = $proc.stdout.lines;
-        }
+        $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $proc-supply = $proc.stdout.lines;
     }
     say 'Creating html/subdirectories ...';
 
@@ -191,7 +184,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse, :$parallel;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
-    highlight-code-blocks(:no-proc-async($no-proc-async)) unless $no-highlight;
+    highlight-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -949,10 +942,8 @@ sub get-temp-filename {
     %seen-temps{$temp}++;
     $temp;
 }
-sub highlight-code-blocks(:$no-proc-async = False) {
-    unless $no-proc-async {
-        $proc-prom = $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
-    }
+sub highlight-code-blocks {
+    $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
@@ -965,24 +956,17 @@ sub highlight-code-blocks(:$no-proc-async = False) {
         spurt $tmp_fname, $node.contents.join;
         LEAVE try unlink $tmp_fname;
         my $html;
-        if ! $no-proc-async {
-            my $promise = Promise.new;
-            my $tap = $proc-supply.tap( -> $json {
-                my $parsed-json = from-json($json);
-                if $parsed-json<file> eq $tmp_fname {
-                    $promise.keep($parsed-json<html>);
-                    $tap.close();
-                }
-            } );
-            $proc.say($tmp_fname);
-            await $promise;
-            $html = $promise.result;
-        }
-        else {
-            my $command = qq[$coffee-exe ./highlights/highlight-file.coffee "$tmp_fname"];
-            $html = qqx{$command};
-        }
-        $html;
+        my $promise = Promise.new;
+        my $tap = $proc-supply.tap( -> $json {
+            my $parsed-json = from-json($json);
+            if $parsed-json<file> eq $tmp_fname {
+                $promise.keep($parsed-json<html>);
+                $tap.close();
+            }
+        } );
+        $proc.say($tmp_fname);
+        await $promise;
+        $promise.result;
     }
 }
 
