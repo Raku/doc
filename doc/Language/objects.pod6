@@ -617,42 +617,42 @@ describing only parts of an object's behavior and in how roles are applied
 to classes. Or to phrase it differently, classes are meant for managing
 objects and roles are meant for managing behavior and code reuse.
 
-    =begin code :allow<B L>
+    =begin code
     use MONKEY-SEE-NO-EVAL;
     role Serializable {
         method serialize() {
-            self.L<perl>; # very primitive serialization
+            self.perl; # very primitive serialization
         }
         method deserialize($buf) {
-            L<EVAL|/routine/EVAL> $buf; # reverse operation to .perl
+            EVAL $buf; # reverse operation to .perl
         }
     }
 
-    class Point B<does> Serializable {
+    class Point does Serializable {
         has $.x;
         has $.y;
     }
     my $p = Point.new(:x(1), :y(2));
-    my $serialized = $p.serialize;      # method provided by the role
+    my $serialized = $p.serialize;
     my $clone-of-p = Point.deserialize($serialized);
-    say $clone-of-p.x;      # OUTPUT: «1␤»
+    say $clone-of-p.x; # OUTPUT: «1␤»
     =end code
 
 Roles are immutable as soon as the compiler parses the closing curly brace of
 the role declaration.
 
-=head2 Z<>Role Application
+=head2 Role Application
 
 Role application differs significantly from class inheritance. When a role
 is applied to a class, the methods of that role are copied into the class.
-If multiple roles are applied to the same class, conflicts (e.g. attributes or non-multi
-methods of the same name) cause a compile-time error, which can be solved by
-providing a method of the same name in the class.
+If multiple roles are applied to the same class, conflicts (e.g.
+attributes or non-multi methods of the same name) cause a compile-time error,
+which can be solved by providing a method of the same name in the class.
 
 This is much safer than multiple inheritance, where conflicts are never
 detected by the compiler, but are instead resolved to the superclass
-that appears earlier in the method resolution order, which might not be what the
-programmer wanted.
+that appears earlier in the method resolution order, which might not
+be what the programmer wanted.
 
 For example, if you've discovered an efficient method to ride cows, and are
 trying to market it as a new form of popular transportation, you might have
@@ -674,10 +674,11 @@ C<Automobile>, for things that you can drive.
     class Taurus is Bull is Automobile { }
 
     my $t = Taurus.new;
-    $t.steer; # OUTPUT: «Castrates $t␤»
+    say $t.steer;
+    # OUTPUT: «Taurus.new(castrated => Bool::True, direction => Any)␤»
 
 With this setup, your poor customers will find themselves unable to turn
-their Taurus and you won't be able to make more of your product!  In this
+their Taurus and you won't be able to make more of your product! In this
 case, it may have been better to use roles:
 
     =begin code :skip-test
@@ -708,7 +709,7 @@ This code will die with something like:
 
 This check will save you a lot of headaches:
 
-    =begin code :skip-test
+    =begin code :preamble<role Bull-Like{}; role Steerable{};>
     class Taurus does Bull-Like does Steerable {
         method steer($direction?) {
             self.Steerable::steer($direction?)
@@ -740,19 +741,21 @@ produces the same class C<C> as
 
 =head2 Stubs
 
-When a role contains a stubbed method, a non-stubbed version of a method of
-the same name must be supplied at the time the role is applied to a class.
-This allows you to create roles that act as abstract interfaces.
+When a role contains a L<stubbed|/routine/...> method,
+a non-stubbed version of a method of the same name must be supplied
+at the time the role is applied to a class. This allows you to
+create roles that act as abstract interfaces.
 
-    =begin code :allow<B L> :skip-test
+    =begin code :skip-test
     role AbstractSerializable {
-        method serialize() { B<L<...>> }  # literal ... here marks the
+        method serialize() { ... }        # literal ... here marks the
                                           # method as a stub
     }
 
     # the following is a compile time error, for example
     #        Method 'serialize' must be implemented by Point because
     #        it's required by a role
+
     class APoint does AbstractSerializable {
         has $.x;
         has $.y;
@@ -772,7 +775,7 @@ role.
 =head2 Inheritance
 
 Roles cannot inherit from classes, but they may cause any class which does
-that role to inherit from another class.  So if you write:
+that role to inherit from another class. So if you write:
 
     =begin code
     role A is Exception { }
@@ -780,95 +783,112 @@ that role to inherit from another class.  So if you write:
     X::Ouch.^parents.say # OUTPUT: «((Exception))␤»
     =end code
 
-...then C<X::Ouch> will inherit directly from Exception, as we can see above
+then C<X::Ouch> will inherit directly from Exception, as we can see above
 by listing its parents.
 
 =head2 Pecking order
 
 A method defined directly in a class will always override definitions from
-applied roles or from inherited classes.  If no such definition exists, methods
-from roles override methods inherited from classes.  This happens both when
+applied roles or from inherited classes. If no such definition exists, methods
+from roles override methods inherited from classes. This happens both when
 said class was brought in by a role, and also when said class was inherited
 directly.
 
-Note that each candidate for a multi-method is its own method... in this case,
+    role M {
+      method f { say "I am in role M" }
+    }
+
+    class A {
+      method f { say "I am in class A" }
+    }
+
+    class B is A does M {
+      method f { say "I am in class B" }
+    }
+
+    class C is A does M { }
+
+    B.new.f; # OUTPUT «I am in class B␤»
+    C.new.f; # OUTPUT «I am in role M␤»
+
+Note that each candidate for a multi-method is its own method. In this case,
 the above only applies if two such candidates have the same signature.
 Otherwise, there is no conflict, and the candidate is just added to the
 multi-method.
 
 =head2 Automatic Role Punning
 
-Any attempt to directly instantiate a role, as well as many other operations on it,
-will automatically create an instance of a class with the same name as the role, making it
-possible to transparently use a role as if it were a class.
+Any attempt to directly instantiate a role, as well as many other operations
+on it, will automatically create an instance of a class with the same name as
+the role, making it possible to transparently use a role as if it were a class.
 
-=begin code
-role Point {
-    has $.x;
-    has $.y;
-    method abs { sqrt($.x * $.x + $.y * $.y) }
-}
-say Point.new(x => 6, y => 8).abs;
-=end code
+    =begin code
+    role Point {
+        has $.x;
+        has $.y;
+        method abs { sqrt($.x * $.x + $.y * $.y) }
+    }
+    say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
+    =end code
 
 We call this automatic creation of classes I<punning>, and the generated class
 a I<pun>.
 
 =head2 Parameterized Roles
+
 X<|Parameterized Roles>
+
 Roles can be parameterized, by giving them a signature in square brackets:
 
-=begin code
-role BinaryTree[::Type] {
-    has BinaryTree[Type] $.left;
-    has BinaryTree[Type] $.right;
-    has Type $.node;
+    =begin code
+    role BinaryTree[::Type] {
+        has BinaryTree[Type] $.left;
+        has BinaryTree[Type] $.right;
+        has Type $.node;
 
-    method visit-preorder(&cb) {
-        cb $.node;
-        for $.left, $.right -> $branch {
-            $branch.visit-preorder(&cb) if defined $branch;
+        method visit-preorder(&cb) {
+            cb $.node;
+            for $.left, $.right -> $branch {
+                $branch.visit-preorder(&cb) if defined $branch;
+            }
+        }
+        method visit-postorder(&cb) {
+            for $.left, $.right -> $branch {
+                $branch.visit-postorder(&cb) if defined $branch;
+            }
+            cb $.node;
+        }
+        method new-from-list(::?CLASS:U: *@el) {
+            my $middle-index = @el.elems div 2;
+            my @left         = @el[0 .. $middle-index - 1];
+            my $middle       = @el[$middle-index];
+            my @right        = @el[$middle-index + 1 .. *];
+            self.new(
+                node    => $middle,
+                left    => @left  ?? self.new-from-list(@left)  !! self,
+                right   => @right ?? self.new-from-list(@right) !! self,
+            );
         }
     }
-    method visit-postorder(&cb) {
-        for $.left, $.right -> $branch {
-            $branch.visit-postorder(&cb) if defined $branch;
-        }
-        cb $.node;
-    }
-    method new-from-list(::?CLASS:U: *@el) {
-        my $middle-index = @el.elems div 2;
-        my @left         = @el[0 .. $middle-index - 1];
-        my $middle       = @el[$middle-index];
-        my @right        = @el[$middle-index + 1 .. *];
-        self.new(
-            node    => $middle,
-            left    => @left  ?? self.new-from-list(@left)  !! self,
-            right   => @right ?? self.new-from-list(@right) !! self,
-        );
-    }
-}
 
-my $t = BinaryTree[Int].new-from-list(4, 5, 6);
-$t.visit-preorder(&say);    # OUTPUT: «5␤4␤6␤»
-$t.visit-postorder(&say);   # OUTPUT: «4␤6␤5␤»
-=end code
+    my $t = BinaryTree[Int].new-from-list(4, 5, 6);
+    $t.visit-preorder(&say);    # OUTPUT: «5␤4␤6␤»
+    $t.visit-postorder(&say);   # OUTPUT: «4␤6␤5␤»
+    =end code
 
 Here the signature consists only of a type capture, but any signature will do:
 
-=begin code
-use v6.c;
+    =begin code
+    enum Severity <debug info warn error critical>;
 
-enum Severity <debug info warn error critical>;
-
-role Logging[$filehandle = $*ERR] {
-    method log(Severity $sev, $message) {
-        $filehandle.print("[{uc $sev}] $message\n");
+    role Logging[$filehandle = $*ERR] {
+        method log(Severity $sev, $message) {
+            $filehandle.print("[{uc $sev}] $message\n");
+        }
     }
-}
 
-Logging[$*OUT].log(debug, 'here we go');        # OUTPUT: «[DEBUG] here we go␤»
-=end code
+    Logging[$*OUT].log(debug, 'here we go'); # OUTPUT: «[DEBUG] here we go␤»
+    =end code
 
 You can have multiple roles of the same name, but with different signatures;
 the normal rules of multi dispatch apply for choosing multi candidates.
@@ -924,8 +944,8 @@ objects; those objects are called I<meta objects>. Meta objects are, like
 ordinary objects, instances of classes, in this case we call them I<meta
 classes>.
 
-For each object or class you can get the meta object by calling C<.HOW> on
-it. Note that although this looks like a method call, it works more like a macro.
+For each object or class you can get the meta object by calling C<.HOW> on it.
+Note that although this looks like a method call, it works more like a macro.
 
 So, what can you do with the meta object? For one you can check if two
 objects have the same meta class by comparing them for equality:
