@@ -112,7 +112,7 @@ sub f($x) {
     ...
 }
 
-Subtype checking is done by L<smart-matching|smart-match operator>:
+Subtype checking is done by L<smart-matching|/language/operators#infix_~~>:
 
 =for code :preamble<my $type;>
 if $type ~~ Real {
@@ -299,9 +299,12 @@ instance methods).
     say $p.ingredients;     # OUTPUT: «[cheese pepperoni vegetables]␤»
     say $p.get-radius;      # OUTPUT: «42␤»
     say Pizza.get-radius;   # This will fail.
-    CATCH { default { put .^name ~ '--' ~ .Str } };
-    # OUTPUT: «Invocant of method 'get-radius' must be an object instance of type 'Pizza',
-    #          not a type object of type 'Pizza'.  Did you forget a '.new'?»
+    CATCH { default { put .^name ~ ":\n" ~ .Str } };
+    # OUTPUT: «X::Parameter::InvalidConcreteness:␤
+    #          Invocant of method 'get-radius' must be
+    #          an object instance of type 'Pizza',
+    #          not a type object of type 'Pizza'.
+    #          Did you forget a '.new'?»
 
 A method can be both a class and object method by using the
 L<multi|/syntax/multi> declarator:
@@ -337,17 +340,17 @@ of trying to invoke one type of method from the other:
     }
     C.f;        # OUTPUT: «42␤»
     C.new.d;    # This will fail.
-    CATCH { default { put .^name ~ '--' ~ .Str } };
-    # OUTPUT: «Invocant of method 'f' must be a type object of type 'C',
+    CATCH { default { put .^name ~ ":\n" ~ .Str } };
+    # OUTPUT: «X::Parameter::InvalidConcreteness:␤
+    #          Invocant of method 'f' must be a type object of type 'C',
     #          not an object instance of type 'C'.  Did you forget a 'multi'?»
 
 Within methods, C<$.origin> works the same as C<self.origin>, however
 the colon-syntax for method arguments is only supported for method calls
 using C<self>, not the shortcut.
 
-Note that if the relevant methods C<bless>, C<CREATE> of
-L<Mu> are not overloaded, C<self> will point to the type object in those
-methods.
+Note that if the relevant methods C<bless>, C<CREATE> of L<Mu>
+are not overloaded, C<self> will point to the type object in those methods.
 
 On the other hand, C<BUILDALL> and the submethods C<BUILD> and C<TWEAK> are
 called on instances, in different stages of initialization. In the latter two
@@ -381,33 +384,33 @@ Submethods are useful for object construction and destruction tasks, as well
 as for tasks that are so specific to a certain type that subtypes must
 certainly override them.
 
-For example, the L<default method new|/type/Mu#method new> calls submethod
+For example, the L<default method new|/type/Mu#method_new> calls submethod
 C<BUILD> on each class in an L<inheritance|#Inheritance> chain:
 
-=begin code
-class Point2D {
-    has $.x;
-    has $.y;
+    =begin code
+    class Point2D {
+        has $.x;
+        has $.y;
 
-    submethod BUILD(:$!x, :$!y) {
-        say "Initializing Point2D";
+        submethod BUILD(:$!x, :$!y) {
+            say "Initializing Point2D";
+        }
     }
-}
 
-class InvertiblePoint2D is Point2D {
-    submethod BUILD() {
-        say "Initializing InvertiblePoint2D";
+    class InvertiblePoint2D is Point2D {
+        submethod BUILD() {
+            say "Initializing InvertiblePoint2D";
+        }
+        method invert {
+            self.new(x => - $.x, y => - $.y);
+        }
     }
-    method invert {
-        self.new(x => - $.x, y => - $.y);
-    }
-}
 
-say InvertiblePoint2D.new(x => 1, y => 2);
-# OUTPUT: «Initializing Point2D␤»
-# OUTPUT: «Initializing InvertiblePoint2D␤»
-# OUTPUT: «InvertiblePoint2D.new(x => 1, y => 2)␤»
-=end code
+    say InvertiblePoint2D.new(x => 1, y => 2);
+    # OUTPUT: «Initializing Point2D␤»
+    # OUTPUT: «Initializing InvertiblePoint2D␤»
+    # OUTPUT: «InvertiblePoint2D.new(x => 1, y => 2)␤»
+    =end code
 
 See also: L<#Object Construction>.
 
@@ -415,19 +418,17 @@ See also: L<#Object Construction>.
 
 Classes can have I<parent classes>.
 
-=for code :allow<B L> :preamble<class Parent1 {}; class Parent2 {};>
-class Child B<L<is> Parent1 is Parent2> { }
+=for code :preamble<class Parent1 {}; class Parent2 {};>
+class Child is Parent1 is Parent2 { }
 
 If a method is called on the child class, and the child class does not
 provide that method, the method of that name in one of the parent classes is
 invoked instead, if it exists. The order in which parent classes are
 consulted is called the I<method resolution order> (MRO). Perl 6 uses the
-L<C3 method resolution
-order|https://en.wikipedia.org/wiki/C3_linearization>.  You can ask a type
-for its MRO through a call to its meta class:
+L<C3 method resolution order|https://en.wikipedia.org/wiki/C3_linearization>.
+You can ask a type for its MRO through a call to its meta class:
 
-=for code :allow<B L>
-say ListB<.^L<mro|/type/Metamodel::C3MRO#mro>>;      # List() Cool() Any() Mu()
+    say List.^mro;      # ((List) (Cool) (Any) (Mu))
 
 If a class does not specify a parent class, L<Any> is assumed by default.
 All classes directly or indirectly derive from L<Mu>, the root of the type
@@ -464,26 +465,16 @@ object or on another object of the same type.
 Class L<Mu> provides a constructor method called L<new>, which takes named
 arguments and uses them to initialize public attributes.
 
-=begin code :allow<B L>
-class Point {
-    has $.x;
-    has $.y = 2 * $!x;
-}
-my $p = PointB<.L<new>>( x L«=>» 5, y => 2);
-#             ^^^ inherited from class Mu
-say "x: ", $p.x;
-say "y: ", $p.y;
-# OUTPUT: «x: 5␤»
-# OUTPUT: «y: 2␤»
-
-my $p2 = PointB<.new>( x => 5 );
-# the given value for x is used to calculate the right
-# value for y.
-say "x: ", $p2.x;
-say "y: ", $p2.y;
-# OUTPUT: «x: 5␤»
-# OUTPUT: «y: 10␤»
-=end code
+    class Point {
+        has $.x;
+        has $.y;
+    }
+    my $p = Point.new( x => 5, y => 2);
+    #             ^^^ inherited from class Mu
+    say "x: ", $p.x;
+    say "y: ", $p.y;
+    # OUTPUT: «x: 5␤»
+    # OUTPUT: «y: 2␤»
 
 C<Mu.new> calls method L<bless> on its invocant, passing all the named
 arguments. C<bless> creates the new object and then calls method C<BUILDALL>
@@ -493,10 +484,9 @@ existence of a method named C<BUILD>. If the method exists, the method is
 called with all the named arguments from the C<new> method. If not, the public
 attributes from this class are initialized from named arguments of the same
 name. In either case, if neither C<BUILD> nor the default mechanism has
-initialized the attribute, default values are applied (the C<2 * $!x> in the
-example above).
+initialized the attribute, default values are applied.
 
-X<TWEAK>
+X<|TWEAK>
 After the C<BUILD> methods have been called, methods named C<TWEAK> are
 called, if they exist, again with all the named arguments that were passed
 to C<new>.
@@ -513,13 +503,13 @@ C<BUILD> submethods can be used to run custom code at object construction
 time. They can also be used for creating aliases for attribute
 initialization:
 
-    =begin code :allow<B L>
+    =begin code
     class EncodedBuffer {
         has $.enc;
         has $.data;
 
-        submethod B<BUILD>(:encoding(:$enc), :$data) {
-            $!enc  L<:=>  $enc;
+        submethod BUILD(:encoding(:$enc), :$data) {
+            $!enc  :=  $enc;
             $!data := $data;
         }
     }
@@ -532,28 +522,29 @@ Since passing arguments to a routine binds the arguments to the parameters,
 a separate binding step is unnecessary if the attribute is used as a
 parameter.  Hence the example above could also have been written as:
 
-=for code :allow<B L> :skip-test
-submethod BUILD(:encoding(:$B<!>enc), :$B<!>data) {
-    # nothing to do here anymore, the signature binding
-    # does all the work for us.
-}
+    =begin code :skip-test
+    submethod BUILD(:encoding(:$!enc), :$!data) {
+        # nothing to do here anymore, the signature binding
+        # does all the work for us.
+    }
+    =end code
 
-However, be careful when using this auto-binding of attributes when the attribute may
-have special type requirements, such as an :$!id that must be a positive integer. Remember,
-default values will be assigned unless you specifically take care of this attribute, and that
-default value will be Any, which would cause a type error.
+However, be careful when using this auto-binding of attributes
+when the attribute may have special type requirements, such as an C<:$!id>
+that must be a positive integer. Remember, default values will be assigned
+unless you specifically take care of this attribute, and that
+default value will be C<Any>, which would cause a type error.
 
 The third implication is that if you want a constructor that accepts
 positional arguments, you must write your own C<new> method:
 
-=for code :allow<B L>
-class Point {
-    has $.x;
-    has $.y;
-    method new($x, $y) {
-        self.L<bless>(:$x, :$y);
+    class Point {
+        has $.x;
+        has $.y;
+        method new($x, $y) {
+            self.bless(:$x, :$y);
+        }
     }
-}
 
 However this is considered poor practice, because it makes correct
 initialization of objects from subclasses harder.
@@ -562,38 +553,40 @@ Another thing to note is that the name C<new> is not special in Perl 6. It
 is merely a common convention. You can call C<bless> from any method at all,
 or use C<CREATE> to fiddle around with low-level workings.
 
-Another pattern of hooking into object creation is by writing your own method
-C<BUILDALL>. To make sure that initialization of superclasses works fine, you
+Another pattern of hooking into object construction is
+by writing your own method C<BUILDALL>. To make sure that
+initialization of superclasses works fine, you
 need to C<callsame> to invoke the parent classes C<BUILDALL>.
 
-=begin code
-class MyClass {
-    method BUILDALL(|) {
-        # initial things here
+    =begin code
+    class MyClass {
+        method BUILDALL(|) {
+            # initial things here
 
-        callsame;   # call the parent classes (or default) BUILDALL
+            callsame;   # call the parent classes (or default) BUILDALL
 
-        # you can do final checks here.
+            # you can do final checks here.
 
-        self # return the fully built object
+            self # return the fully built object
+        }
     }
-}
-=end code
+    =end code
 
 The C<TWEAK> method allows you to check things or modify attributes after
 object construction:
 
-=begin code
-class RectangleWithCachedArea {
-    has ($.x1, $.x2, $.y1, $.y2);
-    has $.area;
-    submethod TWEAK() {
-        $!area = abs( ($!x2 - $!x1) * ( $!y2 - $!y1) );
+    =begin code
+    class RectangleWithCachedArea {
+        has ($.x1, $.x2, $.y1, $.y2);
+        has $.area;
+        submethod TWEAK() {
+            $!area = abs( ($!x2 - $!x1) * ( $!y2 - $!y1) );
+        }
     }
-}
 
-say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
-=end code
+    say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
+    # OUTPUT: «4␤»
+    =end code
 
 =head2 Object Cloning
 
@@ -601,21 +594,20 @@ The cloning is done using L<clone> method available on all objects, which
 shallow-clones both public and private attributes. New values for I<public>
 attributes can be supplied as named arguments.
 
-=begin code
-class Foo {
-    has $.foo = 42;
-    has $.bar = 100;
-}
+    =begin code
+    class Foo {
+        has $.foo = 42;
+        has $.bar = 100;
+    }
 
-my $o1 = Foo.new;
-my $o2 = $o1.clone: :bar(5000);
-say $o1; # Foo.new(foo => 42, bar => 100)
-say $o2; # Foo.new(foo => 42, bar => 5000)
-=end code
+    my $o1 = Foo.new;
+    my $o2 = $o1.clone: :bar(5000);
+    say $o1; # Foo.new(foo => 42, bar => 100)
+    say $o2; # Foo.new(foo => 42, bar => 5000)
+    =end code
 
-See L«documentation for C<Mu.clone>|/routine/clone» for details on how
-non-scalar attributes get cloned, as well as examples of implementing your
-own custom clone methods.
+See document for L<clone> for details on how non-scalar attributes get cloned,
+as well as examples of implementing your own custom clone methods.
 
 =head1 X<Roles|declarator,role>
 
