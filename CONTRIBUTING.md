@@ -30,6 +30,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
     - [Build and view the documentation](#build-and-view-the-documentation)
+        - [Using Docker](#using-docker)
 
 ## General principles
 
@@ -262,3 +263,16 @@ render the HTML documentation
 
 Now point your web browser to http://localhost:3000 to view the
 documentation.
+
+#### Using Docker
+
+You can skip all the above and just build and view documentation with these simple commands (if you have docker already installed):
+
+    $ docker build -t perl6-doc .
+    $ docker run -p 3000:3000 -it -v `pwd`:/doc perl6-doc
+
+This will build the documentation for you by default and it will take some time, but for subsequent use you may want to skip build part if nothing has been changed:
+ 
+    $ docker run -p 3000:3000 -it -v `pwd`:/doc perl6-doc bash -c "perl app.pl daemon"
+
+Now point your web browser to http://localhost:3000 to view the documentation.
