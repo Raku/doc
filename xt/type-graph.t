@@ -1,24 +1,28 @@
 #!/usr/bin/env perl6
 use v6;
+
+use Test;
 use lib 'lib';
 use Perl6::TypeGraph;
 
 my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
-for $t.sorted  -> $type {
+for $t.sorted -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';
-#    next unless ::($type).^name eq $type.name;
     next if $type.packagetype eq 'role';
+    next if $type.name eq 'Failure';
     try {
         my $got = ~$type.mro;
         my $expected = ~::($type).^mro.map: *.^name;
-        say "$got   vs    $expected" if $got ne $expected;
+        is $got, $expected, $type;
         CATCH {
             default {
-                say "Trouble with $type: $_";
+                flunk "Trouble with $type: $_";
             }
         }
     }
 }
+
+done-testing;
 
 # vim: expandtab shiftwidth=4 ft=perl6
