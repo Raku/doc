@@ -10,7 +10,7 @@ Source note
 
 The 00-running.pod file in this directory was copied from
 
-  https://github.com/rakudo/rakudo/tree/nom/docs
+  https://github.com/rakudo/rakudo/tree/master/docs
 
 in commit:
 
