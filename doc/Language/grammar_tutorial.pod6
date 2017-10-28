@@ -2,29 +2,32 @@
 
 =TITLE Grammar Tutorial
 
-=SUBTITLE Why Grammars?
+=head1 Before We Start
 
-Grammars parse strings and return data structures from those strings. Grammars can
-be used to prepare a program for execution, to determine if a program can run at
-all (if it's a valid program), to break down a web page into constituent parts,
-or to identify the different parts of a sentence, among other things.
+=head2 Why grammars?
 
-=SUBTITLE When Would I Use Grammars?
+Grammars parse strings and return data structures from those strings.
+Grammars can be used to prepare a program for execution, to determine
+if a program can run at all (if it's a valid program), to break down
+a web page into constituent parts, or to identify the different parts
+of a sentence, among other things.
 
-If you have strings to tame or interpret, grammars provide the
-tools to do the job.
+=head2 When would I use grammars?
 
-The string could be a file that you're looking to break into sections; perhaps a
-protocol, like SMTP, where you need to specify which "commands" come after
-what user-supplied data; maybe you're designing your own domain specific
-language. Grammars can help.
+If you have strings to tame or interpret, grammars provide the tools
+to do the job.
 
-=SUBTITLE The Broad Concept of Perl Grammars
+The string could be a file that you're looking to break into sections;
+perhaps a protocol, like SMTP, where you need to specify which "commands"
+come after what user-supplied data; maybe you're designing your own
+domain specific language. Grammars can help.
 
-Regular expressions work well for finding patterns in strings. However, for some
-tasks -- like finding multiple patterns at once, or
-combining patterns, or testing for patterns that may surround strings --
-regular expressions, alone, are not enough.
+=head2 The broad concept of grammars
+
+Regular expressions (L<Regexes|/language/regexes>) work well for finding
+patterns in strings. However, for some tasks, like finding multiple patterns
+at once, or combining patterns, or testing for patterns that may surround
+strings regular expressions, alone, are not enough.
 
 When working with HTML, you could define a grammar to recognize HTML tags, both
 the opening and closing elements, and the text in between. You could then
@@ -39,60 +42,63 @@ as you would any other class, except that you use the I<grammar> keyword instead
 of I<class>.
 
     =begin code :skip-test
-    grammar My::Gram { ... }
+    grammar G { ... }
     =end code
 
 Grammars are made up of methods that define a regex, a token, or a rule.
 These are all varieties of different types of match methods. Once you have a
 grammar defined, you call it and pass in a string for parsing.
 
-    =begin code :skip-test
-    my $matchObject = My::Gram.parse($string);
+    =begin code :preamble<grammar G{};>
+    my $matchObject = G.parse($string);
     =end code
 
 Now, you may be wondering, if I have all these regexes defined that just return
-their results, how does that help with parsing strings that may be ahead or backwards in a string, or things that need to be combined from many of
+their results, how does that help with parsing strings that may be ahead
+or backwards in a string, or things that need to be combined from many of
 those regexes... and that's where grammar actions come in.
 
 For every "method" you match in your grammar, you get an action you can use
-to act on that match. You also get an over-arching action that you can use to
-tie together all your matches and to build a data structure. This over-arching
-method is called TOP by default.
+to act on that match. You also get an overarching action that you can use to
+tie together all your matches and to build a data structure. This overarching
+method is called C<TOP> by default.
 
 =head2 The technical overview
 
 As already mentioned, grammars are declared using the I<grammar> keyword and its
 "methods" are declared with I<regex>, or I<token>, or I<rule>.
 
-=item Regex methods are slow but thorough -- they will look back in the string
+=item Regex methods are slow but thorough, which will look back in the string
 and really try.
 
 =item Token methods are faster than regex methods and ignore whitespace.
 
-=item Rule methods are the same as token methods except whitespace is not ignored.
+=item Rule methods are the same as token methods except whitespace
+is not ignored.
 
-When a method (regex, token or rule) matches in the grammar, that matched string
-is put into a match object and keyed with the same name as the method.
+When a method (regex, token or rule) matches in the grammar,
+the string matched is put into a L<match object|/type/Match> and
+keyed with the same name as the method.
 
     =begin code
-    grammar My::Gram {
+    grammar G {
         token TOP { <thingy> .* }
         token thingy { 'clever_text_keyword' }
     }
     =end code
 
-If you were to use my $match = My::Gram.parse( $string ) and your
+If you were to use C<my $match = G.parse($string)> and your
 string started with 'clever_text_keyword', you would get a match
-object back that contained 'clever_text_keyword' keyed by the name of 'thingy'
-in your match object.
+object back that contained 'clever_text_keyword' keyed by
+the name of C«<thingy>» in your match object.
 
-The TOP method (whether regex, token, or rule) is the overarching pattern that must
-match everything (by default). If the parsed string doesn't match the TOP regex,
-your returned match object will be empty (Any).
+The C<TOP> method (whether regex, token, or rule) is the overarching pattern
+that must match everything (by default). If the parsed string doesn't
+match the TOP regex, your returned match object will be empty (C<Nil>).
 
-As you can see above, in TOP, the "<thingy>" token is mentioned. The <thingy>
-is defined on the next line, "token thingy...". That means that
-'clever_text_keyword' B<must> be the first thing in the string or
+As you can see above, in C<TOP>, the C«<thingy>» token is mentioned. The
+C«<thingy>» is defined on the next line. That means that
+C<'clever_text_keyword'> B<must> be the first thing in the string, or
 the grammar parse will fail and we'll get an empty match. This is great for
 recognizing a malformed string that should be discarded.
 
@@ -114,8 +120,8 @@ we'll be working with or a long list of data separated by "/"'s.
 structure that we can easily work with (and later enhance).
 
 So, if we have "/product/update/7/notify", we would want
-our grammar to give us a $match object that has a "I<subject>" of
-"product", a "I<command>" of "update", and "I<data>" of "7/notify" (for now, anyway).
+our grammar to give us a match object that has a C<subject> of
+"product", a C<command> of "update", and C<data> of "7/notify".
 
 We'll start by defining a grammar class and some match methods for the
 subject, command, and data. We'll use the token declarator since we don't care
@@ -150,7 +156,7 @@ regex from our named regexes.
 
 With this code, we can already get the three parts of our RESTful request:
 
-    =begin code :skip-test
+    =begin code :preamble<grammar REST {};>
     my $match = REST.parse('/product/update/7/notify');
     say $match;
 
@@ -160,10 +166,10 @@ With this code, we can already get the three parts of our RESTful request:
     #          data => ｢7/notify｣»
     =end code
 
-The data can be accessed directly by using $match<subject> or
-$match<command> or $match<data> to return the values parsed. They each contain
-match objects that you can work further with, such as coercing into a string (
-$match<command>.Str ).
+The data can be accessed directly by using C«$match<subject>» or
+C«$match<command>» or C«$match<data>» to return the values parsed.
+They each contain match objects that you can work further with,
+such as coercing into a string ( C«$match<command>.Str» ).
 
 =head2 Adding some flexibility
 
