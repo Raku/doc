@@ -30,7 +30,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
     - [Build and view the documentation](#build-and-view-the-documentation)
-        - [Using Docker](#using-docker)
+        - [Using Docker](#using-docker-to-build-and-view-the-documentation)
 
 ## General principles
 
