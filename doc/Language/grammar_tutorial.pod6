@@ -567,6 +567,42 @@ Here's the final code:
     }
     =end code
 
+=head2 Add actions directly
+
+Above we see how to associate grammars with action objects and perform
+actions on the match object. However, when we want to deal with the match
+object, that isn't the only way. See the example below:
+
+    =begin code
+    grammar G {
+      rule TOP { <function-define> }
+      rule function-define {
+        'sub' <identifier>
+        {
+          say "func " ~ $<identifier>.made;
+          make $<identifier>.made;
+        }
+        '(' <parameter> ')' '{' '}'
+        { say "end " ~ $/.made; }
+      }
+      token identifier { \w+ { make ~$/; } }
+      token parameter { \w+ { say "param " ~ $/; } }
+    }
+
+    G.parse('sub f ( a ) { }');
+    # OUTPUT: «func f␤param a␤end f␤»
+    =end code
+
+This example is a reduced portion of a parser. Let's focus more on the feature
+it shows.
+
+First, we can add actions inside the grammar itself, and such actions are
+performed once the control flow of the regex arrives at them. Note that action
+object's method will always be performed after the whole regex item matched.
+Second, it shows what C<make> really does, which is no more than a sugar of
+C<$/.made = ...>. And this trick introduces a way how we pass messages within
+a regex item.
+
 Hopefully this has helped introduce you to the grammars in Perl 6 and shown you
 how grammars and grammar action classes work together. For more information,
 check out the more advanced L<Perl Grammar
