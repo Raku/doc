@@ -345,7 +345,7 @@ Quantifiers bind tighter than concatenation, so C<ab+> matches one C<a>
 followed by one or more C<b>s. This is different for quotes, so C<'ab'+>
 matches the strings C<ab>, C<abab>, C<ababab> etc.
 
-=head2 X<One or more: C<+>|regex,+>
+=head2 X<One or more: C<+>|regex quantifier,+>
 
 The C<+> quantifier makes the preceding atom match one or more times, with
 no upper limit.
@@ -355,7 +355,7 @@ like this:
 
     / \w+ '=' \w+ /
 
-=head2 X<Zero or more: C<*>|regex,*>
+=head2 X<Zero or more: C<*>|regex quantifier,*>
 
 The C<*> quantifier makes the preceding atom match zero or more times, with
 no upper limit.
@@ -364,9 +364,13 @@ For example, to allow optional whitespace between C<a> and C<b> you can write
 
     / a \s* b /
 
-=head2 X<Zero or one match: C<?>|regex,?>
+=head2 X<Zero or one: C<?>|regex quantifier,?>
 
 The C<?> quantifier makes the preceding atom match zero or once.
+
+From example, to match C<dog> or C<dogs>, you can write:
+
+    / dogs? /
 
 =head2 X<General quantifier: C<** min..max>|regex quantifier,**>
 
@@ -375,57 +379,63 @@ The quantifier takes a single L<Int> or a L<Range> on the right hand side
 that specifies the number of times to match. If L<Range> is specified,
 the end-points specify the minimum and maximum number of times to match.
 
-=begin code
-say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
-say 'a'       ~~ /\w **  2..5/;  # OUTPUT: «Nil␤»
-say 'abc'     ~~ /\w **  2..5/;  # OUTPUT: «｢abc｣␤»
-say 'abcdefg' ~~ /\w **  2..5/;  # OUTPUT: «｢abcde｣␤»
-say 'abcdefg' ~~ /\w ** 2^..^5/; # OUTPUT: «｢abcd｣␤»
-say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
-=end code
+    =begin code
+    say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
+    say 'a'       ~~ /\w **  2..5/;  # OUTPUT: «Nil␤»
+    say 'abc'     ~~ /\w **  2..5/;  # OUTPUT: «｢abc｣␤»
+    say 'abcdefg' ~~ /\w **  2..5/;  # OUTPUT: «｢abcde｣␤»
+    say 'abcdefg' ~~ /\w ** 2^..^5/; # OUTPUT: «｢abcd｣␤»
+    say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
+    say 'abcdefg' ~~ /\w ** 1..*/;   # OUTPUT: «｢abcdefg｣␤»
+    =end code
 
 Only basic literal syntax for the right hand side of the quantifier
 is supported, to avoid ambiguities with other regex constructs. If you need
-to use a more complex expression—for example a L<Range> made from
+to use a more complex expression; for example, a L<Range> made from
 variables—enclose the L<Range> into curly braces:
 
-=begin code
-my $start = 3;
-say 'abcdefg' ~~ /\w ** {$start .. $start+2}/; # OUTPUT: «｢abcde｣␤»
-say 'abcdefg' ~~ /\w ** {π.Int}/;              # OUTPUT: «｢abc｣␤»
-=end code
+    =begin code
+    my $start = 3;
+    say 'abcdefg' ~~ /\w ** {$start .. $start+2}/; # OUTPUT: «｢abcde｣␤»
+    say 'abcdefg' ~~ /\w ** {π.Int}/;              # OUTPUT: «｢abc｣␤»
+    =end code
 
 Negative values are treated like zero:
 
-=begin code
-say 'abcdefg' ~~ /\w ** {-Inf}/;     # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-42}/;      # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-10..-42}/; # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
-=end code
+    =begin code
+    say 'abcdefg' ~~ /\w ** {-Inf}/;     # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-42}/;      # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-10..-42}/; # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
+    =end code
 
 If then, the resultant value is C<Inf>
 or C<NaN> or the resultant L<Range> is empty, non-Numeric, contains C<NaN>
 end-points, or has minimum effective end-point as C<Inf>, the
 C<X::Syntax::Regex::QuantifierValue> exception will be thrown:
 
-=begin code
-(try say 'abcdefg' ~~ /\w ** {42..10}/  ) orelse say ($!.^name, $!.empty-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {Inf..Inf}/) orelse say ($!.^name, $!.inf);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {NaN..42}/ ) orelse say ($!.^name, $!.non-numeric-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {"a".."c"}/) orelse say ($!.^name, $!.non-numeric-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    =begin code
+    (try say 'abcdefg' ~~ /\w ** {42..10}/  )
+        orelse say ($!.^name, $!.empty-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {Inf..Inf}/)
+        orelse say ($!.^name, $!.inf);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {NaN..42}/ )
+        orelse say ($!.^name, $!.non-numeric-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {"a".."c"}/)
+        orelse say ($!.^name, $!.non-numeric-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {Inf}/)
+        orelse say ($!.^name, $!.inf);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {NaN}/)
+        orelse say ($!.^name, $!.non-numeric);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    =end code
 
-(try say 'abcdefg' ~~ /\w ** {Inf}/) orelse say ($!.^name, $!.inf);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {NaN}/) orelse say ($!.^name, $!.non-numeric);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-=end code
-
-=head2 X<Modified quantifier: C<%>|regex,%;regex,%%>
+=head2 X<Modified quantifier: C<%>, C<%%>|regex,%;regex,%%>
 
 To more easily match things like comma separated values, you can tack on a
 C<%> modifier to any of the above quantifiers to specify a separator that must
@@ -438,48 +448,44 @@ repetitions that can match successfully, so C<a* % ','> also matches the empty
 string. If you want match words delimited by commas, you might need to nest an
 ordinary and a modified quantifier:
 
-=begin code
-say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
-say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
-=end code
-
-
-
-=head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
-
-By default, quantifiers request a greedy match:
-
-=begin code
-'abababa' ~~ /a .* a/ && say ~$/;   # OUTPUT: «abababa␤»
-=end code
-
-You can attach a C<?> modifier to the quantifier to enable frugal
-matching:
-
-=begin code
-'abababa' ~~ /a .*? a/ && say ~$/;   # OUTPUT: «aba␤»
-=end code
-
-You can also enable frugal matching for general quantifiers:
-
-=begin code
-my token A { f o **? 1^..8 };
-my token B { o+ bar };
-'foooobar' ~~ /<A><B>/   # OUTPUT: «foooobar␤»
-# this match doesn't fail
-=end code
-
-Greedy matching can be explicitly requested with the C<!> modifier.
+    =begin code
+    say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
+    say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
+    =end code
 
 =head2 X<Preventing backtracking: C<:>|regex,:>
 
 You can prevent backtracking in regexes by attaching a C<:> modifier
 to the quantifier:
 
-=begin code
-say so 'abababa' ~~ /a .* aba/;    # OUTPUT: «True␤»
-say so 'abababa' ~~ /a .*: aba/;   # OUTPUT: «False␤»
-=end code
+    =begin code
+    say so 'abababa' ~~ /a .* aba/;    # OUTPUT: «True␤»
+    say so 'abababa' ~~ /a .*: aba/;   # OUTPUT: «False␤»
+    =end code
+
+=head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
+
+By default, quantifiers request a greedy match:
+
+    =begin code
+    'abababa' ~~ /a .* a/ && say ~$/;   # OUTPUT: «abababa␤»
+    =end code
+
+You can attach a C<?> modifier to the quantifier to enable frugal
+matching:
+
+    =begin code
+    'abababa' ~~ /a .*? a/ && say ~$/;   # OUTPUT: «aba␤»
+    =end code
+
+You can also enable frugal matching for general quantifiers:
+
+    =begin code
+    say 'fooobar' ~~ /fo**:?{1..3}obar/; # OUTPUT: «｢fooobar｣␤»
+    say 'fooobar' ~~ /fo**:{1..3}obar/;  # OUTPUT: «Nil␤»
+    =end code
+
+Greedy matching can be explicitly requested with the C<!> modifier.
 
 =head1 X<Alternation: C<||>|regex,||>
 
@@ -488,7 +494,7 @@ first matching alternative wins.
 
 For example, C<ini> files have the following form:
 
-    =begin code :skip-test
+    =begin code :lang<text>
     [section]
     key = value
     =end code
@@ -513,19 +519,27 @@ the lexical ordering in the regexes.
 
 =head1 X<Conjunction: C<&&>|regex,&&>
 
-Matches successfully if all `&&`-delimited segments match the same substring
+Matches successfully if all C<&&>-delimited segments match the same substring
 of the target string. The segments are evaluated left to right.
 
 This can be useful for augmenting an existing regex. For example if you have
-a regex `quoted` that matches a quoted string, `/ <quoted> && <-[x]>* /`
-matches a quoted string that does not contain the character `x`. Note that you
-cannot easily obtain the same behavior with a look-ahead, because a look-ahead
-doesn't stop looking when the quoted string stops matching.
+a regex C<quoted> that matches a quoted string, then C</ <quoted> && <-[x]>* />
+matches a quoted string that does not contain the character C<x>.
+
+Note that you cannot easily obtain the same behavior with a look-ahead, because
+a look-ahead doesn't stop looking when the quoted string stops matching.
+
+    =begin code
+    say 'abc' ~~ / <?before a> && . /;    # OUTPUT: «Nil␤»
+    say 'abc' ~~ / <?before a> . && . /;  # OUTPUT: «｢a｣␤»
+    say 'abc' ~~ / <?before a> . /;       # OUTPUT: «｢a｣␤»
+    say 'abc' ~~ / <?before a> .. /;      # OUTPUT: «｢ab｣␤»
+    =end code
 
 =head1 X<Conjunction: C<&>|regex,&>
 
 Much like C<&&> in a regex, it matches successfully if all segments
-separated by `&` match the same part of the target string.
+separated by C<&> match the same part of the target string.
 
 C<&> (unlike C<&&>) is considered declarative, and notionally all the
 segments can be evaluated in parallel, or in any order the compiler chooses.
@@ -535,7 +549,7 @@ segments can be evaluated in parallel, or in any order the compiler chooses.
 The regex engine tries to find a match inside a string by searching from
 left to right.
 
-    say so 'properly' ~~ / perl/;   # OUTPUT: «True␤»
+    say so 'properly use perl' ~~ / perl/;   # OUTPUT: «True␤»
     #          ^^^^
 
 But sometimes this is not what you want. Instead, you may only want to
@@ -565,8 +579,9 @@ You can combine both assertions:
     say so 'use perl' ~~ /^ perl $/;   # OUTPUT: «False␤»
     say so 'perl'     ~~ /^ perl $/;   # OUTPUT: «True␤»
 
-Keep in mind that C<^> matches the start of a B<string>, not the start of a B<line>.
-Likewise, C<$> matches the end of a B<string>, not the end of a B<line>.
+Keep in mind that C<^> matches the start of a B<string>, not the start of
+a B<line>. Likewise, C<$> matches the end of a B<string>, not the end of
+a B<line>.
 
 The following is a multi-line string:
 
