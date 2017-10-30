@@ -526,8 +526,9 @@ This can be useful for augmenting an existing regex. For example if you have
 a regex C<quoted> that matches a quoted string, then C</ <quoted> && <-[x]>* />
 matches a quoted string that does not contain the character C<x>.
 
-Note that you cannot easily obtain the same behavior with a look-ahead, because
-a look-ahead doesn't stop looking when the quoted string stops matching.
+Note that you cannot easily obtain the same behavior with a look-ahead, that
+is, a regex doens't consume characters, because a look-ahead doesn't stop
+looking when the quoted string stops matching.
 
     =begin code
     say 'abc' ~~ / <?before a> && . /;    # OUTPUT: «Nil␤»
@@ -590,64 +591,92 @@ The following is a multi-line string:
        and keep it safe
        EOS
 
-    say so $str ~~ /safe   $/;   # OUTPUT: «True␤»  -- 'safe' is at the end of the string
-    say so $str ~~ /secret $/;   # OUTPUT: «False␤» -- 'secret' is at the end of a line -- not the string
-    say so $str ~~ /^Keep   /;   # OUTPUT: «True␤»  -- 'Keep' is at the start of the string
-    say so $str ~~ /^and    /;   # OUTPUT: «False␤» -- 'and' is at the start of a line -- not the string
+    # 'safe' is at the end of the string
+    say so $str ~~ /safe   $/;   # OUTPUT: «True␤»
+
+    # 'secret' is at the end of a line, not the string
+    say so $str ~~ /secret $/;   # OUTPUT: «False␤»
+
+    # 'Keep' is at the start of the string
+    say so $str ~~ /^Keep   /;   # OUTPUT: «True␤»
+
+    # 'and' is at the start of a line -- not the string
+    say so $str ~~ /^and    /;   # OUTPUT: «False␤»
 
 =head2 X«C<^^>, Start of Line and C<$$>, End of Line|regex,^^;regex,$$»
 
 The C<^^> assertion matches at the start of a logical line. That is, either
-at the start of the string, or after a newline character. However, it does not match
-at the end of the string, even if it ends with a newline character.
+at the start of the string, or after a newline character. However, it does not
+match at the end of the string, even if it ends with a newline character.
 
 C<$$> matches only at the end of a logical line, that is, before a newline
 character, or at the end of the string when the last character is not a
 newline character.
 
 (To understand the following example, it's important to know that the
-C<q:to/EOS/...EOS> "heredoc" syntax removes leading indention to the same
-level as the C<EOS> marker, so that the first, second and last lines have no
-leading space and the third and fourth lines have two leading spaces each).
+C<q:to/EOS/...EOS> L<heredoc|/language/quoting#Heredocs:_:to> syntax removes
+leading indention to the same level as the C<EOS> marker, so that the first,
+second and last lines have no leading space and the third and fourth lines have
+two leading spaces each).
 
-=begin code
-my $str = q:to/EOS/;
-    There was a young man of Japan
-    Whose limericks never would scan.
-      When asked why this was,
-      He replied "It's because
-    I always try to fit as many syllables into the last line as ever I possibly can."
-    EOS
+    =begin code
+    my $str = q:to/EOS/;
+        There was a young man of Japan
+        Whose limericks never would scan.
+          When asked why this was,
+          He replied "It's because I always try to fit
+        as many syllables into the last line as ever I possibly can."
+        EOS
 
-say so $str ~~ /^^ There/;        # OUTPUT: «True␤»  -- start of string
-say so $str ~~ /^^ limericks/;    # OUTPUT: «False␤» -- not at the start of a line
-say so $str ~~ /^^ I/;            # OUTPUT: «True␤»  -- start of the last line
-say so $str ~~ /^^ When/;         # OUTPUT: «False␤» -- there are blanks between
-                                  #                       start of line and the "When"
+    # 'There' is at the start of string
+    say so $str ~~ /^^ There/;        # OUTPUT: «True␤»
 
-say so $str ~~ / Japan $$/;       # OUTPUT: «True␤»  -- end of first line
-say so $str ~~ / scan $$/;        # OUTPUT: «False␤» -- there's a . between "scan"
-                                  #                      and the end of line
-say so $str ~~ / '."' $$/;        # OUTPUT: «True␤»  -- at the last line
-=end code
+    # 'limericks' is not at the start of a line
+    say so $str ~~ /^^ limericks/;    # OUTPUT: «False␤»
+
+    # 'as' is at start of the last line
+    say so $str ~~ /^^ as/;            # OUTPUT: «True␤»
+
+    # there are blanks between start of line and the "When"
+    say so $str ~~ /^^ When/;         # OUTPUT: «False␤»
+
+    # 'Japan' is at end of first line
+    say so $str ~~ / Japan $$/;       # OUTPUT: «True␤»
+
+    # there's a . between "scan" and the end of line
+    say so $str ~~ / scan $$/;        # OUTPUT: «False␤»
+
+    # matched at the last line
+    say so $str ~~ / '."' $$/;        # OUTPUT: «True␤»
+    =end code
 
 
 =head2 X«C«<|w>» and C«<!|w>», word boundary|regex, <|w>;regex, <!|w>»
 
 To match any word boundary, use C«<|w>». This is similar to other
-languages’ X«C<\b>|regex deprecated,\b».
-To match not a word boundary, use <!|w>, similar to other languages X<C<\B>|regex deprecated, \B >.
+languages' X«C<\b>|regex deprecated,\b».
+
+To match not a word boundary, use <!|w>. This is similar to other
+languages' X<C<\B>|regex deprecated, \B >.
+
 These are both zero width assertions.
 
-=head2 X<<<<C<<< << >>> and C<<< >> >>>, left and right word boundary|regex,<<;regex,>>;regex,«;regex,»>>>>
+    say "two-words" ~~ / "two"<|w>"-"<|w>"words" /;    # OUTPUT: «｢two-words｣␤»
+    say "two-words" ~~ / "two"<!|w>"-"<!|w>"words" /;  # OUTPUT: «Nil␤»
 
-C<<< << >>> matches a left word boundary. It matches positions where there
+=head2 C«<<» and C«>>», left and right word boundary
+
+X«|regex, <<; regex, >>; regex, «; regex, »»
+
+C«<<» matches a left word boundary. It matches positions where there
 is a non-word character at the left (or the start of the string) and a word
 character to the right.
 
-C<<< >> >>> matches a right word boundary. It matches positions where there
+C«>>» matches a right word boundary. It matches positions where there
 is a word character at the left and a non-word character at the right (or
 the end of the string).
+
+These are both zero width assertions.
 
     my $str = 'The quick brown fox';
     say so $str ~~ /br/;              # OUTPUT: «True␤»
@@ -663,34 +692,34 @@ You can also use the variants C<«> and C<»> :
     say so $str ~~ /« own/;          # OUTPUT: «False␤»
     say so $str ~~ /own »/;          # OUTPUT: «True␤»
 
-=head1 X«Grouping and Capturing|regex,( );regex,[ ];regex,$<capture> =»
+=head1 Grouping and Capturing
 
 In regular (non-regex) Perl 6, you can use parentheses to group things
 together, usually to override operator precedence:
 
-    say 1 + 4 * 2;      # 9, parsed as 1 + (4 * 2)
-    say (1 + 4) * 2;    # OUTPUT: «10␤»
+    say 1 + 4 * 2;     # OUTPUT: «9␤», parsed as 1 + (4 * 2)
+    say (1 + 4) * 2;   # OUTPUT: «10␤»
 
 The same grouping facility is available in regexes:
 
-    / a || b c /;        # matches 'a' or 'bc'
-    / ( a || b ) c /;    # matches 'ac' or 'bc'
+    / a || b c /;      # matches 'a' or 'bc'
+    / ( a || b ) c /;  # matches 'ac' or 'bc'
 
 The same grouping applies to quantifiers:
 
-    / a b+ /;            # matches an 'a' followed by one or more 'b's
-    / (a b)+ /;          # matches one or more sequences of 'ab'
-    / (a || b)+ /;       # matches a sequence of 'a's and 'b's, at least one long
+    / a b+ /;          # matches an 'a' followed by one or more 'b's
+    / (a b)+ /;        # matches one or more sequences of 'ab'
+    / (a || b)+ /;     # matches a string of 'a's and 'b's, except empty string
 
 An unquantified capture produces a L<Match> object. When a capture is
 quantified (except with the C<?> quantifier) the capture becomes a list of
 L<Match> objects instead.
 
-=head2 Capturing
+=head2 X«Capturing|regex,( )»
 
 The round parentheses don't just group, they also I<capture>; that is, they
 make the string matched within the group available as a variable, and also as
-an element of the resulting L<Match|/type/Match> object:
+an element of the resulting L<Match> object:
 
     my $str =  'number 42';
     if $str ~~ /'number ' (\d+) / {
@@ -716,7 +745,7 @@ access all elements:
         say $/.list.join: ', '  # OUTPUT: «a, c␤»
     }
 
-=head2 Non-capturing grouping
+=head2 X«Non-capturing grouping|regex,[ ]»
 
 The parentheses in regexes perform a double role: they group the regex
 elements inside and they capture what is matched by the sub-regex inside.
@@ -728,9 +757,10 @@ instead.
         say ~$0;                # OUTPUT: «c␤»
     }
 
-If you do not need the captures, using non-capturing groups provides three
-benefits: they more cleanly communicate the regex intent; they make it easier to
-count the capturing groups that you do care about; and matching is bit faster.
+If you do not need the captures, using non-capturing groups provides
+three benefits: they more cleanly communicate the regex intent; they
+make it easier to count the capturing groups that you do care about;
+and matching is bit faster.
 
 =head2 Capture numbers
 
@@ -749,21 +779,16 @@ Alternations reset the capture count:
 Example:
 
     if 'abc' ~~ /(x)(y) || (a)(.)(.)/ {
-        say ~$1;            # b
+        say ~$1;        # OUTPUT: «b␤»
     }
 
 If two (or more) alternations have a different number of captures,
 the one with the most captures determines the index of the next capture:
 
-=begin code
-$_ = 'abcd';
-
-if / a [ b (.) || (x) (y) ] (.) / {
-    #      $0     $0  $1    $2
-    say ~$2;            # d
-}
-=end code
-
+    if 'abcd' ~~ / a [ b (.) || (x) (y) ] (.) / {
+        #                 $0     $0  $1    $2
+        say ~$2;            # OUTPUT: «d␤»
+    }
 
 Captures can be nested, in which case they are numbered per level
 
@@ -783,23 +808,24 @@ it in a variable first:
     say "11" ~~ /(\d) {} :my $c = $0; ($c)/;
     # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
 
-=head2 Named captures
+=head2 X<Named captures|regex, Named captures>
 
-Instead of numbering captures, you can also give them names. The generic --
-and slightly verbose -- way of naming captures is like this:
+Instead of numbering captures, you can also give them names. The generic,
+and slightly verbose, way of naming captures is like this:
 
     if 'abc' ~~ / $<myname> = [ \w+ ] / {
         say ~$<myname>      # OUTPUT: «abc␤»
     }
 
-The access to the named capture, C<< $<myname> >>, is a shorthand for indexing
-the match object as a hash, in other words: C<$/{ 'myname' }> or C<< $/<myname> >>.
+The access to the named capture, C«$<myname>», is a shorthand for indexing
+the match object as a hash, in other words: C<$/{ 'myname' }> or C«$/<myname>».
 
 Named captures can also be nested using regular capture group syntax:
 
     if 'abc-abc-abc' ~~ / $<string>=( [ $<part>=[abc] ]* % '-' ) / {
-        say ~$<string>;         # OUTPUT: «abc-abc-abc␤»
-        say ~$<string><part>;   # OUTPUT: «abc abc abc␤»
+        say ~$<string>;          # OUTPUT: «abc-abc-abc␤»
+        say ~$<string><part>;    # OUTPUT: «abc abc abc␤»
+        say ~$<string><part>[0]; # OUTPUT: «abc␤»
     }
 
 Coercing the match object to a hash gives you easy programmatic access to
@@ -818,12 +844,21 @@ all named captures:
     }
 
 A more convenient way to get named captures is discussed in
-the Subrules section.
+the L<Subrules|#Subrules> section.
+
 =head2 X«Capture markers: C«<( )>»|regex,<( )>»
 
-A C«<(» token indicates the start of the match's overall capture, while the corresponding C«)>»
-token indicates its endpoint. The C«<(» is similar to other languages X<\K|regex deprecated,\K> to discard any matches
-found before the C<\K>.
+A C«<(» token indicates the start of the match's overall capture, while the
+corresponding C«)>» token indicates its endpoint. The C«<(» is similar to other
+languages X<\K|regex deprecated,\K> to discard any matches found before the
+C<\K>.
+
+    say 'abc' ~~ / a <( b )> c/;            # OUTPUT: «｢b｣␤»
+    say 'abc' ~~ / <(a <( b )> c)>/;        # OUTPUT: «｢bc｣␤»
+
+As the example above, you can see C«<(» set the startpoint and C«<)» set the
+endpoint. They are actually independent.
+
 
 =head1 Substitution
 
