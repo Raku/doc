@@ -1,6 +1,14 @@
+REPO_PATH := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
+
+DOCKER_IMAGE_NAME    ?= p6doc
+DOCKER_HOST_PORT     ?= 3000
+DOCKER_SELINUX_LABEL ?= 0
+SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' || echo '' )
+
 .PHONY: html init-highlights html-nohighlight sparse sass webdev-build bigpage \
 	test xtest ctest help run clean-html clean-examples clean-images \
-	clean-search clean test-links extract-examples push
+	clean-search clean test-links extract-examples push \
+	docker-image docker-htmlify docker-test docker-xtest docker-ctest docker-testall docker-run
 
 html: bigpage htmlify
 
@@ -54,10 +62,42 @@ help:
 	@echo "  xtest:             run the test suite, including extra tests"
 	@echo "  ctest:             run the test suite, content tests only"
 	@echo "    run:             run the development webserver"
+	@echo "docker-image:        build Docker image from Dockerfile"
+	@echo "docker-htmlify:      generate the HTML documentation (in container)"
+	@echo "docker-test:         run the test suite (in container)"
+	@echo "docker-xtest:        run the test suite, including extra tests (in container)"
+	@echo "docker-ctest:        run the test suite, content tests only (in container)"
+	@echo "docker-testall:      run all tests (in container)"
+	@echo "docker-run:          run the development webserver (in container)"
 
 run:
 	@echo "Starting local server…"
 	morbo -w assets app.pl
+
+docker-image:
+	docker build -t $(DOCKER_IMAGE_NAME) .
+
+docker-htmlify: docker-image docker-test
+	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+		/bin/bash -c 'make html'
+
+docker-test: docker-image
+	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+		/bin/bash -c 'make test'
+
+docker-xtest: docker-image
+	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+		/bin/bash -c 'make xtest'
+
+docker-ctest: docker-image
+	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+		/bin/bash -c 'make ctest'
+
+docker-testall: docker-test docker-xtest docker-ctest
+
+docker-run: docker-image
+	docker run --rm -p $(DOCKER_HOST_PORT):3000 -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) \
+		$(DOCKER_IMAGE_NAME) /bin/bash -c './app-start' &
 
 clean-html:
 	rm -rf html/*.html html/.*.html \
