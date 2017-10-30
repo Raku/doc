@@ -113,6 +113,11 @@ tests about whitespace and spelling that might be difficult to get right
 on an initial commit, and shouldn't be considered to break the build. If
 you're contributing a patch or pull request, please make sure this passes.
 
+If you have local modifications and want to insure they pass xtest before
+committing, you can use this command to test only modified files:
+
+  TEST_FILES=`git status --porcelain --untracked-files=no | awk '{print $2}'` make xtest
+
 ## Writing and Testing Examples
 
 See [Writing and Testing Examples](EXAMPLES.md)
