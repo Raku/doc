@@ -512,40 +512,43 @@ string of non-whitespace characters.
 
 =head1 X<Longest Alternation: C<|>|regex,|>
 
-For short, in regexes branches separated by C<|>, the longest token match wins,
+In short, in regexes branches separated by C<|>, the longest token match wins,
 independent of the textual ordering in the regexes. However, what C<|> really
-does is further more.
+does is more than that.
 
-C<|> does not decide which breanch to win after finish the whole match,
-but follows L<longest token match, for short, LTM|
+C<|> does not decide which branch to win after finishing the whole match,
+but follows the L<longest token match, for short, LTM|
 https://design.perl6.org/S05.html#Longest-token_matching> strategy.
 
 Briefly, what C<|> does is this:
 
-=item1 First, select the branch who has the longest token prefix.
-
-=item1 If it's a tie, select the match with the highest specificity.
-
-=item1 If it's still a tie, use additional tie-breakers.
+=item1 First, select the branch which has the longest declarative prefix.
 
     say "abc" ~~ /ab | a.* /;                 # Output: ⌜abc⌟
     say "abc" ~~ /ab | a {} .* /;             # Output: ⌜ab⌟
-    say "abc" ~~ /a. | ab { print "win" } /;  # Output: win｢ab｣
-    say "abc" ~~ /a\w| a. { print "lose" } /; # Output: ⌜ab⌟
     say "if else" ~~ / if | if <.ws> else /;  # Output: ｢if｣
     say "if else" ~~ / if | if \s+   else /;  # Output: ｢if else｣
 
-As the first pair of example above C<a.*> is a token prefix, while C<a {} .*>
-terminates at C<{}>, then its token prefix is C<a>.
+As is shown above, C<a.*> is a declarative prefix, while C<a {} .*> terminates
+at C<{}>, then its declarative prefix is C<a>. Note that non-declarative atoms
+terminate declarative prefix. This is quite important if you want to apply
+C<|> in a C<rule>, which automatically enables C<:s>, and C«<.ws>» accidentally
+terminates declarative prefix.
 
-The second pair, when two alternatives match at the same length, the tie is
-broken by specificity. That is, C<ab>, as an exact match, counts as closer
-than C<a.>, which uses character classes. If this tie breaker doesn't work,
-then the textually earlier alternative takes precedence.
+=item1 If it's a tie, select the match with the highest specificity.
 
-Note that, as the last example shows, non-declarative token terminates token
-prefix. This is quite important if you want to apply C<|> in a C<rule>, which
-automatically enable C<:s>.
+    say "abc" ~~ /a. | ab { print "win" } /;  # Output: win｢ab｣
+
+When two alternatives match at the same length, the tie is broken by
+specificity. That is, C<ab>, as an exact match, counts as closer than C<a.>,
+which uses character classes.
+
+=item1 If it's still a tie, use additional tie-breakers.
+
+    say "abc" ~~ /a\w| a. { print "lose" } /; # Output: ⌜ab⌟
+
+If the tie breaker above doesn't work, then the textually earlier alternative
+takes precedence.
 
 For more details, see
 L<the LTM strategy|https://design.perl6.org/S05.html#Longest-token_matching>.
