@@ -1,3 +1,5 @@
+#!/usr/bin/env perl6
+
 use v6;
 use Test;
 
@@ -7,7 +9,7 @@ if @*ARGS {
     @files = @*ARGS;
 } else {
     if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(',').grep(*.IO.e);
+        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
     } else {
         @files = qx<git ls-files doc>.lines;
     }

@@ -28,11 +28,12 @@ the colon is forbidden because it clashes with adverbs, such as C<rx:i/abc/>
 (case insensitive regexes), and round parentheses indicate a function call
 instead.
 
-Whitespace in regexes is generally ignored (except with the C<:s> or
-C<:sigspace> adverb).
+Whitespace in regexes is generally ignored (except with the C<:s> or,
+completely, C<:sigspace> adverb).
 
-As with Perl 6, in general, comments in regexes start with a hash character
-C<#> and go to the end of the line.
+As with Perl 6, comments work as usual in regexes.
+
+    / word #`(match lexical "word") /
 
 =head1 Literals
 
@@ -62,8 +63,8 @@ part of the string matches the regex:
     };
 
 Match results are stored in the C<$/> variable and are also returned from
-the match. The result is of L<type Match|/type/Match> if the match was successful;
-otherwise it's L<Nil|/type/Nil>.
+the match. The result is of L<type Match|/type/Match> if the match was
+successful; otherwise it's L<Nil|/type/Nil>.
 
 =head1 Wildcards and character classes
 
@@ -84,12 +85,26 @@ This doesn't match:
 
 because there's no character to match before C<per> in the target string.
 
+Note that C<.> now does match B<any> single character, that is, it matches
+C<\n>. So the text below match:
+
+    my $text = qq:to/END/
+      Although I am a
+      multi-line text,
+      now can be matched
+      with /.*/.
+      END
+      ;
+
+    say $text ~~ / .* /;
+    # OUTPUT «｢Although I am a␤multi-line text,␤now can be matched␤with /.*/␤｣»
+
 =head2 Backslashed, predefined character classes
 
 There are predefined character classes of the form C<\w>. Its negation is
 written with an upper-case letter, C<\W>.
 
-=item X<\d and \D|regex,\d;regex,\D>
+=item X<C<\d> and C<\D>|regex,\d;regex,\D>
 
 C<\d> matches a single digit (Unicode property C<N>) and C<\D> matches a
 single character that is not a digit.
@@ -102,21 +117,21 @@ match C<\d>, but also digits from other scripts.
 
 Examples for digits are:
 
-    =begin code :skip-test
+    =begin code :lang<text>
     U+0035 5 DIGIT FIVE
-    U+07C2 ߂ NKO DIGIT TWO
+    U+0BEB ௫ TAMIL DIGIT FIVE
     U+0E53 ๓ THAI DIGIT THREE
-    U+1B56 ᭖ BALINESE DIGIT SIX
+    U+17E5 ៥ KHMER DIGIT FIVE
     =end code
 
-=item X<\h and \H|regex,\h;regex,\H>
+=item X<C<\h> and C<\H>|regex,\h;regex,\H>
 
 C<\h> matches a single horizontal whitespace character. C<\H> matches a
 single character that is not a horizontal whitespace character.
 
 Examples for horizontal whitespace characters are
 
-    =begin code :skip-test
+    =begin code :lang<text>
     U+0020 SPACE
     U+00A0 NO-BREAK SPACE
     U+0009 CHARACTER TABULATION
@@ -126,14 +141,14 @@ Examples for horizontal whitespace characters are
 Vertical whitespace like newline characters are explicitly excluded; those
 can be matched with C<\v>, and C<\s> matches any kind of whitespace.
 
-=item X<\n and \N|regex,\n;regex,\N>
+=item X<C<\n> and C<\N>|regex,\n;regex,\N>
 
 C<\n> matches a single, logical newline character. C<\n> is supposed to also
 match a Windows CR LF codepoint pair; though it's unclear whether the magic
 happens at the time that external data is read, or at regex match time.
 C<\N> matches a single character that's not a logical newline.
 
-=item X<\s and \S|regex,\s;regex,\S>
+=item X<C<\s> and C<\S>|regex,\s;regex,\S>
 
 C<\s> matches a single whitespace character. C<\S> matches a single
 character that is not whitespace.
@@ -142,20 +157,20 @@ character that is not whitespace.
         say ~$/;        # OUTPUT: «word␤»
     }
 
-=item X<\t and \T|regex,\t;regex,\T>
+=item X<C<\t> and C<\T>|regex,\t;regex,\T>
 
 C<\t> matches a single tab/tabulation character, C<U+0009>. (Note that
 exotic tabs like the C<U+000B VERTICAL TABULATION> character are not
 included here). C<\T> matches a single character that is not a tab.
 
-=item X<\v and \V|regex,\v;regex,\V>
+=item X<C<\v> and C<\V>|regex,\v;regex,\V>
 
 C<\v> matches a single vertical whitespace character. C<\V> matches a single
 character that is not vertical whitespace.
 
 Examples for vertical whitespace characters:
 
-    =begin code :skip-test
+    =begin code :lang<text>
     U+000A LINE FEED
     U+000B VERTICAL TABULATION
     U+000C FORM FEED
@@ -167,7 +182,7 @@ Examples for vertical whitespace characters:
 
 Use C<\s> to match any kind of whitespace, not just vertical whitespace.
 
-=item X<\w and \W|regex,\w;regex,\W>
+=item X<C<\w> and C<\W>|regex,\w;regex,\W>
 
 C<\w> matches a single word character; i.e., a letter (Unicode category L), a
 digit or an underscore. C<\W> matches a single character that isn't a word
@@ -175,7 +190,7 @@ character.
 
 Examples of word characters:
 
-    =begin code :skip-test
+    =begin code :lang<text>
     0041 A LATIN CAPITAL LETTER A
     0031 1 DIGIT ONE
     03B4 δ GREEK SMALL LETTER DELTA
@@ -185,37 +200,37 @@ Examples of word characters:
 
 Predefined subrules:
 
-    =begin code :skip-test
-    <alnum>   \w       'alpha' plus 'digit'
+    =begin code :lang<text>
     <alpha>   <:L>     Alphabetic characters
-    <blank>   \h       Horizontal whitespace
-    <cntrl>            Control characters
     <digit>   \d       Decimal digits
-    <graph>            'alnum' plus 'punct'
-    <lower>   <:Ll>    Lowercase characters
-    <print>            'graph' plus 'space', but no 'cntrl'
+    <xdigit>           Hexadecimal digit [0-9A-Fa-f]
+    <alnum>   \w       'alpha' plus 'digit'
     <punct>            Punctuation and Symbols (only Punct beyond ASCII)
+    <graph>            'alnum' plus 'punct'
     <space>   \s       Whitespace
+    <cntrl>            Control characters
+    <print>            'graph' plus 'space', but no 'cntrl'
+    <blank>   \h       Horizontal whitespace
+    <lower>   <:Ll>    Lowercase characters
     <upper>   <:Lu>    Uppercase characters
     <?same>            Matches between two identical characters
     <?wb>              Word Boundary (zero-width assertion, ? suppress capture)
     <?ww>              Within Word (zero-width assertion, ? suppress capture)
-    <xdigit>           Hexadecimal digit [0-9A-Fa-f]
     =end code
 
 =head2 X«Unicode properties|regex,<:property>»
 
 The character classes mentioned so far are mostly for convenience; another
-approach is to use Unicode character properties. These come in the form C<<
-<:property> >>, where C<property> can be a short or long Unicode General
+approach is to use Unicode character properties. These come in the form
+C«<:property>», where C<property> can be a short or long Unicode General
 Category name. These use pair syntax.
 
 To match against a Unicode Property:
 
     "a".uniprop('Script');                 # OUTPUT: «Latin␤»
-    "a" ~~ / <:Script<Latin>> /;
+    "a" ~~ / <:Script<Latin>> /;           # OUTPUT: «｢a｣␤»
     "a".uniprop('Block');                  # OUTPUT: «Basic Latin␤»
-    "a" ~~ / <:Block('Basic Latin')> /;
+    "a" ~~ / <:Block('Basic Latin')> /;    # OUTPUT: «｢a｣␤»
 
 The following list of Unicode General Categories is stolen from the Perl 5
 L<perlunicode|http://perldoc.perl.org/perlunicode.html> documentation:
@@ -267,9 +282,9 @@ L<perlunicode|http://perldoc.perl.org/perlunicode.html> documentation:
 
 =end table
 
-For example, C<< <:Lu> >> matches a single, upper-case letter.
+For example, C«<:Lu>» matches a single, upper-case letter.
 
-It's negation is this: C<< <:!property> >>. So, C<< <:!Lu> >> matches a single
+It's negation is this: C«<:!property>». So, C«<:!Lu>» matches a single
 character that isn't an upper-case letter.
 
 Categories can be used together, with an infix operator:
@@ -287,7 +302,7 @@ Categories can be used together, with an infix operator:
 =end table
 
 To match either a lower-case letter or a number, write
-C<< <:Ll+:N> >> or C<< <:Ll+:Number> >> or C<< <+ :Lowercase_Letter + :Number> >>.
+C«<:Ll+:N>» or C«<:Ll+:Number>» or C«<+ :Lowercase_Letter + :Number>».
 
 It's also possible to group categories and sets of categories with
 parentheses; for example:
@@ -297,7 +312,7 @@ parentheses; for example:
 =head2 X«Enumerated character classes and ranges|regex,<[ ]>;regex,<-[ ]>»
 
 Sometimes the pre-existing wildcards and character classes are not enough.
-Fortunately, defining your own is fairly simple. Within C<< <[ ]> >>, you
+Fortunately, defining your own is fairly simple. Within C«<[ ]>», you
 can put any number of single characters and ranges of characters (expressed
 with two dots between the end points), with or without whitespace.
 
@@ -305,12 +320,12 @@ with two dots between the end points), with or without whitespace.
     # Unicode hex codepoint range
     "ÀÁÂÃÄÅÆ" ~~ / <[ \x[00C0] .. \x[00C6] ]> /;
     # Unicode named codepoint range
-    "ÀÁÂÃÄÅÆ" ~~ / <[ \c[LATIN CAPITAL LETTER A WITH GRAVE] .. \c[LATIN CAPITAL LETTER AE] ]> /;
+    "αβγ" ~~ /<[\c[GREEK SMALL LETTER ALPHA]..\c[GREEK SMALL LETTER GAMMA]]>/;
 
-Within the C<< < > >> you can use C<+> and C<-> to add or
+Within the C«< >» you can use C<+> and C<-> to add or
 remove multiple range definitions and
 even mix in some of the unicode categories above. You can also
-write the backslashed forms for character classes between the C< [ ] >.
+write the backslashed forms for character classes between the C<[ ]>.
 
     / <[\d] - [13579]> /;
     # starts with \d and removes odd ASCII digits, but not quite the same as
@@ -345,7 +360,7 @@ Quantifiers bind tighter than concatenation, so C<ab+> matches one C<a>
 followed by one or more C<b>s. This is different for quotes, so C<'ab'+>
 matches the strings C<ab>, C<abab>, C<ababab> etc.
 
-=head2 X<One or more: C<+>|regex,+>
+=head2 X<One or more: C<+>|regex quantifier,+>
 
 The C<+> quantifier makes the preceding atom match one or more times, with
 no upper limit.
@@ -355,7 +370,7 @@ like this:
 
     / \w+ '=' \w+ /
 
-=head2 X<Zero or more: C<*>|regex,*>
+=head2 X<Zero or more: C<*>|regex quantifier,*>
 
 The C<*> quantifier makes the preceding atom match zero or more times, with
 no upper limit.
@@ -364,9 +379,13 @@ For example, to allow optional whitespace between C<a> and C<b> you can write
 
     / a \s* b /
 
-=head2 X<Zero or one match: C<?>|regex,?>
+=head2 X<Zero or one: C<?>|regex quantifier,?>
 
 The C<?> quantifier makes the preceding atom match zero or once.
+
+From example, to match C<dog> or C<dogs>, you can write:
+
+    / dogs? /
 
 =head2 X<General quantifier: C<** min..max>|regex quantifier,**>
 
@@ -375,57 +394,63 @@ The quantifier takes a single L<Int> or a L<Range> on the right hand side
 that specifies the number of times to match. If L<Range> is specified,
 the end-points specify the minimum and maximum number of times to match.
 
-=begin code
-say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
-say 'a'       ~~ /\w **  2..5/;  # OUTPUT: «Nil␤»
-say 'abc'     ~~ /\w **  2..5/;  # OUTPUT: «｢abc｣␤»
-say 'abcdefg' ~~ /\w **  2..5/;  # OUTPUT: «｢abcde｣␤»
-say 'abcdefg' ~~ /\w ** 2^..^5/; # OUTPUT: «｢abcd｣␤»
-say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
-=end code
+    =begin code
+    say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
+    say 'a'       ~~ /\w **  2..5/;  # OUTPUT: «Nil␤»
+    say 'abc'     ~~ /\w **  2..5/;  # OUTPUT: «｢abc｣␤»
+    say 'abcdefg' ~~ /\w **  2..5/;  # OUTPUT: «｢abcde｣␤»
+    say 'abcdefg' ~~ /\w ** 2^..^5/; # OUTPUT: «｢abcd｣␤»
+    say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
+    say 'abcdefg' ~~ /\w ** 1..*/;   # OUTPUT: «｢abcdefg｣␤»
+    =end code
 
 Only basic literal syntax for the right hand side of the quantifier
 is supported, to avoid ambiguities with other regex constructs. If you need
-to use a more complex expression—for example a L<Range> made from
+to use a more complex expression; for example, a L<Range> made from
 variables—enclose the L<Range> into curly braces:
 
-=begin code
-my $start = 3;
-say 'abcdefg' ~~ /\w ** {$start .. $start+2}/; # OUTPUT: «｢abcde｣␤»
-say 'abcdefg' ~~ /\w ** {π.Int}/;              # OUTPUT: «｢abc｣␤»
-=end code
+    =begin code
+    my $start = 3;
+    say 'abcdefg' ~~ /\w ** {$start .. $start+2}/; # OUTPUT: «｢abcde｣␤»
+    say 'abcdefg' ~~ /\w ** {π.Int}/;              # OUTPUT: «｢abc｣␤»
+    =end code
 
 Negative values are treated like zero:
 
-=begin code
-say 'abcdefg' ~~ /\w ** {-Inf}/;     # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-42}/;      # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-10..-42}/; # OUTPUT: «｢｣␤»
-say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
-=end code
+    =begin code
+    say 'abcdefg' ~~ /\w ** {-Inf}/;     # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-42}/;      # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-10..-42}/; # OUTPUT: «｢｣␤»
+    say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
+    =end code
 
 If then, the resultant value is C<Inf>
 or C<NaN> or the resultant L<Range> is empty, non-Numeric, contains C<NaN>
 end-points, or has minimum effective end-point as C<Inf>, the
 C<X::Syntax::Regex::QuantifierValue> exception will be thrown:
 
-=begin code
-(try say 'abcdefg' ~~ /\w ** {42..10}/  ) orelse say ($!.^name, $!.empty-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {Inf..Inf}/) orelse say ($!.^name, $!.inf);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {NaN..42}/ ) orelse say ($!.^name, $!.non-numeric-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {"a".."c"}/) orelse say ($!.^name, $!.non-numeric-range);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    =begin code
+    (try say 'abcdefg' ~~ /\w ** {42..10}/  )
+        orelse say ($!.^name, $!.empty-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {Inf..Inf}/)
+        orelse say ($!.^name, $!.inf);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {NaN..42}/ )
+        orelse say ($!.^name, $!.non-numeric-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {"a".."c"}/)
+        orelse say ($!.^name, $!.non-numeric-range);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {Inf}/)
+        orelse say ($!.^name, $!.inf);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    (try say 'abcdefg' ~~ /\w ** {NaN}/)
+        orelse say ($!.^name, $!.non-numeric);
+        # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
+    =end code
 
-(try say 'abcdefg' ~~ /\w ** {Inf}/) orelse say ($!.^name, $!.inf);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-(try say 'abcdefg' ~~ /\w ** {NaN}/) orelse say ($!.^name, $!.non-numeric);
-    # OUTPUT: «(X::Syntax::Regex::QuantifierValue True)␤»
-=end code
-
-=head2 X<Modified quantifier: C<%>|regex,%;regex,%%>
+=head2 X<Modified quantifier: C<%>, C<%%>|regex,%;regex,%%>
 
 To more easily match things like comma separated values, you can tack on a
 C<%> modifier to any of the above quantifiers to specify a separator that must
@@ -438,48 +463,42 @@ repetitions that can match successfully, so C<a* % ','> also matches the empty
 string. If you want match words delimited by commas, you might need to nest an
 ordinary and a modified quantifier:
 
-=begin code
-say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
-say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
-=end code
-
-
-
-=head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
-
-By default, quantifiers request a greedy match:
-
-=begin code
-'abababa' ~~ /a .* a/ && say ~$/;   # OUTPUT: «abababa␤»
-=end code
-
-You can attach a C<?> modifier to the quantifier to enable frugal
-matching:
-
-=begin code
-'abababa' ~~ /a .*? a/ && say ~$/;   # OUTPUT: «aba␤»
-=end code
-
-You can also enable frugal matching for general quantifiers:
-
-=begin code
-my token A { f o **? 1^..8 };
-my token B { o+ bar };
-'foooobar' ~~ /<A><B>/   # OUTPUT: «foooobar␤»
-# this match doesn't fail
-=end code
-
-Greedy matching can be explicitly requested with the C<!> modifier.
+    =begin code
+    say so 'abc,def' ~~ / ^ [\w+] ** 1 % ',' $ /;  # Output: «False»
+    say so 'abc,def' ~~ / ^ [\w+] ** 2 % ',' $ /;  # Output: «True»
+    =end code
 
 =head2 X<Preventing backtracking: C<:>|regex,:>
 
 You can prevent backtracking in regexes by attaching a C<:> modifier
 to the quantifier:
 
-=begin code
-say so 'abababa' ~~ /a .* aba/;    # OUTPUT: «True␤»
-say so 'abababa' ~~ /a .*: aba/;   # OUTPUT: «False␤»
-=end code
+    =begin code
+    say so 'abababa' ~~ /a .* aba/;    # OUTPUT: «True␤»
+    say so 'abababa' ~~ /a .*: aba/;   # OUTPUT: «False␤»
+    =end code
+
+=head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
+
+By default, quantifiers request a greedy match:
+
+    =begin code
+    'abababa' ~~ /a .* a/ && say ~$/;   # OUTPUT: «abababa␤»
+    =end code
+
+You can attach a C<?> modifier to the quantifier to enable frugal
+matching:
+
+    =begin code
+    'abababa' ~~ /a .*? a/ && say ~$/;   # OUTPUT: «aba␤»
+    =end code
+
+You can also enable frugal matching for general quantifiers:
+
+    say '/foo/o/bar/' ~~ /\/.**?{1..10}\//;  # OUTPUT: «｢/foo/｣␤»
+    say '/foo/o/bar/' ~~ /\/.**!{1..10}\//;  # OUTPUT: «｢/foo/o/bar/｣␤»
+
+Greedy matching can be explicitly requested with the C<!> modifier.
 
 =head1 X<Alternation: C<||>|regex,||>
 
@@ -488,7 +507,7 @@ first matching alternative wins.
 
 For example, C<ini> files have the following form:
 
-    =begin code :skip-test
+    =begin code :lang<text>
     [section]
     key = value
     =end code
@@ -506,26 +525,71 @@ string of non-whitespace characters.
 
 =head1 X<Longest Alternation: C<|>|regex,|>
 
-In regexes branches separated by C<|>, the longest match wins, independent of
-the lexical ordering in the regexes.
+In short, in regexes branches separated by C<|>, the longest token match wins,
+independent of the textual ordering in the regexes. However, what C<|> really
+does is more than that.
 
-    say ('abc' ~~ / a | .b /).Str;    # OUTPUT: «ab␤»
+C<|> does not decide which branch to win after finishing the whole match,
+but follows the L<longest token match, for short, LTM|
+https://design.perl6.org/S05.html#Longest-token_matching> strategy.
+
+Briefly, what C<|> does is this:
+
+=item1 First, select the branch which has the longest declarative prefix.
+
+    say "abc" ~~ /ab | a.* /;                 # Output: ⌜abc⌟
+    say "abc" ~~ /ab | a {} .* /;             # Output: ⌜ab⌟
+    say "if else" ~~ / if | if <.ws> else /;  # Output: ｢if｣
+    say "if else" ~~ / if | if \s+   else /;  # Output: ｢if else｣
+
+As is shown above, C<a.*> is a declarative prefix, while C<a {} .*> terminates
+at C<{}>, then its declarative prefix is C<a>. Note that non-declarative atoms
+terminate declarative prefix. This is quite important if you want to apply
+C<|> in a C<rule>, which automatically enables C<:s>, and C«<.ws>» accidentally
+terminates declarative prefix.
+
+=item1 If it's a tie, select the match with the highest specificity.
+
+    say "abc" ~~ /a. | ab { print "win" } /;  # Output: win｢ab｣
+
+When two alternatives match at the same length, the tie is broken by
+specificity. That is, C<ab>, as an exact match, counts as closer than C<a.>,
+which uses character classes.
+
+=item1 If it's still a tie, use additional tie-breakers.
+
+    say "abc" ~~ /a\w| a. { print "lose" } /; # Output: ⌜ab⌟
+
+If the tie breaker above doesn't work, then the textually earlier alternative
+takes precedence.
+
+For more details, see
+L<the LTM strategy|https://design.perl6.org/S05.html#Longest-token_matching>.
 
 =head1 X<Conjunction: C<&&>|regex,&&>
 
-Matches successfully if all `&&`-delimited segments match the same substring
+Matches successfully if all C<&&>-delimited segments match the same substring
 of the target string. The segments are evaluated left to right.
 
 This can be useful for augmenting an existing regex. For example if you have
-a regex `quoted` that matches a quoted string, `/ <quoted> && <-[x]>* /`
-matches a quoted string that does not contain the character `x`. Note that you
-cannot easily obtain the same behavior with a look-ahead, because a look-ahead
-doesn't stop looking when the quoted string stops matching.
+a regex C<quoted> that matches a quoted string, then C</ <quoted> && <-[x]>* />
+matches a quoted string that does not contain the character C<x>.
+
+Note that you cannot easily obtain the same behavior with a look-ahead, that
+is, a regex doesn't consume characters, because a look-ahead doesn't stop
+looking when the quoted string stops matching.
+
+    =begin code
+    say 'abc' ~~ / <?before a> && . /;    # OUTPUT: «Nil␤»
+    say 'abc' ~~ / <?before a> . && . /;  # OUTPUT: «｢a｣␤»
+    say 'abc' ~~ / <?before a> . /;       # OUTPUT: «｢a｣␤»
+    say 'abc' ~~ / <?before a> .. /;      # OUTPUT: «｢ab｣␤»
+    =end code
 
 =head1 X<Conjunction: C<&>|regex,&>
 
 Much like C<&&> in a regex, it matches successfully if all segments
-separated by `&` match the same part of the target string.
+separated by C<&> match the same part of the target string.
 
 C<&> (unlike C<&&>) is considered declarative, and notionally all the
 segments can be evaluated in parallel, or in any order the compiler chooses.
@@ -535,7 +599,7 @@ segments can be evaluated in parallel, or in any order the compiler chooses.
 The regex engine tries to find a match inside a string by searching from
 left to right.
 
-    say so 'properly' ~~ / perl/;   # OUTPUT: «True␤»
+    say so 'properly use perl' ~~ / perl/;   # OUTPUT: «True␤»
     #          ^^^^
 
 But sometimes this is not what you want. Instead, you may only want to
@@ -565,8 +629,9 @@ You can combine both assertions:
     say so 'use perl' ~~ /^ perl $/;   # OUTPUT: «False␤»
     say so 'perl'     ~~ /^ perl $/;   # OUTPUT: «True␤»
 
-Keep in mind that C<^> matches the start of a B<string>, not the start of a B<line>.
-Likewise, C<$> matches the end of a B<string>, not the end of a B<line>.
+Keep in mind that C<^> matches the start of a B<string>, not the start of
+a B<line>. Likewise, C<$> matches the end of a B<string>, not the end of
+a B<line>.
 
 The following is a multi-line string:
 
@@ -575,64 +640,92 @@ The following is a multi-line string:
        and keep it safe
        EOS
 
-    say so $str ~~ /safe   $/;   # OUTPUT: «True␤»  -- 'safe' is at the end of the string
-    say so $str ~~ /secret $/;   # OUTPUT: «False␤» -- 'secret' is at the end of a line -- not the string
-    say so $str ~~ /^Keep   /;   # OUTPUT: «True␤»  -- 'Keep' is at the start of the string
-    say so $str ~~ /^and    /;   # OUTPUT: «False␤» -- 'and' is at the start of a line -- not the string
+    # 'safe' is at the end of the string
+    say so $str ~~ /safe   $/;   # OUTPUT: «True␤»
+
+    # 'secret' is at the end of a line, not the string
+    say so $str ~~ /secret $/;   # OUTPUT: «False␤»
+
+    # 'Keep' is at the start of the string
+    say so $str ~~ /^Keep   /;   # OUTPUT: «True␤»
+
+    # 'and' is at the start of a line -- not the string
+    say so $str ~~ /^and    /;   # OUTPUT: «False␤»
 
 =head2 X«C<^^>, Start of Line and C<$$>, End of Line|regex,^^;regex,$$»
 
 The C<^^> assertion matches at the start of a logical line. That is, either
-at the start of the string, or after a newline character. However, it does not match
-at the end of the string, even if it ends with a newline character.
+at the start of the string, or after a newline character. However, it does not
+match at the end of the string, even if it ends with a newline character.
 
 C<$$> matches only at the end of a logical line, that is, before a newline
 character, or at the end of the string when the last character is not a
 newline character.
 
 (To understand the following example, it's important to know that the
-C<q:to/EOS/...EOS> "heredoc" syntax removes leading indention to the same
-level as the C<EOS> marker, so that the first, second and last lines have no
-leading space and the third and fourth lines have two leading spaces each).
+C<q:to/EOS/...EOS> L<heredoc|/language/quoting#Heredocs:_:to> syntax removes
+leading indention to the same level as the C<EOS> marker, so that the first,
+second and last lines have no leading space and the third and fourth lines have
+two leading spaces each).
 
-=begin code
-my $str = q:to/EOS/;
-    There was a young man of Japan
-    Whose limericks never would scan.
-      When asked why this was,
-      He replied "It's because
-    I always try to fit as many syllables into the last line as ever I possibly can."
-    EOS
+    =begin code
+    my $str = q:to/EOS/;
+        There was a young man of Japan
+        Whose limericks never would scan.
+          When asked why this was,
+          He replied "It's because I always try to fit
+        as many syllables into the last line as ever I possibly can."
+        EOS
 
-say so $str ~~ /^^ There/;        # OUTPUT: «True␤»  -- start of string
-say so $str ~~ /^^ limericks/;    # OUTPUT: «False␤» -- not at the start of a line
-say so $str ~~ /^^ I/;            # OUTPUT: «True␤»  -- start of the last line
-say so $str ~~ /^^ When/;         # OUTPUT: «False␤» -- there are blanks between
-                                  #                       start of line and the "When"
+    # 'There' is at the start of string
+    say so $str ~~ /^^ There/;        # OUTPUT: «True␤»
 
-say so $str ~~ / Japan $$/;       # OUTPUT: «True␤»  -- end of first line
-say so $str ~~ / scan $$/;        # OUTPUT: «False␤» -- there's a . between "scan"
-                                  #                      and the end of line
-say so $str ~~ / '."' $$/;        # OUTPUT: «True␤»  -- at the last line
-=end code
+    # 'limericks' is not at the start of a line
+    say so $str ~~ /^^ limericks/;    # OUTPUT: «False␤»
+
+    # 'as' is at start of the last line
+    say so $str ~~ /^^ as/;            # OUTPUT: «True␤»
+
+    # there are blanks between start of line and the "When"
+    say so $str ~~ /^^ When/;         # OUTPUT: «False␤»
+
+    # 'Japan' is at end of first line
+    say so $str ~~ / Japan $$/;       # OUTPUT: «True␤»
+
+    # there's a . between "scan" and the end of line
+    say so $str ~~ / scan $$/;        # OUTPUT: «False␤»
+
+    # matched at the last line
+    say so $str ~~ / '."' $$/;        # OUTPUT: «True␤»
+    =end code
 
 
 =head2 X«C«<|w>» and C«<!|w>», word boundary|regex, <|w>;regex, <!|w>»
 
 To match any word boundary, use C«<|w>». This is similar to other
-languages’ X«C<\b>|regex deprecated,\b».
-To match not a word boundary, use <!|w>, similar to other languages X<C<\B>|regex deprecated, \B >.
+languages' X«C<\b>|regex deprecated,\b».
+
+To match not a word boundary, use <!|w>. This is similar to other
+languages' X<C<\B>|regex deprecated, \B >.
+
 These are both zero width assertions.
 
-=head2 X<<<<C<<< << >>> and C<<< >> >>>, left and right word boundary|regex,<<;regex,>>;regex,«;regex,»>>>>
+    say "two-words" ~~ / "two"<|w>"-"<|w>"words" /;    # OUTPUT: «｢two-words｣␤»
+    say "two-words" ~~ / "two"<!|w>"-"<!|w>"words" /;  # OUTPUT: «Nil␤»
 
-C<<< << >>> matches a left word boundary. It matches positions where there
+=head2 C«<<» and C«>>», left and right word boundary
+
+X<<<|regex, <<; regex, >>; regex, «; regex, »>>>
+
+C«<<» matches a left word boundary. It matches positions where there
 is a non-word character at the left (or the start of the string) and a word
 character to the right.
 
-C<<< >> >>> matches a right word boundary. It matches positions where there
+C«>>» matches a right word boundary. It matches positions where there
 is a word character at the left and a non-word character at the right (or
 the end of the string).
+
+These are both zero width assertions.
 
     my $str = 'The quick brown fox';
     say so $str ~~ /br/;              # OUTPUT: «True␤»
@@ -648,34 +741,95 @@ You can also use the variants C<«> and C<»> :
     say so $str ~~ /« own/;          # OUTPUT: «False␤»
     say so $str ~~ /own »/;          # OUTPUT: «True␤»
 
-=head1 X«Grouping and Capturing|regex,( );regex,[ ];regex,$<capture> =»
+To see the difference between C«<|w>» and C<«>, C<»>:
+
+    say "stuff here!!!".subst(:g, />>/, '|');   # OUTPUT: «stuff| here|!!!␤»
+    say "stuff here!!!".subst(:g, /<</, '|');   # OUTPUT: «|stuff |here!!!␤»
+    say "stuff here!!!".subst(:g, /<|w>/, '|'); # OUTPUT: «|stuff| |here|!!!␤»
+
+
+=head2 X<Lookahead assertions C«<?before pattern>»|regex,before>
+
+To check that a pattern appears before another pattern, use a
+lookahead assertion via the C<before> assertion. This has the form:
+
+    <?before pattern>
+
+Thus, to search for the string C<foo> which is immediately followed by the
+string C<bar>, use the following regexp:
+
+    rx{ foo <?before bar> }
+
+For example:
+
+    say "foobar" ~~ rx{ foo <?before bar> };  # OUTPUT: «foo␤»
+
+However, if you want to search for a pattern which is B<not> immediately
+followed by some pattern, then you need to use a negative lookahead
+assertion, this has the form:
+
+    <!before pattern>
+
+Hence, all occurrences of C<foo> which I<is not> before C<bar> would
+match with
+
+    say "foobar" ~~ rx{ foo <!before bar> }   # OUTPUT: «Nil␤»
+
+=head2 X<Lookbehind assertions C«<?after pattern>»|regex,after>
+
+To check that a pattern appears before another pattern, use a
+lookbehind assertion via the C<after> assertion. This has the form:
+
+    <?after pattern>
+
+Therefore, to search for the string C<bar> immediately preceded by the
+string C<foo>, use the following regexp:
+
+    rx{ <?after foo> bar }
+
+For example:
+
+    say "foobar" ~~ rx{ <?after foo> bar };   # OUTPUT: «bar␤»
+
+However, if you want to search for a pattern which is B<not> immediately
+preceded by some pattern, then you need to use a negative lookbehind
+assertion, this has the form:
+
+    <!after pattern>
+
+Hence all occurrences of C<bar> which I<do not> have C<foo> before them
+would be matched by
+
+    say "foobar" ~~ rx{ <!after foo> bar }    # OUTPUT: «Nil␤»
+
+=head1 Grouping and Capturing
 
 In regular (non-regex) Perl 6, you can use parentheses to group things
 together, usually to override operator precedence:
 
-    say 1 + 4 * 2;      # 9, parsed as 1 + (4 * 2)
-    say (1 + 4) * 2;    # OUTPUT: «10␤»
+    say 1 + 4 * 2;     # OUTPUT: «9␤», parsed as 1 + (4 * 2)
+    say (1 + 4) * 2;   # OUTPUT: «10␤»
 
 The same grouping facility is available in regexes:
 
-    / a || b c /;        # matches 'a' or 'bc'
-    / ( a || b ) c /;    # matches 'ac' or 'bc'
+    / a || b c /;      # matches 'a' or 'bc'
+    / ( a || b ) c /;  # matches 'ac' or 'bc'
 
 The same grouping applies to quantifiers:
 
-    / a b+ /;            # matches an 'a' followed by one or more 'b's
-    / (a b)+ /;          # matches one or more sequences of 'ab'
-    / (a || b)+ /;       # matches a sequence of 'a's and 'b's, at least one long
+    / a b+ /;          # matches an 'a' followed by one or more 'b's
+    / (a b)+ /;        # matches one or more sequences of 'ab'
+    / (a || b)+ /;     # matches a string of 'a's and 'b's, except empty string
 
 An unquantified capture produces a L<Match> object. When a capture is
 quantified (except with the C<?> quantifier) the capture becomes a list of
 L<Match> objects instead.
 
-=head2 Capturing
+=head2 X«Capturing|regex,( )»
 
 The round parentheses don't just group, they also I<capture>; that is, they
 make the string matched within the group available as a variable, and also as
-an element of the resulting L<Match|/type/Match> object:
+an element of the resulting L<Match> object:
 
     my $str =  'number 42';
     if $str ~~ /'number ' (\d+) / {
@@ -701,7 +855,7 @@ access all elements:
         say $/.list.join: ', '  # OUTPUT: «a, c␤»
     }
 
-=head2 Non-capturing grouping
+=head2 X«Non-capturing grouping|regex,[ ]»
 
 The parentheses in regexes perform a double role: they group the regex
 elements inside and they capture what is matched by the sub-regex inside.
@@ -713,9 +867,10 @@ instead.
         say ~$0;                # OUTPUT: «c␤»
     }
 
-If you do not need the captures, using non-capturing groups provides three
-benefits: they more cleanly communicate the regex intent; they make it easier to
-count the capturing groups that you do care about; and matching is bit faster.
+If you do not need the captures, using non-capturing groups provides
+three benefits: they more cleanly communicate the regex intent; they
+make it easier to count the capturing groups that you do care about;
+and matching is bit faster.
 
 =head2 Capture numbers
 
@@ -734,21 +889,16 @@ Alternations reset the capture count:
 Example:
 
     if 'abc' ~~ /(x)(y) || (a)(.)(.)/ {
-        say ~$1;            # b
+        say ~$1;        # OUTPUT: «b␤»
     }
 
 If two (or more) alternations have a different number of captures,
 the one with the most captures determines the index of the next capture:
 
-=begin code
-$_ = 'abcd';
-
-if / a [ b (.) || (x) (y) ] (.) / {
-    #      $0     $0  $1    $2
-    say ~$2;            # d
-}
-=end code
-
+    if 'abcd' ~~ / a [ b (.) || (x) (y) ] (.) / {
+        #                 $0     $0  $1    $2
+        say ~$2;            # OUTPUT: «d␤»
+    }
 
 Captures can be nested, in which case they are numbered per level
 
@@ -768,23 +918,24 @@ it in a variable first:
     say "11" ~~ /(\d) {} :my $c = $0; ($c)/;
     # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
 
-=head2 Named captures
+=head2 X<Named captures|regex, Named captures>
 
-Instead of numbering captures, you can also give them names. The generic --
-and slightly verbose -- way of naming captures is like this:
+Instead of numbering captures, you can also give them names. The generic,
+and slightly verbose, way of naming captures is like this:
 
     if 'abc' ~~ / $<myname> = [ \w+ ] / {
         say ~$<myname>      # OUTPUT: «abc␤»
     }
 
-The access to the named capture, C<< $<myname> >>, is a shorthand for indexing
-the match object as a hash, in other words: C<$/{ 'myname' }> or C<< $/<myname> >>.
+The access to the named capture, C«$<myname>», is a shorthand for indexing
+the match object as a hash, in other words: C<$/{ 'myname' }> or C«$/<myname>».
 
 Named captures can also be nested using regular capture group syntax:
 
     if 'abc-abc-abc' ~~ / $<string>=( [ $<part>=[abc] ]* % '-' ) / {
-        say ~$<string>;         # OUTPUT: «abc-abc-abc␤»
-        say ~$<string><part>;   # OUTPUT: «abc abc abc␤»
+        say ~$<string>;          # OUTPUT: «abc-abc-abc␤»
+        say ~$<string><part>;    # OUTPUT: «abc abc abc␤»
+        say ~$<string><part>[0]; # OUTPUT: «abc␤»
     }
 
 Coercing the match object to a hash gives you easy programmatic access to
@@ -803,12 +954,20 @@ all named captures:
     }
 
 A more convenient way to get named captures is discussed in
-the Subrules section.
+the L<Subrules|#Subrules> section.
+
 =head2 X«Capture markers: C«<( )>»|regex,<( )>»
 
-A C«<(» token indicates the start of the match's overall capture, while the corresponding C«)>»
-token indicates its endpoint. The C«<(» is similar to other languages X<\K|regex deprecated,\K> to discard any matches
-found before the C<\K>.
+A C«<(» token indicates the start of the match's overall capture, while the
+corresponding C«)>» token indicates its endpoint. The C«<(» is similar to other
+languages X<\K|regex deprecated,\K> to discard any matches found before the
+C<\K>.
+
+    say 'abc' ~~ / a <( b )> c/;            # OUTPUT: «｢b｣␤»
+    say 'abc' ~~ / <(a <( b )> c)>/;        # OUTPUT: «｢bc｣␤»
+
+As the example above, you can see C«<(» sets the start point and C«<)» sets the
+endpoint. They are actually independent.
 
 =head1 Substitution
 
@@ -826,7 +985,7 @@ expression goes, and the right side is what you want to replace it with.
 Substitutions are written similarly to matching, but the substitution operator
 has both an area for the regex to match, and the text to substitute:
 
-    =begin code :skip-test
+    =begin code :preamble<my $str;>
     s/replace/with/;           # a substitution that is applied to $_
     $str ~~ s/replace/with/;   # a substitution applied to a scalar
     =end code
@@ -838,8 +997,8 @@ The substitution operator allows delimiters other than the slash:
     s,replace,with,;
 
 Note that neither the colon C<:> nor balancing delimiters such as C<{}> or
-C<()> can be substitution delimiters. Colons clash with adverbs such as C<s:i/Foo/bar/>
-and the other delimiters are used for other purposes.
+C<()> can be substitution delimiters. Colons clash with adverbs such as
+C<s:i/Foo/bar/> and the other delimiters are used for other purposes.
 
 If you use balancing brackets, the substitution works like this instead:
 
@@ -853,9 +1012,8 @@ is available as the current match:
     .say;                    # OUTPUT: «some 22 words 42␤»
 
 Like the C<m//> operator, whitespace is ignored in the regex part of a
-substitution. Comments, as in
-Perl 6 in general, start with the hash character C<#> and go to the end of
-the current line.
+substitution. Comments, as in Perl 6 in general, start with the hash
+character C<#> and go to the end of the current line.
 
 =head2 Replacing string literals
 
@@ -919,20 +1077,26 @@ reformat them into C<MM-DD-YYYY> order:
     s/ (\d+)\-(\d+)\-(\d+) /$1-$2-$0/;    # transform YYYY-MM-DD to MM-DD-YYYY
     .say;                                 # OUTPUT: «01-23-2016 18:09:00␤»
 
+Named capture can be used too:
+
+    $_ = '2016-01-23 18:09:00';
+    s/ $<y>=(\d+)\-$<m>=(\d+)\-$<d>=(\d+) /$<m>-$<d>-$<y>/;
+    .say;                                 # OUTPUT: «01-23-2016 18:09:00␤»
+
 Since the right-hand side is effectively a regular Perl 6 interpolated string,
 you can reformat the time from C<HH:MM> to C<h:MM {AM,PM}> like so:
 
     $_ = '18:38';
     s/(\d+)\:(\d+)/{$0 % 12}\:$1 {$0 < 12 ?? 'AM' !! 'PM'}/;
-    .say;                                                    # OUTPUT: «6:38 PM␤»
+    .say;                                 # OUTPUT: «6:38 PM␤»
 
 Using the modulo C<%> operator above keeps the sample code under 80 characters,
 but is otherwise the same as C« $0 < 12 ?? $0 !! $0 - 12 ». When combined with
-the power of the Parser Expression Grammars that B<really> underlies what you're
-seeing here, you can use "regular expressions" to parse pretty much any
+the power of the Parser Expression Grammars that B<really> underlies what
+you're seeing here, you can use "regular expressions" to parse pretty much any
 text out there.
 
-=head3 Common adverbs
+=head2 Common adverbs
 
 The full list of adverbs that you can apply to regular expressions can be found
 elsewhere in this document (L<section Adverbs|#Adverbs>), but the most
@@ -979,9 +1143,9 @@ that their regular expression needs to match every piece of data in the line,
 including what they want to match. Write just enough to match the data you're
 looking for, no more, no less.
 
-=head1 X<Tilde for nesting structures|tilde,regex;~,regex>
+=head1 X<Tilde for nesting structures|regex, tilde; regex, ~>
 
-The ~ operator is a helper for matching nested subrules with a
+The C<~> operator is a helper for matching nested subrules with a
 specific terminator as the goal. It is designed to be placed between
 an opening and closing bracket, like so:
 
@@ -1015,10 +1179,10 @@ will be called on parse failure:
                 }
     }
 
-    A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
-    A.parse: '[bad';    # will throw FAILGOAL exception
+    say A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
+    A.parse: '[bad';        # will throw FAILGOAL exception
     CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 5␤»
+    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 4␤»
 
 Note that you can use this construct to set up expectations for a
 closing construct even when there's no opening bracket:
@@ -1044,16 +1208,15 @@ pieces of regex into named rules.
         say "First line: ", $<line>.chomp;      # OUTPUT: «First line: abc␤»
     }
 
-A named regex can be declared with C<my regex regex_name { body here }>, and
-called with C<< <regex_name> >>. At the same time, calling a named regex
+A named regex can be declared with C<my regex named-regex { body here }>, and
+called with C«<named-regex>». At the same time, calling a named regex
 installs a named capture with the same name.
 
 To give the capture a different name from the regex, use the
-syntax C<< <capture_name=regex_name> >>. If no capture is desired, a
-leading dot will suppress it: C<< <.regex_name> >>.
+syntax C«<capture-name=named-regex>». If no capture is desired, a
+leading dot will suppress it: C«<.named-regex>».
 
-Here's more complete code for parsing C<ini>
-files:
+Here's more complete code for parsing C<ini> files:
 
     my regex header { \s* '[' (\w+) ']' \h* \n+ }
     my regex identifier  { \w+ }
@@ -1077,19 +1240,20 @@ files:
         for $<section>.list -> $section {
             my %section;
             for $section<kvpair>.list -> $p {
-                say $p<value>;
                 %section{ $p<key> } = ~$p<value>;
             }
             %config{ $section<header>[0] } = %section;
         }
     }
     say %config.perl;
-    # OUTPUT: «("passwords" => {"jack" => "password1", "joy" => "muchmoresecure123"},␤
-    #          "quotas" => {"jack" => "123", "joy" => "42"}).hash»
+
+    # OUTPUT: «{:passwords(${:jack("password1"), :joy("muchmoresecure123")}),
+    #           :quotas(${:jack("123"), :joy("42")})}»
 
 Named regexes can and should be grouped in L<grammars|/language/grammars>. A
 list of predefined subrules is listed in
-L<S05|https://design.perl6.org/S05.html#Predefined_Subrules>.
+L<S05-regex|https://design.perl6.org/S05.html#Predefined_Subrules> of design
+documents.
 
 =head1 Adverbs
 
@@ -1475,62 +1639,6 @@ say S:samespace/a ./c d/.perl given "a\nb";     # OUTPUT: «"c\nd"»
 
 The C<ss/.../.../> syntactic form is a shorthand for
 C<s:samespace/.../.../>.
-
-=head1 Look-around assertions
-
-=head2 X<Lookahead assertions|regex,before;regex,after>
-
-To check that a pattern appears before another pattern, use a
-lookahead assertion via the C<before> assertion. This has the form:
-
-    <?before pattern>
-
-Thus, to search for the string C<foo> which is immediately followed by the
-string C<bar>, use the following regexp:
-
-    rx{ foo <?before bar> }
-
-For example:
-
-    say "foobar" ~~ rx{ foo <?before bar> };   # OUTPUT: «foo␤»
-
-However, if you want to search for a pattern which is B<not> immediately
-followed by some pattern, then you need to use a negative lookahead
-assertion, this has the form:
-
-    <!before pattern>
-
-Hence, all occurrences of C<foo> which I<is not> before C<bar> would
-match with
-
-    rx{ foo <!before bar> }
-
-=head2 Lookbehind assertions
-
-To check that a pattern appears before another pattern, use a
-lookbehind assertion via the C<after> assertion. This has the form:
-
-    <?after pattern>
-
-Therefore, to search for the string C<bar> immediately preceded by the
-string C<foo>, use the following regexp:
-
-    rx{ <?after foo> bar }
-
-For example:
-
-    say "foobar" ~~ rx{ <?after foo> bar };   # OUTPUT: «bar␤»
-
-However, if you want to search for a pattern which is B<not> immediately
-preceded by some pattern, then you need to use a negative lookbehind
-assertion, this has the form:
-
-    <!after pattern>
-
-Hence all occurrences of C<bar> which I<do not> have C<foo> before them
-would be matched by
-
-    rx{ <!after foo> bar }
 
 =head1 Best practices and gotchas
 

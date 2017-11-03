@@ -1,25 +1,36 @@
 FROM rakudo-star:latest
 
-RUN curl -sL https://deb.nodesource.com/setup_6.x | bash -
+RUN buildDeps=' \
+        build-essential \
+        cpanminus \
+        npm \
+    ' \
+    runtimeDeps=' \
+        graphviz \
+        make \
+        nodejs \
+        ruby-sass \
+    ' \
+    testDeps=' \
+        aspell \
+    ' \
 
-RUN apt-get --yes --no-install-recommends install \
-    ruby-sass \
-    cpanminus \
-    build-essential \
-    nodejs \
-    graphviz \
-    ;
+    && set -x \
+    && apt-get update \
+    && apt-get --yes --no-install-recommends install $buildDeps $runtimeDeps $testDeps \
+    && rm -rf /var/lib/apt/lists/* \
 
-RUN zef install Pod::To::HTML Pod::To::BigPage
+    && cpanm -vn Mojolicious \
+    && zef install Test::META \
 
-RUN cpanm -vn Mojolicious
+    && ln -s /usr/bin/nodejs /usr/bin/node \
+    && npm cache clean -f \
+    && npm install -g n \
+    && n stable \
 
-RUN cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
+    && apt-get purge --yes --auto-remove $buildDeps
 
-RUN mkdir /doc
+WORKDIR /perl6/doc/
+EXPOSE  3000
 
-WORKDIR /doc
-
-EXPOSE 3000
-
-CMD bash -c "make init-highlights && perl6 htmlify.p6 && perl app.pl daemon"
+CMD bash -c 'make test && make html && ./app-start'

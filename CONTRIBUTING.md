@@ -30,7 +30,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
         - [Mojolicious / Web Server](#mojolicious--web-server)
         - [SASS compiler](#sass-compiler)
     - [Build and view the documentation](#build-and-view-the-documentation)
-        - [Using Docker](#using-docker)
+        - [Using Docker](#using-docker-to-build-and-view-the-documentation)
 
 ## General principles
 
@@ -112,6 +112,11 @@ The repo should also pass `make xtest` most of the time - this includes
 tests about whitespace and spelling that might be difficult to get right
 on an initial commit, and shouldn't be considered to break the build. If
 you're contributing a patch or pull request, please make sure this passes.
+
+If you have local modifications and want to insure they pass xtest before
+committing, you can use this command to test only modified files:
+
+  TEST_FILES=`git status --porcelain --untracked-files=no | awk '{print $2}'` make xtest
 
 ## Writing and Testing Examples
 
@@ -264,7 +269,7 @@ render the HTML documentation
 Now point your web browser to http://localhost:3000 to view the
 documentation.
 
-#### Using Docker
+#### Using Docker to build and view the documentation
 
 You can skip all the above and just build and view documentation with these simple commands (if you have docker already installed):
 
@@ -272,7 +277,31 @@ You can skip all the above and just build and view documentation with these simp
     $ docker run -p 3000:3000 -it -v `pwd`:/doc perl6-doc
 
 This will build the documentation for you by default and it will take some time, but for subsequent use you may want to skip build part if nothing has been changed:
- 
+
     $ docker run -p 3000:3000 -it -v `pwd`:/doc perl6-doc bash -c "perl app.pl daemon"
 
 Now point your web browser to http://localhost:3000 to view the documentation.
+
+Alternatively, you can use make to build and run your container. To build the image:
+
+    $ make docker-image
+
+To build the HTML documentation:
+
+    $ make docker-htmlify
+
+To run the development web server for viewing documentation (on port 3000):
+
+    $ make docker-run
+
+Note that while this requires less typing, some assumptions will be made for you regarding the name
+of the resulting image, the port the content is available over, etc. If you want, you can
+override these default values.
+
+For instance, if you want the local documentation to be available over port 5001 of the host,
+pass the following to make when running:
+
+    $ make docker-run DOCKER_HOST_PORT=5001
+
+Now the documentation will be available on the host at http://localhost:5001. Please see the
+Makefile for a list of available options.
