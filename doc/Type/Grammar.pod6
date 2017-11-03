@@ -6,20 +6,20 @@
 
     class Grammar is Cursor {}
 
-Every type declared with C<grammar> (which doesn't explicitly states its
-superclass) becomes a subclass of I<Grammar>.
+Every type declared with C<grammar>, which doesn't explicitly states its
+superclass, becomes a subclass of I<Grammar>.
 
-    grammar Thingy {
-        token TOP {
-            <a> <b>
-        }
-        token a { a }
-        token b { b }
+    grammar Identifier {
+        token TOP     { <initial> <rest>* }
+        token initial { <:letter+[_]> }
+        token rest    { <:letter+:number+[_]>}
+        token letter { <[A..Za..z]> }
+        token number { <[0..9]> }
     }
-    say Thingy ~~ Grammar;      # OUTPUT: «True␤»
-    my $match = Thingy.parse('ab');
-    say so $match;              # OUTPUT: «True␤»
-    say ~$match<a>;             # OUTPUT: «a␤»
+
+    say Identifier.isa(Grammar);                # OUTPUT: «True␤»
+    my $match = Identifier.parse('W4anD0eR96');
+    say ~$match;                                # OUTPUT: «W4anD0eR96␤»
 
 More L<documentation on grammars|/language/grammars> is available.
 
@@ -31,18 +31,37 @@ Defined as:
 
     method parse($target, :$rule = 'TOP',  Capture() :$args = \(), Mu :$actions = Mu, *%opt)
 
-Parses the C<$target> (which will be coerced to L<Str|/type/Str> if it isn't
-one), using C<$rule> as the starting rule. Additional C<$args> will be given
+Parses the C<$target>, which will be coerced to L<Str|/type/Str> if it isn't
+one, using C<$rule> as the starting rule. Additional C<$args> will be passed
 to the starting rule if provided.
 
+    grammar RepeatChar {
+        token start($character) { $character+ }
+    }
+
+    say RepeatChar.parse('aaaaaa', :rule('start'), :args(\('a')));
+    say RepeatChar.parse('bbbbbb', :rule('start'), :args(\('b')));
+
+    # OUTPUT:
+    # ｢aaaaaa｣
+    # ｢bbbbbb｣
+
 If the C<action> named argument is provided, it will be used as an action
-object, that is, for each successful regex match, a method of the same name
-(if it exists) is called on the action object, passing the match object as the
+object, that is, for each successful regex match, a method of the same name,
+if it exists, is called on the action object, passing the match object as the
 sole positional argument.
 
-Additional named arguments are used as options for matching, so you can
-specify things like C<:c(4)> to start parsing from the fourth character. All
-L<matching adverbs|/language/regexes#Adverbs> are allowed.
+    my $actions = class { method TOP($/) { say "7" } };
+    grammar { token TOP { a { say "42" } b } }.parse('ab', :$actions);
+    # OUTPUT : «42␤7␤»
+
+Additional named arguments are used as options for matching, so you can specify
+things like C<:pos(4)> to start parsing from the fourth (zero-base) character.
+All L<matching adverbs|/language/regexes#Adverbs> are allowed.
+
+    =for code :preamble<grammar RepeatChar {}>
+    say RepeatChar.parse('bbbbbb', :rule('start'), :args(\('b')), :pos(4)).Str;
+    # OUTPUT : «bb␤»
 
 Method C<parse> only succeeds if the cursor has arrived at the end of the
 target string when the match is over. Use L<method subparse|/routine/subparse>
@@ -51,56 +70,6 @@ if you want to be able to stop in the middle.
 Returns a L<Match object|/type/Match> on success, and L<Nil|/type/Nil> on
 failure.
 
-    grammar CSV {
-        token TOP { [ <line> \n? ]+ }
-        token line {
-            ^^            # Beginning of a line
-            <value>* % \, # Any number of <value>s with commas in between them
-            $$            # End of a line
-        }
-        token value {
-            [
-            | <-[",\n]>     # Anything not a double quote, comma or newline
-            | <quoted-text> # Or some quoted text
-            ]*              # Any number of times
-        }
-        token quoted-text {
-            \"
-            [
-            | <-["\\]> # Anything not a " or \
-            | '\"'     # Or \", an escaped quotation mark
-            ]*         # Any number of times
-            \"
-        }
-    }.parse( q:to/EOCSV/ ).say;
-        Year,Make,Model,Length
-        1997,Ford,E350,2.34
-        2000,Mercury,Cougar,2.38
-        EOCSV
-
-This outputs:
-
-=for code :skip-test
-｢Year,Make,Model,Length
-1997,Ford,E350,2.34
-2000,Mercury,Cougar,2.38
-｣
- line => ｢Year,Make,Model,Length｣
-  value => ｢Year｣
-  value => ｢Make｣
-  value => ｢Model｣
-  value => ｢Length｣
- line => ｢1997,Ford,E350,2.34｣
-  value => ｢1997｣
-  value => ｢Ford｣
-  value => ｢E350｣
-  value => ｢2.34｣
- line => ｢2000,Mercury,Cougar,2.38 ｣
-  value => ｢2000｣
-  value => ｢Mercury｣
-  value => ｢Cougar｣
-  value => ｢2.38 ｣
-
 =head2 method subparse
 
 Defined as:
@@ -108,19 +77,28 @@ Defined as:
     method subparse($target, :$rule = 'TOP', Capture() :$args = \(),  Mu :$actions = Mu, *%opt)
 
 Does exactly the same as L<method parse|/routine/parse>, except that cursor
-doesn't have to reach the end of the string to succeed. (That is, it doesn't
-have to match the whole string).
+doesn't have to reach the end of the string to succeed. That is, it doesn't
+have to match the whole string.
 
 Note that unlike L<method parse|/routine/parse>, C<subparse> I<always> returns
 a L<Match|/type/Match> object, which will be a failed match (and thus falsy),
 if the grammar failed to match.
 
-    grammar A {
-        token as { a+ };
+    grammar RepeatChar {
+        token start($character) { $character+ }
     }
-    my $match = A.subparse('aaab', :rule<as>);
-    say ~$match;        # OUTPUT: «aaa␤»
-    say $match.to;      # OUTPUT: «3␤»
+
+    say RepeatChar.subparse('bbbabb', :rule('start'), :args(\('b')));
+    say RepeatChar.parse('bbbabb', :rule('start'), :args(\('b')));
+    say RepeatChar.subparse('bbbabb', :rule('start'), :args(\('a')));
+    say RepeatChar.subparse('bbbabb', :rule('start'), :args(\('a')), :pos(3));
+
+
+    # OUTPUT:
+    # ｢bbb｣
+    # Nil
+    # #<failed match>
+    # ｢a｣
 
 =head2 method parsefile
 
@@ -128,13 +106,29 @@ Defined as:
 
     method parsefile(Str(Cool) $filename, :$enc, *%opts)
 
-Reads file C<$filename>, and parses it. All named arguments are passed on to
-L<method parse|/routine/parse>.
+Reads file C<$filename> encoding by C<$enc>, and parses it. All named arguments
+are passed on to L<method parse|/routine/parse>.
 
-=for code
-grammar A {
-    token TOP { a+ };
-}
-A.parsefile('my-good-file', enc => 'UTF-8');
+    grammar Identifiers {
+        token TOP        { [<identifier><.ws>]+ }
+        token identifier { <initial> <rest>* }
+        token initial    { <:letter+[_]> }
+        token rest       { <:letter+:number+[_]>}
+        token letter     { <[A..Za..z]> }
+        token number     { <[0..9]> }
+    }
+
+    say Identifiers.parsefile('users.txt', :enc('UTF-8'))
+        .Str.trim.subst(/\n/, ',', :g);
+
+    # users.txt :
+    # TimToady
+    # lizmat
+    # jnthn
+    # moritz
+    # zoffixznet
+    # MasterDuke17
+
+    # OUTPUT : «TimToady,lizmat,jnthn,moritz,zoffixznet,MasterDuke17␤»
 
 =end pod
