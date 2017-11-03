@@ -1036,6 +1036,40 @@ $a.sayit;      # OUTPUT: «hi␤»
 my $b = A.new;
 $b.sayit;      # nothing
 
-=end pod
+=head2 C<LEAVE> phaser and C<exit>
+Using L«C<LEAVE>|/syntax/LEAVE» phaser to perform graceful resource
+termination is a common pattern, but it does not cover the case when
+the program is stopped with L«C<exit>|/routine/exit».
 
+The following nondeterministic example should demonstrate the
+complications of this trap:
+=begin code :skip-test
+my $x = say ‘Opened some resource’;
+LEAVE say ‘Closing the resource gracefully’ with $x;
+
+exit 42 if rand < ⅓; # ① ｢exit｣ is bad
+die ‘Dying because of unhandled exception’ if rand < ½; # ② ｢die｣ is ok
+# fallthru ③
+=end code
+
+There are three possible results:
+=begin code :skip-test
+①
+Opened some resource
+
+②
+Opened some resource
+Closing the resource gracefully
+Dying because of unhandled exception
+  in block <unit> at print.p6 line 5
+
+③
+Opened some resource
+Closing the resource gracefully
+=end code
+
+A call to C<exit> is part of normal operation for many programs, so
+beware unintentional combination of C<LEAVE> phasers and C<exit> calls.
+
+=end pod
 # vim: expandtab shiftwidth=4 ft=perl6
