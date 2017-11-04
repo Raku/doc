@@ -898,7 +898,7 @@ sub write-kind($kind) {
                           ?? @subkinds.list[0]
                           !! $kind;
             my $pod = pod-with-title(
-                "Documentation for $subkind $name",
+                "$subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),
                 @docs.map({
                     pod-heading("{.origin.human-kind} {.origin.name}"),
@@ -926,7 +926,7 @@ sub write-kind($kind) {
 
 sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
     my $p = pod-with-title(
-        "Documentation for method $type.$name",
+        "method $type.$name",
         pod-block('From ', pod-link($type, "/type/{$type}#$name")),
         @$pod,
     );
