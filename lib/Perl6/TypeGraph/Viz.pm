@@ -7,6 +7,7 @@ class Perl6::TypeGraph::Viz {
     has $.url-base    = '/type/';
     has $.rank-dir    = 'BT';
     has $.role-color  = '#6666FF';
+    has $.enum-color  = '#33BB33';
     has $.class-color = '#000000';
     has $.node-soft-limit = 20;
     has $.node-hard-limit = 50;
@@ -64,7 +65,11 @@ class Perl6::TypeGraph::Viz {
 
         @dot.append: "\n    // Types\n";
         for @.types -> $type {
-            my $color = $type.packagetype eq 'role' ?? $.role-color !! $.class-color;
+            my $color = do given $type.packagetype {
+                when ‘role’ { $.role-color  }
+                when ‘enum’ { $.enum-color  }
+                default     { $.class-color }
+            }
             @dot.append: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name }\", fontname=\"FreeSans\"];\n";
         }
 
