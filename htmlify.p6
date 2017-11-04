@@ -880,7 +880,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
             .map({[
-                .map({.subkinds // Nil}).unique.join(', '),
+                .map({slip .subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
@@ -893,10 +893,8 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
-            my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.squish(with => &infix:<~~>) == 1
-                          ?? @subkinds.list[0]
-                          !! $kind;
+            my @subkinds = @docs.map({slip .subkinds}).unique;
+            my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
                 "$subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),
