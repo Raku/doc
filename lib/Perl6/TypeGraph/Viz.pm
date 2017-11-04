@@ -55,8 +55,8 @@ class Perl6::TypeGraph::Viz {
 
     method as-dot (:$size) {
         my @dot;
-        @dot.append: "digraph \"perl6-type-graph\" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n";
-        @dot.append: "    size=\"$size\"\n" if $size;
+        @dot.append: “digraph "perl6-type-graph" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n”;
+        @dot.append: “    size="$size"\n” if $size;
 
         if $.dot-hints -> $hints {
             @dot.append: "\n    // Layout hints\n";
@@ -70,20 +70,20 @@ class Perl6::TypeGraph::Viz {
                 when ‘enum’ { $.enum-color  }
                 default     { $.class-color }
             }
-            @dot.append: "    \"$type.name()\" [color=\"$color\", fontcolor=\"$color\", href=\"{$.url-base ~ $type.name }\", fontname=\"FreeSans\"];\n";
+            @dot.append: “    "$type.name()" [color="$color", fontcolor="$color", href="{$.url-base ~ $type.name }", fontname="FreeSans"];\n”;
         }
 
         @dot.append: "\n    // Superclasses\n";
         for @.types -> $type {
             for $type.super -> $super {
-                @dot.append: "    \"$type.name()\" -> \"$super\" [color=\"$.class-color\"];\n";
+                @dot.append: “    "$type.name()" -> "$super" [color="$.class-color"];\n”;
             }
         }
 
         @dot.append: "\n    // Roles\n";
         for @.types -> $type {
             for $type.roles -> $role {
-                @dot.append: "    \"$type.name()\" -> \"$role\" [color=\"$.role-color\"];\n";
+                @dot.append: “    "$type.name()" -> "$role" [color="$.role-color"];\n”;
             }
         }
 
