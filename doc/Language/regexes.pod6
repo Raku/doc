@@ -1255,17 +1255,45 @@ list of predefined subrules is listed in
 L<S05-regex|https://design.perl6.org/S05.html#Predefined_Subrules> of design
 documents.
 
-=head1 X«Regex Interpolation|Regex Interpolation; <$pattern>»
+=head1 X<Regex Interpolation|regex, Regex Interpolation>
 
 If you want to build a regex using pattern given at the runtime, regex
 interpolation is what you looking for.
 
-    sub runtime-regex(Str $pattern --> Regex) { /<$pattern>/ }
+There are two ways you can interpolate a string into regex as a pattern,
+which are quite similar to interpolate it into a double-quote string.
+That is using C«<$pattern>» or C«<{$pattern.method}>».
 
-    my $regex = runtime-regex(get);  # INPUT : «\d+␤»
-    my $text = get;                  # INPUT : «42␤»
+    my $text = 'camelia';
+    my $pattern = '\w+';
+    my $pattern_ = 'ailemac';
+    say $text ~~ / <$pattern> /;          # OUTPUT: «｢camelia｣␤»
+    say $text ~~ / <{$pattern}> /;        # OUTPUT: «｢camelia｣␤»
+    say $text ~~ / <{$pattern_.flip}> /;  # OUTPUT: «｢camelia｣␤»
+    # say $text ~~ / <$pattern_.flip> /;  !!Compile Error!!
 
-    say $text ~~ $regex;             # OUTPUT: «｢42｣␤»
+Note that this syntax causes I<implicit EVAL>, that is a known trap.
+
+When your pattern is a lexical string, there are two more syntax helping you
+interpolate it.
+
+    my $text = 'camelia';
+    my $string = 'camelia';
+    my $string_ = 'ailemac';
+    say $text ~~ / $string /;                 # OUTPUT: «｢camelia｣␤»
+    say $text ~~ / $($string) /;              # OUTPUT: «｢camelia｣␤»
+    say $text ~~ / $($string_.flip) /;        # OUTPUT: «｢camelia｣␤»
+    say $text ~~ / $string_.flip /;           # OUTPUT: «Nil␤»
+    say 'ailemacxflip' ~~ / $string_.flip /;  # OUTPUT: «｢ailemacxflip｣␤»
+
+Because it interpolates a string lexically, it doesn't EVAL the string
+implicitly.
+
+    my $text = '42';
+    my $text_ = '\d+';
+    my $lexical = '\d+';
+    say $text ~~ / $($lexical) /;             # OUTPUT: «Nil␤»
+    say $text_ ~~ / $($lexical) /;            # OUTPUT: «｢\d+｣␤»
 
 =head1 Adverbs
 
