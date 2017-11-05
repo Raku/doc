@@ -1109,6 +1109,7 @@ $a.sayit;      # OUTPUT: «hi␤»
 my $b = A.new;
 $b.sayit;      # nothing
 
+
 =head2 C<LEAVE> phaser and C<exit>
 
 Using L«C<LEAVE>|/syntax/LEAVE» phaser to perform graceful resource
@@ -1144,6 +1145,34 @@ Closing the resource gracefully
 
 A call to C<exit> is part of normal operation for many programs, so
 beware unintentional combination of C<LEAVE> phasers and C<exit> calls.
+
+=head2 C<LEAVE> phaser may run sooner than you think
+
+You should always expect the C<LEAVE> phaser to execute before
+I<anything> else in the block was executed.
+
+Here is an example:
+
+=begin code
+sub foo($ where ‘abc’) {
+    my $x = 42;
+    LEAVE say $x.Int; # ← WRONG; assumes that $x is not Nil
+}
+say foo ‘hello’; # OUTPUT: «No such method 'Int' for invocant of type 'Any'␤»
+=end code
+
+You may think that there is no way C<my $x = 42> can fail, and
+therefore C<$x> will always be defined in the C<LEAVE> block. But that
+is simply not the case. There is no guarantee that anything will
+executed at all, which is what happens when type constraints are
+involved.
+
+The right way to do it is to I<always> check that whatever you use in
+your C<LEAVE> block is defined:
+
+=begin code :skip-test
+    LEAVE say .Int with $x
+=end code
 
 =end pod
 # vim: expandtab shiftwidth=4 ft=perl6
