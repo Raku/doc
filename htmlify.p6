@@ -623,6 +623,9 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 $created.subkinds   = @subkinds;
                 $created.categories = @subkinds;
             }
+            if %attr<kind> eq 'routine' {
+              %routines-by-type{$origin.name}.append: $chunk;
+            }
         }
         $i = $new-i + 1;
     }
