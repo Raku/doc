@@ -1,0 +1,235 @@
+=begin pod
+
+=TITLE class Telemetry
+
+=SUBTITLE Collect performance state for analysis
+
+    class Telemetry { }
+    class Telemetry::Period { }
+
+On creation, a C<Telemetry> object contains a snapshot of the current state
+of the virtual machine.  This is in itself useful, but generally one needs
+two snapshots for the difference (which is a C<Telemetry::Period> object).
+
+The following data is available both as a method on a C<Telemetry> type object,
+as well as on an instantiated C<Telemetry> object.  When loading it as a
+module with the C<:COLUMNS> named parameter, these are also available as
+standalone subroutines.
+
+=begin code :skip-test
+use Telemetry; # imports default subroutines: T, snap, snapper, periods, report
+use Telemetry :COLUMNS;   # imports all of the possible columns of report
+use Telemetry < cpu wallclock snap >; # only imports cpu, wallclock and snap
+=end code
+
+=head2 available data
+
+=item affinity-tasks-completed
+
+The number of tasks completed in affinity threads.  Column name: C<atc>.
+
+=item affinity-tasks-queued
+
+The number of tasks queued for execution in affinity threads.  Column name:
+C<atq>.
+
+=item affinity-workers
+
+The number of affinity threads.  Column name: C<aw>.
+
+=item cpu
+
+The amount of CPU time spent since start of program (in microseconds).
+Essentially, this is the same as C<cpu-user> + C<cpu-sys>.
+
+=item cpu-user
+
+The amount of CPU time spent on executing user code since start of program
+(in microseconds).
+
+=item cpu-sys
+
+The amount of CPU time spent in system overhead since start of program
+(in microseconds).
+
+=item general-tasks-completed
+
+The number of tasks completed in general worker threads.  Column name: C<gtc>.
+
+=item general-tasks-queued
+
+The number of tasks queued for execution in general worker threads.  Column
+name: C<gtq>.
+
+=item general-workers
+
+The number of general worker threads.  Column name: C<gw>.
+
+=item max-rss
+
+Maximum resident set size (in Kbytes).
+
+=item supervisor
+
+The number of supervisor threads running, usually C<0> or C<1>.  Column name:
+C<s>.
+
+=item timer-tasks-completed
+
+The number of tasks completed in timer worker threads.  Column name: C<ttc>.
+
+=item timer-tasks-queued
+
+The number of tasks queued for execution in timer worker threads.  Column
+name: C<ttq>.
+
+=item timer-workers
+
+The number of timer worker threads.  Column name: C<tw>.
+
+=item wallclock
+
+The time the program has been executing (in microseconds).
+
+Apart from this data, other fields in the POSIX C<getrusage> struct are also
+collected, but are probably not in use on most operating systems and will thus
+always give 0.  These are (column names in parenthesis):
+
+id-rss, inblock (inb), invcw, is-rss, ix-rss, maj-flt (aft), min-flt (ift),
+msgrcv (mrc), msgsnd (msd), nsignals (ngs), nswap (nsw), nvcsw (vcs),
+outblock (oub).
+
+Please consult the C<getrusage> manual information for the meaning of these
+fields.
+
+=begin code
+# basic simple usage
+use Telemetry;
+my $t = Telemetry.new;
+say "Used $t (cpu / wallclock) microseconds to execute so far";
+=end code
+
+=head1 Additional subroutines
+
+=head2 routine T
+
+Shortcut for C<Telemetry.new>.  It is exported by default.  Since the
+C<Telemetry> class also provides an C<Associative> interface, one can easily
+interpolate multiple values in a single statement:
+
+=begin code
+use Telemetry;
+say "Used {T<max-rss cpu>} (KBytes CPU) so far";
+=end code
+
+=head2 routine snap
+
+The C<snap> subroutine is shorthand for creating a new C<Telemetry> object and
+pushing it to an array for later processing.  It is exported by default.
+
+=begin code
+use Telemetry;
+my @t;
+for ^5 {
+    snap(@t);
+    # do some stuff
+    LAST snap(@t);
+}
+=end code
+
+If no array is specified, it will use an internal array for convenience.
+
+=head2 routine snapper
+
+The C<snapper> routine starts a separate thread that will call C<snap>
+repeatedly until the end of program.  It is exported by default.
+
+By default, it will call C<snap> every B<0.1> second.  The only positional
+parameter is taken to be the delay between C<snap>s.
+
+Please see the L<snapper> module for externally starting a snapper without
+having to change the code.  Simply adding C<-Msnapper> as a command line
+parameter, will then start a snapper for you.
+
+=head2 routine periods
+
+The C<periods> subroutine processes an array of C<Telemetry> objects and
+generates a L<Seq> of C<Telemetry::Period> objects out of that.  It is exported
+by default.
+
+=begin code :preamble<my @t;use Telemetry;>
+.say for periods(@t);
+
+# OUTPUT:
+# ====================
+# 164 / 160
+# 23 / 21
+# 17 / 17
+# 15 / 16
+# 29 / 28
+=end code
+
+If no array is specified, it will use the internal array of C<snap> without
+parameters B<and> will reset that array upon completion (so that new C<snap>s
+can be added again).
+
+=begin code
+use Telemetry;
+for ^5 {
+    snap;
+    LAST snap;
+}
+.say for periods;
+
+# OUTPUT:
+# ====================
+# 172 / 168
+# 24 / 21
+# 17 / 18
+# 17 / 16
+# 27 / 27
+=end code
+
+If only one C<snap> was done, another C<snap> will be done to create at least
+one C<Telemetry::Period> object.
+
+=head2 routine report
+
+The C<report> subroutine generates a report about an array of C<Telemetry>
+objects.  It is exported by default.  These can have been created by regularly
+calling C<snap>, or by having a L<snapper> running.  If no positional parameter
+is used, it will assume the internal array to which the parameterless C<snap>
+pushes.
+
+=head3 additional named parameters
+
+=item :columns
+
+Specify the names of the columns to be included in the report.  Names can
+be specified with the full method name (e.g. C<general-workers>) or with
+the abbreviated column name (e.g. C<gw>).  If not specified, defaults to
+what is specified in the C<RAKUDO_REPORT_COLUMNS> environment variable.
+If that is not set either, defaults to:
+
+    =for code :skip-test
+    wallclock util% max-rss gw gtc tw ttc aw atc
+
+=item :header-repeat
+
+Specifies after how many lines the header should be repeated in the report.
+If not specified, defaults to what is specified in the
+C<RAKUDO_REPORT_HEADER_REPEAT> environment variable.  If that is not set either,
+defaults to 32.
+
+=item :legend
+
+Specifies whether a legend should be added to the report.  If not specified,
+defaults to what is specified in the C<RAKUDO_REPORT_LEGEND> environment variable.
+If that is not set either, defaults to True.
+
+If there are C<snap>s available in the internal array at the end of the
+program, then C<report> will be automatically generated and printed on C<STDERR>.
+
+See Also: L<Telemetry::Period>, L<snapper>
+
+=end pod
