@@ -959,8 +959,8 @@ loop {
     my $proc = Proc::Async.new: :w, ‘head’, ‘-n’, ‘1’;
     my $got-something;
     react {
-        whenever $proc.stdout { $got-something = True }
-        whenever $proc.start  { die ‘FAIL!’ unless $got-something }
+        whenever $proc.stdout.lines { $got-something = True }
+        whenever $proc.start        { die ‘FAIL!’ unless $got-something }
 
         $proc.print: “one\ntwo\nthree\nfour”;
         $proc.close-stdin;
@@ -993,6 +993,48 @@ working in a L<react|/language/concurrency#index-entry-react> block:
         $proc.close-stdin;
     }
 =end code
+
+=head2 Using <.stdout> without <.lines>
+
+Method <.stdout> of L<Proc::Async> returns a supply that emits
+I<chunks> of data, not lines. The trap is that sometimes people assume
+it to give lines right away.
+
+=begin code
+my $proc = Proc::Async.new(‘cat’, ‘/usr/share/dict/words’);
+react {
+    whenever $proc.stdout.head(1) { .say } # ← WRONG (most likely)
+    whenever $proc.start { }
+}
+=end code
+
+The output is clearly not just 1 line:
+
+=begin code :skip-test
+A
+A's
+AMD
+AMD's
+AOL
+AOL's
+Aachen
+Aachen's
+Aaliyah
+Aaliyah's
+Aaron
+Aaron's
+Abbas
+Abbas's
+Abbasid
+Abbasid's
+Abbott
+Abbott's
+Abby
+=end code
+
+If you want to work with lines, then use C<$proc.stdout.lines>. If
+you're after the whole output, then something like this should do the
+trick: C<whenever $proc.stdout { $out ~= $_ }>.
 
 =head1 Exception Handling
 
