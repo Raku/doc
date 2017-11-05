@@ -916,6 +916,56 @@ if you are dealing with large data) or writing your own logic to split
 the incoming data the way you need. Same applies if your data
 is null-separated.
 
+
+=head2 Proc::Async and C<print>
+
+When using Proc::Async you should not assume that C<.print> (or any
+other similar method) is synchronous. The biggest issue of this trap
+is that you will likely not notice the problem by running the code
+once, so it may cause a hard-to-detect intermittent fail.
+
+Here is an example that demonstrates the issue:
+
+=begin code :skip-test
+loop {
+    my $proc = Proc::Async.new: :w, ‘head’, ‘-n’, ‘1’;
+    my $got-something;
+    react {
+        whenever $proc.stdout { $got-something = True }
+        whenever $proc.start  { die ‘FAIL!’ unless $got-something }
+
+        $proc.print: “one\ntwo\nthree\nfour”;
+        $proc.close-stdin;
+    }
+    say $++;
+}
+=end code
+
+And the output it may produce:
+
+=begin code :skip-test
+0
+1
+2
+3
+An operation first awaited:
+  in block <unit> at print.p6 line 4
+
+Died with the exception:
+    FAIL!
+      in block  at print.p6 line 6
+=end code
+
+Resolving this is easy because C<.print> returns a promise that you
+can await on. The solution is even more beautiful if you are
+working in a L<react|/language/concurrency#index-entry-react> block:
+
+=begin code :skip-test
+    whenever $proc.print: “one\ntwo\nthree\nfour” {
+        $proc.close-stdin;
+    }
+=end code
+
 =head1 Exception Handling
 
 =head2 Sunk C<Proc>
