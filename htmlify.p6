@@ -623,14 +623,6 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 $created.subkinds   = @subkinds;
                 $created.categories = @subkinds;
             }
-            if %attr<kind> eq 'routine' {
-                %routines-by-type{$origin.name}.append: $chunk;
-                write-qualified-method-call(
-                    :$name,
-                    :pod($chunk),
-                    :type($origin.name),
-                );
-            }
         }
         $i = $new-i + 1;
     }
@@ -922,15 +914,6 @@ sub write-kind($kind) {
     say '';
 }
 
-sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
-    my $p = pod-with-title(
-        "method $type.$name",
-        pod-block('From ', pod-link($type, "/type/{$type}#$name")),
-        @$pod,
-    );
-    return if $name ~~ / '/' /;
-    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
-}
 sub get-temp-filename {
     state %seen-temps;
     my $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
