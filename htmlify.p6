@@ -331,7 +331,9 @@ multi write-type-source($doc) {
         $graph-contents .= subst('PODNAME', $podname);
         $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
 
-        $pod.contents.append: Pod::Raw.new(
+        $pod.contents.append: 
+        pod-heading("Type Graph"),
+        Pod::Raw.new(
             target => 'html',
             contents => $graph-contents,
         );
