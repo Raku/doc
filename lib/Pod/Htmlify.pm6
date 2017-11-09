@@ -95,7 +95,7 @@ sub footer-html($pod-path) is export {
     my $pod-url;
     my $edit-url;
     my $gh-link = q[<a href='https://github.com/perl6/doc'>perl6/doc on GitHub</a>];
-    if $pod-path eq "unknown" {
+    if not defined $pod-path {
         $pod-url = "the sources at $gh-link";
         $edit-url = ".";
     }

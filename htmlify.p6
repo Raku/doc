@@ -85,7 +85,8 @@ my @menu =
 ;
 
 my $head = slurp 'template/head.html';
-sub header-html($current-selection = 'nothing selected') is cached {
+
+sub header-html($current-selection, $pod-path) is cached {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
@@ -112,15 +113,25 @@ sub header-html($current-selection = 'nothing selected') is cached {
             q[</div>];
     }
 
-    state $menu-pos = ($header ~~ /MENU/).from;
-    $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
+    my $edit-url = "";
+    if defined $pod-path {
+      $edit-url = qq[
+      <div align="right">
+        <button title="Edit this page"  class="pencil" onclick="location='https://github.com/perl6/doc/edit/master/doc/$pod-path'">
+        {svg-for-file("html/images/pencil.svg")}
+        </button>
+      </div>]
+    }
+
+    $header.subst('MENU', $menu-items ~ $sub-menu-items)
+           .subst('EDITURL', $edit-url);
 }
 
-sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
+sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
     pod2html $pod,
         :url(&rewrite-url),
         :$head,
-        :header(header-html $selection),
+        :header(header-html($selection, $pod-path)),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
         :css-url(''), # disable Pod::To::HTML's default CSS
@@ -331,7 +342,7 @@ multi write-type-source($doc) {
         $graph-contents .= subst('PODNAME', $podname);
         $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
 
-        $pod.contents.append: 
+        $pod.contents.append:
         pod-heading("Type Graph"),
         Pod::Raw.new(
             target => 'html',
