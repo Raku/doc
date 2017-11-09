@@ -117,10 +117,8 @@ sub header-html($current-selection, $pod-path) is cached {
     if defined $pod-path {
       $edit-url = qq[
       <div align="right">
-        <button title="Edit this page" onclick="location='https://github.com/perl6/doc/edit/master/doc/$pod-path'">
-          <svg aria-hidden="true" height="16" viewBox="0 0 14 16" width="14">
-            <path fill-rule="evenodd" d="M0 12v3h3l8-8-3-3-8 8zm3 2H1v-2h1v1h1v1zm10.3-9.3L12 6 9 3l1.3-1.3a.996.996 0 0 1 1.41 0l1.59 1.59c.39.39.39 1.02 0 1.41z"/>
-          </svg>
+        <button title="Edit this page"  class="pencil" onclick="location='https://github.com/perl6/doc/edit/master/doc/$pod-path'">
+        {svg-for-file("html/images/pencil.svg")}
         </button>
       </div>]
     }
