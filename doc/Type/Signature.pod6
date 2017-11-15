@@ -551,8 +551,12 @@ variable name:
 
 Aliases are also possible that way:
 
-    sub ( :color(:colour($c)) ) { }    # 'color' and 'colour' are both OK
-    sub ( :color(:$colour) ) { }       # same API for the caller
+    sub alias-named(:color(:$colour), :type(:class(:$kind))) { say $colour ~ " " ~ $kind }
+    alias-named(color => "red", type => "A");     # both names can be used
+    alias-named(colour => "green", type => "B");  # more than two names are ok
+    alias-named(color => "white", class => "C");  # every alias is independent
+
+More use of aliases can be found in L<sub MAIN|/language/functions#sub_MAIN>
 
 A function with named arguments can be called dynamically, dereferencing a
 L<Pair|/type/Pair> with C<|> to turn it into a named argument.
@@ -637,7 +641,7 @@ is to unpack a L<C<Pair>>'s key and value in a for loop:
 
 However, this unpacking of objects as their attributes is only the default
 behavior. To make an object get destructured differently, change its
-L<C<Capture>> method.
+L<C<Capture>|/routine/Capture> method.
 
 =head2 Sub-signatures
 
@@ -678,11 +682,12 @@ If bound to a variable arguments can be forwarded as a whole using the slip oper
     b(42, "answer");
     # OUTPUT: «Capture␤Int Str␤»
 
-=head2 X<Parameter Traits and Modifiers|trait,is copy;trait,is rw>
+=head2 Parameter Traits and Modifiers
 
 By default, parameters are bound to their argument and marked as
 read-only. One can change that with traits on the parameter.
 
+X<|trait,is copy>
 The C<is copy> trait causes the argument to be copied, and allows it
 to be modified inside the routine
 
@@ -691,9 +696,10 @@ to be modified inside the routine
         .say for 1..$x;
     }
 
-The C<is rw> trait makes the parameter bind to a variable (or
-other writable container). Assigning to the parameter changes the
-value of the variable at the caller side.
+X<|trait,is rw>
+The C<is rw> trait, which stands for I<is read-write>,
+makes the parameter bind to a variable (or other writable container). Assigning
+to the parameter changes the value of the variable at the caller side.
 
     sub swap($x is rw, $y is rw) {
         ($x, $y) = ($y, $x);
@@ -702,6 +708,7 @@ value of the variable at the caller side.
 On slurpy parameters, C<is rw> is reserved for future use by language
 designers.
 
+X<|trait, is raw>
 The L<C<is raw> trait|/type/Parameter#method_raw> is automatically applied to
 parameters declared with a L<backslash|/language/variables#Sigilless_variables>
 as a "sigil", and may also be used to make normally sigiled parameters behave
@@ -750,22 +757,39 @@ Whatever the Signature's return constraint is:
 
 =head2 method ACCEPTS
 
-    multi method ACCEPTS(Signature:D: Capture $topic)
-    multi method ACCEPTS(Signature:D: @topic)
-    multi method ACCEPTS(Signature:D: %topic)
     multi method ACCEPTS(Signature:D: Signature $topic)
+    multi method ACCEPTS(Signature:D: Capture $topic)
+    multi method ACCEPTS(Signature:D: Mu \topic)
 
-The first three see if the argument could be bound to the capture,
-i.e., if a function with that C<Signature> would be able to be called
-with the C<$topic>:
-
-    (1, 2, :foo) ~~ :($a, $b, :foo($bar));   # RESULT: «True»
-    <a b c d> ~~ :(Int $a);                  # RESULT: «False»
-
-The last returns C<True> if anything accepted by C<$topic> would also
-be accepted by the C<Signature>.
+If C<$topic> is a L<Signature> returns C<True> if anything accepted by C<$topic>
+would also be accepted by the invocant, otherwise returns C<False>:
 
     :($a, $b) ~~ :($foo, $bar, $baz?);   # RESULT: «True»
     :(Int $n) ~~ :(Str);                 # RESULT: «False»
 
+The C<$topic> is a L<Capture>, returns C<True> if it can be bound to the
+invocant, i.e., if a function with invocant's C<Signature> would be able to be
+called with the C<$topic>:
+
+    \(1, 2, :foo) ~~ :($a, $b, :foo($bar)); # RESULT: «True»
+    \(1, :bar)    ~~ :($a);                 # RESULT: «False»
+
+Lastly, the candidate with C<Mu> C<topic> converts C<topic> to L<Capture>
+and follows the same semantics as L<Capture> C<$topic>:
+
+    <a b c d>  ~~ :(Int $a);      # RESULT: «False»
+    42         ~~ :(Int);         # RESULT: «False» (Int.Capture throws)
+    set(<a b>) ~~ :(:$a, :$b);    # RESULT: «True»
+
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture()
+
+Throws C<X::Cannot::Capture>.
+
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

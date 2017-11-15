@@ -14,10 +14,6 @@ moment.
 C<Proc::Async> allows you to run external commands asynchronously, capturing
 standard output and error handles, and optionally write to its standard input.
 
-=begin comment
-⚠ Revert the commit mentioned in RT #132016 once it is resolved
-=end comment
-
     my $file = ‘foo’.IO;
     spurt $file, “and\nCamelia\n♡\nme\n”;
 
@@ -38,11 +34,11 @@ standard output and error handles, and optionally write to its standard input.
         whenever $proc.print: “I\n♥\nCamelia\n” {
             $proc.close-stdin
         }
-        whenever signal(SIGTERM) {
+        whenever signal(SIGTERM).merge: signal(SIGINT) {
             once {
                 say ‘Signal received, asking the process to stop’;
                 $proc.kill; # sends SIGHUP, change appropriately
-                whenever signal($_) {
+                whenever signal($_).zip: Promise.in(2).Supply {
                     say ‘Kill it!’;
                     $proc.kill: SIGKILL
                 }
@@ -74,6 +70,10 @@ Proc finished. Exit code: 0
 Program finished
 =end code
 
+B<Note:> Using C<.zip> and C<.merge> as suggested above is known not
+to work in L<Rakudo|/language/glossary#Rakudo> releases before
+2017.09.
+
 Alternatively, you can use C<Proc::Async> without using a
 L<react|/language/concurrency#index-entry-react> block:
 
@@ -101,12 +101,20 @@ Done.
 
 An example that opens an external program for writing:
 
-    use v6.c;
+    use v6;
     my $prog = Proc::Async.new(:w, 'hexdump', '-C');
     my $promise = $prog.start;
     await $prog.write(Buf.new(12, 42));
     $prog.close-stdin;
     await $promise;
+
+An example of piping several commands like C<echo "Hello, world" | cat -n>:
+
+    use v6;
+    my $proc-echo = Proc::Async.new: 'echo', 'Hello, world';
+    my $proc-cat = Proc::Async.new: 'cat', '-n';
+    $proc-cat.bind-stdin: $proc-echo.stdout;
+    await $proc-echo.start, $proc-cat.start;
 
 =head1 Methods
 
@@ -155,6 +163,8 @@ Note that you cannot call C<stdout> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
 
+Use L«C<.Supply>|/type/Proc::Async#method_Supply>» for merged STDOUT and STDERR.
+
 =head2 method stderr
 
     method stderr(Proc::Async:D: :$bin --> Supply:D)
@@ -181,6 +191,8 @@ captured at all.
 Note that you cannot call C<stderr> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
+
+Use L«C<.Supply>|/type/Proc::Async#method_Supply>» for merged STDOUT and STDERR.
 
 =head2 method w
 
@@ -297,6 +309,32 @@ L<X::Proc::Async::OpenForWriting> exception will the thrown.
 
 C<start> must have been called before calling method say, otherwise an
 L<X::Proc::Async::MustBeStarted> exception is thrown.
+
+=head2 method Supply
+
+    multi method Supply(Proc::Async:D: :$bin!)
+    multi method Supply(Proc::Async:D: :$enc, :$translate-nl)
+
+Returns a L<Supply> of merged L<stdout> and L<stderr> streams. If C<:$bin>
+named argument is provided, the C<Supply> will be binary, producing L<Buf>
+objects, otherwise, it will be in character mode, producing L<Str> objects and
+C<:$enc> named argument can specify L<encoding> to use.
+The C<:$translate-nl> option specifies whether new line endings should be
+translated for to match those used by the current operating system (e.g.
+C<\r\n> on Windows).
+
+    =for code
+    react {
+        with Proc::Async.new: «"$*EXECUTABLE" -e 'say 42; note 100'» {
+            whenever .Supply { .print }  # OUTPUT: «42␤100␤»
+            whenever .start {}
+        }
+    }
+
+It is an error to create both binary and non-binary
+L«C<.Supply>|/type/Proc::Async#method_Supply>». It is also an error
+to use both L«C<.Supply>|/type/Proc::Async#method_Supply>» and either
+L<stderr> or L<stdout> supplies.
 
 =head2 method close-stdin
 

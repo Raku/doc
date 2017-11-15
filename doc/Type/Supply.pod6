@@ -41,6 +41,9 @@ The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
 will return I<on demand> supplies.
 
+A live C<Supply> that keeps values until tapped the first time can be created
+with L<Supplier::Preserving|/type/Supplier/Preserving>.
+
 Further examples can be found in the L<concurrency page|/language/concurrency#Supplies>.
 
 =head1 Methods that return Taps
@@ -91,6 +94,15 @@ C<tap>, the given code is guaranteed to be only executed by one thread at
 a time.
 
 =head1 Utility methods
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(Supply:D --> Capture:D)
+
+Equivalent to calling L«C<.List.Capture>|/type/List#method_Capture»
+on the invocant.
 
 =head2 method Channel
 
@@ -268,10 +280,11 @@ phaser is usually a better choice.
     method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER --> Supply:D)
 
 Creates a supply that emits a value every C<$interval> seconds, starting
-C<$delay> seconds from the call. The value is an integer, starting from 0,
-and is incremented by one for each value emitted. Note that if the supplied
-interval is less than one millisecond it will be changed to one millisecond
-and a warning will be emitted.
+C<$delay> seconds from the call. The emitted value is an integer, starting from
+0, and is incremented by one for each value emitted.
+
+Implementations may treat too-small values as lowest resolution they support,
+possibly warning in such situations; e.g. treating C<0.0001> as C<0.001>.
 
 =head2 method grep
 
@@ -684,13 +697,6 @@ watch-stock('GOOG');
 sleep 3;
 watch-stock('AAPL');
 sleep 3;
-
-$stock-sources.Supply.migrate.tap: *.say;
-
-watch-stock('GOOG');
-sleep 3;
-watch-stock('AAPL');
-sleep 3;
 =end code
 
 Which produces output like:
@@ -782,3 +788,5 @@ IO::Notification.watch-path(".").act( { say "$^file changed" } );
 ".".IO.watch.act(                     { say "$^file changed" } );   # same
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

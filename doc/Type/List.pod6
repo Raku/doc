@@ -84,6 +84,38 @@ Coercion to C<Bool> also indicates if the C<List> got any elements.
 
 =head1 Methods
 
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(List:D: $topic)
+
+If C<$topic> is an L<Iterable>, returns C<True> or C<False> based on whether
+the contents of the two C<Iterables> match. A L<Whatever> element in the
+invocant matches anything in the corresponding position of the C<$topic>
+C<Iterable>. A L<HyperWhatever> matches any number of any elements, including
+no elements:
+
+    say (1, 2, 3)       ~~ (1,  *, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (9,  *, 5);  # OUTPUT: «False␤»
+    say (1, 2, 3)       ~~ (   **, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (   **, 5);  # OUTPUT: «False␤»
+    say (1, 3)          ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 3) ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 6) ~~ (1, **, 5); # OUTPUT: «False␤»
+    say (1, 2, 4, 5, 6) ~~ (   **   ); # OUTPUT: «True␤»
+    say ()              ~~ (   **   ); # OUTPUT: «True␤»
+
+In addition, returns C<False> if either the invocant or C<$topic>
+L<is a lazy|/routine/is-lazy> C<Iterable>, unless C<$topic> is the same object
+as the invocant, in which case C<True> is returned.
+
+If C<$topic> is I<not> an L<Iterable>, returns the invocant if the invocant
+has no elements or its first element is a L<Match> object (this behaviour
+powers C<m:g//> smartmatch), or C<False> otherwise.
+
+=item1 C
+
 =head2 routine elems
 
 Defined as:
@@ -658,7 +690,7 @@ Defined as:
     multi method sort(List:D:      --> Seq:D)
     multi method sort(List:D: &custom-routine-to-use  --> Seq:D)
 
-Sorts the list, smallest element first. By default C<< infix:<cmp> >>
+Sorts the list, smallest element first. By default L«C<< infix:<cmp> >>|/routine/cmp»
 is used for comparing list elements.
 
 If C<&custom-routine-to-use> is provided, and it accepts two arguments,
@@ -676,6 +708,25 @@ Examples:
     say (3, -4, 7, -1, 2, 0).sort;                  # OUTPUT: «(-4 -1 0 2 3 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: *.abs;           # OUTPUT: «(0 -1 2 3 -4 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a }; # OUTPUT: «(7 3 2 0 -4 -1)␤»
+
+Additionally, if C<&custom-routine-to-use> returns a C<List>, elements will be
+sorted based upon multiple values with subsequent values in the C<List> being
+used to break the tie if the comparison between the prior elements evaluate to
+C<Order::Same>.
+
+    my @resistance = (
+        %( first-name => 'Kyle',  last-name => 'Reese'  ),
+        %( first-name => 'Sarah', last-name => 'Connor' ),
+        %( first-name => 'John',  last-name => 'Connor' ),
+    );
+    .say for @resistance.sort: { .<last-name>, .<first-name> };
+
+    #`(
+    OUTPUT:
+      {first-name => John, last-name => Connor}
+      {first-name => Sarah, last-name => Connor}
+      {first-name => Kyle, last-name => Reese}
+    )
 
 =head2 routine unique
 
@@ -713,7 +764,7 @@ comparator.
 
 Example:
 
-    my @list = {a => 42}, {b => 13}, {a => 42};
+    my @list = %(a => 42), %(b => 13), %(a => 42);
     say @list.unique(:with(&[eqv]))               # OUTPUT: «({a => 42} {b => 13})␤»
 
 B<Note:> since C<:with> L<Callable> has to be tried with all the items in the list,
@@ -738,7 +789,7 @@ Examples:
     say <a b b c c b a>.repeated;                   # OUTPUT: «(b c b a)␤»
     say <a A B b c b C>.repeated(:as(&lc));         # OUTPUT: «(A b b C)␤»
 
-    my @list = {a => 42}, {b => 13}, {a => 42};
+    my @list = %(a => 42), %(b => 13), %(a => 42);
     say @list.repeated(:with(&[eqv]))               # OUTPUT: «({a => 42})␤»
 
 =head2 routine squish
@@ -1188,6 +1239,31 @@ Assumes the C<List> contains L«C<Match> objects|/type/Match», such as the
 C<$/> variable being a C<List>, when using C<:g> modifier in regexes. Returns the
 value of C<.to> called on the last element of the list.
 
+=head1 Operators
+
+=head2 infix C«cmp»
+
+    multi sub infix:<cmp>(List @a, List @b)
+
+Evaluates C<Lists> by comparing element C<@a[$i]> with C<@b[$i]> (for some
+C<Int $i>, beginning at 0) and returning C<Order::Less>, C<Order::Same>, or
+C<Order::More> depending on if and how the values differ. If the operation
+evaluates to C<Order::Same>, C<@a[$i + 1]> is compared with C<@b[$i + 1]>. This
+is repeated until one is greater than the other or all elements are exhausted.
+
+If the C<Lists> are of different lengths, at most only C<$n> comparisons will be
+made (where C<$n = @a.elems min @b.elems>). If all of those comparisons evaluate
+to C<Order::Same>, the final value is selected based upon which C<List> is
+longer.
+
+    say (1, 2, 3) cmp (1, 2, 3);   # OUTPUT: «Same␤»
+    say (4, 5, 6) cmp (4, 5, 7);   # OUTPUT: «Less␤»
+    say (7, 8, 9) cmp (7, 8, 8);   # OUTPUT: «More␤»
+
+    say (1, 2)    cmp (1, 2, 3);   # OUTPUT: «Less␤»
+    say (1, 2, 3) cmp (1, 2);      # OUTPUT: «More␤»
+    say (9).List  cmp (^10).List;  # OUTPUT: «More␤»
+
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

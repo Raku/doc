@@ -12,6 +12,7 @@ class Perl6::TypeGraph {
         token rolesig    { '[' <-[ \[\] ]>* ']' } # TODO might need to be become better
         rule  inherits   { 'is' <longname>             }
         rule  roles      { 'does' <longname><rolesig>? }
+        rule  aka        { 'aka' <longname> }
 
         rule TOP {
             ^
@@ -20,7 +21,7 @@ class Perl6::TypeGraph {
             <type=longname><rolesig>?
             :my $*CURRENT_TYPE;
             { $*CURRENT_TYPE = $<type>.ast }
-            [ <inherits> | <roles>]*
+            [ <inherits> | <roles> | <aka> ]*
             $
         }
     }
@@ -46,6 +47,9 @@ class Perl6::TypeGraph {
             method roles($/) {
                 $*CURRENT_TYPE.roles.append: $<longname>.ast;
             }
+            method aka($/) {
+                $*CURRENT_TYPE.aka = $<longname>.ast;
+            }
         }
         my @categories;
         for $f.lines -> $l {
@@ -65,9 +69,13 @@ class Perl6::TypeGraph {
         }
         for %.types.values -> $t {
             # roles that have a superclass actually apply that superclass
-            # to the class that does them, so mimic that here:
-            for $t.roles -> $r {
+            # to the class that does them, so mimic that here, including
+            # parent roles
+            my @roles = $t.roles;
+            while @roles {
+                my $r = @roles.shift;
                 $t.super.append: $r.super if $r.super;
+                @roles.append: $r.roles if $r.roles;
             }
             # non-roles default to superclass Any
             if $t.packagetype ne 'role' && !$t.super && $t ne 'Mu' {

@@ -18,7 +18,7 @@ method open(IO::Handle:D:
     Str :$mode,
     :$r, :$w, :$a, :$x, :$update, :$rw, :$rx, :$ra,
     :$create, :$append, :$truncate, :$exclusive,
-    :$buffer
+    :$out-buffer,
     --> IO::Handle:D
 )
 
@@ -84,24 +84,14 @@ modes in this case will result in exception being thrown.
 
 In B<6.d> language, path C<'-'> has no special meaning.
 
-Passing the C<:buffer> named argument enables output buffering for the handle,
-while C<:!buffer> disables it. The output buffer size is implementation defined.
-Passing an C<Int> allows the buffer size to be specified (the units are bytes);
-C<:0buffer> is equivalent to disabling output buffering. If a value other than
-an C<Int> or a C<Bool> is passed, it will be coerced into an C<Int>.
-
-When no output buffering options are specified, then the default will be
-C<:buffer> for non-TTY handles, and C<:!buffer> for TTY handles. A Perl 6
-implementation is required to flush the output buffers of C<< PROCESS::<$OUT> >>
-and C<< PROCESS::<$ERR> >> at program exit. All other handles should be
-explicitly closed to ensure that output buffers are flushed as part of the
-closing.
+The C<:out-buffer> controls output buffering and by default behaves as if
+it were C<Nil>. See method L<out-buffer> for details.
 
 B<Note:> unlike some other languages, Perl 6 does not use reference counting,
-and so B<the file handles are NOT flushed or closed when they go out of scope
-nor reliably at program exit>. While they I<will> get closed when garbage
-collected, garbage collection isn't guaranteed to get run. This means B<you must>
-use an explicit C<close> on handles opened for writing, to avoid data loss, and
+and so B<the file handles are NOT flushed or closed when they go out of scope>.
+While they I<will> get closed when garbage collected, garbage collection isn't
+guaranteed to get run. This means I<you should> use an explicit C<close> on
+handles opened for writing, to avoid data loss, and
 an explicit C<close> is I<recommended> on handles opened for reading as well, so
 that your program does not open too many files at the same time, triggering
 exceptions on further C<open> calls.
@@ -235,7 +225,18 @@ Defined as:
     method eof(IO::Handle:D: --> Bool:D)
 
 Returns C<True> if the read operations have exhausted the contents of the
-handle.
+handle. Non-blocking.
+
+On L<non-seekable|/routine/seek> handles, EOF won't be set
+until a read operation fails to read any bytes. For example, in this code,
+the first C<read> consumes all of the data, but it's only until the second
+C<read> that reads nothing would the EOF on a TTY handle be set:
+
+    =begin code :lang<shell>
+    $ echo "x" | perl6 -e 'with $*IN { .read: 10000; .eof.say; .read: 10; .eof.say }'
+    False
+    True
+    =end code
 
 =head2 method encoding
 
@@ -488,6 +489,33 @@ my $fh = open 'path/to/file', :w;
 $fh.printf: "The value is %d\n", 32;
 $fh.close;
 
+=head2 method out-buffer
+
+Defined as:
+
+    method out-buffer(--> Int:D) is rw
+
+Controls output buffering and can be set via an argument to L<open>. Takes
+an C<int> as the size of the buffer to use (zero is acceptable). Can take
+a L<Bool>: C<True> means to use default, implementation-defined buffer size;
+C<False> means to disable buffering (equivalent to using C<0> as buffer size).
+
+Lastly, can take a C<Nil> to enable TTY-based buffering control: if
+the handle L<is a TTY|/routine/t>, the buffering is disabled, otherwise,
+default, implementation-defined buffer size is used.
+
+See L<flush> to write out data currently in the buffer. Changing buffer
+size flushes the filehandle.
+
+=for code
+given 'foo'.IO.open: :w, :1000out-buffer {
+    .say: 'Hello world!'; # buffered
+    .out-buffer = 42;       # buffer resized; previous print flushed
+    .say: 'And goodbye';
+    .close; # closing the handle flushes the buffer
+}
+
+
 =head2 method put
 
 Defined as:
@@ -628,17 +656,18 @@ otherwise the return will be a C<Str> with the optional encoding C<:enc>.
 
 Defined as:
 
-    method slurp(IO::Handle:D: :$close = False)
+    method slurp(IO::Handle:D: :$close, :$bin)
 
 Returns all the content from the current file position to the end.
-If the invocant is in binary mode, will return L<Buf>, otherwise will decode
+If the invocant is in binary mode or if C<$bin> is set to C<True>,
+will return a L<Buf>, otherwise will decode
 the content using invocant's current L«C<.encoding>|/routine/encoding» and
 return a L<Str>.
 
 If C<:$close> is set to C<True>, will close the handle when finished reading.
 
 B<Note:> On L<Rakudo|/language/glossary#Rakudo> this method was introduced
-with release 2017.04.
+with release 2017.04 and C<$bin> arg was added in 2017.10.
 
 =head2 method Supply
 

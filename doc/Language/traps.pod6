@@ -386,6 +386,34 @@ This may seem inconvenient, but on the upside it moves the type-check
 on what is assigned to C<@b> to where the assignment happens, rather
 than requiring every element to be checked on every call.
 
+
+=head2 Using C<«»> quoting when you don't need it
+
+This trap can be seen in different varieties. Here are some of them:
+
+=begin code
+my $x = ‘hello’;
+my $y = ‘foo bar’;
+
+my %h = $x => 42, $y => 99;
+say %h«$x»;   # ← WRONG; assumption that $x has no whitespace
+say %h«$y»;   # ← WRONG; this time you can clearly see how wrong it is
+say %h«"$y"»; # ← KINDA OK; it works but there is no good reason to do that
+say %h{$y};   # ← RIGHT; this is what should be used
+
+run «touch $x»;        # ← WRONG; assumption that only one file will be created
+run «touch $y»;        # ← WRONG; this time you can clearly see how wrong it is
+run «touch "$y"»;      # ← WRONG; still an error if $y starts with -
+run «touch -- "$y"»;   # ← KINDA OK; it works but there is no good enough reason to do that
+run ‘touch’, ‘--’, $y; # ← RIGHT; explicit and *always* correct
+=end code
+
+Basically, C<«»> quoting is only safe to use if you remember to
+I<always> quote your variables. The problem is that it inverts the
+default behavior to unsafe variant, so just by forgetting some quotes
+you are risking to introduce either a bug or maybe even a security
+hole. To stay on the safe side, refrain from using C<«»>.
+
 =head1 Strings
 
 =head2 Quotes and interpolation
@@ -466,6 +494,24 @@ to L<Str>, or use the L<chars> routine to test whether the allomorph has any len
     say so      ~<0>;     # OUTPUT: «True␤»
     say so       <0>.Str; # OUTPUT: «True␤»
     say so chars <0>;     # OUTPUT: «True␤»
+
+=head2 Case-insensitive comparison of strings
+
+In order to do case-insensitive comparison, you can use C<.fc>
+(fold-case). The problem is that people tend to use C<.lc> or C<.uc>,
+and it does seem to work within the ASCII range, but fails on other
+characters. This is not just a Perl 6 trap, the same applies to other
+languages.
+
+=begin code
+say ‘groß’.lc eq ‘GROSS’.lc; # ← WRONG; False
+say ‘groß’.uc eq ‘GROSS’.uc; # ← WRONG; True, but that's just luck
+say ‘groß’.fc eq ‘GROSS’.fc; # ← RIGHT; True
+=end code
+
+If you are working with regexes, then there is no need to use C<.fc>
+and you can use C<:i> (C<:ignorecase>) adverb instead.
+
 
 =head1 Operators
 
@@ -548,50 +594,73 @@ say %h.perl
 =head2 C«<{$x}>» vs C«$($x)»: Implicit EVAL
 
 Sometimes you may need to match a generated string in a regex. The
-right way to do it is to use C<$(…)> syntax.
+right way to do it is to use C<$(…)> or C«<{…}>» syntax.
 
-=for code
-my $x = ‘ailemac’;
-say ‘I ♥ camelia’ ~~ / $($x.flip) / # OUTPUT: «｢camelia｣␤»
+    =for code
+    my $x = ‘ailemac’;
+    say ‘I ♥ camelia’ ~~ / $($x.flip) /; # OUTPUT: «｢camelia｣␤»
+    my $x = ‘ailemac’;
+    say ‘I ♥ camelia’ ~~ / <{$x.flip}> /; # OUTPUT: «｢camelia｣␤»
 
 However, there is a wrong way to write it, and the problem is that
 it works I<sometimes>.
 
-=for code
-my $x = ‘ailemac’;
-#                    ⚠ ↓↓ WRONG ↓↓ ⚠
-say ‘I ♥ camelia’ ~~ / <{$x.flip}> / # OUTPUT: «｢camelia｣␤»
-
-Internally it EVAL-s the given string inside an anonymous regex, and
-that works alright with simple strings. However, it immediately breaks
+Internally C«<{…}>» EVAL-s the given string inside an anonymous regex, while
+C<$(…)> lexically interpolates the given string. So C«<{…}>» immediately breaks
 with more complicated inputs. For example:
 
-=begin comment
-Backtraces from EVALs are less than awesome (RT #132015).
-The output was modified a little bit so that there's no distraction.
-=end comment
-=for code :skip-test
-my $x = ‘ailemac#’;
-#                    ⚠ ↓↓ WRONG ↓↓ ⚠
-say ‘I ♥ camelia’ ~~ / <{$x.flip}> / # OUTPUT: «｢camelia｣␤»
-# OUTPUT:
-# ===SORRY!===
-# Regex not terminated.
-# at EVAL_0:1
-# ------> anon regex { #camelia}⏏<EOL>
-# Malformed regex
-# at EVAL_0:1
-# ------> anon regex { #camelia}⏏<EOL>
-#     expecting any of:
-#         infix stopper
+    =for code :skip-test
+    my $x = ‘ailemac#’;
+    say ‘I ♥ #camelia’ ~~ / $($x.flip) /; # OUTPUT: «｢#camelia｣␤»
+    #                    ⚠ ↓↓ WRONG ↓↓ ⚠
+    say ‘I ♥ camelia’ ~~ / <{$x.flip}> /; # OUTPUT: «｢camelia｣␤»
+    # OUTPUT:
+    # ===SORRY!===
+    # Regex not terminated.
+    # at EVAL_0:1
+    # ------> anon regex { #camelia}⏏<EOL>
+    # Malformed regex
+    # at EVAL_0:1
+    # ------> anon regex { #camelia}⏏<EOL>
+    #     expecting any of:
+    #         infix stopper
 
 Therefore, try not to use C«<{}>» unless you really need EVAL.
 
 Note that even though EVAL is normally considered unsafe, in this case
 it is restricted to a set of safe operations (which is why it works
-without L<MONKEY-SEE-NO-EVAL> pragma). In theory, careless use of
-C«<{}>» will only result in an exception being thrown, and should not
-introduce security issues.
+without L<MONKEY-SEE-NO-EVAL|
+/language/pragmas#index-entry-MONKEY-SEE-NO-EVAL-MONKEY-SEE-NO-EVAL> pragma).
+In theory, careless use of C«<{}>» will only result in an exception being
+thrown, and should not introduce security issues.
+
+=head2 C<|> vs C<||>: which branch will win
+
+To match one of several possible alternatives, C<||> or C<|> will be used. But
+they are so different.
+
+While there are more alternations than one matched, for those separated by
+C<||>, the first matching alternation wins; for those separated by C<|>,
+which to win is decided by LTM strategy. See also:
+L<documentation on C<||>|/language/regexes#Alternation:_||> and
+L<documentation on C<|>|/language/regexes#Longest_Alternation:_|>.
+
+For advice of which to use: for simple regexes just using C<||> instead of C<|>
+will get you familiar semantics, but if writing grammars then it's useful to
+learn about LTM and declarative prefixes and prefer C<|>. And keep yourself
+away from using them in one regex. When you have to do that, add parentheses
+and ensure that you know how LTM strategy works to make the code
+do what you want.
+
+The trap typically arises when you try to mix both C<|> and C<||> in
+the same regex:
+
+=for code
+say 42 ~~ / [  0 || 42 ] | 4/; # OUTPUT: «｢4｣␤»
+say 42 ~~ / [ 42 ||  0 ] | 4/; # OUTPUT: «｢42｣␤»
+
+The code above may seem like it is producing a wrong result, but the
+implementation is actually right.
 
 =head1 Common Precedence Mistakes
 
@@ -893,6 +962,98 @@ if you are dealing with large data) or writing your own logic to split
 the incoming data the way you need. Same applies if your data
 is null-separated.
 
+
+=head2 Proc::Async and C<print>
+
+When using Proc::Async you should not assume that C<.print> (or any
+other similar method) is synchronous. The biggest issue of this trap
+is that you will likely not notice the problem by running the code
+once, so it may cause a hard-to-detect intermittent fail.
+
+Here is an example that demonstrates the issue:
+
+=begin code :skip-test
+loop {
+    my $proc = Proc::Async.new: :w, ‘head’, ‘-n’, ‘1’;
+    my $got-something;
+    react {
+        whenever $proc.stdout.lines { $got-something = True }
+        whenever $proc.start        { die ‘FAIL!’ unless $got-something }
+
+        $proc.print: “one\ntwo\nthree\nfour”;
+        $proc.close-stdin;
+    }
+    say $++;
+}
+=end code
+
+And the output it may produce:
+
+=begin code :skip-test
+0
+1
+2
+3
+An operation first awaited:
+  in block <unit> at print.p6 line 4
+
+Died with the exception:
+    FAIL!
+      in block  at print.p6 line 6
+=end code
+
+Resolving this is easy because C<.print> returns a promise that you
+can await on. The solution is even more beautiful if you are
+working in a L<react|/language/concurrency#index-entry-react> block:
+
+=begin code :skip-test
+    whenever $proc.print: “one\ntwo\nthree\nfour” {
+        $proc.close-stdin;
+    }
+=end code
+
+=head2 Using <.stdout> without <.lines>
+
+Method <.stdout> of L<Proc::Async> returns a supply that emits
+I<chunks> of data, not lines. The trap is that sometimes people assume
+it to give lines right away.
+
+=begin code
+my $proc = Proc::Async.new(‘cat’, ‘/usr/share/dict/words’);
+react {
+    whenever $proc.stdout.head(1) { .say } # ← WRONG (most likely)
+    whenever $proc.start { }
+}
+=end code
+
+The output is clearly not just 1 line:
+
+=begin code :skip-test
+A
+A's
+AMD
+AMD's
+AOL
+AOL's
+Aachen
+Aachen's
+Aaliyah
+Aaliyah's
+Aaron
+Aaron's
+Abbas
+Abbas's
+Abbasid
+Abbasid's
+Abbott
+Abbott's
+Abby
+=end code
+
+If you want to work with lines, then use C<$proc.stdout.lines>. If
+you're after the whole output, then something like this should do the
+trick: C<whenever $proc.stdout { $out ~= $_ }>.
+
 =head1 Exception Handling
 
 =head2 Sunk C<Proc>
@@ -1036,6 +1197,124 @@ $a.sayit;      # OUTPUT: «hi␤»
 my $b = A.new;
 $b.sayit;      # nothing
 
-=end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+=head2 C<LEAVE> phaser and C<exit>
+
+Using L«C<LEAVE>|/syntax/LEAVE» phaser to perform graceful resource
+termination is a common pattern, but it does not cover the case when
+the program is stopped with L«C<exit>|/routine/exit».
+
+The following nondeterministic example should demonstrate the
+complications of this trap:
+=begin code :skip-test
+my $x = say ‘Opened some resource’;
+LEAVE say ‘Closing the resource gracefully’ with $x;
+
+exit 42 if rand < ⅓; # ① ｢exit｣ is bad
+die ‘Dying because of unhandled exception’ if rand < ½; # ② ｢die｣ is ok
+# fallthru ③
+=end code
+
+There are three possible results:
+=begin code :skip-test
+①
+Opened some resource
+
+②
+Opened some resource
+Closing the resource gracefully
+Dying because of unhandled exception
+  in block <unit> at print.p6 line 5
+
+③
+Opened some resource
+Closing the resource gracefully
+=end code
+
+A call to C<exit> is part of normal operation for many programs, so
+beware unintentional combination of C<LEAVE> phasers and C<exit> calls.
+
+=head2 C<LEAVE> phaser may run sooner than you think
+
+You should always expect the C<LEAVE> phaser to execute before
+I<anything> else in the block was executed.
+
+Here is an example:
+
+=begin code
+sub foo($ where ‘abc’) {
+    my $x = 42;
+    LEAVE say $x.Int; # ← WRONG; assumes that $x is not Nil
+}
+say foo ‘hello’; # OUTPUT: «No such method 'Int' for invocant of type 'Any'␤»
+=end code
+
+You may think that there is no way C<my $x = 42> can fail, and
+therefore C<$x> will always be defined in the C<LEAVE> block. But that
+is simply not the case. There is no guarantee that anything will
+executed at all, which is what happens when type constraints are
+involved.
+
+The right way to do it is to I<always> check that whatever you use in
+your C<LEAVE> block is defined:
+
+=begin code :skip-test
+    LEAVE say .Int with $x
+=end code
+
+=head1 Unfortunate generalization
+
+=head2 C<:exists> with more than one key
+
+Let's say you have a hash and you want to use C<:exists> on more than
+one element:
+
+=begin code
+my %h = a => 1, b => 2;
+say ‘a exists’ if %h<a>:exists;   # ← OK; True
+say ‘y exists’ if %h<y>:exists;   # ← OK; False
+say ‘Huh‽’     if %h<x y>:exists; # ← WRONG; returns a 2-item list
+=end code
+
+Did you mean “if C<any> of them exists”, or did you mean that C<all>
+of them should exist? Use C<any> or C<all> L<Junction> to clarify:
+
+=begin code
+my %h = a => 1, b => 2;
+say ‘x or y’     if any %h<x y>:exists;   # ← RIGHT (any); False
+say ‘a, x or y’  if any %h<a x y>:exists; # ← RIGHT (any); True
+say ‘a, x and y’ if all %h<a x y>:exists; # ← RIGHT (all); False
+say ‘a and b’    if all %h<a b>:exists;   # ← RIGHT (all); True
+=end code
+
+The reason why it is always C<True> (without using a junction) is that
+it returns a list with L<Bool> values for each requested
+lookup. Non-empty lists always give C<True> when you L<Bool>ify them,
+so the check always succeeds no matter what keys you give it.
+
+=head2 Using C<[…]> meta-operator with a list of lists
+
+Every now and then, someone gets the idea that they can use C<[Z]> to
+create the transpose of a list-of-lists:
+
+=begin code
+my @matrix = <X Y>, <a b>, <1 2>;
+my @transpose = [Z] @matrix; # ← WRONG; but so far so good ↙
+say @transpose;              # [(X a 1) (Y b 2)]
+=end code
+
+And everything works fine, until you get an input @matrix with
+I<exactly one> row (child list):
+
+=begin code
+my @matrix = <X Y>,;
+my @transpose = [Z] @matrix; # ← WRONG; ↙
+say @transpose;              # [(X Y)] – not the expected transpose [(X) (Y)]
+=end code
+
+This happens partly because of the
+L<single argument rule|/language/functions#Slurpy_Conventions>, and
+there are other cases when this kind of a generalization may not work.
+
+=end pod
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

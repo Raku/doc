@@ -1,24 +1,26 @@
 #!/usr/bin/env perl6
 use v6;
 
-# This script isn't in bin/ because it's not meant to be installed.
-# For syntax highlighting, needs node.js installed.
-# Please run make init-highlights to automatically pull in the highlighting
-# grammar and build the highlighter.
-#
-# for doc.perl6.org, the build process goes like this:
-# * a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
-# It looks like this:
-#
-# */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
-#
-# util/update-and-sync is under version control in the perl6/doc repo (same as
-# this file), and it first updates the git repository. If something changed, it
-# run htmlify, captures the output, and on success, syncs both the generated
-# files and the logs. In case of failure, only the logs are synchronized.
-#
-# The build logs are available at https://docs.perl6.org/build-log/
-#
+=begin overview
+
+This script isn't in bin/ because it's not meant to be installed.
+For syntax highlighting, needs node.js installed.
+Please run make init-highlights to automatically pull in the highlighting
+grammar and build the highlighter.
+
+For doc.perl6.org, the build process goes like this:
+a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
+
+    */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
+
+util/update-and-sync is under version control in the perl6/doc repo (same as
+this file), and it first updates the git repository. If something changed, it
+runs htmlify, captures the output, and on success, syncs both the generated
+files and the logs. In case of failure, only the logs are synchronized.
+
+The build logs are available at https://docs.perl6.org/build-log/
+
+=end overview
 
 BEGIN say 'Initializing ...';
 
@@ -62,7 +64,6 @@ monitor UrlLog {
 my $url-log = UrlLog.new;
 &rewrite-url.wrap(sub (|c){
     $url-log.log(my \r = callsame);
-#    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
     r
 });
 
@@ -81,12 +82,11 @@ my @menu =
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
-#    ('module', 'Modules'   ) => (),
-#    ('formalities',''      ) => ();
 ;
 
 my $head = slurp 'template/head.html';
-sub header-html($current-selection = 'nothing selected') is cached {
+
+sub header-html($current-selection, $pod-path) is cached {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
@@ -113,15 +113,25 @@ sub header-html($current-selection = 'nothing selected') is cached {
             q[</div>];
     }
 
-    state $menu-pos = ($header ~~ /MENU/).from;
-    $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
+    my $edit-url = "";
+    if defined $pod-path {
+      $edit-url = qq[
+      <div align="right">
+        <button title="Edit this page"  class="pencil" onclick="location='https://github.com/perl6/doc/edit/master/doc/$pod-path'">
+        {svg-for-file("html/images/pencil.svg")}
+        </button>
+      </div>]
+    }
+
+    $header.subst('MENU', $menu-items ~ $sub-menu-items)
+           .subst('EDITURL', $edit-url);
 }
 
-sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
+sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
     pod2html $pod,
         :url(&rewrite-url),
         :$head,
-        :header(header-html $selection),
+        :header(header-html($selection, $pod-path)),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
         :css-url(''), # disable Pod::To::HTML's default CSS
@@ -151,7 +161,6 @@ sub recursive-dir($dir) {
 # in Rakudo you risk segfaults, weird errors, etc.
 my $proc;
 my $proc-supply;
-my $proc-prom;
 my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee';
 sub MAIN(
     Bool :$typegraph = False,
@@ -159,37 +168,15 @@ sub MAIN(
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
-    Bool :$force-proc-async = False,
-    Bool :$no-proc-async    = False,
     Int  :$parallel = 1,
 ) {
-
-    # TODO: For the moment rakudo doc pod files were copied
-    #       from its repo to subdir doc/Programs and modified to Perl 6 pod.
-    #       The rakudo install needs
-    #       to (1) copy those files to its installation directory (share/pod)
-    #       and (2) use Perl 5's pod2man to convert them to man pages in
-    #       the installation directory (share/man).
-    #
-    #       Then they can be copied to doc/Programs.
     if !$no-highlight {
         if ! $coffee-exe.IO.f {
             say "Could not find $coffee-exe, did you run `make init-highlights`?";
             exit 1;
         }
-        if $*DISTRO eq 'macosx' and !$force-proc-async {
-            warn-user Q/"\$*DISTRO == macos, so Proc::Async will not be used.
-            due to freezes from using Proc::Async.
-            For more info see Issue #1129/;
-            $no-proc-async := True;
-        }
-        if $no-proc-async {
-            warn-user "Proc::Async is disabled, this build will take a very long time.";
-        }
-        else {
-            $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
-            $proc-supply = $proc.stdout.lines;
-        }
+        $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $proc-supply = $proc.stdout.lines;
     }
     say 'Creating html/subdirectories ...';
 
@@ -208,7 +195,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse, :$parallel;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
-    highlight-code-blocks(:no-proc-async($no-proc-async)) unless $no-highlight;
+    highlight-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -333,7 +320,6 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     }
 }
 
-# XXX: Generalize
 multi write-type-source($doc) {
     sub href_escape($ref) {
         # only valid for things preceded by a protocol, slash, or hash
@@ -356,7 +342,9 @@ multi write-type-source($doc) {
         $graph-contents .= subst('PODNAME', $podname);
         $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
 
-        $pod.contents.append: Pod::Raw.new(
+        $pod.contents.append:
+        pod-heading("Type Graph"),
+        Pod::Raw.new(
             target => 'html',
             contents => $graph-contents,
         );
@@ -649,12 +637,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 $created.categories = @subkinds;
             }
             if %attr<kind> eq 'routine' {
-                %routines-by-type{$origin.name}.append: $chunk;
-                write-qualified-method-call(
-                    :$name,
-                    :pod($chunk),
-                    :type($origin.name),
-                );
+              %routines-by-type{$origin.name}.append: $chunk;
             }
         }
         $i = $new-i + 1;
@@ -905,7 +888,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
             .map({[
-                .map({.subkinds // Nil}).unique.join(', '),
+                .map({slip .subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
@@ -918,12 +901,10 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
-            my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.squish(with => &infix:<~~>) == 1
-                          ?? @subkinds.list[0]
-                          !! $kind;
+            my @subkinds = @docs.map({slip .subkinds}).unique;
+            my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
-                "Documentation for $subkind $name",
+                "$subkind $name",
                 pod-block("Documentation for $subkind $name, assembled from the following types:"),
                 @docs.map({
                     pod-heading("{.origin.human-kind} {.origin.name}"),
@@ -949,15 +930,6 @@ sub write-kind($kind) {
     say '';
 }
 
-sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
-    my $p = pod-with-title(
-        "Documentation for method $type.$name",
-        pod-block('From ', pod-link($type, "/type/{$type}#$name")),
-        @$pod,
-    );
-    return if $name ~~ / '/' /;
-    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
-}
 sub get-temp-filename {
     state %seen-temps;
     my $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
@@ -967,10 +939,8 @@ sub get-temp-filename {
     %seen-temps{$temp}++;
     $temp;
 }
-sub highlight-code-blocks(:$no-proc-async = False) {
-    unless $no-proc-async {
-        $proc-prom = $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
-    }
+sub highlight-code-blocks {
+    $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
@@ -979,28 +949,21 @@ sub highlight-code-blocks(:$no-proc-async = False) {
             }
         }
         my $basename = get-temp-filename();
-        my $tmp_fname = "$*TMPDIR/$basename";
+        my $tmp_fname = $*TMPDIR ~ ($*TMPDIR.ends-with('/') ?? '' !! '/') ~ $basename;
         spurt $tmp_fname, $node.contents.join;
         LEAVE try unlink $tmp_fname;
         my $html;
-        if ! $no-proc-async {
-            my $promise = Promise.new;
-            my $tap = $proc-supply.tap( -> $json {
-                my $parsed-json = from-json($json);
-                if $parsed-json<file> eq $tmp_fname {
-                    $promise.keep($parsed-json<html>);
-                    $tap.close();
-                }
-            } );
-            $proc.say($tmp_fname);
-            await $promise;
-            $html = $promise.result;
-        }
-        else {
-            my $command = qq[$coffee-exe ./highlights/highlight-file.coffee "$tmp_fname"];
-            $html = qqx{$command};
-        }
-        $html;
+        my $promise = Promise.new;
+        my $tap = $proc-supply.tap( -> $json {
+            my $parsed-json = from-json($json);
+            if $parsed-json<file> eq $tmp_fname {
+                $promise.keep($parsed-json<html>);
+                $tap.close();
+            }
+        } );
+        $proc.say($tmp_fname);
+        await $promise;
+        $promise.result;
     }
 }
 

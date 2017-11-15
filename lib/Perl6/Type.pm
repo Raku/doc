@@ -7,6 +7,7 @@ class Perl6::Type {
     has @.roles;
     has @.doers;
     has $.packagetype is rw = 'class';
+    has $.aka is rw;
     has @.categories;
 
     has @.mro;
@@ -18,7 +19,12 @@ class Perl6::Type {
             my @merge_list = @.super.map: *.mro.item;
             @!mro = self.c3_merge(@merge_list);
         }
-        @!mro.unshift: self;
+        if $!aka {
+            @!mro.unshift: $!aka;
+        } else {
+            @!mro.unshift: self;
+        }
+        @!mro;
     }
 
     method c3_merge(@merge_list) {

@@ -395,6 +395,35 @@ You have to call C<.deref> on it to access the embedded type.
     say $mc.field1;
 =end code
 
+It's quite common for a native function to return a pointer to an array of elements. Typed pointers can be dereferenced as an array to obtain individual elements.
+
+=begin code :skip-test
+    my $n = 5;
+    # returns a pointer to an array of length $n
+    my Pointer[Point] $plot = some_other_c_routine($n);
+    # display the 5 elements in the array
+    for 1 .. $n -> $i {
+        my $x = $plot[$i - 1].x;
+        my $y = $plot[$i - 1].y;
+        say "$i: ($x, $y)";
+    }
+=end code
+
+Pointers can also be updated to reference successive elements in the array:
+
+=begin code :skip-test
+    my Pointer[Point] $elem = $plot;
+    # show differences between successive points
+    for 1 ..^ $n {
+        my Point $lo = $elem.deref;
+        ++$elem; # equivalent to $elem = $elem.add(1);
+        my Point $hi = (++$elem).deref;
+        my $dx = $hi.x = $lo.x;
+        my $dy = $hi.y = $lo.y;
+        say "$_: delta ($dx, $dy)";
+    }
+=end code
+
 =head1 Buffers and Blobs
 
 =comment TODO
@@ -514,7 +543,8 @@ exported by the "libc.so.6" library.
 =head1 C++ Support
 
 NativeCall offers support to use classes and methods from C++ as shown in
-L<https://github.com/rakudo/rakudo/blob/nom/t/04-nativecall/13-cpp-mangling.t> (and its associated C++ file).
+L<https://github.com/rakudo/rakudo/blob/master/t/04-nativecall/13-cpp-mangling.t>
+(and its associated C++ file).
 Note that at the moment it's not as tested and developed as C support.
 
 =head1 Helper Functions
@@ -590,3 +620,5 @@ Here is an example of a Windows API call:
 =end code
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
