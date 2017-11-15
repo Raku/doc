@@ -157,7 +157,7 @@ Rakudo编译器发布仅仅包括一些最常用的[基本模块](https://docs.p
 [non-standard `dd` routine](/programs/01-debugging#Dumper_function_dd)例程来dump
 他的输出与`perl`类似，包含更多多的信息。例如:
 
-       my $foo = { foo => 'bar' };
+       my $foo = %( foo => 'bar' );
        say $foo.perl;   # 输出: «${:foo("bar")}␤»
        say $foo;        # 输出: «{foo => bar}␤»
 

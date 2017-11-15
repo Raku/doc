@@ -351,8 +351,9 @@ Perl5中与之相关的性能问题不会再产生。
 - $OUTPUT\_AUTOFLUSH
 - $|
 
-    由于没有缓冲，目前还没有该选项。目前支持实验性质的L<open>参数C<:buffer>
-目前可以运行。
+    由于没有缓冲，目前还没有该选项。目前支持实验性质的`open`。没有全局变量，
+TTY处理,默认无缓冲，其他地，对特定的`IO::Handle`,L`open`设置`out-buffer`为零
+或者使用`!out-buffer`。
 
 - ${^LAST\_FH}
 

@@ -310,8 +310,8 @@ TODO: 对perl5 typeglobs中那些用例目前确切是需要地，并且对这�
  而不是哈希：
 
     my @people = [
-        { id => "1A", firstName => "Andy", lastName => "Adams" },
-        { id => "2B", firstName => "Beth", lastName => "Burke" },
+        %( id => "1A", firstName => "Andy", lastName => "Adams" ),
+        %(id => "2B", firstName => "Beth", lastName => "Burke" ),
         # ...
     ];
 
@@ -1088,6 +1088,11 @@ Perl的编译指示，使用整数运算替代浮点。
 被移除。
 Perl 6的设计允许自动的保存加载编译的字节码。
 目前这个功能在 Rakudo 中只支持模块。
+
+## `AUTOLOAD`
+
+[`FALLBACK`方法](/language/typesystem#index-entry-FALLBACK_(method))
+提供了类似的功能。
 
 ## 导入模块的函数
 
