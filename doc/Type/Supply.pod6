@@ -158,8 +158,10 @@ the GUI thread.
 
     method wait(Supply:D:)
 
-Waits until the supply is done (in which case it returns C<True>) or C<quit>
-(in which case it will throw the exception that was passed to C<quit>).
+Taps the C<Supply> it is called on, and blocks execution until the either the supply
+is C<done> (in which case it evaluates to the final value that was emitted on the
+C<Supply>, or C<Nil> if not value was emitted) or C<quit> (in which case it will throw
+the exception that was passed to C<quit>).
 
    my $s = Supplier.new;
    start {
@@ -176,16 +178,19 @@ Waits until the supply is done (in which case it returns C<True>) or C<quit>
 
     method list(Supply:D: --> List:D)
 
-Waits until the supply is done, then returns a list of all values emitted
-since the C<list> call.
+Taps the C<Supply> it is called on, and returns a lazy list that will be reified
+as the C<Supply> emits values. The list will be terminated once the C<Supply> is
+C<done>. If the C<Supply> C<quit>s, then an exception will be thrown once that
+point in the lazy list is reached.
 
 =head2 method grab
 
     method grab(Supply:D: &when-done --> Supply:D)
 
-Waits until the given C<Supply> is done.  It will then call the C<&when-done>
-closure passing all of the values seen,  Then creates a C<Supply> to which all
-values returned from the C<&when-done> closure are emitted.
+Taps the C<Supply> it is called on. When it is C<done>, calls C<&when-done> and
+then emits the list of values that it returns on the result C<Supply>. If the
+original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $t = $s.grab(&sum);
@@ -195,8 +200,10 @@ values returned from the C<&when-done> closure are emitted.
 
     method reverse(Supply:D: --> Supply:D)
 
-Waits until the given C<Supply> is done, then creates a C<Supply> to which all
-values seen are emitted in reverse order.
+Taps the C<Supply> it is called on. Once that C<Supply> emits C<done>, all of the
+values it emitted will be emitted on the returned C<Supply> in reverse order. If
+the original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(1, 2, 3);
     my $t = $s.reverse;
@@ -206,9 +213,11 @@ values seen are emitted in reverse order.
 
     method sort(Supply:D: &custom-routine-to-use? --> Supply:D)
 
-Waits until the given C<Supply> is done, then creates a C<Supply> to which all
-values seen are emitted in sorted order.  Optionally accepts a comparator
-L<Block|/type/Block>.
+Taps the C<Supply> it is called on. Once that C<Supply> emits C<done>, all of the
+values that it emitted will be sorted, and the results emitted on the returned
+C<Supply> in the sorted order. Optionally accepts a comparator L<Block|/type/Block>.
+If the original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $t = $s.sort();
