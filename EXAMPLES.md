@@ -33,10 +33,20 @@ We're just testing Perl 6 here: to skip another language, use `:lang`
 ### Allow .WHAT
 
 One of the checks is to dissuade using `.WHAT` in tests; However, in rare
-cases that is the explicit point of the test, so you can explicitly allow it:
+cases that is the explicit point of the test, so you can allow it with ok-test:
 
     =begin code :ok-test<WHAT>
         say 42.WHAT;
+    =end
+
+### Allow dd
+
+dd is a rakudo specific tool that isn't part of the specification; examples
+shouldn't use it unless they are explicitly trying to show how dd works.
+You can allow it with ok-test:
+
+    =begin code :ok-test<dd>
+        dd 42;
     =end
 
 ### Methods
