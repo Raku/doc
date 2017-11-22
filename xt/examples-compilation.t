@@ -79,7 +79,7 @@ for @examples -> $eg {
         flunk "$eg<file> chunk $eg<count>" ~ ' uses .WHAT: try .^name instead';
         next;
     }
-    if ! $eg<ok-test>.contains('dd') && $eg<contents> ~~ / << 'dd' >> / {
+    if ! $eg<ok-test>.contains('dd') && $eg<contents> ~~ / << <!after 'yyyy-mm-'> 'dd' >> / {
         flunk "$eg<file> chunk $eg<count>" ~ ' uses dd: try say instead';
         next;
     }
