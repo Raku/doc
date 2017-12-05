@@ -1,4 +1,4 @@
-=begin pod :tag<tutorial>
+=begin pod :tag<perl6>
 
 =TITLE Functions
 
@@ -712,50 +712,64 @@ from a chain. This chain could be a list of parent classes in a class
 hierarchy, or it could be less specific multi candidates from a multi
 dispatch, or it could be the inner routine from a C<wrap>.
 
-In all those cases, you can use C<callwith> to call the next routine in the
-chain with arguments of your own choice.
+Fortunately, we have a series of re-dispatching tools that help us to make
+it easy.
 
-For example:
+=head2 X<routine callsame|dispatch, callsame>
 
-    multi a(Any $x) {
-        say "Any $x";
-        return 5;
-    }
-    multi a(Int $x) {
-        say "Int $x";
-        my $res = callwith($x + 1);
-        say "Back in Int with $res";
-    }
-
-    a 1;        # OUTPUT: «Int 1␤Any 2␤Back in Int with 5␤»
-
-Here, C<a 1> calls the most specific C<Int> candidate first, and C<callwith>
-re-dispatches to the less specific C<Any> candidate.
-
-Very often, a re-dispatch passes the same argument along that the caller
-received, so there is a special routine for that: C<callsame>.
-
-    multi a(Any $x) {
-        say "Any $x";
-        return 5;
-    }
-    multi a(Int $x) {
-        say "Int $x";
-        my $res = callsame;
-        say "Back in Int with $res";
-    }
-
-    a 1;        # OUTPUT: «Int 1␤Any 1␤Back in Int with 5␤»
-
-Another common use case is to re-dispatch to the next routine in the chain,
-and not do anything else afterwards. That's why we have C<nextwith> and
-C<nextsame>, which call the next routine with arbitrary arguments
-(C<nextwith>) or with the same argument as the caller received (C<nextsame>),
-but never return to the caller. Or to phrase it differently, the C<nextsame>
-and C<nextwith> variants replace the current callframe with the next
-candidate.
+C<callsame> calls the next matching candidate with the same arguments that were
+used for the current candidate and returns that candidate's return value.
 
 =begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+
+multi a(Int $x) {
+    say "Int $x";
+    my $res = callsame;
+    say "Back in Int with $res";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 1␤Back in Int with 5␤»
+=end code
+
+=head2 X<routine callwith|dispatch, callwith>
+
+C<callwith> calls the next matching candidate with arguments provided by users
+and returns that candidate's return value.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+multi a(Int $x) {
+    say "Int $x";
+    my $res = callwith($x + 1);
+    say "Back in Int with $res";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 2␤Back in Int with 5␤»
+=end code
+
+Here, C<a 1> calls the most specific C<Int> candidate first, and C<callwith>
+re-dispatches to the less specific C<Any> candidate. Note that although our
+parameter C<$x + 1> is an Int, still we call the next candidate in the chain.
+
+=head2 X<routine nextsame|dispatch, nextsame>
+
+C<nextsame> calls the next matching candidate with the same arguments that were
+used for the current candidate and B<never> returns.
+
+=begin code
+proto a(|) {*}
+
 multi a(Any $x) {
     say "Any $x";
     return 5;
@@ -763,14 +777,83 @@ multi a(Any $x) {
 multi a(Int $x) {
     say "Int $x";
     nextsame;
-    say "back in a";    # never executed, because 'nextsame' doesn't return
+    say "never executed because nextsame doesn't return";
 }
 
 a 1;        # OUTPUT: «Int 1␤Any 1␤»
 =end code
 
-As mentioned earlier, multi subs are not the only situation in which
-X<C<callwith>|callwith>, X<C<callsame>|callsame>, X<C<nextwith>|nextwith> and X<C<nextsame>|nextsame> can be helpful.
+=head2 X<routine nextwith|dispatch, nextwith>
+
+C<nextwith> calls the next matching candidate with arguments provided by users
+and B<never> returns.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+multi a(Int $x) {
+    say "Int $x";
+    nextwith($x + 1);
+    say "never executed because nextsame doesn't return";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 2␤»
+=end code
+
+=head2 X<routine samewith|dispatch, samewith>
+
+C<samewith> calls current candidate again with arguments provided by users and
+and returns return value of the new instance of current candidate.
+
+=begin code
+proto a(|) {*}
+
+multi a(Int $x) {
+  return 1 unless $x > 1;
+  return $x * samewith($x-1);
+}
+
+say (a 10); # OUTPUT: «36288002␤»
+=end code
+
+=head2 X<routine nextcallee|dispatch, nextcallee>
+
+Redispatch may be required to call a block that is not the current scope what
+provides C<nextsame> and friends with the problem to referring to the wrong
+scope. Use C<nextcallee> to capture the right candidate and call it at the
+desired time.
+
+=begin code
+proto pick-winner(|) {*}
+
+multi pick-winner (Int \s) {
+    my &nextone = nextcallee;
+    Promise.in(π²).then: { nextone s }
+}
+multi pick-winner { say "Woot! $^w won" }
+
+with pick-winner ^5 .pick -> \result {
+    say "And the winner is...";
+    await result;
+}
+
+# OUTPUT:
+# And the winner is...
+# Woot! 3 won
+=end code
+
+The Int candidate takes the C<nextcallee> and then fires up a Promise to be
+executed in parallel, after some timeout, and then returns. We can't use
+C<nextsame> here, because it'd be trying to C<nextsame> the Promise's block
+instead of our original routine.
+
+=head2 X<wrapped routines|dispatch, wrapped routines>
+
+Besides those are mentioned above, re-dispatch is helpful in more situations.
 One is for dispatching to wrapped routines:
 
 =begin code
@@ -789,7 +872,9 @@ say square-root(4);     # OUTPUT: «2␤»
 say square-root(-4);    # OUTPUT: «0+2i␤»
 =end code
 
-The final use case is to re-dispatch to methods from parent classes.
+=head2 X<routines of parent class|dispatch, super>
+
+Another use case is to re-dispatch to methods from parent classes.
 
 =begin code
 class LoggedVersion is Version {
@@ -801,33 +886,6 @@ class LoggedVersion is Version {
 
 say LoggedVersion.new('1.0.2');
 =end code
-
-If you need to make multiple calls to the wrapped code or to gain a reference to
-it, such as performing introspection it, you can use C<nextcallee>.
-
-=begin code
-sub power-it($x) { $x * $x }
-sub run-it-again-and-again($x) {
-    my &again = nextcallee;
-    again again $x;
-}
-
-&power-it.wrap(&run-it-again-and-again);
-say power-it(5);    # OUTPUT: «625␤»
-=end code
-
-X<|nextcallee>
-Redispatch may be required to call a block that is not the current scope what
-provides C<nextsame> and friends with the problem to referring to the wrong
-scope. Use C<nextcallee> to capture the right candidate and call it at the
-desired time.
-
-    my \IOL = Lock.new;
-    &say.wrap( -> |c {
-        my &wrappee = nextcallee;
-        IOL.protect: { &wrappee(|c) }
-    });
-    for ^100 { say "oops" }
 
 =head1 Coercion Types
 
