@@ -62,7 +62,7 @@ To build the documentation web pages, simply run
 
 Please note that you will need to have [nodejs](https://nodejs.org)
 installed to produce HTML content with the above command, in particular
-a `node` executable must to be in your `PATH`.
+a `node` executable should be in your `PATH`.
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
