@@ -60,6 +60,14 @@ To build the documentation web pages, simply run
 
     $ make html
 
+Please note that you will need to have [nodejs](https://nodejs.org)
+installed to produce HTML content with the above command.
+Moreover, depending on your system and installation, you could need
+to either *alias* or *link* the [nodejs](https://nodejs.org) executable
+so that you can run a command `node`. For instance:
+
+    $ ln `which nodejs` /usr/bin/node
+
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
 
