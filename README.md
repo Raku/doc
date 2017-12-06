@@ -44,7 +44,7 @@ disk speed and Rakudo version, it might take a while.
 
 Install dependencies by running the following in the checkout directory:
 
-    zef --depsonly install .
+    zef --dep-sonly install .
 
 If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
 following, to update the shims for installed executables:
