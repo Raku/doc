@@ -44,7 +44,7 @@ disk speed and Rakudo version, it might take a while.
 
 Install dependencies by running the following in the checkout directory:
 
-    zef --dep-sonly install .
+    zef --deps-only install .
 
 If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
 following, to update the shims for installed executables:
@@ -61,12 +61,8 @@ To build the documentation web pages, simply run
     $ make html
 
 Please note that you will need to have [nodejs](https://nodejs.org)
-installed to produce HTML content with the above command.
-Moreover, depending on your system and installation, you could need
-to either *alias* or *link* the [nodejs](https://nodejs.org) executable
-so that you can run a command `node`. For instance:
-
-    $ ln `which nodejs` /usr/bin/node
+installed to produce HTML content with the above command, in particular
+a `node` executable must to be in your `PATH`.
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
