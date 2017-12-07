@@ -30,7 +30,7 @@ to see the documentation for class `Str`, or
     ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via `panda` or
+skip the `./bin` part if you have installed it via
 `zef`. You can also do
 
     p6doc -f slurp
@@ -44,7 +44,7 @@ disk speed and Rakudo version, it might take a while.
 
 Install dependencies by running the following in the checkout directory:
 
-    zef --depsonly install .
+    zef --deps-only install .
 
 If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
 following, to update the shims for installed executables:
@@ -59,6 +59,10 @@ on Debian you can do by running
 To build the documentation web pages, simply run
 
     $ make html
+
+Please note that you will need to have [nodejs](https://nodejs.org)
+installed to produce HTML content with the above command, in particular
+a `node` executable should be in your `PATH`.
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:
