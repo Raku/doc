@@ -374,6 +374,37 @@ class MyStruct2 is repr('CStruct') {
 say nativesizeof(MyStruct2.new);  # 24, ie. sizeof(struct Point) + sizeof(int32_t)
 =end code
 
+=head2 Notes on Memory management
+
+When allocating a struct for use as a struct, make sure that you allocate your
+own memory if your C functions. If you're passing a struct into a C function
+which needs a C<Str>/C<char*> allocated ahead of time, be sure to assign a
+container for a variable of type C<Str> prior to passing your struct into the
+function.
+
+=begin code
+class OneStringAndOneInt32 is repr("CStruct") {
+  has Str $.oneString;
+  has int32 $.oneInt32;
+
+  submethod TWEAK {
+    $!oneString := Str.new;
+    $!oneInt32 = 0;
+  }
+
+  sub init_struct(OneStringAndOneInt32 is rw, Str, int32) is native('simplestruct') { * }
+  method init($inOneString, $inOneInt) {
+    say "I have «$inOneString» and «$inOneInt».";
+    init_struct(self, $inOneString, $inOneInt);
+  }
+}
+
+# A long time ago in a galaxy far, far away...
+
+my $foo = OneStringAndOneInt32.new;
+$foo.init("str", 123);
+=end code
+
 =head1 Typed Pointers
 
 =comment TODO
