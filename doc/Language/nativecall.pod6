@@ -382,28 +382,67 @@ which needs a C<Str>/C<char*> allocated ahead of time, be sure to assign a
 container for a variable of type C<Str> prior to passing your struct into the
 function.
 
-=begin code
-class OneStringAndOneInt32 is repr("CStruct") {
-  has Str $.oneString;
-  has int32 $.oneInt32;
+=head3 In your Perl6 code...
+
+=begin code :skip-test
+
+class AStringAndAnInt is repr("CStruct") {
+  has Str $.a_string;
+  has int32 $.an_int32;
 
   submethod TWEAK {
-    # This sets a container to the char* pointer...
-    $!oneString := Str.new;
-    $!oneInt32 = 0;
+    $!a_string := Str.new;
+    $!an_int32 = 0;
   }
 
-  sub init_struct(OneStringAndOneInt32 is rw, Str, int32) is native('simplestruct') { * }
-  method init($inOneString, $inOneInt) {
-    say "I have «$inOneString» and «$inOneInt».";
-    init_struct(self, $inOneString, $inOneInt);
+  sub init_struct(AStringAndAnInt is rw, Str, int32) is native('simple-struct') { * }
+  method init(:$a_string, :$an_int) {
+    init_struct(self, $a_string, $an_int);
   }
 }
 
+=end code
+
+In this code we first set up our members, C<$.a_string> and C<$.an_int32>. We then
+set the container of C<$.a_string> to a new C<Str>. After that we declare our
+C<init_struct()> function for the C<init()> method to wrap around.
+
+=head3 In your C code...
+
+=begin code :skip-test
+
+typedef struct a_string_and_an_int32_t_ {
+  char *a_string;
+  int32_t an_int32;
+} a_string_and_an_int32_t;
+
+=end code
+
+Here's the structure. Notice how we've got a C<char *> there.
+
+=begin code :skip-test
+
+void init_struct(a_string_and_an_int32_t *target, char *str, int32_t int32) {
+  target->an_int32 = int32;
+  strcpy(target->a_string, str);
+
+  return;
+}
+
+=end code
+
+In this function we initialize the C structure by assigning an integer by value,
+and copying the string by reference. This function assumes that there is memory
+allocated to C<char *a_string> within the structure into which it can copy the
+string.
+
 # A long time ago in a galaxy far, far away...
 
-my $foo = OneStringAndOneInt32.new;
+=begin code :skip-test
+
+my $foo = AStringAndAnInt.new;
 $foo.init("str", 123);
+
 =end code
 
 =head1 Typed Pointers
