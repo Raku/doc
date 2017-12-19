@@ -10,14 +10,17 @@ role Iterator { }
 
 A C<Iterator> is an object that can generate or provide elements of a
 sequence. Users usually don't have to care about iterators, their usage
-is hidden behind iteration APIs such as C<for @list { }>, L<map>, L<grep>
-and list indexing with C<.[$idx]>.
+is hidden behind iteration APIs such as C<for @list { }>, L<map>, L<grep>,
+L<head>, L<tail>, L<skip> and list indexing with C<.[$idx]>.
 
 The main API is the C<pull-one> method, which either returns the next value,
 or the sentinel value C<IterationEnd> if no more elements are available. Each
-class implementing C<Iterator> must provide a C<pull-one> method. All other
-Iterator API methods can be implemented in terms of C<pull-one>, but also
-overridden for performance reasons.
+class implementing C<Iterator> B<must> provide a C<pull-one> method. All other
+non-optional Iterator API methods are implemented in terms of C<pull-one>, but
+can also be overridden by consuming classes for performance or other reasons.
+There are also optional Iterator API methods that will only be called if they
+are implemented by the consuming class: these are B<not> implemented by the
+Iterator role.
 
 =head1 IterationEnd
 X<|IterationEnd>
@@ -69,8 +72,9 @@ Defined as:
 This method stub ensures that classes implementing the C<Iterator> role
 provide a method named C<pull-one>.
 
-The C<pull-one> method is supposed to return the next value if available, or
-the sentinel value C<IterationEnd> if no more elements are available.
+The C<pull-one> method is supposed to produce and return the next value if
+possible, or return the sentinel value C<IterationEnd> if no more values could
+be produced.
 
     my $i = (1 .. 3).iterator;
     say $i.pull-one;       # OUTPUT: «1␤»
@@ -84,16 +88,18 @@ Defined as:
 
     method push-exactly(Iterator:D: $target, int $count --> Mu)
 
-Produces C<$count> elements, and for each of them, calls
+Should produce C<$count> elements, and for each of them, call
 C<$target.push($value)>.
 
 If fewer than C<$count> elements are available from the iterator, it
-returns the sentinel value C<IterationEnd>. Otherwise it returns
+should return the sentinel value C<IterationEnd>. Otherwise it should return
 C<$count>.
 
     my @array;
     say (1 .. Inf).iterator.push-exactly(@array, 3); # OUTPUT: «3␤»
     say @array; # OUTPUT: «[1 2 3]␤»
+
+The Iterator role implements this method in terms of C<pull-one>.
 
 =head2 method push-at-least
 
@@ -101,11 +107,11 @@ Defined as:
 
     method push-at-least(Iterator:D: $target, int $count --> Mu)
 
-Produces at least C<$count> elements, and for each of them, calls
+Should produce at least C<$count> elements, and for each of them, call
 C<$target.push($value)>.
 
 If fewer than C<$count> elements are available from the iterator, it
-returns the sentinel value C<IterationEnd>. Otherwise it returns
+should return the sentinel value C<IterationEnd>. Otherwise it should return
 C<$count>.
 
 Iterators with side effects should produce exactly C<$count> elements;
@@ -116,19 +122,20 @@ produce more elements to achieve better performance.
     say (1 .. Inf).iterator.push-at-least(@array, 10); # OUTPUT: «10␤»
     say @array; # OUTPUT: «[1 2 3 4 5 6 7 8 9 10]␤»
 
+The Iterator role implements this method in terms of C<pull-one>.
+
 =head2 method push-all
 
 Defined as:
 
     method push-all(Iterator:D: $target)
 
-Produces all elements from the iterator and pushes them to C<$target>.
-
-The fallback is implemented in terms of repeated C<push-at-least> with a large
-C<$count>.
+Should produce all elements from the iterator and push them to C<$target>.
 
     my @array;
     say (1 .. 1000).iterator.push-all(@array); # All 1000 values are pushed
+
+The Iterator role implements this method in terms of C<push-at-least>.
 
 =head2 method push-until-lazy
 
@@ -136,8 +143,11 @@ Defined as:
 
     method push-until-lazy(Iterator:D: $target --> Mu)
 
-Produces values until it considers itself to be lazy, and pushes them onto
+Should produce values until it considers itself to be lazy, and push them onto
 C<$target>.
+
+The Iterator role implements this method as a no-op if C<is-lazy> returns
+a True value, or as a synonym of C<push-all> if not.
 
 This matters mostly for iterators that have other iterators embedded, some of
 which might be lazy, while others aren't.
@@ -148,7 +158,7 @@ Defined as:
 
     method is-lazy(Iterator:D: --> Bool:D)
 
-Returns C<True> for iterators that consider themselves lazy, and C<False>
+Should return C<True> for iterators that consider themselves lazy, and C<False>
 otherwise.
 
 Built-in operations that know that they can produce infinitely many values
@@ -157,16 +167,24 @@ return C<True> here, for example C<(1..6).roll(*)>.
     say (1 .. 100).is-lazy; # OUTPUT: «False␤»
     say (1 .. Inf).is-lazy; # OUTPUT: «True␤»
 
+The Iterator role implements this method returning C<False>, indicating a
+non-lazy iterator.
+
 =head2 method sink-all
 
 Defined as:
 
-    method sink-all(Iterator:D:)
+    method sink-all(Iterator:D: --> IterationEnd)
 
-Exhausts the iterator (while discarding generated elements) purely for the
-side effects of the iteration.
+Should exhaust the iterator purely for the side-effects of producing the
+values, without actually saving them in any way.  Should always return
+C<IterationEnd>.  If there are no side-effects associated with producing a
+value, then it can be implemented by a consuming class to be a virtual no-op.
 
-    say (1 .. 1000).iterator.sink-all;
+    say (1 .. 1000).iterator.sink-all;  # OUTPUT: «IterationEnd␤»
+
+The Iterator role implements this method as a loop that calls C<pull-one>
+until it is exhausted.
 
 =head2 method skip-one
 
@@ -174,12 +192,15 @@ Defined as:
 
     method skip-one(Iterator:D: $target --> Mu)
 
-Skips one value. The return value is truthy if skip was successful and falsy if
-there were no values to skip:
+Should skip producing one value. The return value should be truthy if the skip
+was successful and falsy if there were no values to be skipped:
 
     my $i = <a b>.iterator;
     say $i.skip-one; say $i.pull-one; say $i.skip-one
     # OUTPUT: «1␤b␤0␤»
+
+The Iterator role implements this method as a call C<pull-one> and returning
+whether the value obtained was not C<IterationEnd>.
 
 =head2 method skip-at-least
 
@@ -187,12 +208,15 @@ Defined as:
 
     method skip-at-least(Iterator:D: $target, int $to-skip --> Mu)
 
-Skips C<$to-skip> values. The return value is truthy if skip was successful and falsy if
-there were not enough values to skip:
+Should skip producing C<$to-skip> values. The return value should be truthy if
+the skip was successful and falsy if there were not enough values to be skipped:
 
     my $i = <a b c>.iterator;
     say $i.skip-at-least(2); say $i.pull-one; say $i.skip-at-least(20);
     # OUTPUT: «1␤c␤0␤»
+
+The Iterator role implements this method as a loop calling C<skip-one> and
+returning whether it returned a truthy value sufficient number of times.
 
 =head2 method skip-at-least-pull-one
 
@@ -200,41 +224,55 @@ Defined as:
 
     method skip-at-least-pull-one(Iterator:D: $target, int $to-skip --> Mu)
 
-Skips C<$to-skip> values and pulls the next value. The returns the pulled value
-or C<IterationEnd> if there were not enough values:
+Should skip producing C<$to-skip> values and if the iterator is still not
+exhausted, produce and return the next value.  Should return C<IterationEnd>
+if the iterator got exhausted at any point:
 
     my $i = <a b c>.iterator;
     say $i.skip-at-least-pull-one(2);
     say $i.skip-at-least-pull-one(20) =:= IterationEnd;
     # OUTPUT: «c␤True␤»
 
+The Iterator role implements this method as calling C<skip-at-least> and
+then calling C<pull-one> if it was not exhausted yet.
+
 =head2 method count-only
 
-By default is not implemented, but expected implementation for types that
-do this role is:
+Defined as:
 
     method count-only(--> Int:D) { ... }
 
-The method returns the number of elements the C<Iterator> can still produce.
-B<Important:> it's expected the C<Iterators> that implement this method can
-produce that number B<without> exhausting themselves. In other words,
+If implemented, it is expected to return the number of values the iterator
+can still produce B<without> actually producing them.  It will be used in
+situations where only the B<number> of values of an iterator is needed, e.g.
+when the C<.elems> method is called.
+
+B<Important:> it's expected the C<Iterator>s that implement this method can
+return that number B<without> producing any values.  In other words,
 it's expected the user of the class will be able to still L<pull-one>
-after calling this method, and eventually receive as many items as the
+after calling this method, and eventually receive as many values as the
 return value of this method indicated.
+
+The Iterator role does B<not> implement this method.
 
 =head2 method bool-only
 
 By default is not implemented, but expected implementation for types that
 do this role is:
+Defined as:
 
     method bool-only(--> Bool:D) { ... }
 
-The method returns C<True> if there are elements that can be generated
-by this L<Iterator> by, for example, calling L<pull-one>, and C<False>
-otherwise. B<Important:> it's expected the C<Iterators> that implement
-this method can produce that answer B<without> exhausting themselves.
-In other words, it's expected the user of the class will be able to
-still L<pull-one> after calling this method.
+If implemented, it is expected to return C<True> if the iterator can still
+produce values B<without> actually producing them.  It will be used in
+situations where the encompassing C<Seq> is evaluated in a C<Bool> context.
+
+B<Important:> it's expected the C<Iterator>s that implement
+this method can produce that answer B<without> producing any values.
+In other words, it's expected that the iterator can produce as many values
+as it could even if this method was B<not> called.
+
+The Iterator role does B<not> implement this method.
 
 =end pod
 
