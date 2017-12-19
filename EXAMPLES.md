@@ -30,6 +30,8 @@ We're just testing Perl 6 here: to skip another language, use `:lang`
         puts "this is not Perl"
     =end code
 
+For plain text use `:lang<text>`
+
 ### Allow .WHAT
 
 One of the checks is to dissuade using `.WHAT` in tests; However, in rare
