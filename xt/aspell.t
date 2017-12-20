@@ -54,7 +54,8 @@ my %output;
 
 sub test-it($promises) {
 
-    my $tasks = await |$promises;
+    await Promise.allof: |$promises;
+    my $tasks = $promises».result;
     my $file = $tasks[0].command[*-1];
 
     my $count;
