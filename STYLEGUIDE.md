@@ -80,8 +80,9 @@ To avoid the version number to be wrapped on a separate line from the 'Perl' ter
 use a [non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
 that is coded as Unicode character U+00A0.
 
-See also [issue 1719](https://github.com/perl6/doc/issues/1719) which contains
-a  Perl one-liner to apply NBSP to 'Perl 5|6'.
+To convert all Perl names to this style in `SOME-FILE`, you can use this one liner:
+
+    perl -C -pi -e 's/Perl (6|5)/Perl\x{A0}$1/g'  SOME-FILE
 
 ### Domain
 
