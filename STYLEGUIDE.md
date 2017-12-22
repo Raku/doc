@@ -64,13 +64,24 @@ You may use `object` for anything you can call methods on, including value objec
 
 ##### Use present tense when talking about Perl 5 features
 
-* Instead of: "In Perl 5 this was used for ..., but in Perl 6 ..."
-* Say: "In Perl 5 this is used for ..., but in Perl 6 ..."
+Perl 5 is still an active language, therefore instead of
+"In Perl 5 this was used for ..., but in Perl 6 ..."
+use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
+('was' has been made a present 'is').
 
 ##### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
 We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
 should not be part of the bulk of the documentation.
+
+##### Use non-breaking spaces when dealing with Perl version numbers
+
+To avoid the version number to be wrapped on a separate line from the 'Perl' term,
+use a [non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
+that is coded as Unicode character U+00A0.
+
+See also [issue 1719](https://github.com/perl6/doc/issues/1719) which contains also
+a simple Perl one-liner apply NBSP to 'Perl 5|6'.
 
 ### Domain
 
