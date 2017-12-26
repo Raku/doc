@@ -208,7 +208,7 @@ Be aware that slices are controlled by the I<type> of what is passed to
 (L<one dimension of|#Multiple dimensions>) the subscript, not its length.
 In particular the I<type> can be any of the following:
 
-=item a Range or a lazy Iterable, that L<truncates|#Truncating slices> in [ ]
+=item a lazy Iterable, that L<truncates|#Truncating slices> in [ ]
 
 =item '*' (whatever-star), that returns the full slice (as if all keys/indices were specified)
 
@@ -251,68 +251,48 @@ dimensions>) the subscript is preserved across the slice operation
 
 =head2 Truncating slices
 
-Normally, referring to nonexistent elements in a slice subscript causes the
-output list to contain undefined values (or L<whatever else|
+Referring to nonexistent elements in a slice subscript causes the
+output C<List> to contain undefined values (or L<whatever else|
 #Nonexistent elements> the collection in question chooses to return for
-nonexistent elements). However if the outer object passed to
-(L<one dimension of|#Multiple dimensions>) of a positional subscript is a
-L<Range>, it will be automatically truncated to the actual size of the
-collection:
+nonexistent elements):
 
-    my @letters = <a b c d e f>;
-    say @letters[3, 4, 5, 6, 7];  # OUTPUT: «(d e f (Any) (Any))␤»
-    say @letters[3 .. 7];         # OUTPUT: «(d e f)␤»
-
-L<From-the-end|#From the end> indices are allowed as range end-points.
-
-    =begin code :preamble<my @array;>
-    say @array[*-3 .. *];       # select the last three elements
+    =begin code
+    my  @letters = <a b c d e f>;
+    say @letters[3..7];  # OUTPUT: «(d e f (Any) (Any))␤»
     =end code
 
-A similar thing is done for lazy sequences, but it is often impossible to
-determine whether the sequence is infinite.  Just as often, the first part
-of the sequence is already known, and it would be silly to pretend we
-did not know it.  As a stopgap measure to prevent runaway generation of huge
-lists, a lazy subscript will not truncate as long as it does not have to
-lazily generate values, but once it starts generating values lazily, it
-will stop if it generates a value that points to a nonexistent index.
+This behavior, while at first glance may seem unintuitive, is desirable in
+instances when you want to assign a value at an index in which a value does
+not currently exist.
 
-    =begin code :skip-test
-    say @letters[0, 2, 4 ... *];     # Every other element of the array.
+    =begin code
+    my  @letters;
+    say @letters; # OUTPUT: «[]␤»
+
+    @letters[^10] = 'a'..'z';
+    say @letters; # OUTPUT: «[a b c d e f g h i j]␤»
     =end code
 
-This feature is more for protection against accidental out-of-memory
-problems than for actual use.  Since some lazy sequences cache their
-results, every time they are used in a truncation, they accumulate one
-more known element.  Things like this should probably be avoided rather
-than used for effect:
+If you want the resulting slice to only include existing elements, you can
+silently skip the non-existent elements using the L<#:v> adverb.
 
-    =begin code :skip-test
-    my @a = 2, 3 ... *;
-    say flat @letters[0, 7, @a]; # OUTPUT: «(a (Any) c d e f)␤»
-    say flat @letters[0, 7, @a]; # OUTPUT: «(a (Any) c d e f (Any))␤»
+    =begin code
+    my  @letters = <a b c d e f>;
+    say @letters[3..7]:v;  # OUTPUT: «(d e f)␤»
     =end code
 
-The runaway protection is not perfect.  The indices are eagerly evaluated,
-with the only stop condition being truncation.  This is to provide
-mostly consistent results when there is self-reference/mutation inside
-the indices.  As such, the following will most likely hang until all
-memory has been consumed:
+The behavior when indexing a collection via L<lazy|/language/list#Lazy_Lists>
+subscripts is different than when indexing with their eager counterparts.
+When accessing via a lazy subscript, the resulting slice will be truncated.
 
-    =begin code :preamble<my @letters;>
-    @letters[0 xx *];
+    =begin code :preamble<my @letters = <a b c d e f>;>
+    say @letters[lazy 3..7]; # OUTPUT: «(d e f)␤»
+    say @letters[     3..*]; # OUTPUT: «(d e f)␤»
     =end code
 
-So, to safely use lazy indices, they should be one-shot things which
-are guaranteed to overrun the array.  The following alternate formulation
-will produce a fully lazy result (but will not truncate):
-
-    =begin code :preamble<my @letters;>
-    my $a = (0 xx *).map({ @letters[$_] }); # "a", "a", "a" ... forever
-    =end code
-
-If you I<don't> want to specify your slice as a range/sequence but still want
-to silently skip nonexistent elements, you can use the L<#:v> adverb.
+This behavior exists as a precaution to prevent runaway generation of massive,
+potentially infinite C<Lists> and the out-of-memory issues that occur as a
+result.
 
 =head2 Zen slices
 

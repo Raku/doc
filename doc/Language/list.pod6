@@ -194,16 +194,35 @@ value, but unlike the above options, it will break L<Scalars|/type/Scalar>.
     say (1, slip($(2, 3)), 4) eqv (1, 2, 3, 4);  # OUTPUT: «False␤»
 
 =head1 Lazy Lists
+X<|lazy (property of List)>
 
 Lists can be lazy, what means that their values are computed on demand and
 stored for later use. To create a lazy list use
 L<gather/take|/language/control#gather/take> or the
 L<sequence operator|/language/operators#infix_...>. You can also write a class that
 implements the role L<Iterable|/type/Iterable> and returns C<True> on a call to
-L<is-lazy|/routine/is-lazy>. Please note that some methods like C<elems> may cause the
-entire list to be computed what will fail if the list is also infinite.
+L<is-lazy|/routine/is-lazy>. Please note that some methods like C<elems> cannot be
+called on a lazy List and will result in a thrown L<Exception|/type/Exception>.
 
-    my @l = 1,2,4,8...Inf;
+    # This list is lazy and elements will not be available
+    # until explicitly requested.
+
+    my @l = lazy 0..5;
+    say @l.is-lazy;     # OUTPUT: «True␤»
+    say @l[];           # OUTPUT: «[...]␤»
+
+    # Once all elements have been retrieved, the List
+    # is no longer considered lazy.
+
+    eager @l;           # Forcing eager evaluation
+    say @l.is-lazy;     # OUTPUT: «False␤»
+    say @l[];           # OUTPUT: «[0 1 2 3 4 5]␤»
+
+A common use case for lazy Lists are the processing of infinite sequences of numbers,
+whose values have not been computed yet and cannot be computed in their entirety.
+Specific values in the List will only be computed when they are needed.
+
+    my @l = 1, 2, 4, 8 ... Inf;
     say @l[0..16];
     # OUTPUT: «(1 2 4 8 16 32 64 128 256 512 1024 2048 4096 8192 16384 32768 65536)␤»
 
