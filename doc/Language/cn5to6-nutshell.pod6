@@ -54,8 +54,6 @@ L<Inline::Perl5|https://github.com/niner/Inline-Perl5/>工程使用一个
 =for code :preamble<no strict;>
     $person.name   # Perl 6
 
-
-
 点符号即容易书写又更加符合行业标准，不过我们也想赋予箭头别的使命（字符串连接现在使用C<~>运算符）。
 对于直到运行时期才知道名字的方法调用：
 
@@ -404,33 +402,7 @@ B<NOTE:>如果一个或者多个值引用了主题变量C<$_>，等号右侧的�
 或者 3) 给主题变量显式指定一个名字完全避免这个问题:
 
     my @names = @people.map: -> $person {
-        lookup-user( %( name => "$person<firstName> $person<lastName>" ) );
-    };
-=end item
-
-更多信息请参考L<Hash assignment|/type/Hash#Hash_assignment>。
-
-
-=head2 解引用
-
-在Perl5中，对一整个引用解引用的语法是使用类型标识符 和花括号，引用放在花括号里面。
-在Perl6中，由花括号变为了圆括号：
-
-    # Perl 5
-        say      ${$scalar_ref};
-        say      @{$arrayref  };
-        say keys %{$hashref   };
-        say      &{$subref    };
-
-    # Perl 6
-        say      $($scalar_ref);
-        say      @($arrayref  );
-        say keys %($hashref   );
-        say      &($subref    );
-
-注意到在Perl5和Perl6中，围绕的花括号或者括弧都经常被省略，虽然省略降低了易读性。
-在 Perl 5中，箭头运算符C«->»，用来单次访问复合引用或者通过引用调用一个过程， 
-在 Perl 6中，我们使用点运算符C<.>完成这一任务：
+        lookup-user( %( name =点运算符C<.>完成这一任务：
 
     # Perl 5
         say $arrayref->[7];
@@ -443,7 +415,7 @@ B<NOTE:>如果一个或者多个值引用了主题变量C<$_>，等号右侧的�
         say $subref.($foo, $bar);
 
 在最近的 Perl5版本（5.20或者以后），一个新的特性允许使用箭头运算符解引用， 参见
-L<http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#实验性的后缀解引用>，
+L<Postfix Dereferencing|http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#实验性的后缀解引用>，
 这个新特性和 Perl 6中的C<.list>以及C<.hash>方法对应：
 
     # Perl 5.20
@@ -471,7 +443,6 @@ L<http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#实验性的后
 
 为变化的操作符:
 
-=item C<,> 列表运算符
 =item C<+> 数值加法
 =item C<-> 数值减法
 =item C<*> 数值乘法
@@ -484,6 +455,17 @@ L<http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#实验性的后
 =item C<not and or xor>   逻辑运算符,低优先级
 =item C«== != < > <= >=»   数值比较
 =item C<eq ne lt gt le ge> 字符比较
+
+=head2 C<,> 列表分割符
+
+  未变化，但是要注意为了把一个数组变量展开为一个列表（为了对其前后添加更多元素）
+应该使用 C<|>操作符。例如:
+
+     my @numbers = (100, 200, 300);
+     my @more_numbers = (500, 600, 700);
+     my @all_numbers = [|@numbers, 400, |@more_numbers];
+
+这样就可以可以合并数组，方便实现需求。
 
 =head2 C«<=> cmp» 三目运算符
 
@@ -499,7 +481,7 @@ C«cmp» 在 Perl 6中同时具备C«<=>»和C<leg>功能,具体取决于类型�
 =head2 C<~~> 智能匹配
 
 运算符本身没有改变，实际匹配的内容规则依赖于参数的类型，不过 Perl6中的这些
-规则跟Perl5有很大不同。请参考:
+规则跟Perl5有很大不同。请参考:L<~~|/routine/~~>和
 L<S03/Smart matching|https://design.perl6.org/S03.html#Smart_matching>
 
 =head2 C<& | ^> 字符串位运算符
@@ -544,8 +526,14 @@ Perl5中相同。
 
 在为了不再引用（两边加上双引号）列表的一部分而使用C«=>»作为一种便利的方式时，
 或者向一个期望键， 值，键，值这样的平坦列表的方法传递参数时，继续使用C«=>»
-可能会破坏你的代码，最简单的解决方法就 是将胖逗号改为普通的逗号，然后在引用
-左边的参数。 或者，你可以将方法的接口改为接受一个哈希，一个比较好的解决方式
+可能会破坏你的代码，最简单的解决方法就是将胖逗号改为普通的逗号，然后在引用
+左边的参数。 
+
+或者，你可以将方法的接口改为L<slurp a hash|/type/Signature#Slurpy_(A.K.A._Variadic)_Parameters>.
+一个比较好的解决方法是方法的接口改为期望 L<Pair|/type/Pair>；
+但是，这需要你立即改动所有的方法调用代码。
+
+或者，你可以将方法的接口改为接受一个哈希，一个比较好的解决方式
 就是将方法的接口改为期望Pair， 然而，这需要你立即改动所有的方法调用代码。
 
     # Perl 5
@@ -575,10 +563,12 @@ Perl5中相同。
 
 =head2 C<? :> 条件运算符
 
-现在使用两个问号替代了原本的一个问号，冒号被两个叹号替代了。
+条件运算符 C<? :>被C<?? !!>取代。
 
+=begin code
     my $result = ( $score > 60 )  ? 'Pass'  : 'Fail'; # Perl 5
     my $result = ( $score > 60 ) ?? 'Pass' !! 'Fail'; # Perl 6
+=end code
 
 =head2 C<.> 连接运算符
 
@@ -591,12 +581,15 @@ Perl5中相同。
 
 =head2 C<x> 列表或者字符串重复运算符
 
-在 Perl 5，C<x>是重复运算符
+在 Perl 5，C<x>是重复运算符,在标量和列表两种上下文中表现不同。
 
-在标量上下文,C<x>将会重复一个字符串，在 Perl 6里，C<x>会在任何上下文重复字符串。
+=item 在标量上下文,C<x>将会重复一个字符串。在 Perl 6里，C<x>会在任何上下文重复字符串。
+=item 在列表上下文，C<x>当且仅当将列表括入圆括号中时重复当前列表.
 
-在列表上下文，C<x>当且仅当将列表括入圆括号中时重复当前列表，在 Perl 6，新的运算符 
-C<xx>将会在任何上下文重复列表。
+在Perl 6，用两种不同运算符表示以上两种行为:
+
+=item C<x>重复一个字符串(任何上下文)。
+=item C<xx> 在任何上下文重复列表。
 
 小贴士：xx相对于x是比较长的，所以xx适用于列表。
 
@@ -728,16 +721,13 @@ Perl6 C-风格的for循环用C<loop>关键字，其它都没有变化，两边�
     for  ( my $i = 1; $i <= 10; $i++ ) { ... } # Perl 5
     loop ( my $i = 1; $i <= 10; $i++ ) { ... } # Perl 6
 
-C<for>或 C<foreach>循环迭代样式现在统一叫做C<for>，C<foreach>不再是一个关键字，括号是可选的。
+循环结构C<for>或C<foreach>在Perl 6中统一为C<for>，C<foreach>不再是一个关键字，C<for>规则如下：
 
-迭代变量，如果有的话，已经从列表的前部移动到列表的后面，变量之前还有加上箭头运算符。
-
-迭代变量，现在是词法变量，C<my>已经不再需要而且不允许使用。
-
-在Perl5里，迭代变量是当前列表中元素的可读写别名。
-
-在Perl6，这个别名默认是只读的（为了安全），除非你将 C«->»改为C«<->»。 当翻译的时候，检查循环变量
-的使用来决定是否需要可读写。
+=item 括号是可选的。
+=item 迭代变量，如果有的话，已经从列表的前部移动到列表的后面，变量之前还有加上箭头运算符。
+=item 迭代变量，现在是词法变量，C<my>不载需要，且不允许使用。
+=item 迭代变量是当前列表元素的别名，是只读的（Perl5中别名可读写），除非你将 C«->»改为C«<->»。 
+做老代码迁移的时候，检查循环变量，决定是否需要可读写。
 
     for my $car (@cars)  {...} # Perl 5; 读写
     for @cars  -> $car   {...} # Perl 6; 只读
@@ -745,9 +735,18 @@ C<for>或 C<foreach>循环迭代样式现在统一叫做C<for>，C<foreach>不�
 
 如果使用默认的变量 C<$_>，但是又需要可读写，那么需要使用C«<->»并显示指定变量为 C«$_»。
 
-    for (@cars)      {...} # Perl 5; 默认变量
+    for (@cars)      {...} # Perl 5; $_可读写
     for @cars        {...} # Perl 6; $_ 只读
     for @cars <-> $_ {...} # Perl 6; $_ 可读写
+
+我们也能在每次循环中取多个元素，只需在箭头后面添加多个变量即可。
+
+=begin code
+my @array = 1..10;
+for @array -> $first, $second {
+    say "First is $first, second is $second";
+}
+=end code
 
 =head4 C<each>
 
@@ -910,8 +909,18 @@ Perl 5的正则语法支持很多特殊的匹配语法，它们不会全部列�
 
 对于 Perl 5代码最简单解决方案就是使用C<||>替代C<|>。
 
+但是，如果基于设计上或者由于疏忽等的原因导致你的C<||>正则是继承于或者是由
+C<|>片段的正则组成的，结果不可预期。所以对一些复杂地匹配，你必须对两种语法
+都熟悉，特别是了解LTM的工作策略的时候。另外C<|> 语法重利用可能是个更好的选择。
+
 更多规则. 请使用来自模块L<< C<translate_regex.pl> from Blue
 Tiger|https://github.com/Util/Blue_Tiger/ >>。
+
+=head3 注释
+
+和Perl5一样正则注释，比如.
+
+    / word #`(match lexical "word") /
 
 =head1 编译指示（Pragmas）
 
@@ -1436,5 +1445,4 @@ add it to the document, even if we don't have a good answer yet. That will
 be better than losing the information about a real need.
 
 =end comments
-
-# vim: expandtab shiftwidth=4 ft=perl6
++# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
