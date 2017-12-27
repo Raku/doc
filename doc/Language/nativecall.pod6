@@ -40,9 +40,9 @@ NativeCall provides a "symbol" trait for you to specify the name of the native
 routine in your library that may be different from your Perl subroutine name.
 
 =begin code :skip-test
-    unit module Foo;
-    use NativeCall;
-    our sub init() is native('foo') is symbol('FOO_INIT') { * }
+unit module Foo;
+use NativeCall;
+our sub init() is native('foo') is symbol('FOO_INIT') { * }
 =end code
 
 Inside of "libfoo" there is a routine called "FOO_INIT" but, since we're
@@ -152,33 +152,33 @@ can serve this role. This means you can expose libraries that work on handles
 by writing a class like this:
 
 =begin code
-    use NativeCall;
+use NativeCall;
 
-    class FooHandle is repr('CPointer') {
-        # Here are the actual NativeCall functions.
-        sub Foo_init() returns FooHandle is native("foo") { * }
-        sub Foo_free(FooHandle) is native("foo") { * }
-        sub Foo_query(FooHandle, Str) returns int8 is native("foo") { * }
-        sub Foo_close(FooHandle) returns int8 is native("foo") { * }
+class FooHandle is repr('CPointer') {
+    # Here are the actual NativeCall functions.
+    sub Foo_init() returns FooHandle is native("foo") { * }
+    sub Foo_free(FooHandle) is native("foo") { * }
+    sub Foo_query(FooHandle, Str) returns int8 is native("foo") { * }
+    sub Foo_close(FooHandle) returns int8 is native("foo") { * }
 
-        # Here are the methods we use to expose it to the outside world.
-        method new {
-            Foo_init();
-        }
-
-        method query(Str $stmt) {
-            Foo_query(self, $stmt);
-        }
-
-        method close {
-            Foo_close(self);
-        }
-
-        # Free data when the object is garbage collected.
-        submethod DESTROY {
-            Foo_free(self);
-        }
+    # Here are the methods we use to expose it to the outside world.
+    method new {
+        Foo_init();
     }
+
+    method query(Str $stmt) {
+        Foo_query(self, $stmt);
+    }
+
+    method close {
+        Foo_close(self);
+    }
+
+    # Free data when the object is garbage collected.
+    submethod DESTROY {
+        Foo_free(self);
+    }
+}
 =end code
 
 Note that the CPointer representation can do nothing more than hold a C pointer.
@@ -203,12 +203,12 @@ Example of invoking a function pointer "$fptr" returned by a function "f", using
 signature defining the desired function parameters and return value:
 
 =begin code :skip-test
-    sub f() returns Pointer is native('mylib') { * }
+sub f() returns Pointer is native('mylib') { * }
 
-    my $fptr    = f();
-    my &newfunc = nativecast(:(Str, size_t --> int32), $fptr);
+my $fptr    = f();
+my &newfunc = nativecast(:(Str, size_t --> int32), $fptr);
 
-    say newfunc("test", 4);
+say newfunc("test", 4);
 =end code
 
 =head1 Arrays
@@ -224,16 +224,16 @@ a much more primitive CArray type, which you must use if working with C arrays.
 Here is an example of passing a C array.
 
 =begin code :skip-test
-    sub RenderBarChart(Str, int32, CArray[Str], CArray[num64]) is native("chart") { * }
-    my @titles := CArray[Str].new;
-    @titles[0]  = 'Me';
-    @titles[1]  = 'You';
-    @titles[2]  = 'Hagrid';
-    my @values := CArray[num64].new;
-    @values[0]  = 59.5e0;
-    @values[1]  = 61.2e0;
-    @values[2]  = 180.7e0;
-    RenderBarChart('Weights (kg)', 3, @titles, @values);
+sub RenderBarChart(Str, int32, CArray[Str], CArray[num64]) is native("chart") { * }
+my @titles := CArray[Str].new;
+@titles[0]  = 'Me';
+@titles[1]  = 'You';
+@titles[2]  = 'Hagrid';
+my @values := CArray[num64].new;
+@values[0]  = 59.5e0;
+@values[1]  = 61.2e0;
+@values[2]  = 180.7e0;
+RenderBarChart('Weights (kg)', 3, @titles, @values);
 =end code
 
 Note that binding was used to C<@titles>, I<not> assignment! If you assign, you
@@ -261,11 +261,11 @@ subroutine, otherwise the C function may stomp all over Perl's memory
 leading to possibly unpredictable behaviour:
 
 =begin code :skip-test
-    my $ints = CArray[int32].new;
-    my $number_of_ints = 10;
-    $ints[$number_of_ints - 1] = 0; # extend the array to 10 items
+my $ints = CArray[int32].new;
+my $number_of_ints = 10;
+$ints[$number_of_ints - 1] = 0; # extend the array to 10 items
 
-    my $n = get_n_ints($ints, $number_of_ints);
+my $n = get_n_ints($ints, $number_of_ints);
 =end code
 
 The memory management of arrays is important to understand. When you create an
@@ -315,20 +315,20 @@ to them (with =) doesn't work. Instead, you have to bind new values to the priva
 members:
 
 =begin code :skip-test
-    class MyStruct is repr('CStruct') {
-        has CArray[num64] $!arr;
-        has Str $!str;
-        has Point $!point; # Point is a user-defined class
+class MyStruct is repr('CStruct') {
+    has CArray[num64] $!arr;
+    has Str $!str;
+    has Point $!point; # Point is a user-defined class
 
-        submethod TWEAK {
-            my $arr := CArray[num64].new;
-            $arr[0] = 0.9e0;
-            $arr[1] = 0.2e0;
-            $!arr := $arr;
-            $!str := 'Perl 6 is fun';
-            $!point := Point.new;
-        }
+    submethod TWEAK {
+        my $arr := CArray[num64].new;
+        $arr[0] = 0.9e0;
+        $arr[1] = 0.2e0;
+        $!arr := $arr;
+        $!str := 'Perl 6 is fun';
+        $!point := Point.new;
     }
+}
 =end code
 
 As you may have predicted by now, a null is represented by the type object of the
@@ -341,14 +341,14 @@ attributes the same way a C compiler would lay them out in a similar
 C<union> definition; using the C<CUnion> representation:
 
 =begin code
-    use NativeCall;
+use NativeCall;
 
-    class MyUnion is repr('CUnion') {
-        has int32 $.flags32;
-        has int64 $.flags64;
-    }
+class MyUnion is repr('CUnion') {
+    has int32 $.flags32;
+    has int64 $.flags64;
+}
 
-    say nativesizeof(MyUnion.new);  # 8, ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
+say nativesizeof(MyUnion.new);  # 8, ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
 =end code
 
 =head2 Embedding CStructs and CUnions
@@ -359,19 +359,90 @@ as usual, and to do the latter we use the C<HAS> declarator
 instead:
 
 =begin code :skip-test
-    class MyStruct is repr('CStruct') {
-        has Point $.point;  # referenced
-        has int32 $.flags;
-    }
+class MyStruct is repr('CStruct') {
+    has Point $.point;  # referenced
+    has int32 $.flags;
+}
 
-    say nativesizeof(MyStruct.new);  # 16, ie. sizeof(struct Point *) + sizeof(int32_t)
+say nativesizeof(MyStruct.new);  # 16, ie. sizeof(struct Point *) + sizeof(int32_t)
 
-    class MyStruct2 is repr('CStruct') {
-        HAS Point $.point;  # embedded
-        has int32 $.flags;
-    }
+class MyStruct2 is repr('CStruct') {
+    HAS Point $.point;  # embedded
+    has int32 $.flags;
+}
 
-    say nativesizeof(MyStruct2.new);  # 24, ie. sizeof(struct Point) + sizeof(int32_t)
+say nativesizeof(MyStruct2.new);  # 24, ie. sizeof(struct Point) + sizeof(int32_t)
+=end code
+
+=head2 Notes on Memory management
+
+When allocating a struct for use as a struct, make sure that you allocate your
+own memory in your C functions. If you're passing a struct into a C function
+which needs a C<Str>/C<char*> allocated ahead of time, be sure to assign a
+container for a variable of type C<Str> prior to passing your struct into the
+function.
+
+=head3 In your Perl6 code...
+
+=begin code :skip-test
+
+class AStringAndAnInt is repr("CStruct") {
+  has Str $.a_string;
+  has int32 $.an_int32;
+
+  submethod TWEAK {
+    $!a_string := Str.new;
+    $!an_int32 = 0;
+  }
+
+  sub init_struct(AStringAndAnInt is rw, Str, int32) is native('simple-struct') { * }
+  method init(:$a_string, :$an_int) {
+    init_struct(self, $a_string, $an_int);
+  }
+}
+
+=end code
+
+In this code we first set up our members, C<$.a_string> and C<$.an_int32>. We then
+set the container of C<$.a_string> to a new C<Str>. After that we declare our
+C<init_struct()> function for the C<init()> method to wrap around.
+
+=head3 In your C code...
+
+=begin code :lang<C>
+
+typedef struct a_string_and_an_int32_t_ {
+  char *a_string;
+  int32_t an_int32;
+} a_string_and_an_int32_t;
+
+=end code
+
+Here's the structure. Notice how we've got a C<char *> there.
+
+=begin code :lang<C>
+
+void init_struct(a_string_and_an_int32_t *target, char *str, int32_t int32) {
+  target->an_int32 = int32;
+  strcpy(target->a_string, str);
+
+  return;
+}
+
+=end code
+
+In this function we initialize the C structure by assigning an integer by value,
+and copying the string by reference. This function assumes that there is memory
+allocated to C<char *a_string> within the structure into which it can copy the
+string.
+
+# A long time ago in a galaxy far, far away...
+
+=begin code :skip-test
+
+my $foo = AStringAndAnInt.new;
+$foo.init("str", 123);
+
 =end code
 
 =head1 Typed Pointers
@@ -389,39 +460,39 @@ embedded in a C<CStruct>.
 You have to call C<.deref> on it to access the embedded type.
 
 =begin code :skip-test
-    my Pointer[int32] $p; #For a pointer on int32;
-    my Pointer[MyCstruct] $p2 = some_c_routine();
-    my MyCstruct $mc = $p2.deref;
-    say $mc.field1;
+my Pointer[int32] $p; #For a pointer on int32;
+my Pointer[MyCstruct] $p2 = some_c_routine();
+my MyCstruct $mc = $p2.deref;
+say $mc.field1;
 =end code
 
 It's quite common for a native function to return a pointer to an array of elements. Typed pointers can be dereferenced as an array to obtain individual elements.
 
 =begin code :skip-test
-    my $n = 5;
-    # returns a pointer to an array of length $n
-    my Pointer[Point] $plot = some_other_c_routine($n);
-    # display the 5 elements in the array
-    for 1 .. $n -> $i {
-        my $x = $plot[$i - 1].x;
-        my $y = $plot[$i - 1].y;
-        say "$i: ($x, $y)";
-    }
+my $n = 5;
+# returns a pointer to an array of length $n
+my Pointer[Point] $plot = some_other_c_routine($n);
+# display the 5 elements in the array
+for 1 .. $n -> $i {
+    my $x = $plot[$i - 1].x;
+    my $y = $plot[$i - 1].y;
+    say "$i: ($x, $y)";
+}
 =end code
 
 Pointers can also be updated to reference successive elements in the array:
 
 =begin code :skip-test
-    my Pointer[Point] $elem = $plot;
-    # show differences between successive points
-    for 1 ..^ $n {
-        my Point $lo = $elem.deref;
-        ++$elem; # equivalent to $elem = $elem.add(1);
-        my Point $hi = (++$elem).deref;
-        my $dx = $hi.x = $lo.x;
-        my $dy = $hi.y = $lo.y;
-        say "$_: delta ($dx, $dy)";
-    }
+my Pointer[Point] $elem = $plot;
+# show differences between successive points
+for 1 ..^ $n {
+    my Point $lo = $elem.deref;
+    ++$elem; # equivalent to $elem = $elem.add(1);
+    my Point $hi = (++$elem).deref;
+    my $dx = $hi.x = $lo.x;
+    my $dy = $hi.y = $lo.y;
+    say "$_: delta ($dx, $dy)";
+}
 =end code
 
 =head1 Buffers and Blobs
@@ -533,7 +604,7 @@ Variables exported by a library – also named "global" or "extern"
 variables – can be accessed using C<cglobal>.  For example:
 
 =for code :skip-test
-    my $var := cglobal('libc.so.6', 'errno', int32)
+my $var := cglobal('libc.so.6', 'errno', int32)
 
 This code binds to C<$var> a new L<Proxy|/type/Proxy> object that
 redirects all its accesses to the integer variable named "errno" as
@@ -595,28 +666,28 @@ You'll need to install MySQL server locally; on Debian-esque systems
 it can be installed with something like:
 
 =for code :lang<shell>
-    sudo apt-get install mysql-server
+sudo apt-get install mysql-server
 
 Prepare your system along these lines before trying out the examples:
 
 =for code :lang<shell>
-    $ mysql -u root -p
-    UPDATE mysql.user SET password=password('sa') WHERE user = 'root';
-    CREATE DATABASE test;
+$ mysql -u root -p
+UPDATE mysql.user SET password=password('sa') WHERE user = 'root';
+CREATE DATABASE test;
 
 =head2 Microsoft Windows
 
 Here is an example of a Windows API call:
 
 =begin code :method<False>
-    use NativeCall;
+use NativeCall;
 
-    sub MessageBoxA(int32, Str, Str, int32)
-        returns int32
-        is native('user32')
-        { * }
+sub MessageBoxA(int32, Str, Str, int32)
+    returns int32
+    is native('user32')
+    { * }
 
-    MessageBoxA(0, "We have NativeCall", "ohai", 64);
+MessageBoxA(0, "We have NativeCall", "ohai", 64);
 =end code
 
 =end pod

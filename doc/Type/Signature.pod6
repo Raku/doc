@@ -276,13 +276,21 @@ The L<Classes and Objects|/language/classtut#Starting_with_class>
 document further elaborates on the concepts of instances and type
 objects and discovering them with the C<.DEFINITE> method.
 
-=head3 X«Constraining signatures of Callables|function reference (constrain)»
+=head3 X«Constraining signatures of Callables|Callable (constrain)»
 
-To constrain L<block|/type/Block> and L<subroutine|/type/Sub> references based
-on their signature write the signature after the argument name.
+A L<Callable> parameter can be constrained by its signature, by specifying
+a L<Signature> literal right after the parameter (no whitespace allowed):
 
     sub f(&c:(Int, Str))  { say c(10, 'ten') };
     sub g(Int $i, Str $s) { $s ~ $i };
+    f(&g);
+    # OUTPUT: «ten10␤»
+
+This shorthand syntax is available only for parameters with the `&` sigil. For
+others, you need to use the long version:
+
+    sub f($c: where .signature ~~ :(Int, Str))  { say $c(10, 'ten') };
+    sub g(Num $i, Str $s) { $s ~ $i };
     f(&g);
     # OUTPUT: «ten10␤»
 
@@ -419,8 +427,8 @@ Note that positional parameters aren't allowed after slurpy parameters.
 # Cannot put required parameter $last after variadic parameters
 =end code
 
-Normally a slurpy parameter will create an Array, create a new
-Scalar container for each argument, and assign the value from each
+Normally a slurpy parameter will create an L<Array|/type/Array>, create a new
+L<Scalar|/type/Scalar> container for each argument, and assign the value from each
 argument to those Scalars.  If the original argument also had an
 intermediary Scalar it is bypassed during this process, and
 is not available inside the called function.
@@ -446,33 +454,37 @@ each slurpy convention varies from the others.
 =head3 Flattened Slurpy
 
 Slurpy parameters declared with one asterisk will flatten arguments by
-dissolving one or more layers of bare C<Iterables>.
+dissolving one or more layers of bare L<Iterable|/type/Iterable>s.
 
-    my @array = <a b c>;
-    my $list := <d e f>;
-    sub a(*@a)  { @a.perl.say };
-    a(@array);                 # OUTPUT: «["a", "b", "c"]»
-    a(1, $list, [2, 3]);       # OUTPUT: «[1, "d", "e", "f", 2, 3]»
-    a([1, 2]);                 # OUTPUT: «[1, 2]»
-    a(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, 1, 2, 3, 4 5]»
-    a(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]»
+=begin code
+my @array = <a b c>;
+my $list := <d e f>;
+sub a(*@a)  { @a.perl.say };
+a(@array);                 # OUTPUT: «["a", "b", "c"]»
+a(1, $list, [2, 3]);       # OUTPUT: «[1, "d", "e", "f", 2, 3]»
+a([1, 2]);                 # OUTPUT: «[1, 2]»
+a(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, 1, 2, 3, 4 5]»
+a(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]»
+=end code
 
 A single asterisk slurpy flattens all given iterables, effectively hoisting any
 object created with commas up to the top level.
 
 =head3 Unflattened Slurpy
 
-Slurpy parameters declared with two stars do not flatten any iterable arguments
+Slurpy parameters declared with two stars do not flatten any L<Iterable|/type/Iterable> arguments
 within the list, but keep the arguments more or less as-is:
 
-    my @array = <a b c>;
-    my $list := <d e f>;
-    sub b(**@b) { @b.perl.say };
-    b(@array);                 # OUTPUT: «[["a", "b", "c"],]␤»
-    b(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
-    b([1, 2]);                 # OUTPUT: «[[1, 2],]␤»
-    b(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, [1, 2], ([3, 4], 5)]␤»
-    b(($_ for 1, 2, 3));       # OUTPUT: «[(1, 2, 3),]␤»
+=begin code
+my @array = <a b c>;
+my $list := <d e f>;
+sub b(**@b) { @b.perl.say };
+b(@array);                 # OUTPUT: «[["a", "b", "c"],]␤»
+b(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
+b([1, 2]);                 # OUTPUT: «[[1, 2],]␤»
+b(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, [1, 2], ([3, 4], 5)]␤»
+b(($_ for 1, 2, 3));       # OUTPUT: «[(1, 2, 3),]␤»
+=end code
 
 The double asterisk slurpy hides the nested comma objects and leaves them as-is
 in the slurpy array.
@@ -480,20 +492,22 @@ in the slurpy array.
 =head3 Single Argument Rule Slurpy
 X<|+ (Single Argument Rule Slurpy)>
 
-A slurpy parameter created using a plus engages the "single argument rule",
+A slurpy parameter created using a plus engages the I<"single argument rule">,
 which decides how to handle the slurpy argument based upon context. Basically,
-if only a single argument is passed and that argument is iterable, that argument
+if only a single argument is passed and that argument is L<Iterable|/type/Iterable>, that argument
 is used to fill the slurpy parameter array. In any other case, C<+@> works like
 C<**@>.
 
-    my @array = <a b c>;
-    my $list := <d e f>;
-    sub c(+@b) { @b.perl.say };
-    c(@array);                 # OUTPUT: «["a", "b", "c"]␤»
-    c(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
-    c([1, 2]);                 # OUTPUT: «[1, 2]␤»
-    c(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, [1, 2], ([3, 4], 5)]␤»
-    c(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]␤»
+=begin code
+my @array = <a b c>;
+my $list := <d e f>;
+sub c(+@b) { @b.perl.say };
+c(@array);                 # OUTPUT: «["a", "b", "c"]␤»
+c(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
+c([1, 2]);                 # OUTPUT: «[1, 2]␤»
+c(1, [1, 2], ([3, 4], 5)); # OUTPUT: «[1, [1, 2], ([3, 4], 5)]␤»
+c(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]␤»
+=end code
 
 For additional discussion and examples, see L<Slurpy Conventions for Functions|/language/functions#Slurpy_Conventions>.
 
@@ -660,9 +674,9 @@ X<|Long Names>
 To exclude certain parameters from being considered in multiple dispatch,
 separate them with a double semi-colon.
 
-    multi sub f(Int $i, Str $s;; :$b) { dd $i, $s, $b };
+    multi sub f(Int $i, Str $s;; :$b) { say "$i, $s, {$b.perl}" };
     f(10, 'answer');
-    # OUTPUT: «10␤"answer"␤Any $b = Any␤»
+    # OUTPUT: «10, answer, Any␤»
 
 =head2 X<Capture Parameters|parameter,|>
 

@@ -14,6 +14,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
+- [Writing code examples](#writing-code-examples)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
@@ -45,6 +46,11 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 Internet Explorer (Edge), and Safari. Please test layout changes.
 Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
 or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
+
+## Writing Code Examples
+
+See [EXAMPLES.md](EXAMPLES.md) for detailed information on the options
+available when writing code examples in the documentation.
 
 ## Documenting types
 
@@ -116,7 +122,7 @@ you're contributing a patch or pull request, please make sure this passes.
 If you have local modifications and want to insure they pass xtest before
 committing, you can use this command to test only modified files:
 
-  TEST_FILES=`git status --porcelain --untracked-files=no | awk '{print $2}'` make xtest
+    TEST_FILES=`git status --porcelain --untracked-files=no | awk '{print $2}'` make xtest
 
 ## Writing and Testing Examples
 

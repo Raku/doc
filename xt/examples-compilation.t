@@ -79,6 +79,10 @@ for @examples -> $eg {
         flunk "$eg<file> chunk $eg<count>" ~ ' uses .WHAT: try .^name instead';
         next;
     }
+    if ! $eg<ok-test>.contains('dd') && $eg<contents> ~~ / << 'dd' >> / {
+        flunk "$eg<file> chunk $eg<count>" ~ ' uses dd: try say instead';
+        next;
+    }
 
     # Wrap each snippet in a block so it compiles but isn't run on EVAL
     # Further wrap in an anonymous class (so bare method works)

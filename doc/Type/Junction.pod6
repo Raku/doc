@@ -12,19 +12,19 @@ is carried out for each junction element (also known as I<eigenstate>), and
 the result is junction of the return values of all those operators.
 
 Junctions collapse into a single value in boolean context, so when used in a
-conditional, a negation or an explicit coercion to Bool through the `so` or
-`?` prefix operators. The semantics of this collapse
+conditional, a negation or an explicit coercion to Bool through the C<so> or
+C<?> prefix operators. The semantics of this collapse
 depend on the I<junction type>, which can be C<all>, C<any>, C<one> or
 C<none>.
 
 =begin table
 
-    type    constructor     operator    True if ...
-    ====    ===========     ========    ===========
-    all     all             &           no value evaluates to False
-    any     any             |           at least one value evaluates to True
-    one     one             ^           exactly one value evaluates to True
-    none    none                        no value evaluates to True
+    type |   constructor  |   operator |  True if ...
+    =====+================+============+===========
+    all  |   all          |   &        |   no value evaluates to False
+    any  |   any          |   |        |   at least one value evaluates to True
+    one  |   one          |   ^        |   exactly one value evaluates to True
+    none |   none         |            |   no value evaluates to True
 
 =end table
 
@@ -43,6 +43,18 @@ First autothreads over the C<< infix:<+> >> operator, producing the Junction
 C<2|3>. The next autothreading step is over C<< infix:<==> >>, which produces
 C<False|True>. The C<if> conditional evaluates the junction in boolean
 context, which collapses it to C<True>. So the code prints C<yes\n>.
+
+The type of a C<Junction> does I<not> affect the number of items in the
+resultant C<Junction> after autothreading. For example, using a L<one>
+C<Junction> during L<Hash> key lookup, still results in a C<Junction>
+with several items. It is only in boolean context would the type of the
+C<Junction> come into play:
+
+    my %h = :42foo, :70bar;
+    say    %h{one <foo meow>}:exists; # OUTPUT: «one(True, False)␤»
+    say so %h{one <foo meow>}:exists; # OUTPUT: «True␤»
+    say    %h{one <foo  bar>}:exists; # OUTPUT: «one(True, True)␤»
+    say so %h{one <foo  bar>}:exists; # OUTPUT: «False␤»
 
 Note that the compiler is allowed to parallelize and short-circuit
 autothreading (and Junction behavior in general), so it is usually an error

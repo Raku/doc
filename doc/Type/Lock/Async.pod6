@@ -1,0 +1,91 @@
+=begin pod
+
+=TITLE class Lock::Async
+
+=SUBTITLE Low-level non-blocking non-re-entrant mutual exclusion lock
+
+    class Lock::Async {}
+
+An asynchronous lock provides a non-blocking non-re-entrant mechanism for
+mutual exclusion. The lock method returns a Promise, which will already be
+kept if nothing was holding the lock already, so execution can proceed
+immediately. For performance reasons, in this case it returns a singleton
+Promise instance. Otherwise, a Promise in planned state will be returned,
+and kept once the lock has been unlocked by its current holder. The lock
+and unlock do not need to take place on the same thread; that's why it's not
+re-entrant.
+
+High-level Perl 6 code should avoid the direct usage of locks, because they
+are not composable. Instead, high-level constructs such as
+L<Channel|/type/Channel> and L<Supply|/type/Supply> should be used
+whenever possible.
+
+=head1 Methods
+
+=head2 method protect
+
+Defined as:
+
+    method protect(Lock::Async:D: &code)
+
+Runs C<&code> and makes sure it is only run in one thread at once.
+
+Note that the L<Lock::Async> itself needs to be created outside the portion
+of the code that gets threaded and it needs to protect. In the first
+example below, L<Lock::Async> is first created and assigned to C<$lock>,
+which is then used I<inside> the L<Promises|/type/Promise> to protect
+the sensitive code. In the second example, a mistake is made, the
+C<Lock::Async> is created right inside the L<Promise>, so the code ends up
+with a bunch of separate locks, created in a bunch of threads, and
+thus they don't actually protect the code we want to protect.
+
+    # Right: $lock is instantiated outside the portion of the
+    # code that will get threaded and be in need of protection
+    my $lock = Lock::Async.new;
+    await ^20 .map: {
+        start {
+            $lock.protect: {
+                print "Foo";
+                sleep rand;
+                say "Bar";
+            }
+        }
+    }
+
+    # !!! WRONG !!! Lock::Async is created inside threaded area!
+    await ^20 .map: {
+        start {
+            Lock::Async.new.protect: {
+                print "Foo"; sleep rand; say "Bar";
+            }
+        }
+    }
+
+=head2 method lock
+
+Defined as:
+
+    method lock(Lock::Async:D: --> Promise:D)
+
+Acquires the lock, does B<not> wait to acquire the lock.  Returns a Promise
+that will be kept whenever the lock is acquired.
+
+    my $l = Lock::Async.new;
+    $l.lock;
+
+=head2 method unlock
+
+Defined as:
+
+    method unlock(Lock::Async:D: --> Nil)
+
+Releases the lock, blocking until all Promised of all holders of the lock have
+been kept.
+
+    my $l = Lock::Async.new;
+    $l.lock;
+    $l.unlock;
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
