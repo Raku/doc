@@ -403,18 +403,18 @@ TODO: 对perl5 typeglobs中那些用例目前确切是需要地，并且对这�
 
 为变化的操作符:
 
-=item `+` 数值加法
-=item `-` 数值减法
-=item `*` 数值乘法
-=item `/` 数值除法
-=item `%` 求余
-=item `**` 幂，开方
-=item `++` 自增
-=item `--` 自减
-=item `! && || ^` 逻辑运算符,高优先级
-=item `not and or xor`   逻辑运算符,低优先级
-=item C«== != < > <= >=»   数值比较
-=item `eq ne lt gt le ge` 字符比较
+- `+` 数值加法
+- `-` 数值减法
+- `*` 数值乘法
+- `/` 数值除法
+- `%` 求余
+- `**` 幂，开方
+- `++` 自增
+- `--` 自减
+- `! && || ^` 逻辑运算符,高优先级
+- `not and or xor`   逻辑运算符,低优先级
+- C«== != < > <= >=»   数值比较
+- `eq ne lt gt le ge` 字符比较
 
 ## C<,> 列表分割符
 
@@ -719,8 +719,8 @@ for @array -> $first, $second {
 未变化的:
 
 - `next`
-=item `last`
-=item `redo`
+- `last`
+- `redo`
 
 ### `continue`
 
