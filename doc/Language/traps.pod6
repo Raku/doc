@@ -535,7 +535,7 @@ and you can use C<:i> (C<:ignorecase>) adverb instead.
 
 =head1 Pairs
 
-=head2 Constants on LHS of pair notation
+=head2 Constants on the LHS of pair notation
 
 Consider this code:
 
@@ -558,6 +558,7 @@ same name. The pair notation will always use the left-hand side as a
 string literal, as long as it looks like an identifier.
 
 To avoid this, use C«(Dog) => 42» or C«::Dog => 42».
+
 
 =head1 Operators
 
@@ -962,11 +963,11 @@ L«C<Str>|/type/Str#routine_lines». The trap arises if you start
 assuming that both split data the same way.
 
 =begin code :skip-test
-    say $_.perl for $*IN.lines # or just ｢lines｣
-    # OUTPUT:
-    # "foox"
-    # "fooy\rbar"
-    # "fooz"
+say $_.perl for $*IN.lines # .lines called on IO::Handle
+# OUTPUT:
+# "foox"
+# "fooy\rbar"
+# "fooz"
 =end code
 
 As you can see in the example above, there was a line which contained
@@ -979,12 +980,12 @@ systems. Therefore, it will split by all possible variations of a
 newline.
 
 =begin code :skip-test
-    say $_.perl for $*IN.slurp.lines # or just ｢slurp.lines｣
-    # OUTPUT:
-    # "foox"
-    # "fooy"
-    # "bar"
-    # "fooz"
+say $_.perl for $*IN.slurp(:bin).decode.lines # .lines called on a Str
+# OUTPUT:
+# "foox"
+# "fooy"
+# "bar"
+# "fooz"
 =end code
 
 The rule is quite simple: use
@@ -997,7 +998,16 @@ Use C<$data.split(“\n”)> in cases where you need the behavior of
 L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines» but the original
 L<IO::Handle> is not available.
 
-=comment RT #131923
+=comment RT#132154
+
+Note that if you really want to slurp the data first, then you will
+have to use C<.IO.slurp(:bin).decode.split(“\n”)>. Notice how we use
+C<:bin> to prevent it from doing the decoding, only to call C<.decode>
+later anyway. All that is needed because C<.slurp> is assuming that
+you are working with text and therefore it attempts to be smart about
+newlines.
+
+=comment RT#131923
 
 If you are using L<Proc::Async>, then there is currently no easy way
 to make it split data the right way. You can try reading the whole
@@ -1056,7 +1066,7 @@ whenever $proc.print: “one\ntwo\nthree\nfour” {
 }
 =end code
 
-=head2 Using <.stdout> without <.lines>
+=head2 Using C<.stdout> without C<.lines>
 
 Method <.stdout> of L<Proc::Async> returns a supply that emits
 I<chunks> of data, not lines. The trap is that sometimes people assume
