@@ -356,24 +356,18 @@ passing C<:DEFAULT> to C<use> along with your positional parameters.
     shy();         # FAIL - won't be imported
     =end code
 
-You can combine `EXPORT` with type captures for interesting
-effect. This example creates a `?` postfix which will only work on
-L<Cool>s.
+Sub C<EXPORT> is B<NOT> called each time a module a C<use> is done. The results
+of import are precompiled and serialized along with the module, so it will
+be executed once per compilation.
 
-    =begin code :skip-test
-    # lib/MakeQuestionable.pm
-    sub EXPORT(::Questionable) {
-        my multi postfix:<?>(Questionable $_) { .so };
-        %(
-          '&postfix:<?>' => &postfix:<?>,
-        )
+    sub EXPORT ($thing) {
+        # WRONG! $thing will only be taken once during pre-compilation
+        %( '&thing' => &say.assuming($thing) )
     }
-    =end code
 
-    =begin code :skip-test
-    use MakeQuestionable Cool;
-    say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
-    =end code
+If your code requires C<EXPORT> to be called for each C<use>, you can disable
+your module's precompilation with
+L«C<no precompilation> pragma|/language/pragmas#index-entry-precompilation-precompilation»
 
 =head2 Introspection
 
