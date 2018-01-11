@@ -18,7 +18,7 @@ Allow a few well known duplicates, like 'long long'
 =end overview
 
 my @files;
-my $safe-dups = Set.new(<method long>); # Allow these dupes
+my $safe-dups = Set.new(<method long default>); # Allow these dupes
 
 if @*ARGS {
     @files = @*ARGS;
