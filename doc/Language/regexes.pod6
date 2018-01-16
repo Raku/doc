@@ -1946,6 +1946,50 @@ the following output:
 showing that the string has been splitted around the second occurency of I<SQL>, that
 is the repetition of the first capture (C<$/[1]>).
 
+With that in place, it is now possible to see how the engine backtracks
+to find the above match: it does suffice to move the C<show_captures>
+in the middle of the regexp, in particular before the repetition of the
+first capture C<$1> to see it in action:
+
+=begin code
+my $iteration = 0;
+sub show_captures( Match $m, Str $s ){
+    my Str $result_split;
+    say "\n=== Iteration {++$iteration} ===";
+    loop ( my $i = 0; $i < $m.elems; $i++ ){
+        say "Capture $i = $m[ $i ]";
+        $result_split ~= '[' ~ $s.substr( $m[ $i ].from, $m[ $i ].to - $m[ $i ].from ) ~ ']';
+    }
+
+    say $result_split;
+}
+
+$string ~~ /(.+)(SQL) (.+) { show_captures( $/, $string );  } $1 /;
+=end code
+
+The output will be much more verbose and will show several iterations, with the last one
+being the I<winning>. The following is an excerpt of the output:
+
+=for code :lang<output>
+  === Iteration 1 ===
+  Capture 0 = PostgreSQL is an
+  Capture 1 = SQL
+  Capture 2 =  database!
+  [PostgreSQL is an ][SQL][ database!]
+
+  === Iteration 2 ===
+  Capture 0 = PostgreSQL is an
+  Capture 1 = SQL
+  Capture 2 =  database
+  [PostgreSQL is an ][SQL][ database]
+
+  ...
+
+  === Iteration 24 ===
+  Capture 0 = Postgre
+  Capture 1 = SQL
+  Capture 2 =  is an
+  [Postgre][SQL][ is an ]
 
 
 =end pod
