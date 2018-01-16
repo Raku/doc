@@ -1899,9 +1899,12 @@ two newlines. To allow such input strings, replace C<\n+> with C<\n\s*>.
 =head1 Backtracking
 
 Perl 6 defaults to I<backtracking> when evaluating regular expressions.
-Backtracking is a technique that allows the engine to match as much as possible
-of the regexp against the source string and to then adjust moving backwards along
-the match in order to find the perfect match.
+Backtracking is a technique that allows the engine to try different
+matching in order to allow every part of a regexp to succeed.
+This is costly, because it requires the engine to usually
+eat up as much as possible in the first match and then
+adjust going backwards in order to ensure all regexp parts
+have a chance to match.
 
 In order to better understand backtracking, consider the following example:
 
@@ -1919,12 +1922,12 @@ to inspact the L<Match|/type/Match> object within the regexp itself:
 
 =begin code
 my $iteration = 0;
-sub show_captures( Match $m, Str $s ){
+sub show_captures( Match $m ){
     my Str $result_split;
     say "\n=== Iteration {++$iteration} ===";
-    loop ( my $i = 0; $i < $m.elems; $i++ ){
-        say "Capture $i = $m[ $i ]";
-        $result_split ~= '[' ~ $s.substr( $m[ $i ].from, $m[ $i ].to - $m[ $i ].from ) ~ ']';
+    for $m.list.kv -> $i, $capture {
+        say "Capture $i = $capture";
+        $result_split ~= '[' ~ $capture ~ ']';
     }
 
     say $result_split;
@@ -1936,7 +1939,7 @@ $string ~~ /(.+)(SQL) (.+) $1 (.+) { show_captures( $/, $string );  }/;
 The C<show_captures> method will dump all the elements of C<$/> producing
 the following output:
 
-=for code lang:<output>
+=for code :lang<output>
    === Iteration 1 ===
    Capture 0 = Postgre
    Capture 1 = SQL
@@ -1953,18 +1956,18 @@ first capture C<$1> to see it in action:
 
 =begin code
 my $iteration = 0;
-sub show_captures( Match $m, Str $s ){
+sub show_captures( Match $m ){
     my Str $result_split;
     say "\n=== Iteration {++$iteration} ===";
-    loop ( my $i = 0; $i < $m.elems; $i++ ){
-        say "Capture $i = $m[ $i ]";
-        $result_split ~= '[' ~ $s.substr( $m[ $i ].from, $m[ $i ].to - $m[ $i ].from ) ~ ']';
+    for $m.list.kv -> $i, $capture {
+        say "Capture $i = $capture";
+        $result_split ~= '[' ~ $capture ~ ']';
     }
 
     say $result_split;
 }
 
-$string ~~ /(.+)(SQL) (.+) { show_captures( $/, $string );  } $1 /;
+ $string ~~ / (.+)(SQL) (.+) { show_captures( $/ );  } $1 /;
 =end code
 
 The output will be much more verbose and will show several iterations, with the last one
