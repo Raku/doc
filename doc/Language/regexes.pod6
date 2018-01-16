@@ -2013,6 +2013,105 @@ Since there are 23 chars from the very end of the string to the very first I<S> 
 the backtracking engine will need 23 "useless" matches to find the right one, that
 is will need 24 steps to get the final result.
 
-=end pod
+Backtracking is a costly machinery, therefore it is possible to disable
+it in those cases where the matching can be found I<forward> only.
 
+With regards to the above example, disabling backtracking means
+the regexp will not have any chance to match:
+
+=begin code
+say $string ~~ /(.+)(SQL) (.+) $1/;      # OUTPUT: ｢PostgreSQL is an SQL｣
+say $string ~~ / :r (.+)(SQL) (.+) $1/;  # OUTPUT: Nil
+=end code
+
+The fact is that, as shown in the I<iteration 1> output, the first match
+of the regexp engine will be C<PostgreSQL is an >, C<SQL>, C< database>
+that does not leave out any room for matching another occurency of the word I<SQL>
+(as C<$1> in the regexp). Since the engine is not able to get backward and change the
+path to match, the regexp fails.
+
+It is worth noting that disabling backtracking will not prevent the engine
+to try several ways to match the regular expression.
+Consider the following slightly changed example:
+
+=begin code
+my $string = 'PostgreSQL is an SQL database!';
+say $string ~~ / (SQL) (.+) $1 /; # OUTPUT: Nil
+=end code
+
+Since there is no specification for a character before the word I<SQL>,
+the engine will match against the rightmost word I<SQL> an go forward
+from there. Since there is no repetition of I<SQL> remaining, the
+match fails.
+It is possible, again, to inspect what the engine performs
+introducing a dumping piece of code within the regexp:
+
+=begin code
+my $iteration = 0;
+sub show_captures( Match $m ){
+    my Str $result_split;
+    say "\n=== Iteration {++$iteration} ===";
+    for $m.list.kv -> $i, $capture {
+        say "Capture $i = $capture";
+        $result_split ~= '[' ~ $capture ~ ']';
+    }
+
+    say $result_split;
+}
+
+$string ~~ / (SQL) (.+) { show_captures( $/ ); } $1 /;
+=end code
+
+that produces a rather simple output:
+
+=begin code :skip-test
+=== Iteration 1 ===
+Capture 0 = SQL
+Capture 1 =  is an SQL database!
+[SQL][ is an SQL database!]
+
+=== Iteration 2 ===
+Capture 0 = SQL
+Capture 1 =  database!
+[SQL][ database!]
+=end code
+
+Even using the L<:r|/language/regexes#ratchet> adverb to prevent backtracking will not
+change things:
+
+=begin code
+my $iteration = 0;
+sub show_captures( Match $m ){
+    my Str $result_split;
+    say "\n=== Iteration {++$iteration} ===";
+    for $m.list.kv -> $i, $capture {
+        say "Capture $i = $capture";
+        $result_split ~= '[' ~ $capture ~ ']';
+    }
+
+    say $result_split;
+}
+
+$string ~~ / :r (SQL) (.+) { show_captures( $/ ); } $1 /;
+=end code
+
+and the output will remain the same:
+
+=begin code :skip-test
+=== Iteration 1 ===
+Capture 0 = SQL
+Capture 1 =  is an SQL database!
+[SQL][ is an SQL database!]
+
+=== Iteration 2 ===
+Capture 0 = SQL
+Capture 1 =  database!
+[SQL][ database!]
+=end code
+
+This demonstrate that disabling backtracking does not mean disabling possible multiple
+iterations of the matching engine, but rather disabling the backward matching tuning.
+
+
+=end pod
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
