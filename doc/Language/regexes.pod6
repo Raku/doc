@@ -1894,6 +1894,60 @@ Still, there's some whitespace-related trouble lurking. The regex C<\n+>
 won't match a string like C<"\n \n">, because there's a blank between the
 two newlines. To allow such input strings, replace C<\n+> with C<\n\s*>.
 
+
+
+=head1 Backtracking
+
+Perl 6 defaults to I<backtracking> when evaluating regular expressions.
+Backtracking is a technique that allows the engine to match as much as possible
+of the regexp against the source string and to then adjust moving backwards along
+the match in order to find the perfect match.
+
+In order to better understand backtracking, consider the following example:
+
+=begin code
+my $string = 'PostgreSQL is an SQL database!';
+say $string ~~ /(.+)(SQL) (.+) $1/; # OUTPUT: ｢PostgreSQL is an SQL｣
+=end code
+
+What happens in the above example is that the string has to be match against the
+second occurrence of the word I<SQL>, eating all characters before and leaving out
+the rest.
+
+Since it is possible to execute a piece of code within a regexp, it is also possible
+to inspact the L<Match|/type/Match> object within the regexp itself:
+
+=begin code
+my $iteration = 0;
+sub show_captures( Match $m, Str $s ){
+    my Str $result_split;
+    say "\n=== Iteration {++$iteration} ===";
+    loop ( my $i = 0; $i < $m.elems; $i++ ){
+        say "Capture $i = $m[ $i ]";
+        $result_split ~= '[' ~ $s.substr( $m[ $i ].from, $m[ $i ].to - $m[ $i ].from ) ~ ']';
+    }
+
+    say $result_split;
+}
+
+$string ~~ /(.+)(SQL) (.+) $1 (.+) { show_captures( $/, $string );  }/;
+=end code
+
+The C<show_captures> method will dump all the elements of C<$/> producing
+the following output:
+
+=for code lang:<output>
+   === Iteration 1 ===
+   Capture 0 = Postgre
+   Capture 1 = SQL
+   Capture 2 =  is an
+   [Postgre][SQL][ is an ]
+
+showing that the string has been splitted around the second occurency of I<SQL>, that
+is the repetition of the first capture (C<$/[1]>).
+
+
+
 =end pod
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
