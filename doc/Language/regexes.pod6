@@ -1813,7 +1813,7 @@ This leaves us with
 which is fine if you are only processing one line. But if you're processing
 a whole file, suddenly the regex parses
 
-    =begin code :skip-test
+    =begin code :lang<text>
     [with a
     newline in between]
     =end code
@@ -1921,7 +1921,7 @@ the rest.
 Since it is possible to execute a piece of code within a regular expression, it is also possible
 to inspect the L<Match|/type/Match> object within the regular expression itself:
 
-=begin code  :preamble<my $string = '';>
+=begin code :preamble<my $string = '';>
 my $iteration = 0;
 sub show-captures( Match $m ){
     my Str $result_split;
@@ -1937,63 +1937,63 @@ sub show-captures( Match $m ){
 $string ~~ /(.+)(SQL) (.+) $1 (.+) { show-captures( $/ );  }/;
 =end code
 
-The C<show_captures> method will dump all the elements of C<$/> producing
+The C<show-captures> method will dump all the elements of C<$/> producing
 the following output:
 
-=for code :lang<output>
-   === Iteration 1 ===
-   Capture 0 = Postgre
-   Capture 1 = SQL
-   Capture 2 =  is an
-   [Postgre][SQL][ is an ]
+=for code :lang<text>
+=== Iteration 1 ===
+Capture 0 = Postgre
+Capture 1 = SQL
+Capture 2 =  is an
+[Postgre][SQL][ is an ]
 
 showing that the string has been splitted around the second occurency of I<SQL>, that
 is the repetition of the first capture (C<$/[1]>).
 
 With that in place, it is now possible to see how the engine backtracks
-to find the above match: it does suffice to move the C<show_captures>
+to find the above match: it does suffice to move the C<show-captures>
 in the middle of the regular expression, in particular before the repetition of the
 first capture C<$1> to see it in action:
 
-=begin code
+=begin code :preamble<my $string = '';>
 my $iteration = 0;
-sub show_captures( Match $m ){
-    my Str $result_split;
+sub show-captures( Match $m ){
+    my Str $result-split;
     say "\n=== Iteration {++$iteration} ===";
     for $m.list.kv -> $i, $capture {
         say "Capture $i = $capture";
-        $result_split ~= '[' ~ $capture ~ ']';
+        $result-split ~= '[' ~ $capture ~ ']';
     }
 
-    say $result_split;
+    say $result-split;
 }
 
- $string ~~ / (.+)(SQL) (.+) { show_captures( $/ );  } $1 /;
+$string ~~ / (.+)(SQL) (.+) { show-captures( $/ );  } $1 /;
 =end code
 
 The output will be much more verbose and will show several iterations, with the last one
 being the I<winning>. The following is an excerpt of the output:
 
-=begin code :skip-test
-  === Iteration 1 ===
-  Capture 0 = PostgreSQL is an
-  Capture 1 = SQL
-  Capture 2 =  database!
-  [PostgreSQL is an ][SQL][ database!]
+=begin code :lang<text>
+=== Iteration 1 ===
+Capture 0 = PostgreSQL is an
+Capture 1 = SQL
+Capture 2 =  database!
+[PostgreSQL is an ][SQL][ database!]
 
-  === Iteration 2 ===
-  Capture 0 = PostgreSQL is an
-  Capture 1 = SQL
-  Capture 2 =  database
-  [PostgreSQL is an ][SQL][ database]
+=== Iteration 2 ===
+Capture 0 = PostgreSQL is an
+Capture 1 = SQL
+Capture 2 =  database
+[PostgreSQL is an ][SQL][ database]
 
-  ...
+...
 
-  === Iteration 24 ===
-  Capture 0 = Postgre
-  Capture 1 = SQL
-  Capture 2 =  is an
-  [Postgre][SQL][ is an ]
+=== Iteration 24 ===
+Capture 0 = Postgre
+Capture 1 = SQL
+Capture 2 =  is an
+[Postgre][SQL][ is an ]
 =end code
 
 In the first iteration the I<SQL> part of I<PostgreSQL> is kept within the word: that is not what
@@ -2005,7 +2005,7 @@ After several iterations, the final result is match.
 It is worth noting that the final itaration is number I<24>, and that such number is exactly
 the distance, in number of chars, from the end of the string to the first I<SQL> occurency:
 
-=begin code
+=begin code :preamble<my $string = '';>
 say $string.chars - $string.index: 'SQL'; # OUTPUT: 23
 =end code
 
@@ -2019,7 +2019,7 @@ it in those cases where the matching can be found I<forward> only.
 With regards to the above example, disabling backtracking means
 the regular expression will not have any chance to match:
 
-=begin code
+=begin code :preamble<my $string = '';>
 say $string ~~ /(.+)(SQL) (.+) $1/;      # OUTPUT: ｢PostgreSQL is an SQL｣
 say $string ~~ / :r (.+)(SQL) (.+) $1/;  # OUTPUT: Nil
 =end code
@@ -2046,25 +2046,25 @@ match fails.
 It is possible, again, to inspect what the engine performs
 introducing a dumping piece of code within the regular expression:
 
-=begin code
+=begin code :preamble<my $string = '';>
 my $iteration = 0;
-sub show_captures( Match $m ){
-    my Str $result_split;
+sub show-captures( Match $m ){
+    my Str $result-split;
     say "\n=== Iteration {++$iteration} ===";
     for $m.list.kv -> $i, $capture {
         say "Capture $i = $capture";
-        $result_split ~= '[' ~ $capture ~ ']';
+        $result-split ~= '[' ~ $capture ~ ']';
     }
 
-    say $result_split;
+    say $result-split;
 }
 
-$string ~~ / (SQL) (.+) { show_captures( $/ ); } $1 /;
+$string ~~ / (SQL) (.+) { show-captures( $/ ); } $1 /;
 =end code
 
 that produces a rather simple output:
 
-=begin code :skip-test
+=begin code :lang<text>
 === Iteration 1 ===
 Capture 0 = SQL
 Capture 1 =  is an SQL database!
@@ -2079,25 +2079,25 @@ Capture 1 =  database!
 Even using the L<:r|/language/regexes#ratchet> adverb to prevent backtracking will not
 change things:
 
-=begin code
+=begin code :preamble<my $string = '';>
 my $iteration = 0;
-sub show_captures( Match $m ){
-    my Str $result_split;
+sub show-captures( Match $m ){
+    my Str $result-split;
     say "\n=== Iteration {++$iteration} ===";
     for $m.list.kv -> $i, $capture {
         say "Capture $i = $capture";
-        $result_split ~= '[' ~ $capture ~ ']';
+        $result-split ~= '[' ~ $capture ~ ']';
     }
 
-    say $result_split;
+    say $result-split;
 }
 
-$string ~~ / :r (SQL) (.+) { show_captures( $/ ); } $1 /;
+$string ~~ / :r (SQL) (.+) { show-captures( $/ ); } $1 /;
 =end code
 
 and the output will remain the same:
 
-=begin code :skip-test
+=begin code :lang<text>
 === Iteration 1 ===
 Capture 0 = SQL
 Capture 1 =  is an SQL database!
