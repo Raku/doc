@@ -7,11 +7,10 @@
 本文档旨在全面（希望是）列出说明Perl5特殊变量在Perl6体系中的实现
 ，必要时对两者差异进行说明。
 
-# 注意
+# 说明
 
-本文档不会解释Perl6变量的完整用法，而尝试引导perl程序员从Perl5特殊变量
-过度到Perl6相应的用法。 关于Perl6特殊变量的全部文档，请参考相关Perl6
-文档。
+本文档尝试指导读者Perl5特殊变量过度到Perl6相应的用法。
+关于完整Perl6特殊变量文档，请参考相关Perl6文档。
 
 # 特殊变量
 
@@ -36,21 +35,23 @@
      `@_.shift`可以工作，`.shift`则会报错。
 
 - $LIST\_SEPARATOR
-- $"
+- `$"`
 
-    截止当前，Perl6中并没有列表分隔符的替代变量。 设计文档S28也没有提到这样的变量，
-    所以对其不要报太大希望。
+截止当前，Perl6中并没有列表分隔符的替代变量。L<https://design.perl6.org/S28.html|S28>
+设计文档也没有提到这样的变量。
+所以不要过多关注它。
+
+Perl6中，可以通过C<$*PROGRAM-NAME>获得到程序的名字。
+注意：C<$0>在Perl6中包含了匹配结果的第一个捕获（即捕获变量现在从$0开始而不是$1）
 
 - $PROCESS\_ID
 - $PID
 - $$
 
-
     `$$`被`$*PID`替换。
 
 - $PROGRAM\_NAME
-=item $0
-
+- $0
 
     Perl6中，可以通过`$*PROGRAM-NAME`获得到程序的名字。
 
@@ -60,8 +61,9 @@
 - $GID
 - $(
 
-    现在实际组编号（real group id）是通过`$*GROUP.Numeric`提供，`$*GROUP.Str`
-    返回组名，而不是它的编号。
+Perl 6中组信息通过`$*GROUP`操作，它是一个[IntStr](/type/IntStr)类型的对象
+所以，可以把它当做一个字符串或者一个数字上下文。因此，组id可以通过`$*GROUP.Numeric`
+获得，组名可通过`$*GROUP.Str`取得。
 
 - $EFFECTIVE\_GROUP\_ID
 - $EGID
@@ -73,8 +75,9 @@
 - $UID
 - $<
 
-    当前用户编号（real user id）现在通过`$*USER.Numeric`提供,`$*USER.Str`
-    返回用户名，而不是它的编号。
+Perl 6中用户信息通过`$*USER`操作，它是一个[IntStr](/type/IntStr)类型的对象
+所以，可以把它当做一个字符串或者一个数字上下文（和`$*GROUP`组信息类似）。
+因此，用户id可以通过`$*USER.Numeric`获得，用户名可通过`$*USER.Str`取得。
 
 - $EFFECTIVE\_USER\_ID
 - $EUID
@@ -107,10 +110,11 @@
     唯一的不同似乎是`OLDPWD`并没有出现在Perl6的 %\*ENV 中。
 
 - $OLD\_PERL\_VERSION
-- $\]
+- $]
 
-    Perl的版本已经被`$*PERL.version`取代，对于“6.b”版本的beta版,`$*PERL`中
-    会包括“Perl6(6.b)”。
+perl 6在线版本中是`$*PERL`特殊变量，是一个对象。
+向前兼容版本通过`$*PERL.version`，他返回信息类似于`v6.c`。Perl解释器完整直接获取
+是通过`$*PERL.Str`，他会返回类似`Perl 6 (6.c)`的信息。
 
 - $SYSTEM\_FD\_MAX
 - $^F
@@ -150,17 +154,42 @@
 - $OSNAME
 - $^O
 
-    这个变量还不明确，可取决于你对“操作系统的名称”如何理解，S28有三种不同的建议，
-    并且对应的有三种不同的答案。在OS X机器上:
+这个变量还不明确，可取决于你对“操作系统的名称”如何理解，[S28](https://design.perl6.org/S28.html)
+设计文档中有三种不同的建议，对应三种不同的答案。
 
-        say $*KERNEL; # 输出 "darwin (14.3.0)"
-        say $*DISTRO; # 输出 "macosx (10.10.3)"
+ 关于运行时环境信息现在有三个对象保存其信息：
 
-    在任何一个变量上使用调用`.version`将会返回版本号,`.name`将会是内核或者发行版的名字。
-    这些对象还包含了其它的信息。
+= `S2<$*KERNEL` 提供运行操作系统内核的信息
+= `$*DISTRO` 提供操作系统发行版的信息
+= `$*VM` 提供Perl6虚拟机相关的信息
 
-    S28还列出了$\*VM（我的rakudo star目前给出的是“moar (2015.5.63.ge.7.a.473.c)”），
-    但我不清楚VM跟操作系统是如何关联的。
+对以上的对象，通常都支持一下方法:
+
++ `version`提供了组件的版本号
++ `name`提供了组件的简缩名
++ `auth`提供了组件的已知作者
+
+以下面的代码为例，打印以上组件的信息：
+
+```
+for $*KERNEL, $*DISTRO, $*VM -> $what {
+    say $what.^name;
+    say 'version '  ~ $what.version
+        ~ ' named ' ~ $what.name
+        ~ ' by '    ~ $what.auth;
+}
+
+# Kernel
+# version 4.10.0.42.generic named linux by unknown
+# Distro
+# version 17.04.Zesty.Zapus named ubuntu by https://www.ubuntu.com/
+# VM
+# version 2017.11 named moar by The MoarVM Team
+```
+以上对象的`name`的`Str`方法将返回简略版本信息。
+
+所有对象的每个方法，都有益于辨别当前运行时实例，更多信息用`.^methods`去内审
+上面的信息。
 
 - %SIG
 
@@ -203,8 +232,8 @@ Perl5中与之相关的性能问题不会再产生。
 - $MATCH
 - $&
 
-    `$/`现在包含着匹配的对象，所以Perl5中`$&`的行为可以对它字符串化来获得,例如`~$/`。`$/.Str`也
-    是OK的，但是`~$/`是更通用的形式。
+    `$/`现在包含着[匹配](/type/Match)的对象，所以Perl5中`$&`的行为可以对它字符串化来获得,
+例如`~$/`。`$/.Str`也是OK的，但是`~$/`是更通用的形式。
 
 - ${^MATCH}
 
@@ -365,13 +394,41 @@ Perl6中没有内建的格式变量。
 
 ## 错误变量
 
-由于Perl6中错误变量发生了变化，本文档不会分别介变化的细节。
+由于Perl 6中错误变量发生了变化，本文档不会分别介变化的细节。
 
-引用Perl6的文档，"$!是错误变量"，就这么多。所有的错误变量
-看来都被$!取代，与Perl6的其它部分一样，它可能是一个对象，
-根据用法的不同返回不同的结果。 遗憾的是，目前关于它的文档
-比较稀少，它可能会如你所想，但我不保证这一点，希望不久的
-将来会有更多的信息。
+引用Perl 6的[文档](syntax/$!)，"$!是错误变量"，就这么多。所有的错误变量
+看来都被$!吃了，与Perl6的其它部分一样，它是一个对象，根据用法的不同错误类型
+返回不同的结果或者[exceptions](/type/Exception)。
+
+特别地，当处理[exceptions](/type/Exception)时候，`$!`会提供有关抛出异常的信息，
+假设程序没有被中止的话：
+
+```
+try {
+    fail "Boooh";
+    CATCH {
+        # within the catch block
+        # the exception is placed into $_
+        say 'within the catch:';
+        say $_.^name ~ ' : ' ~ $_.message;
+        $_.resume; # do not abort
+    }
+}
+
+# outside the catch block the exception is placed
+# into $!
+say 'outside the catch:';
+say $!.^name ~ ' : ' ~ $!.message;
+```
+
+以上代码输出如下：
+```
+within the catch:
+X::AdHoc : Boooh
+outside the catch:
+X::AdHoc : Boooh
+```
+因此，如前所述，`$!`变量保存了异常对象。
 
 ## 编译器相关变量
 
