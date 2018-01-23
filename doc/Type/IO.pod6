@@ -335,18 +335,24 @@ spurt 'file-that-already-exists', 'new text', :createonly;
 
     sub run(*@args ($, *@) --> Proc)
 
-Runs an external command without involving a shell and returns a Proc object.
+Runs an external command without involving a shell and returns a L<Proc> object.
 
     run 'touch', '>foo.txt';
 
     run Q:w{rm >foo.txt}; # Another way to use run, using word quoting for the
                           # arguments
 
+A sunk L<Proc> object for a process that L<exited|/routine/exitcode> unsuccessfully
+will throw. If you wish to ignore such failures, simply use L<run> in non-sink context:
+
+    run 'false';     # SUNK! Will throw
+    run('false').so; # OK. Evaluates Proc in Bool context; no sinking
+
 To capture output or error you can use the C<:out> or C<:err> arguments respectively:
 
-    my $proc = run 'echo', 'Perl 6 is Great!', :out, :err;
-    with $proc.out { say .get; .close } # OUTPUT: «Perl 6 is Great!␤»
-    with $proc.err { say .get; .close } # OUTPUT: «Nil␤»
+    my $proc = run «echo 'Perl 6 is Great!'», :out, :err;
+    $proc.out.slurp(:close).say; # OUTPUT: «Perl 6 is Great!␤»
+    $proc.err.slurp(:close).say; # OUTPUT: «␤»
 
 See L<Proc|/type/Proc> and L<Proc::Async|/type/Proc::Async> for more details.
 
