@@ -54,10 +54,11 @@ These examples produce:
     This is still a closing curly brace → \
     =end code
 
+X<|:x (quoting adverb)>X<|:exec (quoting adverb)>X<|:w (quoting adverb)>X<|:words (quoting adverb)>X<|:ww (quoting adverb)>X<|:quotewords (quoting adverb)>X<|:q (quoting adverb)>X<|:single (quoting adverb)>X<|:qq (quoting adverb)>X<|:double (quoting adverb)>X<|:s (quoting adverb)>X<|:scalar (quoting adverb)>X<|:a (quoting adverb)>X<|:array (quoting adverb)>X<|:h (quoting adverb)>X<|:hash (quoting adverb)>X<|:f (quoting adverb)>X<|:function (quoting adverb)>X<|:c (quoting adverb)>X<|:closure (quoting adverb)>X<|:b (quoting adverb)>X<|:backslash (quoting adverb)>X<|:to (quoting adverb)>X<|:heredoc (quoting adverb)>X<|:v (quoting adverb)>X<|:val (quoting adverb)>
+
 The behaviour of quoting constructs can be modified with adverbs, as explained
 in detail in later sections.
 
-X<|:x (quoting adverb)>X<|:exec (quoting adverb)>X<|:w (quoting adverb)>X<|:words (quoting adverb)>X<|:ww (quoting adverb)>X<|:quotewords (quoting adverb)>X<|:q (quoting adverb)>X<|:single (quoting adverb)>X<|:qq (quoting adverb)>X<|:double (quoting adverb)>X<|:s (quoting adverb)>X<|:scalar (quoting adverb)>X<|:a (quoting adverb)>X<|:array (quoting adverb)>X<|:h (quoting adverb)>X<|:hash (quoting adverb)>X<|:f (quoting adverb)>X<|:function (quoting adverb)>X<|:c (quoting adverb)>X<|:closure (quoting adverb)>X<|:b (quoting adverb)>X<|:backslash (quoting adverb)>X<|:to (quoting adverb)>X<|:heredoc (quoting adverb)>X<|:v (quoting adverb)>X<|:val (quoting adverb)>
 =begin table
 Short       Long            Meaning
 
@@ -115,6 +116,15 @@ There are no backslashes here, only lots of $$$!
 (Just kidding. There's no money in that string)
 No $interpolation {here}!
 Just a literal "\n" here
+
+The C<\qq[...]> escape sequence enables
+L«C<qq> interpolation|/language/quoting#Interpolation:_qq» for a portion
+of the string. Using this escape sequence is handy when you have HTML markup
+in your strings, to avoid interpretation of angle brackets as hash keys:
+
+    my $var = 'foo';
+    say '<code>$var</code> is <var>\qq[$var.uc()]</var>';
+    # OUTPUT: «<code>$var</code> is <var>FOO</var>␤»
 
 =head2 X<Interpolation: qq|quote,qq;quote," ">
 
@@ -207,7 +217,7 @@ and L<name aliases|/language/unicode#Name_Aliases> with L«\c[]|/language/unicod
 
 Interpolation of undefined values will raise a control exception that can be
 caught in the current block with
-L<CONTROL|https://docs.perl6.org/syntax/CONTROL>.
+L<CONTROL|/language/phasers#CONTROL>.
 
     =begin code
     sub niler {Nil};
@@ -310,7 +320,7 @@ Note that variable interpolation happens before word splitting:
     my @list = qqw{$a c};
     .say for @list; # OUTPUT: «a␤b␤c␤»
 
-=head2 X<<<Word quoting with interpolation and quote protection: qqww|quote,qqww;quote,<< >>;quote,« »>>>
+=head2 X<<<Word quoting with interpolation and quote protection: qqww|quote,qqww;>>>
 
 The C<qqw> form of word quoting will treat quote characters literally, leaving them in the
 resulting words:
@@ -322,11 +332,6 @@ you need to use the C<qqww> variant:
 
     my $a = 42; say qqww{"$a b" c}.perl; # OUTPUT: «("42 b", "c")␤»
 
-or equivalently:
-
-    my $a = 42; say <<"$a b" c>>.perl;   # OUTPUT: «("42 b", "c")␤»
-    my $a = 42; say «"$a b" c».perl;     # OUTPUT: «("42 b", "c")␤»
-
 Quote protection happens before interpolation, and interpolation happens before word splitting,
 so quotes coming from inside interpolated variables are just literal quote characters:
 
@@ -335,14 +340,27 @@ so quotes coming from inside interpolated variables are just literal quote chara
     my $b = "1 \"2 3\"";
     say qqww{"$b" $b}.perl; # OUTPUT: «("1 \"2 3\"", "1", "\"2", "3\"")␤»
 
+=head2 X<<<Word quoting with interpolation and quote protection: « »|quote,<< >>;quote,« »>>>
+
+This style of quoting is like C<qqww>, but with the added benefit of constructing
+L<allomorphs|/language/glossary#index-entry-Allomorph> (making it functionally equivalent to
+L<qq:ww:v|#index-entry-:val_(quoting_adverb)>). The ASCII equivalent to C<« »> are double
+angle brackets C«<< >>».
+
+    # Allomorph Construction
+    my $a = 42; say «  $a b c    ».perl;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
+    my $a = 42; say << $a b c   >>.perl;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
+
+    # Quote Protection
+    my $a = 42; say «  "$a b" c  ».perl;  # OUTPUT: «("42 b", "c")␤»
+    my $a = 42; say << "$a b" c >>.perl;  # OUTPUT: «("42 b", "c")␤»
+
 =head2 X<Shell quoting: qx|quote,qx>
 
 To run a string as an external program, not only is it possible to pass the
 string to the C<shell> or C<run> functions but one can also perform shell
-quoting in a similar manner to the backticks a.k.a. C<qx> in Perl 5.  There
-are some subtleties to consider, however.  The backticks are no longer used
-for shell quoting in Perl 6 and the C<qx> quotes I<don't> interpolate Perl
-variables.  Thus
+quoting. There are some subtleties to consider, however. C<qx> quotes
+I<don't> interpolate variables. Thus
 
     my $world = "there";
     say qx{echo "hello $world"}
@@ -369,9 +387,8 @@ other ways to execute external commands.
 
 =head2 X<Shell quoting with interpolation: qqx|quote,qqx>
 
-If one wishes to use the content of a Perl variable within an external
-command, then the C<qqx> shell quoting construct should be used (this
-corresponds to Perl 5's C<qx>):
+If one wishes to use the content of a Perl 6 variable within an external
+command, then the C<qqx> shell quoting construct should be used:
 
     my $world = "there";
     say qqx{echo "hello $world"};  # OUTPUT: «hello there␤»
@@ -385,7 +402,7 @@ Again, the output of the external command can be kept in a variable:
     # runs the command: grep -i cool /usr/share/dict/words
     say $output;      # OUTPUT: «Cooley␤Cooley's␤Coolidge␤Coolidge's␤cool␤...»
 
-See also L<shell|/routine/shell> and L<run|/routine/run> for other ways to
+See also L<run|/routine/run> and L<Proc::Async> for better ways to
 execute external commands.
 
 =head2 X<Heredocs: :to|quote,heredocs :to>

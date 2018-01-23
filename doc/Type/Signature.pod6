@@ -204,7 +204,7 @@ part of the L<colon-pair|/type/Pair>.
 =head3 X<Constraining Defined and Undefined Values|
          type constraint,:D;type constraint,:U;type constraint,:_>
 
-Normally, a type constraint only checks whether the value passed is of the
+Normally, a type constraint only checks whether the value of the parameter is of the
 correct type.
 
     sub limit-lines(Str $s, Int $limit) {
@@ -220,9 +220,9 @@ correct type.
     #     (Str:D $: *%_)»
     say limit-lines "a \n b", Int # Always returns the max number of lines
 
-In the code above, we really only want to deal with defined strings. To
-do this, we use the C<:D> type constraint.  This constraint checks the
-value passed is an I<object instance>, in a similar fashion to calling
+In the code above, we really only want to deal with string instances, not
+type objects. To do this, we use the C<:D> type constraint.  This constraint
+checks the value passed is an I<object instance>, in a similar fashion to calling
 the C<.DEFINITE> method on the value:
 
     sub limit-lines(Str:D $s, Int $limit) { };
@@ -234,17 +234,19 @@ the C<.DEFINITE> method on the value:
 This is much better than the way the program failed before, since here the
 reason for failure is clearer.
 
-It's also possible that undefined types are the only ones that make
+It's also possible that type objects are the only ones that make
 sense for a routine to accept. This can be done with the C<:U> type
 constraint, which checks the value passed if it is a I<type object>,
-rather than an object instance. For example, we can turn the
-C<&limit-lines> into a multi function to make use of the C<:U>
-constraint:
+rather than an object instance.
 
-=for code :allow<B L>
-multi limit-lines(Str $s, Int:D $limit) { }
-multi limit-lines(Str $s, Int:U $) { $s }
-say limit-lines "a \n b \n c", Int; # OUTPUT: «"a \n b \n c"␤»
+    sub can-turn-into(Str $þing, Any:U $type) {
+       return so $þing.$type;
+    }
+    say can-turn-into("3", Int);
+    say can-turn-into("6.5", Int);
+    say can-turn-into("6.5", Num);
+    say can-turn-into("a string", Num);
+    # OUTPUT: True True True False
 
 For explicitly indicating the normal behaviour, C<:_> can be used, but this is
 unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
@@ -276,6 +278,18 @@ The L<Classes and Objects|/language/classtut#Starting_with_class>
 document further elaborates on the concepts of instances and type
 objects and discovering them with the C<.DEFINITE> method.
 
+Keep in mind all parameters have values; even optional ones have
+default defaults that are the type object of the constrained type
+for explicit type constraints. If no explicit type constraint exists,
+the default default is an L<Any> type object for methods, submethods,
+and subroutines, and a L<Mu> type object for blocks. This means that
+if you use the  C<:D> type smiley, you'd need to provide a default
+value or make the parameter required. Otherwise, the default default would be
+a type object, which would fail the definiteness constraint.
+
+    sub divide (Int:D :$a = 2, Int:D :$b!) { say $a/$b }
+    divide :1a, :2b; # OUTPUT: «0.5␤»
+
 =head3 X«Constraining signatures of Callables|Callable (constrain)»
 
 A L<Callable> parameter can be constrained by its signature, by specifying
@@ -286,13 +300,14 @@ a L<Signature> literal right after the parameter (no whitespace allowed):
     f(&g);
     # OUTPUT: «ten10␤»
 
-This shorthand syntax is available only for parameters with the `&` sigil. For
+This shorthand syntax is available only for parameters with the C<&> sigil. For
 others, you need to use the long version:
 
-    sub f($c: where .signature ~~ :(Int, Str))  { say $c(10, 'ten') };
-    sub g(Num $i, Str $s) { $s ~ $i };
-    f(&g);
-    # OUTPUT: «ten10␤»
+    sub f($c where .signature ~~ :(Int, Str))  { say $c(10, 'ten') }
+    sub g(Num $i, Str $s) { $s ~ $i }
+    sub h(Int $i, Str $s) { $s ~ $i }
+    # f(&g); # Constraint type check failed
+    f(&h);   # OUTPUT: «ten10␤»
 
 =head3 X«Constraining Return Types|-->;returns»
 
@@ -548,14 +563,16 @@ On the caller side, positional arguments are passed in the same order
 as the parameters were declared.
 
     sub pos($x, $y) { "x=$x y=$y" }
-    pos(4, 5);                          # RESULT: «x=4 y=5»
+    pos(4, 5);                          # OUTPUT: «x=4 y=5»
 
 In the case of named arguments and parameters, only the name is used for
-mapping arguments to parameters
+mapping arguments to parameters. IF a fat arrow us used to construct a
+L<Pair|/type/Pair> only those with valid identifiers as keys are recognized
+as named arguments.
 
 =for code :allow<L>
 sub named(:$x, :$y) { "x=$x y=$y" }
-named( y => 5, x => 4);             # RESULT: «x=4 y=5»
+named( y => 5, x => 4);             # OUTPUT: «x=4 y=5»
 
 It is possible to have a different name for a named parameter than the
 variable name:
@@ -767,7 +784,7 @@ to the signature. Returns C<Inf> if there is a slurpy positional parameter.
 
 Whatever the Signature's return constraint is:
 
-    :($a, $b --> Int).returns # RESULT: «(Int)»
+    :($a, $b --> Int).returns # OUTPUT: «(Int)»
 
 =head2 method ACCEPTS
 
@@ -778,23 +795,30 @@ Whatever the Signature's return constraint is:
 If C<$topic> is a L<Signature> returns C<True> if anything accepted by C<$topic>
 would also be accepted by the invocant, otherwise returns C<False>:
 
-    :($a, $b) ~~ :($foo, $bar, $baz?);   # RESULT: «True»
-    :(Int $n) ~~ :(Str);                 # RESULT: «False»
+    :($a, $b) ~~ :($foo, $bar, $baz?);   # OUTPUT: «True»
+    :(Int $n) ~~ :(Str);                 # OUTPUT: «False»
 
 The C<$topic> is a L<Capture>, returns C<True> if it can be bound to the
 invocant, i.e., if a function with invocant's C<Signature> would be able to be
 called with the C<$topic>:
 
-    \(1, 2, :foo) ~~ :($a, $b, :foo($bar)); # RESULT: «True»
-    \(1, :bar)    ~~ :($a);                 # RESULT: «False»
+    \(1, 2, :foo) ~~ :($a, $b, :foo($bar)); # OUTPUT: «True»
+    \(1, :bar)    ~~ :($a);                 # OUTPUT: «False»
 
 Lastly, the candidate with C<Mu> C<topic> converts C<topic> to L<Capture>
 and follows the same semantics as L<Capture> C<$topic>:
 
-    <a b c d>  ~~ :(Int $a);      # RESULT: «False»
-    42         ~~ :(Int);         # RESULT: «False» (Int.Capture throws)
-    set(<a b>) ~~ :(:$a, :$b);    # RESULT: «True»
+    <a b c d>  ~~ :(Int $a);      # OUTPUT: «False»
+    42         ~~ :(Int);         # OUTPUT: «False» (Int.Capture throws)
+    set(<a b>) ~~ :(:$a, :$b);    # OUTPUT: «True»
 
+Since L«C<where> clauses|/type/Signature#index-entry-where_clause_(Signature)»
+are not introspectable, the method cannot determine whether two signatures
+L<ACCEPTS> the same sort of C<where>-constrained parameters. Such comparisons
+will return C<False>. This includes signatures with literals, which are just
+sugar for the C<where>-constraints:
+
+    say :(42) ~~ :($ where 42)    # OUTPUT: «False␤»
 
 =head2 method Capture
 
