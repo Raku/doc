@@ -76,9 +76,8 @@ rakudo，从中选择自己喜欢的版本。
 
 ## Perl6 specification是什么?
 
-Perl6 specification是指perl6 官方的测试套件.我们称它为roast，其地址为
-[hosted on github](https://github.com/perl6/roast). 任何编译测试通过的就会加入到Perl 6
-specification。
+Perl6 specification是指perl6 官方的测试套件.我们称它为[roast](https://github.com/perl6/roast)，
+托管在github上。 任何编译测试通过的就会加入到Perl 6 specification。
 
 Roast的主分支对应最新的开发版本，它仍未划入任何的specification。其他分支则对应于不同的specific版本。
 例如，"6.c.errata"。 6.c-errata版本是个已经发布了的仅仅行了测试错误（errata）的分支，而master是未发布
@@ -151,11 +150,11 @@ Rakudo编译器发布仅仅包括一些最常用的[基本模块](https://docs.p
 ## 我怎么样能dump出Perl6的数据结构 (和perl5的Data::Dumper一样有类似的模块么?）
 
 典型地是使用`say`例程，对"gist" 对象的dump使用`gist`方法。更多细节可以通过
-`perl`方法，这通常会返回 `EVAL`样式的代码表示。
+`perl`方法，这通常会返回 [`EVAL`](/routine/EVAL)样式的代码表示。
 
 如果使用是[rakudo implementation](http://rakudo.org)，你可以使用其特有的
 [non-standard `dd` routine](/programs/01-debugging#Dumper_function_dd)例程来dump
-他的输出与`perl`类似，包含更多多的信息。例如:
+他的输出与`.perl`类似，包含更多多的信息。例如:
 
        my $foo = %( foo => 'bar' );
        say $foo.perl;   # 输出: «${:foo("bar")}␤»
@@ -310,7 +309,7 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
 
 ## 数组引用和自动解引用是怎么回事?需要`@`前缀么？
 
-在perl6中，一切皆引用，所以专门谈论引用意义不大。不像perl5，标量变量也能直接包含数组：
+在perl6中，一切皆引用，所以专门谈论引用意义不大。标量变量也能直接包含数组：
 
     my @a = 1, 2, 3;
     say @a;                 # 输出: «[1 2 3]␤»
@@ -595,13 +594,10 @@ perl6实现了通常其他程序中没有的许多伟大的想法。虽然有几
 那要取决于你要拿它做什么。Rakudo开发的秉承“工作的更合适，而不更快”的宗旨。一些部分
 已经足够快，还有一些还需要改善。
 
-相比较其他动态语言perl6提供了很多JIT特性，还有很大性能提升空间。在一些问题上已经比perl5快了。
-
-perl5程序员应该了解perl了内置了更多的函数，简单的基准性能测试并不能说明什么问题，除非你perl5
-测试用例包括了诸如Moose，类型检测模块等复杂的项目。
+相比较其他动态语言perl6提供了很多JIT特性，还有很大性能提升空间。
 
 下面提供了写粗略的基准脚本，表明如果使用了复杂的模块的任务上Perl6比Perl5要快，与此同时，如果
-不涉及这些重模块Perl5则会更快。
+不涉及这些重模块Perl5则会更快。类似地，和其他语言比较也是这样。
 
 在你的系统运行下面脚本，结果可能会让你大吃一惊。
 
