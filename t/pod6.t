@@ -16,10 +16,9 @@ if @*ARGS {
     }
 }
 
-plan +@files;
+my @pod-only-files = @files.grep( {/ '.pod' $/} ) ;
+plan 1;
+is @pod-only-files.elems, 0, "no .pod files, only .pod6" ;
 
-for @files -> $file {
-    ok !($file ~~ / '.pod' $/), "no .pod files, only .pod6";
-}
 
 # vim: expandtab shiftwidth=4 ft=perl6
