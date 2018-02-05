@@ -66,6 +66,7 @@ Match results are stored in the C<$/> variable and are also returned from
 the match. The result is of L<type Match|/type/Match> if the match was
 successful; otherwise it's L<Nil|/type/Nil>.
 
+
 =head1 Wildcards and character classes
 
 =head2 X<The dot matches any character: C<.>|regex,.>
@@ -714,7 +715,7 @@ These are both zero width assertions.
 X<<<|regex, <<; regex, >>; regex, «; regex, »>>>
 
 C«<<» matches a left word boundary. It matches positions where there
-is a non-word character at the left (or the start of the string) and a word
+is a non-word character (i.e., C<\W> character) at the left (or the start of the string) and a word
 character to the right.
 
 C«>>» matches a right word boundary. It matches positions where there
@@ -724,12 +725,15 @@ the end of the string).
 These are both zero width assertions.
 
     my $str = 'The quick brown fox';
+    say so ' ' ~~ /\W/;               # OUTPUT: «True␤»
     say so $str ~~ /br/;              # OUTPUT: «True␤»
     say so $str ~~ /<< br/;           # OUTPUT: «True␤»
     say so $str ~~ /br >>/;           # OUTPUT: «False␤»
     say so $str ~~ /own/;             # OUTPUT: «True␤»
     say so $str ~~ /<< own/;          # OUTPUT: «False␤»
     say so $str ~~ /own >>/;          # OUTPUT: «True␤»
+    say so $str ~~ /<< The/;          # OUTPUT: «True␤»
+    say so $str ~~ /fox >>/;          # OUTPUT: «True␤»
 
 You can also use the variants C<«> and C<»> :
 
@@ -2113,6 +2117,57 @@ Capture 1 =  database!
 
 This demonstrate that disabling backtracking does not mean disabling possible multiple
 iterations of the matching engine, but rather disabling the backward matching tuning.
+
+
+=head1 C<$/> changes each time a regular expression is matched
+
+It is worth noting that each time a regular expression is used, the
+L<Match object|/type/Match> returned (i.e., C<$/>) is reset. In other
+words, C<$/> always refers to the very last regular expression
+matched:
+
+=begin code
+my $answer = 'a lot of Stuff';
+say 'Hit a capital letter!' if $answer ~~ / <[A..Z>]> /;
+say $/;  # OUTPUT: ｢S｣
+say 'hit an x!' if $answer ~~ / x /;
+say $/;  # OUTPUT: Nil
+=end code
+
+The reset of C<$/> applies independently from the scope where the regular expression
+is matched:
+
+=begin code
+my $answer = 'a lot of Stuff';
+if $answer ~~ / <[A..Z>]> / {
+   say 'Hit a capital letter';
+   say $/;  # OUTPUT: ｢S｣
+}
+say $/;  # OUTPUT: ｢S｣
+
+if True {
+  say 'hit an x!' if $answer ~~ / x /;
+  say $/;  # OUTPUT: Nil
+}
+
+say $/;  # OUTPUT: Nil
+=end code
+
+The very same concept applies to named captures:
+
+=begin code
+my $answer = 'a lot of Stuff';
+if $answer ~~ / $<capital>=<[A..Z>]> / {
+   say 'Hit a capital letter';
+   say $/<capital>; # OUTPUT: ｢S｣
+}
+
+say $/<capital>;    # OUTPUT: ｢S｣
+say 'hit an x!' if $answer ~~ / $<x>=x /;
+say $/<x>;          # OUTPUT: Nil
+say $/<capital>;    # OUTPUT: Nil
+=end code
+
 
 
 =end pod
