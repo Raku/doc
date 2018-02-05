@@ -47,16 +47,10 @@
 
     ./bin/p6doc Str.split
 
-<<<<<<< HEAD
 查看类Str的方法split的文档。你可以跳过./bin部分，如果你通过panda或者zef安装了此模块的话
 你也可执行
-=======
-to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via
-`zef`. You can also do
->>>>>>> 5893559b9f7e7c159927f8251df41e0d3cf3474a
-
-    p6doc -f slurp
+   
+ p6doc -f slurp
 
 
 来浏览标准函数的文档的，根据你硬盘的速度和Rakudo版本，这个命令可能要慢一点
@@ -65,11 +59,9 @@ skip the `./bin` part if you have installed it via
 ## 生成HTML文档
 
 
-<<<<<<< HEAD
 在你的项目目录通过以下命令安装依赖包
-=======
+
     zef --deps-only install .
->>>>>>> 5893559b9f7e7c159927f8251df41e0d3cf3474a
 
     panda installdeps .       # panda
     zef --depsonly install .  # zef
@@ -87,17 +79,7 @@ skip the `./bin` part if you have installed it via
 
     $ make html
 
-<<<<<<< HEAD
-
 页面生成以后，你就可以在本地浏览。你通过以下命名启动app.pl的程序（Mojo程序）
-=======
-Please note that you will need to have [nodejs](https://nodejs.org)
-installed to produce HTML content with the above command, in particular
-a `node` executable should be in your `PATH`.
-
-After the pages have been generated, you can view them on your local
-computer by starting the included `app.pl` program:
->>>>>>> 5893559b9f7e7c159927f8251df41e0d3cf3474a
 
     $ make run
 
@@ -106,9 +88,7 @@ computer by starting the included `app.pl` program:
 注意：你必须安装了 [Mojolicious](https://metacpan.org/pod/Mojolicious)
 你还的需要[nodejs](https://nodejs.org)来实现高亮。
 
-
 ## 给予帮助!
-
 
 Perl6工程 并非一个小项目，项目文档需要投入大量的人力精力，我们感谢你给予任何的帮助。
 您可以通过各种方式帮助我们:
