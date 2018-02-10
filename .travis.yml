@@ -16,6 +16,7 @@ addons:
       - ruby-sass
 
 fast_finish: true
+services: docker
 
 branches:
   except:
@@ -33,17 +34,13 @@ notifications:
 before_install:
   - nvm install 7.2.1
   - nvm use 7.2.1
-  - sudo apt install zstd
-  - wget http://whateverable.6lang.org/HEAD && zstd -dqc -- HEAD | tar x --absolute-names
-  - export PATH="$PATH:/$HOME/.rakudobrew/moar-master/install/share/perl6/site/bin"
-  - git clone https://github.com/ugexe/zef.git && cd zef && perl6 -Ilib bin/zef install .
   
 install:
-  - travis_retry zef --/tap-harness --force --/test install LWP::Simple
-  - travis_retry zef --/tap-harness --depsonly install .
+  - docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/test-perl6  -c zef install --deps-only .
+  - docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/test-perl6  -c zef install LWP::Simple
 
 script:
-  - make test
+  - docker run -t -v  $TRAVIS_BUILD_DIR:/test jjmerelo/test-perl6
   - export CXX=$(command -v g++-4.8 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "g++"; else printf "g++-4.8"; fi)
   - $CXX --version
   - make html-nohighlight
