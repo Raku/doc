@@ -104,7 +104,7 @@ for @examples -> $eg {
     $code ~= "\{}\n" if $eg<method> eq "True";
     $code ~= "\n}}";
 
-    my $msg = "$eg<file> chunk $eg<count> compiles";
+    my $msg = "$eg<file> chunk $eg<count> starts with “" ~ ($eg<contents>.lines)[0].substr(0,10).trim ~ "“ compiles";
 
     my $status;
     {
