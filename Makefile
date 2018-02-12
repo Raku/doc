@@ -22,7 +22,7 @@ init-highlights:
 	fi; cd highlights; npm install .
 
 html-nohighlight:
-	docker run -t --entrypoint="/root/.rakudobrew/bin/perl6" jjmerelo/perl6-doccer htmlify.p6 --no-highlight
+	perl6 htmlify.p6 --no-highlight
 
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
