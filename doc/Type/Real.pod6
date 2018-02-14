@@ -10,6 +10,55 @@ Common role for non-Complex numbers.
 
 =head1 Methods
 
+=head2 method Bridge
+
+Defined as:
+
+    method Bridge(Real:D:)
+
+Default implementation coerces the invocant to L<Num> and that's the behaviour
+of this method in core L<Real> types. This method primarily exist to make it
+easy to implement custom L<Real> types by users, with the C<Bridge> method
+returning I<one of> the core C<Real> types (I<NOT> necessarily a L<Num>)
+that best represent the custom C<Real> type. In turn, this lets all the
+core operators and methods obtain a usable value they can work with.
+
+As an example, we can implement a custom C<Temperature> type. It has a unit of measure and the
+value, which are given during instantiation. We can implement custom operators or conversion
+methods that work with this type. When it comes to regular mathematical operators, however,
+we can simply use the C<.Bridge> method to convert the C<Temperature> to Kelvin expressed
+in one of the core numeric types:
+
+    class Temperature is Real {
+        has Str:D  $.unit  is required where any <K F C>;
+        has Real:D $.value is required;
+        method new ($value, :$unit = 'K') { self.bless :$value :$unit }
+
+        method Bridge {
+            when $!unit eq 'F' { ($!value + 459.67) × 9/5 }
+            when $!unit eq 'C' {  $!value + 273.15 }
+            $!value
+        }
+        method gist { self.Str }
+        method Str  { "$!value degrees $!unit" }
+    }
+
+    sub postfix:<℃> { Temperature.new: $^value, :unit<C> }
+    sub postfix:<℉> { Temperature.new: $^value, :unit<F> }
+    sub postfix:<K> { Temperature.new: $^value, :unit<K> }
+
+    my $human := 36.6℃;
+    my $book  := 451℉;
+    my $sun   := 5778K;
+    say $human;                # OUTPUT: «36.6 degrees C␤»
+    say $human + $book + $sun; # OUTPUT: «7726.956␤»
+    say 123K + 456K;           # OUTPUT: «579␤»
+
+As we can see from the last two lines of the output, the type of the bridged result is not
+forced to be any I<particular> core type. It is a L<Rat>, when we instantiated C<Temperature>
+with a C<Rat> or when conversion was involved, and it is an L<Int> when we instantiated
+C<Temperature> with an L<Int>.
+
 =head2 method Rat
 
     method Rat(Real:D: Real $epsilon = 1e-6)
