@@ -3,6 +3,7 @@
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
 =begin overview
 
@@ -10,19 +11,9 @@ Insure any text that isn't a code example has valid POD6
 
 =end overview
 
-my @files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files>.lines;
-    }
-}
-@files = @files.grep(/'.pod6'$/);
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
 
 plan +@files;
 

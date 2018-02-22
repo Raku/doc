@@ -3,20 +3,12 @@
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
-my @files;
+my @files = Test-Files.files;
 
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files= qx<git ls-files>.lines;
-    }
-}
+my @pod-only-files = @files.grep({$_.ends-with: '.pod'}) ;
 
-my @pod-only-files = @files.grep( {/ '.pod' $/} ) ;
 plan 1;
 is @pod-only-files.elems, 0, "no .pod files, only .pod6" ;
 

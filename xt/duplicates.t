@@ -3,6 +3,7 @@
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
 =begin overview
 
@@ -17,19 +18,9 @@ Allow a few well known duplicates, like 'long long'
 
 =end overview
 
-my @files;
 my $safe-dups = Set.new(<method long default>); # Allow these dupes
 
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files>.lines;
-    }
-}
-@files = @files.grep({$_.ends-with('.pod6') or $_.ends-with('.md')});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'});
 
 plan +@files;
 

@@ -2,20 +2,10 @@
 
 use v6;
 use Test;
+use lib 'lib';
+use Test-Files;
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files doc>.lines;
-    }
-}
-
-@files = @files.grep({$_.ends-with('.pod6')});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
 
 plan +@files;
 

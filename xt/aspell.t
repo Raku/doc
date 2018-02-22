@@ -3,6 +3,7 @@
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
 =begin overview
 
@@ -19,20 +20,9 @@ text that is part of a code example)
 
 =end overview
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files>.lines;
-    }
-}
-
-@files = @files.grep({$_.ends-with('.pod6') or $_.ends-with('.md')})\
-               .grep({! $_.ends-with('contributors.pod6')});
+my @files = Test-Files.files\
+    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
+    .grep({! $_.ends-with: 'contributors.pod6'});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
