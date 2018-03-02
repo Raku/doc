@@ -103,7 +103,7 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 
 有，和Per5的[CPAN](http://cpan.org/)一样,CPAN已经完全支持Perl6。唯一的区别是用[PAUSE](http://pause.perl.org/)
 升级模块时候，你必须选择`Perl 6`为目标目录。[`App::Mi6`工具](https://modules.perl6.org/l/App::Mi6)
-模块可用于，简化这个更新流程。最新版本的[`zef`模块安装](https://modules.perl6.org/l/zef)
+模块可用于，简化这个更新流程。最新版本的[`zef`模块安装](https://github.com/ugexe/zef)
 自动的检查CPAN上最新版本的模块，以及[GitHub-based ecosystem](https://github.com/perl6/ecosystem/)。
 
 通过CPAN浏览模块功能很快就快实现[modules.perl6.org主页](https://modules.perl6.org/)。(暂时地，可以通过
@@ -417,26 +417,29 @@ perl6没有像python一样的`yield`语句，但是它通过懒列表提供类�
 
 ## `say`, `put` 和 `print` 有啥区别?
 
-最明显地差异是 `say`和 `put`输出会自带换行符，但是`print`没有。
+最明显地差异是`say`和`put`输出会自带换行符，但是`print`没有。
 
-其他的不同时：`print`和`put`通过调用`Str`方法把所有参数项会当成一个字符串，`say`则
-是用 `gist`方法。前者适合机器，后者更人性化。
+其他的不同是：`print`和`put`通过调用`Str`方法把所有参数项会当成一个字符串，`say`则
+是用 `gist`方法。你也可以为你的创建`gist`方法，用于创建一个相对人性化解释的`Str`。
+所以它可以让我们可自由的掉忽略那些不太重要的对象信息，从而了解对象的本质。
 
-或者完全的不同，`$obj.Str` 给出一个字符表达，`$obj.gist`给出一个简单对象总结，适合开发人员
-辨别。 `$obj.perl`会给出一个perl式的表达。
+或者完全的不同，`$obj.Str` 给出一个字符表达，`$obj.gist`给出一个简单对象总结，适合人
+类理解。`$obj.perl`会给出一个perl式的表达，对象会被从新生成。
 
 例如：类型对象，也叫做“未定义值”，字符化结果为一个空串，并且给予警告。而`gist`方法会返回
-类型的名称，紧跟着一个空括弧（表示除了类型外没有任何值）。 
+一个被括号括起来的类型的名称（表示除了类型外没有任何值）。
 
     my Date $x;     # $x包含一个Date类型对象
     print $x;       # 输出为空和警告
     say $x;         # 输出: «(Date)␤»
 
-所以，`say`更适合做调试；显示是人优化过的； `print`和`put`更适合给其他应用输出结果。
+如果你想显示对象的debugging形式，最好用`dd`，这样他就会用`$obj.perl`把信息输出到标准错误
+而不是标准输出，这样就不会干扰你“正常”的程序输出了。
 
-`put`是介于`print`和`say`之间的调和。和`print`一样适合为其他程序输出结果，同时也像
-`say`一样输出结果自带换行。
-and like `say`, it adds a newline at the end of the output.
+`say`适合于随意人性化的解释，`dd`适合于随意地debugging输出；`print`和`put`更普遍用于
+程序输出。
+`put`是`print`和`say`的混合。既像`print`一样能调用对象的`Str`方法,又和`say`一样支持
+在输出最后添加换行符。
 
 ## `token`和`rule`有何不同 ?
 
