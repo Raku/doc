@@ -69,6 +69,17 @@ Perl 5 is still an active language, therefore instead of
 use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
 ('was' has been made a present 'is').
 
+##### Prefer clear and readable variable names
+
+While Perl 6 allows all kinds of fancy characters in identifiers,
+stick to easily understandable names:
+
+    my $sub; # GOOD
+    my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
+
+If you want to add some fancy characters, please stick to
+[well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
+
 ##### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
 We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
