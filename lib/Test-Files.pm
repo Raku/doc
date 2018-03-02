@@ -7,7 +7,7 @@ method files() {
         @files = @*ARGS;
     } else {
         if %*ENV<TEST_FILES> {
-            @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
+            @files = %*ENV<TEST_FILES>.trim.split(' ').grep(*.IO.e);
         } else {
             @files = qx<git ls-files>.lines;
         }
