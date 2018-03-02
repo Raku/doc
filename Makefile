@@ -120,7 +120,7 @@ clean-search:
 
 clean: clean-html clean-images clean-search clean-examples
 
-test-links: html/links.txt
+test-links: links.txt
 	./util/test-links.sh
 
 extract-examples:

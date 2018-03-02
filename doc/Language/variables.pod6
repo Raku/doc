@@ -1049,31 +1049,25 @@ the block to the caught exception.
 
 X<|$?FILE>X<|$?LINE>X<|::?CLASS>X<|&?ROUTINE>X<|&?BLOCK>X<|%?LANG>X<|%?RESOURCES>
 
+All compile time variables have a question mark as part of the twigil.
+Being I<compile time> they cannot
+be changed at run-time, however they are valuable in order to introspect
+the program.
+The most common compile time variables are the following:
+
 =for table
     $?FILE         Which file am I in?
     $?LINE         Which line am I at?
     ::?CLASS       Which class am I in?
-    &?BLOCK        Which block am I in?
     %?LANG         What is the current set of interwoven languages?
     %?RESOURCES    The files associated with the "Distribution" of the current compilation unit.
 
-=head3 X<&?ROUTINE|&?ROUTINE>
+=head3 Other compile-time variables:
 
-Which routine am I in? Has method C<.name>
+X<|$?PACKAGE>X<|$?MODULE>X<|$?CLASS>X<|$?ROLE>
+X<|$?GRAMMAR>X<|$?TABSTOP>X<|$?NL>X<|$?ENC>
 
-    sub awesome-sub { say &?ROUTINE.name }
-    awesome-sub # OUTPUT: awesome-sub
-
-=begin code
-for '.' {
-    .Str.say when !.IO.d;
-    .IO.dir()».&?BLOCK when .IO.d # lets recurse a little!
-}
-=end code
-
-Other compile-time variables:
-
-X<|$?PACKAGE>X<|$?MODULE>X<|$?CLASS>X<|$?ROLE>X<|$?GRAMMAR>X<|$?TABSTOP>X<|$?ENC>
+The following compile time variables allow for a deeper introspection:
 
 =for table
     $?PACKAGE   Which package am I in?
@@ -1082,8 +1076,50 @@ X<|$?PACKAGE>X<|$?MODULE>X<|$?CLASS>X<|$?ROLE>X<|$?GRAMMAR>X<|$?TABSTOP>X<|$?ENC
     $?ROLE      Which role am I in? (as variable)
     $?GRAMMAR   Which grammar am I in?
     $?TABSTOP   How many spaces is a tab in a heredoc or virtual margin?
-    $?NL        What "\n" signifies: LF, CR or CRLF (see the L<newline pragma|/language/pragmas>)
-    $?ENC       Default encoding of Str.encode/Buf.decode/various IO methods.
+    $?NL        What a vertical newline "\n" means: LF, CR or CRLF
+    $?ENC       Default encoding of various IO methods, e.g., Str.encode, Buf.decode
+
+With particular regard to the C<$?NL>, see the  L<newline pragma|/language/pragmas>.
+
+
+=head3 X<&?ROUTINE|&?ROUTINE>
+
+The compile time variable C<&?ROUTINE> provides introspection about
+which routine the program is actually within. It returns an instance
+of L<Sub|/type/Sub> attached to the current routine.
+It does support the method C<.name> to obtain
+the name of the called routine, as well as C<.signature> and others
+method related to C<Sub>:
+
+
+    sub awesome-sub { say &?ROUTINE.name }
+    awesome-sub # OUTPUT: awesome-sub
+
+The special variable C<&?ROUTINE> allows also for recursion:
+
+=begin code
+my $counter = 10;
+sub do-work {
+    say 'Calling myself other ' ~ $counter-- ~ ' times';
+    &?ROUTINE() if ( $counter > 0 );
+}
+do-work;
+=end code
+
+=head3 X<&?BLOCK|&?BLOCK>
+
+The special compile variable C<?&BLOCK> behaves similarly to
+C<?&ROUTINE> but it allows to introspect a single block of code.
+It holds a L<Sub|/types/Sub> and allows for recursion within the
+same block:
+
+=begin code
+for '.' {
+    .Str.say when !.IO.d;
+    .IO.dir()».&?BLOCK when .IO.d # lets recurse a little!
+}
+=end code
+
 
 =head2 Dynamic variables
 
@@ -1217,7 +1253,7 @@ Still we list several conventions that are widely held.
 
 =item1 Built-in dynamic variables and compile-time variables are always uppercase, such like C<$*OUT>, C<$?FILE>.
 
-=item1 Methods from the MOP and other internals use "_" to separate multiple words, suck like C<add_method>.
+=item1 Methods from the MOP and other internals use "_" to separate multiple words, such like C<add_method>.
 
 =end pod
 

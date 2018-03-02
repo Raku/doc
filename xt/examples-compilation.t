@@ -6,6 +6,7 @@ use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
+use Test-Files;
 
 =begin overview
 
@@ -19,19 +20,7 @@ P6_DOC_TEST_FUDGE is set to a true value.
 
 =end overview
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files doc>.lines;
-    }
-}
-
-@files = @files.grep({$_.ends-with('.pod6')});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
 
 sub walk($arg) {
     given $arg {
@@ -104,7 +93,7 @@ for @examples -> $eg {
     $code ~= "\{}\n" if $eg<method> eq "True";
     $code ~= "\n}}";
 
-    my $msg = "$eg<file> chunk $eg<count> compiles";
+    my $msg = "$eg<file> chunk $eg<count> starts with “" ~ ($eg<contents>.lines)[0].substr(0,10).trim ~ "” compiles";
 
     my $status;
     {

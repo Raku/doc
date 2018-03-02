@@ -55,7 +55,7 @@ class Perl6::TypeGraph {
         for $f.lines -> $l {
             next if $l ~~ / ^ '#' /;
             if $l ~~ / ^ \s* $ / {
-                undefine @categories;
+                @categories = Empty;
                 next;
             }
             if $l ~~ / :s ^ '[' (\S+) + ']' $/ {

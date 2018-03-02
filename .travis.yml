@@ -1,6 +1,5 @@
 os:
     - linux
-#    - osx
 cache:
     directories:
         - precompiled
@@ -21,6 +20,7 @@ fast_finish: true
 branches:
   except:
     - gh-pages
+
 notifications:
   irc:
     channels:
@@ -31,16 +31,18 @@ notifications:
       - "Doc build %{result}. %{author} '%{commit_message}'"
       - "%{build_url} %{compare_url}"
 
-language: perl6
-sudo: false
-perl6:
-  - latest
 before_install:
   - nvm install 7.2.1
   - nvm use 7.2.1
+
 install:
-  - rakudobrew build-zef
-  - export PATH="$PATH:/$HOME/.rakudobrew/moar-master/install/share/perl6/site/bin"
+  - wget https://whateverable.6lang.org/HEAD.tar.gz
+  - tar -xv --absolute-names -f HEAD.tar.gz
+  - HEAD_BUILD=$(echo /tmp/whateverable/rakudo-moar/*)
+  - export PATH="$PATH:$HEAD_BUILD/bin"
+  - ZEF_BUILD="$HEAD_BUILD/share/perl6/site/bin"
+  - git clone https://github.com/ugexe/zef.git && cd zef && perl6 -Ilib bin/zef install . && cd ..
+  - export PATH="$PATH:$ZEF_BUILD"
   - travis_retry zef --/tap-harness --force --/test install LWP::Simple
   - travis_retry zef --/tap-harness --depsonly install .
 
@@ -49,7 +51,7 @@ script:
   - export CXX=$(command -v g++-4.8 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "g++"; else printf "g++-4.8"; fi)
   - $CXX --version
   - make html-nohighlight
-#  - make html
+
 matrix:
   allow_failures:
     - os: osx

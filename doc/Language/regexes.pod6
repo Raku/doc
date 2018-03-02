@@ -144,9 +144,12 @@ can be matched with C<\v>, and C<\s> matches any kind of whitespace.
 
 =item X<C<\n> and C<\N>|regex,\n;regex,\N>
 
-C<\n> matches a single, logical newline character. C<\n> is supposed to also
-match a Windows CR LF codepoint pair; though it's unclear whether the magic
-happens at the time that external data is read, or at regex match time.
+C<\n> matches a single, logical newline character.
+What is considered as a I<single newline character> is defined via the compile time
+variable L<$?NL>, and the L<newline pragma|/language/pragmas>.
+Therefore C<\n> is supposed to be able to either match a Unix-like newline "\n"
+or a Microsoft Windows style one "\r\n".
+
 C<\N> matches a single character that's not a logical newline.
 
 =item X<C<\s> and C<\S>|regex,\s;regex,\S>
@@ -1316,6 +1319,70 @@ ordinary C<|> interpolation, the longest match succeeds:
     say ('b235' ~~ /  b @a /).Str;      # OUTPUT: «b23»
 
 The use of hash variables in regexes is preserved.
+
+=head2 Regex Boolean condition check
+
+The special operator C«<?{}>» allows the evaluation of a boolean expression that can perform
+a semantic evaluation of the match before the regular expression continues. In other words, it is possible
+to check in a boolean context a part of a regular expression and therefore invalidate the whole match (or allow it
+to continue) even if the match succeed from a syntactic point of view.
+
+In particular the C«<?{}>» operator requires a C<True> value in order to allow the regular expression to match, while its
+negate form  C«<!{}>» requires a C<False> value.
+
+In order to demonstrate the above operator, please consider the following example that involves
+a simple IPv4 address matching:
+
+=begin code
+my $localhost = '127.0.0.1';
+my regex ipv4-octet { \d ** 1..3 <?{ True }> }
+$localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
+say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+=end code
+
+The C<octet> regular expression matches against a number made by one up to three digits. Each match
+is driven by the result of the C«<?{}>», that being the fixed value of C<True> means that the regular
+expression match has to be always considered as good.
+As a counter-example, using the special constant value C<False> will invalidate the match even if the
+regular expression matches from a syntactic point of view:
+
+=begin code
+my $localhost = '127.0.0.1';
+my regex ipv4-octet { \d ** 1..3 <?{ False }> }
+$localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
+say $/<ipv4-octet>;   # OUTPUT: Nil
+=end code
+
+From the above examples, it should be clear that it is possible to improve the semantic check, for instance
+ensuring that each I<octet> is really a valid IPv4 octet:
+
+=begin code
+my $localhost = '127.0.0.1';
+my regex ipv4-octet { \d ** 1..3 <?{ $/.Int <= 255 && $/.Int >= 0 }> }
+$localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
+say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+=end code
+
+Please note that it is not required to evaluate the regular expression in-line, but also a regular method can be
+called to get the boolean value:
+
+=begin code
+my $localhost = '127.0.0.1';
+sub check-octet ( Int $o ){ $o <= 255 && $o >= 0 }
+my regex ipv4-octet { \d ** 1..3 <?{ &check-octet( $/.Int ) }> }
+$localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
+say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+=end code
+
+Of course, being C«<!{}>» the negation form of C«<?{}>» the same boolean evaluation can be rewritten in a negated form:
+
+=begin code
+my $localhost = '127.0.0.1';
+sub invalid-octet( Int $o ){ $o < 0 || $o > 255 }
+my regex ipv4-octet { \d ** 1..3 <!{ &invalid-octet( $/.Int ) }> }
+$localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
+say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+=end code
 
 =head1 Adverbs
 

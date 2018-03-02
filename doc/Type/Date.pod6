@@ -243,23 +243,45 @@ seconds and C<sleep 5.2> sleeps for 5.2 seconds:
 
 =head2 sub sleep-timer
 
-    sub sleep-timer(Real $seconds = Inf --> Duration)
+    sub sleep-timer(Real() $seconds = Inf --> Duration:D)
 
-This function is just like C<sleep>, but returns the amount of time
-remaining to sleep as a C<Duration> (which will be 0 if the call was not
-interrupted).
+This function is implemented like C<sleep>, but unlike the former it does
+return a L<Duration> instance with the number of seconds the system did not
+sleep.
+
+In particular, the returned C<Duration> will handle the number of seconds remaining
+when the process has been awakened by some external event (e.g., Virtual Machine
+or Operating System events).
+Under normal condition, when sleep is not interrupted, the returned C<Duration>
+has a value of C<0>, meaning no extra seconds remained to sleep.
+Therefore, in normal situations:
 
     say sleep-timer 3.14;  # OUTPUT: «0␤»
+
+The same result applies to edge cases, when a negative or zero time to sleep
+is passed as argument:
+
+=begin code
+say sleep-timer -2; # OUTPUT: 0
+say sleep-timer 0;  # OUTPUT: 0
+=end code
+
+See also L<sleep-until|/routine/sleep-until>.
 
 =head2 sub sleep-until
 
     sub sleep-until(Instant $until --> Bool)
 
-Works just like C<sleep> but checks the current time and goes back to sleep
-if accidentally woken up early, to guarantee waiting until the specified
-time.  Returns C<True> if the function actually waited, or if the specified
-time happens to be the present moment.  Returns C<False> if you asked to
-sleep until a time in the past.
+Works similar to C<sleep> but checks the current time and keeps sleeping
+until the required instant in the future has been reached.
+It uses internally the C<sleep-timer> method in a loop to ensure that,
+if accidentally woken up early, it will wait again for the specified
+amount of time remaining to reach the specified instant.
+goes back to sleep
+
+Returns C<True> if the C<Instant> in the future has been achieved (either
+by mean of sleeping or because it is right now), C<False> in the case
+an C<Instant> in the past has been specified.
 
 To sleep until 10 seconds into the future, one could write something like this:
 

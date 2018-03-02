@@ -414,26 +414,6 @@ default behavior to unsafe variant, so just by forgetting some quotes
 you are risking to introduce either a bug or maybe even a security
 hole. To stay on the safe side, refrain from using C<«»>.
 
-=head2 "Drift" when indexing with lazy Iterable
-
-If you are L<indexing with a lazy Iterable|/language/subscripts#Truncating_slices>,
-be aware that (in the Rakudo implementation) each subsequent use
-L<reifies|/language/glossary#index-entry-Reify> and caches an additional element in
-the lazy C<Iterable>, introducing undefined elements into the resulting slice. Some
-lazy C<Iterables> (such as C<List>) will cache each newly produced element while
-others (such as C<Seq>) will discard them. Being aware of how each C<Iterable> deals
-with it's lazily produced elements will help you to avoid unexpected results.
-
-    my @letters = <a b c d e f>;
-    my @i = 3..*;
-    .say for @letters[@i] xx 3;
-
-    #`( OUTPUT:
-        (d e f)
-        (d e f (Any))
-        (d e f (Any) (Any))
-    )
-
 =head1 Strings
 
 =head2 Quotes and interpolation
@@ -742,6 +722,16 @@ say 42 ~~ / [ 42 ||  0 ] | 4/; # OUTPUT: «｢42｣␤»
 
 The code above may seem like it is producing a wrong result, but the
 implementation is actually right.
+
+=head2 C<$/> changes each time a regular expression is matched
+
+Each time a regular expression is matched against something, the special
+variable C<$/> holding the result L<Match object|/type/Match>
+is changed accordingly to the result of the match (that could also be C<Nil>).
+
+The C<$/> is changed without any regard to the scope the regular expression is matched within.
+
+For further information and examples please see the L<related section in the Regular Expressions documentation|/language/regexes.html#$/_changes_each_time_a_regular_expression_is_matched>.
 
 =head1 Common Precedence Mistakes
 
@@ -1214,23 +1204,28 @@ for 1..4 { say "$^a $^b $^c $^d"; }               # OUTPUT: «1 2 3 4␤»
 
 =head2 Using C<»> and C<map> interchangeably
 
-While C<»> may look like a cute way to write C<map>, they are
-completely different. There are two main problems with using this
-shortcut.
+While L<<C<»>|/language/operators#index-entry-hyper_%3C%3C-hyper_%3E%3E-hyper_%C2%AB-hyper_%C2%BB-Hyper_Operators>>
+may look like a shorter way to write C<map>, they differ in some key aspects.
 
-First of all, the execution order is not guaranteed for C<»> (even
-though some implementations may do it otherwise):
+First, the C<»> includes a I<hint> to the compiler that it may
+autothread the execution, thus if you're using it to call a routine
+that produces side effects, those side effects may be produced out of order
+(the result of the operator I<is> kept in order, however).
+Also if the routine being invoked accesses a resource, there's the
+possibility of a race condition, as multiple invocations may happen
+simultaneously, from different threads.
 
 =comment This is an actual output from Rakudo 2015.09
 =begin code :skip-test
 <a b c d>».say # OUTPUT: «d␤b␤c␤a␤»
 =end code
 
-Secondly, C<»> functions more like L<deepmap> rather than L<map>:
+Second, C<»> checks the L<nodality|/routine/is%20nodal> of the routine being
+invoked and based on that will use either L<deepmap> or L<nodemap> to map over
+the list, which can be different from how a L<map> call would map over it:
 =begin code :skip-test
-say (<a b c d>, <x y z>).map: *.elems × -1     # OUTPUT: «(-4 -3)␤»
-say (<a b c d>, <x y z>)».&(*.elems × -1)      # OUTPUT: «((-1 -1 -1 -1) (-1 -1 -1))␤»
-say (<a b c d>, <x y z>).deepmap: *.elems × -1 # OUTPUT: «((-1 -1 -1 -1) (-1 -1 -1))␤»
+say ((1, 2, 3), [^4], '5')».Numeric;       # OUTPUT: «((1 2 3) [0 1 2 3] 5)␤»
+say ((1, 2, 3), [^4], '5').map: *.Numeric; # OUTPUT: «(3 4 5)␤»
 =end code
 
 The bottom line is that C<map> and C<»> are not interchangeable, but

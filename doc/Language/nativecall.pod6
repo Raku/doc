@@ -80,7 +80,7 @@ X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|lon
     num32          (float in C)
     num64          (double in C)
     Str            (C string)
-    CArray[int32]  (int* in C, an array of ints)
+    CArray[int32]  (int32_t* in C, an array of 32-bit ints)
     Pointer[void]  (void* in C, can point to all other types)
     bool           (bool from C99)
     size_t         (size_t in C)
@@ -106,8 +106,8 @@ routine itself.
     use NativeCall;
     sub input_box() returns Str is encoded('utf8') is native('gui') { * }
 
-Note that a null string can be passed by passing the Str type object; a null
-return will also be represented by the type object.
+Note that a NULL string pointer can be passed by passing the Str type
+object; a NULL return will also be represented by the type object.
 
 If the C function requires the lifetime of a string to exceed the function
 call, the argument must be manually encoded and passed as C<CArray[uint8]>:
@@ -192,7 +192,7 @@ Of course, you can always have an empty class:
 And just use the class as you would use Pointer, but with potential for
 better type safety and more readable code.
 
-Once again, type objects are used to represent nulls.
+Once again, type objects are used to represent NULL pointers.
 
 =head1 Function Pointers
 
@@ -331,8 +331,8 @@ class MyStruct is repr('CStruct') {
 }
 =end code
 
-As you may have predicted by now, a null is represented by the type object of the
-struct type.
+As you may have predicted by now, a NULL pointer is represented by the
+type object of the struct type.
 
 =head2 CUnions
 
@@ -424,24 +424,25 @@ Here's the structure. Notice how we've got a C<char *> there.
 
 void init_struct(a_string_and_an_int32_t *target, char *str, int32_t int32) {
   target->an_int32 = int32;
-  strcpy(target->a_string, str);
+  target->a_string = strdup(str);
 
   return;
 }
 
 =end code
 
-In this function we initialize the C structure by assigning an integer by value,
-and copying the string by reference. This function assumes that there is memory
-allocated to C<char *a_string> within the structure into which it can copy the
-string.
+In this function we initialize the C structure by assigning an integer
+by value, and passing the string by reference. The function allocates
+memory that it points <char *a_string> to within the structure as it
+copies the string.  (Note you will also have to manage deallocation of
+the memory as well to avoid memory leaks.)
 
 # A long time ago in a galaxy far, far away...
 
 =begin code :skip-test
 
 my $foo = AStringAndAnInt.new;
-$foo.init("str", 123);
+$foo.init(a_string => "str", an_int => 123);
 
 =end code
 

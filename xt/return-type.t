@@ -3,22 +3,10 @@
 use v6;
 use Test;
 use lib 'lib';
-
-my @files;
+use Test-Files;
 
 # Every .pod6 file in the Type directory.
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files>.lines;
-    }
-}
-
-@files = @files.grep(* ~~ /'.pod6'/).grep(* ~~ /Type | Language/);
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'}).grep(* ~~ /Type | Language/);
 
 plan +@files;
 

@@ -3,25 +3,15 @@
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    if %*ENV<TEST_FILES> {
-        @files = %*ENV<TEST_FILES>.split(' ').grep(*.IO.e);
-    } else {
-        @files = qx<git ls-files>.lines;
-    }
-}
-
-@files = @files.grep({$_ ne 'LICENSE'|'Makefile'})\
-               .grep({! $_.contains('custom-theme')})\
-               .grep({! $_.contains('util/trigger-rebuild.txt')})\
-               .grep({! $_.contains('jquery')})\
-               .grep({! $_.ends-with('.png')})\
-               .grep({! $_.ends-with('.ico')});
+my @files = Test-Files.files\
+    .grep({$_ ne 'LICENSE'|'Makefile'})\
+    .grep({! $_.contains: 'custom-theme'})\
+    .grep({! $_.contains: 'util/trigger-rebuild.txt'})\
+    .grep({! $_.contains: 'jquery'})\
+    .grep({! $_.ends-with: '.png'})\
+    .grep({! $_.ends-with: '.ico'});
 
 plan +@files;
 

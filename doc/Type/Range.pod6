@@ -43,11 +43,11 @@ Use the L<...|/language/operators#infix_...> sequence operator to produce lists 
 go from larger to smaller values, or to use offsets other than
 increment-by-1 and other complex cases.
 
-Use C<Inf> or C<*> (Whatever) to indicate an end point to be open-ended.
+Use C<∞> or C<*> (Whatever) to indicate an end point to be open-ended.
 
 =for code
 for 1..* { .say };       # start from 1, continue until stopped
-for 1..Inf { .say };     # the same
+for 1..∞ { .say };     # the same
 
 =head2 Ranges in subscripts
 
@@ -61,6 +61,14 @@ binding, @-sigiled containers or a slip to get what you mean.
     my @range = 0..2;
     .say for @numbers[@range]; # OUTPUT: «4␤8␤15␤»
 
+=head2 Shifting and scaling intervals
+
+It is possible to shift or scale the interval of a range:
+
+    say (1..10) + 1;       # OUTPUT: «2..11␤»
+    say (1..10) - 1;       # OUTPUT: «0..9␤»
+    say (1..10) * 2;       # OUTPUT: «2..20␤»
+    say (1..10) / 2;       # OUTPUT: «0.5..5.0␤»
 
 =head1 Methods
 
@@ -87,8 +95,8 @@ As an example:
 
 Of course, an infinite C<Range> always contains another C<Range>, therefore:
 
-    1..10 ~~ -Inf..Inf;    # True
-    1..10 ~~ -Inf^..^Inf;  # True
+    1..10 ~~ -∞..∞;    # True
+    1..10 ~~ -∞^..^∞;  # True
 
 Similarly, a C<Range> with open boundaries often includes other ranges:
 
@@ -101,8 +109,8 @@ ones:
 
    'a'..'j' ~~ 'b'..'c';  # False
    'b'..'c' ~~ 'a'..'j';  # True
-   'perl' ~~ -Inf^..^Inf; # True
-   'perl' ~~ -Inf..Inf;   # True
+   'perl' ~~ -∞^..^∞; # True
+   'perl' ~~ -∞..∞;   # True
    'perl' ~~ 1..*;        # True
 
 
@@ -173,7 +181,7 @@ Returns a list consisting of the start and end point.
 
     method infinite(Range:D: --> Bool:D)
 
-Returns C<True> if either end point was declared with C<Inf> or C<*>.
+Returns C<True> if either end point was declared with C<∞> or C<*>.
 
     say (1..5).infinite;                              # OUTPUT: «False␤»
     say (1..*).infinite;                              # OUTPUT: «True␤»
@@ -286,7 +294,7 @@ results.
 
     say (1^..5).reverse;                              # OUTPUT: «(5 4 3 2)␤»
     say ('a'..'d').reverse;                           # OUTPUT: «(d c b a)␤»
-    say (1..Inf).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
+    say (1..∞).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
 
 =head2 method Capture
 
@@ -300,6 +308,37 @@ L«C<.excludes-min>|/type/Range#method_excludes-min»,
 L«C<.excludes-max>|/type/Range#method_excludes-max»,
 L«C<.infinite>|/type/Range#method_infinite», and
 L«C<.is-int>|/type/Range#method_is-int» as named arguments.
+
+
+=head2 method clone-with-op
+
+Defined as
+
+    method clone-with-op(&op, $value --> Range:D)
+
+The method clones the target range applying the specified
+operator C<op> with the specified C<value> to the current C<Range>
+boundaries.
+
+For instance:
+
+=begin code
+my $r = 1..5;
+my $r-plus     = $r.clone-with-op( &[+], 7 );   # produces 8..12
+my $r-minus    = $r.clone-with-op( &[-], 7 );   # produces -6..-2
+my $r-multiply = $r.clone-with-op( &[*], 2 );   # produces 2..10
+=end code
+
+The method applies the specified operator to the C<min> and C<max>
+properties of the C<Range>.
+
+It is possible to clone non-numeric ranges, but both the operator and
+value must be of the according type:
+
+=begin code
+my $r = 'a'..'c';
+my $r-cat = $r.clone-with-op( &[~], 'd' );  # produces 'ad'..'cd'
+=end code
 
 =end pod
 

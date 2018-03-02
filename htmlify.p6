@@ -229,7 +229,7 @@ sub MAIN(
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
 
-    spurt('html/links.txt', $url-log.URLS.sort.unique.join("\n"));
+    spurt('links.txt', $url-log.URLS.sort.unique.join("\n"));
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {

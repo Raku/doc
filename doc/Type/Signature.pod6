@@ -58,11 +58,19 @@ Smart matching signatures against a List is supported.
     my $sig = :(Int $i, Str $s);
     say (10, 'answer') ~~ $sig;
     # OUTPUT: «True␤»
-    given ('answer', 10) {
-        when :(Str, Int) { say 'match' }
-        when $sig { say 'mismatch' }
+    my $ßub = sub ( Str $ß, Int $þ ) { return $ß xx $þ };
+    say $ßub.signature ~~ :( Str, Int );
+    # OUTPUT: «True␤»
+    given $sig {
+        when :(Str, Int) { say 'mismatch' }
+        when :($, $)     { say 'match' }
+        default          { say 'no match' }
     }
     # OUTPUT: «match␤»
+
+It matches the second C<when> clause since C<:($, $)> represents a
+C<Signature> with two scalar, anonymous, arguments, which is a more general
+version of C<$sig>.
 
 When smart matching against a Hash, the signature is assumed to consist of the keys of the Hash.
 
@@ -126,7 +134,12 @@ a true value to pass the type check
 
     sub f(Real $x where { $x > 0 }, Real $y where { $y >= $x }) { }
 
-In fact it doesn't need to be a code block, anything on the right of the
+The code in C<where> clauses has some limitations: anything that produces side-effects (e.g.
+printing output, pulling from an iterator, or increasing a state variable) is not supported
+and may produce surprising results if used. Also, the code of the C<where> clause may run more
+than once for a single typecheck in some implementations.
+
+The C<where> clause doesn't need to be a code block, anything on the right of the
 C<where>-clause will be used to L<smart-match|/language/operators#infix_~~> the
 argument against it.  So you can also write:
 
@@ -165,10 +178,6 @@ the C<where>-clause inside the sub-signature.
         $a // $b // $c
     };
     say one-of-them(c=>42); # OUTPUT: «42␤»
-
-Note: where-clauses that produce side-effects (e.g. printing output,
-pulling from an iterator, or increasing a state variable) are not supported
-and may produce surprising results if used.
 
 =head3 Constraining Optional Arguments
 
