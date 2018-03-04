@@ -690,6 +690,254 @@ sub MessageBoxA(int32, Str, Str, int32)
 
 MessageBoxA(0, "We have NativeCall", "ohai", 64);
 =end code
+=head2 Short Tutorial on calling a C function
+
+This is an example for calling a standard function and use the returned
+information in a Perl 6 program.
+
+C<getaddrinfo> is a POSIX standard function for obtaining network information
+about a network node, eg. C<google.com>. It is an interesting function to look at because
+it illustrates a number of the elements of NativeCall.
+
+The Linux manual provides the following information about the C callable function:
+=begin code
+int getaddrinfo(const char *node, const char *service,
+       const struct addrinfo *hints,
+       struct addrinfo **res);
+=end code
+
+The function returns a response code 0 = error, 1 = success. The data is
+extracted from a linked list of C<addrinfo> elements, with the first element
+pointed to by C<res>.
+
+From the table of NativeCall Types we know that an C<int> is C<int32>.
+We also know that a C<char *> is one of the forms for a C C<Str>, which maps
+simply to Str.
+But C<addrinfo> is a structure, which means we
+will need to write our own Type class. However, the function declaration is
+straightforward:
+=begin code
+sub getaddrinfo( Str $node, Str $service, Addrinfo $hints, Pointer $res is rw )
+    returns int32
+    is native(Str)
+    { * }
+=end code
+Note that $res is to be written by the function, so it must be labeled as rw.
+Since the library is standard POSIX, the library name can be the Type
+definition or null.
+
+We now have to handle structure Addrinfo. The Linux Manual provides this
+information:
+=begin code
+struct addrinfo {
+               int              ai_flags;
+               int              ai_family;
+               int              ai_socktype;
+               int              ai_protocol;
+               socklen_t        ai_addrlen;
+               struct sockaddr *ai_addr;
+               char            *ai_canonname;
+               struct addrinfo *ai_next;
+           };
+=end code
+The C<int, char*> parts are straightforward. Some research indicates that C<socklen_t>
+can be architecture dependent, but is an unsigned integer of at least 32 bits.
+So C<socklen_t> can be mapped
+to the C<uint32> type.
+
+The complication is C<sockaddr> which differs depending on whether C<ai_socktype>
+is undefined, INET or INET6 (a standard v4 IP address or a v6 address).
+
+So we create a Perl 6 C<class> to map to the C C<struct addrinfo>
+=begin code
+class Addrinfo is repr('CStruct') {
+    has int32     $.ai_flags;
+    has int32     $.ai_family;
+    has int32     $.ai_socktype;
+    has int32     $.ai_protocol;
+    has int32     $.ai_addrlen;
+    has SockAddr  $.ai_addr       is rw;
+    has Str       $.ai_cannonname is rw;
+    has Addrinfo  $.ai_next       is rw;
+
+}
+=end code
+
+The C<is rw> on the last three attributes reflects that these were defined in C to be pointers.
+
+The important thing here for mapping to a C C<Struct> is the structure of the state part of the class, that is the attributes.
+However, a class can have methods and C<NativeCall> does not 'touch' them for mapping to C.
+This means that we can add extra methods to the class to unpack the attributes in a more
+readable manner, eg.
+=begin code
+method flags {
+        do for AddrInfo-Flags.enums { .key if $!ai_flags +| .value }
+    }
+=end code
+
+By definining an appropriate C<enum>, C<flags> will return a string of keys,
+rather than a bit packed integer.
+
+The most useful information in the C<sockaddr> structure is the address of
+node, which depends on the family of the Socket.  So we can add method
+C<address> to the Perl 6 class that interprets the address depending on the
+family.
+
+In order to get human readable IP address, there is the C funtion C<inet_ntop>
+which returns a C<char *> given
+a buffer with the C<addrinfo>.
+
+Putting all these together, leads to the following program:
+=begin code
+#!/usr/bin/env perl6
+use v6;
+use NativeCall;
+
+constant \INET_ADDRSTRLEN = 16;
+constant \INET6_ADDRSTRLEN = 46;
+
+enum AddrInfo-Family (
+    AF_UNSPEC                   => 0;
+    AF_INET                     => 2;
+    AF_INET6                    => 10;
+);
+
+enum AddrInfo-Socktype (
+    SOCK_STREAM                 => 1;
+    SOCK_DGRAM                  => 2;
+    SOCK_RAW                    => 3;
+    SOCK_RDM                    => 4;
+    SOCK_SEQPACKET              => 5;
+    SOCK_DCCP                   => 6;
+    SOCK_PACKET                 => 10;
+);
+
+enum AddrInfo-Flags (
+    AI_PASSIVE                  => 0x0001;
+    AI_CANONNAME                => 0x0002;
+    AI_NUMERICHOST              => 0x0004;
+    AI_V4MAPPED                 => 0x0008;
+    AI_ALL                      => 0x0010;
+    AI_ADDRCONFIG               => 0x0020;
+    AI_IDN                      => 0x0040;
+    AI_CANONIDN                 => 0x0080;
+    AI_IDN_ALLOW_UNASSIGNED     => 0x0100;
+    AI_IDN_USE_STD3_ASCII_RULES => 0x0200;
+    AI_NUMERICSERV              => 0x0400;
+);
+
+sub inet_ntop(int32, Pointer, Blob, int32 --> Str)
+    is native() {}
+
+class SockAddr is repr('CStruct') {
+    has uint16 $.sa_family;
+}
+
+class SockAddr-in is repr('CStruct') {
+    has int16 $.sin_family;
+    has uint16 $.sin_port;
+    has uint32 $.sin_addr;
+
+    method address {
+        my $buf = buf8.allocate(INET_ADDRSTRLEN);
+        inet_ntop(AF_INET, Pointer.new(nativecast(Pointer,self)+4),
+            $buf, INET_ADDRSTRLEN)
+    }
+}
+
+class SockAddr-in6 is repr('CStruct') {
+    has uint16 $.sin6_family;
+    has uint16 $.sin6_port;
+    has uint32 $.sin6_flowinfo;
+    has uint64 $.sin6_addr0;
+    has uint64 $.sin6_addr1;
+    has uint32 $.sin6_scope_id;
+
+    method address {
+        my $buf = buf8.allocate(INET6_ADDRSTRLEN);
+        inet_ntop(AF_INET6, Pointer.new(nativecast(Pointer,self)+8),
+            $buf, INET6_ADDRSTRLEN)
+    }
+}
+
+class Addrinfo is repr('CStruct') {
+    has int32 $.ai_flags;
+    has int32 $.ai_family;
+    has int32 $.ai_socktype;
+    has int32 $.ai_protocol;
+    has uint32 $.ai_addrNativeCalllen;
+    has SockAddr $.ai_addr is rw;
+    has Str $.ai_cannonname is rw;
+    has Addrinfo $.ai_next is rw;
+
+    method flags {
+        do for AddrInfo-Flags.enums { .key if $!ai_flags +| .value }
+    }
+
+    method family {
+        AddrInfo-Family($!ai_family)
+    }
+
+    method socktype {
+        AddrInfo-Socktype($!ai_socktype)
+    }
+
+    method address {
+        given $.family {
+            when AF_INET {
+                nativecast(SockAddr-in, $!ai_addr).address
+            }
+            when AF_INET6 {
+                nativecast(SockAddr-in6, $!ai_addr).address
+            }
+        }
+    }
+}
+
+sub getaddrinfo(Str $node, Str $service, Addrinfo $hints,
+                Pointer $res is rw --> int32)
+    is native() {};
+
+sub freeaddrinfo(Pointer)
+    is native() {}
+
+sub MAIN() {
+    my Addrinfo $hint .= new(:ai_flags(AI_CANONNAME));
+    my Pointer $res .= new;
+    my $rv = getaddrinfo("google.com", Str, $hint, $res);
+    say "return val: $rv";
+    if ( ! $rv ) {
+        my $addr = nativecast(Addrinfo, $res);
+        while $addr
+        {
+            with $addr {
+                say "Name: ", $_ with .ai_cannonname;
+                say .family, ' ', .socktype;
+                say .address;
+                $addr = .ai_next;
+            }
+        }
+    }
+    freeaddrinfo($res);
+}
+=end code
+This produces the following output
+=begin code
+return val: 0
+Name: google.com
+AF_INET SOCK_STREAM
+216.58.219.206
+AF_INET SOCK_DGRAM
+216.58.219.206
+AF_INET SOCK_RAW
+216.58.219.206
+AF_INET6 SOCK_STREAM
+2607:f8b0:4006:800::200e
+AF_INET6 SOCK_DGRAM
+2607:f8b0:4006:800::200e
+AF_INET6 SOCK_RAW
+2607:f8b0:4006:800::200e
+=end code
 
 =end pod
 
