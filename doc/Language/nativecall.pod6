@@ -690,23 +690,25 @@ sub MessageBoxA(int32, Str, Str, int32)
 
 MessageBoxA(0, "We have NativeCall", "ohai", 64);
 =end code
+
 =head2 Short Tutorial on calling a C function
 
-This is an example for calling a standard function and use the returned
+This is an example for calling a standard function and using the returned
 information in a Perl 6 program.
 
 C<getaddrinfo> is a POSIX standard function for obtaining network information
-about a network node, eg. C<google.com>. It is an interesting function to look at because
+about a network node, e.g., C<google.com>. It is an interesting function to look at because
 it illustrates a number of the elements of NativeCall.
 
 The Linux manual provides the following information about the C callable function:
+
 =begin code
 int getaddrinfo(const char *node, const char *service,
        const struct addrinfo *hints,
        struct addrinfo **res);
 =end code
 
-The function returns a response code 0 = error, 1 = success. The data is
+The function returns a response code 0 = error, 1 = success. The data are
 extracted from a linked list of C<addrinfo> elements, with the first element
 pointed to by C<res>.
 
@@ -716,18 +718,21 @@ simply to Str.
 But C<addrinfo> is a structure, which means we
 will need to write our own Type class. However, the function declaration is
 straightforward:
+
 =begin code
 sub getaddrinfo( Str $node, Str $service, Addrinfo $hints, Pointer $res is rw )
     returns int32
     is native(Str)
     { * }
 =end code
+
 Note that $res is to be written by the function, so it must be labeled as rw.
 Since the library is standard POSIX, the library name can be the Type
 definition or null.
 
 We now have to handle structure Addrinfo. The Linux Manual provides this
 information:
+
 =begin code
 struct addrinfo {
                int              ai_flags;
@@ -740,15 +745,17 @@ struct addrinfo {
                struct addrinfo *ai_next;
            };
 =end code
+
 The C<int, char*> parts are straightforward. Some research indicates that C<socklen_t>
 can be architecture dependent, but is an unsigned integer of at least 32 bits.
 So C<socklen_t> can be mapped
 to the C<uint32> type.
 
 The complication is C<sockaddr> which differs depending on whether C<ai_socktype>
-is undefined, INET or INET6 (a standard v4 IP address or a v6 address).
+is undefined, INET, or INET6 (a standard v4 IP address or a v6 address).
 
 So we create a Perl 6 C<class> to map to the C C<struct addrinfo>
+
 =begin code
 class Addrinfo is repr('CStruct') {
     has int32     $.ai_flags;
@@ -768,14 +775,15 @@ The C<is rw> on the last three attributes reflects that these were defined in C 
 The important thing here for mapping to a C C<Struct> is the structure of the state part of the class, that is the attributes.
 However, a class can have methods and C<NativeCall> does not 'touch' them for mapping to C.
 This means that we can add extra methods to the class to unpack the attributes in a more
-readable manner, eg.
+readable manner, e.g.,
+
 =begin code
 method flags {
         do for AddrInfo-Flags.enums { .key if $!ai_flags +| .value }
     }
 =end code
 
-By definining an appropriate C<enum>, C<flags> will return a string of keys,
+By defining an appropriate C<enum>, C<flags> will return a string of keys
 rather than a bit packed integer.
 
 The most useful information in the C<sockaddr> structure is the address of
@@ -783,11 +791,12 @@ node, which depends on the family of the Socket.  So we can add method
 C<address> to the Perl 6 class that interprets the address depending on the
 family.
 
-In order to get human readable IP address, there is the C funtion C<inet_ntop>
+In order to get a human readable IP address, there is the C funtion C<inet_ntop>
 which returns a C<char *> given
 a buffer with the C<addrinfo>.
 
 Putting all these together, leads to the following program:
+
 =begin code
 #!/usr/bin/env perl6
 use v6;
@@ -908,8 +917,7 @@ sub MAIN() {
     say "return val: $rv";
     if ( ! $rv ) {
         my $addr = nativecast(Addrinfo, $res);
-        while $addr
-        {
+        while $addr {
             with $addr {
                 say "Name: ", $_ with .ai_cannonname;
                 say .family, ' ', .socktype;
@@ -921,7 +929,9 @@ sub MAIN() {
     freeaddrinfo($res);
 }
 =end code
-This produces the following output
+
+This produces the following output:
+
 =begin code
 return val: 0
 Name: google.com
