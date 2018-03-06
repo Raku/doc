@@ -719,7 +719,23 @@ But C<addrinfo> is a structure, which means we
 will need to write our own Type class. However, the function declaration is
 straightforward:
 
-=begin code :skip-test
+=begin code :method :preamble<use NativeCall;
+class SockAddr is repr('CStruct') {
+    has int32    $.sa_family;
+    has Str      $.sa_data;
+};
+class Addrinfo is repr('CStruct') {
+    has int32     $.ai_flags;
+    has int32     $.ai_family;
+    has int32     $.ai_socktype;
+    has int32     $.ai_protocol;
+    has int32     $.ai_addrlen;
+    has SockAddr  $.ai_addr       is rw;
+    has Str       $.ai_cannonname is rw;
+    has Addrinfo  $.ai_next       is rw;
+
+};
+>
 sub getaddrinfo( Str $node, Str $service, Addrinfo $hints, Pointer $res is rw )
     returns int32
     is native(Str)
@@ -782,7 +798,7 @@ However, a class can have methods and C<NativeCall> does not 'touch' them for ma
 This means that we can add extra methods to the class to unpack the attributes in a more
 readable manner, e.g.,
 
-=begin code :skip-test
+=begin code :skip-test<should be compiled as part of Addrinfo defined above>
 method flags {
     do for AddrInfo-Flags.enums { .key if $!ai_flags +| .value }
 }
@@ -802,7 +818,9 @@ a buffer with the C<addrinfo>.
 
 Putting all these together, leads to the following program:
 
-=begin code :skip-test
+=begin code :skip-test<Code works as is. Error with compilation maybe related to wrapping>
+#!/usr/bin/env perl6
+
 use v6;
 use NativeCall;
 
