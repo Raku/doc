@@ -56,7 +56,7 @@ You can allow it with ok-test:
 If a code snippet looks like a method declaration, it's automatically
 wrapped in additional code so you don't have to specify a body in the docs.
 Multi-line method signatures are much harder to detect, so if you have a
-method body that spans likes, use the `:method` tag:
+method body that spans lines, use the `:method` tag:
 
     =begin code :method
         method arg (
