@@ -882,8 +882,9 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
 # XXX: Only handles normal routines, not types nor operators
 sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
     say "Writing html/$kind-$category.html ...";
+    my $this-category = $category.tc eq "Exceptions" ?? "Exception" !! $category.tc;
     spurt "html/$kind-$category.html", p2h(pod-with-title(
-        "Perl 6 {$category.tc} {$kind.tc}s",
+        "Perl 6 {$this-category} {$kind.tc}s",
         pod-table($*DR.lookup($kind, :by<kind>)\
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
