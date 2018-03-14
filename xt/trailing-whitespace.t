@@ -11,6 +11,7 @@ my @files = Test-Files.files\
     .grep({! $_.contains: 'util/trigger-rebuild.txt'})\
     .grep({! $_.contains: 'jquery'})\
     .grep({! $_.ends-with: '.png'})\
+    .grep({! $_.ends-with: '.svg'})\
     .grep({! $_.ends-with: '.ico'});
 
 plan +@files;
