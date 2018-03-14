@@ -125,11 +125,10 @@ sub header-html($current-selection, $pod-path) is cached {
 
     $header.subst('MENU', $menu-items ~ $sub-menu-items)
            .subst('EDITURL', $edit-url)
-           .subst('CONTENT_CLASS',
+           .subst: 'CONTENT_CLASS',
                 'content_' ~ ($pod-path
-                    ??  $pod-path.subst(/\.pod6$/, '').subst(/\W/, '_')
-                    !! 'fragment')
-            :g);
+                    ??  $pod-path.subst(/\.pod6$/, '').subst(/\W/, '_', :g)
+                    !! 'fragment');
 }
 
 sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
