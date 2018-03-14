@@ -73,7 +73,11 @@ You can then view the examples documentation by pointing your web browser at
 [http://localhost:3000](http://localhost:3000).
 
 You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
-installed and you will need [nodejs](https://nodejs.org) to perform highlighting.
+installed and you will need [nodejs](https://nodejs.org) to perform
+highlighting. There are also some additional modules you might need;
+install them all using
+
+    $ cpanm --installdeps .
 
 ---------
 
