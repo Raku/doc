@@ -12,6 +12,7 @@ plan +@files;
 for @files.sort -> $file {
     my $ok = True;
     my $row = 0;
+    my @bad;
     for $file.IO.slurp.lines -> $line {
         $row++;
         if $line ~~ / ^ \s+ / {
@@ -20,13 +21,14 @@ for @files.sort -> $file {
         for $line ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
             my $spaces = ~$match<space>;
             if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
-                $ok = False; last;
+                $ok = False;
+                @bad.push: $row;
             }
         }
     }
     my $error = $file;
     if !$ok {
-        $error ~= " (line $row)";
+        $error ~= " (line{@bad>1 ?? "s" !! ""} {@bad.join: ', '})";
     }
     ok $ok, "$error: Perl followed by a version should have a single non-breaking space." ;
 }
