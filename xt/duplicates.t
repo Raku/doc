@@ -48,7 +48,12 @@ for @files -> $file {
 
         next if $in-code;
 
-        my @line-dupes = ($line ~~ m:g/:i << (<alpha>+) >> \s+ << $0 >> /).map(~*[0]);
+        my @line-dupes = ($line ~~ m:g/:i
+            << (<alpha>+) >> \s+ << $0 >>
+
+            # exlude "C C<...>" false positives
+            [ '<' <!{ $0.chars == 1 }> | <![<]> ]
+        /).map(~*[0]);
         for @line-dupes -> $dupe {
             next if $safe-dups ∋ ~$dupe[0];
             @dupes.push: "“" ~ $dupe[0] ~ "” on line $line-num";
