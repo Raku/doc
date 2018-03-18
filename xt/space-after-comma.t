@@ -31,7 +31,7 @@ sub test-it(Str $output, Str $file) {
     for $output.lines -> $line-orig {
         next if $line-orig ~~ / ^ '    '/;
         my $line = $line-orig;
-	
+
         # ignore these cases already in docs/ that don't strictly follow rule
         $line ~~ s:g/ "','" //;
         $line ~~ s:g/ '","' //;
@@ -49,13 +49,13 @@ sub test-it(Str $output, Str $file) {
         $line ~~ s:g/ << 'thing,category' >> //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
-	    $msg ~= "Must have space after comma on line `$line`\n";
+            $msg ~= "Must have space after comma on line `$line`\n";
             diag "Failure on line `$line`";
-            $ok = False;	    
+            $ok = False;
         }
 
-	if $line-orig ~~ / <alpha> '..' (<space> | $) / {
-	    $msg ~= "File contains .. in `$line-orig`\n";
+        if $line-orig ~~ / <alpha> '..' (<space> | $) / {
+            $msg ~= "File contains .. in `$line-orig`\n";
             diag "Failure on line `$line`";
             $ok = False;
         }
