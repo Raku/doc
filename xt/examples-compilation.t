@@ -80,7 +80,7 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = 'BEGIN $*LANG.set_pragma("no-worries",1);';
+    my $code = 'no worries; ';
     $code ~= "if False \{\nclass :: \{\n";
     $code ~= $eg<preamble> ~ ";\n";
 
