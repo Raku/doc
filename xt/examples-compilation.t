@@ -18,6 +18,11 @@ avoid requiring a body.
 Skip any bits marked :skip-test unless the environment variable
 P6_DOC_TEST_FUDGE is set to a true value.
 
+Note: This test generates a lot of noisy output to stderr; we
+do hide $*ERR, but some of these are emitted from parts of
+the compiler that only know about the low level handle, not the
+Perl 6 level one.
+
 =end overview
 
 my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
