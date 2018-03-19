@@ -7,7 +7,7 @@ use Test-Files;
 
 =begin overview
 
-Insure any text that isn't a code example has valid POD6
+Ensure any text that isn't a code example has valid POD6
 
 =end overview
 
