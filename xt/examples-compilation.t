@@ -2,7 +2,6 @@
 
 use v6;
 use Test;
-use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
@@ -64,7 +63,6 @@ for @files -> $file {
 my $proc;
 plan +@examples;
 
-my $dummy-io = IO::String.new();
 for @examples -> $eg {
     use MONKEY-SEE-NO-EVAL;
 
@@ -102,8 +100,8 @@ for @examples -> $eg {
 
     my $status;
     {
-        $*OUT = $dummy-io;
-        $*ERR = $dummy-io;
+        temp $*OUT = open :w, $*SPEC.devnull;
+        temp $*ERR = open :w, $*SPEC.devnull;
         try EVAL $code;
         $status = $!;
     }
