@@ -25,6 +25,7 @@ sub test-it($job) {
 }
 
 my @jobs;
+%data{@files} = 0 xx @files;
 for @files -> $file {
     my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
     $p.stdout.tap(-> $buf {});
