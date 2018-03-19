@@ -7,15 +7,13 @@ use Test-Files;
 
 =begin overview
 
-Ensure any text that isn't a code example has valid POD6.
-Specify a file as an argument to test just that file. Otherwise, tests
-all .pod6 and .t files it can find.
+Ensure any text that isn't a code example has valid POD6
 
 =end overview
 
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
-my @files = @*ARGS || Test-Files.files.grep({$_.ends-with: '.pod6'|'.t'});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.t'});
 
 plan +@files;
 
