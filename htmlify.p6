@@ -749,7 +749,7 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g) }" \}]] #"
+                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g).subst(｢?｣, ｢%3F｣, :g) }" \}]] #"
             }
     }).flat;
 
