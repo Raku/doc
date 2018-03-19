@@ -161,7 +161,7 @@ explains briefly how to get started contributing documentation.
 
 # ENV VARS
 
-Set `PERL6_DOC_TEST_VERSBOSE` to a true value to display verbose messages during test suite run.
+- `P6_DOC_TEST_VERSBOSE` to a true value to display verbose messages during test suite run.
 Helpful when debugging failing test suite.
 
 # LICENSE
