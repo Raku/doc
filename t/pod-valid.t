@@ -13,7 +13,7 @@ Insure any text that isn't a code example has valid POD6
 
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.t'});
 
 plan +@files;
 
