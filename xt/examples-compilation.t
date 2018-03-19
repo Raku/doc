@@ -1,6 +1,14 @@
 #!/usr/bin/env perl6
 
 use v6;
+
+{
+    # Cache no worries pragma; workaround for https://github.com/rakudo/rakudo/issues/1630
+    # to avoid warnings produced from regexes when we're compiling examples.
+    no worries;
+    "" ~~ /./;
+}
+
 use Test;
 
 use lib 'lib';
