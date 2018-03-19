@@ -159,6 +159,11 @@ explains briefly how to get started contributing documentation.
         #= P<p6doc/&note>
         sub note(|$) { ... }
 
+# ENV VARS
+
+Set `PERL6_DOC_TEST_VERSBOSE` to a true value to display verbose messages during test suite run.
+Helpful when debugging failing test suite.
+
 # LICENSE
 
 See [LICENSE](LICENSE) file for the details of the license of the code in this repository.

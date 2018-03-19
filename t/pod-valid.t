@@ -28,8 +28,11 @@ my @jobs;
 %data{@files} = 0 xx @files;
 for @files -> $file {
     my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-    $p.stdout.tap(-> $buf {});
-    $p.stderr.tap(-> $buf { %data{$file} = 1 });
+    $p.stdout.tap: {;};
+    $p.stderr.tap: {
+        %*ENV<PERL6_DOC_TEST_VERSBOSE> and diag "$file STDERR: $_";
+        %data{$file} = 1;
+    }
     push @jobs: $p.start;
     if +@jobs > $max-jobs {
         test-it(await @jobs.shift);
