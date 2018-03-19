@@ -32,10 +32,6 @@ sub test-promise($promise) {
     test-it(%output{$file}, $file);
 }
 
-my token word-min { <+alpha +digit +[']> };
-my token word-max { <word-min> | <[$@%()-]> };
-my token word-sep { <[,.;]> };
-
 sub test-it(Str $output, Str $file) {
     my $ok = True;
 
@@ -51,13 +47,7 @@ sub test-it(Str $output, Str $file) {
         }
         next unless $line.chars;
 
-        $line.=subst(/<< 'http' <+alpha +digit +[:/.]>+ /,'RANDOMURL'); # ignore URLS
-
-        # be slightly generous about what we consider a word
-        #my @words = |$last-word, $line.comb: /(<word-max>+ <word-sep>?)/;
         my @words = |$last-word, $line.words.grep: *.chars;
-        # but insure words have at least one letter.
-        #@words = @words.grep(/<word-min>/);
 
         if $line.ends-with('.') {
             $last-word = '';
@@ -67,7 +57,10 @@ sub test-it(Str $output, Str $file) {
 
         my @line-dupes = @words.rotor(2=> -1).grep({$_[0] eq $_[1]}).map({$_[0]});
         for @line-dupes -> $dupe {
+            # explicitly allowed duplicates
             next if $safe-dupes ∋ ~$dupe[0];
+            # Single characters that are probably fine
+            next if $dupe ~~ /^ [<:Sm>|<:CS>] $/;
             @dupes.push: "“" ~ $dupe[0] ~ "” on line $line-num";
         }
     }
