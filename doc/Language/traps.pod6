@@ -1396,6 +1396,31 @@ your C<LEAVE> block is defined:
 LEAVE say .Int with $x
 =end code
 
+=head1 Grammars
+
+=head2 Using regexes within grammar's actions.
+
+=begin code :skip-test
+grammar will-fail {
+    token TOP {^ <word> $}
+    token word { \w+ }
+}
+
+class will-fail-actions {
+    method TOP ($/) { my $foo = ~$/; say $foo ~~ /foo/;  }	
+}
+=end code
+
+Will fail with C<Cannot assign to a readonly variable ($/) or a value>
+on method C<TOP>. The problem here is that regular expressions also
+affect C<$/>. Since it is in C<TOP>'s signature, it is a read-only
+variable, which is what produces the error. You can safely either use
+another variable in the signature or add `is copy`, this way:
+
+=begin code
+method TOP ($/ is copy) { my $foo = ~$/; my $v = $foo ~~ /foo/;  }
+=end code
+
 =head1 Unfortunate generalization
 
 =head2 C<:exists> with more than one key
