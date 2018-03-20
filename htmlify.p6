@@ -912,7 +912,7 @@ sub write-kind($kind) {
             my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
                 "$subkind $name",
-                pod-block("Documentation for $subkind $name, assembled from the following types:"),
+                pod-block("Documentation for $subkind ", pod-code($name), " assembled from the following types:"),
                 @docs.map({
                     pod-heading("{.origin.human-kind} {.origin.name}"),
                     pod-block("From ",
