@@ -1,8 +1,15 @@
 #!/usr/bin/env perl6
 
 use v6;
+
+{
+    # Cache no worries pragma; workaround for https://github.com/rakudo/rakudo/issues/1630
+    # to avoid warnings produced from regexes when we're compiling examples.
+    no worries;
+    "" ~~ /./;
+}
+
 use Test;
-use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
@@ -17,6 +24,11 @@ avoid requiring a body.
 
 Skip any bits marked :skip-test unless the environment variable
 P6_DOC_TEST_FUDGE is set to a true value.
+
+Note: This test generates a lot of noisy output to stderr; we
+do hide $*ERR, but some of these are emitted from parts of
+the compiler that only know about the low level handle, not the
+Perl 6 level one.
 
 =end overview
 
@@ -59,7 +71,6 @@ for @files -> $file {
 my $proc;
 plan +@examples;
 
-my $dummy-io = IO::String.new();
 for @examples -> $eg {
     use MONKEY-SEE-NO-EVAL;
 
@@ -77,7 +88,7 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = 'BEGIN $*LANG.set_pragma("no-worries",1);';
+    my $code = 'no worries; ';
     $code ~= "if False \{\nclass :: \{\n";
     $code ~= $eg<preamble> ~ ";\n";
 
@@ -97,8 +108,8 @@ for @examples -> $eg {
 
     my $status;
     {
-        $*OUT = $dummy-io;
-        $*ERR = $dummy-io;
+        temp $*OUT = open :w, $*SPEC.devnull;
+        temp $*ERR = open :w, $*SPEC.devnull;
         try EVAL $code;
         $status = $!;
     }

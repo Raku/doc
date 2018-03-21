@@ -73,6 +73,13 @@ sub pod-bold($text) is export {
     );
 }
 
+sub pod-code($text) is export {
+    Pod::FormattingCode.new(
+        type     => 'C',
+        contents => [$text],
+    );
+}
+
 sub pod-item(*@contents, :$level = 1) is export {
     Pod::Item.new(
         :$level,

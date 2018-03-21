@@ -652,6 +652,35 @@ my %h = V => 'oi‽', ::V => 42;
 say %h.perl
 # OUTPUT: «{:V("oi‽"), :x(42)}␤»
 
+=head2 Infix operator assignment
+
+Infix operators, both built in and user defined, can be combined with the
+assignment operator as this addition example demonstrates:
+
+    my $x = 10;
+    $x += 20;
+    say $x;     # OUTPUT: «30␤»
+
+For any given infix operator C<op>, C<L op= R> is equivalent to C<L = L op R>
+(where C<L> and C<R> are the left and right arguments, respectively).
+This means that the following code may not behave as expected:
+
+    my @a = 1, 2, 3;
+    @a += 10;
+    say @a;  # OUTPUT: «[13]␤»
+
+Coming from a language like C++, this might seem odd. It is important to bear
+in mind that C<+=> isn't defined as method on the left hand argument
+(here the C<@a> array) but is simply shorthand for:
+
+    my @a = 1, 2, 3;
+    @a = @a + 10;
+    say @a;  # OUTPUT: «[13]␤»
+
+Here C<@a> is assigned the result of adding C<@a> (which has three elements)
+and C<10>; C<13> is therefore placed in C<@a>.
+
+
 =head1 Regexes
 
 =head2 C«<{$x}>» vs C«$($x)»: Implicit EVAL
@@ -732,6 +761,27 @@ is changed accordingly to the result of the match (that could also be C<Nil>).
 The C<$/> is changed without any regard to the scope the regular expression is matched within.
 
 For further information and examples please see the L<related section in the Regular Expressions documentation|/language/regexes.html#$/_changes_each_time_a_regular_expression_is_matched>.
+
+=head2 C«<foo>» vs. C«< foo>»: named rules vs. quoted lists
+
+Regexes can contain quoted lists; longest token matching is performed on the
+list's elements as if a C<|> alternation had been specified (see
+L<here|/language/regexes#Quoted_lists_are_LTM_matches> for further information).
+
+Within a regex, the following are lists with a single item, C<'foo'>:
+
+    say 'foo' ~~ /< foo >/;  # OUTPUT: «｢foo｣␤»
+    say 'foo' ~~ /< foo>/;   # OUTPUT: «｢foo｣␤»
+
+but this is a call to the named rule C<foo>:
+
+=begin code :skip-test
+say 'foo' ~~ /<foo>/;
+# OUTPUT: «No such method 'foo' for invocant of type 'Match'␤ in block <unit> at <unknown file> line 1␤»
+=end code
+
+Be wary of the difference; if you intend to use a quoted list, ensure that
+whitespace follows the initial C«<».
 
 =head1 Common Precedence Mistakes
 
@@ -1365,6 +1415,31 @@ your C<LEAVE> block is defined:
 
 =begin code :skip-test
 LEAVE say .Int with $x
+=end code
+
+=head1 Grammars
+
+=head2 Using regexes within grammar's actions.
+
+=begin code :skip-test
+grammar will-fail {
+    token TOP {^ <word> $}
+    token word { \w+ }
+}
+
+class will-fail-actions {
+    method TOP ($/) { my $foo = ~$/; say $foo ~~ /foo/;  }
+}
+=end code
+
+Will fail with C<Cannot assign to a readonly variable ($/) or a value>
+on method C<TOP>. The problem here is that regular expressions also
+affect C<$/>. Since it is in C<TOP>'s signature, it is a read-only
+variable, which is what produces the error. You can safely either use
+another variable in the signature or add `is copy`, this way:
+
+=begin code
+method TOP ($/ is copy) { my $foo = ~$/; my $v = $foo ~~ /foo/;  }
 =end code
 
 =head1 Unfortunate generalization

@@ -749,7 +749,9 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g) }" \}]] #"
+                }", value: "$name",
+                    url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g).subst(｢?｣, ｢%3F｣, :g) }" \}
+                  ]] # " and ?
             }
     }).flat;
 
@@ -910,7 +912,7 @@ sub write-kind($kind) {
             my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
                 "$subkind $name",
-                pod-block("Documentation for $subkind $name, assembled from the following types:"),
+                pod-block("Documentation for $subkind ", pod-code($name), " assembled from the following types:"),
                 @docs.map({
                     pod-heading("{.origin.human-kind} {.origin.name}"),
                     pod-block("From ",

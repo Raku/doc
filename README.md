@@ -159,6 +159,12 @@ explains briefly how to get started contributing documentation.
         #= P<p6doc/&note>
         sub note(|$) { ... }
 
+# ENV VARS
+
+- `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
+Helpful when debugging failing test suite.
+- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test
+
 # LICENSE
 
 See [LICENSE](LICENSE) file for the details of the license of the code in this repository.

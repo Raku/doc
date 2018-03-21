@@ -958,81 +958,86 @@ C<redo> statements inside C<&with>:
 
 Defined as:
 
-    multi sub    combinations($n, $k                     --> Seq:D)
-    multi method combinations(List:D: Int:D $of          --> Seq:D)
+    multi sub    combinations($from, $of = 0..*          --> Seq:D)
+    multi method combinations(List:D: Int() $of          --> Seq:D)
     multi method combinations(List:D: Range:D $of = 0..* --> Seq:D)
 
-The C<Int> variant returns all C<$of>-combinations of the invocant list.
-For example
+Returns a L<Seq> with all C<$of>-combinations of the invocant list.
+C<$of> can be a numeric L<Range>, in which
+case combinations of the range of item numbers it represents will be returned (i.e. C<2.6 .. 4>
+will return 2-, 3-, and 4-item combinations>). Otherwise, C<$of> is coerced to an L<Int>.
 
-    say .join('|') for <a b c>.combinations(2);
-    # OUTPUT: «a|b␤
-    # a|c␤
-    # b|c␤»
+    .say for <a b c>.combinations: 2;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
 
-because all the 2-combinations of C<'a', 'b', 'c'> are
-C<['a', 'b'], ['a', 'c'], ['b', 'c']>.
+Above, there are three possible ways to combine the 2-items lists from the original list, which
+is what we receive in the output. See L<permutations> if you want permutations instead of
+combinations.
 
-The C<Range> variant combines all the individual combinations into a single
-list, so
+With L<Range> argument, we get both three 2-item combinations and one 3-item combination:
 
-    say .join('|') for <a b c>.combinations(2..3);
-    # OUTPUT: «a|b
-    # a|c␤
-    # b|c␤
-    # a|b|c␤»
+    .say for <a b c>.combinations: 2..3;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
+    # (a b c)
 
-because that's the list of all 2- and 3-combinations.
-
-The subroutine form C<combinations($n, $k)> is equivalent to
-C<(^$n).combinations($k)>, so
-
-    .say for combinations(4, 2)
-    # OUTPUT: «0 1
-    # 0 2␤
-    # 0 3␤
-    # 1 2␤
-    # 1 3␤
-    # 2 3␤»
-
-If C<$k> is negative or is larger than there are items in the given list, an
-empty list will be returned. If C<$k> is zero, a 1-item list containing an empty
+If C<$of> is negative or is larger than there are items in the given list, an
+empty list will be returned. If C<$of> is zero, a 1-item list containing an empty
 list will be returned (there's exactly 1 way to pick no items).
 
-B<Note:> some implementations may limit the maximum C<$n>. On Rakudo, 64-bit
-systems have a limit of C<2³¹-1> and 32-bit systems have a limit of C<2²⁸-1>.
+The subroutine form is equivalent to the method form called on the first argument (C<$from>), with
+the exception that if C<$from> is not an L<Iterable>, it gets coerced to an C<Int> and combinations
+are made from a L<Range> constructed with C<0..^$from> instead:
+
+    .say for combinations 3, 2
+    # OUTPUT:
+    # (0 1)
+    # (0 2)
+    # (1 2)
+
+B<Note:> some implementations may limit the maximum value of non-L<Iterable> C<$from>.
+On Rakudo, 64-bit systems have a limit of C<2³¹-1> and 32-bit systems have a limit of C<2²⁸-1>.
 
 =head2 routine permutations
 
 Defined as:
 
-    multi sub    permutations($n      --> Seq:D)
-    multi method permutations(List:D: --> Seq:D)
+    multi sub    permutations(Int()    $from --> Seq:D)
+    multi sub    permutations(Iterable $from --> Seq:D)
+    multi method permutations(List:D:        --> Seq:D)
 
-Returns all possible permutations of a list as a sequence of lists. So
+Returns all possible permutations of a list as a L<Seq> of lists:
 
-    say .join('|') for <a b c>.permutations
-    # OUTPUT: «a|b|c␤
-    # a|c|b␤
-    # b|a|c␤
-    # b|c|a␤
-    # c|a|b␤
-    # c|b|a␤»
+    .say for <a b c>.permutations;
+    # OUTPUT:
+    # (a b c)
+    # (a c b)
+    # (b a c)
+    # (b c a)
+    # (c a b)
+    # (c b a)
 
-C<permutations> treats all list elements as distinguishable, so
-C<(1, 1, 2).permutations> still returns a list of 6 elements, even though
-there are only three distinct permutations.
+C<permutations> treats all elements as unique, thus C<(1, 1, 2).permutations> returns
+a list of 6 elements, even though there are only three distinct permutations, due to first two
+elements being the same.
 
-The subroutine form C<permutations($n)> is equivalent to
-C<(^$n).permutations>, so
+The subroutine form behaves the same as the method form, computing permutations from its
+first argument C<$from>. If C<$from> is not an L<Iterable>, coerces C<$from> to an C<Int> and
+picks from a L<Range> constructed with C<0..^$from>:
 
     .say for permutations 3;
-    # OUTPUT: «0 1 2␤
-    # 0 2 1␤
-    # 1 0 2␤
-    # 1 2 0␤
-    # 2 0 1␤
-    # 2 1 0␤»
+    # OUTPUT:
+    # (0 1 2)
+    # (0 2 1)
+    # (1 0 2)
+    # (1 2 0)
+    # (2 0 1)
+    # (2 1 0)
 
 =head2 method rotor
 
