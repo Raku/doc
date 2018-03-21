@@ -1,10 +1,11 @@
 #!/usr/bin/env perl6
 
 use v6;
-use Test;
 use lib 'lib';
-use Pod::Convenience;
+use Test;
+BEGIN plan :skip-all<Test applicable to git checkout only> unless '.git'.IO.e;
 
+use Pod::Convenience;
 plan 10;
 
 subtest {

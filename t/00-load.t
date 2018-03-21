@@ -2,6 +2,7 @@
 
 use v6;
 use Test;
+BEGIN plan :skip-all<Test applicable to git checkout only> unless '.git'.IO.e;
 
 plan 1;
 

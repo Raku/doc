@@ -3,6 +3,7 @@
 use v6;
 use Test;
 use lib 'lib';
+BEGIN plan :skip-all<Test applicable to git checkout only> unless '.git'.IO.e;
 use File::Temp;
 
 BEGIN {
