@@ -101,8 +101,8 @@ class Perl6::TypeGraph::Viz {
             run 'dot', '-V', :!err or die 'dot command failed! (did you install Graphviz?)';
         }
         die "bad filename '$file'" unless $file;
-	my $graphvizzer = ( $file ~~ /Metamodel\:\:/ )??'neato'!!'dot';
-	say "$graphvizzer for $file";
+        my $graphvizzer = ( $file ~~ /Metamodel\:\:/ )??'neato'!!'dot';
+        spurt $file ~ ‘.dot’, self.as-dot(:$size).encode; # raw .dot file for debugging
         my $dot = Proc::Async.new(:w, $graphvizzer, '-T', $format, '-o', $file);
         my $promise = $dot.start;
         await($dot.write(self.as-dot(:$size).encode));
