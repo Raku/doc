@@ -56,6 +56,7 @@ class Perl6::TypeGraph::Viz {
     method as-dot (:$size) {
         my @dot;
         @dot.append: “digraph "perl6-type-graph" \{\n    rankdir=$.rank-dir;\n    splines=polyline;\n”;
+        @dot.append: "    overlap=false; ";
         @dot.append: “    size="$size"\n” if $size;
 
         if $.dot-hints -> $hints {
@@ -101,7 +102,7 @@ class Perl6::TypeGraph::Viz {
         }
         die "bad filename '$file'" unless $file;
 
-        my $dot = Proc::Async.new(:w, 'dot', '-T', $format, '-o', $file);
+        my $dot = Proc::Async.new(:w, 'neato', '-T', $format, '-o', $file);
         my $promise = $dot.start;
         await($dot.write(self.as-dot(:$size).encode));
         $dot.close-stdin;
