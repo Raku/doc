@@ -101,8 +101,8 @@ class Perl6::TypeGraph::Viz {
             run 'dot', '-V', :!err or die 'dot command failed! (did you install Graphviz?)';
         }
         die "bad filename '$file'" unless $file;
-
-        my $dot = Proc::Async.new(:w, 'neato', '-T', $format, '-o', $file);
+	say self.as-dot(:$size);
+        my $dot = Proc::Async.new(:w, 'dot', '-T', $format, '-o', $file);
         my $promise = $dot.start;
         await($dot.write(self.as-dot(:$size).encode));
         $dot.close-stdin;
