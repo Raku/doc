@@ -324,17 +324,31 @@ last resort, you can use Promises to L<handle|/type/Promise#method_in> timeouts.
 Any container can have a type constraint in the form of
 a L<type object|/language/typesystem#Type_objects> or a L<subset|/language/typesystem#subset>.
 Both can be placed between a declarator and the variable name or after the trait L<of|/type/Variable#trait_is_dynamic>.
-The constraint is a property of the container, not the variable. Any (re-)binding may change the
-type constraint or remove the constraint altogether if bound to a value instead of a container.
-Introspection of type constraints on containers is provided by C<.VAR.of>.
+The constraint is a property of the container, not the variable.
 
-    EVAL ‚my Int $i = 42; $i := "forty plus two";‘;
-    CATCH { default { say .^name, ' ', .Str } }
-    # OUTPUT: «Type check failed in binding; expected Int but got Str ("forty plus two")␤…»
+Variables may have no container in them, yet still offer the ability to
+re-bind and typecheck that rebind. The reason for that is in such cases the
+binding operator L<:=|/operators#infix_:=> performs the typecheck:
 
-The default type constraint of a C<Scalar> container is Any. For &-sigiled
-containers it's C<Callable> and @-sigiled containers are of type C<Array>. Please
-note that binding can change the type constraint.
+    my Int \z = 42;
+    z := 100; # OK
+    z := "x"; # Typecheck failure
+
+The same isn't the case when, say, binding to a L<Hash> key, as there the
+binding is handled by a method call (even though the syntax remains the same,
+using C<:=> operator).
+
+The default type constraint of a C<Scalar> container is L<Mu>.
+Introspection of type constraints on containers is provided by C<.VAR.of>
+method, which for C<@> and C<%> sigiled variables gives the constraint for
+values:
+
+    my Str $x;
+    say $x.VAR.of;  # OUTPUT: «(Str)␤»
+    my Num @a;
+    say @a.VAR.of;  # OUTPUT: «(Num)␤»
+    my Int %h;
+    say %h.VAR.of;  # OUTPUT: «(Int)␤»
 
 =head1 Custom containers
 
