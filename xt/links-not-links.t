@@ -18,16 +18,16 @@ for @files -> $file {
     my @links = $file.IO.lines.grep( * ~~ / https?\: /);
     my @links-not-links;
     for @links -> $link {
-	my $pod=qq:to/END/;
+        my $pod=qq:to/END/;
 =pod
 $link
 =pod
 END
 
-	my @number-of-links = ( $link ~~ m:g{ https?\: } );
-	my $html = pod2html(EVAL($pod~ "\n\$=pod"));
-	my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
-	push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
+        my @number-of-links = ( $link ~~ m:g{ https?\: } );
+        my $html = pod2html(EVAL($pod~ "\n\$=pod"));
+        my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
+        push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
     }
     if @links-not-links {
         flunk "$file uses non-linked links « {@links-not-links} »";
