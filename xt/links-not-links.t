@@ -15,7 +15,10 @@ plan +@files;
 for @files -> $file {
     my @lines;
     my Int $line-no = 1;
-    my @links = $file.IO.lines.grep( * ~~ / https?\: /);
+    my @links = $file.IO.lines.grep( * ~~ / https?\: /)
+      .grep( * !~~ /review\:\s+/) # eliminate review lines from IRC logs
+      .grep( * !~~ /^\#/)
+      .grep( * !~~ /\#\s+OUTPUT/);       # eliminates output lines
     my @links-not-links;
     for @links -> $link {
         my $pod=qq:to/END/;
@@ -30,7 +33,7 @@ END
         push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
     }
     if @links-not-links {
-        flunk "$file uses non-linked links « {@links-not-links} »";
+        flunk "$file uses non-linked links « " ~ @links-not-links.join("\n") ~ " »";
     } else {
         pass "$file return types are ok";
     }
