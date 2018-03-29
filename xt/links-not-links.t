@@ -29,11 +29,12 @@ END
 
         my @number-of-links = ( $link ~~ m:g{ https?\: } );
         my $html = pod2html(EVAL($pod~ "\n\$=pod"));
+
         my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
         push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
     }
     if @links-not-links {
-        flunk "$file uses non-linked links « " ~ @links-not-links.join("\n") ~ " »";
+        flunk "$file uses non-linked links « " ~ @links-not-links.join("\n\n") ~ " »";
     } else {
         pass "$file return types are ok";
     }
