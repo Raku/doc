@@ -5,7 +5,7 @@ use Test;
 use lib 'lib';
 use Test-Files;
 use Pod::To::HTML;
-use MONKEY-SEE-NO-EVAL;   
+use MONKEY-SEE-NO-EVAL;
 
 # Every .pod6 file in the Type directory.
 my @files = Test-Files.files.grep({$_.ends-with: '.pod6'}).grep(* ~~ /Type | Language/);
