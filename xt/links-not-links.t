@@ -15,7 +15,7 @@ plan +@files;
 for @files -> $file {
     my @lines;
     my Int $line-no = 1;
-    my @links = $file.IO.lines.grep( * ~~ / https? /);
+    my @links = $file.IO.lines.grep( * ~~ / https?\: /);
     my @links-not-links;
     for @links -> $link {
 	my $pod=qq:to/END/;
@@ -23,7 +23,8 @@ for @files -> $file {
 $link
 =pod
 END
-	my @number-of-links = ( $link ~~ m:g{ https? } );
+
+	my @number-of-links = ( $link ~~ m:g{ https?\: } );
 	my $html = pod2html(EVAL($pod~ "\n\$=pod"));
 	my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
 	push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
