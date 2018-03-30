@@ -4,7 +4,7 @@
 
 Avoid I<bare> URLs that are not links; URLs should go inside C<L<>> clauses, even if they have no text to link to.
 
-Eliminates as false positives URLs that are output, or those that are included in some IRC log file. URLs in code might still show up as false positive. 
+Eliminates as false positives URLs that are output, or those that are included in some IRC log file. URLs in code might still show up as false positive.
 
 =end overview
 
