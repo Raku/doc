@@ -67,10 +67,10 @@ sub gen_assets {
     app->log->info('Copying assets...');
     my ($temp_css, $temp_js) = ((tempfile)[1], (tempfile)[1]);
     Mojo::File->new($temp_css)->spurt(
-        app->asset->processed('app.css')->[0]->content
+        join "\n", @{app->asset->processed('app.css')->map(sub {$_->content})}
     );
     Mojo::File->new($temp_js)->spurt(
-        app->asset->processed('app.js')->[0]->content
+        join "\n", @{app->asset->processed('app.js')->map(sub {$_->content})}
     );
     copy $temp_css, 'html/css/app.css'
         or app->log->warn("Copying CSS failed: $!");
