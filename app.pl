@@ -60,6 +60,7 @@ sub gen_assets {
         'app.js' => qw{
             /js/jquery-3.1.1.min.js
             /js/jquery-ui.min.js
+            /js/jquery.tablesorter.js
             /js/main.js
         },
     );

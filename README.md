@@ -177,3 +177,6 @@ files indicate the copyright and license terms at the top of the file. Currently
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
 * Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Table sorter plugin from https://github.com/christianbach/tablesorter ;
+  [MIT License](http://creativecommons.org/licenses/MIT)
+
