@@ -94,8 +94,9 @@ sub pod-heading($name, :$level = 1) is export {
     );
 }
 
-sub pod-table(@contents) is export {
+sub pod-table(@contents, :@headers) is export {
     Pod::Block::Table.new(
+        |(:@headers if @headers),
         :@contents
     );
 }
