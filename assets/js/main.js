@@ -7,8 +7,7 @@ $(function(){
 });
 
 function setup_tables() {
-    $('.pod-table').addClass('sorted-table')
-        .tablesorter({sortList: [[0,0]]});
+    $('.pod-table thead').parent('table').tablesorter({sortList: [[0,0]]});
 }
 
 function setup_search_box() {
