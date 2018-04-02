@@ -67,7 +67,7 @@ subtest {
     </svg>
     EOF
     my $svg = svg-for-file($filename);
-    is($svg, $expected-svg.chomp, "SVG content extracted correctly");
+    is($svg, $expected-svg, "SVG content extracted correctly");
 }, "svg-for-file";
 
 # vim: expandtab shiftwidth=4 ft=perl6
