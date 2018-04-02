@@ -62,10 +62,10 @@ monitor UrlLog {
     method log($url) { @!URLS.push($url) }
 }
 my $url-log = UrlLog.new;
-&rewrite-url.wrap(sub (|c){
-    $url-log.log(my \r = callsame);
+sub rewrite-url-logged(\url) {
+    $url-log.log: my \r = rewrite-url url;
     r
-});
+}
 
 use experimental :cached;
 
@@ -133,7 +133,7 @@ sub header-html($current-selection, $pod-path) is cached {
 
 sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
     pod2html $pod,
-        :url(&rewrite-url),
+        :url(&rewrite-url-logged),
         :$head,
         :header(header-html($selection, $pod-path)),
         :footer(footer-html($pod-path)),
@@ -751,7 +751,7 @@ sub write-search-file() {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
                 }", value: "$name",
-                    url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g).subst(｢?｣, ｢%3F｣, :g) }" \}
+                    url: " {rewrite-url-logged(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g).subst(｢?｣, ｢%3F｣, :g) }" \}
                   ]] # " and ?
             }
     }).flat;
