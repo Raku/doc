@@ -2,8 +2,17 @@ $(function(){
     setup_search_box();
     setup_auto_title_anchors();
     setup_debug_mode();
+    setup_tables();
     $(window).resize(setup_search_box);
 });
+
+function setup_tables() {
+    $('.pod-table').each(function() {
+        if ($(this).find('thead').length
+         && $(this).find('tr').length > 10)
+            $(this).tablesorter({sortList: [[0,0]]})
+    })
+}
 
 function setup_search_box() {
     var sel = $('#search'), head = $('#logo').parent();
