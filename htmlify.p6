@@ -357,9 +357,6 @@ multi write-type-source($doc) {
               </figure>
               CONTENTS_END
 
-        my @mro = $type.mro;
-           @mro.shift; # current type is already taken care of
-
         my @roles-todo = $type.roles;
         my %roles-seen;
         while @roles-todo.shift -> $role {
@@ -376,7 +373,7 @@ multi write-type-source($doc) {
                 %routines-by-type{$role}.list,
             ;
         }
-        for @mro -> $class {
+        for $type.mro.skip -> $class {
             next unless %routines-by-type{$class};
             $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
