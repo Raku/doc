@@ -341,17 +341,21 @@ multi write-type-source($doc) {
     }
 
     if $type {
-        my $graph-contents = slurp 'template/type-graph.html';
-        $graph-contents .= subst('ESCAPEDPODNAME', uri_escape($podname), :g);
-        $graph-contents .= subst('PODNAME', $podname);
-        $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
-
         $pod.contents.append:
-        pod-heading("Type Graph"),
-        Pod::Raw.new(
-            target => 'html',
-            contents => $graph-contents,
-        );
+          pod-heading("Type Graph"),
+          Pod::Raw.new: :target<html>, contents => q:to/CONTENTS_END/;
+              <figure>
+                <figcaption>Type relations for
+                  <code>\qq[$podname]</code></figcaption>
+                \qq[&svg-for-file("html/images/type-graph-$podname.svg")]
+                <p class="fallback">
+                  Stand-alone image:
+                  <a rel="alternate"
+                    href="/images/type-graph-\qq[uri_escape($podname)].svg"
+                    type="image/svg+xml">vector</a>
+                </p>
+              </figure>
+              CONTENTS_END
 
         my @mro = $type.mro;
            @mro.shift; # current type is already taken care of
