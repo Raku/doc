@@ -5,14 +5,14 @@ DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' || echo '' )
 
-.PHONY: html init-highlights html-nohighlight sparse sass webdev-build bigpage \
-	test xtest ctest help run clean-html clean-examples clean-images \
+.PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
+	bigpage test xtest ctest help run clean-html clean-examples clean-images \
 	clean-search clean test-links extract-examples push \
 	docker-image docker-htmlify docker-test docker-xtest docker-ctest docker-testall docker-run
 
 html: bigpage htmlify
 
-htmlify: init-highlights sass
+htmlify: init-highlights assets
 	perl6 htmlify.p6 --parallel=1
 
 init-highlights:
@@ -27,8 +27,8 @@ html-nohighlight:
 sparse:
 	perl6 htmlify.p6 --no-highlight --sparse=10
 
-sass:
-	./util/compile-sass.sh
+assets:
+	./app.pl assets
 
 webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
@@ -54,6 +54,7 @@ help:
 	@echo "Options:"
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
+	@echo "   assets:           generate CSS/JS assets"
 	@echo " sparse:             generate HTML documention, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
 	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
