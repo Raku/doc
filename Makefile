@@ -34,7 +34,7 @@ webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
 bigpage:
-	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git,/precompiled > html/perl6.xhtml
+	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git > html/perl6.xhtml
 
 # Common tests that are run by travis with every commit
 test:
