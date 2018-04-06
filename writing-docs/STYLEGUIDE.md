@@ -1,4 +1,4 @@
-#Style guide
+# Style guide
 
 Please follow these style rules when contributing to the documentation
 

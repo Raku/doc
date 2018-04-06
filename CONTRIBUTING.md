@@ -41,7 +41,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Duplicate small pieces of information rather than rely on linking.
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
-* Check out [the styleguide](STYLEGUIDE.md) for further guidance
+* Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance
 * For the website: we support the current and previous major releases of Chrome, Firefox,
 Internet Explorer (Edge), and Safari. Please test layout changes.
 Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
@@ -49,7 +49,7 @@ or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mo
 
 ## Writing Code Examples
 
-See [EXAMPLES.md](EXAMPLES.md) for detailed information on the options
+See [EXAMPLES.md](writing-docs/EXAMPLES.md) for detailed information on the options
 available when writing code examples in the documentation.
 
 ## Documenting types
@@ -126,7 +126,7 @@ committing, you can use this command to test only modified files:
 
 ## Writing and Testing Examples
 
-See [Writing and Testing Examples](EXAMPLES.md)
+See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 
 ## Testing method completeness
 
