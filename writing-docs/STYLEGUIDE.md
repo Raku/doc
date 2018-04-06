@@ -91,7 +91,7 @@ If you want to add some fancy characters, please stick to
 
 Using the second form is more idiomatic and avoids confusion with blocks. In fact, you don't need to use `:=` in the second sentence, precisely for this reason.
 
-## Perl 5 and Perl 6 
+## Perl 5 and Perl 6
 
 ### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
