@@ -1,3 +1,7 @@
+# Contributing examples to the documentation
+
+Please follow these guidelines if you are illustrating the documentation with some example.
+
 ## Writing Examples
 
 Please use code blocks to highlight example code; any indented blocks

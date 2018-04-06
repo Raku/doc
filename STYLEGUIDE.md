@@ -1,6 +1,10 @@
-### Structure
+#Style guide
 
-##### How to document multiple similar routines
+Please follow these style rules when contributing to the documentation
+
+## Structure
+
+### How to document multiple similar routines
 
 Avoid writing a routine's documentation in the form
 
@@ -15,7 +19,7 @@ In other words, give each routine documentation a self-contained introduction,
 and only link to related/similar routines *below* that introduction, even if
 that means duplicating some half-sentences multiple times.
 
-##### Links to docs
+### Links to docs
 
 Try to avoid absolute URLs.
 
@@ -29,9 +33,9 @@ subdomain is `docs` and the protocol is `https://` (as in
 work, for convenience, but they all simply redirect to the canonical version,
 so it's best to use it from the start.
 
-### Language
+## Language
 
-##### 'say' vs 'put'
+### 'say' vs 'put'
 
 While there is no hard and fast rule about which of these routines to use
 in a given situation, please try to follow these guidelines.
@@ -44,7 +48,7 @@ Additionally, add a comment showing the intended output, e.g.:
 For examples where a particular format is required, or exact data is expected
 (e.g. for something sent over a network connection), prefer 'put'.
 
-##### 'parameter' vs 'argument'
+### 'parameter' vs 'argument'
 
 * Argument: what it looks like to the caller
 * Parameter: what it looks like to the function
@@ -58,18 +62,18 @@ For examples where a particular format is required, or exact data is expected
     argument" for these two concepts, but here we try to avoid using the term
     "argument" for formal parameters.)"
 
-##### 'object' vs 'value'
+### 'object' vs 'value'
 
 You may use `object` for anything you can call methods on, including value objects and type objects. Consider `instance` for defined objects.
 
-##### Use present tense when talking about Perl 5 features
+### Use present tense when talking about Perl 5 features
 
 Perl 5 is still an active language, therefore instead of
 "In Perl 5 this was used for ..., but in Perl 6 ..."
 use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
 ('was' has been made a present 'is').
 
-##### Prefer clear and readable variable names
+### Prefer clear and readable variable names
 
 While Perl 6 allows all kinds of fancy characters in identifiers,
 stick to easily understandable names:
@@ -80,12 +84,21 @@ stick to easily understandable names:
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
 
-##### Don't reference Perl 5 unless in a 5-to-6 document or related document
+### Prefer the %() form of declaring hashes
+
+    my %hash := { this => "is", a => "hash" }; # Correct, but BAD
+    my %hash := %( this => "is", a => "hash" ); # GOOD
+
+Using the second form is more idiomatic and avoids confusion with blocks. In fact, you don't need to use `:=` in the second sentence, precisely for this reason.
+
+## Perl 5 and Perl 6 
+
+### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
 We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
 should not be part of the bulk of the documentation.
 
-##### Use non-breaking spaces when dealing with Perl version numbers
+### Use non-breaking spaces when dealing with Perl version numbers
 
 To avoid the version number to be wrapped on a separate line from the 'Perl' term,
 use a [non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
@@ -95,7 +108,7 @@ To convert all Perl names to this style in `SOME-FILE`, you can use this one lin
 
     perl -C -pi -e 's/Perl (6|5)/Perl\x{A0}$1/g'  SOME-FILE
 
-### Domain
+## Domain
 
 What should be documented? The primary goal of the programmatic documentation
 is to cover items that are part of the specification (the roast test suite)
