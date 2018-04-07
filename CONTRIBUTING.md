@@ -41,11 +41,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Duplicate small pieces of information rather than rely on linking.
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
-* Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance
-* For the website: we support the current and previous major releases of Chrome, Firefox,
-Internet Explorer (Edge), and Safari. Please test layout changes.
-Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
-or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
+* Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance.
 
 ## Writing Code Examples
 
@@ -147,11 +143,6 @@ docs in a new tab.
 
 You can create index entries and invisible anchors with `X<|thing,category>`.
 To make them visible activate debug mode.
-
-### Viewport size
-
-If you change the layout please check different screen sizes. Debug mode will
-display the viewport size in the bottom left corner.
 
 ### Broken links
 

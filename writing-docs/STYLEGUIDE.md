@@ -114,8 +114,20 @@ What should be documented? The primary goal of the programmatic documentation
 is to cover items that are part of the specification (the roast test suite)
 
 * If something is visible to users of Perl 6 and is in roast: document it.
-* If something is visible to users of Perl 6 and is not in roast: check with the dev team (#perl6-dev on freenode) - This might need have a test added (and therefore docs), or it might need to be hidden so users cannot see it.
+* If something is visible to users of Perl 6 and is not in roast: check with the dev team (#perl6-dev on freenode) - This might need have a test added (and therefore docs), or it might need to be hidden so users cannot see it.
 
 Future considerations on this line include: documenting things that are rakudo
 specific (like "dd"), and documenting which versions of the spec items are
 available in.
+
+## Use of HTML
+
+Generally, Pod 6 should be more than enough for any documentation. However, if you need to embed HTML into the documentation after thinking it twice,  bear in mind that we support the current and previous major releases of Chrome, Firefox, 
+Internet Explorer (Edge), and Safari. Please test layout changes.
+Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
+or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
+
+### Viewport size
+
+If you change the layout please check different screen sizes. Debug mode will
+display the viewport size in the bottom left corner.
