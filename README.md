@@ -142,28 +142,6 @@ explains briefly how to get started contributing documentation.
 
 --------
 
-## Wishlist stuff:
-
- *  Perl 6 implementations could embed `P<...>` tags in their source
-    code that would then inline the corresponding entry from `p6doc`.
-    This would enable things like `&say.WHY` to (dynamically!)
-    retrieve the documentation string from `p6doc`, without having
-    to duplicate the documentation in the `CORE.setting` sources
-    or to encode the documentation into the binaries.
-
-    Example:
-
-        # In Rakudo's src/core/IO.pm:
-
-        #= P<p6doc/&print>
-        sub print(|$) { ... }
-
-        #= P<p6doc/&say>
-        sub say(|$) { ... }
-
-        #= P<p6doc/&note>
-        sub note(|$) { ... }
-
 # ENV VARS
 
 - `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
