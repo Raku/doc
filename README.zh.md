@@ -2,15 +2,15 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-HTML版本文档 https://docs.perl6.org/.
+HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
 这个是当前推荐的文档.
 
-还有命令行工具 "p6doc".
+还有命令行工具 "p6doc"帮助文档.
 
 (如果你通过GitHub浏览本数据仓, 大部分文件显示不正确,
 缘由是GitHub 把 Perl 6 Pod识别成 Perl 5 POD).
 
-## 翻译README
+## 其他语言README
 
 [English README](README.md)
 
@@ -20,11 +20,11 @@ HTML版本文档 https://docs.perl6.org/.
 
     zef install p6doc
 
-安装二进制, 让它在你的二进制执行路径文件中可用.
+安装可执行文件, 让它在你的可执行行路径中可用.
 
 ## 使用 p6doc
 
-针对 Rakudo `perl6` 执行 `PATH`, 尝试命令
+针对 Rakudo `perl6` 执行本地路径, 尝试命令
 
     ./bin/p6doc Str
 
@@ -86,10 +86,10 @@ Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都
  * 针对现有文档添加使用示例
  * 校对与更正文档
  * 通过github开放问题告诉我们缺少的文档.
- * 在本数据仓执行`git grep TODO`, 用实际文档替换TODO.
+ * 在本数据仓执行`git grep TODO`,用实际文档替换TODO.
 
 [Issues page](https://github.com/perl6/doc/issues)列出了当前的问题，
-已知部分缺失的文档, [CONTRIBUTING](CONTRIBUTING.md)简要说明如何开始贡献文档.
+已知缺失部分的文档, [CONTRIBUTING](CONTRIBUTING.md)简要说明如何开始贡献文档.
 
 --------
 

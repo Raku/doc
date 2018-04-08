@@ -2,7 +2,7 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-An HTML version of this documentation can be found at https://docs.perl6.org/.
+An HTML version of this documentation can be found at [https://docs.perl6.org/](https://docs.perl6.org/).
 This is currently the recommended way to consume the documentation.
 
 There is also a command line tool called "p6doc".
@@ -10,9 +10,9 @@ There is also a command line tool called "p6doc".
 (If you are browsing this repository via GitHub, it will not display most
 files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
 
-## Translate README
+## README in other languages
 
-[中文 README](README.zh.md)
+[README in Chinese](README.zh.md)
 
 ## Install p6doc
 
