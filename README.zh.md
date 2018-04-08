@@ -1,107 +1,95 @@
-# Official Perl 6 Documentation
+# Perl 6 官方文档 【意译】
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-An HTML version of this documentation can be found at [https://docs.perl6.org/](https://docs.perl6.org/).
-This is currently the recommended way to consume the documentation.
+HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
+这个是当前推荐的文档.
 
-There is also a command line tool called "p6doc".
+还有命令行工具 "p6doc"帮助文档.
 
-(If you are browsing this repository via GitHub, it will not display most
-files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
+(如果你通过GitHub浏览本数据仓, 大部分文件显示不正确,
+缘由是GitHub 把 Perl 6 Pod识别成 Perl 5 POD).
 
-## README in other languages
+## 其他语言README
 
-[README in Chinese](README.zh.md)
+[English README](README.md)
 
-## Install p6doc
+## 安装 p6doc
 
-This module is available via the Perl 6 module ecosystem. Use
+本模块可通过Perl 6模块生态系统提供. 使用命令
 
     zef install p6doc
 
-to install the binaries and make it available in your binaries
-execution path.
+安装可执行文件, 让它在你的可执行行路径中可用.
 
-## Use p6doc
+## 使用 p6doc
 
-With a Rakudo `perl6` executable in `PATH`, try
+针对 Rakudo `perl6` 执行本地路径, 尝试命令
 
     ./bin/p6doc Str
 
-to see the documentation for class `Str`, or
+查看类`Str`文档, 或者
 
     ./bin/p6doc Str.split
 
-to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via
-`zef`. You can also do
+查看类`Str`中`split`方法. 你可以跳过`./bin` 部分如果你已经通过`zef`安装了它 . 你也可以使用
 
     p6doc -f slurp
 
-to browse the documentation of standard functions. Depending on your
-disk speed and Rakudo version, it might take a while.
+浏览标准函数的文档可能需要一段时间, 取决于你磁盘的速度和rakudo版本.
 
 -------
 
-## Building the HTML documentation
+## 编译 HTML 文档
 
-Install dependencies by running the following in the checkout directory:
+在checkout目录运行如下命令安装依赖:
 
     zef --deps-only install .
 
-If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
-following, to update the shims for installed executables:
+如果用 [`rakudobrew`](https://github.com/tadzik/rakudobrew), 也可以运行下面命令,
+升级已安装执行文件:
 
     rakudobrew rehash
 
-In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running
+此外 Perl 6 的依赖, 需要安装 `graphviz` , 在 Debian 可执行下面命令
 
     sudo apt-get install graphviz
 
-To build the documentation web pages, simply run
+编译web文档, 运行命令
 
     $ make html
 
-Please note that you will need to have [nodejs](https://nodejs.org)
-installed to produce HTML content with the above command, in particular
-a `node` executable should be in your `PATH`.
+注意还需要安装 [nodejs](https://nodejs.org)
+生成 HTML 内容使用上面命令, 特别是`node` 命令在你滴环境变量 `PATH`可用.
 
-After the pages have been generated, you can view them on your local
-computer by starting the included `app.pl` program:
+页面生成后, 可本地查看通过运行 `app.pl` 程序:
 
     $ make run
 
-You can then view the examples documentation by pointing your web browser at
-[http://localhost:3000](http://localhost:3000).
+可通过浏览器[http://localhost:3000](http://localhost:3000)浏览文档示例.
 
-You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
-installed and you will need [nodejs](https://nodejs.org) to perform
-highlighting. There are also some additional modules you might need;
-install them all using
+需要安装 [Mojolicious](https://metacpan.org/pod/Mojolicious)
+与 [nodejs](https://nodejs.org) 来展示高亮效果.
+有可能需要一些附加模块; 通过下面安装它们
 
     $ cpanm --installdeps .
 
 ---------
 
-## Help Wanted!
+## 希望得到帮助!
 
-Perl 6 is not a small language, and documenting it takes a lot of effort.
-Any help is appreciated.
+Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都值得赞赏.
 
-Here are some ways to help us:
+一些帮助我们的方式:
 
- * add missing documentation for classes, roles, methods or operators
- * add usage examples to existing documentation
- * proofread and correct the documentation
- * tell us about missing documentation by opening issues on github.
- * Do a `git grep TODO` in this repository, and replace the TODO items by
-   actual documentation.
+ * 添加缺少的类, 角色, 方法 或运算符文档
+ * 针对现有文档添加使用示例
+ * 校对与更正文档
+ * 通过github开放问题告诉我们缺少的文档.
+ * 在本数据仓执行`git grep TODO`, 用实际文档替换TODO.
 
-[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
-documentation parts that are known to be missing and [CONTRIBUTING](CONTRIBUTING.md)
-explains briefly how to get started contributing documentation.
+[Issues page](https://github.com/perl6/doc/issues)列出了当前的问题，
+已知缺失部分的文档, [CONTRIBUTING](CONTRIBUTING.md)简要说明如何开始贡献文档.
 
 --------
 
