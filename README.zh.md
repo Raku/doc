@@ -86,7 +86,7 @@ Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都
  * 针对现有文档添加使用示例
  * 校对与更正文档
  * 通过github开放问题告诉我们缺少的文档.
- * 在本数据仓执行`git grep TODO`,用实际文档替换TODO.
+ * 在本数据仓执行`git grep TODO`, 用实际文档替换TODO.
 
 [Issues page](https://github.com/perl6/doc/issues)列出了当前的问题，
 已知缺失部分的文档, [CONTRIBUTING](CONTRIBUTING.md)简要说明如何开始贡献文档.
