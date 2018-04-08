@@ -12,7 +12,7 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
 
 ## README in other languages
 
-[README in Chinese](README.zh.md)
+* [README in Chinese](README.zh.md).
 
 ## Install p6doc
 
@@ -100,7 +100,8 @@ Here are some ways to help us:
    actual documentation.
 
 [Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
-documentation parts that are known to be missing and [CONTRIBUTING](CONTRIBUTING.md)
+documentation parts that are known to be missing
+and [the CONTRIBUTING document](CONTRIBUTING.md)
 explains briefly how to get started contributing documentation.
 
 --------
@@ -119,7 +120,7 @@ explains briefly how to get started contributing documentation.
   3. A separate repo in the perl6 Github account invites
      more potential contributors and editors.
 
-**Q:** Should I include methods from superclasses or roles<br>
+**Q:** Should I include methods from superclasses or roles?<br>
 **A:** No. The HTML version already includes methods from superclasses and
        roles, and the `p6doc` script will be taught about those as well.
 
