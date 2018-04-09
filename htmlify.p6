@@ -165,7 +165,8 @@ sub recursive-dir($dir) {
 # in Rakudo you risk segfaults, weird errors, etc.
 my $proc;
 my $proc-supply;
-my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee';
+my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee'.IO.e??'./highlights/node_modules/coffee-script/bin/coffee'!!'./highlights/node_modules/coffeescript/bin/coffee';
+    
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
