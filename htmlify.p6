@@ -25,6 +25,7 @@ The build logs are available at https://docs.perl6.org/build-log/
 BEGIN say 'Initializing ...';
 
 use lib 'lib';
+use File::Temp;
 use JSON::Fast;
 use Pod::To::HTML;
 use URI::Escape;
@@ -944,15 +945,6 @@ sub write-kind($kind) {
     say '';
 }
 
-sub get-temp-filename {
-    state %seen-temps;
-    my $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
-    while %seen-temps{$temp} {
-        $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
-    }
-    %seen-temps{$temp}++;
-    $temp;
-}
 sub highlight-code-blocks {
     $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
@@ -962,10 +954,8 @@ sub highlight-code-blocks {
                 return default($node);
             }
         }
-        my $basename = get-temp-filename();
-        my $tmp_fname = $*TMPDIR ~ ($*TMPDIR.ends-with('/') ?? '' !! '/') ~ $basename;
+        my ($tmp_fname, $tmp_io) = tempfile;
         spurt $tmp_fname, $node.contents.join;
-        LEAVE try unlink $tmp_fname;
         my $html;
         my $promise = Promise.new;
         my $tap = $proc-supply.tap( -> $json {
