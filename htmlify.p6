@@ -68,8 +68,6 @@ sub rewrite-url-logged(\url) {
     r
 }
 
-use experimental :cached;
-
 my $type-graph;
 my %routines-by-type;
 my %*POD2HTML-CALLBACKS;
@@ -87,7 +85,7 @@ my @menu =
 
 my $head = slurp 'template/head.html';
 
-sub header-html($current-selection, $pod-path) is cached {
+sub header-html($current-selection, $pod-path) {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
