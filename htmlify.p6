@@ -955,7 +955,7 @@ sub highlight-code-blocks {
             }
         }
         my ($tmp_fname, $tmp_io) = tempfile;
-        spurt $tmp_fname, $node.contents.join;
+        $tmp_io.spurt: $node.contents.join, :close;
         my $html;
         my $promise = Promise.new;
         my $tap = $proc-supply.tap( -> $json {
