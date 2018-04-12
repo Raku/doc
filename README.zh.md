@@ -1,4 +1,4 @@
-# Perl 6 官方文档 【意译】
+# Perl 6 官方文档 【意译】
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -8,7 +8,7 @@ HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
 还有命令行工具 "p6doc"帮助文档.
 
 (如果你通过GitHub浏览本数据仓, 大部分文件显示不正确,
-缘由是GitHub 把 Perl 6 Pod识别成 Perl 5 POD).
+缘由是GitHub 把 Perl 6 Pod识别成 Perl 5 POD).
 
 ## 其他语言README
 
@@ -16,7 +16,7 @@ HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
 
 ## 安装 p6doc
 
-本模块可通过Perl 6模块生态系统提供. 使用命令
+本模块可通过Perl 6模块生态系统提供. 使用命令
 
     zef install p6doc
 
@@ -51,7 +51,7 @@ HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
 
     rakudobrew rehash
 
-此外 Perl 6 的依赖, 需要安装 `graphviz` , 在 Debian 可执行下面命令
+此外 Perl 6 的依赖, 需要安装 `graphviz` , 在 Debian 可执行下面命令
 
     sudo apt-get install graphviz
 
@@ -78,7 +78,7 @@ HTML文档 [https://docs.perl6.org/](https://docs.perl6.org/).
 
 ## 希望得到帮助!
 
-Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都值得赞赏.
+Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都值得赞赏.
 
 一些帮助我们的方式:
 
@@ -100,7 +100,7 @@ Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都
 
   1. This documentation is intended to be universal with
      respect to a given version of the specification,
-     and not necessarily tied to any specific Perl 6
+     and not necessarily tied to any specific Perl 6
      implementation.
   2. Implementations' handling of embedded POD is still
      a bit uneven; this avoids potential runtime impacts.
@@ -121,9 +121,9 @@ Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都
 ## Vision
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 feature, be it from the
+> when you want to know something about a Perl 6 feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
-> Perl 6 programmer.
+> Perl 6 programmer.
 >
 >    -- moritz
 
@@ -131,7 +131,7 @@ Perl 6不是一种小语言,记录它需要付出很大的努力.任何帮助都
 
 ## Wishlist stuff:
 
- *  Perl 6 implementations could embed `P<...>` tags in their source
+ *  Perl 6 implementations could embed `P<...>` tags in their source
     code that would then inline the corresponding entry from `p6doc`.
     This would enable things like `&say.WHY` to (dynamically!)
     retrieve the documentation string from `p6doc`, without having

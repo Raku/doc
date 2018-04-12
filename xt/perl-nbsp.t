@@ -5,7 +5,7 @@ use Test;
 use lib 'lib';
 use Test-Files;
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
+my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.md'});
 
 plan +@files;
 

@@ -53,7 +53,7 @@ For examples where a particular format is required, or exact data is expected
 * Argument: what it looks like to the caller
 * Parameter: what it looks like to the function
 
-    S06: "In Perl 6 culture, we distinguish the terms parameter and argument; a
+    S06: "In Perl 6 culture, we distinguish the terms parameter and argument; a
     parameter is the formal name that will attach to an incoming argument
     during the course of execution, while an argument is the actual value that
     will be bound to the formal parameter. The process of attaching these
@@ -66,11 +66,11 @@ For examples where a particular format is required, or exact data is expected
 
 You may use `object` for anything you can call methods on, including value objects and type objects. Consider `instance` for defined objects.
 
-### Use present tense when talking about Perl 5 features
+### Use present tense when talking about Perl 5 features
 
-Perl 5 is still an active language, therefore instead of
-"In Perl 5 this was used for ..., but in Perl 6 ..."
-use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
+Perl 5 is still an active language, therefore instead of
+"In Perl 5 this was used for ..., but in Perl 6 ..."
+use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
 ('was' has been made a present 'is').
 
 ### Prefer clear and readable variable names
@@ -93,9 +93,9 @@ Using the second form is more idiomatic and avoids confusion with blocks. In fac
 
 ## Perl 5 and Perl 6
 
-### Don't reference Perl 5 unless in a 5-to-6 document or related document
+### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
+We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
 should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
