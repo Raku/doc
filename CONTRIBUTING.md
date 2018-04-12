@@ -157,23 +157,25 @@ to display heading numbers.
 
 ## Reporting bugs
 
-Report issues at https://github.com/perl6/doc/issues. You can use the
-following labels when tagging tickets:
+Report issues at https://github.com/perl6/doc/issues. You can
+use
+[labels when tagging tickets](https://github.com/perl6/doc/labels),
+among which these are probably the most common:
 
-* site   - presentation issue with the website (e.g. invalid HTML)
-* docs   - missing or incorrect documentation (use 'NOTSPECCED' instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
-    * new - this is a new doc item that requires fresh text
-    * update - this is an existing doc item that requires some analysis or editing
-* build  - scripts or libraries that generate the site
-* search - the search component, either for items that are on the site but not searchable, or for search functionality)
+* [`site`](https://github.com/perl6/doc/labels/site)   - presentation issue with the website (e.g. invalid HTML)
+* [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or incorrect documentation (use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED) instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
+    * [`new`](https://github.com/perl6/doc/labels/new) - this is a new doc item that requires fresh text
+    *  [`update`](https://github.com/perl6/doc/labels/update) - this is an existing doc item that requires some analysis or editing
+* [`build`](https://github.com/perl6/doc/labels/build)  - scripts or libraries that generate the site
+* [`search`](https://github.com/perl6/doc/labels/search) - the search component, either for items that are on the site but not searchable, or for search functionality)
 
 Contributors may also specify one of the following tags.
 
-* LHF    - as in *low hanging fruit*, for a beginner to work on
-* big    - a big issue, requires research or consensus
+* [`LHF`](https://github.com/perl6/doc/labels/LHF)    - as in *low hanging fruit*, for a beginner to work on
+* [`big`](https://github.com/perl6/doc/labels/big)    - a big issue, requires research or consensus
 
 If you would like to contribute documentation or other bug fixes, please use
-github's Pull request feature.
+[GitHub's pull requests](https://github.com/perl6/doc/pulls).
 
 ## Building the documentation
 
@@ -182,9 +184,9 @@ Assuming that you have already forked and cloned the
 you probably want to do is to build the documentation on your local
 computer.  To do this you will need:
 
-  - Perl 6 (e.g., the Rakudo Perl 6 implementation)
-  - zef (the installer for third party Perl 6 modules)
-  - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
+  - Perl 6 (e.g., the Rakudo Perl 6 implementation)
+  - zef (the installer for third party Perl 6 modules)
+  - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl 5 web framework; it allows you to run a web
@@ -201,13 +203,13 @@ computer.  To do this you will need:
 
 #### Rakudo
 
-You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
+You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
 downloading the latest Rakudo Star release from
 [rakudo.org/downloads/star/](http://rakudo.org/downloads/star/)
 
 #### Zef
 
-[Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
+[Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
 installed Rakudo Star package, it should already be installed. Feel free to
 use any other module installer for the modules needed (see below).
 
