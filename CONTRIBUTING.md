@@ -262,7 +262,7 @@ render the HTML documentation
 or
 
     $ make run
-	
+
 Now point your web browser to http://localhost:3000 to view the
 documentation.
 
