@@ -152,7 +152,7 @@ checked depending on your browser settings.
 
 ### Heading numbering
 
-Please check if the headings you add are of sound structure. You can use debug mode
+Please check if the headings you add are well structured. You can use [debug mode](#debug-mode)
 to display heading numbers.
 
 ## Reporting bugs
@@ -164,7 +164,9 @@ among which these are probably the most common:
 
 * [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or
   incorrect documentation; use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED) instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite.
-* [`search`](https://github.com/perl6/doc/labels/search) - the search component, either for items that are on the site but not searchable, or for search functionality.
+* [`search`](https://github.com/perl6/doc/labels/search) - the search
+  component, either for items that are on the site but not searchable,
+  or for the search functionality itself.
 
 If you would like to contribute documentation or other bug fixes, please use
 [GitHub's pull requests](https://github.com/perl6/doc/pulls).
@@ -257,6 +259,10 @@ render the HTML documentation
 
     $ perl app.pl daemon   # note!  Perl 5 *not* Perl 6 here
 
+or
+
+    $ make run
+	
 Now point your web browser to http://localhost:3000 to view the
 documentation.
 
