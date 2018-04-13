@@ -162,17 +162,9 @@ use
 [labels when tagging tickets](https://github.com/perl6/doc/labels),
 among which these are probably the most common:
 
-* [`site`](https://github.com/perl6/doc/labels/site)   - presentation issue with the website (e.g. invalid HTML)
-* [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or incorrect documentation (use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED) instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite)
-    * [`new`](https://github.com/perl6/doc/labels/new) - this is a new doc item that requires fresh text
-    *  [`update`](https://github.com/perl6/doc/labels/update) - this is an existing doc item that requires some analysis or editing
-* [`build`](https://github.com/perl6/doc/labels/build)  - scripts or libraries that generate the site
-* [`search`](https://github.com/perl6/doc/labels/search) - the search component, either for items that are on the site but not searchable, or for search functionality)
-
-Contributors may also specify one of the following tags.
-
-* [`LHF`](https://github.com/perl6/doc/labels/LHF)    - as in *low hanging fruit*, for a beginner to work on
-* [`big`](https://github.com/perl6/doc/labels/big)    - a big issue, requires research or consensus
+* [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or
+  incorrect documentation; use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED) instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite.
+* [`search`](https://github.com/perl6/doc/labels/search) - the search component, either for items that are on the site but not searchable, or for search functionality.
 
 If you would like to contribute documentation or other bug fixes, please use
 [GitHub's pull requests](https://github.com/perl6/doc/pulls).
@@ -205,18 +197,18 @@ computer.  To do this you will need:
 
 You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
 downloading the latest Rakudo Star release from
-[rakudo.org/downloads/star/](http://rakudo.org/downloads/star/)
+[rakudo.org/downloads/star/](http://rakudo.org/downloads/star/).
 
 #### Zef
 
 [Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
-installed Rakudo Star package, it should already be installed. Feel free to
+installed Rakudo Star package, it should already be there. Feel free to
 use any other module installer for the modules needed (see below).
 
 #### Pod::To::HTML
 
 The program that builds the HTML version of the documentation
-(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod structures into HTML.
+(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod 6 structures into HTML.
 You'll also need `Pod::To::BigPage`. Install these modules like so:
 
     $ zef install Pod::To::HTML Pod::To::BigPage
