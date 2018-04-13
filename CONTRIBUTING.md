@@ -50,8 +50,8 @@ available when writing code examples in the documentation.
 
 ## Documenting types
 
-The POD documentation of types is located in the `doc/Type` directory and
-subdirectories of this repository. For example the POD of `X::Bind::Slice`
+The Pod 6 documentation of types is located in the `doc/Type` directory and
+subdirectories of this repository. For example the Pod 6 file of `X::Bind::Slice`
 lives in `doc/Type/X/Bind/Slice.pod6`.
 
 To start contributing fork and checkout the repository, find the document
@@ -126,10 +126,10 @@ See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 
 ## Testing method completeness
 
-To get a list of methods that are found via introspection but not found in any
-pod6 under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
+To get a list of methods that are found via introspection but not
+found in any Pod 6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
 directory or filepath as argument and limits the listing to the given file or
-any pod6-files found. All methods listed in `util/ignored-methods.txt` are
+any Pod 6-files found. All methods listed in `util/ignored-methods.txt` are
 ignored.
 
 ## Debug mode
@@ -178,7 +178,7 @@ computer.  To do this you will need:
 
   - Perl 6 (e.g., the Rakudo Perl 6 implementation)
   - zef (the installer for third party Perl 6 modules)
-  - `Pod::To::HTML` (Perl 6 module for converting Pod objects to HTML)
+  - `Pod::To::HTML` (Perl 6 module for converting Pod 6 objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl 5 web framework; it allows you to run a web
