@@ -95,7 +95,6 @@ All operators have a ASCII equivalent, but they are more
 verbose and do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible. 
 
-
 ### Prefer the %() form of declaring hashes
 
     my %hash := { this => "is", a => "hash" }; # Correct, but BAD
@@ -119,6 +118,8 @@ it includes a real use case: in the progression, Perl 6 does not need
 to actually compute its terms until they are really needed.
 
 ## Perl 5 and Perl 6
+
+Style guidelines related to Perl *. 
 
 ### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
