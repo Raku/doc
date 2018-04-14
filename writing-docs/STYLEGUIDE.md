@@ -96,8 +96,8 @@ precisely for this reason.
 ### Try to express intent, rather than simply reflex syntax
 
     my @l = lazy 0..5; # Correct, but BAD
-	my @too-long-list = lazy 0..100000000  # GOOD
-	my @powers-of-eleven = lazy 1, 11, 121 ... 10**100 # EVEN BETTER
+    my @too-long-list = lazy 0..100000000  # GOOD
+    my @powers-of-eleven = lazy 1, 11, 121 ... 10**100 # EVEN BETTER
 	
 In the first case, the syntax is totally correct. But a list with 5
 elements need not be made lazy. The second is better, because it does
