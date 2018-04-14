@@ -87,14 +87,14 @@ If you want to add some fancy characters, please stick to
 ### Prefer non-Texas (non-ASCII) syntax in examples
 
     my @infinite-sequence = 1,3...∞ # GOOD
-	my @infinite-sequence = 1,3...Inf # OK, but rather not
+    my @infinite-sequence = 1,3...Inf # OK, but rather not
     <a b c > ⊖ <c d e> # Good
     <a b c > (^) <c d e> # OK, but don't do that
 
 All operators have a ASCII (or Texas) equivalent, but they are more
 verbose and do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible. 
-	
+
 
 ### Prefer the %() form of declaring hashes
 
