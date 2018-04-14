@@ -84,6 +84,18 @@ stick to easily understandable names:
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
 
+### Prefer non-Texas (non-ASCII) syntax in examples
+
+    my @infinite-sequence = 1,3...∞ # GOOD
+	my @infinite-sequence = 1,3...Inf # OK, but rather not
+    <a b c > ⊖ <c d e> # Good
+    <a b c > (^) <c d e> # OK, but don't do that
+
+All operators have a ASCII (or Texas) equivalent, but they are more
+verbose and do not correspond exactly to the mathematical operator or constant
+they often represent. Please use that syntax whenever possible. 
+	
+
 ### Prefer the %() form of declaring hashes
 
     my %hash := { this => "is", a => "hash" }; # Correct, but BAD
