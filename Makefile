@@ -102,6 +102,7 @@ docker-run: docker-image
 
 clean-html:
 	rm -rf html/*.html html/.*.html \
+		html/.html/ \
 		html/language/ \
 		html/op/ \
 		html/programs/ \
