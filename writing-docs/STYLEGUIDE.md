@@ -89,7 +89,22 @@ If you want to add some fancy characters, please stick to
     my %hash := { this => "is", a => "hash" }; # Correct, but BAD
     my %hash := %( this => "is", a => "hash" ); # GOOD
 
-Using the second form is more idiomatic and avoids confusion with blocks. In fact, you don't need to use `:=` in the second sentence, precisely for this reason.
+Using the second form is more idiomatic and avoids confusion with
+blocks. In fact, you don't need to use `:=` in the second sentence,
+precisely for this reason.
+
+### Try to express intent, rather than simply reflex syntax
+
+    my @l = lazy 0..5; # Correct, but BAD
+	my @too-long-list = lazy 0..100000000  # GOOD
+	my @powers-of-eleven = lazy 1, 11, 121 ... 10**100 # EVEN BETTER
+	
+In the first case, the syntax is totally correct. But a list with 5
+elements need not be made lazy. The second is better, because it does
+show the intent: work with long lists that need not be filling up
+memory until they are needed. However, the last one is better because
+it includes a real use case: in the progression, Perl 6 does not need
+to actually compute its terms until they are really needed.
 
 ## Perl 5 and Perl 6
 
