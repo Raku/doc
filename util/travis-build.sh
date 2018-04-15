@@ -1,10 +1,14 @@
 #!/bin/bash
 
+set -e
+
+source travis_retry.sh
+
 case "${BUILDENV}" in
     docker)
       docker pull jjmerelo/test-perl6
-      docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/test-perl6  -c zef --/tap-harness --force --/test install LWP::Simple
-      docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/test-perl6  -c zef --/tap-harness --depsonly install .
+      docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/perl6-doccer  -c zef --/tap-harness --force --/test install LWP::Simple
+      docker run -t -v  $TRAVIS_BUILD_DIR:/test  --entrypoint="/bin/sh" jjmerelo/perl6-doccer  -c zef --/tap-harness --depsonly install .
     ;;
     whateverable)
       wget https://whateverable.6lang.org/HEAD.tar.gz
