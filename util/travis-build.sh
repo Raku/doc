@@ -2,7 +2,6 @@
 
 set -e
 
-source travis_retry.sh
 
 case "${BUILDENV}" in
     docker)
@@ -18,7 +17,7 @@ case "${BUILDENV}" in
       ZEF_BUILD="$HEAD_BUILD/share/perl6/site/bin"
       git clone https://github.com/ugexe/zef.git && cd zef && perl6 -Ilib bin/zef install . && cd ..
       export PATH="$PATH:$ZEF_BUILD"
-      travis_retry zef --/tap-harness --force --/test install LWP::Simple
-      travis_retry zef --/tap-harness --depsonly install .
+      zef --/tap-harness --force --/test install LWP::Simple
+      zef --/tap-harness --depsonly install .
     ;;
 esac
