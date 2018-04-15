@@ -1,3 +1,8 @@
+## The problem
+
+
+## Solution provided
+
 <!--
 
     The template below contains optional suggestions. Simply omit it
@@ -9,14 +14,6 @@
     In "Solution provided", tell us what you have done to address the
     problem.
 	
-    And delete this comment when you're done. Thanks!
-
 -->
-
-
-## The problem
-
-
-## Solution provided
 
 

@@ -1,3 +1,9 @@
+## The problem
+
+
+## Suggestions
+
+
 <!--
 
     The template below contains optional suggestions. If you cannot
@@ -14,14 +20,5 @@
     solve the problem, such as "Rephrase the description" or "Use an
     example program that actually runs".
 
-    And delete this comment when you're done. Thanks!
-
 -->
-
-
-## The problem
-
-
-## Suggestions
-
 
