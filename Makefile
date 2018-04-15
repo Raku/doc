@@ -1,5 +1,5 @@
 REPO_PATH := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-
+PATH := $(PATH)
 DOCKER_IMAGE_NAME    ?= p6doc
 DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
@@ -38,6 +38,7 @@ bigpage:
 
 # Common tests that are run by travis with every commit
 test:
+	echo $(PATH)
 	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
 
 # Extended tests
