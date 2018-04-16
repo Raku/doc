@@ -940,7 +940,6 @@ sub write-kind($kind) {
                                               }
                                           }
                                           .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_';
-                                          
                                       }
                                   ) ~ .name.subst(' ', '_')),
                     ),
