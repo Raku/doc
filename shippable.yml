@@ -1,10 +1,13 @@
 build:
-  pre_ci_boot:
-    image_name: jjmerelo/perl6-doccer
+  pre_ci:
+    - curl https://nxadm.github.io/rakudo-pkg/latest-release.html?os=ubuntu&version=14.04&arch=amd64
+    - dpkg -i *.deb
+    - PATH=~/.perl6/bin:/opt/rakudo-pkg/bin:$PATH && export PATH
+    - install-zef-as-user && zef --/tap-harness --depsonly install .
 
   ci:
-    - P6_DOC_TEST_VERBOSE=1 prove -e perl6 t
+    - P6_DOC_TEST_VERBOSE=1 make test
 
   on_failure:
-    - ls t
-
+    - ls $SHIPPABLE_BUILD_DIR/t
+    - docker run -t -v $TRAVIS_BUILD_DIR:/test --entrypoint="/bin/sh" jjmerelo/perl6-doccer -c "ls /test"
