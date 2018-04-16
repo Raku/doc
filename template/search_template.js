@@ -1,3 +1,4 @@
+//WARNING
 var current_search = "";
 
 $(function(){
