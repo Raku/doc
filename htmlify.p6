@@ -931,7 +931,17 @@ sub write-kind($kind) {
                                       # splits by space character and we take a correct category name.
                                       # It works with sub/method/term/routine/*fix types, so all our links
                                       # here are correct.
-                                      else { .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_'; }
+                                      else {
+                                          CATCH {
+                                              default {
+                                                  say $name;
+                                                  .Str.say;
+                                                  say "Error when generating links";
+                                              }
+                                          }
+                                          .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_';
+                                          
+                                      }
                                   ) ~ .name.subst(' ', '_')),
                     ),
                     .pod.list,
