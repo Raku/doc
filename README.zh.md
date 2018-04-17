@@ -2,13 +2,11 @@
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-网站 [https://docs.perl6.org/](https://docs.perl6.org/)
-提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
+网站 [https://docs.perl6.org/](https://docs.perl6.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
 
 本仓库还提供命令行工具 p6doc 用于阅读文档。
 
-（如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，
-这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 POD）
+（如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 POD）
 
 ## 其他语言版本的 README
 
@@ -32,8 +30,7 @@
 
     ./bin/p6doc Str.split
 
-查看 `Str` 类中的 `split` 方法。如果你已经使用 `zef` 安装了 `p6doc`，
-那么可以省略 `./bin`。你也可以使用命令
+查看 `Str` 类中的 `split` 方法。如果你已经使用 `zef` 安装了 `p6doc`，那么可以省略 `./bin`。你也可以使用命令
 
     p6doc -f slurp
 
@@ -47,8 +44,7 @@
 
     zef --deps-only install .
 
-如果你使用 [`rakudobrew`](https://github.com/tadzik/rakudobrew)，
-也可以运行下面命令更新已安装执行文件：
+如果你使用 [`rakudobrew`](https://github.com/tadzik/rakudobrew)，也可以运行下面命令更新已安装执行文件：
 
     rakudobrew rehash
 
@@ -60,8 +56,7 @@
 
     $ make html
 
-请注意，为了通过上面的命令生成 HTML 文本，必须安装 [nodejs](https://nodejs.org)，
-特别地，可执行的 `node` 命令路径被添加到 `PATH` 里。
+请注意，为了通过上面的命令生成 HTML 文本，必须安装 [nodejs](https://nodejs.org)，特别地，可执行的 `node` 命令路径被添加到 `PATH` 里。
 
 页面生成后，可以通过运行 `app.pl` 程序在本地查看这些页面：
 
@@ -69,9 +64,7 @@
 
 打开浏览器并跳转到 [http://localhost:3000](http://localhost:3000) 以浏览文档页面。
 
-为了正确显示代码高亮，需要安装 [Mojolicious](https://metacpan.org/pod/Mojolicious)
-和 [nodejs](https://nodejs.org)。
-安装 Mojolicious 时可能需要安装一些附加的依赖模块，通过下面的命令安装它们
+为了正确显示代码高亮，需要安装 [Mojolicious](https://metacpan.org/pod/Mojolicious)和 [nodejs](https://nodejs.org)。安装 Mojolicious 时可能需要安装一些附加的依赖模块，通过下面的命令安装它们
 
     $ cpanm --installdeps .
 
@@ -87,11 +80,9 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
  * 为现有文档添加使用示例
  * 校对与更正文档
  * 通过 GitHub 的 issue 系统报告缺少的文档
- * 在本仓库下执行 `git grep TODO`，用实际文档替换 TODO
+ * 在本仓库下执行 `git grep TODO`，使用实际文档替换 TODO
 
-[Issues 页面](https://github.com/perl6/doc/issues)列出了当前的 issue 和
-已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了
-如何开始为文档工程作出贡献。
+[Issues 页面](https://github.com/perl6/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了如何开始为文档工程作出贡献。
 
 --------
 
@@ -127,15 +118,12 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 # 环境变量
 
-- 设置 `P6_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，
-这在 debug 测试不通过的时候很有帮助。
-- 设置 `P6_DOC_TEST_FUDGE` 将在 `xt/examples-compilation.t` 测试中
-把标记为 `skip-test` 的代码实例当做 TODO 处理。
+- 设置 `P6_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，这在 debug 测试不通过的时候很有帮助。
+- 设置 `P6_DOC_TEST_FUDGE` 将在 `xt/examples-compilation.t` 测试中把标记为 `skip-test` 的代码实例当做 TODO 处理。
 
 # 协议
 
-本仓库代码使用 Perl 基金会发布的 Artistic License 2.0 协议，
-可以在 [LICENSE](LICENSE) 文件中查看完整的内容。
+本仓库代码使用 Perl 基金会发布的 Artistic License 2.0 协议，可以在 [LICENSE](LICENSE) 文件中查看完整的内容。
 
 本仓库可能包括使用其他协议的第三方代码，这些文件在它们的首部注明了版权和协议。目前包括：
 
