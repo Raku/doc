@@ -130,28 +130,6 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 --------
 
-## 愿望清单：
-
- *  Perl 6 implementations could embed `P<...>` tags in their source
-    code that would then inline the corresponding entry from `p6doc`.
-    This would enable things like `&say.WHY` to (dynamically!)
-    retrieve the documentation string from `p6doc`, without having
-    to duplicate the documentation in the `CORE.setting` sources
-    or to encode the documentation into the binaries.
-
-    Example:
-
-        # In Rakudo's src/core/IO.pm:
-
-        #= P<p6doc/&print>
-        sub print(|$) { ... }
-
-        #= P<p6doc/&say>
-        sub say(|$) { ... }
-
-        #= P<p6doc/&note>
-        sub note(|$) { ... }
-
 # 环境变量
 
 - 设置 `P6_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，
