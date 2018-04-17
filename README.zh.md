@@ -95,32 +95,31 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 --------
 
-## Some notes:
+## 注记：
 
-**Q:** Why aren't you embedding the docs in the CORE sources?<br>
-**A:** Several reasons:
+**Q:** 为什么不把文档内嵌到 Rakudo 的核心开发文件中？
 
-  1. This documentation is intended to be universal with
-     respect to a given version of the specification,
-     and not necessarily tied to any specific Perl 6
-     implementation.
-  2. Implementations' handling of embedded POD is still
-     a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the perl6 Github account invites
-     more potential contributors and editors.
+**A:** 起码有以下几点：
 
-**Q:** Should I include methods from superclasses or roles<br>
-**A:** No. The HTML version already includes methods from superclasses and
-       roles, and the `p6doc` script will be taught about those as well.
+  1. 这份文档与 Perl 6 的一份特定的语言标准相关联，
+     而不是跟某个 Perl 6 的具体实现相绑定。
+  2. 处理内嵌的 POD 的功能还不太稳定，使用单独的文档仓库
+     有利于避免运行时错误。
+  3. 一个 perl6 GitHub 账号下的单独的仓库能吸引更多
+     潜在的贡献和编辑。
 
-**Q:** Which license is this stuff under?<br>
-**A:** Both code and documentation are available under the Artistic License 2.0
-       as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
-       text.
+**Q:** 编写文档时我应该包括父类和 role 的方法吗？
+
+**A:** 不用。HTML 版本的文档自动的包括了这些方法，`p6doc` 脚本也会自动地处理这些。
+
+**Q:** 本仓库使用什么协议？
+
+**A:** 代码和文档都使用 Perl 基金会发布的 Artistic License 2.0 协议，
+       可以在 [LICENSE](LICENSE) 文件中查看完整的内容。
 
 --------
 
-## Vision
+## 愿景
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
@@ -131,7 +130,7 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 --------
 
-## Wishlist stuff:
+## 愿望清单：
 
  *  Perl 6 implementations could embed `P<...>` tags in their source
     code that would then inline the corresponding entry from `p6doc`.
@@ -153,18 +152,18 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
         #= P<p6doc/&note>
         sub note(|$) { ... }
 
-# ENV VARS
+# 环境变量
 
-- `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
-Helpful when debugging failing test suite.
-- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test
+- 设置 `P6_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，
+这在 debug 测试不通过的时候很有帮助。
+- 设置 `P6_DOC_TEST_FUDGE` 将在 `xt/examples-compilation.t` 测试中
+把标记为 `skip-test` 的代码实例当做 TODO 处理。
 
-# LICENSE
+# 协议
 
-See [LICENSE](LICENSE) file for the details of the license of the code in this repository.
+[LICENSE](LICENSE) 文件给出了本仓库代码所使用的协议的详细内容。
 
-This repository also contains code authored by third parties that may be licensed under a different license. Such
-files indicate the copyright and license terms at the top of the file. Currently these include:
+本仓库可能包括使用其他协议的第三方代码，这些文件在它们的首部注明了版权和协议。目前包括：
 
 * jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
