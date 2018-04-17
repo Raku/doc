@@ -124,11 +124,6 @@ explains briefly how to get started contributing documentation.
 **A:** No. The HTML version already includes methods from superclasses and
        roles, and the `p6doc` script will be taught about those as well.
 
-**Q:** Which license is this stuff under?<br>
-**A:** Both code and documentation are available under the Artistic License 2.0
-       as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
-       text.
-
 --------
 
 ## Vision
@@ -150,7 +145,9 @@ Helpful when debugging failing test suite.
 
 # LICENSE
 
-See [LICENSE](LICENSE) file for the details of the license of the code in this repository.
+The code in this repository is available under the Artistic License 2.0
+as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
+text.
 
 This repository also contains code authored by third parties that may be licensed under a different license. Such
 files indicate the copyright and license terms at the top of the file. Currently these include:
