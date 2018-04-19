@@ -545,7 +545,61 @@ for 1 ..^ $n {
 }
 =end code
 
-=head1 Buffers and Blobs
+=head1 Strings
+
+=head2 Explicit memory management
+
+Let's say there is some C code that caches strings passed, like so:
+
+=begin code :skip-test :lang<C>
+#include <stdlib.h>
+
+static char *__VERSION;
+
+char *
+get_version()
+{
+    return __VERSION;
+}
+
+char *
+set_version(char *version)
+{
+    if (__VERSION != NULL) free(__VERSION);
+    __VERSION = version;
+    return __VERSION;
+}
+=end code
+
+If you were to write bindings for C<get_version> and C<set_version>, they would
+initially look like this, but will not work as intended:
+
+=begin code :skip-test
+sub get_version(--> Str)     is native('./version') { * }
+sub set_version(Str --> Str) is native('./version') { * }
+
+say set_version('1.0.0'); # 1.0.0
+say get_version;          # Differs on each run
+say set_version('1.0.1'); # Double free; segfaults
+=end code
+
+This code segfaults on the second C<set_version> call because it tries to free
+the string passed on the first call after the garbage collector had already
+done so. If the garbage collector shouldn't free a string passed to a native
+function, use C<explicitly-manage> with it:
+
+=begin code :skip-test
+say set_version(explicitly-manage('1.0.0')); # 1.0.0
+say get_version;                             # 1.0.0
+say set_version(explicitly-manage('1.0.1')); # 1.0.1
+say get_version;                             # 1.0.1
+=end code
+
+Bear in mind all memory management for explicitly managed strings must be
+handled by the C library itself or through the NativeCall API to prevent memory
+leaks.
+
+=head2 Buffers and blobs
 
 =comment TODO
 
@@ -704,6 +758,14 @@ This returns the size in bytes of the supplied object, it can be thought of as b
 equivalent to C<sizeof> in B<C>.  The object can be a builtin native type such as
 C<int64> or C<num64>, a C<CArray> or a class with the C<repr> C<CStruct>, C<CUnion>
 or C<CPointer>.
+
+=head2 sub explicitly-manage
+
+    sub explicitly-manage($str) is export(:DEFAULT)
+
+This returns a C<CStr> object for the given C<Str>. If the string returned is
+passed to a NativeCall subroutine, it will not be freed by the runtime's
+garbage collector.
 
 =head1 Examples
 
