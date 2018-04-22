@@ -9,8 +9,11 @@ $(function(){
 function setup_tables() {
     $('.pod-table').each(function() {
         if ($(this).find('thead').length
-         && $(this).find('tr').length > 10)
-            $(this).tablesorter({sortList: [[0,0]]})
+         && $(this).find('tr').length > 10
+         && ! ( // don't sort operators precedence table
+              $(this).find('thead th:first-child'     ).text() == 'A'
+           && $(this).find('thead th:first-child + th').text() == 'Level'
+         )) $(this).tablesorter({sortList: [[0,0]]})
     })
 }
 

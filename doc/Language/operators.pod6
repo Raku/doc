@@ -637,19 +637,39 @@ Technically, not a real operator; it's syntax special-cased in the compiler.
 X«|postfix .+»
 =head2 postfix C«.+»
 
-C<$invocant.+method> calls all methods called C<method> from C<$invocant>,
-and returns a L<List> of the results. Dies if no such method was found.
+C<$foo.+meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
+Those methods might be multies, in which case the matching candidate
+would be called.
 
-Technically, not a real operator; it's syntax special-cased in the compiler.
+After that, a L<List> of the results are returned. If no such method was found,
+it throws a L<X::Method::NotFound> exception.
+
+    class A {
+      method foo { say "from A"; }
+    }
+    class B is A {
+      multi method foo { say "from B"; }
+      multi method foo(Str) { say "from B (Str)"; }
+    }
+    class C is B is A {
+      multi method foo { say "from C"; }
+      multi method foo(Str) { say "from C (Str)"; }
+    }
+
+    say C.+foo; # OUTPUT: «from C␤from B␤from A␤(True True True)␤»
 
 X«|postfix .*»
 =head2 postfix C«.*»
 
-C<$invocant.*method> calls all methods called C<method> from C<$invocant>,
-and returns a L<List> of the results. If no such method was found, an empty
-L<List> is returned.
+C<$foo.*meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
+Those methods might be multies, in which case the matching candidate
+would be called.
 
-Technically, not a real operator; it's syntax special-cased in the compiler.
+After that, a L<List> of the results are returned. If no such method was found,
+an empty L<List> is returned.
+
+Technically, postfix C<.+> calls C<.*> at first. Read postfix C<.+> section to
+see examples.
 
 X<|postfix ».>X«|postfix >>.»
 =head2 postfix C<».> / postfix C«>>.»
@@ -2078,7 +2098,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 sub infix:<=>(Mu $a is rw, Mu $b)
 =end code
 
-Called the X<item assignment operator|«=»>, it Places the value of the right-hand side into the container on the left-hand
+Called the I<item assignment operator>, it Places the value of the right-hand side into the container on the left-hand
 side. Its exact semantics are left to the container type on the left-hand side.
 
 (Note that item assignment and list assignment have different precedence
@@ -2195,35 +2215,30 @@ X<|...,operators>X<|...^,operators>X<|…,operators>X<|…^,operators>X<|lazy li
     multi sub infix:<...>(**@) is assoc<list>
     multi sub infix:<...^>(**@) is assoc<list>
 
-The X<sequence operator> is a generic operator to produce lazy lists.
+The X<sequence operator> will produce generic sequences on demand.
 
-It can have initial elements and a generator on the left-hand side and an
-endpoint on the right-hand side.
+The left hand side will always include initial elements; it may include a generator too. The right hand side will have an endpoint, which can be C<Inf> or C<*> for "infinite" lists (whose elements are only produced on demand), an expression which will end the sequence when C<True>, or other elements such as L<Junctions>.
 
 The sequence operator invokes the generator with as many arguments as
 necessary. The arguments are taken from the initial elements and the already
-generated elements.
-
-The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how
-the end points compare:
+generated elements. The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how the end points compare:
 
     say 1 ... 4;        # OUTPUT: «(1 2 3 4)␤»
     say 4 ... 1;        # OUTPUT: «(4 3 2 1)␤»
     say 'a' ... 'e';    # OUTPUT: «(a b c d e)␤»
     say 'e' ... 'a';    # OUTPUT: «(e d c b a)␤»
 
-An endpoint of C<*> (L<Whatever>) generates an infinite sequence,
+An endpoint of C<*> (L<Whatever>), C<Inf> or C<∞>  generates on demand an infinite sequence,
 with a default generator of *.succ
 
     say (1 ... *)[^5];  # OUTPUT: «(1 2 3 4 5)␤»
 
-
-Custom generators are the last argument before the '...' operator.
+Custom generators need to be the last argument before the '...' operator.
 This one takes two arguments, and generates the Fibonacci numbers
 
     say (1, 1, -> $a, $b { $a + $b } ... *)[^8];    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
     # same but shorter
-    say (1, 1, *+* ... *)[^8];                      # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
+    say (1, 1, * + * ... *)[^8];                    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
 
 Of course the generator can also take only one argument.
 
@@ -2245,7 +2260,7 @@ operator it's excluded.
 
 This allows you to write
 
-    say 1, 1, *+* ...^ *>= 100;
+    say 1, 1, * + * ...^ *>= 100;
 
 To generate all Fibonacci numbers up to but excluding 100.
 

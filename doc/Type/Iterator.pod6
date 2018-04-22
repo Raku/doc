@@ -82,6 +82,53 @@ be produced.
     say $i.pull-one;       # OUTPUT: «3␤»
     say $i.pull-one.perl;  # OUTPUT: «IterationEnd␤»
 
+As a more illustrative example of its use, here is a count down iterator along with
+a simplistic subroutine reimplementation of the C<for> loop.
+
+    # works the same as (10 ... 1, 'lift off')
+    class CountDown does Iterator {
+        has Int:D $!current = 10;
+
+        method pull-one ( --> Mu ) {
+            my $result = $!current--;
+            if $result ==  0 { return 'lift off' }
+            if $result == -1 { return IterationEnd }
+
+            # calling .pull-one again after it returns IterationEnd is undefined
+            if $result <= -2 {
+                # so for fun we will give them nonsense data
+                return (1..10).pick;
+            }
+
+            return $result;
+        }
+    }
+
+    sub for( Iterable:D $sequence, &do --> Nil ) {
+        my Iterator:D $iterator = $sequence.iterator;
+
+        loop {
+            # must bind the result so that =:= works
+            my Mu $pulled := $iterator.pull-one;
+
+            # always check the result and make sure that .pull-one
+            # is not called again after it returns IterationEnd
+            if $pulled =:= IterationEnd { last }
+
+            do( $pulled );
+        }
+    }
+
+    for( Seq.new(CountDown.new), &say );  # OUTPUT: «10␤9␤8␤7␤6␤5␤4␤3␤2␤1␤lift off␤»
+
+It would be more idiomatic to use C<while> or C<until>, and a sigiless variable.
+
+    =begin code :preamble<my $iterator = ().iterator; my &do = &say>
+    until IterationEnd =:= (my \pulled = $iterator.pull-one) {
+        do( pulled );
+    }
+    =end code
+
 =head2 method push-exactly
 
 Defined as:

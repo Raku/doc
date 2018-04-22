@@ -1,5 +1,5 @@
 REPO_PATH := $(dir $(realpath $(lastword $(MAKEFILE_LIST))))
-
+PATH := $(PATH)
 DOCKER_IMAGE_NAME    ?= p6doc
 DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
