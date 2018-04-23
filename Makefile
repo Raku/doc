@@ -34,7 +34,7 @@ webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
 bigpage:
-	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git > html/perl6.xhtml
+	pod2onepage --html -v --source-path=./doc --exclude=404.pod6,/.git > html/perl6.html
 
 # Common tests that are run by travis with every commit
 test:
@@ -57,7 +57,7 @@ help:
 	@echo "   assets:           generate CSS/JS assets"
 	@echo " sparse:             generate HTML documention, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
-	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
+	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"

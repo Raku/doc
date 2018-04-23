@@ -1,6 +1,5 @@
-<?xml version="1.0" encoding="utf-8" ?>
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 <head>
 <title>Converted POD6 documentation</title>
 <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
@@ -10368,12 +10367,26 @@ say %color«cherry &quot;$fruit&quot;».perl;   # OUTPUT: «(&quot;red&quot;, &q
  <p>Technically, not a real operator; it's syntax special-cased in the compiler.</p>
  <p><span class="indexed"><a id="352" name="postfix .+"></a></span></p>
  <a name="t33.15.11"></a><h2 id="_language_operators.pod6-postfix_.+">33.15.11 postfix <span class="code">.+</span></h2>
- <p><span class="code">$invocant.+method</span> calls all methods called <span class="code">method</span> from <span class="code">$invocant</span>, and returns a <a href="#_type_List.pod6">List</a> of the results. Dies if no such method was found.</p>
- <p>Technically, not a real operator; it's syntax special-cased in the compiler.</p>
+ <p><span class="code">$foo.+meth</span> walks the MRO and calls all the methods called <span class="code">meth</span> and submethods called <span class="code">meth</span> if the type is the same as type of <span class="code">$foo</span>. Those methods might be multies, in which case the matching candidate would be called.</p>
+ <p>After that, a <a href="#_type_List.pod6">List</a> of the results are returned. If no such method was found, it throws a <a href="#_type_X::Method::NotFound.pod6">X::Method::NotFound</a> exception.</p>
+ <pre class="code">class A {
+  method foo { say &quot;from A&quot;; }
+}
+class B is A {
+  multi method foo { say &quot;from B&quot;; }
+  multi method foo(Str) { say &quot;from B (Str)&quot;; }
+}
+class C is B is A {
+  multi method foo { say &quot;from C&quot;; }
+  multi method foo(Str) { say &quot;from C (Str)&quot;; }
+}
+
+say C.+foo; # OUTPUT: «from C␤from B␤from A␤(True True True)␤»</pre>
  <p><span class="indexed"><a id="353" name="postfix .*"></a></span></p>
  <a name="t33.15.12"></a><h2 id="_language_operators.pod6-postfix_.*">33.15.12 postfix <span class="code">.*</span></h2>
- <p><span class="code">$invocant.*method</span> calls all methods called <span class="code">method</span> from <span class="code">$invocant</span>, and returns a <a href="#_type_List.pod6">List</a> of the results. If no such method was found, an empty <a href="#_type_List.pod6">List</a> is returned.</p>
- <p>Technically, not a real operator; it's syntax special-cased in the compiler.</p>
+ <p><span class="code">$foo.*meth</span> walks the MRO and calls all the methods called <span class="code">meth</span> and submethods called <span class="code">meth</span> if the type is the same as type of <span class="code">$foo</span>. Those methods might be multies, in which case the matching candidate would be called.</p>
+ <p>After that, a <a href="#_type_List.pod6">List</a> of the results are returned. If no such method was found, an empty <a href="#_type_List.pod6">List</a> is returned.</p>
+ <p>Technically, postfix <span class="code">.+</span> calls <span class="code">.*</span> at first. Read postfix <span class="code">.+</span> section to see examples.</p>
  <p><span class="indexed"><a id="354" name="postfix »."></a></span><span class="indexed"><a id="355" name="postfix &gt;&gt;."></a></span></p>
  <a name="t33.15.13"></a><h2 id="_language_operators.pod6-postfix_»._/_postfix_&gt;&gt;.">33.15.13 postfix <span class="code">».</span> / postfix <span class="code">&gt;&gt;.</span></h2>
  <p><span class="indexed"><a id="356" name="">Hyper method call operator</a></span>. Will call a method on all elements of a <span class="code">List</span> out of order and return the list of return values in order.</p>
@@ -25915,6 +25928,47 @@ say $i.pull-one;       # OUTPUT: «1␤»
 say $i.pull-one;       # OUTPUT: «2␤»
 say $i.pull-one;       # OUTPUT: «3␤»
 say $i.pull-one.perl;  # OUTPUT: «IterationEnd␤»</pre>
+ <p>As a more illustrative example of its use, here is a count down iterator along with a simplistic subroutine reimplementation of the <span class="code">for</span> loop.</p>
+ <pre class="code"># works the same as (10 ... 1, 'lift off')
+class CountDown does Iterator {
+    has Int:D $!current = 10;
+
+    method pull-one ( --&gt; Mu ) {
+        my $result = $!current--;
+        if $result ==  0 { return 'lift off' }
+        if $result == -1 { return IterationEnd }
+
+        # calling .pull-one again after it returns IterationEnd is undefined
+        if $result &lt;= -2 {
+            # so for fun we will give them nonsense data
+            return (1..10).pick;
+        }
+
+        return $result;
+    }
+}
+
+sub for( Iterable:D $sequence, &amp;do --&gt; Nil ) {
+    my Iterator:D $iterator = $sequence.iterator;
+
+    loop {
+        # must bind the result so that =:= works
+        my Mu $pulled := $iterator.pull-one;
+
+        # always check the result and make sure that .pull-one
+        # is not called again after it returns IterationEnd
+        if $pulled =:= IterationEnd { last }
+
+        do( $pulled );
+    }
+}
+
+for( Seq.new(CountDown.new), &amp;say );  # OUTPUT: «10␤9␤8␤7␤6␤5␤4␤3␤2␤1␤lift off␤»</pre>
+ <p>It would be more idiomatic to use <span class="code">while</span> or <span class="code">until</span>, and a sigiless variable.</p>
+ <pre class="code">until IterationEnd =:= (my \pulled = $iterator.pull-one) { 
+     do( pulled ); 
+ } 
+</pre>
  <a name="t118.2.2"></a><h2 id="_type_Iterator.pod6-method_push-exactly">118.2.2 method push-exactly</h2>
  <p>Defined as:</p>
  <pre class="code">method push-exactly(Iterator:D: $target, int $count --&gt; Mu)</pre>
@@ -27344,7 +27398,7 @@ say numbers.^enum_value_list;               # OUTPUT: (10 20)</pre>
  <pre class="code">method find_method(Metamodel::MROBasedMethodDispatch:D: $obj, $name, $no_fallback)</pre>
  <p>Given a method name, returns the method object of that name which is closest in the method resolution order (MRO). If no method can be found, it returns a VM-specific sentinel value (typically a low-level NULL value) that can be tested for with a test for <a href="#_routine_defined.pod6">definedness</a>:</p>
  <pre class="code">for &lt;upper-case  uc&gt; {
-    Str.^findmethod: $^meth andthen .(&quot;foo&quot;).say
+    Str.^find_method: $^meth andthen .(&quot;foo&quot;).say
         orelse &quot;method `$meth` not found&quot;.say
 }
 # OUTPUT:
@@ -27352,7 +27406,7 @@ say numbers.^enum_value_list;               # OUTPUT: (10 20)</pre>
 # FOO</pre>
  <p>If <span class="code">:no_fallback</span> is supplied, fallback methods are not considered.</p>
  <a name="t133.1.2"></a><h2 id="_type_Metamodel_MROBasedMethodDispatch.pod6-method_find_method_qualified">133.1.2 method find_method_qualified</h2>
- <pre class="code">method find_method(Metamodel::MROBasedMethodDispatch:D: $obj, $type, $name)</pre>
+ <pre class="code">method find_method_qualified(Metamodel::MROBasedMethodDispatch:D: $obj, $type, $name)</pre>
  <p>Given a method name and a type, returns the method from that type. This is used in calls like</p>
  <pre class="code">self.SomeParentClass::the_method(); 
 </pre>
@@ -30354,10 +30408,10 @@ multi factorial(Int $x)        { $x * factorial($x - 1) }</pre>
 -&gt; $y where   .so &amp;  .name.so {}( sub three {} ); # Also good</pre>
  <p>The first version is wrong and will issue a warning about sub object coerced to string. The reason is the expression is equivalent to <span class="code">($y ~~ ($y.so &amp;&amp; $y.name))</span>; that is &quot;call <span class="code">.so</span>, and if that is <span class="code">True</span>, call <span class="code">.name</span>; if that is also <span class="code">True</span> use its value for smartmatching…&quot;. It's the <b>result</b> of <span class="code">(.so &amp;&amp; .name)</span> is will be smart-matched against, but we want to check that both <span class="code">.so</span> and <span class="code">.name</span> are truthy values. That is why an explicit Block or a <a href="#_type_Junction.pod6">Junction</a> is the right version.</p>
  <p>All previous arguments that are not part of a sub-signature in a <span class="code">Signature</span> are accessible in a <span class="code">where</span>-clause that follows an argument. Therefore, the <span class="code">where</span>-clause of the last argument has access to all arguments of a signature that are not part of a sub-signature. For a sub-signature place the <span class="code">where</span>-clause inside the sub-signature.</p>
- <pre class="code">sub one-of-them(:$a, :$b, :$c where { $a.defined ^^ $b.defined ^^ $c.defined }) {
-    $a // $b // $c
-};
-say one-of-them(c=&gt;42); # OUTPUT: «42␤»</pre>
+ <pre class="code">sub foo($a, $b where * == $a ** 2) { say &quot;$b is a square of $a&quot; }
+foo 2, 4; # OUTPUT: «4 is a square of 2␤»»
+# foo 2, 3;
+# OUTPUT: «Constraint type check failed in binding to parameter '$b'…»</pre>
  <a name="t190.1.2.1"></a><h3 id="_type_Signature.pod6-Constraining_Optional_Arguments">190.1.2.1 Constraining Optional Arguments</h3>
  <p><a href="#189-Optional_and_Mandatory_Parameters">Optional arguments</a> can have constraints, too. Any <span class="code">where</span> clause on any parameter will be executed, even if it's optional and not provided by the caller. In that case you may have to guard against undefined values within the <span class="code">where</span> clause.</p>
  <pre class="code">sub f(Int $a, UInt $i? where { !$i.defined or $i &gt; 5 } ) { ... }</pre>
