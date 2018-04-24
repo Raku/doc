@@ -13,7 +13,7 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' |
 html: bigpage htmlify
 
 htmlify: init-highlights assets
-	perl6 htmlify.p6 --parallel=1
+	perl6 htmlify.p6
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
