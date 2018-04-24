@@ -215,11 +215,20 @@ Finds all possible matches of a regex, including overlapping matches and matches
 
 =item :st, :nd, rd, nth
 
-Takes an integer as an argument and returns the nth match in the string.
+Returns the nth match in the string. The argument can be a L<Numeric> or
+an L<Iterable> producing monotonically increasing numbers (that is, the
+next produced number must be larger than the previous one). The L<Iterable>
+will be lazily L<reified|/language/glossary#index-entry-Reify> and if
+non-monotonic sequence is encountered an exception will be thrown.
+
+If L<Iterable> argument is provided the return value and C<$/> variable
+will be set to a possibly-empty L<List> of L<Match> objects.
 
 =item :x
 
-Takes as an argument the number of matches to return, stopping once the specified number of matches has been reached.
+Takes as an argument the number of matches to return, stopping once the specified number of matches has been reached. The value must be a L<Numeric>
+or a L<Range>; other values will cause C<.match> to return a L<Failure>
+containing C<X::Str::Match::x> exception.
 
 Examples:
 =begin code
@@ -486,7 +495,7 @@ Examples:
 This function is mostly identical to the C library C<sprintf> and
 C<printf> functions.  The only difference between the two
 functions is that C<sprintf> returns a string while the C<printf> function
-writes to a file.
+writes to a filehandle. C<sprintf> returns a C<Str>, not a literal.
 
 The C<$format> is scanned for C<%> characters. Any C<%> introduces a
 format token. Format tokens have the following grammar:
@@ -606,12 +615,12 @@ is ignored:
   sprintf '<%+ d>', 12;   # RESULT: «<+12>␤»
   sprintf '<% +d>', 12;   # RESULT: «<+12>␤»
 
-When the C<#> flag and a precision are given in the C<%o> conversion, the
-precision is incremented if it's necessary for the leading "0":
+When the C<#> flag and a precision are given in the C<%o> conversion, the necessary number of 0s is added at the beginning. If the value of the number is C<0> and the precision is 0, it will output nothing; precision 0 or smaller than the actual number of elements will return the number with 0 to the left:
 
-  sprintf '<%#.5o>', 0o12;     # RESULT: «<000012>␤»
-  sprintf '<%#.5o>', 0o12345;  # RESULT: «<012345>␤»
-  sprintf '<%#.0o>', 0;        # RESULT: «<>␤» # zero precision results in no output!
+  say sprintf '<%#.5o>', 0o12;     # OUTPUT: «<00012>␤»
+  say sprintf '<%#.5o>', 0o12345;  # OUTPUT: «<012345>␤»
+  say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0 results in no output!
+  say sprintf '<%#.0o>', 0o1       # OUTPUT: «<01>␤»
 
 B<vector flag>
 
@@ -687,10 +696,10 @@ the C<0> flag is ignored:
 for signed integer.)
 
   =begin code :skip-test
-  NYI sprintf '<%.6d>', 1;      # <000001>
+  sprintf '<%.6d>', 1;      # <000001>
   NYI sprintf '<%+.6d>', 1;     # <+000001>
   NYI sprintf '<%-10.6d>', 1;   # <000001    >
-  NYI sprintf '<%10.6d>', 1;    # <    000001>
+  sprintf '<%10.6d>', 1;    # <    000001>
   NYI sprintf '<%010.6d>', 1;   #     000001>
   NYI sprintf '<%+10.6d>', 1;   # <   +000001>
   sprintf '<%.6x>', 1;         # RESULT: «<000001>␤»
@@ -830,11 +839,15 @@ Returns C<True> if the invocant is identical to or ends with C<$needle>.
 Returns the invocant string where C<$matcher> is replaced by C<$replacement>
 (or the original string, if no match was found).
 
-There is an in-place syntactic variant of C<subst> spelled
-C<s/matcher/replacement/>.
+There is an in-place syntactic variant of C<subst> spelled L«C<s/matcher/replacement/>|/syntax/s$SOLIDUS%20$SOLIDUS%20$SOLIDUS»
+as well as the L«C<.subst-mutate> method|/routine/subst-mutate».
 
 C<$matcher> can be a L<Regex>, or a literal C<Str>. Non-Str matcher arguments
 of type L<Cool> are coerced to C<Str> for literal matching.
+If a L<Regex> C<$matcher> is used, the
+L«C<$/> special variable|/syntax/$$SOLIDUS» will be set to C<Nil> (if no
+matches occurred), a L<Match> object, or a L<List> of L<Match> objects (if
+multi-match options like C<:g> are used).
 
 =head3 Literal replacement substitution
 
@@ -923,23 +936,39 @@ if no matches occurred.
     say $match;        # OUTPUT: «｢foo｣␤»
     $some-string.subst-mutate(/<[oe]>/, '', :g); # remove every o and e, notice the :g named argument from .subst
 
+If a L<Regex> C<$matcher> is used, the
+L«C<$/> special variable|/syntax/$$SOLIDUS» will be set to C<Nil> (if no
+matches occurred), a L<Match> object, or a L<List> of L<Match> objects (if
+multi-match options like C<:g> are used).
+
 =head2 routine substr
 
-    multi sub    substr(Str:D $s, Int:D $from, Int:D $chars = $s.chars - $from --> Str:D)
-    multi sub    substr(Str:D $s, Range $from-to --> Str:D)
-    multi method substr(Str:D $s: Int:D $from, Int:D $chars = $s.chars - $from --> Str:D)
-    multi method substr(Str:D $s: Range $from-to --> Str:D)
+    multi sub    substr(Str:D $s, $from, $chars?  --> Str:D)
+    multi sub    substr(Str:D $s, Range  $from-to --> Str:D)
+    multi method substr(Str:D $s: $from, $chars?  --> Str:D)
+    multi method substr(Str:D $s: Range $from-to  --> Str:D)
 
-Returns a part of the string, starting from the character with index C<$from>
-(where the first character has index 0) and with length C<$chars>.  If a range is
-specified, its first and last indices are used to determine the size of the substring.
+Returns a substring of the original string, between the indices specified by
+C<$from-to>'s endpoints (coerced to L<Int>) or from index C<$from> and of
+length C<$chars>.
 
-Examples:
+Both C<$from> and C<$chars> can be specified as L<Callable>, which will be
+invoked with the L<length|/routine/chars> of the original string and the
+returned value will be used as the value for the argument. If C<$from> or
+C<$chars> are not L<Callable>, they'll be coerced to L<Int>.
 
-    substr("Long string", 6, 3);     # RESULT: «tri»
-    substr("Long string", 6);        # RESULT: «tring»
-    substr("Long string", 6, *-1);   # RESULT: «trin»
-    substr("Long string", *-3, *-1); # RESULT: «in»
+If C<$chars> is omitted or is larger than the available characters,
+the string from C<$from> until the end of the string is returned.
+If C<$from-to>'s starting index or C<$from> is less than
+zero, C<X::OutOfRange> exception is thrown. The C<$from-to>'s ending index is
+permitted to extend past the end of string, in which case it will be equivalent
+to the index of the last character.
+
+    say substr("Long string", 3..6);     # RESULT: «g st␤»
+    say substr("Long string", 6, 3);     # RESULT: «tri␤»
+    say substr("Long string", 6);        # RESULT: «tring␤»
+    say substr("Long string", 6, *-1);   # RESULT: «trin␤»
+    say substr("Long string", *-3, *-1); # RESULT: «in␤»
 
 =head2 method substr-eq
 

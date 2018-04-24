@@ -1,0 +1,199 @@
+=begin pod :tag<perl6>
+
+=TITLE Module Packages
+
+=SUBTITLE Creating module packages for code reuse.
+
+
+I<N.B.> "Module" is an overloaded term in Perl 6; this document
+focuses on use of the C<module> declarator.
+
+
+=head1 What are modules?
+
+Modules, like classes and grammars, are a kind of
+L<package|/language/packages>. Module objects are instances of the
+C<ModuleHOW> metaclass; this provides certain capabilities useful
+for creating namespaces, versioning, delegation and data encapsulation (see
+also L<class|/syntax/class> and L<role|/syntax/role>).
+
+To create a module, use the C<module> declarator:
+
+    module M {}
+    say M.HOW;   # OUTPUT: «Perl6::Metamodel::ModuleHOW.new␤»
+
+Here we define a new module named C<M>; introspection with C<HOW>
+confirms that the metaclass underlying C<M> is
+C<Perl6::Metamodel::ModuleHOW>.
+
+
+=head2 When to use modules
+
+Modules are primarily useful for encapsulating code and data that
+do not belong inside a class or role definition. Module contents
+(classes, subroutines, variables, etc.) can be exported from a
+module with the C<is export> trait; these are available in the
+caller's namespace once the module has been imported with C<import>
+or C<use>. A module can also selectively expose symbols within its
+namespace for qualified reference via C<our>.
+
+
+=head2 Working with modules
+
+To illustrate module scoping and export rules, let's begin by
+defining a simple module C<M>:
+
+    module M {
+      sub greeting ($name = 'Camelia') { "Greetings, $name!" }
+      our sub loud-greeting (--> Str)  { greeting().uc       }
+      sub friendly-greeting is export  { greeting('friend')  }
+    }
+
+Recall that subroutines are lexically scoped unless otherwise
+specified (declarator L<C<sub>|/syntax/sub>
+is equivalent to C<my sub>), so C<greeting> in the above example
+is lexically scoped to the module and inaccessible outside of it.
+We've also defined C<loud-greeting> with the C<our> declarator,
+which means that in addition to being lexically scoped it is aliased
+in the module's symbol table. Finally, C<friendly-greeting> is
+marked for export; it will be registered in the I<caller's> symbol
+table when the module is imported:
+
+=begin code :skip-test<&friendly-greeting already exported>
+import M;               # import the module
+say M::loud-greeting;   # OUTPUT: «GREETINGS, CAMELIA!␤»
+say friendly-greeting;  # OUTPUT: «Greetings, friend!␤»
+=end code
+
+
+=head1 Modules on disk
+
+While C<.pm> and C<.pm6> files (hereafter: C<.pm6>) are sometimes
+referred to as "modules", they are really just normal files that
+are loaded and compiled when you write C<need>, C<use> or C<require>.
+
+For a C<.pm6> file to provide a module in the sense that we've been
+using, it needs to declare one with C<module> as documented above.
+For example, by placing module C<M> inside C<Foo.pm6>, we can load
+and use the module as follows:
+
+=begin code :skip-test<filesystem related>
+use Foo;                # find Foo.pm6, run need followed by import
+say M::loud-greeting;   # OUTPUT: «GREETINGS, CAMELIA!␤»
+say friendly-greeting;  # OUTPUT: «Greetings, friend!␤»
+=end code
+
+Note the decoupling between file and module names—a C<.pm6> file
+can declare zero or more modules with arbitrary identifiers.
+
+
+=head2 File and module naming
+
+Often we want a C<.pm6> file to provide a I<single> module and
+nothing more. Here a common convention is for the file basename to
+match the module name. Returning to C<Foo.pm6>, it is apparent that
+it only provides a single module, C<M>; in this case, we might want
+to rename C<M> to C<Foo>. The amended file would then read:
+
+=begin code :skip-test<&friendly-greeting already exported>
+module Foo {
+  sub greeting ($name = 'Camelia') { "Greetings, $name!" }
+  our sub loud-greeting (--> Str)  { greeting().uc       }
+  sub friendly-greeting is export  { greeting('friend')  }
+}
+=end code
+
+which can be used more consistently by the caller (note the
+relationship between the C<use Foo> and C<Foo::>):
+
+=begin code :skip-test<filesystem related>
+use Foo;
+say Foo::loud-greeting;  # OUTPUT: «GREETINGS, CAMELIA!␤»
+say friendly-greeting;   # OUTPUT: «Greetings, friend!␤»
+=end code
+
+If C<Foo.pm6> is placed deeper within the source tree, e.g. at
+C<lib/Utils/Foo.pm6>, we can elect to name the module C<Utils::Foo>
+to maintain consistency.
+
+
+=head3 The C<unit> keyword
+
+Files that only provide a single module can be written more concisely
+with the C<unit> keyword; C<unit module> specifies that the
+rest of the compilation unit is part of the declared module. Here's
+C<Foo.pm6> rewritten with C<unit>:
+
+=begin code :skip-test<filesystem related>
+unit module Foo;
+
+sub greeting ($name = 'Camelia') { "Greetings, $name!" }
+our sub loud-greeting (--> Str)  { greeting().uc       }
+sub friendly-greeting is export  { greeting('friend')  }
+=end code
+
+Everything following the unit declaration is part of the C<Foo>
+module specification.
+
+(Note that C<unit> can also be used with C<class>, C<grammar> and
+C<role>.)
+
+
+=head2 What happens if I omit C<module>?
+
+To better understand what the C<module> declarator is doing in
+C<Foo.pm6>, let's contrast it with a variant file, C<Bar.pm6>, that
+omits the declaration. The subroutine definitions below are almost
+identical (the only difference is in the body of C<greeting>,
+modified for clarity):
+
+=begin code :skip-test<&friendly-greeting already exported>
+sub greeting ($name = 'Camelia') { "Greetings from Bar, $name!" }
+our sub loud-greeting (--> Str)  { greeting().uc                }
+sub friendly-greeting is export  { greeting('friend')           }
+=end code
+
+As a reminder, here's how we used C<Foo.pm6> before,
+
+=begin code :skip-test<filesystem related>
+use Foo;
+say Foo::loud-greeting;  # OUTPUT: «GREETINGS, CAMELIA!␤»
+say friendly-greeting;   # OUTPUT: «Greetings, friend!␤»
+=end code
+
+and here's C<Bar.pm6>,
+
+=begin code :skip-test<filesystem related>
+use Bar;
+say loud-greeting;       # OUTPUT: «GREETINGS FROM BAR, CAMELIA!␤»
+say friendly-greeting;   # OUTPUT: «Greetings from Bar, friend!␤»
+=end code
+
+Note the use of C<loud-greeting> rather than C<Bar::loud-greeting>
+as C<Bar> is not a known symbol (we didn't create a C<module> of
+that name in C<Bar.pm6>). But why is C<loud-greeting> callable even
+though we didn't mark it for export? The answer is simply that
+C<Bar.pm6> doesn't create a new package namespace—C<$?PACKAGE> is
+still set to C<GLOBAL>—so when we declare C<loud-greeting> as C<our>,
+it is registered in the C<GLOBAL> symbol table.
+
+
+=head3 Lexical aliasing and safety
+
+Thankfully, Perl 6 protects us from accidentally clobbering call
+site definitions (e.g. builtins). Consider the following addition
+to C<Bar.pm6>:
+
+    our sub say ($ignored) { print "oh dear\n" }
+
+This creates a lexical alias, hiding the C<say> builtin I<inside>
+C<Bar.pm6> but leaving the caller's C<say> unchanged. Consequently,
+the following call to C<say> still works as expected:
+
+=begin code :skip-test<filesystem related>
+use Bar;
+say 'Carry on, carry on...';  # OUTPUT: «Carry on, carry on...␤»
+=end code
+
+
+=end pod

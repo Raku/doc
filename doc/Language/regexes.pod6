@@ -146,7 +146,7 @@ can be matched with C<\v>, and C<\s> matches any kind of whitespace.
 
 C<\n> matches a single, logical newline character.
 What is considered as a I<single newline character> is defined via the compile time
-variable L<$?NL>, and the L<newline pragma|/language/pragmas>.
+variable L<$?NL|/language/variables##index-entry-%24%3FNL>, and the L<newline pragma|/language/pragmas>.
 Therefore C<\n> is supposed to be able to either match a Unix-like newline "\n"
 or a Microsoft Windows style one "\r\n".
 
@@ -456,7 +456,7 @@ C<X::Syntax::Regex::QuantifierValue> exception will be thrown:
 To more easily match things like comma separated values, you can tack on a
 C<%> modifier to any of the above quantifiers to specify a separator that must
 occur between each of the matches. For example, C<a+ % ','> will match
-C<a> or C<a,a> or C<a,a,a> or so on. To also match trailing delimiters
+C<a> or C<a,a> or C<a,a,a>, etc. To also match trailing delimiters
 ( C<a,> or C<a,a,> ), you can use C<%%> instead of C<%>.
 
 The quantifier interacts with `%` and controls the number of overall
@@ -530,8 +530,7 @@ In short, in regex branches separated by C<|>, the longest token match wins,
 independent of the textual ordering in the regex. However, what C<|> really
 does is more than that.
 It does not decide which branch wins after finishing the whole match,
-but follows the L<longest-token matching (LTM) strategy|
-https://design.perl6.org/S05.html#Longest-token_matching>.
+but follows the L<longest-token matching (LTM) strategy|https://design.perl6.org/S05.html#Longest-token_matching>.
 
 Briefly, what C<|> does is this:
 
@@ -565,6 +564,30 @@ takes precedence.
 
 For more details, see
 L<the LTM strategy|https://design.perl6.org/S05.html#Longest-token_matching>.
+
+=head2 Quoted lists are LTM matches
+
+Using a quoted list in a regex is equivalent to specifying the
+longest-match alternation of the list's elements.  So, the following
+match:
+
+    say 'food' ~~ /< f fo foo food >/;      # OUTPUT: «｢food｣␤»
+
+is equivalent to:
+
+    say 'food' ~~ / f | fo | foo | food /;  # OUTPUT: «｢food｣␤»
+
+Note that the space after the first C«<» is significant here: C«<food>»
+calls the named rule C<food> while C«< food >» and C«< food>» specify
+quoted lists with a single element, C<'food'>.
+
+Arrays can also be interpolated into a regex to achieve the same effect:
+
+    my @increasingly-edible = <f fo foo food>;
+    say 'food' ~~ /@increasingly-edible/;   # OUTPUT: «｢food｣␤»
+
+This is documented further under L<Regex Interpolation|#Regex_Interpolation>,
+below.
 
 =head1 X<Conjunction: C<&&>|regex,&&>
 
@@ -1310,7 +1333,8 @@ C«<$pattern>» and C«<{$pattern.method}>» causes L«implicit EVAL|
 /language/traps#<{$x}>_vs_$($x):_Implicit_EVAL», which is a known trap.
 
 When an array variable is interpolated into a regex, the regex engine handles
-it like a C<|> alternative of the regex elements. The interpolation rules for
+it like a C<|> alternative of the regex elements (see the documentation on
+L<embedded lists|#Quoted lists are LTM matches>, above).  The interpolation rules for
 individual elements are the same as for scalars, so strings and numbers match
 literally, and L</type/Regex|Regex> objects match as regexes. Just as with
 ordinary C<|> interpolation, the longest match succeeds:
@@ -1531,7 +1555,7 @@ it will turn into C«<.ws>».
 In addition, if whitespace comes after a term but I<before> a quantifier
 (C<+>, C<*>, or C<?>), C«<.ws>» will be matched after every match of the
 term. So, C<foo +> becomes C«[ foo <.ws> ]+». On the other hand, whitespace
-I<after> a quantifier acts as normal significant whitespace; e.g., "C<foo+>"
+I<after> a quantifier acts as normal significant whitespace; e.g., "C<foo+ >"
 becomes C«foo+ <.ws>».
 
 In all, this code:
@@ -1873,7 +1897,7 @@ For example, in C<ini> files:
     =end code
 
 What can be inside the section header? Allowing only a word might be too
-restrictive. Somebody might write C<[two words]>, or use dashes, or so on.
+restrictive. Somebody might write C<[two words]>, or use dashes, etc.
 Instead of asking what's allowed on the inside, it might be worth asking
 instead: I<what's not allowed?>
 

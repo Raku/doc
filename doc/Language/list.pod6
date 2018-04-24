@@ -24,8 +24,8 @@ with parentheses, so:
 There is one exception, empty lists are created with just parenthesis:
 
 =for code :skip-test
-    ();          # This is an empty List
-    (,);         # This is a syntax error
+();          # This is an empty List
+(,);         # This is a syntax error
 
 Note that hanging commas are just fine as long as the beginning and
 end of a list are clear, so feel free to use them for easy code editing.
@@ -113,6 +113,40 @@ All lists may be iterated, which means taking each element from the
 list in order and stopping after the last element:
 
     for 1, 2, 3 { .say }  # OUTPUT: «1␤2␤3␤»
+
+=head2 X<Single Argument Rule>
+
+It is the rule by which the set of parameters passed to an iterator such as C<for> is treated as a single argument, instead of several arguments; that is
+C<some-iterator( a, b, c, ...)> will always be treated as C<some-iterator( list-or-array(a, b, c))> and never as C<(some-iterator(a))(b)...>, that is, iterative application of the iterator to the first argument, then the result to the next argument, and so on. In this example
+
+=begin code
+my @list = [ (1, 2, 3),
+             (1, 2, ),
+             [<a b c>, <d e f>],
+             [[1]] ];
+
+for @list -> @element {
+  say "{@element} → {@element.^name}";
+    for @element -> $sub-element {
+      say $sub-element;
+    }
+}
+# OUTPUT
+#1 2 3 → List
+#1
+#2
+#3
+#1 2 → List
+#1
+#2
+#a b c d e f → Array
+#(a b c)
+#(d e f)
+#1 → Array
+#1
+=end code
+
+Since what C<for> receives is a single argument, it will be treated as a list of elements to iterate over. The rule of thumb is that L<if there's a comma, anything preceding it is an element|https://perl6advent.wordpress.com/2015/12/14/day-15-2015-the-year-of-the-great-list-refactor/> and the list thus created becomes the I<single element>. That happens in the case of the two arrays separated by a comma which are the third in the C<Array> we are iterating. In general, quoting the article linked above, the single argument rule I<... makes for behave as the programmer would expect>.
 
 =head1 Testing for Elements
 
@@ -207,7 +241,7 @@ called on a lazy List and will result in a thrown L<Exception|/type/Exception>.
     # This list is lazy and elements will not be available
     # until explicitly requested.
 
-    my @l = lazy 0..5;
+    my @l = lazy 1, 11, 121 ... 10**100;
     say @l.is-lazy;     # OUTPUT: «True␤»
     say @l[];           # OUTPUT: «[...]␤»
 
@@ -216,7 +250,7 @@ called on a lazy List and will result in a thrown L<Exception|/type/Exception>.
 
     my @no-longer-lazy = eager @l;           # Forcing eager evaluation
     say @no-longer-lazy.is-lazy;             # OUTPUT: «False␤»
-    say @no-longer-lazy[];                   # OUTPUT: «[0 1 2 3 4 5]␤»
+    say @no-longer-lazy[];                   # OUTPUT: (sequence starting with «[1 11 121» ending with a 300 digit number)
 
 A common use case for lazy Lists are the processing of infinite sequences of numbers,
 whose values have not been computed yet and cannot be computed in their entirety.
@@ -349,6 +383,13 @@ is kept intact, causing a nested slice operation that replicates the
 structure in the result:
 
     say ("a", "b", "c")[(1, 2), (0, 1)] eqv (("b", "c"), ("a", "b")) # OUTPUT: «True␤»
+
+Slices can be taken also across several dimensions using I<semilists>, which are lists of slices separated by semicolons:
+
+    my @sliceable = [[ ^10 ], ['a'..'h'], ['Ⅰ'..'Ⅺ']];
+    say @sliceable[ ^3; 4..6 ]; #OUTPUT: «(4 5 6 e f g Ⅴ Ⅵ Ⅶ)␤»
+
+which is selecting the 4 to 6th element from the three  first dimensions (C<^3>).
 
 =head2 Range as Slice
 

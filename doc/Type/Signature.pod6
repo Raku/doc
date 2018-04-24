@@ -58,8 +58,8 @@ Smart matching signatures against a List is supported.
     my $sig = :(Int $i, Str $s);
     say (10, 'answer') ~~ $sig;
     # OUTPUT: «True␤»
-    my $ßub = sub ( Str $ß, Int $þ ) { return $ß xx $þ };
-    say $ßub.signature ~~ :( Str, Int );
+    my $sub = sub ( Str $s, Int $i ) { return $s xx $i };
+    say $sub.signature ~~ :( Str, Int );
     # OUTPUT: «True␤»
     given $sig {
         when :(Str, Int) { say 'mismatch' }
@@ -174,10 +174,10 @@ the C<where>-clause of the last argument has access to all arguments of a
 signature that are not part of a sub-signature. For a sub-signature place
 the C<where>-clause inside the sub-signature.
 
-    sub one-of-them(:$a, :$b, :$c where { $a.defined ^^ $b.defined ^^ $c.defined }) {
-        $a // $b // $c
-    };
-    say one-of-them(c=>42); # OUTPUT: «42␤»
+    sub foo($a, $b where * == $a ** 2) { say "$b is a square of $a" }
+    foo 2, 4; # OUTPUT: «4 is a square of 2␤»»
+    # foo 2, 3;
+    # OUTPUT: «Constraint type check failed in binding to parameter '$b'…»
 
 =head3 Constraining Optional Arguments
 
@@ -214,7 +214,17 @@ part of the L<colon-pair|/type/Pair>.
          type constraint,:D;type constraint,:U;type constraint,:_>
 
 Normally, a type constraint only checks whether the value of the parameter is of the
-correct type.
+correct type. Crucially, both I<object instances> and I<type objects> will satisfy
+such a constraint as illustrated below:
+
+    say  42.^name;    # OUTPUT: «Int␤»
+    say  42 ~~ Int;   # OUTPUT: «True␤»
+    say Int ~~ Int;   # OUTPUT: «True␤»
+
+Note how both C<42> and C<Int> satisfy the match.
+
+Sometimes we need to distinguish between these object instances (C<42>)
+and type objects (C<Int>). Consider the following code:
 
     sub limit-lines(Str $s, Int $limit) {
         my @lines = $s.lines;
@@ -229,10 +239,20 @@ correct type.
     #     (Str:D $: *%_)»
     say limit-lines "a \n b", Int # Always returns the max number of lines
 
-In the code above, we really only want to deal with string instances, not
-type objects. To do this, we use the C<:D> type constraint.  This constraint
-checks the value passed is an I<object instance>, in a similar fashion to calling
-the C<.DEFINITE> method on the value:
+Here we really only want to deal with string instances, not
+type objects. To do this, we can use the C<:D> type constraint.  This constraint
+checks that the value passed is an I<object instance>, in a similar fashion to calling
+its L<DEFINITE|/language/mop#DEFINITE> method.
+
+To warm up, let's apply C<:D> to the right hand side of our humble C<Int> example:
+
+    say  42 ~~ Int:D;  # OUTPUT: «True␤»
+    say Int ~~ Int:D;  # OUTPUT: «False␤»
+
+Note how only C<42> matches C<Int:D> in the above.
+
+Returning to C<limit-lines>, we can now amend its signature to catch the error
+early:
 
     sub limit-lines(Str:D $s, Int $limit) { };
     say limit-lines Str, 3;
@@ -243,10 +263,18 @@ the C<.DEFINITE> method on the value:
 This is much better than the way the program failed before, since here the
 reason for failure is clearer.
 
-It's also possible that type objects are the only ones that make
+It's also possible that I<type objects> are the only ones that make
 sense for a routine to accept. This can be done with the C<:U> type
-constraint, which checks the value passed if it is a I<type object>,
-rather than an object instance.
+constraint, which checks whether the value passed is a type object
+rather than an object instance. Here's our C<Int> example again, this
+time with C<:U> applied:
+
+    say  42 ~~ Int:U;  # OUTPUT: «False␤»
+    say Int ~~ Int:U;  # OUTPUT: «True␤»
+
+Now C<42> fails to match C<Int:U> while C<Int> succeeds.
+
+Here's a more practical example:
 
     sub can-turn-into(Str $string, Any:U $type) {
        return so $string.$type;
@@ -256,6 +284,13 @@ rather than an object instance.
     say can-turn-into("6.5", Num);
     say can-turn-into("a string", Num);
     # OUTPUT: True True True False
+
+Calling C<can-turn-into> with an object instance as its second parameter
+will yield a constraint violation as intended:
+
+=for code :preamble< sub can-turn-into(Str $, Any:U $) {...}>
+say can-turn-into("a string", 123);
+# OUTPUT: «Parameter '$type' of routine 'can-turn-into' must be a type object of type 'Any', not an object instance of type 'Int'...»
 
 For explicitly indicating the normal behaviour, C<:_> can be used, but this is
 unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
@@ -320,7 +355,7 @@ others, you need to use the long version:
 
 =head3 X«Constraining Return Types|-->;returns»
 
-There are multiple ways to constrain return types on a sub or method. All versions below
+There are multiple ways to constrain return types on a L<Routine|/type/Routine>. All versions below
 are currently valid and will force a type check on successful execution of a routine.
 
 L<C<Nil>|/type/Nil> and L<C<Failure>|/type/Failure> are always allowed as return types,
@@ -417,6 +452,11 @@ be omitted.
     foo "2016-12-01";
     # OUTPUT: «Date␤2016-12-01␤»
 
+The coercion is performed by calling the method with the name of the type
+to coerce to, if it exists (e.g. C<Foo(Bar)> coercer, would call method C<Foo>).
+The method is assumed to return the correct type—no additional checks on
+the result are currently performed.
+
 =head2 X<Slurpy (A.K.A. Variadic) Parameters|parameter,*@;parameter,*%,slurpy argument (Signature)>
 
 A function is X<variadic> if it can take a varying number of arguments; that is,
@@ -459,7 +499,7 @@ is not available inside the called function.
 
 Slurpy parameters have special behaviors when combined with some
 L<traits and modifiers|#Parameter_Traits_and_Modifiers>,
-as described below.
+as described in L<the section on slurpy array parameters|/type/Signature#Types_of_Slurpy_Array_Parameters>.
 
 =head2 Types of Slurpy Array Parameters
 
@@ -494,7 +534,7 @@ a(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]»
 A single asterisk slurpy flattens all given iterables, effectively hoisting any
 object created with commas up to the top level.
 
-=head3 Unflattened Slurpy
+=head3 X<Unflattened Slurpy|parameter, **@>
 
 Slurpy parameters declared with two stars do not flatten any L<Iterable|/type/Iterable> arguments
 within the list, but keep the arguments more or less as-is:
@@ -575,7 +615,7 @@ as the parameters were declared.
     pos(4, 5);                          # OUTPUT: «x=4 y=5»
 
 In the case of named arguments and parameters, only the name is used for
-mapping arguments to parameters. IF a fat arrow us used to construct a
+mapping arguments to parameters. If a fat arrow is used to construct a
 L<Pair|/type/Pair> only those with valid identifiers as keys are recognized
 as named arguments.
 
@@ -674,6 +714,14 @@ While the destructuring of a hash is its pairs:
         $x andthen $y andthen $z andthen True
     }
 
+Pointy loops can also destructure hashes, allowing assignment to variables:
+
+    my %hhgttu = (:40life, :41universe, :42everything);
+    for %hhgttu -> (:$key, :$value) {
+      say "$key → $value";
+    }
+    # OUTPUT: «universe → 41␤life → 40␤everything → 42␤»
+
 In general, an object is destructured based on its attributes. A common idiom
 is to unpack a L<C<Pair>>'s key and value in a for loop:
 
@@ -732,7 +780,7 @@ The C<is copy> trait causes the argument to be copied, and allows it
 to be modified inside the routine
 
     sub count-up($x is copy) {
-        $x = Inf if $x ~~ Whatever;
+        $x = ∞ if $x ~~ Whatever;
         .say for 1..$x;
     }
 
@@ -823,7 +871,7 @@ and follows the same semantics as L<Capture> C<$topic>:
 
 Since L«C<where> clauses|/type/Signature#index-entry-where_clause_(Signature)»
 are not introspectable, the method cannot determine whether two signatures
-L<ACCEPTS> the same sort of C<where>-constrained parameters. Such comparisons
+L<ACCEPTS|/type/Signature#method_ACCEPTS> the same sort of C<where>-constrained parameters. Such comparisons
 will return C<False>. This includes signatures with literals, which are just
 sugar for the C<where>-constraints:
 

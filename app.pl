@@ -3,26 +3,20 @@
 use File::Spec::Functions 'catfile';
 use Mojolicious 7.31;
 use Mojolicious::Lite;
+use File::Copy;
 use Mojo::File qw/path/;
+use File::Temp qw/tempfile/;
+
+my $mode = shift || 'dev';
+app->mode($mode eq 'assets' ? 'production' : 'development');
 
 app->static->paths(['html']);
-
 if ( eval { require Mojolicious::Plugin::AssetPack; 1; } ) {
     unless ( eval { require CSS::Sass } ) {
         app->log->debug('CSS::Sass not loaded. Relying on `sass` program'
             . ' to process SASS');
     }
-
-    plugin AssetPack => { pipes => [qw/Sass JavaScript Combine/] };
-    app->asset->process('app.css' => 'sass/style.scss' );
-
-    my $style_sheet = catfile qw{html css style.css};
-    app->log->debug(
-        "Processing SASS and copying the results over to $style_sheet..."
-    );
-    path($style_sheet)->spurt(
-        app->asset->processed('app.css')->map("content")->join);
-    app->log->debug('...Done');
+    gen_assets();
 }
 else {
     app->log->debug( 'Install Mojolicious::Plugin::AssetPack to enable SASS'
@@ -49,4 +43,40 @@ get '*dir' => sub {
     $self->reply->static("/$dir.html");
 };
 
-app->start;
+$mode eq 'assets' and app->start(qw/eval exit/) or app->start;
+
+
+sub gen_assets {
+    my $app = shift;
+
+    app->plugin(AssetPack => { pipes => [qw/Sass JavaScript Combine/]});
+
+    app->asset->process(
+        'app.css' => qw{
+            /sass/style.scss
+        },
+    );
+    app->asset->process(
+        'app.js' => qw{
+            /js/jquery-3.1.1.min.js
+            /js/jquery-ui.min.js
+            /js/jquery.tablesorter.js
+            /js/main.js
+        },
+    );
+
+    app->log->info('Copying assets...');
+    my ($temp_css, $temp_js) = ((tempfile)[1], (tempfile)[1]);
+    Mojo::File->new($temp_css)->spurt(
+        join "\n", @{app->asset->processed('app.css')->map(sub {$_->content})}
+    );
+    Mojo::File->new($temp_js)->spurt(
+        join "\n", @{app->asset->processed('app.js')->map(sub {$_->content})}
+    );
+    copy $temp_css, 'html/css/app.css'
+        or app->log->warn("Copying CSS failed: $!");
+    copy $temp_js,  'html/js/app.js'
+        or app->log->warn("Copying JS failed: $!");
+    app->log->info('...done');
+
+}

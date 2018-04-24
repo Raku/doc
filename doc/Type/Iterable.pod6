@@ -76,8 +76,6 @@ Defined as:
 
     method hyper(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4 --> Iterable)
 
-B«L<More information|https://6guts.wordpress.com/2017/03/16/considering-hyperrace-semantics/>»
-
 Returns another Iterable that is potentially iterated in parallel, with a
 given batch size and degree of parallelism.
 
@@ -85,20 +83,53 @@ The order of elements is preserved.
 
     say ([1..100].hyper.map({ $_ +1 }).list);
 
+Use C<hyper> in situations where it is OK to do the processing of items in parallel, and
+the output order should be kept relative to the input order. See L«C<race>|/routine/race» for situations
+where items are processed in parallel and the output order does not matter.
+
+=head3 Options degree and batch
+
+The C<degree> option (short for "degree of parallelism") configures how many parallel workers
+should be started. To start 4 workers (e.g. to use at most 4 cores), pass C<:4degree> to the C<hyper> or
+C<race> method. Note that in some cases, choosing a degree higher than the available CPU cores
+can make sense, for example I/O bound work or latency-heavy tasks like web crawling. For
+CPU-bound work, however, it makes no sense to pick a number higher than the CPU core count.
+
+The C<batch> size option configures the number of items sent to a given parallel worker at once.
+It allows for making a throughput/latency trade-off. If, for example, an operation is long-running
+per item, and you need the first results as soon as possible, set it to 1. That means every
+parallel worker gets 1 item to process at a time, and reports the result as soon as possible.
+In consequence, the overhead for inter-thread communication is maximized. In the other extreme,
+if you have 1000 items to process and 10 workers, and you give every worker a batch of 100 items,
+you will incur minimal overhead for dispatching the items, but you will only get the first results
+when 100 items are processed by the fastest worker (or, for C<hyper>, when the worker getting the
+first batch returns.) Also, if not all items take the same amount of time to process, you might
+run into the situation where some workers are already done and sit around without being able to
+help with the remaining work. In situations where not all items take the same time to process,
+and you don't want too much inter-thread communication overhead, picking a number somewhere
+in the middle makes sense. Your aim might be to keep all workers about evenly busy to make best
+use of the resources available.
+
+B«L<Blog post on the semantics of hyper and race|https://6guts.wordpress.com/2017/03/16/considering-hyperrace-semantics/>»
+
 =head2 method race
 
 Defined as:
 
     method race(Int(Cool) :$batch = 64, Int(Cool) :$degree = 4 --> Iterable)
 
-B«L<More information|https://6guts.wordpress.com/2017/03/16/considering-hyperrace-semantics/>»
-
 Returns another Iterable that is potentially iterated in parallel, with a
 given batch size and degree of parallelism (number of parallel workers).
 
-Unlike C<hyper>, C<race> does not preserve the order of elements.
+Unlike L«C<hyper>|/routine/hyper», C<race> does not preserve the order of elements.
 
     say ([1..100].race.map({ $_ +1 }).list);
+
+Use race in situations where it is OK to do the processing of items in parallel, and the output order does not matter. See L«C<hyper>|/routine/hyper» for situations where you want items processed in parallel and the output order should be kept relative to the input order.
+
+B«L<Blog post on the semantics of hyper and race|https://6guts.wordpress.com/2017/03/16/considering-hyperrace-semantics/>»
+
+See L«C<hyper>|/routine/hyper» for an explanation of :$batch and :$degree.
 
 =end pod
 

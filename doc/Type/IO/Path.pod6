@@ -447,7 +447,8 @@ attribute the object was created with, and then is made relative to C<$base>.
 
 Defined as:
 
-    method parent(IO::Path:D: --> IO::Path:D)
+    multi method parent(IO::Path:D: --> IO::Path:D)
+    multi method parent(IO::Path:D: UInt:D $level --> IO::Path:D)
 
 Returns the parent path of the invocant. Note that no file system access
 is made, so the returned parent is physical and not the logical parent of
@@ -460,6 +461,10 @@ symlinked directories.
     'foo'     .IO.parent.say; # OUTPUT: «".".IO␤»
     '/'       .IO.parent.say; # OUTPUT: «"/".IO␤»
     IO::Path::Win32.new('C:/').parent.say; # OUTPUT: «"C:/".IO␤»
+
+If C<$level> is specified, the call is equivalent to calling C<.parent()> C<$level> times:
+
+    say "/etc/foo".IO.parent(2) eqv "/etc/foo".IO.parent.parent; # OUTPUT: «True␤»
 
 =head2 method resolve
 
@@ -844,22 +849,22 @@ set to C<True>, they'll perform L«C<.d>|/routine/d», L«C<.r>|/routine/r»,
 L«C<.w>|/routine/w», and L«C<.x>|/routine/x» tests respectively. By default,
 only C<:d> is set to C<True>.
 
-=head2 routine mkdir
+=head2 sub mkdir
 
 Defined as:
 
     method mkdir(IO::Path:D: Int() $mode = 0o777 --> IO::Path:D)
-    sub mkdir(   IO() $path, Int() $mode = 0o777 --> IO::Path:D)
 
-Creates a new directory. See L«C<mode>|/routine/mode» for explanation and
-valid values for C<$mode>. Returns the L<IO::Path> object pointing to
+Creates a new directory, including its parent directories, as needed (similar to *nix utility C<mkdir> with C<-p> option).
+That is, C<mkdir "foo/bar/ber/meow"> will create C<foo>, C<foo/bar>, and C<foo/bar/ber>
+directories as well if they do not exist.
+
+Returns the L<IO::Path> object pointing to
 the newly created directory on success;
 L<fails|/routine/fail> with L<X::IO::Mkdir> if directory cannot be created.
 
-Creates parent directories, as needed (similar to *nix utility C<mkdir> with C<-p> option).
-That is, C<mkdir "foo/bar/ber/meow"> will create C<foo>, C<foo/bar>, and C<foo/bar/ber>
-directories if they do not exist, as well as create C<foo/bar/ber/meow>.
-
+See also L«C<mode>|/routine/mode» for explanation and
+valid values for C<$mode>.
 =head2 routine rmdir
 
 Defined as:
@@ -876,8 +881,7 @@ C<X::IO::Rmdir> if the directory cannot be removed (e.g.
 the directory is not empty, or the path is not a directory). Subroutine
 form returns a list of directories that were successfully deleted.
 
-To delete non-empty directory, see L«rmtree in C<File::Directory::Tree>
-module|https://github.com/labster/p6-file-directory-tree».
+To delete non-empty directory, see L«rmtree in C<File::Directory::Tree> module|https://github.com/labster/p6-file-directory-tree».
 
 =head2 method chmod
 
@@ -889,8 +893,7 @@ Changes the POSIX permissions of a file or directory to C<$mode>.
 Returns C<True> on success; on failure,
 L<fails|/routine/fail> with L<X::IO::Chmod>.
 
-The mode is expected as an integer following the L<standard numeric notation|
-https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>, and is
+The mode is expected as an integer following the L<standard numeric notation|https://en.wikipedia.org/wiki/File_system_permissions#Numeric_notation>, and is
 best written as an octal number:
 
 =for code

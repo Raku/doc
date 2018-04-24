@@ -3,6 +3,7 @@
 use v6;
 use Test;
 use lib 'lib';
+BEGIN plan :skip-all<Test applicable to git checkout only> unless '.git'.IO.e;
 use File::Temp;
 
 BEGIN {
@@ -66,7 +67,7 @@ subtest {
     </svg>
     EOF
     my $svg = svg-for-file($filename);
-    is($svg, $expected-svg.chomp, "SVG content extracted correctly");
+    is($svg, $expected-svg, "SVG content extracted correctly");
 }, "svg-for-file";
 
 # vim: expandtab shiftwidth=4 ft=perl6

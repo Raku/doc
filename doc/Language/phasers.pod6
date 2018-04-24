@@ -20,31 +20,31 @@ them respond to various control exceptions and exit values.
 Here is a summary:
 
 =begin code :skip-test
-      BEGIN {...} #  * at compile time, ASAP, only ever runs once
-      CHECK {...} #  * at compile time, ALAP, only ever runs once
-       INIT {...} #  * at run time, ASAP, only ever runs once
-        END {...} #  at run time, ALAP, only ever runs once
+  BEGIN {...} #  * at compile time, ASAP, only ever runs once
+  CHECK {...} #  * at compile time, ALAP, only ever runs once
+   INIT {...} #  * at run time, ASAP, only ever runs once
+    END {...} #  at run time, ALAP, only ever runs once
 
-      ENTER {...} #  * at every block entry time, repeats on loop blocks.
-      LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
-       KEEP {...} #  at every successful block exit, part of LEAVE queue
-       UNDO {...} #  at every unsuccessful block exit, part of LEAVE queue
+  ENTER {...} #  * at every block entry time, repeats on loop blocks.
+  LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
+   KEEP {...} #  at every successful block exit, part of LEAVE queue
+   UNDO {...} #  at every unsuccessful block exit, part of LEAVE queue
 
-      FIRST {...} #  at loop initialization time, before any ENTER
-       NEXT {...} #  at loop continuation time, before any LEAVE
-       LAST {...} #  at loop termination time, after any LEAVE
+  FIRST {...} #  at loop initialization time, before any ENTER
+   NEXT {...} #  at loop continuation time, before any LEAVE
+   LAST {...} #  at loop termination time, after any LEAVE
 
-        PRE {...} #  assert precondition at every block entry, before ENTER
-       POST {...} #  assert postcondition at every block exit, after LEAVE
+    PRE {...} #  assert precondition at every block entry, before ENTER
+   POST {...} #  assert postcondition at every block exit, after LEAVE
 
-      CATCH {...} #  catch exceptions, before LEAVE
-    CONTROL {...} #  catch control exceptions, before LEAVE
+  CATCH {...} #  catch exceptions, before LEAVE
+CONTROL {...} #  catch control exceptions, before LEAVE
 
-       LAST {...} #  supply tapped by whenever-block is done, runs very last
-       QUIT {...} #  catch async exceptions within a whenever-block, runs very last
+   LAST {...} #  supply tapped by whenever-block is done, runs very last
+   QUIT {...} #  catch async exceptions within a whenever-block, runs very last
 
-    COMPOSE {...} #  when a role is composed into a class
-    CLOSE   {...} #  appears in a supply block, called when the supply is closed
+COMPOSE {...} #  when a role is composed into a class
+CLOSE   {...} #  appears in a supply block, called when the supply is closed
 =end code
 
 Phasers marked with a C<*> have a run-time value, and if evaluated earlier than
@@ -384,6 +384,19 @@ Runs when an exception is raised by the current block, before the LEAVE phase.
 Runs when a control exception is raised by the current block, before the LEAVE
 phase. It is raised by C<return>, C<fail>, C<redo>, C<next>, C<last>, C<take>,
 C<warn>, C<proceed> and C<succeed>.
+
+    say elems gather {
+        CONTROL {
+            when CX::Warn { say "WARNING!!! $_"; .resume }
+            when CX::Take { say "Don't take my stuff"; .resume }
+        }
+        warn 'people take stuff here';
+        take 'keys';
+    }
+    # OUTPUT:
+    # WARNING!!! people take stuff here
+    # Don't take my stuff
+    # 0
 
 =begin comment
 

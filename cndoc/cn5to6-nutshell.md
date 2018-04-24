@@ -1,7 +1,7 @@
 
-# 5to6-nutshell
+# perl5到perl6指导 概括
 
-# Perl5到Perl6初步: 我怎么做我习惯做的?
+# 我怎么做我习惯做的(Perl5到Perl6初步)?
 
 本文档尝试去索引从 Perl 5到 Perl 6的语法以及语义上的变化。 
 那些在 Perl 5中正常工作的，在 Perl 6中却要换一种写法的语法
@@ -183,6 +183,8 @@ hashes](https://metacpan.org/pod/#{}_Hash_indexing#slicing)切片。
         first $coderef, @values, :k;
 
 - `&foo;`_和_`goto &foo;`_用来重用调用者的参数列表或者替换调用栈的调用者_
+Perl6可以使用[`callsame`](/language/functions#index-entry-dispatch_callsame)重新调度
+
 
         sub foo { say "before"; &bar;     say "after" } # Perl 5
         sub foo { say "before"; bar(|@_); say "after" } # Perl 6 -需要显式传递
@@ -190,8 +192,12 @@ hashes](https://metacpan.org/pod/#{}_Hash_indexing#slicing)切片。
         # TODO: 建议使用Rakudo中的 .callsame
 
         sub foo { say "before"; goto &bar } # Perl 5
+        
+        proto foo (|) {*};  multi foo ( Any $n ) {  say "Any"; say $n; }; multi foo ( Int $n ) { say "Int"; callsame; }; foo(3); 
 
-        # TODO: 建议使用Rakudo中的 .nextsame 或者 .nextwith
+        # /language/functions#index-entry-dispatch_callsame
+
+        # TODO: 当Rakudo启用后，建议使用Rakudo中的 .nextsame 或者 .nextwith
 
 ### `*` Glob
 

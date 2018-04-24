@@ -1,6 +1,6 @@
-# 5to6-perlvar
-
 # Perl5到Perl6指南 - 特殊变量
+
+# Perl5和Perl6特殊变量比较
 
 # 概述
 
@@ -396,7 +396,7 @@ Perl6中没有内建的格式变量。
 
 由于Perl 6中错误变量发生了变化，本文档不会分别介变化的细节。
 
-引用Perl 6的[文档](syntax/$!)，"$!是错误变量"，就这么多。所有的错误变量
+引用Perl 6的[文档](/language/variables#index-entry-%24!)，"$!是错误变量"，就这么多。所有的错误变量
 看来都被$!吃了，与Perl6的其它部分一样，它是一个对象，根据用法的不同错误类型
 返回不同的结果或者[exceptions](/type/Exception)。
 

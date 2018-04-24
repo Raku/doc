@@ -2,8 +2,20 @@ $(function(){
     setup_search_box();
     setup_auto_title_anchors();
     setup_debug_mode();
+    setup_tables();
     $(window).resize(setup_search_box);
 });
+
+function setup_tables() {
+    $('.pod-table').each(function() {
+        if ($(this).find('thead').length
+         && $(this).find('tr').length > 10
+         && ! ( // don't sort operators precedence table
+              $(this).find('thead th:first-child'     ).text() == 'A'
+           && $(this).find('thead th:first-child + th').text() == 'Level'
+         )) $(this).tablesorter({sortList: [[0,0]]})
+    })
+}
 
 function setup_search_box() {
     var sel = $('#search'), head = $('#logo').parent();

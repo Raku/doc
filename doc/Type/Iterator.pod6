@@ -82,6 +82,54 @@ be produced.
     say $i.pull-one;       # OUTPUT: «3␤»
     say $i.pull-one.perl;  # OUTPUT: «IterationEnd␤»
 
+As a more illustrative example of its use, here is a count down iterator along with
+a simplistic subroutine re-implementation of the C<for> loop.
+
+    # works the same as (10 ... 1, 'lift off')
+    class CountDown does Iterator {
+        has Int:D $!current = 10;
+
+        method pull-one ( --> Mu ) {
+            my $result = $!current--;
+            if $result ==  0 { return 'lift off' }
+            if $result == -1 { return IterationEnd }
+
+            # calling .pull-one again after it returns IterationEnd is undefined
+            if $result <= -2 {
+                # so for fun we will give them nonsense data
+                return (1..10).pick;
+            }
+
+            return $result;
+        }
+    }
+
+    sub for( Iterable:D $sequence, &do --> Nil ) {
+        my Iterator:D $iterator = $sequence.iterator;
+
+        loop {
+            # must bind the result so that =:= works
+            my Mu $pulled := $iterator.pull-one;
+
+            # always check the result and make sure that .pull-one
+            # is not called again after it returns IterationEnd
+            if $pulled =:= IterationEnd { last }
+
+            do( $pulled );
+        }
+    }
+
+    for( Seq.new(CountDown.new), &say );  # OUTPUT: «10␤9␤8␤7␤6␤5␤4␤3␤2␤1␤lift off␤»
+
+It would be more idiomatic to use C<while> or C<until>, and a sigil-less
+variable.
+
+    =begin code :preamble<my $iterator = ().iterator; my &do = &say>
+    until IterationEnd =:= (my \pulled = $iterator.pull-one) {
+        do( pulled );
+    }
+    =end code
+
 =head2 method push-exactly
 
 Defined as:
@@ -96,7 +144,7 @@ should return the sentinel value C<IterationEnd>. Otherwise it should return
 C<$count>.
 
     my @array;
-    say (1 .. Inf).iterator.push-exactly(@array, 3); # OUTPUT: «3␤»
+    say (1 .. ∞).iterator.push-exactly(@array, 3); # OUTPUT: «3␤»
     say @array; # OUTPUT: «[1 2 3]␤»
 
 The Iterator role implements this method in terms of C<pull-one>.
@@ -119,7 +167,7 @@ iterators without side effects (such as L<Range|/type/Range> iterators) can
 produce more elements to achieve better performance.
 
     my @array;
-    say (1 .. Inf).iterator.push-at-least(@array, 10); # OUTPUT: «10␤»
+    say (1 .. ∞).iterator.push-at-least(@array, 10); # OUTPUT: «10␤»
     say @array; # OUTPUT: «[1 2 3 4 5 6 7 8 9 10]␤»
 
 The Iterator role implements this method in terms of C<pull-one>.
@@ -165,7 +213,7 @@ Built-in operations that know that they can produce infinitely many values
 return C<True> here, for example C<(1..6).roll(*)>.
 
     say (1 .. 100).is-lazy; # OUTPUT: «False␤»
-    say (1 .. Inf).is-lazy; # OUTPUT: «True␤»
+    say (1 .. ∞).is-lazy; # OUTPUT: «True␤»
 
 The Iterator role implements this method returning C<False>, indicating a
 non-lazy iterator.
@@ -243,9 +291,12 @@ Defined as:
     method count-only(--> Int:D) { ... }
 
 If implemented, it is expected to return the number of values the iterator
-can still produce B<without> actually producing them.  It will be used in
-situations where only the B<number> of values of an iterator is needed, e.g.
-when the C<.elems> method is called.
+can still produce B<without> actually producing them. The returned number B<must
+adjust itself> for items already pulled, so that the method can be called on a
+partially consumed C<Iterator>.
+
+It will be used in situations where only the B<number> of values of an iterator
+is needed, e.g. when the C<.elems> method is called.
 
 B<Important:> it's expected the C<Iterator>s that implement this method can
 return that number B<without> producing any values.  In other words,
@@ -264,8 +315,12 @@ Defined as:
     method bool-only(--> Bool:D) { ... }
 
 If implemented, it is expected to return C<True> if the iterator can still
-produce values B<without> actually producing them.  It will be used in
-situations where the encompassing C<Seq> is evaluated in a C<Bool> context.
+produce values B<without> actually producing them. The returned number B<must
+adjust itself> for items already pulled, so that the method can be called on a
+partially consumed C<Iterator>.
+
+It will be used in situations where the encompassing C<Seq> is evaluated
+in a C<Bool> context.
 
 B<Important:> it's expected the C<Iterator>s that implement
 this method can produce that answer B<without> producing any values.

@@ -7,66 +7,85 @@ use Test-Files;
 
 =begin overview
 
-Check for duplicate words in documentation.
+Check for duplicate words in documentation; ignore case.
 
-Ignore case, ignore implicit code, and explicit C<=begin code> blocks.
-
-Unless we're on a line with a pod marker, save the last word and compare it to
-the next line as well.
+Save the last word of each line, comparing it to the next line as well.
 
 Allow a few well known duplicates, like 'long long'
 
 =end overview
 
-my $safe-dups = Set.new(<method long default>); # Allow these dupes
+my $safe-dupes = Set.new(<method long default>); # Allow these dupes
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'});
+my @files = Test-Files.files \
+    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'}) \
+    .grep({$_ ne "doc/HomePage.pod6"}) \  # mostly HTML
+    .grep({$_ ne "doc/404.pod6"});
 
 plan +@files;
 
-enum file-type <pod6 plain>;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
+my %output;
 
-for @files -> $file {
-    my $type = $file ~~ / '.pod6' $/ ?? pod6 !! plain;
+sub test-promise($promise) {
+    my $file = $promise.command[*-1];
+    test-it(%output{$file}, $file);
+}
+
+sub test-it(Str $output, Str $file) {
+    my $ok = True;
 
     my @dupes;
+    my $last-word = '';
     my $line-num = 0;
-    my $last-word = ""; # Keep track of the last word on a line (unless it's a pod directive)
-    my $in-code = False;
-    for $file.IO.lines -> $line is copy {
+    for $output.lines -> $line is copy {
         $line-num++;
-        next if $type == pod6 && $line ~~ /^ '  ' /;
-        my $is-pod = $line ~~ /^ '=' /;
-        if !$in-code && $line ~~ /^ '=begin code' / {
-            $in-code = True;
-        } elsif $in-code && $line ~~ /^ '=end code' / {
-            $in-code = False;
+        if $line.starts-with: ' ' {
+            # could be code, table, heading; don't check for dupes
+            $last-word = '';
+            next;
+        }
+        next unless $line.chars;
+
+        my @words = |$last-word, $line.words.grep: *.chars;
+
+        if $line.ends-with('.') {
+            $last-word = '';
+        } elsif @words {
+            $last-word = @words[*-1];
         }
 
-        $line = $last-word ~ " " ~ $line;
-        $last-word = "";
-
-        next if $in-code;
-
-        my @line-dupes = ($line ~~ m:g/:i << (<alpha>+) >> \s+ << $0 >> /).map(~*[0]);
+        my @line-dupes = @words.rotor(2=> -1).grep({$_[0] eq $_[1]}).map({$_[0]});
         for @line-dupes -> $dupe {
-            next if $safe-dups ∋ ~$dupe[0];
+            # explicitly allowed duplicates
+            next if $safe-dupes ∋ ~$dupe[0];
+            # Single characters that are probably fine
+            next if $dupe ~~ /^ [<:Sm>|<:CS>] $/;
             @dupes.push: "“" ~ $dupe[0] ~ "” on line $line-num";
         }
-
-        next if $is-pod;
-        $line ~~ m/ << (<alpha>+) \s* $/;
-        if ?$/ {
-            $last-word = ~$0;
-        }
     }
-
     my $message = "$file has duplicate words";
-    if @dupes {
-        is @dupes.join("\n"), '', $message;
+    is @dupes.join("\n"), '', $message;
+}
+
+my @jobs;
+for @files -> $file {
+
+    my $output = '';
+
+    if $file ~~ / '.pod6' $/ {
+        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        %output{$file} = '';
+        $a.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        push @jobs: $a.start;
+        if +@jobs > $max-jobs {
+            test-promise(await @jobs.shift)
+        }
     } else {
-        pass $message;
+        test-it($file.IO.slurp, $file);
     }
 }
+
+for @jobs.map: {await $_} -> $r { test-promise($r) }
 
 # vim: expandtab shiftwidth=4 ft=perl6

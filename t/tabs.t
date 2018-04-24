@@ -1,8 +1,9 @@
 #!/usr/bin/env perl6
 
 use v6;
-use Test;
 use lib 'lib';
+use Test;
+BEGIN plan :skip-all<Test applicable to git checkout only> unless '.git'.IO.e;
 use Test-Files;
 
 my @files = Test-Files.files\
@@ -10,6 +11,7 @@ my @files = Test-Files.files\
     .grep({! $_.contains('custom-theme')})\
     .grep({! $_.contains('jquery')})\
     .grep({! $_.ends-with('.png')})\
+    .grep({! $_.ends-with('.svg')})\
     .grep({! $_.ends-with('.ico')});
 
 plan +@files;

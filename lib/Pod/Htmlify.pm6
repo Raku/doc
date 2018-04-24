@@ -37,38 +37,31 @@ sub unescape-percent($s) {
 }
 
 sub rewrite-url($s) is export {
-    state %cache;
+    state %cache =
+        '/routine//'  => '/routine/' ~ replace-badchars-with-goodnames('/'),
+        '/routine///' => '/routine/' ~ replace-badchars-with-goodnames('//');
     return %cache{$s} if %cache{$s}:exists;
+
     my Str $r;
     given $s {
-        when / ^ [ 'http' | 'https' | 'irc' ] '://' / {
-            # external link, we bail
-            return $s;
-        }
-
-        when / ^ '#' / {
-            # on-page link, we bail
-            return $s;
+        # Avoiding Junctions as matchers due to:
+        # https://github.com/rakudo/rakudo/issues/1385#issuecomment-377895230
+        when { .starts-with: 'https://' or .starts-with: '#'
+            or .starts-with: 'http://'  or .starts-with: 'irc://'
+        } {
+            return %cache{$s} = $s; # external link or on-page-link, we bail
         }
         # Type
-        when / ^ <[A..Z]> / {
+        when 'A'.ord ≤ *.ord ≤ 'Z'.ord {
             $r =  "/type/{replace-badchars-with-goodnames(unescape-percent($s))}";
-            succeed;
         }
         # Routine
         when / ^ <[a..z]> | ^ <-alpha>* $ / {
             $r = "/routine/{replace-badchars-with-goodnames(unescape-percent($s))}";
-            succeed;
         }
-
-        # Special case the really nasty ones
-        when / ^ '/routine//' $ /  { return '/routine/' ~ replace-badchars-with-goodnames('/'); succeed;  }
-        when / ^ '/routine///' $ / { return '/routine/' ~ replace-badchars-with-goodnames('//'); succeed; }
-
         when / ^
             ([ '/routine/' | '/syntax/' | '/language/' | '/programs/' | '/type/' ]) (<-[#/]>+) [ ('#') (<-[#]>*) ]* $ / {
             $r =  $0 ~ replace-badchars-with-goodnames(unescape-percent($1)) ~ $2 ~ uri_escape($3);
-            succeed;
         }
 
         default {
@@ -113,7 +106,7 @@ sub footer-html($pod-path) is export {
 
 #| Return the SVG for the given file, without its XML header
 sub svg-for-file($file) is export {
-    join "\n", grep { /^'<svg'/ ff False }, $file.IO.lines;
+    .substr: .index: '<svg' given $file.IO.slurp;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

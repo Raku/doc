@@ -821,7 +821,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - printf
 
     Perl6中其功能类似。详情请看[sprintf](https://docs.perl6.org/type/Str#sub_sprintf)。如果输出到文件
-    句柄，使用对该句柄的L«`.printf`|/type/printf»方法调用。
+    句柄，使用对该句柄的L«`.printf`|/routine/printf»方法调用。
 
 ## prototype
 
@@ -1109,7 +1109,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - sort SUBNAME LIST
 
-    `sort`在 Perl6中还存在，不过表现有所不同。`$a`和`$b`不再是内置地特殊变量（见 [5to6-perlvar](https://metacpan.org/pod/5to6-perlvar)），
+    `sort`在 Perl6中还存在，不过表现有所不同。`$a`和`$b`不再是内置地特殊变量（见 [Special Variables](/language/5to6-perlvar)），
     还有不在返回正数，负数，或者0，而返回`Order::Less`, `Order::Same`, 或者`Order::More` 对象
     详见[sort](#routine-sort)。最后它也支持作为对象方法调用，例如，`sort(@a)`等价于`@a.sort`。
 

@@ -33,13 +33,13 @@ The sub declarator returns a value of type L<Sub|/type/Sub> that can be stored
 in any container:
 
     my &c = sub { say "Look ma, no name!" }
-    c;
+    c;     # OUTPUT: «Look ma, no name!␤»
 
-    my Any:D $f = sub { say '$f' }
-    $f;
+    my Any:D $f = sub { say 'Still nameless...' }
+    $f();  # OUTPUT: «Still nameless...␤»
 
     my Code \a = sub { say ‚raw containers don't implement postcircumfix:<( )>‘ };
-    a.();
+    a.();  # OUTPUT: «raw containers don't implement postcircumfix:<( )>␤»
 
 The declarator C<sub> will declare a new name in the current scope at compile
 time. As such any indirection has to be resolved at compile time:
@@ -972,17 +972,15 @@ Coercion types are supposed to work wherever types work, but Rakudo currently
 
 X<|MAIN>X<|command line arguments>
 
-The sub with the special name C<MAIN> is executed after all relevant phasers,
-and its signature is the means by which command line arguments can be
+The sub with the special name C<MAIN> is executed after all relevant phasers. Its signature is the means by which command line arguments can be
 parsed. Multi methods are supported and a usage method is automatically
 generated and displayed if no command line arguments are provided. All command
 line arguments are also available in
 L<C<@*ARGS>|/language/variables#Dynamic_variables>, which can be mutated before
 being processed by C<MAIN>.
 
-
 Unlike other ordinary functions, any return value provided by C<MAIN> will be
-ignored by the invoker, even if explicitly set by mean of a C<return> statement
+ignored by the invoker, even if explicitly set by means of a C<return> statement
 (that will terminate the C<MAIN> function). The default return code of C<MAIN> is always
 zero (C<0>, success).
 In order to provide any return value different from zero, a call
@@ -991,7 +989,7 @@ to L<exit|https://docs.perl6.org/routine/exit> has to be performed.
     #|(optional description for USAGE message)
     sub MAIN( Int :$length = 24,
                :file($data) where { .IO.f // die "file not found in $*CWD" } = 'file.dat',
-               Bool :v(:$verbose) #`( either --verbose or -v ) )
+               Bool :v(:$verbose) #`( -verbose, --verbose, -v or --v ) )
     {
         say $length if $length.defined;
         say $data   if $data.defined;
@@ -999,6 +997,28 @@ to L<exit|https://docs.perl6.org/routine/exit> has to be performed.
 
         exit 1;
     }
+
+With C<touch.dat> present, this will work this way
+=begin code :lang<shell>
+$ perl6 Main.p6
+24
+file.dat
+Verbosity off
+=end code
+
+Or this way with C<-v> or C<--verbose>
+
+=begin code :lang<shell>
+$ perl6 Main.p6 -v
+24
+file.dat
+Verbosity on
+=end code
+
+The C<:v(:$verbose)> is an alias, as explained in
+L<Signatures|/type/Signature#Positional_vs._Named>. In fact, since
+this is an alias, both C<verbose> and C<v> can use single or double
+dashes (C<-> or C<-->).
 
 =head2 C<%*SUB-MAIN-OPTS>
 
@@ -1027,6 +1047,22 @@ positional parameter. For example, the above program can be called with:
 =begin code :lang<shell>
 perl6 example.p6 1 --c=2 3 --d=4
 =end code
+
+=head2 X<Unit-scoped definition of MAIN|declarator,unit (MAIN)>
+
+If the entire script body resides within C<MAIN>, you can use the C<unit>
+declarator as follows:
+
+=begin code :skip-test<unit>
+unit sub MAIN( Int :$length = 24,
+                :file($data) where { .IO.f // die "file not found in $*CWD" } = 'file.dat',
+                Bool :v(:$verbose) #`( -verbose, --verbose, -v or --v ) );
+
+# rest of script is part of MAIN
+=end code
+
+Note that this is only appropriate if you do not need a C<proto> or C<multi> definition.
+
 
 =head1 sub USAGE
 

@@ -197,7 +197,7 @@ It behaves similar to
 L«C<Str.trans>|/routine/trans» called with a single L<Pair> argument, where
 key is the matching part (characters C<dol> in the example above) and value is
 the replacement part (characters C<wne> in the example above). Accepts the
-same adverbs as L«C<Str.trans>|/routine/trans». Returns the L<StrDistance> object
+same adverbs as L«C<Str.trans>|/routine/trans». Returns the StrDistance object
 that measures the distance between original value and the resultant string.
 
     my $str = 'old string';
@@ -637,19 +637,39 @@ Technically, not a real operator; it's syntax special-cased in the compiler.
 X«|postfix .+»
 =head2 postfix C«.+»
 
-C<$invocant.+method> calls all methods called C<method> from C<$invocant>,
-and returns a L<List> of the results. Dies if no such method was found.
+C<$foo.+meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
+Those methods might be multis, in which case the matching candidate
+would be called.
 
-Technically, not a real operator; it's syntax special-cased in the compiler.
+After that, a L<List> of the results are returned. If no such method was found,
+it throws a L<X::Method::NotFound> exception.
+
+    class A {
+      method foo { say "from A"; }
+    }
+    class B is A {
+      multi method foo { say "from B"; }
+      multi method foo(Str) { say "from B (Str)"; }
+    }
+    class C is B is A {
+      multi method foo { say "from C"; }
+      multi method foo(Str) { say "from C (Str)"; }
+    }
+
+    say C.+foo; # OUTPUT: «from C␤from B␤from A␤(True True True)␤»
 
 X«|postfix .*»
 =head2 postfix C«.*»
 
-C<$invocant.*method> calls all methods called C<method> from C<$invocant>,
-and returns a L<List> of the results. If no such method was found, an empty
-L<List> is returned.
+C<$foo.*meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
+Those methods might be multis, in which case the matching candidate
+would be called.
 
-Technically, not a real operator; it's syntax special-cased in the compiler.
+After that, a L<List> of the results are returned. If no such method was found,
+an empty L<List> is returned.
+
+Technically, postfix C<.+> calls C<.*> at first. Read postfix C<.+> section to
+see examples.
 
 X<|postfix ».>X«|postfix >>.»
 =head2 postfix C<».> / postfix C«>>.»
@@ -940,12 +960,12 @@ In most cases, this behaves identically to the postfix mutator, but the
 precedence is lower:
 
 =for code :skip-test
-    my $a = -5
-    say ++$a.=abs
-    # OUTPUT: «6␤»
-    say ++$a .= abs
-    # OUTPUT: «Cannot modify an immutable Int␤
-    #           in block <unit> at <tmp> line 1␤␤»
+my $a = -5
+say ++$a.=abs
+# OUTPUT: «6␤»
+say ++$a .= abs
+# OUTPUT: «Cannot modify an immutable Int␤
+#           in block <unit> at <tmp> line 1␤␤»
 
 =head2 infix C«.»
 
@@ -1212,6 +1232,15 @@ Both C<.count> and C<.arity> of the RHS will be maintained.
     # equivalent to:
     say f |g 'abc';
     =end code
+
+The single-arg candidate returns the given argument as is. The zero-arg candidate
+returns an identity routine that simply returns its argument.
+
+    my &composed = [∘] &uc;
+    say composed 'foo'; # OUTPUT: «FOO␤»
+
+    my &composed = [∘];
+    say composed 'foo'; # OUTPUT: «foo␤»
 
 =head1 Junctive AND (all) Precedence
 
@@ -1827,7 +1856,7 @@ second, no matter how many more true values there are. (In other words, it has
 
 =head2 infix C«//»
 
-X<Defined-or operator>. Returns the first defined operand, or else the last
+The X<defined-or operator|defined-or operator> or X<infix //|//> returns the first defined operand, or else the last
 operand. Short-circuits.
 
     say Any // 0 // 42;         # OUTPUT: «0␤»
@@ -1890,7 +1919,7 @@ my %loser = points => 20, misses => 10;
 
 =head2 infix C<?? !!>
 
-X<Ternary operator>, X<conditional operator>.
+Also called X<Ternary operator|?? !!> or Conditional operator.
 
 C<$condition ?? $true !! $false> evaluates and returns the expression from the
 C<$true> branch if C<$condition> is a true value. Otherwise it evaluates and
@@ -1900,7 +1929,7 @@ returns the C<$false> branch.
 
     sub infix:<ff>(Mu $a, Mu $b)
 
-X<Flipflop operator>.
+Also called the X<flipflop operator|ff>.
 
 Compares both arguments to C<$_> (that is, C<$_ ~~ $a> and C<$_ ~~
 $b>). Evaluates to C<False> until the left-hand smartmatch is C<True>, at which
@@ -2069,9 +2098,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 sub infix:<=>(Mu $a is rw, Mu $b)
 =end code
 
-X<Item assignment operator>.
-
-Places the value of the right-hand side into the container on the left-hand
+Called the I<item assignment operator>, it Places the value of the right-hand side into the container on the left-hand
 side. Its exact semantics are left to the container type on the left-hand side.
 
 (Note that item assignment and list assignment have different precedence
@@ -2188,35 +2215,30 @@ X<|...,operators>X<|...^,operators>X<|…,operators>X<|…^,operators>X<|lazy li
     multi sub infix:<...>(**@) is assoc<list>
     multi sub infix:<...^>(**@) is assoc<list>
 
-The X<sequence operator> is a generic operator to produce lazy lists.
+The X<sequence operator> will produce generic sequences on demand.
 
-It can have initial elements and a generator on the left-hand side and an
-endpoint on the right-hand side.
+The left hand side will always include initial elements; it may include a generator too. The right hand side will have an endpoint, which can be C<Inf> or C<*> for "infinite" lists (whose elements are only produced on demand), an expression which will end the sequence when C<True>, or other elements such as L<Junctions>.
 
 The sequence operator invokes the generator with as many arguments as
 necessary. The arguments are taken from the initial elements and the already
-generated elements.
-
-The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how
-the end points compare:
+generated elements. The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how the end points compare:
 
     say 1 ... 4;        # OUTPUT: «(1 2 3 4)␤»
     say 4 ... 1;        # OUTPUT: «(4 3 2 1)␤»
     say 'a' ... 'e';    # OUTPUT: «(a b c d e)␤»
     say 'e' ... 'a';    # OUTPUT: «(e d c b a)␤»
 
-An endpoint of C<*> (L<Whatever>) generates an infinite sequence,
+An endpoint of C<*> (L<Whatever>), C<Inf> or C<∞>  generates on demand an infinite sequence,
 with a default generator of *.succ
 
     say (1 ... *)[^5];  # OUTPUT: «(1 2 3 4 5)␤»
 
-
-Custom generators are the last argument before the '...' operator.
+Custom generators need to be the last argument before the '...' operator.
 This one takes two arguments, and generates the Fibonacci numbers
 
     say (1, 1, -> $a, $b { $a + $b } ... *)[^8];    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
     # same but shorter
-    say (1, 1, *+* ... *)[^8];                      # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
+    say (1, 1, * + * ... *)[^8];                    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
 
 Of course the generator can also take only one argument.
 
@@ -2238,7 +2260,7 @@ operator it's excluded.
 
 This allows you to write
 
-    say 1, 1, *+* ...^ *>= 100;
+    say 1, 1, * + * ...^ *>= 100;
 
 To generate all Fibonacci numbers up to but excluding 100.
 
@@ -2280,6 +2302,9 @@ different.
 
 This will output 43, since C<$b> and C<$a> both represented the same
 object.
+
+If type constrains on variables or containers are present a type check will be
+performed at runtime. On failure C<X::TypeCheck::BindingType> will be thrown.
 
 Please note that C<:=> is a compile time construct. As such it can not be
 referred to at runtime and thus can't be used as an argument to meta operators.
@@ -2349,9 +2374,9 @@ Short-circuits so that it returns the first operand that evaluates to C<False>, 
 returns the last operand. Note that C<and> is easy
 to misuse. See L<traps|/language/traps#Loose_boolean_operators>.
 
-=head2 infix C«andthen»
+=head2 infix C«andthen» X<|andthen>
 
-Returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
+The C<andthen> operator returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
 the first L<undefined|/routine/defined> argument, otherwise the last argument.
 Last argument
 is returned as-is, without being checked for definedness at all.
@@ -2391,7 +2416,7 @@ behaviour:
 
 =head2 infix C«notandthen»
 
-Returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
+The X<notandthen> operator returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
 the first L<defined|/routine/defined> argument, otherwise the last argument.
 Last argument is returned as-is, without being checked for definedness at all.
 Short-circuits. The result of the left side is bound to C<$_> for the
@@ -2406,16 +2431,16 @@ item. In other words, L<notandthen> is a means to act when items aren't
 defined, whereas L<orelse> is a means to obtain the first defined item:
 
 =begin code
-    sub all-sensors-down     { [notandthen] |@_, True             }
-    sub first-working-sensor { [orelse]     |@_, 'default sensor' }
+sub all-sensors-down     { [notandthen] |@_, True             }
+sub first-working-sensor { [orelse]     |@_, 'default sensor' }
 
-    all-sensors-down Nil, Nil, Nil
-      and say 'OMG! All sensors are down!'; # OUTPUT:«OMG! All sensors are down!␤»
-    say first-working-sensor Nil, Nil, Nil; # OUTPUT:«default sensor␤»
+all-sensors-down Nil, Nil, Nil
+  and say 'OMG! All sensors are down!'; # OUTPUT:«OMG! All sensors are down!␤»
+say first-working-sensor Nil, Nil, Nil; # OUTPUT:«default sensor␤»
 
-    all-sensors-down Nil, 42, Nil
-      and say 'OMG! All sensors are down!'; # No output
-    say first-working-sensor Nil, 42, Nil;  # OUTPUT:«42␤»
+all-sensors-down Nil, 42, Nil
+  and say 'OMG! All sensors are down!'; # No output
+say first-working-sensor Nil, 42, Nil;  # OUTPUT:«42␤»
 =end code
 
 The C<andthen> operator is a close relative of
@@ -2424,10 +2449,10 @@ compile C<without> to C<notandthen>, meaning these two lines have equivalent
 behaviour:
 
 =begin code
-    sub good-things { fail }
+sub good-things { fail }
 
-    'boo'.say without good-things;
-    good-things() notandthen 'boo'.say;
+'boo'.say without good-things;
+good-things() notandthen 'boo'.say;
 =end code
 
 =head1 Loose OR Precedence
@@ -2441,9 +2466,9 @@ or otherwise the last argument, it short-circuits. Please note that C<or> is eas
 to misuse. See L<traps|/language/traps#Loose_boolean_operators>.
 
 
-=head2 infix C«orelse»
+=head2 X<infix C«orelse»|orelse>
 
-Similar to C<infix //>, except with looser precedence and C<$_> aliasing.
+The C<orelse> operator is similar to C<infix //>, except with looser precedence and C<$_> aliasing.
 
 Returns the first defined argument, or else the last argument. Last argument
 is returned as-is, without being checked for definedness at all.

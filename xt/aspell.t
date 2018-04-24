@@ -67,7 +67,7 @@ for @files -> $file {
         my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
         my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
         $fixer.bind-stdin: $pod.stdout: :bin;
-        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
         $proc.bind-stdin: $fixer.stdout: :bin;
         %output{$file}="";
         $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
@@ -75,7 +75,7 @@ for @files -> $file {
         push @jobs, [$pod.start, $fixer.start, $proc.start];
     } else {
         my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
-        my $proc = Proc::Async.new(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>);
+        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
         $proc.bind-stdin: $fixer.stdout: :bin;
         %output{$file}="";
         $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
