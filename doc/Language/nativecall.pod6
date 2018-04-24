@@ -128,6 +128,32 @@ call, the argument must be manually encoded and passed as C<CArray[uint8]>:
     use_foo();
     # It's fine if $array goes out of scope starting from here.
 
+X<|repr>X<|is repr>X<|CStruct (native representation)>
+=head1 Specifying the native representation
+
+When working with native functions, sometimes you need to specify what kind of native data structure is going to be used. `is repr` is the term employed for that.
+
+=begin code
+use NativeCall;
+
+class timespec is repr('CStruct') {
+    has uint32 $.tv_sec;
+    has long $.tv_nanosecs;
+}
+
+sub clock_gettime(uint32 $clock-id, timespec $tspec --> uint32) is native(Str) { * };
+
+my timespec $this-time .=new;
+
+my $result = clock_gettime( 0, $this-time);
+
+say "$result, $this-time"; # OUTPUT: «0, timespec<65385480>␤»
+=end code
+
+The L<original function we are calling, C<clock_gettime>>, uses a pointer to the C<timespec> struct as second argument. We declare it as a L<class> here, but specify its representation as C<is repr('CStruct')>, to indicate it corresponds to a C data structure. When we create an object of that class, we are creating exactly the kind of pointer C<clock_gettime> expects. This way, data can be transferred seamlessly to and from the native interface.
+
+
+
 =head1 Basic use of Pointers
 
 When the signature of your native function needs a pointer to some native type
