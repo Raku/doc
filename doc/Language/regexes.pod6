@@ -630,35 +630,26 @@ segments can be evaluated in parallel, or in any order the compiler chooses.
 
 =head1 Anchors
 
-The regex engine tries to find a match inside a string by searching from
-left to right.
+Regexes search an entire string for matches. Sometimes this is not what
+you want. Anchors match only at certain positions in the string, thereby
+anchoring the regex match to that position.
 
-    say so 'properly use perl' ~~ / perl/;   # OUTPUT: «True␤»
-    #          ^^^^
+=head2 X<Start of String and End of String|regex,^;regex,$>
 
-But sometimes this is not what you want. Instead, you may only want to
-match a whole string, or a whole line, or exactly one or several whole words.
-I<Anchors> or I<assertions> can help with this.
-
-Assertions need to match successfully in order for the whole regex to match but
-they do not use up characters while matching.
-
-=head2 X«C<^>, Start of String and C<$>, End of String|regex,^;regex,$»
-
-The C<^> assertion only matches at the start of the string:
+The C<^> anchor only matches at the start of the string:
 
     say so 'properly' ~~ /  perl/;    # OUTPUT: «True␤»
     say so 'properly' ~~ /^ perl/;    # OUTPUT: «False␤»
     say so 'perly'    ~~ /^ perl/;    # OUTPUT: «True␤»
     say so 'perl'     ~~ /^ perl/;    # OUTPUT: «True␤»
 
-The C<$> assertion only matches at the end of the string:
+The C<$> anchor only matches at the end of the string:
 
     say so 'use perl' ~~ /  perl  /;   # OUTPUT: «True␤»
     say so 'use perl' ~~ /  perl $/;   # OUTPUT: «True␤»
     say so 'perly'    ~~ /  perl $/;   # OUTPUT: «False␤»
 
-You can combine both assertions:
+You can combine both anchors:
 
     say so 'use perl' ~~ /^ perl $/;   # OUTPUT: «False␤»
     say so 'perl'     ~~ /^ perl $/;   # OUTPUT: «True␤»
@@ -686,23 +677,22 @@ The following is a multi-line string:
     # 'and' is at the start of a line -- not the string
     say so $str ~~ /^and    /;   # OUTPUT: «False␤»
 
-=head2 X«C<^^>, Start of Line and C<$$>, End of Line|regex,^^;regex,$$»
+=head2 X<Start of Line and End of Line|regex,^^;regex,$$>
 
-The C<^^> assertion matches at the start of a logical line. That is, either
+The C<^^> anchor matches at the start of a logical line. That is, either
 at the start of the string, or after a newline character. However, it does not
 match at the end of the string, even if it ends with a newline character.
 
-C<$$> matches only at the end of a logical line, that is, before a newline
+The C<$$> anchor matches at the end of a logical line. That is, before a newline
 character, or at the end of the string when the last character is not a
 newline character.
 
-(To understand the following example, it's important to know that the
+To understand the following example, it's important to know that the
 C<q:to/EOS/...EOS> L<heredoc|/language/quoting#Heredocs:_:to> syntax removes
 leading indention to the same level as the C<EOS> marker, so that the first,
 second and last lines have no leading space and the third and fourth lines have
-two leading spaces each).
+two leading spaces each.
 
-    =begin code
     my $str = q:to/EOS/;
         There was a young man of Japan
         Whose limericks never would scan.
@@ -731,35 +721,33 @@ two leading spaces each).
 
     # matched at the last line
     say so $str ~~ / '."' $$/;        # OUTPUT: «True␤»
-    =end code
+
+=head2 X<Word Boundary|regex, <|w>;regex, <!|w>>
+
+To match any word boundary, use C«<|w>» or C«<?wb>». This is similar to
+X«C<\b>|regex deprecated,\b» of other languages.
+
+To match not a word boundary, use C«<!|w>» or C«<!wb>». This is similar to
+X«C<\B>|regex deprecated,\B» of other languages.
+
+These are both zero width regex elements.
+
+    say "two-words" ~~ / two<|w>\-<|w>words /;    # OUTPUT: «｢two-words｣␤»
+    say "twowords" ~~ / two<!|w><!|w>words /;     # OUTPUT: «｢twowords｣»
 
 
-=head2 X«C«<|w>» and C«<!|w>», word boundary|regex, <|w>;regex, <!|w>»
 
-To match any word boundary, use C«<|w>». This is similar to other
-languages' X«C<\b>|regex deprecated,\b».
+=head2 X<Left and Right Word Boundary|regex, <<; regex, >>; regex, «; regex, »>
 
-To match not a word boundary, use <!|w>. This is similar to other
-languages' X<C<\B>|regex deprecated, \B >.
-
-These are both zero width assertions.
-
-    say "two-words" ~~ / "two"<|w>"-"<|w>"words" /;    # OUTPUT: «｢two-words｣␤»
-    say "two-words" ~~ / "two"<!|w>"-"<!|w>"words" /;  # OUTPUT: «Nil␤»
-
-=head2 C«<<» and C«>>», left and right word boundary
-
-X<<<|regex, <<; regex, >>; regex, «; regex, »>>>
-
-C«<<» matches a left word boundary. It matches positions where there
-is a non-word character (i.e., C<\W> character) at the left (or the start of the string) and a word
+C«<<» matches a left word boundary. It matches positions where there is a
+non-word character at the left, or the start of the string, and a word
 character to the right.
 
 C«>>» matches a right word boundary. It matches positions where there
-is a word character at the left and a non-word character at the right (or
-the end of the string).
+is a word character at the left and a non-word character at the right, or
+the end of the string.
 
-These are both zero width assertions.
+These are both zero width regex elements.
 
     my $str = 'The quick brown fox';
     say so ' ' ~~ /\W/;               # OUTPUT: «True␤»
@@ -784,8 +772,43 @@ To see the difference between C«<|w>» and C<«>, C<»>:
     say "stuff here!!!".subst(:g, /<</, '|');   # OUTPUT: «|stuff |here!!!␤»
     say "stuff here!!!".subst(:g, /<|w>/, '|'); # OUTPUT: «|stuff| |here|!!!␤»
 
+=head2 Summary of Anchors
 
-=head2 X<Lookahead assertions C«<?before pattern>»|regex,before>
+Anchors are zero-width regex elements. Hence they do not use up a character of
+the input string, that is, they do not advance the current position at which
+the regex engine tries to match. A good mental model is that they match between
+two characters of an input string, or before the first, or after the last
+character of an input string.
+
+=begin table
+
+    Anchor  | Description         | Examples
+    ========+=====================+=================
+    ^       | Start of string     | "⏏two\nlines"
+    ^^      | Start of line       | "⏏two\n⏏lines"
+    $       | End of string       | "two\nlines⏏"
+    $$      | End of line         | "two⏏\nlines⏏"
+    << or « | Left word boundary  | "⏏two ⏏words"
+    >> or » | Right word boundary | "two⏏ words⏏"
+    <?wb>   | Any word boundary   | "⏏two⏏ ⏏words⏏~!"
+    <!wb>   | Not a word boundary | "t⏏w⏏o w⏏o⏏r⏏d⏏s~⏏!"
+    <?ww>   | Within word         | "t⏏w⏏o w⏏o⏏r⏏d⏏s~!"
+    <!ww>   | Not within word     | "⏏two⏏ ⏏words⏏~⏏!⏏"
+
+=end table
+
+=head1 Zero-Width Assertions
+
+Zero-Width Assertions can help you implement your own anchor.
+
+A zero-width assertion turns another regex into an anchor, making
+them consume no characters of the input string. There are two variants:
+look-ahead and look-behind assertions.
+
+Technically, anchors are also zero-width assertions, and they can look
+both ahead and behind.
+
+=head2 X<Lookahead Assertions|regex,before>
 
 To check that a pattern appears before another pattern, use a
 lookahead assertion via the C<before> assertion. This has the form:
@@ -795,11 +818,11 @@ lookahead assertion via the C<before> assertion. This has the form:
 Thus, to search for the string C<foo> which is immediately followed by the
 string C<bar>, use the following regexp:
 
-    rx{ foo <?before bar> }
+    / foo <?before bar> /
 
 For example:
 
-    say "foobar" ~~ rx{ foo <?before bar> };  # OUTPUT: «foo␤»
+    say "foobar" ~~ / foo <?before bar> /;  # OUTPUT: «foo␤»
 
 However, if you want to search for a pattern which is B<not> immediately
 followed by some pattern, then you need to use a negative lookahead
@@ -807,26 +830,22 @@ assertion, this has the form:
 
     <!before pattern>
 
-Hence, all occurrences of C<foo> which I<is not> before C<bar> would
-match with
+In the following example, all occurrences of C<foo> which is not before
+C<bar> would match with
 
-    say "foobar" ~~ rx{ foo <!before bar> }   # OUTPUT: «Nil␤»
-
+    say "foobaz" ~~ / foo <!before bar> /;  # OUTPUT: «foo␤»
 
 Lookahead assertions can be used also with other patterns, like
 characters ranges, interpolated variables, subscripts and so on. In such
-cases it does suffice to use a C<?> (or a C<!> for the negate form).
+cases it does suffice to use a C<?>, or a C<!> for the negate form.
 For instance, the following lines all produce the very same result:
 
-=begin code
-say 'abcdefg' ~~ rx{ abc <?before def> };        # OUTPUT: ｢abc｣
-say 'abcdefg' ~~ rx{ abc <?[ d..f ]> };          # OUTPUT: ｢abc｣
-my @ending_letters = <d e f>;
-say 'abcdefg' ~~ rx{ abc <?@ending_letters> };   # OUTPUT: ｢abc｣
-=end code
+    say 'abcdefg' ~~ rx{ abc <?before def> };        # OUTPUT: ｢abc｣
+    say 'abcdefg' ~~ rx{ abc <?[ d..f ]> };          # OUTPUT: ｢abc｣
+    my @ending_letters = <d e f>;
+    say 'abcdefg' ~~ rx{ abc <?@ending_letters> };   # OUTPUT: ｢abc｣
 
-
-=head2 X<Lookbehind assertions C«<?after pattern>»|regex,after>
+=head2 X<Lookbehind assertions|regex,after>
 
 To check that a pattern appears after another pattern, use a
 lookbehind assertion via the C<after> assertion. This has the form:
@@ -836,11 +855,11 @@ lookbehind assertion via the C<after> assertion. This has the form:
 Therefore, to search for the string C<bar> immediately preceded by the
 string C<foo>, use the following regexp:
 
-    rx{ <?after foo> bar }
+    / <?after foo> bar /
 
 For example:
 
-    say "foobar" ~~ rx{ <?after foo> bar };   # OUTPUT: «bar␤»
+    say "foobar" ~~ / <?after foo> bar /;   # OUTPUT: «bar␤»
 
 However, if you want to search for a pattern which is B<not> immediately
 preceded by some pattern, then you need to use a negative lookbehind
@@ -848,10 +867,10 @@ assertion, this has the form:
 
     <!after pattern>
 
-Hence all occurrences of C<bar> which I<do not> have C<foo> before them
+Hence all occurrences of C<bar> which do not have C<foo> before them
 would be matched by
 
-    say "foobar" ~~ rx{ <!after foo> bar }    # OUTPUT: «Nil␤»
+    say "fotbar" ~~ / <!after foo> bar /    # OUTPUT: «bar␤»
 
 =head1 Grouping and Capturing
 
