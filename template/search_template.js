@@ -169,7 +169,7 @@ $.extend( $.ui.autocomplete, {
         current_search = term.toLowerCase();
 
         var search_method = false;
-        if (term.startsWith(".")) {
+        if (term.match(/^\s*\.[a-zA-Z][a-zA-Z0-9_-]+\s*$/)) {
             search_method = true;
             term = term.substr(1);
         }
