@@ -450,12 +450,12 @@ sub register-reference(:$pod!, :$origin, :$url) {
         for @( $pod.meta ) -> $meta {
             my $name;
             if $meta.elems > 1 {
-                my $last = htmlify-guts $meta[*-1];
-                my $rest = $meta[0..*-2]».&htmlify-guts.join;
+                my $last = textify-guts $meta[*-1];
+                my $rest = $meta[0..*-2]».&textify-guts.join;
                 $name = "$last ($rest)";
             }
             else {
-                $name = htmlify-guts $meta;
+                $name = textify-guts $meta;
             }
             $*DR.add-new(
                 :$pod,
@@ -474,22 +474,17 @@ sub register-reference(:$pod!, :$origin, :$url) {
             :$url,
             :kind<reference>,
             :subkinds['reference'],
-            :name(htmlify-guts $name),
+            :name(textify-guts $name),
         );
     }
 }
 
-multi htmlify-guts (Any:U) { '' }
-multi htmlify-guts (Str:D \v ) { v }
-multi htmlify-guts (List:D \v ) { v».&htmlify-guts.Str }
-multi htmlify-guts (Pod::Block \v ) {
-    CATCH {
-        default {
-            say "CAUGHT: {.^name}\n{.message.indent: 4}\n{.backtrace.full.indent: 4}\n when processing {v.perl}";
-            exit;
-        }
-    }
-    node2html v;
+multi textify-guts (Any:U,       ) { '' }
+multi textify-guts (Str:D      \v) { v }
+multi textify-guts (List:D     \v) { v».&textify-guts.Str }
+multi textify-guts (Pod::Block \v) {
+    use Pod::To::Text;
+    pod2text v;
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
@@ -525,7 +520,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 proceed unless $fc.type eq "X";
                 (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = htmlify-guts $fc.contents[0]
+                @definitions[1] = textify-guts $fc.contents[0]
                     if @definitions == 1;
                 $unambiguous = True;
             }
@@ -535,7 +530,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 proceed unless $fc.type eq "X";
                 (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = htmlify-guts $fc.contents[0]
+                @definitions[1] = textify-guts $fc.contents[0]
                     if @definitions == 1;
                 $unambiguous = True;
             }
@@ -553,15 +548,15 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = .[2].words[0], htmlify-guts .[1].contents[0];
+                @definitions = .[2].words[0], textify-guts .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
-                @definitions = .[0].words[0], htmlify-guts .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                @definitions = .[0].words[0], htmlify-guts .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             default { next }
         }
