@@ -263,14 +263,20 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
             printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
             my $pod = extract-pod($file.path);
             process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
+            CATCH {
+                default {
+                    warn join "\n", "CAUGHT ERROR: {.^name}",
+                      .message.indent(4), .backtrace.full.indent(4);
+                }
+            }
         }
 
         if $num %% $parallel {
-            await Promise.allof: @pod-files;
+            await @pod-files;
             @pod-files = ();
         }
 
-        LAST await Promise.allof: @pod-files;
+        LAST await @pod-files;
     }
 }
 
@@ -669,13 +675,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await Promise.allof: @type-graph-images;
+            await @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await Promise.allof: @type-graph-images;
+        LAST await @type-graph-images;
     }
     say '';
 
@@ -692,11 +698,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await Promise.allof: @specialized-visualizations;
+            await @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        LAST await Promise.allof: @specialized-visualizations;
+        LAST await @specialized-visualizations;
     }
 }
 
