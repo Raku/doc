@@ -450,12 +450,12 @@ sub register-reference(:$pod!, :$origin, :$url) {
         for @( $pod.meta ) -> $meta {
             my $name;
             if $meta.elems > 1 {
-                my $last = $meta[*-1];
-                my $rest = $meta[0..*-2].join;
+                my $last = htmlify-guts $meta[*-1];
+                my $rest = $meta[0..*-2]».&htmlify-guts.join;
                 $name = "$last ($rest)";
             }
             else {
-                $name = $meta.Str;
+                $name = htmlify-guts $meta;
             }
             $*DR.add-new(
                 :$pod,
@@ -474,9 +474,22 @@ sub register-reference(:$pod!, :$origin, :$url) {
             :$url,
             :kind<reference>,
             :subkinds['reference'],
-            :$name,
+            :name(htmlify-guts $name),
         );
     }
+}
+
+multi htmlify-guts (Any:U) { '' }
+multi htmlify-guts (Str:D \v ) { v }
+multi htmlify-guts (List:D \v ) { v».&htmlify-guts.Str }
+multi htmlify-guts (Pod::Block \v ) {
+    CATCH {
+        default {
+            say "CAUGHT: {.^name}\n{.message.indent: 4}\n{.backtrace.full.indent: 4}\n when processing {v.perl}";
+            exit;
+        }
+    }
+    node2html v;
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
@@ -507,10 +520,6 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
-            multi htmlify-guts (Any:U) { '' }
-            multi htmlify-guts (Str:D \v ) { v }
-            multi htmlify-guts (Pod::Block \v ) { node2html v }
-
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
