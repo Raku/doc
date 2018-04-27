@@ -21,8 +21,7 @@ text that is part of a code example)
 =end overview
 
 my @files = Test-Files.files\
-    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
-    .grep({! $_.ends-with: 'contributors.pod6'});
+    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
