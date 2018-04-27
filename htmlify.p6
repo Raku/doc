@@ -266,11 +266,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         }
 
         if $num %% $parallel {
-            await Promise.allof: @pod-files;
+            await @pod-files;
             @pod-files = ();
         }
 
-        LAST await Promise.allof: @pod-files;
+        LAST await @pod-files;
     }
 }
 
@@ -450,12 +450,12 @@ sub register-reference(:$pod!, :$origin, :$url) {
         for @( $pod.meta ) -> $meta {
             my $name;
             if $meta.elems > 1 {
-                my $last = $meta[*-1];
-                my $rest = $meta[0..*-2].join;
+                my $last = textify-guts $meta[*-1];
+                my $rest = $meta[0..*-2]».&textify-guts.join;
                 $name = "$last ($rest)";
             }
             else {
-                $name = $meta.Str;
+                $name = textify-guts $meta;
             }
             $*DR.add-new(
                 :$pod,
@@ -474,9 +474,17 @@ sub register-reference(:$pod!, :$origin, :$url) {
             :$url,
             :kind<reference>,
             :subkinds['reference'],
-            :$name,
+            :name(textify-guts $name),
         );
     }
+}
+
+multi textify-guts (Any:U,       ) { '' }
+multi textify-guts (Str:D      \v) { v }
+multi textify-guts (List:D     \v) { v».&textify-guts.Str }
+multi textify-guts (Pod::Block \v) {
+    use Pod::To::Text;
+    pod2text v;
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
@@ -510,18 +518,20 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             # XXX: Remove when extra "" have been purged
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
@@ -538,15 +548,15 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = .[2].words[0], .[1].contents[0];
+                @definitions = .[2].words[0], textify-guts .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             default { next }
         }
@@ -669,13 +679,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await Promise.allof: @type-graph-images;
+            await @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await Promise.allof: @type-graph-images;
+        LAST await @type-graph-images;
     }
     say '';
 
@@ -692,11 +702,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await Promise.allof: @specialized-visualizations;
+            await @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        LAST await Promise.allof: @specialized-visualizations;
+        LAST await @specialized-visualizations;
     }
 }
 
