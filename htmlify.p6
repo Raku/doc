@@ -554,7 +554,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
-                @definitions = .[0].words[0], .[1].contents[0]||'';
+                @definitions = .[0].words[0], htmlify-guts .[1].contents[0];
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
