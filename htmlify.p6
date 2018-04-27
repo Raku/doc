@@ -513,12 +513,17 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
         my @definitions; # [subkind, name]
         my $unambiguous = False;
         given @header {
+            multi htmlify-guts (Any:U) { '' }
+            multi htmlify-guts (Str:D \v ) { v }
+            multi htmlify-guts (Pod::Block \v ) { node2html v }
+
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
                 @definitions = $fc.meta[0].flat;
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0]||'' if @definitions == 1;
+                @definitions[1] = htmlify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             # XXX: Remove when extra "" have been purged
@@ -527,7 +532,8 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 proceed unless $fc.type eq "X";
                 @definitions = $fc.meta[0].flat;
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0]||'' if @definitions == 1;
+                @definitions[1] = htmlify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
@@ -544,7 +550,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = .[2].words[0], .[1].contents[0]||'';
+                @definitions = .[2].words[0], htmlify-guts .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
@@ -552,7 +558,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                @definitions = .[0].words[0], .[1].contents[0]||'';
+                @definitions = .[0].words[0], htmlify-guts .[1].contents[0];
             }
             default { next }
         }
