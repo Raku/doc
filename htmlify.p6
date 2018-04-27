@@ -520,7 +520,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
                 @definitions[1] = htmlify-guts $fc.contents[0]
                     if @definitions == 1;
@@ -530,7 +530,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
                 @definitions[1] = htmlify-guts $fc.contents[0]
                     if @definitions == 1;
