@@ -263,12 +263,6 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
             printf "% 4d/%d: % -40s => %s\n", $num+1, $total, $file.path, "$kind/$filename";
             my $pod = extract-pod($file.path);
             process-pod-source :$kind, :$pod, :$filename, :pod-is-complete;
-            CATCH {
-                default {
-                    warn join "\n", "CAUGHT ERROR: {.^name}",
-                      .message.indent(4), .backtrace.full.indent(4);
-                }
-            }
         }
 
         if $num %% $parallel {
