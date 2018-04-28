@@ -1,0 +1,128 @@
+=begin pod :tag<perl6>
+
+=TITLE Numerics
+
+=SUBTITLE Numeric types available in Perl 6
+
+=head1 C<Int>
+
+The C<Int> type offers arbitrary-size integer numbers. They can get as big
+as your computer memory allows, although some implementations choose to
+throw a numeric overflow error when asked to produce integers of truly
+staggering size:
+
+=begin code :skip-test<compile-time constant folding will throw example error>
+say 10**600**600
+# OUTPUT: «Numeric overflow␤»
+=end code
+
+Unlike some languages, division performed using
+L<C«/» operator|/routine/$SOLIDUS> when both operands are of L<Int>
+type, would produce a fractional number, without any rounding performed.
+
+=begin code
+say 4/5; # OUTPUT: «0.8␤»
+=end code
+
+The type produced by this division is either a L<Rat> or a L<Num> type. The
+L<Rat> is produced if, after reduction, the fraction's denominator is smaller
+than 64 bits, otherwise a L<Num> type is produced.
+
+The L<div> and L<narrow> routines can be helpful if you wish to end
+up with an L<Int> result, whenever possible. The L<div> operator performs
+integer division, discarding the remainder, while L<narrow> fits the number
+into the narrowest type it'll fit:
+
+=begin code
+say 5 div 2; # OUTPUT: «2␤»
+
+# Result `2` is narrow enough to be an Int:
+say (4/2).narrow; # OUTPUT: «2␤»
+say (4/2).narrow.^name; # OUTPUT: «Int␤»
+
+# But 2.5 has fractional part, so it ends up being a Rat type:
+say (5/2).narrow.^name; # OUTPUT: «Rat␤»
+say (5/2).narrow;       # OUTPUT: «2.5␤»
+
+# Denominator is too big for a Rat, so a Num is produced:
+say 1 / 10⁹⁹; # OUTPUT: «1e-99␤»
+=end code
+
+Perl 6 has L<FatRat> type that offers arbitrary precision fractions. How come
+a limited-precision L<Num> is produced instead of a L<FatRat> type in the
+last example above? The reason is: performance. Most operations are fine
+with a little bit of precision lost and so do not require the use of a more
+expensive L<FatRat> type. You'll need to instantiate one yourself if you wish
+to have the extra precision.
+
+=head1 C<Num>
+
+The L<Num> type offers
+L<double-precision floating-point|https://en.wikipedia.org/wiki/Double-precision_floating-point_format> decimal numbers, sometimes called "doubles" in other languages.
+
+A L<Num> literal is written with the exponent separated using letter C<e>. Keep
+in mind that letter C<e> B<is required> even if the exponent is zero, as
+otherwise you'll get a L<Rat> or L<MidRat> rational literal instead:
+
+=begin code
+say 42e0.^name; # OUTPUT: «Num␤»
+say 42.0.^name; # OUTPUT: «Rat␤»
+=end code
+
+Case-sensitive words L<Inf> and L<NaN> represent special values infinity and
+not-a-number respectively. The U+221E INFINITY (C<∞>) character can be used
+instead of L<Inf>:
+
+Perl 6 follows the
+L<IEEE 754-2008 Standard for Floating-Point Arithmetic|https://en.wikipedia.org/wiki/IEEE_754> as much as possible, with
+more conformance planned to be implemented in later language versions. The
+language guarantees the closest representable number is chosen for any given
+L<Num> literal and does offer support for
+L<denormals|https://en.wikipedia.org/wiki/Denormal_number> (also known as
+"subnormals").
+
+Keep in mind that output routines like L<say> or L<put> do not try very hard to
+distinguish between how L<Numeric> types are output and may choose to display
+a L<Num> as an L<Int> or a L<Rat> number. For a more definitive string to
+output, use the L<perl> method:
+
+=begin code
+say  1e0;      # OUTPUT: «1␤»
+say .5e0;      # OUTPUT: «0.5␤»
+say  1e0.perl; # OUTPUT: «1e0␤»
+say .5e0.perl; # OUTPUT: «0.5e0␤»
+=end code
+
+=head1 C<Complex>
+
+Complex numbers.
+
+=head1 C<Rational>
+
+Rational, high--precision and arbitrary-precision decimal numbers.
+
+=head2 C<Rat>
+
+=head2 C<MidRat>
+
+=head2 C<FatRat>
+
+=head1 Allomorphs
+
+=head2 C<IntStr>
+=head2 C<NumStr>
+=head2 C<ComplexStr>
+=head2 C<RatStr>
+=head2 C<MidRatStr>
+
+=head1 Native
+
+=head2 C<int>, C<int8>, C<int16>, C<int32>, and C<int64>
+
+=head2 C<num>, C<num32>, and C<int64>
+
+=head1 Numeric Infectiousness
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
