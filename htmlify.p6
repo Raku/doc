@@ -377,7 +377,6 @@ multi write-type-source($doc) {
             if $type ne "Any" {
                 next if $class ~~ "Any" | "Mu";
             }
-            say "Class  → $class";
             next unless %routines-by-type{$class};
             $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
