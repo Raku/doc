@@ -77,7 +77,7 @@ Perl 6 follows the
 L<IEEE 754-2008 Standard for Floating-Point Arithmetic|https://en.wikipedia.org/wiki/IEEE_754> as much as possible, with
 more conformance planned to be implemented in later language versions. The
 language guarantees the closest representable number is chosen for any given
-L<Num> literal and does offer support for
+L<Num> literal and does offer support for negative zero and
 L<denormals|https://en.wikipedia.org/wiki/Denormal_number> (also known as
 "subnormals").
 
@@ -95,17 +95,196 @@ say .5e0.perl; # OUTPUT: «0.5e0␤»
 
 =head1 C<Complex>
 
-Complex numbers.
+The L<Complex> type numerics of the
+L<complex plane|https://en.wikipedia.org/wiki/Complex_plane>. The L<Complex>
+objects consist of two L<Num> objects representing the
+L<real|/routine/re> and L<imaginary|/routine/im> portions of the complex number.
+
+To create a L<Complex>, you can use the L«postfix C<i> operator|/routine/i»
+on any other non-complex number, optionally setting the real part with
+addition. To use the C<i> operator on C<NaN> or C<Inf> literals, separate it
+from them with a backslash.
+
+=begin code
+say 42i;      # OUTPUT: «0+42i␤»
+say 73+42i;   # OUTPUT: «73+42i␤»
+say 73+Inf\i; # OUTPUT: «73+Inf\i␤»
+=end code
+
+Keep in mind the above syntax is just an addition expression and precedence
+rules apply. It also cannot be used in places that forbit expressions, such
+as literals in routine parameters.
+
+=begin code
+# Precedence of `*` is higher than that of `+`
+say 2 * 73+10i; # OUTPUT: «146+10i␤»
+=end code
+
+To avoid these issues, you can choose to use the L<Complex> literal syntax
+instead, which involves surrounding the real and imaginary parts with angle
+brackets, I<without any spaces>:
+
+=begin code
+say 2 * <73+10i>; # OUTPUT: «146+20i␤»
+
+multi how-is-it (<2+4i>) { say "that's my favorite number!" }
+multi how-is-it (|)      { say "meh"                        }
+how-is-it 2+4i;  # OUTPUT: «that's my favorite number!␤»
+how-is-it 3+2i;  # OUTPUT: «meh␤»
+=end code
 
 =head1 C<Rational>
 
-Rational, high--precision and arbitrary-precision decimal numbers.
+The types that do the L<Rational> role offer high-precision and
+arbitrary-precision decimal numbers. Since the higher the precision the
+larger the performance penalty, the L<Rational> types come in three flavours:
+L<Rat>, L<MidRat>, and L<FatRat>. The L<Rat> is the most oft-used variant
+that degrades into a L<Num> when it can no longer hold all of the requested
+precision. The L<FatRat> is the arbitrary-precision variant that keeps growing
+to provide all of the requested precision. Lastly, the L<MidRat> type is
+somewhat in-between of a L<Rat> and L<FatRat>: offering arbitrary-precision
+but degrading like a L<Rat>, when used in lower-precision operations.
 
 =head2 C<Rat>
 
+The most common of L<Rational> types. It supports rationals with denominators
+as large as 64 bits (after reduction of the fraction to the lowest denominator).
+
+The L<Rat> literals use syntax similar to L<Num> literals in many other
+languages, using the dot to indicate the number is a decimal:
+
+=begin code
+say .1 + .2 == .3; # OUTPUT: «True␤»
+=begin code
+
+If you try to execute a statement similar to the above in many common
+languages, you'll get C<False> as the answer, due to imprecision of
+floating point math. To get the same result in Perl 6, you'd have to use
+L<Num> literals instead:
+
+=begin code
+say .1e0 + .2e0 == .3e0; # OUTPUT: «False␤»
+=begin code
+
+You can also use L«C</> division operator|/routine/$SOLIDUS» with L<Int> or
+L<Rat> objects to produce a L<Rat>:
+
+=begin code
+say 3/4;     # OUTPUT: «0.75␤»
+say 3/4.2;   # OUTPUT: «0.714286␤»
+say 1.1/4.2; # OUTPUT: «0.261905␤»
+=end code
+
+Keep in mind the above syntax is just a division expression and precedence
+rules apply. It also cannot be used in places that forbit expressions, such
+as literals in routine parameters.
+
+=begin code
+# Precedence of power operators is higher than division
+say 3/2²; # OUTPUT: «0.75␤»
+=end code
+
+To avoid these issues, you can choose to use the L<Rational> literal syntax
+instead, which involves surrounding the numerator and denominator with angle
+brackets, I<without any spaces>:
+
+=begin code
+say <3/2>²; # OUTPUT: «2.25␤»
+
+multi how-is-it (<3/2>) { say "that's my favorite number!" }
+multi how-is-it (|)     { say "meh"                        }
+how-is-it 3/2;  # OUTPUT: «that's my favorite number!␤»
+how-is-it 1/3;  # OUTPUT: «meh␤»
+=end code
+
+Lastly, any Unicode character with property C<No> that represents a fractional
+number can be used as a L<Rat> literal:
+
+=begin code
+say ½ + ⅓ + ⅝ + ⅙; # OUTPUT: «1.625␤»
+=end code
+
+=head3 Degradation to C<Num>
+
+If a I<mathematical operation> that produces a L<Rat> answer would produce
+a L<Rat> with denominator larger than 64 bits, that operation would instead
+return a L<Num> object. When I<constructing> a L<Rat> (i.e. when it is not
+a result of some mathematical expression), however, in similar
+circumstances a L<MidRat> type is produced instead.
+
 =head2 C<MidRat>
 
+The L<MidRat> type is the
+L<allomorph|/language/glossary#index-entry-Allomorph>
+of a L<Rat> and L<FatRat> types: it's used when construction of a L<Rat> object
+is attempted, but too much precision is requested. The L<MidRat> can hold
+all of the given precision, just like a L<FatRat> would, but it doesn't have
+the same "infectiousness" so if it's not used in high-precision operations with
+other L<FatRat> objects, it'll degrade to a L<Num>, just like a L<Rat> object
+would.
+
+Attempts to I<construct> a L<Rat> with denominator larger (after reduction)
+than 64 bits in size produce a L<MidRat>
+object (L<MidRatStr> allomorph for L<RatStr> allomorph constructon). Such
+construction occurs when a L<Rational> literal is typed in the code, the
+L«C<Str.Rat>|» or L«C<Str.Numeric>|/type/Str#method_Numeric» methods are
+used, or a L<RatStr> allomorph is created using L<val>,
+L<angle brackets|/language/quoting#index-entry-<_>_word_quote>, or other
+allomorph-producing means, such as arguments to
+L«C<MAIN> routine|/language/functions#sub_MAIN» or calling
+L«C<RatStr.new>|/type/RatStr#method_new». Mathematical operations are B<NOT>
+subject to this rule and instead degrade their result to a L<Num> instead.
+
 =head2 C<FatRat>
+
+The last L<Rational> type—L<FatRat>—keeps all of the precision you ask of
+it, storing the numerator and denominator as two L<Int> objects. A L<FatRat>
+is more infectious than a L<Rat>, so many math operations with a L<FatRat> will
+produce another L<FatRat>, preserving all of the available precision. Where
+a L<Rat> degrades to a L<Num>, math with a L<FatRat> keeps chugging along:
+
+=begin code
+say ((42 + Rat.new(1,2))/999999999999999999).^name;         # OUTPUT: «Rat␤»
+say ((42 + Rat.new(1,2))/9999999999999999999).^name;        # OUTPUT: «Num␤»
+say ((42 + FatRat.new(1,2))/999999999999999999).^name;      # OUTPUT: «FatRat␤»
+say ((42 + FatRat.new(1,2))/99999999999999999999999).^name; # OUTPUT: «FatRat␤»
+=end code
+
+There's no special operator or syntax available for construction of L<FatRat>
+objects. Simply use L«C<FatRat.new> method|/type/FatRat#(Rational)_method_new»,
+giving numerator as first positional argument and denominator as the second.
+
+If your program requires a significant amount of L<FatRat> creation, you could
+create your own custom operator:
+
+=begin code
+sub infix:<🙼> { FatRat.new: $^a, $^b }
+say (1🙼3).perl; # OUTPUT: «FatRat.new(1, 3)␤»
+=end code
+
+=head2 Printing Rationals
+
+Keep in mind that output routines like L<say> or L<put> do not try very hard to
+distinguish between how L<Numeric> types are output and may choose to display
+a L<Num> as an L<Int> or a L<Rat> number. For a more definitive string to
+output, use the L<perl> method:
+
+=begin code
+say 1.0;        # OUTPUT: «1␤»
+say ⅓;          # OUTPUT: «0.333333␤»
+say 1.0.perl;   # OUTPUT: «1.0␤»
+say ⅓.perl;     # OUTPUT: «<1/3>␤»
+=end code
+
+For even more information, you may choose see the L<Rational> object in
+the L<nude>, displaying its B<nu>merator and B<de>nominator:
+
+=begin code
+say ⅓;          # OUTPUT: «0.333333␤»
+say 4/2;        # OUTPUT: «2␤»
+say ⅓.perl;     # OUTPUT: «<1/3>␤»
+say <4/2>.nude; # OUTPUT: «(2 1)␤»
+=end code
 
 =head1 Allomorphs
 
