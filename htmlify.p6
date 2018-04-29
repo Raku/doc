@@ -974,7 +974,11 @@ sub highlight-code-blocks {
                 return default($node);
             }
         }
+        # get a temp file; while this module would remove the file at
+        # the end, we remove it proactively in case the script aborts
         my ($tmp_fname, $tmp_io) = tempfile;
+        #LEAVE unlink $tmp_fname;
+
         $tmp_io.spurt: $node.contents.join, :close;
         my $html;
         my $promise = Promise.new;
