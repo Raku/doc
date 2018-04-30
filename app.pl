@@ -3,7 +3,7 @@
 use File::Spec::Functions 'catfile';
 use Mojolicious 7.31;
 use Mojolicious::Lite;
-use File::Copy;
+use File::Copy qw/move/;
 use Mojo::File qw/path/;
 use File::Temp qw/tempfile/;
 
@@ -73,9 +73,9 @@ sub gen_assets {
     Mojo::File->new($temp_js)->spurt(
         join "\n", @{app->asset->processed('app.js')->map(sub {$_->content})}
     );
-    copy $temp_css, 'html/css/app.css'
+    move $temp_css, 'html/css/app.css'
         or app->log->warn("Copying CSS failed: $!");
-    copy $temp_js,  'html/js/app.js'
+    move $temp_js,  'html/js/app.js'
         or app->log->warn("Copying JS failed: $!");
     app->log->info('...done');
 
