@@ -131,7 +131,7 @@ explains briefly how to get started contributing documentation.
 
 ## Vision
 
-> I want p6doc and doc.perl6.org to become the No. 1 resource to consult
+> I want p6doc and docs.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Perl 6 programmer.
