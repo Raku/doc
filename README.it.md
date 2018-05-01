@@ -1,4 +1,4 @@
-# Documentazione Ufficiale Perl 6 
+# Documentazione Ufficiale Perl 6
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -10,7 +10,7 @@ Il link precedente è il modo consigliato di leggere e usare la documentazione.
 Esiste uno strumento da riga di comando denominato "p6doc",
 
 (Se stai navigando questo repository via GitHub molti dei file non saranno visualizzati
-correttamente poiché la documentazione è scritta usando Pod per Perl 6 e GitHub 
+correttamente poiché la documentazione è scritta usando Pod per Perl 6 e GitHub
 lo considera invece come Pod per Perl 5 ).
 
 ## README in altri linguaggi
@@ -20,7 +20,7 @@ lo considera invece come Pod per Perl 5 ).
 
 ## Installare p6doc
 
-Lo strumento p6doc è un modulo disponibile nell'ecosistema  Perl 6. 
+Lo strumento p6doc è un modulo disponibile nell'ecosistema  Perl 6.
 Il seguente comando
 
     $ zef install p6doc
@@ -38,9 +38,9 @@ per vedere la documentazione della classe  `Str`, o nello specifico
 
     $ ./bin/p6doc Str.split
 
-per visualizzar ela documentazione del method  `split` nella classe `Str`. 
-E' possibile omettere il prefisso  `./bin` se si è installato tramite `zef`. 
-E' possibile anche usare il comando seguente 
+per visualizzar ela documentazione del method  `split` nella classe `Str`.
+E' possibile omettere il prefisso  `./bin` se si è installato tramite `zef`.
+E' possibile anche usare il comando seguente
 
     $ p6doc -f slurp
 
@@ -63,7 +63,7 @@ per gli eseguibili installati:
 
     $ rakudobrew rehash
 
-Oltre alle dipendenze specifiche di  Perl 6, è necessario anche avere installato `graphviz`, 
+Oltre alle dipendenze specifiche di  Perl 6, è necessario anche avere installato `graphviz`,
 che su sistemi Debian può essere installato con il seguente comando
 
     $ sudo apt-get install graphviz
@@ -77,7 +77,7 @@ installato, e in particolare un eseguibile `node` raggiungibile nel `PATH`,
 
 Una volta che le pagine HTML sono state generate, è possibile visualizzarle
 sul computer locale mediante l'applicazione `app.pl` che viene avviata con
-il comando 
+il comando
 
     $ make run
 
@@ -107,7 +107,7 @@ Alcuni modi per aiutare il progetto includono:
  * eseguire il comando `git grep TODO` sul repository, inserendo la documentazione mancante.
    actual documentation.
 
-La pagina dei ticket [Issues](https://github.com/perl6/doc/issues) 
+La pagina dei ticket [Issues](https://github.com/perl6/doc/issues)
 contiene una lista dei problemi noti e delle parti di documentazione che sono note essere incomplete,
 e il file [CONTRIBUTING](CONTRIBUTING.md)
 spiega brevemente come iniziare a contribuire alla documentazione.
@@ -123,9 +123,9 @@ spiega brevemente come iniziare a contribuire alla documentazione.
   1. Questa documentazione è pensata per essere universale rispetto
      a una data versione delle specifiche di linguaggio, e non necessariamente
      legata a una specifica implementazione di  Perl 6.
-  2. Le implementazioni che gestiscono Pod Embedded sono ancora 
+  2. Le implementazioni che gestiscono Pod Embedded sono ancora
      non ottimali; e così facendo si evitano problemi di runtime.
-  3. Un repository separato sull'account perl6 Github invita un maggior numero di 
+  3. Un repository separato sull'account perl6 Github invita un maggior numero di
      potenziali volontari e scrittori.
 
 **Q:** Devo includere nella documentazione metodi dalle superclassi o ruoli?<br>
@@ -156,7 +156,7 @@ durante l'esecuzione di una test-suite. E' utile per debuggare test che fallisco
 # Licenza
 
 Il codice in questo repository è disponibile mediante la licenza Artistic License 2.0
-nella versione pubblicata da  The Perl Foundation. 
+nella versione pubblicata da  The Perl Foundation.
 Si veda il file [LICENSE](LICENSE) per l'intero contenuto della licenza.
 
 Questo repository contiene anche codice scritto da autori terzi che potrebbe essere concesso con una licenza differente. Tali files indicano il copyright e i termini di licenza all'inizio del file stesso. Attualmente tali file includono:
