@@ -13,37 +13,40 @@ Esiste uno strumento da riga di comando denominato "p6doc",
 correttamente poiché la documentazione è scritta usando Pod per Perl 6 e GitHub 
 lo considera invece come Pod per Perl 5 ).
 
-## README in other languages
+## README in altri linguaggi
 
-* [README in Chinese](README.zh.md).
+* [README in Cinese](README.zh.md);
+* [README in Inglese](README.md).
 
-## Install p6doc
+## Installare p6doc
 
-This module is available via the Perl 6 module ecosystem. Use
+Lo strumento p6doc è un modulo disponibile nell'ecosistema  Perl 6. 
+Il seguente comando
 
     zef install p6doc
 
-to install the binaries and make it available in your binaries
-execution path.
+installa lo strumento e lo rende disponibile nel tuo path di esecuzione.
 
-## Use p6doc
+## Usare p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try
+Una volta che si ha una versione Rakudo `perl6` eseguibile nel proprio `PATH`, è sufficiente
+impartire il comando
 
     ./bin/p6doc Str
 
-to see the documentation for class `Str`, or
+per vedere la documentazione della classe  `Str`, o nello specifico
 
     ./bin/p6doc Str.split
 
-to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via
-`zef`. You can also do
+per visualizzar ela documentazione del method  `split` nella classe `Str`. 
+E' possibile omettere il prefisso  `./bin` se si è installato tramite `zef`. 
+E' possibile anche usare il comando seguente 
 
     p6doc -f slurp
 
-to browse the documentation of standard functions. Depending on your
-disk speed and Rakudo version, it might take a while.
+per sfogliare la documentazione di una funzione.
+A seconda della velocità del disco e della versione di Rakudo, il rendering
+può richiedere un po' di tempo.
 
 -------
 
