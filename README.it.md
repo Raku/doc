@@ -50,42 +50,44 @@ può richiedere un po' di tempo.
 
 -------
 
-## Building the HTML documentation
+## Assemblare la documentazione HTML
 
-Install dependencies by running the following in the checkout directory:
+E' necessario installare le dipendenze eseguendo il seguente comando
+nella directory ove si è fatto il checkout del repository:
 
     zef --deps-only install .
 
-If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
-following, to update the shims for installed executables:
+Se si sta usando [`rakudobrew`](https://github.com/tadzik/rakudobrew),
+è necessario anche eseguire il seguente comando in modo da aggiornare gli "shims"
+per gli eseguibili installati:
 
     rakudobrew rehash
 
-In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running
+Oltre alle dipendenze specifiche di  Perl 6, è necessario anche avere installato `graphviz`, 
+che su sistemi Debian può essere installato con il seguente comando
 
     sudo apt-get install graphviz
 
-To build the documentation web pages, simply run
+Per costruire la documentazione in formato HTML è sufficiente eseguire il comando
 
     $ make html
 
-Please note that you will need to have [nodejs](https://nodejs.org)
-installed to produce HTML content with the above command, in particular
-a `node` executable should be in your `PATH`.
+Il comando precedente, al fine di generare contenuto HTML, richiede [nodejs](https://nodejs.org)
+installato, e in particolare un eseguibile `node` raggiungibile nel `PATH`,
 
-After the pages have been generated, you can view them on your local
-computer by starting the included `app.pl` program:
+Una volta che le pagine HTML sono state generate, è possibile visualizzarle
+sul computer locale mediante l'applicazione `app.pl` che viene avviata con
+il comando 
 
     $ make run
 
-You can then view the examples documentation by pointing your web browser at
+E' possibile visualizzare la documentazione puntanto il proprio browser web all'indirizzo
 [http://localhost:3000](http://localhost:3000).
 
-You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
-installed and you will need [nodejs](https://nodejs.org) to perform
-highlighting. There are also some additional modules you might need;
-install them all using
+Per realizzare gli "highlights" è necessario avere installato
+[Mojolicious](https://metacpan.org/pod/Mojolicious)
+e [nodejs](https://nodejs.org).
+Sono necessari anche alcuni altri moduli, tutti installabili con il comando
 
     $ cpanm --installdeps .
 
