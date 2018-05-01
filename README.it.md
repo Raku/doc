@@ -23,7 +23,7 @@ lo considera invece come Pod per Perl 5 ).
 Lo strumento p6doc è un modulo disponibile nell'ecosistema  Perl 6. 
 Il seguente comando
 
-    zef install p6doc
+    $ zef install p6doc
 
 installa lo strumento e lo rende disponibile nel tuo path di esecuzione.
 
@@ -32,17 +32,17 @@ installa lo strumento e lo rende disponibile nel tuo path di esecuzione.
 Una volta che si ha una versione Rakudo `perl6` eseguibile nel proprio `PATH`, è sufficiente
 impartire il comando
 
-    ./bin/p6doc Str
+    $ ./bin/p6doc Str
 
 per vedere la documentazione della classe  `Str`, o nello specifico
 
-    ./bin/p6doc Str.split
+    $ ./bin/p6doc Str.split
 
 per visualizzar ela documentazione del method  `split` nella classe `Str`. 
 E' possibile omettere il prefisso  `./bin` se si è installato tramite `zef`. 
 E' possibile anche usare il comando seguente 
 
-    p6doc -f slurp
+    $ p6doc -f slurp
 
 per sfogliare la documentazione di una funzione.
 A seconda della velocità del disco e della versione di Rakudo, il rendering
@@ -55,18 +55,18 @@ può richiedere un po' di tempo.
 E' necessario installare le dipendenze eseguendo il seguente comando
 nella directory ove si è fatto il checkout del repository:
 
-    zef --deps-only install .
+    $ zef --deps-only install .
 
 Se si sta usando [`rakudobrew`](https://github.com/tadzik/rakudobrew),
 è necessario anche eseguire il seguente comando in modo da aggiornare gli "shims"
 per gli eseguibili installati:
 
-    rakudobrew rehash
+    $ rakudobrew rehash
 
 Oltre alle dipendenze specifiche di  Perl 6, è necessario anche avere installato `graphviz`, 
 che su sistemi Debian può essere installato con il seguente comando
 
-    sudo apt-get install graphviz
+    $ sudo apt-get install graphviz
 
 Per costruire la documentazione in formato HTML è sufficiente eseguire il comando
 
