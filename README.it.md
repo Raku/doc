@@ -153,19 +153,18 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 durante l'esecuzione di una test-suite. E' utile per debuggare test che falliscono.
 - `P6_DOC_TEST_FUDGE` considera i frammenti di codice con `skip-test` come dei TODO quando esegue il test `xt/examples-compilation.t`.
 
-# LICENSE
+# Licenza
 
-The code in this repository is available under the Artistic License 2.0
-as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
-text.
+Il codice in questo repository è disponibile mediante la licenza Artistic License 2.0
+nella versione pubblicata da  The Perl Foundation. 
+Si veda il file [LICENSE](LICENSE) per l'intero contenuto della licenza.
 
-This repository also contains code authored by third parties that may be licensed under a different license. Such
-files indicate the copyright and license terms at the top of the file. Currently these include:
+Questo repository contiene anche codice scritto da autori terzi che potrebbe essere concesso con una licenza differente. Tali files indicano il copyright e i termini di licenza all'inizio del file stesso. Attualmente tali file includono:
 
-* jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
+* jQuery e jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
-* Table sorter plugin from https://github.com/christianbach/tablesorter ;
+* Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Table sorter plugin da https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)
