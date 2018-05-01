@@ -115,23 +115,21 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
 --------
 
-## Some notes:
+## Alcune note:
 
-**Q:** Why aren't you embedding the docs in the CORE sources?<br>
-**A:** Several reasons:
+**Q:** Perché la documentazione non viene inclusa nell'albero dei sorgenti CORE?<br>
+**A:** Ci sono diverse ragioni:
 
-  1. This documentation is intended to be universal with
-     respect to a given version of the specification,
-     and not necessarily tied to any specific Perl 6
-     implementation.
-  2. Implementations' handling of embedded POD is still
-     a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the perl6 Github account invites
-     more potential contributors and editors.
+  1. Questa documentazione è pensata per essere universale rispetto
+     a una data versione delle specifiche di linguaggio, e non necessariamente
+     legata a una specifica implementazione di  Perl 6.
+  2. Le implementazioni che gestiscono Pod Embedded sono ancora 
+     non ottimali; e così facendo si evitano problemi di runtime.
+  3. Un repository separato sull'account perl6 Github invita un maggior numero di 
+     potenziali volontari e scrittori.
 
-**Q:** Should I include methods from superclasses or roles?<br>
-**A:** No. The HTML version already includes methods from superclasses and
-       roles, and the `p6doc` script will be taught about those as well.
+**Q:** Devo includere nella documentazione metodi dalle superclassi o ruoli?<br>
+**A:** No. La versione HTML include già automaticamente i metodi dalle superclassi e dei ruoli, e lo strumento `p6doc` sarà migliorato in questo senso.
 
 --------
 
