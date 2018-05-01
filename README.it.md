@@ -147,11 +147,11 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
 --------
 
-# ENV VARS
+# Variabili di ambiente
 
-- `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
-Helpful when debugging failing test suite.
-- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test
+- `P6_DOC_TEST_VERBOSE` impostata a un valore true consente di visualizare messaggi "verbose"
+durante l'esecuzione di una test-suite. E' utile per debuggare test che falliscono.
+- `P6_DOC_TEST_FUDGE` considera i frammenti di codice con `skip-test` come dei TODO quando esegue il test `xt/examples-compilation.t`.
 
 # LICENSE
 
