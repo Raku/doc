@@ -8,12 +8,12 @@
 
 本仓库还提供命令行工具 p6doc 用于阅读文档。
 
-（如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 POD）
+（如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 Pod）
 
 ## 其他语言版本的 README
 
-[英文版 README](README.md)
-[意大利文版 README]（README.it.md）
+* [英文版 README](README.md)
+* [意大利文版 README](README.it.md)
 
 ## 安装 p6doc
 
@@ -97,7 +97,7 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
   1. 这份文档与 Perl 6 的一份特定的语言标准相关联，
      而不是跟某个 Perl 6 的具体实现相绑定。
-  2. 处理内嵌的 POD 的功能还不太稳定，使用单独的文档仓库
+  2. 处理内嵌的 Pod 的功能还不太稳定，使用单独的文档仓库
      有利于避免运行时错误。
   3. 一个 perl6 GitHub 账号下的单独的仓库能吸引更多
      潜在的贡献和编辑。
