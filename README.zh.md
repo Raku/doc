@@ -13,12 +13,13 @@
 ## 其他语言版本的 README
 
 [英文版 README](README.md)
+[意大利文版 README]（README.it.md）
 
 ## 安装 p6doc
 
 本模块可通过 Perl 6 模块生态系统获得。使用命令
 
-    zef install p6doc
+    $ zef install p6doc
 
 安装可执行文件并添加到执行路径（PATH）中。
 
@@ -26,15 +27,15 @@
 
 将 `perl6` 添加到 `PATH` 中后，使用命令
 
-    ./bin/p6doc Str
+    $ ./bin/p6doc Str
 
 查看 `Str` 类的文档，或者使用命令
 
-    ./bin/p6doc Str.split
+    $ ./bin/p6doc Str.split
 
 查看 `Str` 类中的 `split` 方法。如果你已经使用 `zef` 安装了 `p6doc`，那么可以省略 `./bin`。你也可以使用命令
 
-    p6doc -f slurp
+    $ p6doc -f slurp
 
 浏览标准函数的文档。命令响应可能要等一会儿，这取决于磁盘的速度和 Rakudo 的版本。
 
@@ -44,15 +45,15 @@
 
 在本仓库顶级目录下运行下面的命令安装依赖：
 
-    zef --deps-only install .
+    $ zef --deps-only install .
 
 如果你使用 [`rakudobrew`](https://github.com/tadzik/rakudobrew)，也可以运行下面命令更新已安装执行文件：
 
-    rakudobrew rehash
+    $ rakudobrew rehash
 
 此外为了满足本仓库 Perl 6 代码的依赖，还需要安装 `graphviz`，在 Debian 可执行下面命令
 
-    sudo apt-get install graphviz
+    $ sudo apt-get install graphviz
 
 一切就绪，运行下面的命令构建 Web 页面
 
@@ -109,7 +110,7 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 ## 愿景
 
-> I want p6doc and doc.perl6.org to become the No. 1 resource to consult
+> I want p6doc and docs.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Perl 6 programmer.
