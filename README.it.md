@@ -7,10 +7,11 @@
 Una versione HTML di questa documentazione può essere trovata al seguente link [https://docs.perl6.org/](https://docs.perl6.org/).
 Il link precedente è il modo consigliato di leggere e usare la documentazione.
 
-There is also a command line tool called "p6doc".
+Esiste uno strumento da riga di comando denominato "p6doc",
 
-(If you are browsing this repository via GitHub, it will not display most
-files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
+(Se stai navigando questo repository via GitHub molti dei file non saranno visualizzati
+correttamente poiché la documentazione è scritta usando Pod per Perl 6 e GitHub 
+lo considera invece come Pod per Perl 5 ).
 
 ## README in other languages
 
