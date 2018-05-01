@@ -58,7 +58,7 @@ grammar defined, you call it and pass in a string for parsing.
 Now, you may be wondering, if I have all these regexes defined that just return
 their results, how does that help with parsing strings that may be ahead
 or backwards in a string, or things that need to be combined from many of
-those regexes... and that's where grammar actions come in.
+those regexes... And that's where grammar actions come in.
 
 For every "method" you match in your grammar, you get an action you can use
 to act on that match. You also get an overarching action that you can use to
@@ -103,6 +103,7 @@ C«<thingy>» is defined on the next line. That means that
 C<'clever_text_keyword'> B<must> be the first thing in the string, or
 the grammar parse will fail and we'll get an empty match. This is great for
 recognizing a malformed string that should be discarded.
+
 
 =head1 Learning By Example - a REST Contrivance
 
@@ -227,6 +228,80 @@ this, we could replace the '/'s in TOP with a token that allowed for spaces.
 
 We're getting some extra junk in the match object now, with those slashes.
 There's techniques to clean that up that we'll get to later.
+=head2 Inheriting from a grammar
+
+Since grammars are classes, they behave, OOP-wise, in the same way as any other class; specifically, they can inherit from base classes that include some tokens or rules, this way:
+
+=begin code
+grammar Letters {
+    token letters { \w+ }
+}
+
+grammar Quote-Quotes {
+    token quote { "\""|"`"|"'" }
+}
+
+grammar Quote-Other {
+    token quote { "|"|"/"|"¡" }
+}
+
+grammar Quoted-Quotes is Letters is Quote-Quotes {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+grammar Quoted-Other is Letters is Quote-Other {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+my $quoted = q{"enhanced"};
+my $parsed = Quoted-Quotes.parse($quoted);
+say $parsed;
+#OUTPUT:
+#｢"enhanced"｣
+# quote => ｢"｣
+# letters => ｢enhanced｣
+#quote => ｢"｣
+
+$quoted = "|barred|";
+$parsed = Quoted-Other.parse($quoted);
+say $parsed;
+#OUTPUT:
+#|barred|｣
+#quote => ｢|｣
+#letters => ｢barred｣
+#quote => ｢|｣
+=end code
+
+This example uses multiple inheritance to compose two different grammars by varying the rules that correspond to C<quotes>. In this case, besides, we are rather using composition than inheritance, so we could use Roles instead of inheritance.
+
+=begin code
+role Letters {
+    token letters { \w+ }
+}
+
+role Quote-Quotes {
+    token quote { "\""|"`"|"'" }
+}
+
+role Quote-Other {
+    token quote { "|"|"/"|"¡" }
+}
+
+grammar Quoted-Quotes does Letters does Quote-Quotes {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+grammar Quoted-Other does Letters does Quote-Other {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+
+}
+=end code
+
+Will output exactly the same as the code above.
 
 =head2 Adding some constraints
 
