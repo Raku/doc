@@ -95,22 +95,23 @@ Sono necessari anche alcuni altri moduli, tutti installabili con il comando
 
 ## Help Wanted!
 
-Perl 6 is not a small language, and documenting it takes a lot of effort.
-Any help is appreciated.
+Perl 6 è un linguaggio vasto e documentarlo richiede molta fatica.
+Ogni forma di aiuto è apprezzata.
 
-Here are some ways to help us:
+Alcuni modi per aiutare il progetto includono:
 
- * add missing documentation for classes, roles, methods or operators
- * add usage examples to existing documentation
- * proofread and correct the documentation
- * tell us about missing documentation by opening issues on github.
- * Do a `git grep TODO` in this repository, and replace the TODO items by
+ * aggiungere documentazione mancante per classi, ruoli, metodi e operatori;
+ * aggiungere esempi di codice alla documentazione esistente;
+ * leggere e correggere gli errori nella documentazione;
+ * aprire dei ticket su GitHub riguardo documentazione mancante;
+ * eseguire il comando `git grep TODO` sul repository, inserendo la documentazione mancante.
    actual documentation.
 
-[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
-documentation parts that are known to be missing
-and [the CONTRIBUTING document](CONTRIBUTING.md)
-explains briefly how to get started contributing documentation.
+La pagina dei ticket [Issues](https://github.com/perl6/doc/issues) 
+contiene una lista dei problemi noti e delle parti di documentazione che sono note essere incomplete,
+e il file [CONTRIBUTING](CONTRIBUTING.md)
+spiega brevemente come iniziare a contribuire alla documentazione.
+
 
 --------
 
