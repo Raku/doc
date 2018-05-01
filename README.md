@@ -10,7 +10,7 @@ This is currently the recommended way to consume the documentation.
 There is also a command line tool called "p6doc".
 
 (If you are browsing this repository via GitHub, it will not display most
-files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
+files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 
 ## README in other languages
 
@@ -118,7 +118,7 @@ explains briefly how to get started contributing documentation.
      respect to a given version of the specification,
      and not necessarily tied to any specific Perl 6
      implementation.
-  2. Implementations' handling of embedded POD is still
+  2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
   3. A separate repo in the perl6 Github account invites
      more potential contributors and editors.
