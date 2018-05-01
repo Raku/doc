@@ -133,7 +133,7 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
 --------
 
-## Vision
+## Visione
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
@@ -141,6 +141,9 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 > Perl 6 programmer.
 >
 >    -- moritz
+
+
+*Io voglio che p6doc e docs.perl6.org siano la prima risorssa da consultare quanto vuoi sapere qualcosa riguardo a una funzionalità di Perl 6, sia essa di linguaggio, tipo di dato o routine. Voglio che sia utile a ogni programmatore Perl 6.*
 
 --------
 
