@@ -21,7 +21,7 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 POD).
 
 This module is available via the Perl 6 module ecosystem. Use
 
-    zef install p6doc
+    $ zef install p6doc
 
 to install the binaries and make it available in your binaries
 execution path.
@@ -30,17 +30,17 @@ execution path.
 
 With a Rakudo `perl6` executable in the `PATH`, try
 
-    ./bin/p6doc Str
+    $ ./bin/p6doc Str
 
 to see the documentation for class `Str`, or
 
-    ./bin/p6doc Str.split
+    $ ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
 skip the `./bin` part if you have installed it via
 `zef`. You can also do
 
-    p6doc -f slurp
+    $ p6doc -f slurp
 
 to browse the documentation of standard functions. Depending on your
 disk speed and Rakudo version, it might take a while.
@@ -51,17 +51,17 @@ disk speed and Rakudo version, it might take a while.
 
 Install dependencies by running the following in the checkout directory:
 
-    zef --deps-only install .
+    $ zef --deps-only install .
 
 If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
 following, to update the shims for installed executables:
 
-    rakudobrew rehash
+    $ rakudobrew rehash
 
 In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
 on Debian you can do by running
 
-    sudo apt-get install graphviz
+    $ sudo apt-get install graphviz
 
 To build the documentation web pages, simply run
 
