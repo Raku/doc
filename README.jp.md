@@ -16,9 +16,9 @@ PERLの文書化
 
 * [README in Chinese](README.zh.md)
 * [README in Italian](README.it.md)
-* [README in Japanese](README.jp.md)
+* [README in English](README.md)
 
-#[p6doc]の安置
+# [p6doc]の安置
 
 `PATH`の`perl6`で[Rakudo]タイプしてください。
 
