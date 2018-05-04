@@ -22,7 +22,7 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 Este módulo esta disponible en el ecosistema de modules de Perl 6. Usa:
 
-    $ zef install p6doc
+    `$ zef install p6doc`
 
 para instalar los binarios y añadirlo a tu path.
 
@@ -30,17 +30,17 @@ para instalar los binarios y añadirlo a tu path.
 
 Con `perl6` (Rakudo) añadido al `PATH`, ejecuta
 
-    $ ./bin/p6doc Str
+    `$ ./bin/p6doc Str`
 
-to see the documentation for class `Str`, or
+para ver la documentación para la clase `Str`, o
 
-    $ ./bin/p6doc Str.split
+    `$ ./bin/p6doc Str.split`
 
 para ver la documentación para el método `split` de la clase `Str`. Puedes
 omitir `./bin` si lo has instalado mediante `zef`. 
 También puedes hacer
 
-    $ p6doc -f slurp
+    `$ p6doc -f slurp`
 
 para buscar la documentación estándar de funciones. Dependiendo de la velocidad
 de tu disco duro y de la versión de Rakudo, es posible que tarde unos minutos.
@@ -51,22 +51,22 @@ de tu disco duro y de la versión de Rakudo, es posible que tarde unos minutos.
 
 Instala las dependencias ejecutando lo siguiente en el directorio correspondiente:
 
-    $ zef --deps-only install .
+    `$ zef --deps-only install` .
 
 Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también
 
-    $ rakudobrew rehash
+    `$ rakudobrew rehash`
 
 para actualizar los correctores de compatibilidad de los ejecutables instalados.
 
 A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian 
 lo puedes instalar mediante:
 
-    $ sudo apt-get install graphviz
+    `$ sudo apt-get install graphviz`
 
 Para generar las páginas webs de la documentación, simplemente ejecuta
 
-    $ make html
+    `$ make html`
 
 Ten en cuenta que debes tener instalado [nodejs](https://nodejs.org)
 para producir el contenido HTML con el anterior comando, en particular,
@@ -75,7 +75,7 @@ para producir el contenido HTML con el anterior comando, en particular,
 Cuando las páginas hayan sido generadas, puedes verlas en localmente
 en tu ordenador ejecutando el programa `app.pl`:
 
-    $ make run
+    `$ make run`
 
 Una vez hecho lo anterior, puedes ver la documentación de ejemplo
 dirigiéndote a [http://localhost:3000](http://localhost:3000), en tu navegador.
@@ -84,6 +84,6 @@ Necesitarás, por lo menos, tener [Mojolicious](https://metacpan.org/pod/Mojolic
 instalado. Además necesitarás [nodejs](https://nodejs.org) para activar el resaltado.
 También hay módulos adicionales que podrías necesitar, instálalos ejecutando:
 
-    $ cpanm --installdeps .
+    `$ cpanm --installdeps` .
 
 ---------
