@@ -46,3 +46,44 @@ para buscar la documentación estándar de funciones. Dependiendo de la velocida
 de tu disco duro y de la versión de Rakudo, es posible que tarde unos minutos.
 
 -------
+
+## Generar la documentación HTML
+
+Instala las dependencias ejecutando lo siguiente en el directorio correspondiente:
+
+    $ zef --deps-only install .
+
+Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también
+
+    $ rakudobrew rehash
+
+para actualizar los correctores de compatibilidad de los ejecutables instalados.
+
+A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian 
+lo puedes instalar mediante:
+
+    $ sudo apt-get install graphviz
+
+Para generar las páginas webs de la documentación, simplemente ejecuta
+
+    $ make html
+
+Ten en cuenta que debes tener instalado [nodejs](https://nodejs.org)
+para producir el contenido HTML con el anterior comando, en particular,
+`node` debería estar en tu `PATH`.
+
+Cuando las páginas hayan sido generadas, puedes verlas en localmente
+en tu ordenador ejecutando el programa `app.pl`:
+
+    $ make run
+
+Una vez hecho lo anterior, puedes ver la documentación de ejemplo
+dirigiéndote a [http://localhost:3000](http://localhost:3000), en tu navegador.
+
+Necesitarás, por lo menos, tener [Mojolicious](https://metacpan.org/pod/Mojolicious)
+instalado. Además necesitarás [nodejs](https://nodejs.org) para activar el resaltado.
+También hay módulos adicionales que podrías necesitar, instálalos ejecutando:
+
+    $ cpanm --installdeps .
+
+---------
