@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Ensure any text that isn't a code example has valid POD6
+Ensure any text that isn't a code example is valid Pod 6. 
 
 =end overview
 
@@ -20,7 +20,7 @@ my @files-t = Test-Files.files.grep({$_.ends-with: '.t'});
 plan +@files-t + +@files-pod;
 
 my %data;
-test-files( @files-pod );
+test-files( @files-pod ); #Splits in two batches to avoid some errors.
 test-files( @files-t );
 
 sub test-it($job) {
