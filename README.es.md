@@ -20,7 +20,7 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## Instalar p6doc
 
-Este módulo esta disponible en el ecosistema de modules de Perl 6. Usa:
+Este módulo esta disponible en el ecosistema de módulos de Perl 6. Usa:
 
     $ zef install p6doc
 
