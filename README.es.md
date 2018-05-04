@@ -90,7 +90,7 @@ También hay módulos adicionales que podrías necesitar, instálalos ejecutando
 
 ## ¡Se precisa ayuda!
 
-Perl 6. no es un lenguaje de programación pequeño, y documentarlo requiere mucho esfuerzo. Cualquier ayuda es bienvenida.
+Perl 6 no es un lenguaje de programación pequeño, y documentarlo requiere mucho esfuerzo. Cualquier ayuda es bienvenida.
 
 Algunas maneras en las que puedes ayudarnos:
 
