@@ -10,7 +10,7 @@ PERLの文書化
 
 あまりにも["p6doc"]と呼ばれるコマンド行があります。
 
-あなたは参照でGITHUBと展示 宜しくじゃないです。[Perl 6 Pod]ですしかしGITHUB[PERL 5 POD]で決め込む。
+あなたは参照でGITHUBと展示 宜しくじゃないです。[Perl 6 Pod]ですしかしGITHUB[PERL 5 POD]で決め込む。
 
 ## 外国語のREADME
 

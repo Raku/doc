@@ -10,7 +10,7 @@ Una versión HTML de esta documentación puede ser encontrada en [https://docs.p
 También hay disponible un comando para la terminal: "p6doc".
 
 (Si estás buscando el repositorio en GitHub, la mayoría de los archivos no serán mostrados correctamente,
-ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
+ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## README en otros lenguajes
 
@@ -37,7 +37,7 @@ para ver la documentación para la clase `Str`, o
     $ ./bin/p6doc Str.split
 
 para ver la documentación del método `split` de la clase `Str`. Puedes
-omitir `./bin` si lo has instalado mediante `zef`. 
+omitir `./bin` si lo has instalado mediante `zef`.
 También puedes hacer
 
     $ p6doc -f slurp
@@ -59,7 +59,7 @@ Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también
 
 para actualizar los correctores de compatibilidad de los ejecutables instalados.
 
-A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian 
+A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian
 lo puedes instalar mediante:
 
     $ sudo apt-get install graphviz
