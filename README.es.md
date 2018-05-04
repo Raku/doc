@@ -1,4 +1,4 @@
-# Documentación Oficial de Perl 6
+# Documentación Oficial de Perl 6
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -10,7 +10,7 @@ Esta es la documentación recomendada.
 También hay disponible un comando para la terminal: "p6doc".
 
 (Si estás buscando el repositorio en GitHub, la mayoría de los archivos no serán mostrados correctamente,
-ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
+ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## README en otros lenguajes
 
@@ -20,7 +20,7 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## Instalar p6doc
 
-Este módulo esta disponible en el ecosistema de módulos de Perl 6. Usa:
+Este módulo esta disponible en el ecosistema de módulos de Perl 6. Usa:
 
     $ zef install p6doc
 
@@ -59,7 +59,7 @@ Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también
 
 para actualizar los correctores de compatibilidad de los ejecutables instalados.
 
-A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian 
+A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian 
 lo puedes instalar mediante:
 
     $ sudo apt-get install graphviz
