@@ -13,7 +13,7 @@ Insure any text that isn't a code example has a space after each comma.
 
 my @files = Test-Files.files\
     .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
-    .grep({$_ ne "README.zh.md"});
+    .grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;

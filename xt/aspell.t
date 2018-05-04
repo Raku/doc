@@ -22,7 +22,7 @@ text that is part of a code example)
 
 my @files = Test-Files.files\
     .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
-    .grep({$_ ne 'README.it.md'});
+    .grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
