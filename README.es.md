@@ -97,10 +97,10 @@ Algunas maneras en las que puedes ayudarnos:
   * añadiendo documentación de clases, roles, métodos u operadores
   * añadiendo ejemplos de uso a la documentación existente
   * revisando y corrigiendo la documentación
-  * abriendo issues en github si consideras que falta documentación.
+  * abriendo issues en GitHub si consideras que falta documentación.
   * haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
 
-[Esta página]((https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que se sabe que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
+[Esta página]((https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
 
 --------
 ## Algunas aclaraciones:
@@ -108,11 +108,11 @@ Algunas maneras en las que puedes ayudarnos:
 **P:** ¿Por qué no estáis incluyendo la documentación en el código fuente del CORE?<br>
 **R:** Debido a varias razones:
 
-  1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente atado a una implementación específica de Perl 6.
+  1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente estar atada a una implementación específica de Perl 6.
 
-  2. El tratamiento que las implementaciones hacen de Pod 6. es todavía un poco inconsistente; esto evita potenciales impactos en el tiempo de ejecución.
+  2. El tratamiento que las implementaciones hacen de Pod 6, es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
 
-  3. Un repo separado en la cuenta de perl6 de Github invita a más contribuidores y editores a participar.
+  3. Un repo separado en la cuenta de perl6 de GitHub invita a más contribuidores y editores a participar.
 
 **P:** ¿Debería incluir los métodos de las super clases o de los roles?
 **A:** No. La versión en HTML ya los incluye, y el script `p6doc` también.
