@@ -35,3 +35,13 @@ PERLの文書化
 それは時間がかかることがあります 。
 
 -------
+
+## HTMLの文書化建てる
+
+従属インスコくださいで[checkout]の ディレクトリ
+
+    $ zef --deps-only install .
+
+[`rakudobrew`](https://github.com/tadzik/rakudobrew)使うと此れで エグゼキュートください 。
+
+    $ rakudobrew rehash
