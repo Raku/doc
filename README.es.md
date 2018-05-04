@@ -90,7 +90,7 @@ También hay módulos adicionales que podrías necesitar, instálalos ejecutando
 
 ## ¡Se precisa ayuda!
 
-Perl\c[NO-BREAK SPACE]6. no es un lenguaje de programación pequeño, y documentarlo requiere mucho esfuerzo. Cualquier ayuda es bienvenida.
+Perl 6. no es un lenguaje de programación pequeño, y documentarlo requiere mucho esfuerzo. Cualquier ayuda es bienvenida.
 
 Algunas maneras en las que puedes ayudarnos:
 
@@ -108,9 +108,9 @@ Algunas maneras en las que puedes ayudarnos:
 **P:** ¿Por qué no estáis incluyendo la documentación en el código fuente del CORE?<br>
 **R:** Debido a varias razones:
 
-  1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente atado a una implementación específica de Perl\c[NO-BREAK SPACE]6.
+  1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente atado a una implementación específica de Perl 6.
 
-  2. El tratamiento que las implementaciones hacen de Pod\c[NO-BREAK SPACE]6. es todavía un poco inconsistente; esto evita potenciales impactos en el tiempo de ejecución.
+  2. El tratamiento que las implementaciones hacen de Pod 6. es todavía un poco inconsistente; esto evita potenciales impactos en el tiempo de ejecución.
 
   3. Un repo separado en la cuenta de perl6 de Github invita a más contribuidores y editores a participar.
 
@@ -122,7 +122,7 @@ Algunas maneras en las que puedes ayudarnos:
 ## Objetivo
 
 > Quiero que p6doc y docs.perl6.org llegue a ser el recurso número 1 para consultar cualquier
->característica de Perl\c[NO-BREAK SPACE]6, ya sea del lenguaje o de sus tipos y rutinas. Quiero que sea >útil para todo programador de Perl\c[NO-BREAK SPACE]6
+>característica de Perl 6, ya sea del lenguaje o de sus tipos y rutinas. Quiero que sea >útil para todo programador de Perl 6
 >
 >    -- moritz
 
@@ -146,4 +146,3 @@ Este repositorio también contiene código de terceros que podría tener otra li
 * Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licencia MIT](http://creativecommons.org/licenses/MIT)
-
