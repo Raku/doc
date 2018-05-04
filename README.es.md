@@ -87,3 +87,63 @@ También hay módulos adicionales que podrías necesitar, instálalos ejecutando
     $ cpanm --installdeps .
 
 ---------
+
+## ¡Se precisa ayuda!
+
+Perl\c[NO-BREAK SPACE]6. no es un lenguaje de programación pequeño, y documentarlo requiere mucho esfuerzo. Cualquier ayuda es bienvenida.
+
+Algunas maneras en las que puedes ayudarnos:
+
+  * añadiendo documentación de clases, roles, métodos u operadores
+  * añadiendo ejemplos de uso a la documentación existente
+  * revisando y corrigiendo la documentación
+  * abriendo issues en github si consideras que falta documentación.
+  * haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
+
+[Esta página]((https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que se sabe que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
+
+--------
+## Algunas aclaraciones:
+
+**P:** ¿Por qué no estáis incluyendo la documentación en el código fuente del CORE?<br>
+**R:** Debido a varias razones:
+
+  1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente atado a una implementación específica de Perl\c[NO-BREAK SPACE]6.
+
+  2. El tratamiento que las implementaciones hacen de Pod\c[NO-BREAK SPACE]6. es todavía un poco inconsistente; esto evita potenciales impactos en el tiempo de ejecución.
+
+  3. Un repo separado en la cuenta de perl6 de Github invita a más contribuidores y editores a participar.
+
+**P:** ¿Debería incluir los métodos de las super clases o de los roles?
+**A:** No. La versión en HTML ya los incluye, y el script `p6doc` también.
+
+--------
+
+## Objetivo
+
+> Quiero que p6doc y docs.perl6.org llegue a ser el recurso número 1 para consultar cualquier
+>característica de Perl\c[NO-BREAK SPACE]6, ya sea del lenguaje o de sus tipos y rutinas. Quiero que sea >útil para todo programador de Perl\c[NO-BREAK SPACE]6
+>
+>    -- moritz
+
+--------
+
+# ENV VARS
+
+- Poner `P6_DOC_TEST_VERBOSE` a `true` para mostrar mensajes durante la ejecución del conjunto de tests. Práctico para depurar un test suite que falla.
+- `P6_DOC_TEST_FUDGE` cambia los ejemplos de código `skip-test` a TODO en el test `xt/examples-compilation.t`
+
+# LICENCIA
+
+El código en este repositorio está disponible bajo la Artistic License 2.0 como lo publicó la Perl Foundation. Ver el fichero [LICENSE](LICENSE) para ver el texto completo.
+
+Este repositorio también contiene código de terceros que podría tener otra licencia, en cuyo caso indican al principio de los mismos el copyright y sus términos de licencia. Actualmente incluyen:
+
+* librerías jQuery y jQuery UI: Copyright 2015 jQuery Foundation y otros contribuidores; [Licencia MIT](http://creativecommons.org/licenses/MIT)
+* [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
+  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
+  [MIT License](http://creativecommons.org/licenses/MIT)
+* Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Table sorter plugin from https://github.com/christianbach/tablesorter ;
+  [Licencia MIT](http://creativecommons.org/licenses/MIT)
+
