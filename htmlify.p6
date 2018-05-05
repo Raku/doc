@@ -556,6 +556,9 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
                 @definitions = .[0].words[0], textify-guts .[1].contents[0];
+                proceed if ( # not looking for - baz X<baz>
+                    (@definitions[1] // '') eq '' and .[1].type eq 'X'
+                );
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
