@@ -14,9 +14,9 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## README en otros lenguajes
 
-* [README in Chinese](README.zh.md)
-* [README in Italian](README.it.md)
-* [README in English](README.md)
+* [README en chino](README.zh.md)
+* [README en italiano](README.it.md)
+* [README en inglés](README.md)
 
 ## Instalar p6doc
 
@@ -100,7 +100,7 @@ Algunas maneras en las que puedes ayudarnos:
   * abriendo issues en GitHub si consideras que falta documentación.
   * haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
 
-[Esta página]((https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
+[Esta página](https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
 
 --------
 ## Algunas aclaraciones:
@@ -114,15 +114,15 @@ Algunas maneras en las que puedes ayudarnos:
 
   3. Un repo separado en la cuenta de perl6 de GitHub invita a más contribuidores y editores a participar.
 
-**P:** ¿Debería incluir los métodos de las super clases o de los roles?
+**P:** ¿Debería incluir los métodos de las super clases o de los roles?<br>
 **A:** No. La versión en HTML ya los incluye, y el script `p6doc` también.
 
 --------
 
 ## Objetivo
 
-> Quiero que p6doc y docs.perl6.org llegue a ser el recurso número 1 para consultar cualquier
->característica de Perl 6, ya sea del lenguaje o de sus tipos y rutinas. Quiero que sea >útil para todo programador de Perl 6
+> Quiero que p6doc y docs.perl6.org lleguen a ser el recurso número 1 para consultar cualquier
+> característica de Perl 6, ya sea del lenguaje o de sus tipos y rutinas. Quiero que sea útil para todo programador de Perl 6.
 >
 >    -- moritz
 
