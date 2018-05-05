@@ -835,8 +835,9 @@ role.
 
 =head2 Inheritance
 
-Roles cannot inherit from classes, but they may cause any class which does
-that role to inherit from another class. So if you write:
+Roles cannot inherit from classes, but they may carry classes, causing
+any class which does that role to inherit from the carried classes.
+So if you write:
 
     =begin code
     role A is Exception { }
@@ -846,6 +847,21 @@ that role to inherit from another class. So if you write:
 
 then C<X::Ouch> will inherit directly from Exception, as we can see above
 by listing its parents.
+
+As they do not use inheritance, roles are not part of the class hierarchy.
+Roles are listed with the C<.^roles> meta-method instead.  Despite this, a
+class or instance may still be tested with smartmatches or type constraints
+to see if it does a role.
+
+    =begin code
+    role F { }
+    class G does F { }
+    G.^roles.say;                    # OUTPUT: «((F))␤»
+    say G ~~ F;                      # OUTPUT: «True␤»
+    multi a (F $a) { "F".say }
+    multi a ($a)   { "not F".say }
+    a(G);                            # OUTPUT: «F␤»
+    =end code
 
 =head2 Pecking order
 
@@ -879,21 +895,26 @@ multi-method.
 
 =head2 Automatic Role Punning
 
-Any attempt to directly instantiate a role, as well as many other operations
-on it, will automatically create an instance of a class with the same name as
-the role, making it possible to transparently use a role as if it were a class.
+Any attempt to directly instantiate a role or use it as a type object
+will automatically create a class with the same name as the role,
+making it possible to transparently use a role as if it were a class.
 
     =begin code
     role Point {
         has $.x;
         has $.y;
         method abs { sqrt($.x * $.x + $.y * $.y) }
+        method dimensions { 2 }
     }
     say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
+    say Point.dimensions;              # OUTPUT «2␤»
     =end code
 
 We call this automatic creation of classes I<punning>, and the generated class
 a I<pun>.
+
+Punning is not caused by most L<meta-programming|/language/mop> constructs,
+however, as those are sometimes used to work directly with roles.
 
 X<|Parameterized Roles>
 =head2 Parameterized Roles
