@@ -351,7 +351,7 @@ multi write-type-source($doc) {
                 <p class="fallback">
                   Stand-alone image:
                   <a rel="alternate"
-                    href="/images/type-graph-\qq[uri_escape($podname)].svg"
+                    href="/images/type-graph-\qq[&uri_escape($podname)].svg"
                     type="image/svg+xml">vector</a>
                 </p>
               </figure>
