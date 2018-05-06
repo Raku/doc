@@ -53,7 +53,7 @@ Instala las dependencias ejecutando lo siguiente en el directorio correspondient
 
     $ zef --deps-only install .
 
-Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también
+Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también:
 
     $ rakudobrew rehash
 
@@ -64,7 +64,7 @@ lo puedes instalar mediante:
 
     $ sudo apt-get install graphviz
 
-Para generar las páginas webs de la documentación, simplemente ejecuta
+Para generar las páginas webs de la documentación, simplemente ejecuta:
 
     $ make html
 
@@ -94,11 +94,11 @@ Perl 6 no es un lenguaje de programación pequeño, y documentarlo requiere muc
 
 Algunas maneras en las que puedes ayudarnos:
 
-  * añadiendo documentación de clases, roles, métodos u operadores
-  * añadiendo ejemplos de uso a la documentación existente
-  * revisando y corrigiendo la documentación
-  * abriendo issues en GitHub si consideras que falta documentación.
-  * haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
+  * Añadiendo documentación de clases, roles, métodos u operadores.
+  * Añadiendo ejemplos de uso a la documentación existente.
+  * Revisando y corrigiendo la documentación.
+  * Abriendo issues en GitHub si consideras que falta documentación.
+  * Haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
 
 [Esta página](https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
 
@@ -112,9 +112,9 @@ Algunas maneras en las que puedes ayudarnos:
 
   2. El tratamiento que las implementaciones hacen de Pod 6, es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
 
-  3. Un repo separado en la cuenta de perl6 de GitHub invita a más contribuidores y editores a participar.
+  3. Un repo separado en la cuenta de Perl 6 de GitHub invita a más contribuidores y editores a participar.
 
-**P:** ¿Debería incluir los métodos de las super clases o de los roles?<br>
+**P:** ¿Debería incluir los métodos de las superclases o de los roles?<br>
 **A:** No. La versión en HTML ya los incluye, y el script `p6doc` también.
 
 --------
@@ -131,7 +131,7 @@ Algunas maneras en las que puedes ayudarnos:
 # ENV VARS
 
 - Poner `P6_DOC_TEST_VERBOSE` a `true` para mostrar mensajes durante la ejecución del conjunto de tests. Práctico para depurar un test suite que falla.
-- `P6_DOC_TEST_FUDGE` cambia los ejemplos de código `skip-test` a TODO en el test `xt/examples-compilation.t`
+- `P6_DOC_TEST_FUDGE` cambia los ejemplos de código `skip-test` a TODO en el test `xt/examples-compilation.t`.
 
 # LICENCIA
 
