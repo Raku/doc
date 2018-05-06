@@ -681,6 +681,37 @@ But there are other applications too: a routine that serializes objects to a
 bunch of bytes needs to know the attributes of that object, which it can
 find out via introspection.
 
+=head2 X<Overriding default gist method>
+
+Some classes might need its own version of C<gist>, which overrides the terse way it is printed when called to provide a default representation of the class. For instance, L<exceptions|/language/exceptions#Uncaught_Exceptions> might want to write just the C<payload> and not the full object so that it is clearer what has happened. But you can do that with every class:
+
+=begin code
+class Cook {
+    has @.utensils  is rw;
+    has @.cookbooks is rw;
+
+    method cook( $food ) {
+        return "Cooking $food";
+    }
+
+    method clean_utensils {
+        return "Cleaning $_" for @.utensils;
+    }
+
+    multi method gist(Cook:U:) { '⚗' ~ self.^name ~ '⚗' }
+    multi method gist(Cook:D:) { '⚗ Cooks with ' ~ @.utensils.join( " ‣ ") ~ ' using ' ~ @.cookbooks.map( "«" ~ * ~ "»").join( " and ") }
+}
+
+my $cook = Cook.new(
+    utensils => <spoon ladle knife pan>,
+    cookbooks => ['Cooking for geeks','The French Chef Cookbook']);
+
+say Cook.gist; # OUTPUT: «⚗Cook⚗»
+say $cook.gist; # OUTPUT: «⚗ Cooks with spoon ‣ ladle ‣ knife ‣ pan using «Cooking for geeks» and «The French Chef Cookbook»␤»
+=end code
+
+Usually you will want to define two methods, one for the class and another for instances; in this case, the class method uses the alambic symbol, and the instance method, defined below, aggregates the data we have on the cook to show it in a narrative way.
+
 =end pod
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
