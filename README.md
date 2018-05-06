@@ -20,7 +20,7 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 
 ## Install p6doc
 
-This module is available via the Perl 6 module ecosystem. Use
+This module is available via the Perl 6 module ecosystem. Use:
 
     $ zef install p6doc
 
@@ -29,17 +29,17 @@ execution path.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try
+With a Rakudo `perl6` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
-to see the documentation for class `Str`, or
+to see the documentation for class `Str`, or:
 
     $ ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
 skip the `./bin` part if you have installed it via
-`zef`. You can also do
+`zef`. You can also do:
 
     $ p6doc -f slurp
 
@@ -60,11 +60,11 @@ following, to update the shims for installed executables:
     $ rakudobrew rehash
 
 In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running
+on Debian you can do by running:
 
     $ sudo apt-get install graphviz
 
-To build the documentation web pages, simply run
+To build the documentation web pages, simply run:
 
     $ make html
 
@@ -83,7 +83,7 @@ You can then view the examples documentation by pointing your web browser at
 You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
 installed and you will need [nodejs](https://nodejs.org) to perform
 highlighting. There are also some additional modules you might need;
-install them all using
+install them all using:
 
     $ cpanm --installdeps .
 
@@ -96,10 +96,10 @@ Any help is appreciated.
 
 Here are some ways to help us:
 
- * add missing documentation for classes, roles, methods or operators
- * add usage examples to existing documentation
- * proofread and correct the documentation
- * tell us about missing documentation by opening issues on github.
+ * Add missing documentation for classes, roles, methods or operators.
+ * Add usage examples to existing documentation.
+ * Proofread and correct the documentation.
+ * Tell us about missing documentation by opening issues on Github.
  * Do a `git grep TODO` in this repository, and replace the TODO items by
    actual documentation.
 
@@ -145,7 +145,7 @@ explains briefly how to get started contributing documentation.
 
 - `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
 Helpful when debugging failing test suite.
-- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test
+- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
 
 # LICENSE
 
