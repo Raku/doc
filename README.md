@@ -29,17 +29,17 @@ execution path.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try 
+With a Rakudo `perl6` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
-to see the documentation for class `Str`, or
+to see the documentation for class `Str`, or:
 
     $ ./bin/p6doc Str.split
 
 to see the documentation for method `split` in class `Str`. You can
 skip the `./bin` part if you have installed it via
-`zef`. You can also do
+`zef`. You can also do:
 
     $ p6doc -f slurp
 
