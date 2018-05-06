@@ -14,48 +14,49 @@ moment.
 C<Proc::Async> allows you to run external commands asynchronously, capturing
 standard output and error handles, and optionally write to its standard input.
 
-    my $file = ‘foo’.IO;
-    spurt $file, “and\nCamelia\n♡\nme\n”;
+=begin code
+my $file = ‘foo’.IO;
+spurt $file, “and\nCamelia\n♡\nme\n”;
 
-    my $proc = Proc::Async.new: :w, ‘tac’, ‘--’, $file, ‘-’;
-    # my $proc = Proc::Async.new: :w, ‘sleep’, 15; # uncomment to try timeouts
+my $proc = Proc::Async.new: :w, ‘tac’, ‘--’, $file, ‘-’;
+# my $proc = Proc::Async.new: :w, ‘sleep’, 15; # uncomment to try timeouts
 
-    react {
-        whenever $proc.stdout.lines { # split input on \r\n, \n, and \r
-            say ‘line: ’, $_
-        }
-        whenever $proc.stderr { # chunks
-            say ‘stderr: ’, $_
-        }
-        whenever $proc.start {
-            say ‘Proc finished. Exit code: ’, .exitcode;
-            done # gracefully jump from the react block
-        }
-        whenever $proc.print: “I\n♥\nCamelia\n” {
-            $proc.close-stdin
-        }
-        whenever signal(SIGTERM).merge: signal(SIGINT) {
-            once {
-                say ‘Signal received, asking the process to stop’;
-                $proc.kill; # sends SIGHUP, change appropriately
-                whenever signal($_).zip: Promise.in(2).Supply {
-                    say ‘Kill it!’;
-                    $proc.kill: SIGKILL
-                }
-            }
-        }
-        whenever Promise.in(10) {
-            say ‘Timeout. Asking the process to stop’;
+react {
+    whenever $proc.stdout.lines { # split input on \r\n, \n, and \r
+        say ‘line: ’, $_
+    }
+    whenever $proc.stderr { # chunks
+        say ‘stderr: ’, $_
+    }
+    whenever $proc.start {
+        say ‘Proc finished. Exit code: ’, .exitcode;
+        done # gracefully jump from the react block
+    }
+    whenever $proc.print: “I\n♥\nCamelia\n” {
+        $proc.close-stdin
+    }
+    whenever signal(SIGTERM).merge: signal(SIGINT) {
+        once {
+            say ‘Signal received, asking the process to stop’;
             $proc.kill; # sends SIGHUP, change appropriately
-            whenever Promise.in(2) {
-                say ‘Timeout. Forcing the process to stop’;
+            whenever signal($_).zip: Promise.in(2).Supply {
+                say ‘Kill it!’;
                 $proc.kill: SIGKILL
             }
         }
     }
+    whenever Promise.in(10) {
+        say ‘Timeout. Asking the process to stop’;
+        $proc.kill; # sends SIGHUP, change appropriately
+        whenever Promise.in(2) {
+            say ‘Timeout. Forcing the process to stop’;
+            $proc.kill: SIGKILL
+        }
+    }
+}
 
-    say ‘Program finished’;
-
+say ‘Program finished’;
+=end code
 
 Example above produces the following output:
 =begin code :skip-test
