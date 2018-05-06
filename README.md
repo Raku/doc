@@ -60,11 +60,11 @@ following, to update the shims for installed executables:
     $ rakudobrew rehash
 
 In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running: 
+on Debian you can do by running:
 
     $ sudo apt-get install graphviz
 
-To build the documentation web pages, simply run: 
+To build the documentation web pages, simply run:
 
     $ make html
 
@@ -99,7 +99,7 @@ Here are some ways to help us:
  * Add missing documentation for classes, roles, methods or operators.
  * Add usage examples to existing documentation.
  * Proofread and correct the documentation.
- * Tell us about missing documentation by opening issues on github.
+ * Tell us about missing documentation by opening issues on Github.
  * Do a `git grep TODO` in this repository, and replace the TODO items by
    actual documentation.
 
