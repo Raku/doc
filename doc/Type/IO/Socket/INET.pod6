@@ -10,31 +10,39 @@ class IO::Socket::INET does IO::Socket {}
 C<IO::Socket::INET> provides TCP sockets, both the server and the client side.
 
 Here is an example of a very simplistic "echo" server that listens on
-localhost, port 3333:
+C<localhost>, port C<3333>:
 
 =begin code
-use v6.c;
-
-my $listen = IO::Socket::INET.new(:listen, :localhost<localhost>, :localport(3333));
+my $listen = IO::Socket::INET.new( :listen,
+                                   :localhost<localhost>,
+                                   :localport(3333) );
 loop {
     my $conn = $listen.accept;
-    while my $buf = $conn.recv(:bin) {
-        $conn.write: $buf;
+    try {
+        while my $buf = $conn.recv(:bin) {
+            $conn.write: $buf;
+        }
     }
     $conn.close;
+
+    CATCH {
+          default { .payload.say;      }
+    }
+
 }
 =end code
 
 And a client that connects to it, and prints out what the server answers:
 
 =begin code
-use v6.c;
-
-my $conn = IO::Socket::INET.new(:host<localhost>, :port(3333));
+my $conn = IO::Socket::INET.new( :host<localhost>,
+                                 :port(3333) );
 $conn.print: 'Hello, Perl 6';
 say $conn.recv;
 $conn.close;
 =end code
+
+Please bear in mind that this is a synchronous connection; an attempt by any of the nodes to write without the other reading will produce an C<Could not receive data from socket: Connection reset by peer> error.
 
 =head1 Methods
 

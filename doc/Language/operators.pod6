@@ -31,7 +31,7 @@ tightest to loosest:
     X | Junctive and     |   &
     X | Junctive or      |   \| ^
     L | Named unary      |   temp let
-    N | Structural infix |   but does <=> leg cmp .. ..^ ^.. ^..^
+    N | Structural infix |   but does <=> leg unicmp cmp coll .. ..^ ^.. ^..^
     C | Chaining infix   |   != == < <= > >= eq ne lt le gt ge ~~ === eqv !eqv =~=
     X | Tight and        |   &&
     X | Tight or         |   \|\| ^^ // min max
@@ -147,7 +147,7 @@ or, if multiple matches were made, a L«C<List>|/type/List» of C<Match> objects
 Returns C<$/>.
 
 It's common to use this operator with the C<~~> smartmatch operator, as it
-aliases left hand side to C<$_>, which C<s///> uses.
+aliases left-hand side to C<$_>, which C<s///> uses.
 
 Regex captures can be referenced in the replacement part; it takes the same
 adverbs as the L«C<.subst> method|/routine/subst», which go between the C<s>
@@ -279,11 +279,8 @@ with C<R>. Associativity of operands is reversed as well.
 =head1 X<<<Hyper Operators|hyper,<<;hyper,>>;hyper,«;hyper,»>>>
 
 Hyper Operators include C<«> and C<»>, with their ASCII variants C«<<»
-and C«>>».
-
-Hyper operators apply a given operator enclosed by C<«> and C<»> to one or two
-lists, returning the resulting list. The pointy part of C<«> or C<»> has to
-point to the shorter list. A list with just one element is fine too. If one of
+and C«>>». They apply a given operator enclosed by C<«> and C<»> to one or two
+lists, returning the resulting list, with the pointy part of C<«> or C<»> aimed at the shorter list. Single elements are turned to a list, so they can be used too. If one of
 the lists is shorter than the other, the operator will cycle over the shorter
 list until all elements of the longer list are processed.
 
@@ -291,12 +288,12 @@ list until all elements of the longer list are processed.
     say (1, 2, 3, 4) »~» <a b>;   # OUTPUT: «(1a 2b 3a 4b)␤»
     say (1, 2, 3) »+« (4, 5, 6);  # OUTPUT: «(5 7 9)␤»
 
-Assignment meta operators can be hyped.
+Assignment meta operators can be I<hyped>.
 
     my @a = 1, 2, 3;
     say @a »+=» 1;    # OUTPUT: «[2 3 4]␤»
 
-Hyper forms of unary operators have the pointy bit point to the operator and
+Hyper forms of unary operators have the pointy bit aimed at the operator and
 the blunt end at the list to be operated on.
 
     my @wisdom = True, False, True;
@@ -756,7 +753,7 @@ class or role, even after it has been redefined in the child class.
 
 =head1 Autoincrement Precedence
 
-=head2 prefix X<C«++»|++>
+=head2 prefix X<C«++»|prefix ++>
 
     multi sub prefix:<++>($x is rw) is assoc<non>
 
@@ -770,11 +767,12 @@ It works by calling the L<succ> method (for I<successor>) on its argument,
 which gives custom types the freedom to implement their own increment
 semantics.
 
+X<|prefix decrement operator>
 =head2 prefix X<C«--»|-->
 
     multi sub prefix:<-->($x is rw) is assoc<non>
 
-Decrements its argument by one and returns the updated value.X<|decrement operator>
+Decrements its argument by one and returns the updated value.
 
     my $x = 3;
     say --$x;   # OUTPUT: «2␤»
@@ -785,7 +783,7 @@ which gives custom types the freedom to implement their own decrement
 semantics.
 
 
-=head2 postfix X<C«++»|++>
+=head2 postfix X<C«++»|postfix ++>
 
     multi sub postfix:<++>($x is rw) is assoc<non>
 
@@ -813,11 +811,11 @@ assign the resulting string to the container. A C<is rw>-container is required.
     say $filename++ for 1..3;
     # OUTPUT: «somefile-001.txt␤somefile-002.txt␤somefile-003.txt␤»
 
-=head2 postfix C«--»
+=head2 postfix C«--» X<|postfix decrement operator>
 
     multi sub postfix:<-->($x is rw) is assoc<non>
 
-Decrements its argument by one and returns the original value.X<|decrement operator>
+Decrements its argument by one and returns the original value.
 
     my $x = 3;
     say $x--;   # OUTPUT: «3␤»
@@ -1217,7 +1215,7 @@ right function. If the L«C<.count>|/routine/count» of the left function is
 greater than 1, the return value of the right function will be
 L<slipped|/type/Slip> into the left function.
 
-Both C<.count> and C<.arity> of the RHS will be maintained.
+Both C<.count> and C<.arity> of the right-hand side will be maintained.
 
     sub f($p){ say 'f'; $p / 2 }
     sub g($p){ say 'g'; $p * 2 }
@@ -1421,6 +1419,21 @@ if C<$a eqv $b>, then C<$a cmp $b> always returns C<Order::Same>.
     say (a => 3) cmp (a => 4);   # OUTPUT: «Less␤»
     say 4        cmp 4.0;        # OUTPUT: «Same␤»
     say 'b'      cmp 'a';        # OUTPUT: «More␤»
+
+X<|infix coll>
+=head2 infix C«unicmp»
+
+    multi sub infix:<unicmp>(Str:D \a, Str:D \b --> Order:D)
+    multi sub infix:<unicmp>(Pair:D \a, Pair:D \b)
+
+Unlike the cmp operator which sorts according to codepoint, B<unicmp> and
+B<coll> sort according to how most users would expect, that is, disregarding aspects of the particular character like capitalization.
+
+    say 'a' unicmp 'Z'; # Less
+    say 'a' coll 'Z';   # Less
+    say 'a' cmp 'Z';    # More
+
+The main difference between C<coll> and C<unicmp> is that the behavior of the former can be changed by the (so far C<experimental>) L<C<$*COLLATION>|/language/experimental#index-entry-%24%2ACOLLATION-%24%2ACOLLATION> dynamic variable.
 
 =head2 infix C«leg»
 
@@ -1924,11 +1937,9 @@ my %loser = points => 20, misses => 10;
 
 =head2 infix C<?? !!>
 
-Also called X<Ternary operator|?? !!> or Conditional operator.
+Also called X<ternary operator|operator,ternary> or X<conditional operator|operator,conditional>.
 
-C<$condition ?? $true !! $false> evaluates and returns the expression from the
-C<$true> branch if C<$condition> is a true value. Otherwise it evaluates and
-returns the C<$false> branch.
+C<$condition ?? $true !! $false> evaluates C<$condition> and returns the expression right behind ??, in this case C<$true> if it is C<True>, otherwise evaluates and returns the expression behind !!, C<$false> in this case.
 
 =head2 infix C«ff»
 
@@ -2097,7 +2108,7 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 
 =head1 Item Assignment Precedence
 
-=head2 infix C«=»
+=head2 X<infix C«=»|item =>
 
 =begin code :skip-test
 sub infix:<=>(Mu $a is rw, Mu $b)
@@ -2222,11 +2233,16 @@ X<|...,operators>X<|...^,operators>X<|…,operators>X<|…^,operators>X<|lazy li
 
 The X<sequence operator> will produce generic sequences on demand.
 
-The left hand side will always include initial elements; it may include a generator too. The right hand side will have an endpoint, which can be C<Inf> or C<*> for "infinite" lists (whose elements are only produced on demand), an expression which will end the sequence when C<True>, or other elements such as L<Junctions>.
+The left-hand side will always include initial elements; it may
+include a generator too. The right-hand side will have an endpoint,
+which can be C<Inf> or C<*> for "infinite" lists (whose elements are
+only produced on demand), an expression which will end the sequence
+when C<True>, or other elements such as L<Junctions>.
 
 The sequence operator invokes the generator with as many arguments as
-necessary. The arguments are taken from the initial elements and the already
-generated elements. The default generator is C<*.>L<succ> or C<*.>L<pred>, depending on how the end points compare:
+necessary. The arguments are taken from the initial elements and the
+already generated elements. The default generator is C<*.>L<succ> or
+C<*.>L<pred>, depending on how the end points compare:
 
     say 1 ... 4;        # OUTPUT: «(1 2 3 4)␤»
     say 4 ... 1;        # OUTPUT: «(4 3 2 1)␤»
@@ -2278,7 +2294,7 @@ well, so the are also checked against the endpoint:
 
 =head1 List Prefix Precedence
 
-=head2 infix C«=»
+=head2 X<infix C«=»|list =>
 
 X<List assignment operator>. Its exact semantics are left to the container type on the
 left-hand side. See L<Array> and L<Hash> for common cases.
@@ -2373,7 +2389,8 @@ Reduction operators have the same associativity as the operators they are based 
 
 =head2 infix C«and»
 
-Same as L<#infix &&>, except with looser precedence.
+Same as L<infix &&|/language/operators#infix_%26%26>, except with looser
+precedence.
 
 Short-circuits so that it returns the first operand that evaluates to C<False>, otherwise
 returns the last operand. Note that C<and> is easy

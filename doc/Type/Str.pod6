@@ -136,8 +136,8 @@ C<$str.encode('ISO-8859-1')> a C<buf8>.
     multi method index(Cool $needle, Cool $startpos = 0 --> Int)
 
 Searches for C<$needle> in the string starting from C<$startpos>. It returns
-the offset into the string where C<$needle> was found, and an undefined value
-if it was not found.
+the offset into the string where C<$needle> was found, and C<Nil> if it was not
+found.
 
 Examples:
 
@@ -155,7 +155,7 @@ Examples:
     multi method rindex(Str:D $haystack: Str:D $needle, Int $startpos = $haystack.chars --> Int)
 
 Returns the last position of C<$needle> in C<$haystack> not after C<$startpos>.
-Returns an undefined value if C<$needle> wasn't found.
+Returns C<Nil> if C<$needle> wasn't found.
 
 Examples:
 
@@ -437,12 +437,12 @@ Examples:
     multi method comb(Str:D $input: Regex:D $matcher, $limit = Inf, Bool :$match)
     multi method comb(Str:D $input: Int:D $size, $limit = Inf)
 
-Searches for C<$matcher> in C<$input> and returns a list of all matches
-(as C<Str> by default, or as L<Match> if C<$match> is True), limited to at most
-C<$limit> matches.
+Searches for C<$matcher> in C<$input> and returns a list of non-overlapping
+matches limited to at most C<$limit> matches.  If <$matcher> is a Regex,
+each C<Match> object is converted to a C<Str>, unless C<$match> is set.
 
-If no matcher is supplied, a list of characters in the string
-(e.g. C<$matcher = rx/./>) is returned.
+If no matcher is supplied, a list of characters in the string is returned,
+as if the matcher was C<rx/./>.
 
 Examples:
 
@@ -453,9 +453,13 @@ Examples:
     say comb(/\N/, "a;b;c").perl;        # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
     say comb(/\w/, "a;b;c", 2).perl;     # OUTPUT: «("a", "b").Seq␤»
     say comb(/\w\;\w/, "a;b;c", 2).perl; # OUTPUT: «("a;b",).Seq␤»
+    say comb(/.<(.)>/, "<>[]()").perl;   # OUTPUT: «(">", "]", ")").Seq␤»
 
-If the matcher is an integer value, it is considered to be a matcher that
-is similar to / . ** matcher /, but which is about 30x faster.
+If the matcher is an integer value, C<comb> behaves as if the matcher
+was C<rx/ . ** {$matcher} />, but which is optimized to be much faster.
+
+Note that a Regex matcher may control which portion of the matched text
+is returned by using features which explicitly set the top-level capture.
 
 =head2 routine lines
 

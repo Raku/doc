@@ -351,7 +351,7 @@ multi write-type-source($doc) {
                 <p class="fallback">
                   Stand-alone image:
                   <a rel="alternate"
-                    href="/images/type-graph-\qq[uri_escape($podname)].svg"
+                    href="/images/type-graph-\qq[&uri_escape($podname)].svg"
                     type="image/svg+xml">vector</a>
                 </p>
               </figure>
@@ -368,32 +368,35 @@ multi write-type-source($doc) {
                 pod-block(
                     "$podname does role ",
                     pod-link($role.name, "/type/{href_escape ~$role}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$role}.list,
             ;
         }
         for $type.mro.skip -> $class {
+            if $type ne "Any" {
+                next if $class ~~ "Any" | "Mu";
+            }
             next unless %routines-by-type{$class};
             $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
                     pod-link($class.name, "/type/{href_escape ~$class}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$class}.list,
             ;
             for $class.roles -> $role {
                 next unless %routines-by-type{$role};
                 $pod.contents.append:
-                    pod-heading("Methods supplied by role $role"),
+                    pod-heading("Routines supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
                         pod-link($class.name, "/type/{href_escape ~$class}"),
                         ", which does role ",
                         pod-link($role.name, "/type/{href_escape ~$role}"),
-                        ", which provides the following methods:",
+                        ", which provides the following routines:",
                     ),
                     %routines-by-type{$role}.list,
                 ;
@@ -553,6 +556,9 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
                 @definitions = .[0].words[0], textify-guts .[1].contents[0];
+                proceed if ( # not looking for - baz X<baz>
+                    (@definitions[1] // '') eq '' and .[1].type eq 'X'
+                );
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
@@ -590,7 +596,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :$summary,
                     ;
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
+                when 'variable'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),

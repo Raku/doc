@@ -14,48 +14,52 @@ moment.
 C<Proc::Async> allows you to run external commands asynchronously, capturing
 standard output and error handles, and optionally write to its standard input.
 
-    my $file = ‘foo’.IO;
-    spurt $file, “and\nCamelia\n♡\nme\n”;
+=begin code
+my $file = ‘foo’.IO;
+spurt $file, “Four\nFive\nSix\n”;
 
-    my $proc = Proc::Async.new: :w, ‘tac’, ‘--’, $file, ‘-’;
-    # my $proc = Proc::Async.new: :w, ‘sleep’, 15; # uncomment to try timeouts
+my $proc = Proc::Async.new: :w, ‘tac’, ‘--’, $file, ‘-’;
+# my $proc = Proc::Async.new: :w, ‘sleep’, 15; # uncomment to try timeouts
 
-    react {
-        whenever $proc.stdout.lines { # split input on \r\n, \n, and \r
-            say ‘line: ’, $_
-        }
-        whenever $proc.stderr { # chunks
-            say ‘stderr: ’, $_
-        }
-        whenever $proc.start {
-            say ‘Proc finished. Exit code: ’, .exitcode;
-            done # gracefully jump from the react block
-        }
-        whenever $proc.print: “I\n♥\nCamelia\n” {
-            $proc.close-stdin
-        }
-        whenever signal(SIGTERM).merge: signal(SIGINT) {
-            once {
-                say ‘Signal received, asking the process to stop’;
-                $proc.kill; # sends SIGHUP, change appropriately
-                whenever signal($_).zip: Promise.in(2).Supply {
-                    say ‘Kill it!’;
-                    $proc.kill: SIGKILL
-                }
-            }
-        }
-        whenever Promise.in(10) {
-            say ‘Timeout. Asking the process to stop’;
+react {
+    whenever $proc.stdout.lines { # split input on \r\n, \n, and \r
+        say ‘line: ’, $_
+    }
+    whenever $proc.stderr { # chunks
+        say ‘stderr: ’, $_
+    }
+    whenever $proc.ready {
+        say ‘PID: ’, $_ # Only in Rakudo 2018.04 and newer, otherwise Nil
+    }
+    whenever $proc.start {
+        say ‘Proc finished: exitcode=’, .exitcode, ‘ signal=’, .signal;
+        done # gracefully jump from the react block
+    }
+    whenever $proc.print: “One\nTwo\nThree\n” {
+        $proc.close-stdin
+    }
+    whenever signal(SIGTERM).merge: signal(SIGINT) {
+        once {
+            say ‘Signal received, asking the process to stop’;
             $proc.kill; # sends SIGHUP, change appropriately
-            whenever Promise.in(2) {
-                say ‘Timeout. Forcing the process to stop’;
+            whenever signal($_).zip: Promise.in(2).Supply {
+                say ‘Kill it!’;
                 $proc.kill: SIGKILL
             }
         }
     }
+    whenever Promise.in(5) {
+        say ‘Timeout. Asking the process to stop’;
+        $proc.kill; # sends SIGHUP, change appropriately
+        whenever Promise.in(2) {
+            say ‘Timeout. Forcing the process to stop’;
+            $proc.kill: SIGKILL
+        }
+    }
+}
 
-    say ‘Program finished’;
-
+say ‘Program finished’;
+=end code
 
 Example above produces the following output:
 =begin code :skip-test
@@ -199,25 +203,39 @@ Use L«C<.Supply>|/type/Proc::Async#method_Supply» for merged STDOUT and STDERR
     multi method bind-stdin(IO::Handle:D $handle)
     multi method bind-stdin(Proc::Async::Pipe:D $pipe)
 
-Sets a handle or a C<Pipe> as a source of STDIN. STDIN of
+Sets a handle (which must be opened) or a C<Pipe> as a source of STDIN. STDIN of
 the target process must be writable or
 C<X::Proc::Async::BindOrUse> will be thrown.
+
+    my $p = Proc::Async.new("cat", :in);
+    my $h = "/etc/profile".IO.open;
+    $p.bind-stdin($h);
+    $p.start;
 
 =head2 method bind-stdout
 
     method bind-stdout(IO::Handle:D $handle)
 
-Redirects STDOUT of the target process to a handle. If STDOUT is closed
-L<X::Proc::Async::BindOrUse|/type/x/proc/async/BindOrUse> will be thrown.
+Redirects STDOUT of the target process to a handle (which must be opened).
+If STDOUT is closed L<X::Proc::Async::BindOrUse|/type/x/proc/async/BindOrUse>
+will be thrown.
 
-Sets a w
+    my $p = Proc::Async.new("ls", :out);
+    my $h = "ls.out".IO.open(:w);
+    $p.bind-stdout($h);
+    $p.start;
 
 =head2 method bind-stderr
 
     method bind-stderr(IO::Handle:D $handle)
 
-Redirects STDERR of the target process to a handle. If STDERR is closed
-C<X::Proc::Async::BindOrUse> will be thrown.
+Redirects STDERR of the target process to a handle (which must be opened).
+If STDERR is closed C<X::Proc::Async::BindOrUse> will be thrown.
+
+    my $p = Proc::Async.new("ls", "--foo", :err);
+    my $h = "ls.err".IO.open(:w);
+    $p.bind-stderr($h);
+    $p.start;
 
 =head2 method w
 
@@ -268,6 +286,21 @@ Returns C<False> before C<.start> has been called, and C<True> afterwards.
 Returns a L<Promise|/type/Promise> that will be kept once the process
 has successfully started. L<Promise|/type/Promise> will be broken if the program
 fails to start.
+
+B<Implementation-specific note:> Starting from Rakudo 2018.04, the
+returned promise will hold the process id (PID).
+
+=head2 method pid
+
+    method pid(Proc::Async:D: --> Promise:D)
+
+Equivalent to L<ready>.
+
+Returns a L<Promise|/type/Promise> that will be kept once the process
+has successfully started. L<Promise|/type/Promise> will be broken if the program
+fails to start. Returned promise will hold the process id (PID).
+
+B<Implementation-specific note:> Available starting from Rakudo 2018.04.
 
 =head2 method path
 

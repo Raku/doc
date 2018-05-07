@@ -269,11 +269,10 @@ task's dependency list.
     =end code
 
 X<|invocant>
-
 In many ways, this looks a lot like a C<sub> declaration. However, there are
 two important differences. First, declaring this routine as a method adds it
-to the list of methods for the current class.  Thus any instance of the
-C<Task> class can call this method with the C<.> method call operator.
+to the list of methods for the current class, thus any instance of the
+C<Task> class can call it with the C<.> method call operator.
 Second, a method places its invocant into the special variable C<self>.
 
 The method itself takes the passed parameter – which must be an instance of
@@ -475,10 +474,6 @@ other means, such as attribute accessors.
     =begin code
     class Employee {
         has $.salary;
-
-        method pay() {
-            say "Here is \$$.salary";
-        }
     }
 
     class Programmer is Employee {
@@ -486,8 +481,8 @@ other means, such as attribute accessors.
         has $.favorite_editor;
 
         method code_to_solve( $problem ) {
-            say "Solving $problem using $.favorite_editor in "
-            ~ $.known_languages[0] ~ '.';
+            return "Solving $problem using $.favorite_editor in "
+            ~ $.known_languages[0];
         }
     }
     =end code
@@ -502,8 +497,8 @@ defined in the Employee class as though they were from the Programmer class.
         favorite_editor => 'vim'
     );
 
-    $programmer.code_to_solve('halting problem');
-    $programmer.pay();
+    say $programmer.code_to_solve('halting problem'), " will get ", $programmer.salary(), "\$";
+    #OUTPUT: «Solving halting problem using vim in Perl5 will get 100000$␤»
     =end code
 
 =head2 Overriding inherited methods
@@ -685,6 +680,37 @@ is. With C<.^methods> you can learn what you can do with the class.
 But there are other applications too: a routine that serializes objects to a
 bunch of bytes needs to know the attributes of that object, which it can
 find out via introspection.
+
+=head2 X<Overriding default gist method>
+
+Some classes might need its own version of C<gist>, which overrides the terse way it is printed when called to provide a default representation of the class. For instance, L<exceptions|/language/exceptions#Uncaught_Exceptions> might want to write just the C<payload> and not the full object so that it is clearer what has happened. But you can do that with every class:
+
+=begin code
+class Cook {
+    has @.utensils  is rw;
+    has @.cookbooks is rw;
+
+    method cook( $food ) {
+        return "Cooking $food";
+    }
+
+    method clean_utensils {
+        return "Cleaning $_" for @.utensils;
+    }
+
+    multi method gist(Cook:U:) { '⚗' ~ self.^name ~ '⚗' }
+    multi method gist(Cook:D:) { '⚗ Cooks with ' ~ @.utensils.join( " ‣ ") ~ ' using ' ~ @.cookbooks.map( "«" ~ * ~ "»").join( " and ") }
+}
+
+my $cook = Cook.new(
+    utensils => <spoon ladle knife pan>,
+    cookbooks => ['Cooking for geeks','The French Chef Cookbook']);
+
+say Cook.gist; # OUTPUT: «⚗Cook⚗»
+say $cook.gist; # OUTPUT: «⚗ Cooks with spoon ‣ ladle ‣ knife ‣ pan using «Cooking for geeks» and «The French Chef Cookbook»␤»
+=end code
+
+Usually you will want to define two methods, one for the class and another for instances; in this case, the class method uses the alambic symbol, and the instance method, defined below, aggregates the data we have on the cook to show it in a narrative way.
 
 =end pod
 

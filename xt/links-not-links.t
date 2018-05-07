@@ -25,6 +25,7 @@ for @files -> $file {
     my Int $line-no = 1;
     my @links = $file.IO.lines.grep( * ~~ / https?\: /)
       .grep( * !~~ /review\:\s+/) # eliminate review lines from IRC logs
+      .grep( * !~~ /wget/)
       .grep( * !~~ /^\#/)
       .grep( * !~~ /\#\s+OUTPUT/);       # eliminates output lines
     my @links-not-links;

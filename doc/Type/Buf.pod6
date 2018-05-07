@@ -15,12 +15,12 @@ A C<Buf> is a mutable sequence of (usually unsigned) integers.
 
 =head2 method subbuf-rw
 
-    method subbuf-rw($from, $length?)
+    method subbuf-rw($from = 0, $elems = self.elems - $from) is rw
 
 A mutable version of C<subbuf> that returns a L<Proxy|/type/Proxy> functioning as a
 writable reference to a part of a buffer. Its first argument, C<$from>
 specifies the index in the buffer from which a substitution should occur, and
-its last argument, C<$length> specifies how many elements are to be replaced.
+its last argument, C<$elems> specifies how many elements are to be replaced.
 
 For example, to replace one element at index 3 with two elements, C<100> and C<101>:
 
@@ -28,11 +28,31 @@ For example, to replace one element at index 3 with two elements, C<100> and C<1
     $b.subbuf-rw(3,1) = Buf.new(100, 101);
     say $b.perl;   # OUTPUT: «Buf.new(0,1,2,100,101,4,5)␤»
 
+
+In the case the C<$elems> argument is not specified, the substitution
+happens at the specified index C<$from> removing all trailing elements:
+
+    my Buf $b .= new(0..5);
+    $b.subbuf-rw(3) = Buf.new(200);
+    say $b.perl;   # OUTPUT: «Buf.new(0,1,2,200)␤»
+
+In the case the C<$from> argument is not specified, the substitution
+happens from the very beginning of the buffer:
+
+    my Buf $b .= new(0..5);
+    $b.subbuf-rw = Buf.new(123, 123);
+    say $b.perl;   # OUTPUT: «Buf.new(123, 123)␤»
+
 =head2 routine subbuf-rw
 
-    sub subbuf-rw(Buf:D $buf, $from, $length?)
+Declared as
 
-Returns a writable reference to a part of a buffer. Similar to the C<subbuf-rw> method:
+    multi sub subbuf-rw(Buf:D \b) is rw
+    multi sub subbuf-rw(Buf:D \b, Int() $from) is rw
+    multi sub subbuf-rw(Buf:D \b, $from, $elems) is rw
+
+Returns a writable reference to a part of a buffer.
+Invokes the C<subbuf-rw> method on the specified C<Buf>:
 
     my Buf $b .= new(1,2,3);
     subbuf-rw($b,2,1) = Buf.new(42);
@@ -42,14 +62,24 @@ Returns a writable reference to a part of a buffer. Similar to the C<subbuf-rw> 
 
     method reallocate($elems)
 
-Change the number of elements of the C<Buf>.  The C<Buf> will be made larger if
-the specified value is larger than the current number of elements.  The value of
-newly created elements is undetermined and should thus not be relied upon.  It
-returns the altered C<Buf>.
+Change the number of elements of the C<Buf>, returning the
+changed C<Buf>.
+The size of C<Buf> will be adapted depending on the number of C<$elems>
+specified: if it is smaller than the actual size of the C<Buf> the resulting
+C<Buf> will be shrunk down, otherwise it will be enlarged to fit the
+number of C<$elems>. In the case the C<Buf> is enlarged, newly created items
+will be assigned a Virtual Machine specific null value, therefore
+you should not rely upon their value since it could be inconsistent across
+different virtual machines.
+
 
     my Buf $b .= new(^10);
     $b.reallocate(5);
     say $b.perl;  # OUTPUT: «Buf.new(0,1,2,3,4)␤»
+
+    $b = Buf.new( 1..3 );
+    $b.reallocate( 10 );
+    $b.perl.say; # OUTPUT: «Buf.new(1,2,3,0,0,0,0,0,0,0)␤»
 
 =head2 method push
 
