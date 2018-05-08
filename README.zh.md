@@ -14,8 +14,8 @@
 
 * [英文版 README](README.md)
 * [意大利文版 README](README.it.md)
-* [德國 README](README.de.md)
-* [西班牙語 README](README.es.md)
+* [德文版 README](README.de.md)
+* [西班牙文版 README](README.es.md)
 
 ## 安装 p6doc
 
