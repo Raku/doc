@@ -14,6 +14,7 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## README en otros lenguajes
 
+* [README en alemán](README.de.md)
 * [README en chino](README.zh.md)
 * [README en italiano](README.it.md)
 * [README en inglés](README.md)
