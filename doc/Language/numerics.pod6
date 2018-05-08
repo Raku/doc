@@ -428,11 +428,151 @@ say 42 ∈ +«<42 100 200>; # OUTPUT: «True␤»
 
 Be mindful of these object identity differences and coerce your allomorphs as needed.
 
-=head1 Native
+=head1 Native Numerics
 
-=head2 C<int>, C<int8>, C<int16>, C<int32>, and C<int64>
+As the name suggests, native numerics offer access to native numerics—i.e. those offered directly
+by your hardware. This in turn offers two features: overflow/underflow and better performance.
 
-=head2 C<num>, C<num32>, and C<int64>
+B<NOTE:> at the time of this writing (2018.05), certain implementations (such as Rakudo) offer
+somewhat spotty details on native types, such as whether C<int64> is available and is of 64-bit
+size on 32-bit machines, and how to detect when your program is running on such hardware.
+
+=head2 Available Native Numerics
+
+=begin table
+
+    Native type | Base numeric     | Size
+    ============+==================+===============
+    int         | integer          | 64-bits
+    int8        | integer          | 8-bits
+    int16       | integer          | 16-bits
+    int32       | integer          | 32-bits
+    int64       | integer          | 64-bits
+
+    uint        | unsigned integer | 64-bits
+    uint8       | unsigned integer | 8-bits
+    uint16      | unsigned integer | 16-bits
+    uint32      | unsigned integer | 32-bits
+    uint64      | unsigned integer | 64-bits
+
+    num         | floating point   | 64-bits
+    num32       | floating point   | 32-bits
+    num64       | floating point   | 64-bits
+
+=end table
+
+=head2 Creating Native Numerics
+
+To create a natively-typed variable or parameter, simply use the name of one of the available
+numerics as the type constraint:
+
+=begin code
+my int32 $x = 42;
+sub foo(num $y) {}
+class { has int8 $.z }
+=end code
+
+At times, you may wish to coerce some value to a native type without creating any usable variables.
+There are no C<.int> or similar coersion methods (method calls are latebound, so they're not
+well-suited for this purpose). Instead, simply use an anonymous variable:
+
+=begin code :preamble<my $y; my $z;>
+some-native-taking-sub (my int $ = $y), (my int32 $ = $z)
+=end code
+
+=head2 Overflow/Underflow
+
+Trying to B<assign> a value that does not fit into a particular native type, produces an exception:
+
+=begin code
+my int $x = 2¹⁰⁰;
+# OUTPUT:
+# Cannot unbox 101 bit wide bigint into native integer
+#  in block <unit> at -e line 1
+=end code
+
+However, modifying an already-existing value in such a way that it becomes too big/small, produces
+overflow/underflow behaviour:
+
+=begin code
+my int $x = 2⁶³-1;
+say $x;             # OUTPUT: «9223372036854775807␤»
+say ++$x;           # OUTPUT: «-9223372036854775808␤»
+
+my uint8 $x;
+say $x;             # OUTPUT: «0␤»
+say $x -= 100;      # OUTPUT: «156␤»
+=end code
+
+Creating objects that utilize native types does not involve direct assignment by the programmer
+and so these contructs offer overflow/underflow behaviour instead of throwing exceptions. The
+same reasoning applies when a routine with a smaller native type is called with a larger value.
+
+=begin code
+say Buf.new(1000, 2000, 3000).List; # OUTPUT: «(232 208 184)␤»
+say my uint8 @a = 1000, 2000, 3000; # OUTPUT: «232 208 184␤»
+
+sub foo(int8 $x) { say $x }
+foo my int $x = 10000;              # OUTPUT: «16␤»
+=end code
+
+=head2 Auto-boxing and Multi Dispatch
+
+While they can be referred to as "native I<types>", native numerics are not actually classes
+that have any sort of methods available. However, you I<can> call any of the methods available
+on non-native versions of these numerics. What's going on?
+
+=begin code
+my int8 $x = -42;
+say $x.abs; # OUTPUT: «42␤»
+=end code
+
+This behaviour is known as "auto-boxing". The compiler automatically "boxes" the native type
+into a full-featured higher-level type with all the methods. In other words, the C<int8> above
+was automatically converted to an L<Int> and it's the L<Int> class that then provided the L<abs>
+method that was called.
+
+This detail becomes significant in two situations. First, if a routine is an C<only>—i.e. it is
+not a L«C<multi>|/language/functions#Multi-dispatch»—that takes a non-native type but a native
+one was given during the call, it will be autoboxed. However, no auto-boxing will occur
+with a L«C<multi>|/language/functions#Multi-dispatch» candidate—you must provide a native candidate
+for it to be callable.
+
+=begin code
+sub one-over (Int $x) { 1/$x }
+one-over my int $ = 42; # OK; auto-boxed
+
+multi one-over-multi (Int $x) { 1/$x }
+one-over-multi my int $ = 42; # BAD; no native candidate
+
+multi one-over-multi2 (Int $x) { 1/$x }
+multi one-over-multi2 (int $x) { 1/$x }
+one-over-multi2 my int $ = 42; # OK; we have a native candidate
+=end code
+
+The size of the native type does not play a role in dispatch and an C<int8> is considered to be
+the same as C<int16> or C<int>:
+
+=begin code
+multi foo(int   $x) { say "int" }
+multi foo(int32 $x) { say "int32" }
+foo my int $x = 42;
+# OUTPUT:
+# Ambiguous call to 'foo(Int)'; these signatures all match:
+# :(int $x)
+# :(int32 $x)
+=end code
+
+A small exception to the multi dispatch rule involves constant-foldable routines that are called
+with a native type and another argument that's a numeric literal small enough to fit to a
+native type. This feature exists to support native (faster) versions of certain operators:
+
+=begin code
+multi infix:<foo> (Int, Int) is pure { "full" }
+multi infix:<foo> (int, int) is pure { "native" }
+say 42 foo 42;            # OUTPUT: «full␤»
+say 42 foo my int $ = 42; # OUTPUT: «native␤»
+=end code
 
 =head1 Numeric Infectiousness
 
