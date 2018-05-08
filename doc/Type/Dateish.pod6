@@ -1,0 +1,228 @@
+=begin pod
+
+=TITLE role Dateish
+
+=SUBTITLE Object that can be treated as a date
+
+    role Dateish { ... }
+
+Both L<Date|/type/Date> and L<DateTime|/type/DateTime> support accessing a
+year, month and day-of-month, as well as related functionality such as
+calculating the day of the week.
+
+=head1 Methods
+
+=head2 method year
+
+Defined as:
+
+    method year(Date:D: --> Int:D)
+
+Returns the year of the date.
+
+    say Date.new('2015-12-31').year;                                  # OUTPUT: «2015␤»
+    say DateTime.new(date => Date.new('2015-12-24'), hour => 1).year; # OUTPUT: «2015␤»
+
+=head2 method month
+
+Defined as:
+
+    method month(Date:D: --> Int:D)
+
+Returns the month of the date (1..12).
+
+    say Date.new('2015-12-31').month;                                  # OUTPUT: «12␤»
+    say DateTime.new(date => Date.new('2015-12-24'), hour => 1).month; # OUTPUT: «12␤»
+
+=head2 method day
+
+Defined as:
+
+    method day(Date:D: --> Int:D)
+
+Returns the day of the month of the date (1..31).
+
+    say Date.new('2015-12-31').day;                                  # OUTPUT: «31␤»
+    say DateTime.new(date => Date.new('2015-12-24'), hour => 1).day; # OUTPUT: «24␤»
+
+=head2 method formatter
+
+Defined as:
+
+    method formatter(Dateish:D:)
+
+Returns the formatting function which is used for conversion to
+L<Str|/type/Str>. If none was provided at object construction, a
+default formatter is used.  In that case the method will return a
+Callable type object.
+
+The formatting function is called by
+L<DateTime method Str|/type/DateTime#method_Str> with the
+invocant as its only argument.
+
+    my $dt = Date.new('2015-12-31');  # (no formatter specified)
+    say $dt.formatter.^name;          # OUTPUT: «Callable␤»
+    my $us-format = sub ($self) { sprintf "%02d/%02d/%04d", .month, .day, .year given $self; };
+    $dt = Date.new('2015-12-31', formatter => $us-format);
+    say $dt.formatter.^name;           # OUTPUT: «Sub␤»
+    say $dt;                          # OUTPUT: «12/31/2015␤»
+
+=head2 method is-leap-year
+
+Defined as:
+
+    method is-leap-year(--> Bool:D)
+
+Returns C<True> if the year of the Dateish object is a leap year.
+
+    say DateTime.new(:year<2016>).is-leap-year; # OUTPUT: «True␤»
+    say Date.new("1900-01-01").is-leap-year;    # OUTPUT: «False␤»
+
+=head2 method day-of-month
+
+Defined as:
+
+    method day-of-month(Date:D: --> Int:D)
+
+Returns the day of the month of the date (1..31). Synonymous to the C<day>
+method.
+
+    say Date.new('2015-12-31').day-of-month;                                  # OUTPUT: «31␤»
+    say DateTime.new(date => Date.new('2015-12-24'), hour => 1).day-of-month; # OUTPUT: «24␤»
+
+=head2 method day-of-week
+
+Defined as:
+
+    method day-of-week(Date:D: --> Int:D)
+
+Returns the day of the week, where 1 is Monday, 2 is Tuesday and Sunday is 7.
+
+    say Date.new('2015-12-31').day-of-week;                                  # OUTPUT: «4␤»
+    say DateTime.new(date => Date.new('2015-12-24'), hour => 1).day-of-week; # OUTPUT: «4␤»
+
+=head2 method day-of-year
+
+Defined as:
+
+    method day-of-year(Date:D: --> Int:D)
+
+Returns the day of the year (1..366).
+
+    say Date.new('2015-12-31').day-of-year;                                  # OUTPUT: «365␤»
+    say DateTime.new(date => Date.new('2015-03-24'), hour => 1).day-of-year; # OUTPUT: «83␤»
+
+=head2 method days-in-month
+
+Defined as:
+
+    method days-in-month(Dateish:D: --> Int:D)
+
+Returns the number of days in the month represented by the Dateish object:
+
+    say Date.new("2016-01-02").days-in-month;                # OUTPUT: «31␤»
+    say DateTime.new(:year<10000>, :month<2>).days-in-month; # OUTPUT: «29␤»
+
+=head2 method week
+
+Defined as:
+
+    method week()
+
+Returns a list of two integers: the year, and the week number. This is because
+at the start or end of a year, the week may actually belong to the other year.
+
+    my ($year, $week) = Date.new("2014-12-31").week;
+    say $year;                       # OUTPUT: «2015␤»
+    say $week;                       # OUTPUT: «1␤»
+    say Date.new('2015-01-31').week; # OUTPUT: «(2015 5)␤»
+
+=head2 method week-number
+
+Defined as:
+
+    method week-number(Date:D: --> Int:D)
+
+Returns the week number (1..53) of the date specified by the invocant. The first
+week of the year is defined by ISO as the one which contains the fourth day of
+January. Thus, dates early in January often end up in the last week of the prior
+year, and similarly, the final few days of December may be placed in the first
+week of the next year.
+
+    say Date.new("2014-12-31").week-number;   # 1  (first week of 2015)
+    say Date.new("2016-01-02").week-number;   # 53 (last week of 2015)
+
+=head2 method week-year
+
+Defined as:
+
+    method week-year(Date:D: --> Int:D)
+
+Returns the week year of the date specified by the invocant. Normally C<week-year>
+is equal to C<Date.year>. Note however that dates early in January often end up in
+the last week of the prior year, and similarly, the final few days of December
+may be placed in the first week of the next year.
+
+    say Date.new("2015-11-15").week-year;   # 2015
+    say Date.new("2014-12-31").week-year;   # 2015 (date belongs to the first week of 2015)
+    say Date.new("2016-01-02").week-year;   # 2015 (date belongs to the last week of 2015)
+
+=head2 method weekday-of-month
+
+Defined as:
+
+    method weekday-of-month(Date:D: --> Int:D)
+
+Returns a number (1..5) indicating the number of times a particular day-of-week
+has occurred so far during that month, the day itself included.
+
+    say Date.new("2003-06-09").weekday-of-month;  # 2  (second Monday of the month)
+
+=head2 method yyyy-mm-dd
+
+Defined as:
+
+=for code :ok-test<dd>
+method yyyy-mm-dd(Date:D: --> Str:D)
+
+Returns the date in C<YYYY-MM-DD> format (L<ISO 8601|https://en.wikipedia.org/wiki/ISO_8601>)
+
+=begin code :ok-test<dd>
+say Date.new("2015-11-15").yyyy-mm-dd;   # OUTPUT: «2015-11-15␤»
+say DateTime.new(1470853583).yyyy-mm-dd; # OUTPUT: «2016-08-10␤»
+=end code
+
+=head2 method daycount
+
+Defined as:
+
+    method daycount(Dateish:D: --> Int:D)
+
+Returns the number of days from the epoch Nov. 17, 1858 to the
+day of the invocant. The daycount returned by this method is the
+MJD, i.e. the L<Modified Julian Day|https://en.wikipedia.org/wiki/Julian_day>,
+which is used routinely by e.g. astronomers, geodesists, scientists
+and others. The MJD convention is designed to facilitate simplified
+chronological calculations.
+
+    say Date.new('1995-09-27').daycount;    # OUTPUT: «49987␤»
+
+=head2 method IO
+
+Defined as:
+
+    method IO(Dateish:D: --> IO::Path:D)
+
+Returns an L<IO::Path|/type/IO::Path> object representing the stringified
+value of the Dateish object:
+
+    Date.today.IO.say;   # OUTPUT: «"2016-10-03".IO␤»
+    DateTime.now.IO.say; # OUTPUT: «"2016-10-03T11:14:47.977994-04:00".IO␤»
+
+B<PORTABILITY NOTE:> some operating systems (e.g. Windows) do not permit
+colons (C<:>) in filenames, which would be present in C<IO::Path> created from a
+L<DateTime|/type/DateTime> object.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

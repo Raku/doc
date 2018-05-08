@@ -1,0 +1,103 @@
+=begin pod
+
+=TITLE Debugging
+
+=SUBTITLE Debug Perl 6 programs
+
+There are at least two useful debuggers available for Rakudo:
+
+=item L<Debugger::UI::CommandLine|https://modules.perl6.org/repo/Debugger::UI::CommandLine>
+
+A command-line debugger frontend for Rakudo.
+
+=item L<Grammar::Debugger|https://modules.perl6.org/repo/Grammar::Debugger> (and C<Grammar::Tracer> in the same distribution)
+
+Simple tracing and debugging support for Perl 6 grammars.
+
+Please see the documentation for these programs for further information.
+
+Historically others have existed and others are likely to be written in the future,
+check the L<Perl 6 Modules|https://modules.perl6.org/> website.
+
+There are also environment variables that can be set to aid debugging various aspects
+of your program.  See L<Perl 6 Environment Variables|https://github.com/rakudo/rakudo/wiki/dev-env-vars> and L<Running rakudo from the command line|https://github.com/rakudo/rakudo/wiki/Running-rakudo-from-the-command-line>
+for more information.
+
+=head2 C<trace> pragma
+
+The C<trace> pragma causes the program to print out step-by-step which lines
+get executed:
+
+    use trace;
+    sub foo { say "hi" }
+    foo;
+
+    # OUTPUT:
+    # 2 (/tmp/script.p6 line 2)
+    # sub foo { say "hi" }
+    # 5 (/tmp/script.p6 line 3)
+    # foo
+    # 3 (/tmp/script.p6 line 2)
+    # say "hi"
+    # hi
+
+=head2 Dumper function C<dd>
+
+X<|dd> X<|dumper>
+
+B<Note:> this routine is a Rakudo-specific debugging feature and not standard
+Perl 6.
+
+The Tiny Data Dumper: This function takes the input list of variables and
+C<note>s them (on C<$*ERR>) in an easy to read format, along with the
+C<name> of the variable.  Thus,
+
+=begin code :ok-test<dd>
+my $a = 42;
+my %hash = "a" => 1, "b" => 2, "c" => 3;
+
+dd %hash, $a;
+#`( OUTPUT:
+    Hash %hash = {:a(1), :b(2), :c(3)}
+    Int $a = 42
+)
+=end code
+
+to the standard error stream.
+
+Please note that C<dd> will ignore named parameters. You can use a C<Capture>
+or C<Array> to force it to dump everything passed to it.
+
+=begin code :ok-test<dd>
+dd \((:a(1), :b(2)), :c(3));
+dd [(:a(1), :b(2)), :c(3)];
+=end code
+
+If you don't specify any parameters at all, it will just print the type and
+name of the current subroutine / method to the standard error stream:
+
+=begin code :ok-test<dd>
+sub a { dd }; a   # OUTPUT: «sub a()␤»
+=end code
+
+This can be handy as a cheap trace function.
+
+=head2 Using backtraces
+
+The L<Backtrace> class gets the current call stack, and can return it as a
+string:
+
+    my $trace = Backtrace.new;
+    sub inner { say ~Backtrace.new; }
+    sub outer { inner; }
+    outer;
+
+    # OUTPUT:
+    # perl6 /tmp/script.p6
+    #   in sub inner at /tmp/script.p6 line 2
+    #   in sub outer at /tmp/script.p6 line 3
+    #   in block <unit> at /tmp/script.p6 line 4
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

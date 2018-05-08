@@ -1,0 +1,501 @@
+=begin pod
+
+=TITLE class Mu
+
+=SUBTITLE The root of the Perl 6 type hierarchy.
+
+    class Mu { }
+
+The root of the Perl 6 type hierarchy. For the origin of the name, see
+L<https://en.wikipedia.org/wiki/Mu_%28negative%29>. One can also say that
+there are many undefined values in Perl 6, and C<Mu> is the I<most undefined>
+value.
+
+Note that most classes do not derive from C<Mu> directly, but rather from
+L<Any|/type/Any>.
+
+=head1 Methods
+
+=head2 method defined X<|method,defined>
+
+Declared as
+
+    multi method defined(   --> Bool:D)
+
+Returns C<False> on a type object, and C<True> otherwise.
+
+    say Int.defined;                # OUTPUT: «False␤»
+    say 42.defined;                 # OUTPUT: «True␤»
+
+A few types (like L<Failure|/type/Failure>) override C<defined> to return
+C<False> even for instances:
+
+    sub fails() { fail 'oh noe' };
+    say fails().defined;            # OUTPUT: «False␤»
+
+
+=head2 routine defined
+
+Declared as
+
+    multi sub defined(Mu --> Bool:D)
+
+invokes the C<.defined> method on the object and returns its result.
+
+
+=head2 routine isa
+
+    multi method isa(Mu $type     --> Bool:D)
+    multi method isa(Str:D $type  --> Bool:D)
+
+Returns C<True> if the invocant is an instance of class C<$type>, a subset type or a derived class (through inheritance) of C<$type>.
+
+    my $i = 17;
+    say $i.isa("Int");   # OUTPUT: «True␤»
+    say $i.isa(Any);     # OUTPUT: «True␤»
+
+A more idiomatic way to do this is to use the smartmatch operator L<~~|/routine/~~> instead.
+
+    my $s = "String";
+    say $s ~~ Str;       # OUTPUT: «True␤»
+
+=head2 routine does
+
+    method does(Mu $type --> Bool:D)
+
+Returns C<True> if and only if the invocant conforms to type C<$type>.
+
+    my $d = Date.new('2016-06-03');
+    say $d.does(Dateish);             # True    (Date does role Dateish)
+    say $d.does(Any);                 # True    (Date is a subclass of Any)
+    say $d.does(DateTime);            # False   (Date is not a subclass of DateTime)
+
+Using the smart match operator L<~~|/routine/~~> is a more idiomatic alternative.
+
+    my $d = Date.new('2016-06-03');
+    say $d ~~ Dateish;                # OUTPUT: «True␤»
+    say $d ~~ Any;                    # OUTPUT: «True␤»
+    say $d ~~ DateTime;               # OUTPUT: «False␤»
+
+=head2 routine Bool
+
+    multi sub    Bool(Mu --> Bool:D)
+    multi method Bool(   --> Bool:D)
+
+Returns C<False> on the type object, and C<True> otherwise.
+
+Many built-in types override this to be C<False> for empty collections, the
+empty L<string|/type/Str> or numerical zeros
+
+    say Mu.Bool;                    # OUTPUT: «False␤»
+    say Mu.new.Bool;                # OUTPUT: «True␤»
+    say [1, 2, 3].Bool;             # OUTPUT: «True␤»
+    say [].Bool;                    # OUTPUT: «False␤»
+    say %( hash => 'full' ).Bool;   # OUTPUT: «True␤»
+    say {}.Bool;                    # OUTPUT: «False␤»
+    say "".Bool;                    # OUTPUT: «False␤»
+    say 0.Bool;                     # OUTPUT: «False␤»
+    say 1.Bool;                     # OUTPUT: «True␤»
+    say "0".Bool;                   # OUTPUT: «True␤»
+
+=head2 method Capture
+
+Declared as:
+
+    method Capture(Mu:D: --> Capture:D)
+
+Returns a L<Capture> with named arguments corresponding to invocant's
+public attributes:
+
+    class Foo {
+        has $.foo = 42;
+        has $.bar = 70;
+        method bar { 'something else' }
+    }.new.Capture.say; # OUTPUT: «\(:bar("something else"), :foo(42))␤»
+
+=head2 method Str
+
+    multi method Str(--> Str)
+
+Returns a string representation of the invocant, intended to be machine
+readable. Method C<Str> warns on type objects, and produces the empty string.
+
+    say Mu.Str;                     # Use of uninitialized value of type Mu in string context.
+
+=head2 routine gist
+
+    multi sub    gist(+args --> Str)
+    multi method gist(   --> Str)
+
+Returns a string representation of the invocant, optimized for fast recognition
+by humans. As such lists will be truncated at 100 elements. Use C<.perl> to get
+all elements.
+
+The default C<gist> method in C<Mu> re-dispatches to the L<perl> method for
+defined invocants, and returns the type name in parenthesis for type object
+invocants. Many built-in classes override the case of instances to something
+more specific that may truncate output.
+
+C<gist> is the method that L<say> calls implicitly, so C<say $something> and
+C<say $something.gist> generally produce the same output.
+
+    say Mu.gist;        # OUTPUT: «(Mu)␤»
+    say Mu.new.gist;    # OUTPUT: «Mu.new␤»
+
+=head2 routine perl
+
+    multi method perl(--> Str)
+
+Returns a Perlish representation of the object (i.e., can usually
+be re-evaluated with L<EVAL|/routine/EVAL> to regenerate the object). The exact output of
+C<perl> is implementation specific, since there are generally many ways to
+write a Perl expression that produces a particular value
+
+=head2 method item
+
+    method item(Mu \item:) is raw
+
+Forces the invocant to be evaluated in item context and returns the value of it.
+
+    say [1,2,3].item.perl;          # OUTPUT: «$[1, 2, 3]␤»
+    say %( apple => 10 ).item.perl; # OUTPUT: «${:apple(10)}␤»
+    say "abc".item.perl;            # OUTPUT: «"abc"␤»
+
+=head2 method self
+
+    method self(--> Mu)
+
+Returns the object it is called on.
+
+=head2 method clone
+
+    method clone(*%twiddles)
+
+Creates a shallow clone of the invocant, including shallow cloning of private
+attributes. Alternative values for I<public> attributes can be provided via
+named arguments with names matching the attributes' names.
+
+=begin code
+class Point2D {
+    has ($.x, $.y);
+    multi method gist(Point2D:D:) {
+        "Point($.x, $.y)";
+    }
+}
+
+my $p = Point2D.new(x => 2, y => 3);
+
+say $p;                     # OUTPUT: «Point(2, 3)␤»
+say $p.clone(y => -5);      # OUTPUT: «Point(2, -5)␤»
+=end code
+
+Note that C<.clone> does not go the extra mile to shallow-copy C<@.> and C<%.>
+sigiled attributes and, if modified, the modifications will still be available
+in the original object:
+
+=begin code
+class Foo {
+    has $.foo is rw = 42;
+    has &.boo is rw = { say "Hi" };
+    has @.bar       = <a b>;
+    has %.baz       = <a b c d>;
+}
+
+my $o1 = Foo.new;
+with my $o2 = $o1.clone {
+    .foo = 70;
+    .bar = <Z Y>;
+    .baz = <Z Y X W>;
+    .boo = { say "Bye" };
+}
+
+# Hash and Array attribute modifications in clone appear in original as well:
+say $o1;    # OUTPUT: «Foo.new(foo => 42, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+say $o2;    # OUTPUT: «Foo.new(foo => 70, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+$o1.boo.(); # OUTPUT: «Hi␤»
+$o2.boo.(); # OUTPUT: «Bye␤»
+=end code
+
+To clone those, you could implement your own C<.clone> that clones the
+appropriate attributes and passes the new values to C<Mu.clone>, for example,
+via L«C<nextwith>|/language/functions#sub_nextwith». Alternatively,
+your own C<.clone> could clone self first
+(using C<self.Mu::clone> or L«C<callsame>|/language/functions#sub_callsame»)
+and then manipulate the clone as needed, before returning it.
+
+=begin code
+class Bar {
+    has @.foo = <a b>;
+    has %.bar = <a b c d>;
+    method clone { nextwith :foo(@!foo.clone) :bar(%!bar.clone) }
+}
+
+my $o1 = Bar.new;
+with my $o2 = $o1.clone {
+    .foo = <Z Y>;
+    .bar = <Z Y X W>;
+}
+
+# Hash and Array attribute modifications in clone do not affect original:
+say $o1; # OUTPUT: «Bar.new(foo => ["a", "b"], bar => {:a("b"), :c("d")})␤»
+say $o2; # OUTPUT: «Bar.new(foo => ["Z", "Y"], bar => {:X("W"), :Z("Y")})␤»
+=end code
+
+=head2 method new
+
+    multi method new(*%attrinit)
+
+Default method for constructing (create + initialize) new objects
+of a class. This method expects only named arguments which are then
+used to initialize attributes with accessors of the same name.
+
+Classes may provide their own C<new> method to override this default.
+
+C<new> triggers an object construction mechanism that calls submethods named
+C<BUILD> in each class of an inheritance hierarchy, if they exist. See
+L<the documentation on object construction|/language/objects#Object_Construction>
+for more information.
+
+=head2 method bless
+
+    method bless(*%attrinit --> Mu:D)
+
+Lower-level object construction method than C<new>.
+
+Creates a new object of the same type as the invocant, uses
+the named arguments to initialize attributes, and returns the
+created object.
+
+You can use this method when writing custom constructors:
+
+    class Point {
+        has $.x;
+        has $.y;
+        multi method new($x, $y) {
+            self.bless(:$x, :$y);
+        }
+    }
+    my $p = Point.new(-1, 1);
+
+(Though each time you write a custom constructor, remember that it makes
+subclassing harder).
+
+=head2 method CREATE
+
+    method CREATE(--> Mu:D)
+
+Allocates a new object of the same type as the invocant, without
+initializing any attributes.
+
+    say Mu.CREATE.defined;  # OUTPUT: «True␤»
+
+=head2 method print
+
+    multi method print(--> Bool:D)
+
+Prints value to C<$*OUT> after stringification using C<.Str> method without
+adding a newline at end.
+
+    "abc\n".print;          # RESULT: «abc␤»
+
+=head2 method put
+
+    multi method put(--> Bool:D)
+
+Prints value to C<$*OUT>, adding a newline at end, and if necessary,
+stringifying non-C<Str> object using the C<.Str> method.
+
+    "abc".put;              # RESULT: «abc␤»
+
+=head2 method say
+
+    multi method say(--> Bool:D)
+
+Prints value to C<$*OUT> after stringification using L<gist|/routine/gist> method with
+newline at end. To produce machine readable output use C<.put>.
+
+    say 42;                 # OUTPUT: «42␤»
+
+=head2 method ACCEPTS
+
+    multi method ACCEPTS(Mu:U: $other)
+
+C<ACCEPTS> is the method that smart matching with the L<infix ~~|/routine/~~>
+operator and given/when invokes on the right-hand side (the matcher).
+
+The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms to the invocant
+(which is always a type object or failure).
+
+    say 42 ~~ Mu;           # OUTPUT: «True␤»
+    say 42 ~~ Int;          # OUTPUT: «True␤»
+    say 42 ~~ Str;          # OUTPUT: «False␤»
+
+Note that there is no multi for defined invocants; this is to allow
+autothreading of L<junctions|/type/Junction>, which happens as a fallback
+mechanism when no direct candidate is available to dispatch to.
+
+=head2 method WHICH
+
+    multi method WHICH(--> ObjAt:D)
+
+Returns an object of type L<ObjAt> which uniquely identifies the object.
+Value types override this method which makes sure that two equivalent objects
+return the same return value from C<WHICH>.
+
+    say 42.WHICH eq 42.WHICH;       # OUTPUT: «True␤»
+
+=head2 method WHERE
+
+    method WHERE(--> Int)
+
+Returns an C<Int> representing the memory address of the object.
+
+=head2 method WHY
+
+    multi method WHY(--> Pod::Block::Declarator)
+
+Returns the attached Pod::Block::Declarator.
+
+For instance:
+
+=for code :preamble<class Spell {};sub do-raw-magic(Spell) {};> :method<False>
+#| Initiate a specified spell normally
+sub cast(Spell $s) {
+  do-raw-magic($s);
+}
+#= (do not use for class 7 spells)
+say &cast.WHY;
+# OUTPUT: «Initiate a specified spell normally␤(do not use for class 7 spells)␤»
+
+See L<Pod declarator blocks|/language/pod#Declarator_blocks> for
+details about attaching Pod to variables, classes, functions, methods, etc.
+
+=head2 trait is export
+
+    multi sub trait_mod:<is>(Mu:U \type, :$export!)
+
+Marks a type as being exported, that is, available to external users.
+
+    my class SomeClass is export { }
+
+A user of a module or class automatically gets all the symbols imported that
+are marked as C<is export>.
+
+See L<Exporting and Selective Importing Modules|/language/modules#Exporting_and_Selective_Importing>
+for more details.
+=head2 method return
+
+    method return()
+
+The method C<return> will stop execution of a subroutine or method, run all
+relevant L<phasers|/language/phasers#Block_Phasers> and provide invocant as a
+return value to the caller. If a return
+L<type constraint|/type/Signature#Constraining_Return_Types> is provided it will be
+checked unless the return value is C<Nil>. A control exception is raised and
+can be caught with L<CONTROL|/language/phasers#CONTROL>.
+
+    sub f { (1|2|3).return };
+    say f(); # OUTPUT: «any(1, 2, 3)␤»
+
+=head2 method return-rw
+
+Same as method L<C<return>|/type/Mu#method_return> except that L<C<return-rw>|/syntax/return-rw> returns a writable
+container to the invocant (see more details here: L<C<return-rw>|/syntax/return-rw>).
+
+=head2 method emit
+
+    method emit()
+
+Emits the invocant into the enclosing
+L<supply|/language/concurrency#index-entry-supply_(on-demand)> or
+L<react|/language/concurrency#index-entry-react> block.
+
+    react { whenever supply { .emit for "foo", 42, .5 } {
+        say "received {.^name} ($_)";
+    }}
+
+    # OUTPUT:
+    # received Str (foo)
+    # received Int (42)
+    # received Rat (0.5)
+
+=head2 method take
+
+    method take()
+
+Returns the invocant in the enclosing L<gather|/language/control#gather/take> block.
+
+    sub insert($sep, +@list) {
+        gather for @list {
+            FIRST .take, next;
+            take slip $sep, .item
+        }
+    }
+
+    say insert ':', <a b c>;
+    # OUTPUT: «(a : b : c)␤»
+
+=head2 routine take
+
+    sub take(\item)
+
+Takes the given item and passes it to the enclosing C<gather> block.
+
+    #| randomly select numbers for lotto
+    my $num-selected-numbers = 6;
+    my $max-lotto-numbers = 49;
+    gather for ^$num-selected-numbers {
+        take (1 .. $max-lotto-numbers).pick(1);
+    }.say;    # six random values
+
+=head2 routine take-rw
+
+    sub take-rw(\item)
+
+Returns the given item to the enclosing C<gather> block, without introducing a new container.
+
+    my @a = 1...3;
+    sub f(@list){ gather for @list { take-rw $_ } };
+    for f(@a) { $_++ };
+    say @a;
+    # OUTPUT: «[2 3 4]␤»
+
+=head2 method so
+
+    method so()
+
+Returns a C<Bool> value representing the logical non-negation of an
+expression.  One can use this method similarly to the English sentence: "If
+that is B<so>, then do this thing".  For instance,
+
+    my @args = <-a -e -b -v>;
+    my $verbose-selected = any(@args) eq '-v' | '-V';
+    if $verbose-selected.so {
+        say "Verbose option detected in arguments";
+    } # OUTPUT: «Verbose option detected in arguments␤»
+
+=head2 method not
+
+    method not()
+
+Returns a C<Bool> value representing the logical negation of an expression.
+Thus it is the opposite of C<so>.
+
+    my @args = <-a -e -b>;
+    my $verbose-selected = any(@args) eq '-v' | '-V';
+    if $verbose-selected.not {
+        say "Verbose option not present in arguments";
+    } # OUTPUT: «Verbose option not present in arguments␤»
+
+Since there is also a prefix version of C<not>, the above code reads better
+like so:
+
+    my @args = <-a -e -b>;
+    my $verbose-selected = any(@args) eq '-v' | '-V';
+    if not $verbose-selected {
+        say "Verbose option not present in arguments";
+    } # OUTPUT: «Verbose option not present in arguments␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

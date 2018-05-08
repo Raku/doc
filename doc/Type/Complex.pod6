@@ -1,0 +1,213 @@
+=begin pod
+
+=TITLE class Complex
+
+=SUBTITLE Complex number
+
+    class Complex is Cool does Numeric {}
+
+Represents a number in the complex plane.
+
+Complex objects are immutable.
+
+=head1 Operators
+
+=head2 postfix i
+
+Adding a trailing C<i> to a number literal makes it a Complex, for example:
+
+    say 2i;     # same as Complex.new(0, 2);
+    say 1-2e3i; # same as Complex.new(1, -2e3);
+
+=head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    multi method new(Real $re, Real $im --> Complex:D)
+
+Creates a new C<Complex> object from real and imaginary parts.
+
+    my $complex = Complex.new(1, 1);
+
+=head2 method re
+
+Defined as:
+
+    method re(Complex:D: --> Real:D)
+
+Returns the real part of the complex number.
+
+    say (3+5i).re;    # OUTPUT: «3␤»
+
+=head2 method im
+
+Defined as:
+
+    method im(Complex:D: --> Real:D)
+
+Returns the imaginary part of the complex number.
+
+    say (3+5i).im;    # OUTPUT: «5␤»
+
+=head2 method reals
+
+Defined as:
+
+    method reals(Complex:D: --> Positional:D)
+
+Returns a two-element list containing the real and imaginary parts for this value.
+
+    say (3+5i).reals;    # OUTPUT: «(3 5)␤»
+
+=head2 method isNaN
+
+Defined as:
+
+    method isNaN(Complex:D: --> Bool:D)
+
+Returns true if the real or imaginary part is L<C<NaN>|/type/Num#NaN> (not a number).
+
+    say (NaN+5i).isNaN; # OUTPUT: «True␤»
+    say (7+5i).isNaN;   # OUTPUT: «False␤»
+
+=head2 method polar
+
+Defined as:
+
+    method polar(Complex:D: --> Positional:D)
+
+Returns a two-element list of the polar coordinates for this value,
+i.e. magnitude and angle in radians.
+
+    say (10+7i).polar; # OUTPUT: «(12.2065556157337 0.610725964389209)␤»
+
+=head2 method floor
+
+Defined as:
+
+    method floor(Complex:D: --> Complex:D)
+
+Returns C<self.re.floor + self.im.floor>. That is, each of the real and
+imaginary parts is rounded to the highest integer not greater than
+the value of that part.
+
+    say (1.2-3.8i).floor;           # OUTPUT: «1-4i␤»
+
+=head2 method ceiling
+
+Defined as:
+
+    method ceiling(Complex:D: --> Complex:D)
+
+Returns C<self.re.ceiling + self.im.ceiling>. That is, each of the real and
+imaginary parts is rounded to the lowest integer not less than the value
+of that part.
+
+    say (1.2-3.8i).ceiling;         # OUTPUT: «2-3i␤»
+
+=head2 method round
+
+Defined as:
+
+    multi method round(Complex:D: --> Complex:D)
+    multi method round(Complex:D: Real() $scale --> Complex:D)
+
+With no arguments, rounds both the real and imaginary parts to the nearest
+integer and returns a new C<Complex> number. If C<$scale> is given, rounds both
+parts of the invocant to the nearest multiple of C<$scale>. Uses the same
+algorithm as L<Real.round|/type/Real#method_round> on each part of the number.
+
+    say (1.2-3.8i).round;           # OUTPUT: «1-4i␤»
+    say (1.256-3.875i).round(0.1);  # OUTPUT: «1.3-3.9i␤»
+
+=head2 method truncate
+
+Defined as:
+
+    method truncate(Complex:D: --> Complex:D)
+
+Removes the fractional part of both the real and imaginary parts of the
+number, using L<Real.truncate|/type/Real#method_truncate>, and returns the result as a new C<Complex>.
+
+    say (1.2-3.8i).truncate;        # OUTPUT: «1-3i␤»
+
+=head2 method abs
+
+Defined as:
+
+    method abs(Complex:D: --> Num:D)
+    multi sub abs(Complex:D $z --> Num:D)
+
+Returns the absolute value of the invocant (or the argument in sub form).
+For a given complex number C<$z> the absolute value C<|$z|> is defined as
+C<sqrt($z.re * $z.re + $z.im * $z.im)>.
+
+    say (3+4i).abs;                 # OUTPUT: «5␤»
+                                    # sqrt(3*3 + 4*4) == 5
+
+=head2 method conj
+
+Defined as:
+
+    method conj(Complex:D: --> Complex:D)
+
+Returns the complex conjugate of the invocant (that is, the number with the
+sign of the imaginary part negated).
+
+    say (1-4i).conj;                # OUTPUT: «1+4i␤»
+
+=head2 method sqrt
+
+Defined as:
+
+    method sqrt(Complex:D: --> Complex:D)
+
+Returns the complex square root of the invocant, i.e. the root
+where the real part is ≥ 0 and the imaginary part has the same
+sign as the imaginary part of the invocant.
+
+    say (3-4i).sqrt;                # OUTPUT: «2-1i␤»
+    say (-3+4i).sqrt;               # OUTPUT: «1+2i␤»
+
+=head2 method gist
+
+Defined as:
+
+    method gist(Complex:D: --> Str:D)
+
+Returns a string representation of the form "1+2i", without internal spaces.
+(Str coercion also returns this.)
+
+    say (1-4i).gist;                # OUTPUT: «1-4i␤»
+
+=head2 method perl
+
+Defined as:
+
+    method perl(Complex:D: --> Str:D)
+
+Returns a string representation corresponding to the unambiguous C<val()>-based
+representation of complex literals, of the form "<1+2i>", without internal
+spaces, and including the angles that keep the + from being treated as a
+normal addition operator.
+
+    say (1-3i).perl;                # OUTPUT: «<1-3i>␤»
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real(Complex:D: --> Num:D)
+    multi method Real(Complex:U: --> Num:D)
+
+Coerces the invocant to L<Num>. If the imaginary part isn't L<approximately|/routine/=~=> zero,
+coercion L<fails|/routine/fail> with C<X::Numeric::Real>.
+
+The C<:D> variant returns the result of that coercion. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns value C<0e0>.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

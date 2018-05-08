@@ -1,0 +1,113 @@
+=begin pod
+
+=TITLE class IntStr
+
+=SUBTITLE Dual Value Integer and String
+
+    class IntStr is Int is Str { }
+
+The dual value types (often referred to as L<allomorphs|/language/glossary#Allomorph>)
+allow for the representation of a value as both a string and a numeric type, typically
+they will be created for you when the context is "stringy" but they can be determined
+to be numbers, such as in some L<quoting constructs|/language/quoting>:
+
+    my $f = <42>; say $f.^name; # OUTPUT: «IntStr␤»
+
+As a subclass of both L«C<Int>|/type/Int» and L«C<Str>|/type/Str», an C<IntStr>
+will be accepted where either is expected. However, C<IntStr> does not share
+object identity with C<Int>- or C<Str>-only variants:
+
+    my $int-str = <42>;
+    my Int $int = $int-str; # OK!
+    my Str $str = $int-str; # OK!
+    say 42 ∈ <42  55  1>;   # False; ∈ operator cares about object identity
+
+=head1 Methods
+
+=head2 method new
+
+    method new(Int $i, Str $s)
+
+The constructor requires both the C<Int> and the C<Str> value, when constructing one
+directly the values can be whatever is required:
+
+    my $f = IntStr.new(42, "forty two");
+    say +$f; # OUTPUT: «42␤»
+    say ~$f; # OUTPUT: «"forty two"␤»
+
+=head2 method Bool
+
+Defined as:
+
+    multi method Bool(IntStr:D: --> Bool:D)
+
+I<This method may be provided by the parent classes and not implemented in IntStr directly>.
+
+Returns C<False> if the invocant is numerically C<0>, otherwise returns C<True>. String portion
+is not considered.
+
+=head2 method Int
+
+    method Int
+
+Returns the integer value of the C<IntStr>.
+
+=head2 method Numeric
+
+Defined as:
+
+    multi method Numeric(IntStr:D: --> Int:D)
+    multi method Numeric(IntStr:U: --> Int:D)
+
+The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns value C<0>.
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real(IntStr:D: --> Int:D)
+    multi method Real(IntStr:U: --> Int:D)
+
+The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns value C<0>.
+
+=head2 method Str
+
+Returns the string value of the C<IntStr>.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(IntStr:D: Any:D $value)
+
+If C<$value> is L<Numeric> (including another
+L<allomorph|/language/glossary#index-entry-Allomorph>), checks if invocant's
+L<Numeric> part L<ACCEPTS|/type/Numeric#method_ACCEPTS> the C<$value>. If
+C<$value> is L<Str>, checks if invocant's L<Str> part
+L<ACCEPTS|/type/Str#method_ACCEPTS> the C<$value>. If value is anything else,
+checks if both L<Numeric> and L<Str> parts C<ACCEPTS> the C<$value>.
+
+    say <5> ~~ "5.0"; # OUTPUT: «False␤»
+    say <5> ~~  5.0 ; # OUTPUT: «True␤»
+    say <5> ~~ <5.0>; # OUTPUT: «True␤»
+
+=head1 Operators
+
+=head2 infix cmp
+
+    multi sub infix:<cmp>(IntStr:D $a, IntStr:D $b)
+
+Compare two C<IntStr> objects.  The comparison is done on the C<Int> value first and
+then on the C<Str> value. If you want to compare in a different order then you would
+coerce to a C<Int> or C<Str> value first:
+
+    my $f = IntStr.new(42, "smaller");
+    my $g = IntStr.new(43, "larger");
+    say $f cmp $g;          # OUTPUT: «Less␤»
+    say $f.Str cmp $g.Str;  # OUTPUT: «More␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

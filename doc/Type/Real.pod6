@@ -1,0 +1,154 @@
+=begin pod
+
+=TITLE role Real
+
+=SUBTITLE Non-complex number
+
+    role Real does Numeric { ... }
+
+Common role for non-Complex numbers.
+
+=head1 Methods
+
+=head2 method Bridge
+
+Defined as:
+
+    method Bridge(Real:D:)
+
+Default implementation coerces the invocant to L<Num> and that's the behaviour
+of this method in core L<Real> types. This method primarily exist to make it
+easy to implement custom L<Real> types by users, with the C<Bridge> method
+returning I<one of> the core C<Real> types (I<NOT> necessarily a L<Num>)
+that best represent the custom C<Real> type. In turn, this lets all the
+core operators and methods obtain a usable value they can work with.
+
+As an example, we can implement a custom C<Temperature> type. It has a unit of measure and the
+value, which are given during instantiation. We can implement custom operators or conversion
+methods that work with this type. When it comes to regular mathematical operators, however,
+we can simply use the C<.Bridge> method to convert the C<Temperature> to Kelvin expressed
+in one of the core numeric types:
+
+    class Temperature is Real {
+        has Str:D  $.unit  is required where any <K F C>;
+        has Real:D $.value is required;
+        method new ($value, :$unit = 'K') { self.bless :$value :$unit }
+        # Note: implementing .new() that handles $value of type Temperature is left as an exercise
+
+        method Bridge {
+            when $!unit eq 'F' { ($!value + 459.67) × 9/5 }
+            when $!unit eq 'C' {  $!value + 273.15 }
+            $!value
+        }
+        method gist { self.Str }
+        method Str  { "$!value degrees $!unit" }
+    }
+
+    sub postfix:<℃> { Temperature.new: $^value, :unit<C> }
+    sub postfix:<℉> { Temperature.new: $^value, :unit<F> }
+    sub postfix:<K> { Temperature.new: $^value, :unit<K> }
+
+    my $human := 36.6℃;
+    my $book  := 451℉;
+    my $sun   := 5778K;
+    say $human;                # OUTPUT: «36.6 degrees C␤»
+    say $human + $book + $sun; # OUTPUT: «7726.956␤»
+    say 123K + 456K;           # OUTPUT: «579␤»
+
+As we can see from the last two lines of the output, the type of the bridged result is not
+forced to be any I<particular> core type. It is a L<Rat>, when we instantiated C<Temperature>
+with a C<Rat> or when conversion was involved, and it is an L<Int> when we instantiated
+C<Temperature> with an L<Int>.
+
+=head2 method Rat
+
+    method Rat(Real:D: Real $epsilon = 1e-6)
+
+Converts the number to a C<Rat> with the precision C<$epsilon>.
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real(Real:D: --> Real:D)
+    multi method Real(Real:U: --> Real:D)
+
+The C<:D> variant simply returns the invocant. The C<:U> variant issues a warning about using
+an uninitialized value in numeric context and then returns C<self.new>.
+
+=head2 routine rand
+
+    sub term:<rand> (--> Num:D)
+    method rand(Real:D: --> Real:D)
+
+Returns a pseudo-random number between zero (inclusive) and the number (non-inclusive.)
+
+The term form returns a pseudo-random C<Num> between 0e0 (inclusive) and 1e0 (non-inclusive.)
+
+=head2 method sign
+
+    method sign(Real:D:)
+
+Returns C<-1> if the number is negative, C<0> if it is zero and C<1>
+otherwise.
+
+=head2 method round
+
+    method round(Real:D: $scale = 1)
+
+Rounds the number to scale C<$scale>. If C<$scale> is 1, rounds to an
+integer. If scale is C<0.1>, rounds to one digit after the comma etc.
+
+=head2 method floor
+
+    method floor(Real:D --> Int:D)
+
+Return the largest integer not greater than the number.
+
+=head2 method ceiling
+
+    method ceiling(Real:D --> Int:D)
+
+Returns the smallest integer not less than the number.
+
+=head2 method truncate
+
+    method truncate(Real:D --> Int:D)
+
+Rounds the number towards zero.
+
+=head2 method base
+
+    method base(Real:D: Int:D $base where 2..36, $digits? --> Str:D)
+
+Converts the number to a string, using C<$base> as base. For C<$base> larger
+than ten, capital Latin letters are used.
+
+    255.base(16);            # 'FF'
+
+The optional C<$digits> argument asks for that many digits of fraction
+(which may not be negative). If omitted, a reasonable default is chosen
+based on type.  For Int this default is 0. For L<Num|/type/Num>, the default is 8.
+For L<Rational|/type/Rational>, the number of places is scaled to the size of the denominator,
+with a minimum of 6.
+
+A special value of L«C<Whatever>|/type/Whatever» (C<*>)
+can be given as C<$digits>, which functions the same as when C<$digits> is not specified for
+all C<Real> types except the C<Rationals>. For C<Rationals>, the C<Whatever>
+indicates that you wish all of the possible digits of the fractional part,
+but use caution: since there's no detection of repeating
+fractional parts (the algorithm will eventually stop after generating 2**63
+digits).
+
+The final digit produced is always rounded.
+
+    say pi.base(10, 3);      # OUTPUT: «3.142␤»
+    say (1/128).base(10, *); # OUTPUT: «0.0078125␤»
+    say (1/100).base(10, *); # OUTPUT: «0.01␤»
+    say (1/3)  .base(10, *); # WRONG: endlessly repeating fractional part
+
+For reverse operation, see L«C<parse-base>|/routine/parse-base»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -1,0 +1,103 @@
+=begin pod
+
+=TITLE class Instant
+
+=SUBTITLE Specific moment in time
+
+    class Instant is Cool does Real { }
+
+An C<Instant> is a particular moment in time measured in atomic seconds, with
+fractions. It is not tied to or aware of any epoch.
+
+An C<Instant> can be used to create a L<DateTime> object set to that
+C<Instant>. The pseudo-constant C<now> returns the current time as an
+C<Instant>.
+
+Basic math is defined for C<Instant>s (as well as L<Duration>s). Adding an
+C<Instant> to a C<Duration> returns another Instant. Subtracting two C<Instant>s
+will yield a C<Duration>. Adding two C<Instant>s is explicitly disallowed. All
+other operations with Instants are undefined.
+
+=head1 Future Leap Seconds
+
+The methods that involve knowledge of leap seconds always assume
+that there will be no further leaps after the last leap second
+that the implementation knows about, which may not be the last
+leap second that has actually been scheduled.
+This means you can get different results, depending on the
+compiler version you're using. For example, the December 31, 2016 leap second
+was announced in July and shipped with Rakudo 2016.07, so 2016.06 and earlier
+releases won't know about it:
+
+=begin code :skip-test
+$ perl6-2016.06 -e 'say Instant.from-posix: 1485726595'
+Instant:1485726631
+
+$ perl6-2016.07 -e 'say Instant.from-posix: 1485726595'
+Instant:1485726632
+=end code
+
+Since a Rakudo compiler always returns 0 for future leap seconds it doesn't
+know about, you can patch your old code when new leap seconds are announced,
+so it will give correct results, regardless of what version of the compiler
+it runs on:
+
+=begin code :skip-test
+$ perl6-2016.06 -e 'say ($*VM.version before v2016.07 ?? 1 !! 0) + Instant.from-posix: 1485726595'
+Instant:1485726632
+
+$ perl6-2016.07 -e 'say ($*VM.version before v2016.07 ?? 1 !! 0) + Instant.from-posix: 1485726595'
+Instant:1485726632
+=end code
+
+=head1 Methods
+
+=head2 method from-posix
+
+    method from-posix($posix, Bool $prefer-leap-second = False)
+
+Converts the POSIX timestamp C<$posix> to an Instant.
+If C<$prefer-leap-second> is C<True>, the return value will be
+the first of the two possible seconds in the case of a leap second.
+
+    say DateTime.new(Instant.from-posix(915148800, True));  # OUTPUT: «1998-12-31T23:59:60Z␤»
+    say DateTime.new(Instant.from-posix(915148800));        # OUTPUT: «1999-01-01T00:00:00Z␤»
+
+=head2 method to-posix
+
+    method to-posix()
+
+Converts the invocant to a POSIX timestamp and returns a two
+element list containing the POSIX timestamp and a C<Bool>.
+It is the inverse of L<#method from-posix>, except that the second return
+value is C<True> if *and only if* this Instant is in a leap
+second.
+
+    say DateTime.new("1999-01-01T00:00:00Z").Instant.to-posix; # OUTPUT: «(915148800 False)␤»
+    say DateTime.new('1998-12-31T23:59:60Z').Instant.to-posix; # OUTPUT: «(915148800 True)␤»
+
+=head2 method Date
+
+Defined as:
+
+    method Date(Instant:D: --> Date:D)
+
+Coerces the invocant to L<Date>.
+
+    my $i = "/etc/passwd".IO.modified;
+    say $i;             # OUTPUT: «Instant:1451489025.878018␤»
+    say $i.Date;        # OUTPUT: «2015-12-30␤»
+
+=head2 method DateTime
+
+Defined as:
+
+    method DateTime(Instant:D: --> DateTime:D)
+
+Coerces the invocant to L<DateTime>.
+
+    say now.DateTime;  # OUTPUT: «2017-05-09T14:02:58.147165Z␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -48,6 +48,12 @@ role  Metamodel::Versioning
 # Attributes
 class Attribute
 
+[Domain-specific]
+# VM
+class Distro
+class Kernel
+class VM
+
 [Basic]
 # Base types
 class Mu
@@ -57,7 +63,7 @@ class Scalar                        is Any
 class Variable                      is Any
 class Proxy                         is Any
 class Cool                          is Any
-class Bool                          is Cool
+enum  Bool                          is Int
 class Nil                           is Cool
 
 [Basic]
@@ -73,6 +79,7 @@ class Macro                         is Routine
 class ForeignCode                   does Callable
 
 [Basic]
+class HyperWhatever
 class Whatever
 class WhateverCode                  is Code
 
@@ -88,8 +95,8 @@ class Label
 [Domain-specific]
 # Regex and Grammars
 class Match                         is Capture is Cool
-class Cursor
-class Grammar                       is Cursor
+class Cursor                        aka Match is Capture is Cool
+class Grammar                       is Match
 class Regex                         is Method
 
 [Basic]
@@ -105,11 +112,19 @@ class Int                           is Cool        does Real
 class Num                           is Cool        does Real
 class Complex                       is Cool        does Numeric
 class int       is Int
+class atomicint                     is Int
 
 [Basic]
 role  Rational[::NuT, ::DeT]                       does Real
 class Rat                           is Cool        does Rational[Int, Int]
 class FatRat                        is Cool        does Rational[Int, Int]
+
+[Basic]
+# Allomorphs
+class IntStr                        is Int is Str
+class NumStr                        is Num is Str
+class RatStr                        is Rat is Str
+class ComplexStr                    is Complex is Str
 
 [Basic]
 # Temporal
@@ -122,16 +137,17 @@ class Instant                       is Cool        does Real
 [Domain-specific]
 # IO
 role  IO
-role  IO::Special
-class IO::Handle                                   does IO
+class IO::Special                                  does IO
+class IO::Handle
+class IO::CatHandle                 is IO::Handle
+class IO::ArgFiles                  is IO::CatHandle
 class IO::Pipe                      is IO::Handle
-class IO::Path                      is Cool
+class IO::Path                      is Cool        does IO
 class IO::Path::Unix                is IO::Path
 class IO::Path::Win32               is IO::Path
 class IO::Path::Cygwin              is IO::Path
 class IO::Path::QNX                 is IO::Path
-class IO::ArgFiles                  is IO::Handle
-role  IO::Socket                                   does IO
+role  IO::Socket
 class IO::Socket::INET                             does IO::Socket
 class IO::Socket::Async
 class IO::Spec
@@ -157,15 +173,6 @@ class Pod::Heading                  is Pod::Block
 class Pod::Item                     is Pod::Block
 
 [Domain-specific]
-# CompUnit
-class CompUnit
-class CompUnitRepo
-role CompUnitRepo::Locally
-class CompUnitRepo::Local::File does CompUnitRepo::Locally
-class CompUnitRepo::Local::Installation does CompUnitRepo::Locally
-class Distribution
-
-[Domain-specific]
 # S17 / Concurrency
 role Scheduler
 class CurrentThreadScheduler    does Scheduler
@@ -179,6 +186,7 @@ class Supply
 class Supplier
 class Supplier::Preserving      is Supplier
 enum Signal                     is Int
+enum Order                      is Int
 class Semaphore
 class Lock
 class Proc::Async
@@ -206,7 +214,7 @@ class Slip                          is List
 # Collections: Stringy
 role  Blob[::T = uint8]             does Positional[T] does Stringy
 role  Buf[::T = uint8]  does Blob[T]
-class Uni                           does Positional[uin32] does Stringy
+class Uni                           does Positional[uint32] does Stringy
 class NFD               is Uni
 class NFC               is Uni
 class NFKD              is Uni
@@ -219,7 +227,7 @@ role  Enumeration
 role  NumericEnumeration
 role  StringyEnumeration
 class Pair                                         does Associative
-class Map                           is Iterable is Cool does Associative
+class Map                           does Iterable is Cool does Associative
 class Stash                         is Hash
 class PseudoStash                   is Map
 class Hash                          is Map
@@ -240,7 +248,7 @@ class MixHash                       does Mixy
 # Exceptions: Base
 class Failure
 class Exception
-class Backtrace                     is List
+class Backtrace
 class Backtrace::Frame
 class Deprecation
 
@@ -264,10 +272,14 @@ class X::HyperOp::NonDWIM           is Exception
 class X::Set::Coerce                is Exception
 class X::StubCode                   is Exception
 class X::Eval::NoSuchLang           is Exception
+class X::Seq::Consumed              is Exception
+class X::Caller::NotDynamic         is Exception
+class X::Proc::Unsuccessful         is Exception
 
 [Exceptions]
 # Exceptions: Numbers
-class X::Numeric::Real              is Exception
+class X::Numeric::CannotConvert     is Exception
+class X::Numeric::Real              is X::Numeric::CannotConvert
 
 [Exceptions]
 # Exceptions: Strings
@@ -294,15 +306,16 @@ class X::Proc::Async::TapBeforeSpawn    does X::Proc::Async
 [Exceptions]
 # Exceptions: Concurrency
 class X::Promise::CauseOnlyValidOnBroken is Exception
+class X::Promise::Vowed                  is Exception
 class X::Channel::SendOnClosed           is Exception
 class X::Channel::ReceiveOnClosed        is Exception
 
 [Exceptions]
 # Exceptions: Time
-class X::Temporal                   is Exception
-class X::Temporal::InvalidFormat    is X::Temporal
-class X::DateTime::InvalidDeltaUnit is X::Temporal
-class X::DateTime::TimezoneClash    is X::Temporal
+role  X::Temporal                   is Exception
+class X::Temporal::InvalidFormat    does X::Temporal
+class X::DateTime::InvalidDeltaUnit does X::Temporal
+class X::DateTime::TimezoneClash    does X::Temporal
 
 [Exceptions]
 # Exceptions: Composition
@@ -329,14 +342,18 @@ class X::ControlFlow::Return        is X::ControlFlow
 role  X::OS                         is Exception
 role  X::IO                                        does X::OS
 class X::IO::Rename                 is Exception   does X::IO
+class X::IO::Move                   is Exception   does X::IO
 class X::IO::Copy                   is Exception   does X::IO
 class X::IO::Mkdir                  is Exception   does X::IO
 class X::IO::Chdir                  is Exception   does X::IO
 class X::IO::Dir                    is Exception   does X::IO
 class X::IO::Cwd                    is Exception   does X::IO
 class X::IO::Rmdir                  is Exception   does X::IO
+class X::IO::Link                   is Exception   does X::IO
 class X::IO::Unlink                 is Exception   does X::IO
+class X::IO::Symlink                is Exception   does X::IO
 class X::IO::Chmod                  is Exception   does X::IO
+class X::IO::DoesNotExist           is Exception   does X::IO
 
 [Exceptions]
 # Exceptions: Compile-Time
@@ -354,8 +371,11 @@ class X::Bind::Slice                is Exception
 class X::Bind::ZenSlice             is X::Bind::Slice
 class X::Comp::AdHoc                is X::AdHoc    does X::Comp
 class X::Comp::NYI                  is X::NYI      does X::Comp
+class X::Trait::NotOnNative         is Exception
 class X::Comp::Trait::NotOnNative   is X::Trait::NotOnNative does X::Comp
+class X::Trait::Scope               is Exception
 class X::Comp::Trait::Scope         is X::Trait::Scope does X::Comp
+class X::Trait::Unknown             is Exception
 class X::Comp::Trait::Unknown       is X::Trait::Unknown does X::Comp
 class X::Declaration::Scope                        does X::Comp
 class X::Declaration::Scope::Multi  is X::Declaration::Scope
@@ -368,7 +388,6 @@ class X::Import::Redeclaration                     does X::Comp
 class X::Method::Private::Permission               does X::Comp
 class X::Method::Private::Unqualified              does X::Comp
 class X::NYI                        is Exception
-class X::Obsolete                                  does X::Comp
 class X::Obsolete                                  does X::Comp
 class X::Package::Stubbed                          does X::Comp
 class X::Parameter::Default                        does X::Comp
@@ -415,7 +434,6 @@ class X::Syntax::Regex::Unspace                    does X::Syntax
 class X::Syntax::Regex::Unterminated               does X::Syntax
 class X::Syntax::AddCategorical::TooFewParts       does X::Syntax
 class X::Syntax::AddCategorical::TooManyParts      does X::Syntax
-class X::Augment::NoSuchType                       does X::Syntax
 class X::Syntax::Augment::WithoutMonkeyTyping      does X::Syntax
 class X::Syntax::Comment::Embedded                 does X::Syntax
 class X::Syntax::Confused                          does X::Syntax

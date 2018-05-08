@@ -1,0 +1,219 @@
+=begin pod
+
+=TITLE role Blob
+
+=SUBTITLE Immutable buffer for binary data ('Binary Large OBject')
+
+    role Blob[::T = uint8] does Positional[T] does Stringy { }
+
+The C<Blob> role is an immutable interface to binary types, and offers a
+list-like interface to lists of integers, typically unsigned integers.
+
+=head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    method new(*@codes)
+
+Creates a C<Blob> from a list of integers.
+
+    my $blob = Blob.new([1, 2, 3]);
+
+=head2 method Bool
+
+Defined as:
+
+    multi method Bool(Blob:D:)
+
+Returns C<False> if and only if the buffer is empty.
+
+    my $blob = Blob.new();
+    say $blob.Bool; # OUTPUT: «False␤»
+    $blob = Blob.new([1, 2, 3]);
+    say $blob.Bool; # OUTPUT: «True␤»
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(Blob:D --> Capture:D)
+
+Equivalent to calling L«C<.List.Capture>|/type/List#method_Capture»
+on the invocant.
+
+=head2 method elems
+
+Defined as:
+
+    multi method elems(Blob:D: --> Int:D)
+
+Returns the number of elements of the buffer.
+
+    my $blob = Blob.new([1, 2, 3]);
+    say $blob.elems; # OUTPUT: «3␤»
+
+=head2 method bytes
+
+Defined as:
+
+    method bytes(Blob:D: --> Int:D)
+
+Returns the number of bytes used by the elements in the buffer.
+
+    say Blob.new([1, 2, 3]).bytes;      # OUTPUT: «3␤»
+    say blob16.new([1, 2, 3]).bytes;    # OUTPUT: «6␤»
+    say blob64.new([1, 2, 3]).bytes;    # OUTPUT: «24␤»
+
+=head2 method decode
+
+Defined as:
+
+    multi method decode(Blob:D: Str:D $encoding = 'UTF-8' --> Str:D)
+
+Applies an encoding to turn the blob into a L<Str|/type/Str>.
+
+    my Blob $blob = "string".encode('utf-8');
+    say $blob.decode('utf-8'); # OUTPUT: «string␤»
+
+On malformed utf-8 C<.decode> will throw X::AdHoc. To handle sloppy utf-8 use
+L«C<utf8-c8>|/language/unicode#UTF8-C8».
+
+=head2 method gist
+
+Defined as:
+
+    method gist(Blob:D: --> Str:D)
+
+Returns the string containing the "gist" of the L<Blob>,
+B<listing up to the first 100> elements, separated by space, appending an
+ellipsis if the L<Blob> has more than 100 elements.
+
+    put Blob.new(1, 2, 3).gist; # OUTPUT: «Blob:0x<01 02 03>␤»
+    put Blob.new(1..2000).gist;
+    # OUTPUT:
+    # Blob:0x<01 02 03 04 05 06 07 08 09 0a 0b 0c 0d 0e 0f 10 11 12 13 14 15
+    # 16 17 18 19 1a 1b 1c 1d 1e 1f 20 21 22 23 24 25 26 27 28 29 2a 2b 2c
+    # 2d 2e 2f 30 31 32 33 34 35 36 37 38 39 3a 3b 3c 3d 3e 3f 40 41 42 43
+    # 44 45 46 47 48 49 4a 4b 4c 4d 4e 4f 50 51 52 53 54 55 56 57 58 59 5a
+    # 5b 5c 5d 5e 5f 60 61 62 63 64 ...>
+
+=head2 method subbuf
+
+Defined as:
+
+    multi method subbuf(Int $from, Int $len = self.elems --> Blob:D)
+    multi method subbuf(Range $range --> Blob:D)
+
+Extracts a part of the invocant buffer, starting from the index with
+elements C<$from>, and taking C<$len> elements (or less if the buffer is
+shorter), and creates a new buffer as the result.
+
+    say Blob.new(1..10).subbuf(2, 4);    # OUTPUT: «Blob:0x<03 04 05 06>␤»
+    say Blob.new(1..10).subbuf(*-2);     # OUTPUT: «Blob:0x<09 0a>␤»
+    say Blob.new(1..10).subbuf(*-5,2);   # OUTPUT: «Blob:0x<06 07>␤»
+
+For convenience, also allows a C<Range> to be specified to indicate which
+part of the invocant buffer you would like:
+
+    say Blob.new(1..10).subbuf(2..5);    # OUTPUT: «Blob:0x<03 04 05 06>␤»
+
+=head2 method allocate
+
+Defined as:
+
+    multi method allocate($elems --> Blob:D)
+    multi method allocate($elems, $pattern --> Blob:D)
+
+Returns a newly created C<Blob> object with the given number of elements.
+Optionally takes a second argument that indicates the pattern with which to
+fill the C<Blob>: this can be a single integer value, or any C<Iterable>
+that generates integer values, including another C<Blob>. The pattern will be repeated if not enough
+values are given to fill the entire C<Blob>.
+
+    my Blob $b0 = Blob.allocate(10,0);
+    $b0.say; # OUTPUT: «Blob:0x<00 00 00 00 00 00 00 00 00 00>␤»
+
+=head2 method unpack
+
+This method is considered B<experimental>, in order to use it you will need to do:
+
+    use experimental :pack;
+
+
+Defined as:
+
+    method unpack(Blob:D: $template --> List:D)
+
+Extracts features from the blob according to the template string, and
+returns them as a list.
+
+The template string consists of zero or more units that begin with an ASCII
+letter, and are optionally followed by a quantifier.  The quantifier can be
+C<*> (which typically stands for "use up the rest of the Blob here"), or a
+positive integer (without a C<+>).
+
+Whitespace between template units is ignored.
+
+Examples of valid templates include C<"A4 C n*"> and C<"A*">.
+
+The following letters are recognized:
+
+=begin table
+
+    Letter  Meaning
+    ======  =======
+    A       Extract a string, where each element of the Blob maps to a codepoint
+    a       Same as A
+    C       Extract an element from the blob as an integer
+    H       Extracts a hex string
+    L       Extracts four elements and returns them as a single unsigned integer
+    n       Extracts two elements and combines them in "network" (big-endian) byte order into a single integer
+    N       Extracts four elements and combines them in "network" (big-endian) byte order into a single integer
+    S       Extracts two elements and returns them as a single unsigned integer
+    v       Same as S
+    V       Same as L
+    x       Drop an element from the blob (that is, ignore it)
+    Z       Same as A
+
+=end table
+
+Example:
+
+    use experimental :pack;
+    say Blob.new(1..10).unpack("C*");
+    # OUTPUT: «(1 2 3 4 5 6 7 8 9 10)␤»
+
+=head2 sub pack
+
+This subroutine is considered B<experimental>,  in order to use it you will need to do:
+
+=for code
+use experimental :pack;
+
+=for code
+sub pack(Str $template, *@items --> Buf)
+
+Packs the given items according to the template and returns a buffer
+containing the packed bytes.
+
+The template string consists of zero or more units that begin with an ASCII
+letter, and are optionally followed by a quantifier.  For details, see
+L<unpack|/routine/unpack>.
+
+=head2 method reverse
+
+Defined as:
+
+    method reverse(Blob:D: --> Blob:D)
+
+Returns a Blob with all elements in reversed order.
+
+    say Blob.new([1, 2, 3]).reverse;    # OUTPUT: «Blob:0x<03 02 01>␤»
+    say blob16.new([2]).reverse;        # OUTPUT: «Blob[uint16]:0x<02>␤»
+    say buf32.new([16, 32]).reverse;    # OUTPUT: «Buf[uint32]:0x<20 10>␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

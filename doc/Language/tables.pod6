@@ -1,0 +1,285 @@
+=begin pod :tag<pod6>
+
+=TITLE Pod 6 Tables
+
+=SUBTITLE The Good, the Bad, and the Ugly
+
+The official specification for Perl 6 POD tables is located in the
+Documentation specification here:
+L<Tables|https://raw.githubusercontent.com/perl6/specs/master/S26-documentation.pod>.
+Although Pod 6 specifications are not completely handled properly yet,
+several projects are ongoing to correct the situation; one such
+project is ensuring the proper handling of Pod 6 tables.
+
+As part of that effort, this document explains the current state of
+Pod 6 tables by example: valid tables, invalid tables, and ugly tables
+(i.e., valid tables that, because of sloppy construction, may result
+in something different than the user expects).
+
+=head1 Restrictions
+
+1. The only valid column separators are either visible (V<' | '> or V<' + '>)
+(note at least one space is required before and after the visible column
+separators) or invisible [two or more contiguous whitespace (WS)
+characters (e.g., V<'  '>)]. Column separators are not normally recognized
+as such at the left or right side of a table, but one on the right side may
+result in one or more empty cells depending upon the number of the cells in
+other rows. (Note that a pipe or plus character meant as part of cell
+data will result in an unintended extra column unless the character is escaped with a backslash, e.g., '\|' or '\+'.)
+
+2. Mixing visible and invisible column separators in the same table is
+illegal.
+
+3. The only valid row separator characters are V<'_'>, V<'-'>, V<'+'>, V<' '>,
+V<'|'>, and V<'='>.
+
+4. Consecutive interior row-separator lines are illegal.
+
+5. Leading and trailing row-separator lines generate a warning.
+
+6. Currently formatting blocks in table cells is ignored and treated as plain text.
+
+HINT: During development, use of the environment variable C<RAKUDO_POD6_TABLE_DEBUG>
+will show you how Rakudo interprets your pod tables before they are passed
+to renderers such as B<Pod::To::HTML>, B<Pod::To::Text>, and B<Pod::To::Markdown>.
+
+=head1 Best Practices
+
+1. Use of WS for column separators is fragile, and they should only be
+used for simple tables.  The C<Ugly Tables> section below illustrates
+the problem.
+
+2. Align table columns and rows carefully.  See the examples in later
+best practices.
+
+3. Don't use visual borders on the table.
+
+4. For tables with a heading and single- or multi-line content, use
+one or more contiguous equal signs (V<'='>) as the row separator after
+the heading, and use one or more contiguous hyphens (V<'-'>) as the row
+separator in the content portion of the table.  For example,
+
+=item Heading and single- or multi-line content
+
+=begin code :skip-test
+=begin table
+ hdr col 0 | hdr col 1
+ ======================
+ row 0     | row 0
+ col 0     | col 1
+ ----------------------
+ row 1     | row 1
+ col 0     | col 1
+ ----------------------
+=end table
+=end code
+
+=item Heading and single-line content
+
+=begin code :skip-test
+=begin table
+ hdr col 0   | hdr col 1
+ ======================
+ row 0 col 0 | row 0 col 1
+ row 1 col 0 | row 1 col 1
+=end table
+=end code
+
+4. For tables with no header and multi-line content, use one or more
+contiguous hyphens (V<'-'>) as the row separator in the content portion
+of the table.  For example,
+
+=begin code :skip-test
+=begin table
+ row 0       | row 0
+ col 0       | col 1
+ ----------------------
+ row 1 col 0 | row 1 col 1
+=end table
+=end code
+
+5. For tables with many rows and no multi-line content, using no row
+separators is fine.  However, with one or more rows with multi-line
+content, it is easier to ensure proper results by using a row
+separator line (visible or invisible) between every content row.
+
+6. Ensure intentionally empty cells have column separators, otherwise
+expect a warning about short rows being filled with empty cells.
+(Tables rows will always have the same number of cells as the
+row with the most cells. Short rows are padded on the right with
+empty cells and generate a warning.)
+
+Note that not following best practices may require more table
+processing due to additional looping over table rows.
+
+=head1 Good Tables
+
+Following are examples of valid (Good) tables (taken from the current
+L<Specification Tests|https://github.com/perl6/roast>).
+
+=begin code :skip-test
+=begin table
+        The Shoveller   Eddie Stevens     King Arthur's singing shovel
+        Blue Raja       Geoffrey Smith    Master of cutlery
+        Mr Furious      Roy Orson         Ticking time bomb of fury
+        The Bowler      Carol Pinnsler    Haunted bowling ball
+=end table
+=end code
+
+=begin code :skip-test
+=table
+    Constants           1
+    Variables           10
+    Subroutines         33
+    Everything else     57
+
+=end code
+
+=begin code :skip-test
+=for table
+    mouse    | mice
+    horse    | horses
+    elephant | elephants
+
+=end code
+
+=begin code :skip-test
+=table
+    Animal | Legs |    Eats
+    =======================
+    Zebra  +   4  + Cookies
+    Human  +   2  +   Pizza
+    Shark  +   0  +    Fish
+
+=end code
+
+=begin code :skip-test
+=table
+        Superhero     | Secret          |
+                      | Identity        | Superpower
+        ==============|=================|================================
+        The Shoveller | Eddie Stevens   | King Arthur's singing shovel
+
+=end code
+
+=begin code :skip-test
+=begin table
+
+                        Secret
+        Superhero       Identity          Superpower
+        =============   ===============   ===================
+        The Shoveller   Eddie Stevens     King Arthur's
+                                          singing shovel
+
+        Blue Raja       Geoffrey Smith    Master of cutlery
+
+        Mr Furious      Roy Orson         Ticking time bomb
+                                          of fury
+
+        The Bowler      Carol Pinnsler    Haunted bowling ball
+
+=end table
+=end code
+
+=begin code :skip-test
+=table
+    X | O |
+   ---+---+---
+      | X | O
+   ---+---+---
+      |   | X
+
+=end code
+
+=begin code :skip-test
+=table
+    X   O
+   ===========
+        X   O
+   ===========
+            X
+
+=end code
+
+=begin code :skip-test
+=begin table
+
+foo
+bar
+
+=end table
+=end code
+
+=head1 Bad Tables
+
+Following are examples of invalid (Bad) tables, and they should
+trigger an unhandled exception during parsing.
+
+=item Mixed column separator types in the same row are not allowed:
+
+=begin code :skip-test
+=begin table
+r0c0 +  r0c1 | r0c3
+=end table
+=end code
+
+=item  Mixed visual and whitespace column separator types in the same table are not allowed:
+
+=begin code :skip-test
+=begin table
+r0c0 +  r0c1 | r0c3
+r1c0    r0c1   r0c3
+=end table
+=end code
+
+=item Two consecutive interior row separators are not allowed:
+
+=begin code :skip-test
+=begin table
+r0c0 |  r0c1
+============
+============
+r1c0 |  r1c1
+=end table
+=end code
+
+=head1 Ugly Tables
+
+Following are examples of valid tables that are probably intended to
+be two columns, but the columns are not aligned well so each
+will parse as a single-column table.
+
+=item  Unaligned columns with WS column separators:
+
+Notice the second row has the two words separated by only B<one> WS
+character, while it takes at least B<two> adjacent WS characters to define
+a column separation.  B<This is a valid table but will be parsed as a
+single-column table>.
+
+=begin code :skip-test
+=begin table
+r0c0    r0c1
+ r1c0 r0c1
+=end table
+=end code
+
+=item  Unaligned columns with visual column separators:
+
+Notice the second row has the two words separated by a visible
+character (V<'|'>) but the character is not recognized as a column
+separator because it doesn't have an adjacent WS character on both
+sides of it.  Although this is a legal table, the result will not
+be what the user intended because the first row has two
+columns while the second row has only one column, and it will thus have
+an empty second column.
+
+=begin code :skip-test
+=begin table
+r0c0  |  r0c1
+ r1c0 |r0c1
+=end table
+=end code
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

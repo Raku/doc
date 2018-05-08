@@ -1,0 +1,88 @@
+=begin pod
+
+=TITLE class Sub
+
+=SUBTITLE Subroutine
+
+    class Sub is Routine { }
+
+A type for subroutines and operators. Subs are created with the C<sub>
+declarator keyword followed by an L<identifier|/language/syntax#Identifiers>. Operators are declared by C<sub>
+followed by C<prefix>, C<infix>, C<postfix>, C<circumfix>, or C<postcircumfix>;
+then a colon and the operator name in a quote construct. For (post-)circumfix
+operators separate the two parts by white space.
+
+    my $s = sub ($a, $b) { $a + $b };
+    say $s.^name;       # OUTPUT: «Sub␤»
+    say $s(2, 5);       # OUTPUT: «7␤»
+
+    sub postfix:<♥>($a){ say „I love $a!“ }
+    42♥;
+    # OUTPUT: «I love 42!␤»
+    sub postcircumfix:<⸨ ⸩>(Positional $a, Whatever){ say $a[0], '…', $a[*-1] }
+    [1,2,3,4]⸨*⸩;
+    # OUTPUT: «1…4␤»
+    constant term:<♥> = "♥"; # We don't want to quote "love", do we?
+    sub circumfix:<α ω>($a){ say „$a is the beginning and the end.“ };
+    α♥ω;
+    # OUTPUT: «♥ is the beginning and the end.␤»
+
+
+Note that subs that go by the same name as
+L<coercers|/language/typesystem#Coercion> will not take precedence over
+coercers. To call them use the C<&>-sigil.
+
+    sub Int(Str $s){'oi‽'};
+    say [Int, Int('42'),&Int('42')];
+    # OUTPUT: «[(Int) 42 oi‽]␤»
+
+X<|my (Sub)>X<|our (Sub)>
+Subs can be nested and scoped with C<my> and C<our>, whereby C<my> is the
+default. A sub declared with C<my> can not be reached from any outer scope. An
+C<our> scoped sub will not redefine a sub of the same name in the outer scope.
+Any sub can be accessed via a closure from any outer scope.
+
+=head1 Traits
+X<|trait_mod (declarator)>
+
+A Trait is a sub that is applied at compile time to various objects like
+classes, routines or L<containers|/language/phasers#index-entry-will_trait>. It
+is declared with the C<trait_mod> declarator followed by a colon and a string
+literal containing the name of the trait. A single positional parameter defines
+the type of the object that the trait is applied to. A single named argument
+defines the secondary name and may carry arguments when the trait is called.
+Traits are a special grammar category and are allowed to be places after most
+language object names or parameter lists.
+
+    say 'start';
+    multi sub trait_mod:<is>(Sub $s, :$foo){
+        say "⟨is foo⟩ has been called with ⟨$foo⟩ on {$s.WHICH}";
+    }
+    sub bar() is foo<oi‽> {
+        say 'bar has been called'
+    }
+    bar();
+    # OUTPUT: «⟨is foo⟩ has been called with ⟨oi‽⟩ on Sub|47563000␤start␤bar has been called␤»
+
+Use L<destructuring|/type/Signature#Destructuring_Parameters> to call traits
+with complex arguments.
+
+    multi trait_mod:<is>(Variable $a, :@foo [$firstpos, *@restpos, :$named, *%restnameds]) {
+        say [$firstpos, @restpos, $named, %restnameds]
+    }
+    my $x is foo[1,2,3,:named<a>, :2b, :3c] = 1
+    # OUTPUT: «[1 [2 3] a {b => 2, c => 3}]␤»
+
+Despite its funky syntax, a trait is just a normal C<Sub>. We can apply traits
+to it (or even themselves) and we can apply traits to objects at runtime.
+
+    multi sub trait_mod:<is> (Sub $s, :$foo) is foo {
+        say 'is foo called'
+    }
+    sub bar {}
+    &trait_mod:<is>(&bar, :foo);
+    # OUTPUT: «is foo called␤is foo called␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

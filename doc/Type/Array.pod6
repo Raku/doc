@@ -1,0 +1,323 @@
+=begin pod
+
+=TITLE class Array
+
+=SUBTITLE Sequence of itemized values
+
+    class Array is List {}
+
+An C<Array> is a L<List> which forces all its elements to be
+scalar containers, which means you can assign to array elements.
+
+C<Array> implements C<Positional> and as such provides support for
+L<subscripts|/language/subscripts>.
+
+=head1 Methods
+
+=head2 method gist
+
+Exactly the same as L«C<List.gist>|/type/List.html#method_gist»,
+except using square brackets for surrounding delimiters.
+
+=head2 routine pop
+
+Defined as:
+
+    multi sub    pop(Array:D )
+    multi method pop(Array:D:)
+
+Removes and returns the last item from the array.  Fails for an empty array.
+
+Example:
+
+    my @foo = <a b>; # a b
+    @foo.pop;        # b
+    pop @foo;        # a
+    pop @foo;
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Cannot::Empty: Cannot pop from an empty Array␤»
+
+=head2 routine push
+
+Defined as:
+
+    multi sub    push(Array:D, **@values --> Array:D)
+    multi method push(Array:D: **@values --> Array:D)
+
+Adds the C<@values> to the end of the array, and returns the modified list.
+Throws for lazy arrays.
+
+Example:
+
+    my @foo = <a b c>;
+    @foo.push: 'd';
+    say @foo;                   # OUTPUT: «[a b c d]␤»
+
+Note that C<push> does not attempt to flatten its argument list.  If you pass
+an array or list as the thing to push, it becomes one additional element:
+
+    my @a = <a b c>;
+    my @b = <d e f>;
+    @a.push: @b;
+    say @a.elems;               # OUTPUT: «4␤»
+    say @a[3].join;             # OUTPUT: «def␤»
+
+Only if you supply multiple values as separate arguments to C<push> are
+multiple values added to the array:
+
+   my @a = '1';
+   my @b = <a b>;
+   my @c = <E F>;
+   @a.push: @b, @c;
+   say @a.elems;                # OUTPUT: «3␤»
+
+See L<method append|#method append> for when you want to append multiple
+values that are stored in a single array.
+
+=head2 method append
+
+Defined as
+
+=begin code :skip-test
+sub append(\array, elems)
+=end code
+    multi method append(Array:D: \values)
+    multi method append(Array:D: **@values is raw)
+
+Appends the argument list to the array passed as the first argument.  This
+modifies the array in-place.  Returns the modified array. Throws for lazy arrays.
+
+The difference from method C<push> is that with an array or list argument,
+C<append> appends several elements (one for each array or list element),
+whereas C<push> appends just one element.
+
+Example:
+
+    my @a = <a b c>;
+    my @b = <d e f>;
+    @a.append: @b;
+    say @a.elems;               # OUTPUT: «6␤»
+    say @a;                     # OUTPUT: «[a b c d e f]␤»
+
+=head2 method elems
+
+Defined as:
+
+    method elems(Array:D: --> Int:D)
+
+Returns the number of elements in the invocant. Throws C<X::Cannot::Lazy>
+exception if the invocant L<is lazy|/routine/is-lazy>. For shaped arrays,
+returns the outer dimension; see L<shape> if you need information for
+all dimensions.
+
+    say [<foo bar ber>] .elems; # OUTPUT: «3␤»
+    say (my @a[42;3;70]).elems; # OUTPUT: «42␤»
+
+    try [-∞...∞].elems;
+    say $!.^name;               # OUTPUT: «X::Cannot::Lazy␤»
+
+=head2 method clone
+
+Defined as:
+
+    method clone(Array:D: --> Array:D)
+
+Clones the original C<Array>. Modifications of elements in the clone
+are not propagated to the original and vice-versa:
+
+    my @a = <a b c>; my @b = @a.clone;
+    @b[1] = 42; @a.push: 72;
+    say @b; # OUTPUT: «[a 42 c]␤»
+    say @a; # OUTPUT: «[a b c 72]␤»
+
+However, note that the reifier I<is> shared between the two Arrays,
+so both Arrays will have the same elements even when each is randomly-generated
+on reification and each element will be reified just once, regardless of
+whether the reification was done by the clone or the original Array.
+B<Note:> just as reifying an Array from multiple threads is not safe,
+so is, for example, reifying the clone from one thread while reifying
+the original from another thread is not safe.
+
+    my @a = 1, {rand} … ∞; my @b = @a.clone;
+    say @b[^3]; # OUTPUT: «(1 0.0216426755282736 0.567660896142156)␤»
+    say @a[^3]; # OUTPUT: «(1 0.0216426755282736 0.567660896142156)␤»
+
+=head2 routine shift
+
+Defined as:
+
+    multi sub    shift(Array:D )
+    multi method shift(Array:D:)
+
+Removes and returns the first item from the array.  Fails for an empty arrays.
+
+Example:
+
+    my @foo = <a b>;
+    say @foo.shift;             # OUTPUT: «a␤»
+    say @foo.shift;             # OUTPUT: «b␤»
+    say @foo.shift;
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Cannot::Empty: Cannot shift from an empty Array␤»
+
+=head2 routine unshift
+
+Defined as:
+
+    multi sub    unshift(Array:D, **@values --> Array:D)
+    multi method unshift(Array:D: **@values --> Array:D)
+
+Adds the C<@values> to the start of the array, and returns the modified array.
+Fails if C<@values> is infinite.
+
+Example:
+
+    my @foo = <a b c>;
+    @foo.unshift: 1, 3 ... 11;
+    say @foo;                   # OUTPUT: «[(1 3 5 7 9 11) a b c]␤»
+
+The notes in L<the documentation for method push|#method push> apply,
+regarding how many elements are added to the array.
+
+L<#method prepend> is the equivalent for adding multiple elements from one
+list or array.
+
+=head2 method prepend
+
+Defined as
+
+=begin code :skip-test
+sub prepend(\array, elems)
+=end code
+    multi method prepend(Array:D: \values)
+    multi method prepend(Array:D: **@values is raw)
+
+Adds the elements from C<LIST> to the front of the array, modifying it
+in-place.
+
+Example:
+
+    my @foo = <a b c>;
+    @foo.prepend: 1, 3 ... 11;
+    say @foo;                   # OUTPUT: «[1 3 5 7 9 11 a b c]␤»
+
+=head2 routine splice
+
+Defined as:
+
+    multi sub    splice(@list,   $start = 0, $elems?, *@replacement --> Array)
+    multi method splice(Array:D: $start = 0, $elems?, *@replacement --> Array)
+
+Deletes C<$elems> elements starting from index C<$start> from the C<Array>,
+returns them and replaces them by C<@replacement>. If C<$elems> is omitted,
+all the elements starting from index C<$start> are deleted. If both C<$start>
+and C<$elems> are omitted, all elements are deleted from the C<Array> and
+returned.
+
+Each of C<$start> and C<$elems> can be specified as a
+L<Whatever|/type/Whatever> or as a L<Callable|/type/Callable> that returns an
+C<int>-compatible value.
+
+A C<Whatever> C<$start> uses the number of elements
+of C<@list> (or invocant). A C<Callable> C<$start> is called with one
+argument—the number of elements in C<@list>—and its return value is used
+as C<$start>.
+
+A C<Whatever> C<$elems> deletes from C<$start> to end of
+C<@list> (same as no C<$elems>). A C<Callable> C<$elems> is called with
+just one argument—the number of elements in C<@list> minus the value of
+C<$start>—and its return value is used the value of C<$elems>.
+
+Example:
+
+    my @foo = <a b c d e f g>;
+    say @foo.splice(2, 3, <M N O P>);        # OUTPUT: «[c d e]␤»
+    say @foo;                                # OUTPUT: «[a b M N O P f g]␤»
+
+=head2 method shape
+
+Defined as:
+
+    method shape() { (*,) }
+
+Returns the shape of the array as a list.
+
+Example:
+
+    my @foo[2;3] = ( < 1 2 3 >, < 4 5 6 > ); # Array with fixed dimensions
+    say @foo.shape;                          # OUTPUT: «(2 3)␤»
+    my @bar = ( < 1 2 3 >, < 4 5 6 > );      # Normal array (of arrays)
+    say @bar.shape;                          # OUTPUT: «(*)␤»
+
+=head2 method default
+
+Defined as:
+
+    method default
+
+Returns the default value of the invocant, i.e. the value which is returned
+when trying to access an element in the C<Array> which has not been
+previously initialized or when accessing an element which has explicitly
+been set to C<Nil>. Unless the C<Array> is declared as having a default
+value by using the L<is default|/routine/is default (Variable)> trait the method returns
+the type object C<(Any)>.
+
+    my @a1 = 1, "two", 2.718;
+    say @a1.default;                                       # OUTPUT: «(Any)␤»
+    say @a1[4];                                            # OUTPUT: «(Any)␤»
+
+    my @a2 is default(17) = 1, "two", 3;
+    say @a2.default;                                       # OUTPUT: «17␤»
+    say @a2[4];                                            # OUTPUT: «17␤»
+    @a2[1] = Nil;                                          # (resets element to its default)
+    say @a2[1];                                            # OUTPUT: «17␤»
+
+=head2 method of
+
+Defined as:
+
+    method of
+
+Returns the type constraint for the values of the invocant. By default,
+i.e. if no type constraint is given during declaration, the method
+returns C<(Mu)>.
+
+    my @a1 = 1, 'two', 3.14159;              # (no type constraint specified)
+    say @a1.of;                              # OUTPUT: «(Mu)␤»
+
+    my Int @a2 = 1, 2, 3;                    # (values must be of type Int)
+    say @a2.of;                              # OUTPUT: «(Int)␤»
+    @a2.push: 'd';
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to @a2; expected Int but got Str ("d")␤»
+
+=head2 routine dynamic
+
+Defined as:
+
+    method dynamic(Array:D: --> Bool:D)
+
+Returns C<True> if the invocant has been declared with the L<is dynamic|/routine/is dynamic>
+trait.
+
+    my @a;
+    say @a.dynamic;                          # OUTPUT: «False␤»
+
+    my @b is dynamic;
+    say @b.dynamic;                          # OUTPUT: «True␤»
+
+If you declare a variable with the C<*> twigil C<is dynamic> is implied.
+
+    my @*b;
+    say @*b.dynamic;                         # OUTPUT: «True␤»
+
+Note that in the L<Scalar> case you have to use the C<VAR> method in
+order to get correct information.
+
+    my $s is dynamic = [1, 2, 3];
+    say $s.dynamic;                          # OUTPUT: «False␤»  (wrong, don't do this)
+    say $s.VAR.dynamic;                      # OUTPUT: «True␤»   (correct approach)
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

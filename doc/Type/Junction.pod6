@@ -1,0 +1,217 @@
+=begin pod
+
+=TITLE class Junction
+
+=SUBTITLE Logical superposition of values
+
+    class Junction is Mu { }
+
+A junction is an unordered composite value of zero or more values. Junctions
+I<autothread> over many operations, which means that the operation
+is carried out for each junction element (also known as I<eigenstate>), and
+the result is junction of the return values of all those operators.
+
+Junctions collapse into a single value in boolean context, so when used in a
+conditional, a negation or an explicit coercion to Bool through the C<so> or
+C<?> prefix operators. The semantics of this collapse
+depend on the I<junction type>, which can be C<all>, C<any>, C<one> or
+C<none>.
+
+=begin table
+
+    type |   constructor  |   operator |  True if ...
+    =====+================+============+===========
+    all  |   all          |   &        |   no value evaluates to False
+    any  |   any          |   \|       |   at least one value evaluates to True
+    one  |   one          |   ^        |   exactly one value evaluates to True
+    none |   none         |            |   no value evaluates to True
+
+=end table
+
+Autothreading happens when a junction is bound to a parameter of a code object
+that doesn't accept values of type C<Junction>. Instead of producing an error,
+the signature binding is repeated for each value of the junction.
+
+Example:
+
+    my $j = 1|2;
+    if 3 == $j + 1 {
+        say 'yes';
+    }
+
+First autothreads over the C<< infix:<+> >> operator, producing the Junction
+C<2|3>. The next autothreading step is over C<< infix:<==> >>, which produces
+C<False|True>. The C<if> conditional evaluates the junction in boolean
+context, which collapses it to C<True>. So the code prints C<yes\n>.
+
+The type of a C<Junction> does I<not> affect the number of items in the
+resultant C<Junction> after autothreading. For example, using a L<one>
+C<Junction> during L<Hash> key lookup, still results in a C<Junction>
+with several items. It is only in boolean context would the type of the
+C<Junction> come into play:
+
+    my %h = :42foo, :70bar;
+    say    %h{one <foo meow>}:exists; # OUTPUT: «one(True, False)␤»
+    say so %h{one <foo meow>}:exists; # OUTPUT: «True␤»
+    say    %h{one <foo  bar>}:exists; # OUTPUT: «one(True, True)␤»
+    say so %h{one <foo  bar>}:exists; # OUTPUT: «False␤»
+
+Note that the compiler is allowed to parallelize and short-circuit
+autothreading (and Junction behavior in general), so it is usually an error
+to autothread junctions over code with side effects.
+
+Junctions are meant to be used as matchers in boolean context; introspection
+of junctions is not supported. If you feel the urge to introspect a junction,
+use a L<Set> or a related type instead.
+
+Usage examples:
+
+    my @list = <1 2 "Great">;
+    @list.append(True).append(False);
+    my @bool_or_int = grep Bool|Int, @list;
+
+    sub is_prime(Int $x) returns Bool {
+        # 'so' is for boolean context
+        so $x %% none(2..$x.sqrt);
+    }
+    my @primes_ending_in_1 = grep &is_prime & / 1$ /, 2..100;
+    say @primes_ending_in_1;        # OUTPUT: «[11 31 41 61 71]␤»
+
+    my @exclude = <~ .git>;
+    for dir(".") { say .Str if .Str.ends-with(none @exclude) }
+
+Special care should be taken when using C<all> with arguments that may
+produce an empty list:
+
+    my @a = ();
+    say so all(@a) # True, because there are 0 False's
+
+To express "all, but at least one", you can use C<@a && all(@a)>
+
+    my @a = ();
+    say so @a && all(@a);   # OUTPUT: «False␤»
+
+Negated operators are special-cased when it comes to autothreading.
+C<$a !op $b> is rewritten internally as C<!($a op $b)>. The outer
+negation collapses any junctions, so the return value always a plain
+L<Bool>.
+
+    my $word = 'yes';
+    my @negations = <no none never>;
+    if $word !eq any @negations {
+        say '"yes" is not a negation';
+    }
+
+Note that without this special-casing, an expression like
+C<$word ne any @words> would always evaluate to C<True> for non-trivial lists
+on one side.
+
+For this purpose, C<< infix:<ne> >> counts as a negation of C<< infix:<eq> >>.
+
+In general it is more readable to use a positive comparison operator and
+a negated junction:
+
+    my $word = 'yes';
+    my @negations = <no none never>;
+    if $word eq none @negations {
+        say '"yes" is not a negation';
+    }
+
+=head1 Failures and Exceptions
+
+L<Failures|/type/Failure> are just values like any other, as far as Junctions
+are concerned:
+
+    my $j = +any "not a number", "42", "2.1";
+    (gather $j».take).grep(Numeric).say; # OUTPUT: «(42 2.1)␤»
+
+Above, we've used prefix C<+> operator on a L<Junction> to coerce the strings
+inside of it to L<Numeric>. Since the operator returns a L<Failure> when
+L<Str> that doesn't contain a number gets coerced to C<Numeric>, one of the
+elements in the C<Junction> is a C<Failure>, but same C<Failure> rules as normal
+apply and the C<Failure> doesn't explode just because it's in a C<Junction>, and
+we can L«C<.grep>|/routine/grep» it out. The exception I<will> be thrown,
+if you try to use the C<Failure> as a value—just like were this C<Failure> on
+its own and not part of the C<Junction>:
+
+    my $j = +any "not a number", "42", "2.1";
+    try say $j == 42;
+    $! and say "Got exception: $!.^name()"; # OUTPUT: «Got exception: X::Str::Numeric␤»
+
+Note that if an exception gets thrown when I<any> of the values in a
+L<Junction> get computed, it will be thrown just as if the problematic value
+were computed on its own and not with a C<Junction>; you can't just compute the
+values that work while ignoring exceptions:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    say try calc $j; # OUTPUT: «Nil␤»
+
+Only one value above causes an exception, but the result of the
+L«C<try> block|/language/exceptions#index-entry-try_blocks-try» is still a L<Nil>.
+A possible way around it is to cheat and evaluate the values of the C<Junction>
+individually and then re-create the C<Junction> from the result:
+
+    sub calc ($_) { die when 13 }
+    my $j = any 1..42;
+    $j = any (gather $j».take).grep: {Nil !=== try calc $_};
+    say so $j == 42; # OUTPUT: «True␤»
+
+=head1 Smartmatching
+
+Note that using Junctions on the right-hand side of C<~~> works
+slightly differently than using Junctions with other operators.
+
+Consider this example:
+
+    say 25 == (25 | 42);    # OUTPUT: «any(True, False)␤» – Junction
+    say 25 ~~ (25 | 42);    # OUTPUT: «True␤»             – Bool
+
+The reason is that C<==> (and most other operators) are subject to
+auto-threading, and therefore you will get a Junction as a result. On
+the other hand, C<~~> will call C<.ACCEPTS> on the right-hand-side (in
+this case on a Junction) and the result will be a C<Bool>.
+
+=head1 Methods
+
+=head2 method Str
+
+Defined as:
+
+    multi method Str(Junction:D:)
+
+Autothreads the C<.Str> method over its elements and returns results as a L<Junction>. Output
+methods that use C<.Str> method (L<print> and L<put>) are special-cased to autothread junctions,
+despite being able to accept a L<Mu> type.
+
+=head2 method gist
+
+Defined as:
+
+    multi method gist(Junction:D:)
+
+Collapses the L<Junction> and returns a L<Str> composed of the type of the junction and the
+L<gists|/routine/gist> of its components:
+
+    <a 42 c>.all.say; # OUTPUT: «all(a, 42, c)␤»
+
+=head2 method perl
+
+Defined as:
+
+    multi method perl(Junction:D:)
+
+Collapses the L<Junction> and returns a L<Str> composed of L<perls|/routine/perl> of its components
+that L<evaluates|/routine/EVAL> to the equivalent L<Junction> with equivalent components:
+
+    <a 42 c>.all.perl.put; # OUTPUT: «all("a", IntStr.new(42, "42"), "c")␤»
+
+=head1 See Also
+
+=item L<http://perlgeek.de/blog-en/perl-5-to-6/08-junctions.html>
+=item L<http://perl6maven.com/perl6-is-a-value-in-a-given-list-of-values>
+=item L<https://perl6advent.wordpress.com/2009/12/13/day-13-junctions/>
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

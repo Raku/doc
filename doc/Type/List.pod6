@@ -1,0 +1,1290 @@
+=begin pod
+
+=TITLE class List
+
+=SUBTITLE Sequence of values
+
+=for code :skip-test
+my class List does Iterable does Positional { }
+
+C<List> stores items sequentially and potentially lazily.
+
+Indexes into lists and arrays start at 0 by default.
+
+You can assign to list elements if they are containers. Use
+Arrays to have every value of the list stored in a container.
+
+C<List> implements C<Positional> and as such provides support for
+L<subscripts|/language/subscripts>.
+
+=head1 Items, Flattening and Sigils
+
+In Perl 6, assigning a C<List> to a scalar variable does not lose
+information. The difference is that iteration generally treats a
+list (or any other list-like object, like a L<Seq> or an L<Array>)
+inside a scalar as a single element, as long as it's part of another .
+
+    my @a = 1, 2, 3;
+    for @a { }      # three iterations
+
+    my $s = @a;
+    for $s { }      # one iteration
+    for @a.item { } # one iteration
+    for $s.list { } # three iterations
+
+Lists generally don't interpolate (flatten) into other lists, except
+when they are not itemized, and the single argument to an operation
+such as C<append>:
+
+    my @a = 1, 2, 3;
+    my @nested = @a, @a;           # two elements
+    my @flat = flat @a, @a;        # six elements, with explicit flat
+    my @b = 'a', 'b';
+    @b.append: @a;                 # @b now has 5 elements, because @a
+                                   # is the sole argument to append
+    my @c = 'a', 'b';
+    @c.append: $@a;                # @b now has 3 elements, because of the
+                                   # itemization with $
+    say @c.elems;
+
+C<.item> can often be written as C<$( ... )>, and on an array variable
+even as C<$@a>.
+
+The same flattening behavior applies all objects that do the
+L<Iterable|/type/Iterable> role, notable L<hashes|/type/Hash>:
+
+    my %h = a => 1, b => 2;
+    my @b = %h;   say @b.elems;     # OUTPUT: «2␤»
+    my @c = %h, ; say @c.elems;     # OUTPUT: «1␤»
+    my @d = $%h;  say @d.elems;     # OUTPUT: «1␤»
+
+Slurpy parameters (C<*@a>) flatten non-itemized sublists:
+
+    sub fe(*@flat) { @flat.elems }
+    say fe(<a b>, <d e>);           # OUTPUT: «4␤»
+    say fe(<a b>, <d e>.item);      # OUTPUT: «3␤»
+
+X<|(),empty list>
+The empty list is created with C<()>. Smartmatching against the empty list will
+check for the absence of elements.
+
+    my @a;
+    for @a, @a.list, @a.Seq -> \listoid {
+        say listoid ~~ ()
+    }
+    # OUTPUT: «True␤True␤True␤»
+
+Coercion to C<Bool> also indicates if the C<List> got any elements.
+
+    my @a;
+    say [@a.elems, @a.Bool, ?@a]; # OUTPUT: «[0 False False]␤»
+    @a.push: 42;
+    say [@a.elems, @a.Bool, ?@a]; # OUTPUT: «[1 True True]␤»
+    say 'empty' unless @a;        # no output
+
+=head1 Methods
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(List:D: $topic)
+
+If C<$topic> is an L<Iterable>, returns C<True> or C<False> based on whether
+the contents of the two C<Iterables> match. A L<Whatever> element in the
+invocant matches anything in the corresponding position of the C<$topic>
+C<Iterable>. A L<HyperWhatever> matches any number of any elements, including
+no elements:
+
+    say (1, 2, 3)       ~~ (1,  *, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (9,  *, 5);  # OUTPUT: «False␤»
+    say (1, 2, 3)       ~~ (   **, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (   **, 5);  # OUTPUT: «False␤»
+    say (1, 3)          ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 3) ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 6) ~~ (1, **, 5); # OUTPUT: «False␤»
+    say (1, 2, 4, 5, 6) ~~ (   **   ); # OUTPUT: «True␤»
+    say ()              ~~ (   **   ); # OUTPUT: «True␤»
+
+In addition, returns C<False> if either the invocant or C<$topic>
+L<is a lazy|/routine/is-lazy> C<Iterable>, unless C<$topic> is the same object
+as the invocant, in which case C<True> is returned.
+
+If C<$topic> is I<not> an L<Iterable>, returns the invocant if the invocant
+has no elements or its first element is a L<Match> object (this behaviour
+powers C<m:g//> smartmatch), or C<False> otherwise.
+
+=head2 routine elems
+
+Defined as:
+
+    sub    elems($list --> Int:D)
+    method elems(List:D: --> Int:D)
+
+Returns the number of elements in the list.
+
+    say (1,2,3,4).elems; # OUTPUT: «4␤»
+
+=head2 routine end
+
+Defined as:
+
+    sub    end($list --> Int:D)
+    method end(List:D: --> Int:D)
+
+Returns the index of the last element.
+
+    say (1,2,3,4).end; # OUTPUT: «3␤»
+
+=head2 routine keys
+
+Defined as:
+
+    sub    keys($list --> Seq:D)
+    method keys(List:D: --> Seq:D)
+
+Returns a sequence of indexes into the list (e.g., C<0..(@list.elems-1)>).
+
+    say (1,2,3,4).keys; # OUTPUT: «0..3␤»
+
+=head2 routine values
+
+Defined as:
+
+    sub    values($list --> Seq:D)
+    method values(List:D: --> Seq:D)
+
+Returns a sequence of the list elements, in order.
+
+    say (1,2,3,4).^name;        # OUTPUT: «List␤»
+    say (1,2,3,4).values.^name; # OUTPUT: «Seq␤»
+
+=head2 routine kv
+
+Defined as:
+
+    sub    kv($list --> Seq:D)
+    method kv(List:D: --> Seq:D)
+
+Returns an interleaved sequence of indexes and values. For example
+
+    <a b c>.kv; # (0 a 1 b 2 c)
+
+=head2 routine pairs
+
+Defined as:
+
+    sub    pairs($list --> Seq:D)
+    method pairs(List:D: --> Seq:D)
+
+Returns a sequence of pairs, with the indexes as keys and the list values as
+values.
+
+    <a b c>.pairs   # (0 => a 1 => b 2 => c)
+
+=head2 routine antipairs
+
+Defined as:
+
+    method antipairs(List:D: --> Seq:D)
+
+Returns a L<Seq|/type/Seq> of pairs, with the values as keys and the indexes as
+values, i.e. the direct opposite to L<pairs|/type/List#routine_pairs>.
+
+    say <a b c>.antipairs;  # OUTPUT: «(a => 0 b => 1 c => 2)␤»
+
+=head2 routine join
+
+Defined as:
+
+    sub    join($separator, *@list --> Str:D)
+    method join(List:D: $separator --> Str:D)
+
+Treats the elements of the list as strings, interleaves them with
+C<$separator> and concatenates everything into a single string.
+
+Example:
+
+    join ', ', <a b c>;             # RESULT: «a, b, c»
+
+Note that the method form does not flatten sublists:
+
+    say (1, <a b c>).join('|');     # OUTPUT: «1|a b c␤»
+
+=head2 routine map
+
+Defined as:
+
+    sub    map(&code, *@elems --> Seq:D)
+    method map(List:D: &code --> Seq:D)
+
+Invokes C<&code> for each element and gathers the return values in a sequence
+    and returns it. This happens lazily, i.e. C<&code> is only invoked when the
+return values are accessed.Examples:
+
+    say ('hello', 1, 22/7, 42, 'world').map: { .^name } # OUTPUT: «(Str Int Rat Int Str)␤»
+    say map *.Str.chars, 'hello', 1, 22/7, 42, 'world';     # OUTPUT: «(5 1 8 2 5)␤»
+
+C<map> inspects the arity of the code object, and tries to pass as many
+arguments to it as expected:
+
+    sub b($a, $b) { "$a before $b" };
+    say <a b x y>.map(&b).join(', ');   # OUTPUT: «a before b, x before y␤»
+
+iterates the list two items at a time.
+
+Note that C<map> does not flatten embedded lists and arrays, so
+
+    ((1, 2), <a b>).map({ .join(',')})
+
+passes C<(1, 2)> and C<< <a b> >> in turn to the block, leading to a total
+of two iterations and the result sequence C<"1,2", "a,b">.
+See L<method flatmap|/type/List#method_flatmap> for an alternative that flattens.
+
+If C<&code> is a L<Block|/type/Block> loop phasers will be executed and loop
+control statements will be treated as in loop control flow. Please note that
+C<return> is executed in the context of its definition. It is not the return
+statement of the block but the surrounding Routine. Using a
+L<Routine|/type/Routine> will also handle loop control statements and loop
+phasers. Any C<Routine> specific control statement or phaser will be handled in
+the context of that C<Routine>.
+
+    sub s {
+        my &loop-block = {
+            return # return from sub s
+        };
+        say 'hi';
+        (1..3).map: &loop-block;
+        say 'oi‽' # dead code
+    };
+    s
+    # RESULT: «hi»
+
+=head2 sub flat
+
+Defined as:
+
+    sub flat(**@list is raw)
+
+Constructs a list which contains any arguments provided in the order
+provided, and returns the result of calling the C<.flat> method (L<inherited
+from C<Any>|/type/Any#method_flat>) on that list:
+
+    say flat 1, (2, (3, 4), $(5, 6)); # OUTPUT: «(1 2 3 4 (5 6))␤»
+
+=head2 method flatmap
+
+Defined as:
+
+    method flatmap(List:D: &code --> Seq:D)
+
+Like L«C<map>|/type/Any#method_map» iterates over the elements of the invocant
+list, feeding each element in turn to the code reference, and assembling the
+return values from these invocations in a result list.
+
+The use of C<flatmap> B<is strongly discouraged>. Instead of C<.flatmap( )>,
+please use C<.map( ).flat> as it is clear when the C<.flat> is called and is
+not confusing like C<.flatmap>.
+
+Unlike C<map> it flattens non-itemized lists and arrays, so
+
+    ## flatmap
+    my @list = ('first1', ('second2', ('third3', 'third4'), 'second5'), 'first6');
+    say @list.flatmap({.reverse}).perl;
+    # OUTPUT «("first1", "second5", "third3", "third4", "second2", "first6").Seq␤»
+    ## map
+    say @list.map({"$_ was a {.^name}"}).perl;
+    # OUTPUT «("first1 was a Str", "second2 third3 third4 second5 was a List", "first6 was a Str").Seq␤»
+    ## .map .flat has the same output as .flatmap
+    say @list.map({.reverse}).flat.perl
+    # OUTPUT «("first1", "second5", "third3", "third4", "second2", "first6").Seq␤»
+
+=head2 method gist
+
+Defined as:
+
+    multi method gist(List:D: --> Str:D)
+
+Returns the string containing the parenthesized "gist" of the List,
+B<listing up to the first 100> elements, separated by space, appending an
+ellipsis if the List has more than 100 elements. If List
+L«C<is-lazy>|/routine/is-lazy», returns string C«'(...)'»
+
+=begin code
+put (1, 2, 3).gist;   # OUTPUT «(1 2 3)␤»
+put (1..∞).List.gist; # OUTPUT «(...)␤»
+
+put (1..200).List.gist;
+# OUTPUT:
+# (1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20 21 22 23 24 25 26
+# 27 28 29 30 31 32 33 34 35 36 37 38 39 40 41 42 43 44 45 46 47 48 49
+# 50 51 52 53 54 55 56 57 58 59 60 61 62 63 64 65 66 67 68 69 70 71 72
+# 73 74 75 76 77 78 79 80 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95
+# 96 97 98 99 100 ...)
+=end code
+
+=head2 routine grep
+
+Defined as:
+
+    sub    grep(Mu $matcher, *@elems, :$k, :$kv, :$p, :$v --> Seq:D)
+    method grep(List:D:  Mu $matcher, :$k, :$kv, :$p, :$v --> Seq:D)
+
+Returns a sequence of elements against which C<$matcher> smart-matches.
+The elements are returned in the order in which they appear in the original
+list.
+
+Examples:
+
+    say ('hello', 1, 22/7, 42, 'world').grep: Int;              # OUTPUT: «(1 42)␤»
+    say grep { .Str.chars > 3 }, 'hello', 1, 22/7, 42, 'world'; # OUTPUT: «(hello 3.142857 world)␤»
+
+
+Note that if you want to grep for elements that do not match, you can
+use a C<none>-L<Junction|/type/Junction>:
+
+    say <a b 6 d 8 0>.grep(none Int);           # OUTPUT: «(a b d)␤»
+    say <a b c d e f>.grep(none /<[aeiou]>/);   # OUTPUT: «(b c d f)␤»
+
+Another option to grep for elements that do not match a regex is to
+use a block:
+
+    say <a b c d e f>.grep({! /<[aeiou]>/})     # OUTPUT: «(b c d f)␤»
+
+The reason the example above works is because a regex in boolean
+context applies itself to C<$_>. In this case, C<!> boolifies the
+C«/<[aeiou]>/» regex and negates the result. Smartmatching against a
+L<Callable> (in this case a L<Block>) returns the value returned from
+that callable, so the boolified result of a regex is then used to
+decide whether the current value should be kept in the result of a
+grep.
+
+The optional named parameters C<:k>, C<:kv>, C<:p>, C<:v> provide the same
+functionality as on slices:
+
+=item k
+
+Only return the index values of the matching elements in order.
+
+=item kv
+
+Return both the index and matched elements in order.
+
+=item p
+
+Return the index and the matched element as a C<Pair>, in order.
+
+=item v
+
+Only return the matched elements (same as not specifying any named parameter
+at all).
+
+Examples:
+
+    say ('hello', 1, 22/7, 42, 'world').grep: Int, :k;
+    # OUTPUT: «(1 3)␤»
+    say grep { .Str.chars > 3 }, :kv, 'hello', 1, 22/7, 42, 'world';
+    # OUTPUT: «(0 hello 2 3.142857 4 world)␤»
+    say grep { .Str.chars > 3 }, :p, 'hello', 1, 22/7, 42, 'world';
+    # OUTPUT: «(0 => hello 2 => 3.142857 4 => world)␤»
+
+=head2 routine first
+
+Defined as:
+
+    sub    first(Mu $matcher, *@elems, :$k, :$kv, :$p, :$end)
+    method first(List:D:  Mu $matcher?, :$k, :$kv, :$p, :$end)
+
+Returns the first item of the list which smart-matches against C<$matcher>,
+returns C<Nil> when no values match.  The optional named parameter C<:end>
+indicates that the search should be from the B<end> of the list, rather than
+from the start.
+
+Examples:
+
+    say (1, 22/7, 42, 300).first: * > 5;                  # OUTPUT: «42␤»
+    say (1, 22/7, 42, 300).first: * > 5, :end;            # OUTPUT: «300␤»
+    say ('hello', 1, 22/7, 42, 'world').first: Complex;   # OUTPUT: «Nil␤»
+
+The optional named parameters C<:k>, C<:kv>, C<:p> provide the same
+functionality as on slices:
+
+=item k
+
+Return the index value of the matching element.  Index is always counted from
+the beginning of the list, regardless of whether the C<:end> named parameter
+is specified or not.
+
+=item kv
+
+Return both the index and matched element.
+
+=item p
+
+Return the index and the matched element as a C<Pair>.
+
+Examples:
+
+    say (1, 22/7, 42, 300).first: * > 5, :k;        # OUTPUT: «2␤»
+    say (1, 22/7, 42, 300).first: * > 5, :p;        # OUTPUT: «2 => 42␤»
+    say (1, 22/7, 42, 300).first: * > 5, :kv, :end; # OUTPUT: «(3 300)␤»
+
+In method form, the C<$matcher> can be omitted, in which case the first
+available item (or last if C<:end> is set) will be returned. See also
+L«C<head>|/routine/head» and L«C<tail>|/routine/tail» methods.
+
+=head2 method head
+
+Defined as:
+
+    method head(List:D: Int(Cool) $number = 1 --> Seq:D)
+
+Returns the B<first> NUMBER items of the list.  Returns an empty list if
+NUMBER <= 0.  Defaults to the first element seen if no NUMBER specified.
+
+Examples:
+
+    say ^10 .head(5);      # OUTPUT: «(0 1 2 3 4)␤»
+    say ^∞ .head(5);       # OUTPUT: «(0 1 2 3 4)␤»
+    say ^10 .head;         # OUTPUT: «0␤»
+    say ^∞ .head;          # OUTPUT: «0␤»
+
+=head2 method tail
+
+Defined as:
+
+    method tail(List:D: Int(Cool) $number = 1 --> Seq:D)
+
+Returns a L<Seq> containing the B<last> NUMBER items of the list.  Returns an empty Seq if
+NUMBER <= 0.  Defaults to the last element if no NUMBER is specified.
+Throws an exception if the list is lazy.
+
+Examples:
+
+=for code
+say ^10 .tail(5);      # OUTPUT: «(5 6 7 8 9)␤»
+say ^∞ .tail(5);       # Cannot tail a lazy list
+say ^10 .tail;         # OUTPUT: «(9)␤»
+say ^∞ .tail;        # Cannot tail a lazy list
+
+=head2 routine categorize
+
+Defined as:
+
+    sub    categorize(&mapper, *@values --> Hash:D)
+    method categorize(List:D: &mapper   --> Hash:D)
+
+Transforms a list of values into a hash representing the categorizations
+of those values according to C<&mapper>; each hash key represents one possible
+categorization for one or more of the incoming list values, and the
+corresponding hash value contains an array of those list values categorized
+by the mapper into the category of the associated key.
+
+Note that, unlike L<classify>, which assumes that the return value
+of the mapper is a single value, C<categorize> always assumes that
+the return value of the mapper is a list of categories that are
+appropriate to the current value.
+
+Example:
+
+    sub mapper(Int $i) returns List {
+        $i %% 2 ?? 'even' !! 'odd',
+        $i.is-prime ?? 'prime' !! 'not prime'
+    }
+    say categorize &mapper, (1, 7, 6, 3, 2);  # OUTPUT: «{even => [6 2], not prime => [1 6],
+                                              #          odd => [1 7 3], prime => [7 3 2]}␤»
+
+=head2 routine classify
+
+Defined as:
+
+    sub    classify(&mapper, *@values --> Hash:D)
+    method classify(List:D: &mapper   --> Hash:D)
+
+Transforms a list of values into a hash
+representing the classification of those values according to C<&mapper>;
+each hash key represents the classification for one or more of the
+incoming list values, and the corresponding hash value contains
+an array of those list values classified by the mapper into the category
+of the associated key.
+
+Example:
+
+    say classify { $_ %% 2 ?? 'even' !! 'odd' }, (1, 7, 6, 3, 2);
+    # OUTPUT: «{even => [6 2], odd => [1 7 3]}␤»
+    say ('hello', 1, 22/7, 42, 'world').classify: { .Str.chars };
+    # OUTPUT: «{1 => [1], 2 => [42], 5 => [hello world], 8 => [3.142857]}␤»
+
+=head2 method Bool
+
+Defined as:
+
+    method Bool(List:D: --> Bool:D)
+
+Returns C<True> if the list has at least one element, and C<False>
+for the empty list.
+
+    say ().Bool;  # OUTPUT: «False␤»
+    say (1).Bool; # OUTPUT: «True␤»
+
+=head2 method Str
+
+Defined as:
+
+    method Str(List:D: --> Str:D)
+
+Stringifies the elements of the list and joins them with spaces
+(same as C<.join(' ')>).
+
+    say (1,2,3,4,5).Str; # OUTPUT: «1 2 3 4 5␤»
+
+=head2 method Int
+
+Defined as:
+
+    method Int(List:D: --> Int:D)
+
+Returns the number of elements in the list (same as C<.elems>).
+
+    say (1,2,3,4,5).Int; # OUTPUT: «5␤»
+
+=head2 method Numeric
+
+Defined as:
+
+    method Numeric(List:D: --> Int:D)
+
+Returns the number of elements in the list (same as C<.elems>).
+
+    say (1,2,3,4,5).Numeric; # OUTPUT: «5␤»
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(--> Capture:D)
+
+Returns a L<Capture> where each L<Pair>, if any, in the C<List> has been
+converted to a named argument (with the L<key|/type/Pair#method_key> of the
+L<Pair> stringified). All other elements in the C<List> are converted to
+positional arguments in the order they are found, i.e. the first non pair item
+in the list becomes the first positional argument, which gets index C<0>, the
+second non pair item becomes the second positional argument, getting
+index C<1> etc.
+
+    my $list = (7, 5, a => 2, b => 17);
+    my $capture = $list.Capture;
+    say $capture.keys;                                # OUTPUT: «(0 1 a b)␤»
+    my-sub(|$capture);                                # RESULT: «7, 5, 2, 17»
+
+    sub my-sub($first, $second, :$a, :$b) {
+        say "$first, $second, $a, $b"
+    }
+
+A more advanced example demonstrating the returned C<Capture> being matched
+against a L<Signature|/type/Signature>.
+
+    my $list = (7, 5, a => 2, b => 17);
+    say so $list.Capture ~~ :($ where * == 7,$,:$a,:$b); # OUTPUT: «True␤»
+
+    $list = (8, 5, a => 2, b => 17);
+    say so $list.Capture ~~ :($ where * == 7,$,:$a,:$b); # OUTPUT: «False␤»
+
+=head2 routine pick
+
+Defined as:
+
+    multi sub    pick($count, *@list --> Seq:D)
+    multi method pick(List:D: $count --> Seq:D)
+    multi method pick(List:D: --> Mu)
+
+If C<$count> is supplied: Returns C<$count> elements chosen at random
+and without repetition from the invocant. If C<*> is passed as C<$count>,
+or C<$count> is greater than or equal to the size of the list, then all
+elements from the invocant list are returned in a random sequence.
+
+In I<method> form, if C<$count> is omitted: Returns a single random item from
+the list, or Nil if the list is empty
+
+Examples:
+
+    say <a b c d e>.pick;           # OUTPUT: «b␤»
+    say <a b c d e>.pick: 3;        # OUTPUT: «(c a e)␤»
+    say <a b c d e>.pick: *;        # OUTPUT: «(e d a b c)␤»
+
+=head2 routine roll
+
+Defined as:
+
+    multi sub    roll($count, *@list --> Seq:D)
+    multi method roll(List:D: $count --> Seq:D)
+    multi method roll(List:D: --> Mu)
+
+If C<$count> is supplied: Returns a sequence of C<$count> elements, each randomly
+selected from the list. Each random choice is made independently, like a separate
+die roll where each die face is a list element. If C<*> is passed as C<$count>
+returns a lazy, infinite sequence of randomly chosen elements from the original list.
+
+If C<$count> is omitted: Returns a single random item from the list, or
+Nil if the list is empty
+
+Examples:
+
+    say <a b c d e>.roll;       # 1 random letter
+    say <a b c d e>.roll: 3;    # 3 random letters
+    say roll 8, <a b c d e>;    # 8 random letters
+
+    my $random-digits := (^10).roll(*);
+    say $random-digits[^15];    # 15 random digits
+
+=head2 routine eager
+
+Defined as:
+
+    multi method eager(List:D: --> List:D)
+    multi sub eager(*@elems --> List:D)
+
+Evaluates all elements in the C<List> eagerly, and returns them as a C<List>.
+
+    my  \ll = (lazy 1..5).cache;
+
+    say ll[];     # OUTPUT: «(...)␤»
+    say ll.eager  # OUTPUT: «(1 2 3 4 5)␤»
+
+=head2 routine reverse
+
+Defined as:
+
+    multi sub    reverse(*@list  --> Seq:D)
+    multi method reverse(List:D: --> Seq:D)
+
+Returns a L«C<Seq>|/type/Seq» with the same elements in reverse order.
+
+Note that C<reverse> always refers to reversing elements of a list;
+to reverse the characters in a string, use L<flip>.
+
+Examples:
+
+    say <hello world!>.reverse;     # OUTPUT: «(world! hello)␤»
+    say reverse ^10;                # OUTPUT: «(9 8 7 6 5 4 3 2 1 0)␤»
+
+=head2 routine rotate
+
+Defined as:
+
+    multi sub    rotate(@list,  Int:D $n = 1 --> List:D)
+    multi method rotate(List:D: Int:D $n = 1 --> List:D)
+
+Returns the list rotated by C<$n> elements.
+
+Examples:
+
+    <a b c d e>.rotate(2);   # <c d e a b>
+    <a b c d e>.rotate(-1);  # <e a b c d>
+
+=head2 routine sort
+
+Defined as:
+
+    multi sub    sort(*@elems      --> Seq:D)
+    multi sub    sort(&custom-routine-to-use, *@elems --> Seq:D)
+    multi method sort(List:D:      --> Seq:D)
+    multi method sort(List:D: &custom-routine-to-use  --> Seq:D)
+
+Sorts the list, smallest element first. By default L«C<< infix:<cmp> >>|/routine/cmp»
+is used for comparing list elements.
+
+If C<&custom-routine-to-use> is provided, and it accepts two arguments,
+it is invoked for pairs of list elements, and should return
+C<Order::Less>, C<Order::Same> or C<Order::More>.
+
+If C<&custom-routine-to-use> accepts only one argument, the list elements are
+sorted according to
+C<< custom-routine-to-use($a) cmp custom-routine-to-use($b) >>. The return
+values of C<&custom-routine-to-use> are cached, so that
+C<&custom-routine-to-use> is only called once per list element.
+
+Examples:
+
+    say (3, -4, 7, -1, 2, 0).sort;                  # OUTPUT: «(-4 -1 0 2 3 7)␤»
+    say (3, -4, 7, -1, 2, 0).sort: *.abs;           # OUTPUT: «(0 -1 2 3 -4 7)␤»
+    say (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a }; # OUTPUT: «(7 3 2 0 -4 -1)␤»
+
+Additionally, if C<&custom-routine-to-use> returns a C<List>, elements will be
+sorted based upon multiple values with subsequent values in the C<List> being
+used to break the tie if the comparison between the prior elements evaluate to
+C<Order::Same>.
+
+    my @resistance = (
+        %( first-name => 'Kyle',  last-name => 'Reese'  ),
+        %( first-name => 'Sarah', last-name => 'Connor' ),
+        %( first-name => 'John',  last-name => 'Connor' ),
+    );
+    .say for @resistance.sort: { .<last-name>, .<first-name> };
+
+    #`(
+    OUTPUT:
+      {first-name => John, last-name => Connor}
+      {first-name => Sarah, last-name => Connor}
+      {first-name => Kyle, last-name => Reese}
+    )
+
+=head2 routine unique
+
+Defined as:
+
+    multi sub    unique(*@values, :&as, :&with --> Seq:D)
+    multi method unique(List:D:  :&as, :&with --> Seq:D)
+
+Returns a sequence of B<unique> values from the invocant/argument list, such
+that only the first occurrence of each duplicated value remains in the
+result list. C<unique> uses the semantics of the L<===> operator to decide
+whether two objects are the same, unless the optional C<:with> parameter is
+specified with another comparator. The order of the original list is preserved
+even as duplicates are removed.
+
+Examples:
+
+    say <a a b b b c c>.unique;   # OUTPUT: «(a b c)␤»
+    say <a b b c c b a>.unique;   # OUTPUT: «(a b c)␤»
+
+(Use L<C<squish>> instead if you know the input is sorted such that identical
+objects are adjacent.)
+
+The optional C<:as> parameter allows you to normalize/canonicalize the elements
+before unique-ing. The values are transformed for the purposes of comparison,
+but it's still the original values that make it to the result list:
+
+Example:
+
+    say <a A B b c b C>.unique(:as(&lc))          # OUTPUT: «(a B c)␤»
+
+One can also specify the comparator with the optional C<:with> parameter.  For
+instance if one wants a list of unique hashes, one could use the C<eqv>
+comparator.
+
+Example:
+
+    my @list = %(a => 42), %(b => 13), %(a => 42);
+    say @list.unique(:with(&[eqv]))               # OUTPUT: «({a => 42} {b => 13})␤»
+
+B<Note:> since C<:with> L<Callable> has to be tried with all the items in the list,
+this makes C<unique> follow a path with much higher algorithmic complexity. You should
+try to use the C<:as> argument instead, whenever possible.
+
+=head2 routine repeated
+
+Defined as:
+
+    multi sub    repeated(*@values, :&as, :&with --> Seq:D)
+    multi method repeated(List:D:  :&as, :&with --> Seq:D)
+
+Returns a sequence of B<repeated> values from the invocant/argument list.
+It takes the same parameters as L<C<unique>>, but instead of passing through
+any elements when they're first seen, they're only passed through as soon
+as they're seen for the second time (or more).
+
+Examples:
+
+    say <a a b b b c c>.repeated;                   # OUTPUT: «(a b b c)␤»
+    say <a b b c c b a>.repeated;                   # OUTPUT: «(b c b a)␤»
+    say <a A B b c b C>.repeated(:as(&lc));         # OUTPUT: «(A b b C)␤»
+
+    my @list = %(a => 42), %(b => 13), %(a => 42);
+    say @list.repeated(:with(&[eqv]))               # OUTPUT: «({a => 42})␤»
+
+=head2 routine squish
+
+Defined as:
+
+    multi sub    squish(*@values, :&as, :&with --> Seq:D)
+    multi method squish(List:D:   :&as, :&with --> Seq:D)
+
+Returns a sequence of values from the invocant/argument list where runs
+of more than one value are replaced with only the first instance.
+Like L<C<unique>>, C<squish> uses the semantics of the L<===> operator to decide
+whether two objects are the same. Unlike L<C<unique>>, this function only
+removes adjacent duplicates; identical values further apart are still
+kept. The order of the original list is preserved even as duplicates
+are removed.
+
+Examples:
+
+    say <a a b b b c c>.squish; # OUTPUT: «(a b c)␤»
+    say <a b b c c b a>.squish; # OUTPUT: «(a b c b a)␤»
+
+The optional C<:as> parameter, just like with L<C<unique>>, allows values to be
+temporarily transformed before comparison.
+
+The optional C<:with> parameter is used to set an appropriate comparison operator:
+
+    say [42, "42"].squish;                      # OUTPUT: «(42 42)␤»
+    # Note that the second item in the result is still Str
+    say [42, "42"].squish(with => &infix:<eq>); # OUTPUT: «(42)␤»
+    # The resulting item is Int
+
+=head2 routine reduce
+
+Defined as:
+
+    multi sub    reduce(&with, *@values)
+    multi method reduce(List:D: &with)
+
+Generates a single "combined" value from a list of arbitrarily many of values,
+by iteratively applying a function which knows how to combine I<two> values.
+
+If C<@values> contains just a single element, the operator is applied to that single element if possible; if not, it returns the element itself.
+
+    say [-] <10 5 3>; #OUTPUT: 2␤
+    say [-] 10;       #OUTPUT: 10␤
+
+If it contains no elements, an exception is thrown, unless
+C<&with> is an I<operator> with a known identity value. For this
+reason, you may want to prefix the input list with an explicit identity
+value:
+
+    my @strings = ("One good string!", "And one another good string!");
+    say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
+    my @numbers = (1,2,3,4,5);
+    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
+
+If C<&with> is the function object of an I<operator>, its
+inherent identity value and associativity is respected - in other words,
+C<(VAL1, VAL2, VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+for operators which aren't left-associative:
+
+    # Raise 2 to the 81st power, because 3 to the 4th power is 81
+    [2,3,4].reduce(&[**]).lsb.say;        # OUTPUT: «81␤»
+    (2**(3**4)).lsb.say;                  # OUTPUT: «81␤»
+    (2**3**4).lsb.say;                    # OUTPUT: «81␤»
+
+    # Subtract 4 from -1, because 2 minus 3 is -1
+    [2,3,4].reduce(&[-]).say;             # OUTPUT: «-5␤»
+    ((2-3)-4).say;                        # OUTPUT: «-5␤»
+    (2-3-4).say;                          # OUTPUT: «-5␤»
+
+Since reducing with an infix operator is a common thing to do, the C<[ ]>
+meta-operator provides a syntactic shortcut:
+
+    # The following all do the same thing...
+    my @numbers = (1,2,3,4,5);
+    say reduce { $^a + $^b }, 0, |@numbers;
+    say reduce * + *, 0, |@numbers;
+    say reduce &[+], @numbers; # operator does not need explicit identity
+    say [+] @numbers;          # most people write it this way
+
+Since C<reduce> is an implicit loop, it responds to C<next>, C<last> and
+C<redo> statements inside C<&with>:
+
+    say (2,3,4,5).reduce: { last if $^a > 7; $^a + $^b }; # says 9
+
+Practical example:
+
+    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+
+    my @ops = [Z] (<+ - * />, 1..20)».roll(4);
+
+    say ('x', |@ops).reduce: -> $formula, [$op, $number] {
+        Bool.pick ?? "($formula $op $number)"
+                  !! "($number $op $formula)"
+    }
+
+I<Note:> In the functional programming world, this operation is generally
+called a L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+With a right-associative operator it is a right fold, otherwise (and usually)
+it is a left fold:
+
+    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
+    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+
+    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
+    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+
+=head2 routine produce
+
+Defined as:
+
+    multi sub    produce(&with, *@values)
+    multi method produce(List:D: &with)
+
+Generates a list of all intermediate "combined" values along with the final
+result by iteratively applying a function which knows how to combine I<two>
+values.
+
+If C<@values> contains just a single element, a list containing that element
+is returned immediately. If it contains no elements, an exception is thrown,
+unless C<&with> is an I<operator> with a known identity value.
+
+If C<&with> is the function object of an I<operator>, its
+inherent identity value and associativity is respected - in other words,
+C<(VAL1, VAL2, VAL3).produce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
+for operators which aren't left-associative:
+
+    # Raise 2 to the 81st power, because 3 to the 4th power is 81
+    [2,3,4].produce(&[**]).say;        # OUTPUT: «(4 81 2417851639229258349412352)␤»
+    say produce &[**], (2,3,4);        # OUTPUT: «(4 81 2417851639229258349412352)␤»
+    say [\**] (2,3,4);                 # OUTPUT: «(4 81 2417851639229258349412352)␤»
+
+    # Subtract 4 from -1, because 2 minus 3 is -1
+    [2,3,4].produce(&[-]).say;         # OUTPUT: «(2 -1 -5)␤»
+    say produce &[-], (2,3,4);         # OUTPUT: «(2 -1 -5)␤»
+    say [\-] (2,3,4);                  # OUTPUT: «(2 -1 -5)␤»
+
+A triangle meta-operator C<[\ ]> provides a syntactic shortcut for
+producing with an infix operator:
+
+    # The following all do the same thing...
+    my @numbers = (1,2,3,4,5);
+    say produce { $^a + $^b }, @numbers;
+    say produce * + *, @numbers;
+    say produce &[+], @numbers; # operator does not need explicit identity
+    say [\+] @numbers;          # most people write it this way
+
+The visual picture of a triangle C<[\> is not accidental. To produce a
+triangular list of lists, you can use a "triangular comma":
+
+    [\,] 1..5;
+    # (
+    # (1)
+    # (1 2)
+    # (1 2 3)
+    # (1 2 3 4)
+    # (1 2 3 4 5)
+    # )
+
+Since C<produce> is an implicit loop, it responds to C<next>, C<last> and
+C<redo> statements inside C<&with>:
+
+    say (2,3,4,5).produce: { last if $^a > 7; $^a + $^b }; # OUTPUT: «(2 5 9)␤»
+
+=head2 routine combinations
+
+Defined as:
+
+    multi sub    combinations($from, $of = 0..*          --> Seq:D)
+    multi method combinations(List:D: Int() $of          --> Seq:D)
+    multi method combinations(List:D: Range:D $of = 0..* --> Seq:D)
+
+Returns a L<Seq> with all C<$of>-combinations of the invocant list.
+C<$of> can be a numeric L<Range>, in which
+case combinations of the range of item numbers it represents will be returned (i.e. C<2.6 .. 4>
+will return 2-, 3-, and 4-item combinations>). Otherwise, C<$of> is coerced to an L<Int>.
+
+    .say for <a b c>.combinations: 2;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
+
+Above, there are three possible ways to combine the 2-items lists from the original list, which
+is what we receive in the output. See L<permutations> if you want permutations instead of
+combinations.
+
+With L<Range> argument, we get both three 2-item combinations and one 3-item combination:
+
+    .say for <a b c>.combinations: 2..3;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
+    # (a b c)
+
+If C<$of> is negative or is larger than there are items in the given list, an
+empty list will be returned. If C<$of> is zero, a 1-item list containing an empty
+list will be returned (there's exactly 1 way to pick no items).
+
+The subroutine form is equivalent to the method form called on the first argument (C<$from>), with
+the exception that if C<$from> is not an L<Iterable>, it gets coerced to an C<Int> and combinations
+are made from a L<Range> constructed with C<0..^$from> instead:
+
+    .say for combinations 3, 2
+    # OUTPUT:
+    # (0 1)
+    # (0 2)
+    # (1 2)
+
+B<Note:> some implementations may limit the maximum value of non-L<Iterable> C<$from>.
+On Rakudo, 64-bit systems have a limit of C<2³¹-1> and 32-bit systems have a limit of C<2²⁸-1>.
+
+=head2 routine permutations
+
+Defined as:
+
+    multi sub    permutations(Int()    $from --> Seq:D)
+    multi sub    permutations(Iterable $from --> Seq:D)
+    multi method permutations(List:D:        --> Seq:D)
+
+Returns all possible permutations of a list as a L<Seq> of lists:
+
+    .say for <a b c>.permutations;
+    # OUTPUT:
+    # (a b c)
+    # (a c b)
+    # (b a c)
+    # (b c a)
+    # (c a b)
+    # (c b a)
+
+C<permutations> treats all elements as unique, thus C<(1, 1, 2).permutations> returns
+a list of 6 elements, even though there are only three distinct permutations, due to first two
+elements being the same.
+
+The subroutine form behaves the same as the method form, computing permutations from its
+first argument C<$from>. If C<$from> is not an L<Iterable>, coerces C<$from> to an C<Int> and
+picks from a L<Range> constructed with C<0..^$from>:
+
+    .say for permutations 3;
+    # OUTPUT:
+    # (0 1 2)
+    # (0 2 1)
+    # (1 0 2)
+    # (1 2 0)
+    # (2 0 1)
+    # (2 1 0)
+
+=head2 method rotor
+
+Defined as:
+
+    method rotor(*@cycle, Bool() :$partial --> Seq:D)
+
+Returns a sequence of lists, where each sublist is made up of elements of the
+invocant.
+
+In the simplest case, C<@cycle> contains just one integer, in which case the
+invocant list is split into sublists with as many elements as the integer
+specifies. If C<:$partial> is True, the final chunk is included even if it
+doesn't satisfy the length requirement:
+
+    say ('a'..'h').rotor(3).join('|');              # OUTPUT: «a b c|d e f␤»
+    say ('a'..'h').rotor(3, :partial).join('|');    # OUTPUT: «a b c|d e f|g h␤»
+
+If the element of C<@cycle> is a L<Pair|/type/Pair> instead, the key of the
+pair specifies the length of the return sublist, and the value the gap between
+sublists; negative gaps produce overlap:
+
+    say ('a'..'h').rotor(2 => 1).join('|');         # OUTPUT: «a b|d e|g h␤»
+    say ('a'..'h').rotor(3 => -1).join('|');        # OUTPUT: «a b c|c d e|e f g␤»
+
+If C<@cycle> contains more than element, C<rotor> cycles through it to find
+the number of elements for each sublist:
+
+    say ('a'..'h').rotor(2, 3).join('|');           # OUTPUT: «a b|c d e|f g␤»
+    say ('a'..'h').rotor(1 => 1, 3).join('|');      # OUTPUT: «a|c d e|f␤»
+
+Combining multiple cycles and C<:partial> also works:
+
+    say ('a'..'h').rotor(1 => 1, 3 => -1, :partial).join('|');
+    # OUTPUT: «a|c d e|e|g h␤»
+
+See L<this blog post for more elaboration on rotor|http://perl6.party/post/Perl-6-.rotor-The-King-of-List-Manipulation>.
+
+=head2 method batch
+
+Defined As:
+
+    multi method batch(Int:D $batch --> Seq)
+    multi method batch(Int:D :$elems --> Seq)
+
+Returns a C<Seq> of the elements in batches of C<:$elems> or C<$batch>,
+respectively. If the number of elements is not a multiple of C<$batch>, the
+last batch may have less than C<$batch> elements, similar to
+C<.rotor($batch, :partial)>.
+
+=head2 routine cross
+
+    sub cross(+@e, :&with --> Seq:D)
+
+Computes the cross-product of two or more lists or L<iterables|/type/Iterable>.
+This returns a sequence of lists where the first item in each list is an item
+from the first iterable, the second is from the second given iterable, etc.
+Every item will be paired with every other item in all the other lists.
+
+    say cross(<a b c>, <d e f>).map(*.join).join(",")
+    # OUTPUT: «ad,ae,af,bd,be,bf,cd,ce,cf␤»
+
+The C<cross> routine has an infix synonym as well, named C<X>.
+
+    say (<a b c> X <d e f>).map(*.join).join(",")
+    # output is the same as the previous example
+
+If the optional C<with> parameter is passed, it is used as a reduction operation
+to apply to each of the cross product items.
+
+    say cross([1, 2, 3], [4, 5, 6], :with(&infix:<*>)).join(",");
+    # OUTPUT: «4,5,6,8,10,12,12,15,18␤»
+
+The C<X> operator can be combined with another operator as a meta-operator to perform a reduction as well:
+
+    say ([1, 2, 3] X* [4, 5, 6]).join(",")
+    # same output as the previous example
+
+=head2 routine zip
+
+Defined as:
+
+    sub zip(+@e, :&with --> Seq:D)
+
+Builds a 'list of lists', returned as a sequence, from multiple input lists or
+other L<iterables|/type/Iterable>.
+
+C<zip> iterates through each of the input lists synchronously, 'Zipping' them
+together, so that elements are grouped according to their input list index, in
+the order that the lists are provided.
+
+    say zip(<a b c>, <d e f>, <g h i>);
+    # OUTPUT: «((a d g) (b e h) (c f i))␤»
+
+C<zip> has an infix synonym, the C<Z> operator.
+
+    say <a b c> Z <d e f> Z <g h i>;                   # same output
+
+
+C<zip> can provide input to a for loop :
+
+    for <a b c> Z <d e f> Z <g h i> -> [$x,$y,$z] {say ($x,$y,$z).join(",")}
+    # OUTPUT: «a,d,g␤
+    # b,e,h␤
+    # c,f,i␤»
+
+, or more succinctly:
+
+    say .join(",") for zip <a b c>, <d e f>, <g h i>;  # same output
+
+Note, that if the input lists have an unequal number of elements, then
+C<zip> terminates once the shortest input list is exhausted, and trailing
+elements from longer input lists are discarded.
+
+    say <a b c> Z <d e f m n o p> Z <g h i>;
+    # ((a d g) (b e h) (c f i))
+
+In cases where data clipping is possible, but undesired, then consider using
+L<roundrobin> instead of C<zip>.
+
+The optional C<with> parameter will additionally reduce the zipped lists. For
+example, the following multiplies corresponding elements together to return a
+single list of products.
+
+    .say for zip <1 2 3>, [1, 2, 3], (1, 2, 3), :with(&infix:<*>);
+    # OUTPUT: «1␤
+    # 8␤
+    # 27␤»
+
+The C<Z> form can also be used to perform reduction by implicitly setting the
+C<with> parameter with a meta-operator :
+
+    .say for <1 2 3> Z* [1, 2, 3] Z* (1, 2, 3);        # same output
+
+=head2 routine roundrobin
+
+Defined as:
+
+    sub roundrobin(+list-of-lists --> Seq)
+
+Builds a 'list of lists', returned as a sequence, from multiple input lists or
+other L<iterables|/type/Iterable>. C<roundrobin> returns an identical result to
+that of L<zip|/type/List#routine_zip>, except when the input lists are allowed
+to have an unequal number of elements.
+
+    say roundrobin <a b c>, <d e f>, <g h i>;
+    # OUTPUT: «((a d g) (b e h) (c f i))␤»
+
+    say .join(",") for roundrobin([1, 2], [2, 3], [3, 4]);
+    # OUTPUT: «1,2,3␤
+    # 2,3,4␤»
+
+C<roundrobin> does not terminate once one or more of the input lists become
+exhausted, but proceeds until all elements from all lists have been processed.
+
+    say roundrobin <a b c>, <d e f m n o p>, <g h i j>;
+    # OUTPUT: «((a d g) (b e h) (c f i) (m j) (n) (o) (p))␤»
+
+    say .join(",") for roundrobin([1, 2], [2, 3, 57, 77], [3, 4, 102]);
+    # OUTPUT: «1,2,3␤
+    # 2,3,4␤
+    # 57,102␤
+    # 77␤»
+
+Therefore no data values are lost due in the 'zipping' operation. A record of
+which input list provided which element cannot be gleaned from the resulting
+sequence, however.
+
+C<roundrobin> can be useful in combining messy data to the point where a manual
+post-processing step can then be undertaken.
+
+=head2 routine sum
+
+Defined as:
+
+    sub    sum($list   --> Numeric:D)
+    method sum(List:D: --> Numeric:D)
+
+Returns the sum of all elements in the list or 0 if the list is empty.
+Throws an exception if an element can not be coerced into Numeric.
+
+    say (1, 3, pi).sum;       # OUTPUT: «7.14159265358979␤»
+    say (1, "0xff").sum;      # OUTPUT: «256␤»
+    say sum(0b1111, 5);       # OUTPUT: «20␤»
+
+=head2 method fmt
+
+Defined as:
+
+    method fmt($format = '%s', $separator = ' ' --> Str:D)
+
+Returns a string where each element in the list has been formatted according
+to C<$format> and where each element is separated by C<$separator>.
+
+For more information about formats strings, see L<sprintf|/routine/sprintf>.
+
+    my @a = 8..11;
+    say @a.fmt('%03d', ',');  # OUTPUT: «008,009,010,011␤»
+
+=head2 method from
+
+Assumes the list contains L«C<Match> objects|/type/Match» and returns the
+value of C<.from> called on the first element of the list.
+
+    'abcdefg' ~~ /(c)(d)/;
+    say $/.list.from;         # OUTPUT: «2␤»
+
+    "abc123def" ~~ m:g/\d/;
+    say $/.list.from;         # OUTPUT: «3␤»
+
+=head2 method to
+
+    "abc123def" ~~ m:g/\d/;
+    say $/.to; # OUTPUT: «6␤»
+
+Assumes the C<List> contains L«C<Match> objects|/type/Match», such as the
+C<$/> variable being a C<List>, when using C<:g> modifier in regexes. Returns the
+value of C<.to> called on the last element of the list.
+
+=head1 Operators
+
+=head2 infix C«cmp»
+
+    multi sub infix:<cmp>(List @a, List @b)
+
+Evaluates C<Lists> by comparing element C<@a[$i]> with C<@b[$i]> (for some
+C<Int $i>, beginning at 0) and returning C<Order::Less>, C<Order::Same>, or
+C<Order::More> depending on if and how the values differ. If the operation
+evaluates to C<Order::Same>, C<@a[$i + 1]> is compared with C<@b[$i + 1]>. This
+is repeated until one is greater than the other or all elements are exhausted.
+
+If the C<Lists> are of different lengths, at most only C<$n> comparisons will be
+made (where C<$n = @a.elems min @b.elems>). If all of those comparisons evaluate
+to C<Order::Same>, the final value is selected based upon which C<List> is
+longer.
+
+    say (1, 2, 3) cmp (1, 2, 3);   # OUTPUT: «Same␤»
+    say (4, 5, 6) cmp (4, 5, 7);   # OUTPUT: «Less␤»
+    say (7, 8, 9) cmp (7, 8, 8);   # OUTPUT: «More␤»
+
+    say (1, 2)    cmp (1, 2, 3);   # OUTPUT: «Less␤»
+    say (1, 2, 3) cmp (1, 2);      # OUTPUT: «More␤»
+    say (9).List  cmp (^10).List;  # OUTPUT: «More␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

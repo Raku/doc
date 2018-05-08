@@ -1,0 +1,308 @@
+=begin pod
+
+=TITLE class Pair
+
+=SUBTITLE Key/value pair
+
+    class Pair does Associative {}
+
+Consists of two parts, a I<key> and a I<value>. C<Pair>s can be seen as the
+atomic units in C<Hash>es, and they are also used in conjunction with named
+arguments and parameters.
+
+X<|colon pair (Pair)>
+X<|:> X«| => » X<|:!> X<|:$>
+There are many syntaxes for creating C<Pair>s:
+
+    Pair.new('key', 'value'); # The canonical way
+    'key' => 'value';         # this...
+    :key<value>;              # ...means the same as this
+    :key<value1 value2>;      # But this is  key => <value1 value2>
+    :foo(127);                # short for  foo => 127
+    :127foo;                  # the same   foo => 127
+
+Variants of this are
+
+    :key;                     # same as   key => True
+    :!key;                    # same as   key => False
+
+X<|colon list (Pair)>
+Colon pairs can be chained without a comma to create a List of Pairs. Depending
+on context you may have to be explicit when assigning colon lists.
+
+    sub s(*%h){ say %h.perl };
+    s :a1:b2;
+    # OUTPUT: «{:a1, :b2}␤»
+
+    my $manna = :a1:b2:c3;
+    say $manna.^name;
+    # OUTPUT: «Pair␤»
+
+    $manna = (:a1:b2:c3);
+    say $manna.^name;
+    # OUTPUT: «List␤»
+
+Any variable can be turned into a C<Pair> of its name and its value.
+
+    my $bar = 10;
+    my $p   = :$bar;
+    say $p; # OUTPUT: «bar => 10␤»
+
+
+It is worth noting that when assigning a L<Scalar|/type/Scalar> as value of a C<Pair>
+the value holds the container of the value itself. This means that it is possible to change the
+value from outside of the C<Pair> itself:
+
+=begin code
+my $v = 'value A';
+my $pair = a => $v;
+$pair.say;  # OUTPUT: a => value A
+
+$v = 'value B';
+$pair.say; # OUTPUT: a => value B
+=end code
+
+Please also note that this behavior is totally unrelated to the way used to build the C<Pair> itself
+(i.e., explicit usage of C<new>, use of colon, fat arrow), as well as if the C<Pair> is bound
+to a variable.
+
+It is possible to change the above behaviour forcing the C<Pair> to remove the scalar container
+and to hold the effective value itself via the method L<freeze|/type/Pair#method_freeze>:
+
+=begin code
+my $v = 'value B';
+my $pair = a => $v;
+$pair.freeze;
+$v = 'value C';
+$pair.say; # OUTPUT: a => value B
+=end code
+
+
+=head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    multi method new(Pair: Mu  $key, Mu  $value)
+    multi method new(Pair: Mu :$key, Mu :$value)
+
+Constructs a new L<Pair> object.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(Pair:D $: %topic)
+    multi method ACCEPTS(Pair:D $: Pair:D $topic)
+    multi method ACCEPTS(Pair:D $: Mu $topic)
+
+If C<topic> is an L<Associative>, looks up the value using invocant's key in
+it and checks invocant's value C<.ACCEPTS> that value:
+
+    say %(:42a) ~~ :42a; # OUTPUT: «True␤»
+    say %(:42a) ~~ :10a; # OUTPUT: «False␤»
+
+If C<topic> is another L<Pair>, checks the invocant's value C<.ACCEPTS> the
+C<topic's> value. Note that the keys are not considered and can be different:
+
+    say :42a ~~ :42a; # OUTPUT: «True␤»
+    say :42z ~~ :42a; # OUTPUT: «True␤»
+    say :10z ~~ :42a; # OUTPUT: «False␤»
+
+If C<topic> is any other value, uses the invocant's key as the name of the
+method to call on C<topic> and check's its L«C<.Bool>|/routine/Bool» is the same
+as C<.Bool> of the invocant's value. This form can be used to check L<Bool> values
+of multiple methods on the same object, such as L<IO::Path>, by using
+L<Junctions|/type/Junction>:
+
+    say "foo" .IO ~~ :f & :rw; # OUTPUT: «False␤»
+    say "/tmp".IO ~~ :!f;      # OUTPUT: «True␤»
+    say "."   .IO ~~ :f | :d;  # OUTPUT: «True␤»
+
+=head2 method antipair
+
+Defined as:
+
+    method antipair(--> Pair:D)
+
+Returns a new C<Pair> object with key and value exchanged.
+
+    my $p = (6 => 'Perl').antipair;
+    say $p.key;         # OUTPUT: «Perl␤»
+    say $p.value;       # OUTPUT: «6␤»
+
+=head2 method key
+
+Defined as:
+
+    multi method key(Pair:D:)
+
+Returns the I<key> part of the C<Pair>.
+
+    my $p = (Perl => 6);
+    say $p.key; # OUTPUT: «Perl␤»
+
+=head2 method value
+
+Defined as:
+
+    multi method value(Pair:D:) is rw
+
+Returns the I<value> part of the C<Pair>.
+
+    my $p = (Perl => 6);
+    say $p.value; # OUTPUT: «6␤»
+
+=head2 infix cmp
+
+Defined as:
+
+    multi sub infix:<cmp>(Pair:D, Pair:D)
+
+The type-agnostic comparator; compares two C<Pair>s. Compares first their
+I<key> parts, and then compares the I<value> parts if the keys are equal.
+
+    my $a = (Apple => 1);
+    my $b = (Apple => 2);
+    say $a cmp $b; # OUTPUT: «Less␤»
+
+=head2 method fmt
+
+Defined as:
+
+    multi method fmt(Pair:D: Str:D $format --> Str:D)
+
+Takes a I<format string>, and returns a string the I<key> and I<value>
+parts of the C<Pair> formatted. Here's an example:
+
+    my $pair = :Earth(1);
+    say $pair.fmt("%s is %.3f AU away from the sun")
+    # OUTPUT: «Earth is 1.000 AU away from the sun␤»
+
+For more about format strings, see L<sprintf>.
+
+=head2 method kv
+
+Defined as:
+
+    multi method kv(Pair:D: --> List:D)
+
+Returns a two-element C<List> with the I<key> and I<value> parts of
+C<Pair>, in that order. This method is a special case of the same-named
+method on C<Hash>, which returns all its entries as a list of keys and
+values.
+
+    my $p = (Perl => 6);
+    say $p.kv[0]; # OUTPUT: «Perl␤»
+    say $p.kv[1]; # OUTPUT: «6␤»
+
+=head2 method pairs
+
+Defined as:
+
+    multi method pairs(Pair:D:)
+
+Returns a list of one C<Pair>, namely this one.
+
+    my $p = (Perl => 6);
+    say $p.pairs.^name; # OUTPUT: «List␤»
+    say $p.pairs[0];    # OUTPUT: «Perl => 6␤»
+
+=head2 method antipairs
+
+Defined as:
+
+    multi method antipairs(Pair:D:)
+
+Returns a L<List|/type/List> containing the L<antipair|/type/Pair#method_antipair>
+of the invocant.
+
+    my $p = (6 => 'Perl').antipairs;
+    say $p.^name;                                     # OUTPUT: «List␤»
+    say $p.first;                                     # OUTPUT: «Perl => 6␤»
+    say $p.first.^name;                               # OUTPUT: «Pair␤»
+
+=head2 method invert
+
+Defined as:
+
+    method invert(Pair:D: --> Seq:D)
+
+Returns a L<Seq>. If the C<.value> of the invocant is I<NOT> an
+L<Iterable|/type/Iterable>, the L<Seq> will contain a single L<Pair> whose
+C<.key> is the C<.value> of the invocant and whose C<.value> is the C<.key> of
+the invocant:
+
+    :foo<bar>.invert.perl.say; # OUTPUT: «(:bar("foo"),).Seq»
+
+If invocant's C<.value> I<is> an L<Iterable|/type/Iterable>, the returned L<Seq>
+will contain the same number of L<Pair>s as items in the C<.value>, with each
+of those items a C<.key> of a pair and the C<.key> of the invocant the C<.value>
+of that pair:
+
+    :foo<Perl is great>.invert.perl.say;
+    # OUTPUT: «(:Perl("foo"), :is("foo"), :great("foo")).Seq»
+
+    :foo{ :42a, :72b }.invert.perl.say;
+    # OUTPUT: «((:a(42)) => "foo", (:b(72)) => "foo").Seq»
+
+To perform the exact C<.key> and C<.value> swap, use
+L«C<.antipair> method|/type/Pair#method_antipair».
+
+=head2 method keys
+
+Defined as:
+
+    multi method keys(Pair:D: --> List:D)
+
+Returns a L<List|/type/List> containing the L<key|/type/Pair#method_key>
+of the invocant.
+
+    say ('Perl' => 6).keys;                           # OUTPUT: «(Perl)␤»
+
+=head2 method values
+
+Defined as:
+
+    multi method values(Pair:D: --> List:D)
+
+Returns a L<List|/type/List> containing the L<value|/type/Pair#method_value>
+of the invocant.
+
+    say ('Perl' => 6).values;                         # OUTPUT: «(6)␤»
+
+=head2 method freeze
+
+Defined as:
+
+    method freeze(Pair:D:)
+
+Makes the I<value> of the C<Pair> read-only, by removing it from its L<Scalar container|/language/containers#Scalar_containers>, and returns it.
+
+    my $str = "apple";
+    my $p = Pair.new('key', $str);
+    $p.value = "orange";              # this works as expected
+    $p.say;                           # OUTPUT: «key => orange␤»
+    $p.freeze.say;                    # OUTPUT: «orange␤»
+    $p.value = "a new apple";         # Fails
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Str (apple)␤»
+
+B<NOTE:> this method is proposed for removal in B<6.d> language and its use is not recommended.
+
+=head2 method Str
+
+Defined as:
+
+    multi method Str(Pair:D: --> Str:D)
+
+Returns a string representation of the invocant formatted
+as I<key ~ \t ~ value>.
+
+    my $b = eggs => 3;
+    say $b.Str;                                       # OUTPUT: «eggs  3␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

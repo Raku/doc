@@ -1,0 +1,165 @@
+=begin pod
+
+=TITLE class Thread
+
+=SUBTITLE Concurrent execution of code (low-level)
+
+    class Thread {}
+
+A L<thread|https://en.wikipedia.org/wiki/Thread_%28computing%29> is a sequence
+of instructions that can (potentially) run in parallel to others. Class
+C<Thread> provides a bit of abstraction over threads provided by the
+underlying virtual machines (which in turn might or might not be operating
+system threads).
+
+Since threads are fairly low-level, most applications should use other
+primitives, like L<start|/type/Promise#method start>, which also runs in
+parallel and returns a L<Promise|/type/Promise>.
+
+=begin code
+use v6.c;
+my @threads = (^10).map: {
+    Thread.start(
+        name => "Sleepsorter $_",
+        sub {
+            my $rand = (^10).pick;
+            sleep $rand;
+            say $rand;
+        },
+    );
+}
+
+.finish for @threads;
+=end code
+
+The current thread is available in the dynamic variable C<$*THREAD>.
+
+=head1 Methods
+
+=head2 method new
+
+    method new(:&code!, Bool :$app_lifetime = False, Str :$name = '<anon>' --> Thread:D)
+
+Creates and returns a new C<Thread>, without starting it yet. C<&code> is the
+code that will be run in a separate thread.
+
+C<$name> is a user-specified string that identifies the thread.
+
+If C<$app_lifetime> is set to C<True>, then the thread is killed when the main
+thread of the process terminates. If set to C<False>, the process will only
+terminate when the thread has finished.
+
+=head2 method start
+
+    method start(Thread:U: &code, Bool :$app_lifetime = False, Str :$name = '<anon>' --> Thread:D)
+
+Creates, runs and returns a new C<Thread>. Note that it can (and often does)
+return before the thread's code has finished running.
+
+=head2 method run
+
+    method run(Thread:D:)
+
+Runs the thread, and returns the invocant. It is an error to run a thread that
+has already been started.
+
+=head2 method id
+
+    method id(Thread:D: --> Int:D)
+
+Returns a numeric, unique thread identifier.
+
+=head2 method finish
+
+    method finish(Thread:D)
+
+Waits for the thread to finish. This is called L<join|#method_join> in other programming
+systems.
+
+=head2 method join
+
+    method join(Thread:D)
+
+Waits for the thread to finish.
+
+=head2 method yield
+
+    method yield(Thread:U)
+
+Tells the scheduler to prefer another thread for now.
+
+    Thread.yield;
+
+=head2 method app_lifetime
+
+    method app_lifetime(Thread:D: --> Bool:D)
+
+Returns C<False> unless the named parameter C<:app_lifetime> is specifically set
+to C<True> during object creation. If the method returns C<False> it means that
+the process will only terminate when the thread has finished while C<True> means that
+the thread will be killed when the main thread of the process terminates.
+
+    my $t1 = Thread.new(code => { for 1..5 -> $v { say $v }});
+    my $t2 = Thread.new(code => { for 1..5 -> $v { say $v }}, :app_lifetime);
+
+    say $t1.app_lifetime;                 # OUTPUT: «False␤»
+    say $t2.app_lifetime;                 # OUTPUT: «True␤»
+
+=head2 method name
+
+    method name(Thread:D: --> Str:D)
+
+Returns the user defined string, which can optionally be set during object
+creation in order to identify the C<Thread>, or '<anon>' if no such string
+was specified.
+
+    my $t1 = Thread.new(code => { for 1..5 -> $v { say $v }});
+    my $t2 = Thread.new(code => { for 1..5 -> $v { say $v }}, name => 'my thread');
+
+    say $t1.name;                 # OUTPUT: «<anon>␤»
+    say $t2.name;                 # OUTPUT: «my thread␤»
+
+=head2 method Numeric
+
+    method Numeric(Thread:D: --> Int:D)
+
+Returns a numeric, unique thread identifier, i.e. the same as L<id|#method_id>.
+
+=head2 method Str
+
+    method Str(Thread:D: --> Str:D)
+
+Returns a string which contains the invocants L<thread id|#method_id> and
+L<name|#method_name>.
+
+    my $t = Thread.new(code => { for 1..5 -> $v { say $v }}, name => 'calc thread');
+    say $t.Str;                           # OUTPUT: «Thread<3>(calc thread)␤»
+
+=head2 method is-initial-thread
+
+    method is-initial-thread(--> Bool)
+
+Returns a Bool indicating whether the current thread (if called as a class
+method) or the Thread object on which it is called, is the initial thread
+the program started on.
+
+    say Thread.is-initial-thread;    # True if this is the initial thread
+    say $*THREAD.is-initial-thread;  # True if $*THREAD is the initial thread
+
+Please note there is no guarantee that this is actually the main thread from
+the OS's point of view.  Also note that if you need this other than from a
+pure introspection / debugging point of view, that there are probably better
+ways to achieve what you're trying to achieve.
+
+=head1 Routines
+
+=head2 sub full-barrier
+
+    sub full-barrier()
+
+Performs a full memory barrier, preventing re-ordering of reads/writes.
+Required for implementing some lock-free data structures and algorithms.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

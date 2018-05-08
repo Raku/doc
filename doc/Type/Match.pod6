@@ -1,0 +1,146 @@
+=begin pod
+
+=TITLE class Match
+
+=SUBTITLE Result of a successful regex match
+
+    class Match is Capture is Cool {}
+
+C<Match> objects are the result of a successful regex match, this does include
+any zero-width match. They store a reference to the original string (C<.orig>),
+positional and named captures, the positions of the start and end of the match
+in the original string, and a payload referred to as I<AST> (abstract syntax
+tree), which can be used to build data structures from complex regexes and
+grammars.
+
+Submatches are also C<Match> objects (or lists of C<Match> objects,
+if the corresponding regex was quantified), so each match object
+can be seen as the root of a tree of match objects.
+
+=head1 Methods
+
+=head2 method orig
+
+Returns the original string that the regex was matched against.
+
+=head2 method from
+
+Returns the index of the starting position of the match.
+
+=head2 method to
+
+Returns the index of the end position of the match.
+
+=head2 method made
+
+Returns the payload that was set with L<#method make>.
+
+=head2 method actions
+
+    method actions(Match:D: --> Mu)
+
+Returns the actions object (if any was set; else L<Mu>) that the grammar used
+from which this Match object was created.
+
+=head2 method ast
+
+Alias for L<#method made>.
+
+=head2 method Bool
+
+Defined as:
+
+    method Bool(Capture:D: --> Bool:D)
+
+Returns C<True> on successful and C<False> on unsuccessful matches. Please note
+that any zero-width match can also be successful.
+
+    say 'abc' ~~ /^/;                   # OUTPUT: «｢｣␤»
+    say $/.from, ' ',  $/.to, ' ', ?$/; # OUTPUT: «0 0 True␤»
+
+=head2 method Str
+
+Defined as:
+
+    method Str(Match:D: --> Str:D)
+
+Returns the matched text.
+
+    "abc123def" ~~ /\d+/;
+    say $/.Str;               # OUTPUT: «123␤»
+
+=head2 method caps
+
+Returns a list of pairs, with the index or submatch name as key and
+the submatches as values. The list is ordered by starting position
+of the submatches.
+
+=head2 method chunks
+
+Returns a list of pairs, with the index or submatch name as key and
+the submatches as values. The list is ordered by starting position
+of the submatches.
+
+Those parts of the string that were not matched by submatches are
+interleaved with the other pairs, with the string C<~> as key.
+
+=head2 method list
+
+Returns a list of positional submatches.
+
+=head2 method hash
+
+Returns a hash of named submatches.
+
+=head2 method prematch
+
+Defined as:
+
+    method prematch(Match:D: --> Str:D)
+
+Returns the part of the original string leading up to the match.
+
+    'abcdefg' ~~ /cd/;
+    say $/.prematch;          # OUTPUT: «ab␤»
+
+    # will return a list of three match objects
+    "abc123def" ~~ m:g/\d/;
+    say $/.[1].prematch;      # OUTPUT: «abc1␤»
+
+=head2 method postmatch
+
+Defined as:
+
+    method postmatch(Match:D: --> Str:D)
+
+Returns the part of the original string following the match.
+
+    'abcdefg' ~~ /cd/;
+    say $/.postmatch;         # OUTPUT: «efg␤»
+
+    # will return a list of three match objects
+    "abc123def" ~~ m:g/\d/;
+    say $/.[1].postmatch;     # OUTPUT: «3def␤»
+
+=head2 method make
+
+    method make(Match:D: Mu $payload)
+    sub make(Mu $payload)
+
+Stores an arbitrary payload into the C<Match> object that can later be retrieved
+via L«C<.made>|/routine/made» method.
+
+This is typically used in a L<grammar|/language/grammars>'s actions class
+methods, where a piece of data is stored by one method and then later retrieved
+by another. It's up to you what data you store. It could be a tree node, L<result
+of a calculation|/language/grammars#Protoregexes>, or a list of values.
+
+The sub form operates on the current C<$/>, which can be a convenient shortcut:
+
+    method my-action ($/) {
+        make "foo: $/";
+    }
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

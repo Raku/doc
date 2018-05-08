@@ -1,0 +1,117 @@
+=begin pod
+
+=TITLE class Lock
+
+=SUBTITLE Low-level thread locking primitive
+
+    class Lock {}
+
+A Lock is a low-level constructor for ensuring that only one thread works with
+a certain object at a given time, or runs a piece of code (called the
+I<critical section>).
+
+    my $x = 0;
+    my $l = Lock.new;
+    await (^10).map: {
+        start {
+            $l.protect({ $x++ });
+        }
+    }
+    say $x;         # OUTPUT: «10␤»
+
+Locks are re-entrant, that is, a thread that holds the lock can lock it again
+without blocking.
+
+High-level Perl 6 code should avoid the direct usage of locks, because they
+are not composable. Instead, high-level constructs such as
+L<Promise|/type/Promise>, L<Channel|/type/Channel> and Supply should be used
+whenever possible.
+
+=head1 Methods
+
+=head2 method protect
+
+Defined as:
+
+    method protect(Lock:D: &code)
+
+Runs C<&code> and makes sure it is only run in one thread at once.
+
+Note that the L<Lock> itself needs to be created outside the portion
+of the code that gets threaded and it needs to protect. In the first
+example below, L<Lock> is first created and assigned to C<$lock>,
+which is then used I<inside> the L<Promises|/type/Promise> to protect
+the sensitive code. In the second example, a mistake is made, the
+C<Lock> is created right inside the L<Promise>, so the code ends up
+with a bunch of separate locks, created in a bunch of threads, and
+thus they don't actually protect the code we want to protect.
+
+    # Right: $lock is instantiated outside the portion of the
+    # code that will get threaded and be in need of protection
+    my $lock = Lock.new;
+    await ^20 .map: {
+        start {
+            $lock.protect: {
+                print "Foo";
+                sleep rand;
+                say "Bar";
+            }
+        }
+    }
+
+    # !!! WRONG !!! Lock is created inside threaded area!
+    await ^20 .map: {
+        start {
+            Lock.new.protect: {
+                print "Foo"; sleep rand; say "Bar";
+            }
+        }
+    }
+
+=head2 method lock
+
+Defined as:
+
+    method lock(Lock:D:)
+
+Acquires the lock. If it is currently not available, waits for it.
+
+    my $l = Lock.new;
+    $l.lock;
+
+=head2 method unlock
+
+Defined as:
+
+    method unlock(Lock:D:)
+
+Releases the lock.
+
+    my $l = Lock.new;
+    $l.lock;
+    $l.unlock;
+
+=head2 method condition
+
+Defined as:
+
+=begin code :skip-test
+my class ConditionVariable {
+    method wait();
+    method signal();
+    method signal_all();
+}
+
+method condition(Lock:D: --> ConditionVariable:D)
+=end code
+
+Returns a condition variable. Compare
+L<https://web.stanford.edu/~ouster/cgi-bin/cs140-spring14/lecture.php?topic=locks> or
+L<https://en.wikipedia.org/wiki/Monitor_%28synchronization%29> for background.
+
+    my $l = Lock.new;
+    $l.condition;
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

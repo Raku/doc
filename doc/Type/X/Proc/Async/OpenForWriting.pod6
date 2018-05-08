@@ -1,0 +1,39 @@
+=begin pod
+
+=TITLE class X::Proc::Async::OpenForWriting
+
+=SUBTITLE Error due to writing to a read-only Proc::Async object
+
+    class X::Proc::Async::OpenForWriting is Exception {}
+
+When a L<Proc::Async> object is opened only for reading from the external
+program (no C<:w> passed to open), and a write operation such as C<write>,
+C<print> and C<say> is performed, an exception of type
+X<X::Proc::Async::OpenForWriting> is thrown:
+
+    my $proc = Proc::Async.new("echo");
+    $proc.start;
+    $proc.say(42);
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Proc::Async::OpenForWriting: Process must be opened for writing with :w to call 'say'␤»
+
+To fix that you can use writable commands with :w flag:
+
+    my $prog = Proc::Async.new(:w, 'cat');
+    $prog.stdout.tap( -> $str {
+        print $str;
+    });
+    my $promise = $prog.start;
+    await $prog.say('foo');
+    $prog.close-stdin;
+    await $promise;
+
+=head1 Methods
+
+=head2 method method
+
+    method method(X::Proc::Async::OpenForWriting:D:)
+
+Returns the method name that was called and which caused the exception.
+
+=end pod

@@ -1,0 +1,80 @@
+=begin pod
+
+=TITLE role Metamodel::MethodContainer
+
+=SUBTITLE Metaobject that supports storing and introspecting methods
+
+    class Metamodel::MethodContainer {}
+
+roles, classes, grammars and enums can contain methods. This role implements
+the API around storing and introspecting them.
+
+    say .name for Int.^methods(:all);
+
+    # don't do that, because it changes type Int globally.
+    # just for demonstration purposes.
+    Int.^add_method('double', method ($x:) { 2 * $x });
+    say 21.double; # OUTPUT: «42␤»
+
+=head1 Methods
+
+=head2 method add_method
+
+    method add_method(Metamodel::MethodContainer: $obj, $name, $code)
+
+Adds a method to the meta class, to be called with name C<$name>.
+This should only be done before a type is composed.
+
+=head2 method methods
+
+    method methods(Metamodel::MethodContainer: $obj, :$all, :$local)
+
+Returns a list of public methods available on the class (which includes
+methods from superclasses and roles). By default this stops at the classes
+L<Cool>, L<Any> or L<Mu>; to really get all methods, use the C<:all> adverb.
+If C<:local> is set, only methods declared directly in the class are returned.
+
+    class A {
+        method x() { };
+    }
+
+    say A.^methods();                   # x
+    say A.^methods(:all);               # x infinite defined ...
+
+The returned list contains objects of type L<Method>, which you can
+use to introspect their signatures and call them.
+
+Some introspection method-look-alikes like L<C<WHAT>|/language/mop#WHAT> will
+not show up, although they are present in any Perl 6 object. They are handled
+at the grammar level and will likely remain so for bootstrap reasons.
+
+=head2 method method_table
+
+    method method_table(Metamodel::MethodContainer:D: $obj --> Hash:D)
+
+Returns a hash where the keys are method names, and the values are
+L<methods|/type/Method>. Note that the keys are the names by which the methods
+can be called, not necessarily the names by which the methods know themselves.
+
+=head2 method lookup
+
+    method lookup(Metamodel::MethodContainer: $obj, $name --> Method)
+
+Returns the first matching L<method|/type/Method> object of the provided C<$name>
+or C<(Mu)> if no method object was found. The search for a matching method object
+is done by following the L<mro|/type/Metamodel::C3MRO> of C<$obj>. Note that
+C<lookup> is supposed to be used for introspection, if you're after something
+which can be invoked you probably want to use L<find_method|/routine/find_method>
+instead.
+
+    say 2.5.^lookup("sqrt").perl:      # OUTPUT: «method sqrt (Rat $: *%_) ...␤»
+    say Str.^lookup("BUILD").perl;     # OUTPUT: «submethod BUILD (Str $: :$value = "", *%_ --> Nil) ...␤»
+    say Int.^lookup("does-not-exist"); # OUTPUT: «(Mu)␤»
+
+=begin comment
+
+TODO: submethod_table, declares_method, cache, cache_get, cache_add
+
+=end comment
+
+=end pod

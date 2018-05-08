@@ -1,0 +1,257 @@
+=begin pod
+
+=TITLE class Scalar
+
+=SUBTITLE A mostly transparent container used for indirections
+
+    class Scalar {}
+
+A C<Scalar> is an internal indirection which is for most purposes
+invisible during ordinary use of Perl 6.  It is the default container
+type associated with the C<$> sigil.  A literal C<Scalar> may be
+placed around a literal value by enclosing the value in C<$(…)>.
+This notation will appear in the output of a C<.perl> method in
+certain places where it is important to note the presence of C<Scalar>s.
+
+When a value is assigned to a C<$>-sigiled variable, the variable will
+actually bind to a C<Scalar>, which in turn will bind to the value.
+When a C<Scalar> is assigned to a C<$>-sigiled variable, the value
+bound to by that C<Scalar> will be bound to the C<Scalar> which that
+variable was bound to (a new one will be created if necessary.)
+
+In addition C<Scalar>s delegate all method calls to the value which
+they contain.  As such, C<Scalar>s are for the most part invisible.
+There is, however, one important place where C<Scalar>s have a visible
+impact: a C<Scalar> will shield its contents from flattening by most
+Perl 6 core list operations.
+
+A C<$>-sigiled variable may be bound directly to a value with no
+intermediate C<Scalar> using the binding operator C<:=>.  You can
+tell if this has been done by examining the introspective pseudo-method
+C<.VAR>:
+
+    my $a = 1;
+    $a.^name.say;     # OUTPUT: «Int␤»
+    $a.VAR.^name.say; # OUTPUT: «Scalar␤»
+    my $b := 1;
+    $b.^name.say;     # OUTPUT: «Int␤»
+    $b.VAR.^name.say; # OUTPUT: «Int␤»
+
+This same thing happens when values are assigned to an element of
+an C<Array>, however, C<List>s directly contain their values:
+
+    my @a = 1, 2, 3;
+    @a[0].^name.say;            # OUTPUT: «Int␤»
+    @a[0].VAR.^name.say;        # OUTPUT: «Scalar␤»
+    [1, 2, 3][0].^name.say;     # OUTPUT: «Int␤»
+    [1, 2, 3][0].VAR.^name.say; # OUTPUT: «Scalar␤»
+    (1, 2, 3)[0].^name.say;     # OUTPUT: «Int␤»
+    (1, 2, 3)[0].VAR.^name.say; # OUTPUT: «Int␤»
+
+Array elements may be bound directly to values using C<:=> as well,
+however this is to be discouraged as it may lead to confusion.
+Doing so will break exact round-tripping of C<.perl> output – since
+C<Array>s are assumed to place C<Scalar>s around each element,
+C<Scalar>s are not denoted with C<$> in the output of C<Array.perl>.
+
+    [1, $(2, 3)].perl.say;     # OUTPUT: «[1, (2, 3)]␤»
+    (1, $(2, 3)).perl.say;     # OUTPUT: «(1, $(2, 3))␤»
+
+Binding a Scalar to a C<$>-sigiled variable replaces the existing
+C<Scalar> in that variable, if any, with the given C<Scalar>.
+That means more than one variable may refer to the same C<Scalar>.
+Because the C<Scalar> may be mutated, this makes it possible to
+alter the value of both variables by altering only one of them:
+
+    my $a = 1;
+    my $b := $a;
+    $b = 2;
+    $a.say;       # OUTPUT: «2␤»
+
+X<|\ (sigilless scalar)>
+SSA-style constants bind directly to their value with no
+intervening C<Scalar>, even when C<=>/assignment is used.  They may
+be forced to use a C<Scalar> by assigning a C<$>-sigiled variable
+to them, at which point, they behave entirely like C<$>-sigiled
+variables.
+
+    my \c = 1;
+    c.^name.say;             # OUTPUT: «Int␤»
+    c.VAR.^name.say;         # OUTPUT: «Int␤»
+    my $a = 1;
+    my \d = $a;              # just "my \d = $ = 1" works, too
+    d.^name.say;             # OUTPUT: «Int␤»
+    d.VAR.^name.say;         # OUTPUT: «Scalar␤»
+    d = 2;                   # ok
+    c = 2;                   # fails
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Int␤»
+
+=head1 Atomic Operations on Scalar
+
+A C<Scalar> can have its value changed using a hardware-supported atomic
+compare and swap operation. This is useful when implementing lock free data
+structures and algorithms. It may also be fetched and assigned to in an
+"atomic" fashion, which ensures appropriate memory barriering and prevents
+unwanted optimizations of memory accesses.
+
+A C<Scalar> that will be used with an atomic operation should B<always> be
+explicitly initialized with a value before any atomic operations are
+performed upon it. This is to avoid races with lazy allocation and
+auto-vivification. For example:
+
+=for code :preamble<no strict;>
+cas(@a[5], $expected, $value)
+
+Will work in principle since an C<Array> consists of C<Scalar> containers.
+However, the container is only bound into the array upon initial assignment.
+Therefore, there would be a race to do that binding. The C<Scalar> atomic
+operations will never check for or do any such auto-vivification, so as to
+make such bugs much more evident (rather than only observed under stress).
+
+=head1 Routines
+
+=head2 atomic-assign
+
+Defined as:
+
+    multi sub atomic-assign($target is rw, $value)
+
+Performs an atomic assignment of C<$value> into the C<Scalar> C<$target>. The
+C<atomic-assign> routine ensures that any required barriers are performed such
+that the changed value will be "published" to other threads.
+
+=head2 atomic-fetch
+
+    multi sub atomic-fetch($target is rw)
+
+Performs an atomic read of the value in the C<Scalar> C<$target> and returns
+the read value. Using this routine instead of simply using the variable
+ensures that the latest update to the variable from other threads will be seen,
+both by doing any required hardware barriers and also preventing the compiler
+from lifting reads. For example:
+
+    my $started = False;
+    start { atomic-assign($started, True) }
+    until atomic-fetch($started) { }
+
+Is certain to terminate, while in:
+
+    my $started = False;
+    start { atomic-assign($started, True) }
+    until $started { }
+
+It would be legal for a compiler to observe that C<$started> is not updated in
+the loop, and so lift the read out of the loop, thus causing the program to
+never terminate.
+
+=head2 cas
+
+Defined as:
+
+    multi sub cas($target is rw, $expected, $value)
+    multi sub cas($target is rw, &operation)
+
+Performs an atomic compare and swap of the value in the C<Scalar> C<$target>.
+The first form has semantics like:
+
+=for code :preamble<no strict;>
+my $seen = $target;
+if $seen<> =:= $expected<> {
+    $target = $value;
+}
+return $seen;
+
+Except it is performed as a single hardware-supported atomic instruction, as
+if all memory access to C<$target> were blocked while it took place. Therefore
+it is safe to attempt the operation from multiple threads without any other
+synchronization. Since it is a reference comparison, this operation is usually
+not sensible on value types.
+
+For example:
+
+    constant NOT_STARTED = Any.new;
+    constant STARTED = Any.new;
+    my $master = NOT_STARTED;
+    await start {
+        if cas($master, NOT_STARTED, STARTED) === Any {
+            say "Master!"
+        }
+    } xx 4
+
+Will reliably only ever print C<Master!> one time, as only one of the threads
+will be successful in changing the C<Scalar> from C<NOT_STARTED> to
+C<STARTED>.
+
+The second form, taking a code object, will first do an atomic fetch of the
+current value and invoke the code object with it. It will then try to do an
+atomic compare and swap of the target, using the value passed to the code
+object as C<$expected> and the result of the code object as C<$value>. If
+this fails, it will read the latest value, and retry, until a CAS operation
+succeeds.
+
+Therefore, an item could be added to the head of a linked list in a lock free
+manner as follows:
+
+    class Node {
+        has $.value;
+        has Node $.next;
+    }
+    my Node $head = Node;
+    await start {
+        for ^1000 -> $value {
+            cas $head, -> $next { Node.new(:$value, :$next) }
+        }
+    } xx 4;
+
+This will reliably build up a linked list of 4000 items, with 4 nodes with
+each value ranging from 0 up to 999.
+
+=head2 method of
+
+    method of(Scalar:D: --> Mu)
+
+Returns the type constraint of the container.
+
+Example:
+
+    my Cool $x = 42;
+    say $x.VAR.of.^name;            # OUTPUT: «Cool»
+
+=head1 Operators
+
+=head2 infix ⚛=
+
+    multi sub infix:<⚛=>($target is rw, $value)
+
+Performs an atomic assignment of C<$value> into the C<Scalar> C<$target>. The
+C<⚛=> operator ensures that any required barriers are performed such that the
+changed value will be "published" to other threads.
+
+=head2 prefix ⚛
+
+    multi sub prefix:<⚛>($target is rw)
+
+Performs an atomic read of the value in the C<Scalar> C<$target> and returns
+the read value. Using this operator instead of simply using the variable
+ensures that the latest update to the variable from other threads will be seen,
+both by doing any required hardware barriers and also preventing the compiler
+from lifting reads. For example:
+
+    my $started = False;
+    start { $started ⚛= True }
+    until ⚛$started { }
+
+Is certain to terminate, while in:
+
+    my $started = False;
+    start { $started ⚛= True }
+    until $started { }
+
+It would be legal for a compiler to observe that C<$started> is not updated in
+the loop, and so lift the read out of the loop, thus causing the program to
+never terminate.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

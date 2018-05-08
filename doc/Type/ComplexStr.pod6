@@ -1,0 +1,126 @@
+=begin pod
+
+=TITLE class ComplexStr
+
+=SUBTITLE Dual Value Complex number and String
+
+    class ComplexStr is Complex is Str {}
+
+The dual value types (often referred to as L<allomorphs|/language/glossary#Allomorph>)
+allow for the representation of a value as both a string and a numeric type, typically
+they will be created for you when the context is "stringy" but they can be determined
+to be numbers, such as in some L<quoting constructs|/language/quoting>:
+
+    my $f = <42+0i>; say $f.^name; # OUTPUT: «ComplexStr␤»
+
+As a subclass of both L«C<Complex>|/type/Complex» and L«C<Str>|/type/Str»,
+a C<ComplexStr> will be accepted where either is expected. However,
+C<ComplexStr> does not share object identity with C<Complex>- or C<Str>-only
+variants:
+
+    my $complex-str = < 42+0i >;
+    my Complex $complex = $complex-str; # OK!
+    my Str     $str     = $complex-str; # OK!
+    say 42+0i ∈ <42+0i  55  1>; # False; ∈ operator cares about object identity
+
+=head1 Methods
+
+=head2 method new
+
+    method new(Complex $i, Str $s)
+
+The constructor requires both the C<Complex> and the C<Str> value, when constructing one
+directly the values can be whatever is required:
+
+    my $f = ComplexStr.new(42+0i, "forty two (but complicated)");
+    say +$f; # OUTPUT: «42+0i␤»
+    say ~$f; # OUTPUT: «"forty two (but complicated)"␤»
+
+=head2 method Bool
+
+Defined as:
+
+    multi method Bool(ComplexStr:D: --> Bool:D)
+
+I<This method may be provided by the parent classes and not implemented in ComplexStr directly>.
+
+Returns C<False> if the invocant is numerically C<±0±0i>, otherwise returns C<True>. String portion
+is not considered.
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(ComplexStr:D --> Capture:D)
+
+Equivalent to L«C<Mu.Capture>|/type/Mu#method_Capture».
+
+=head2 method Complex
+
+    method Complex
+
+Returns the C<Complex> value of the C<ComplexStr>.
+
+=head2 method Numeric
+
+Defined as:
+
+    multi method Numeric(ComplexStr:D: --> Complex:D)
+    multi method Numeric(ComplexStr:U: --> Complex:D)
+
+The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns value C«<0+0i>».
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real(ComplexStr:D: --> Num:D)
+    multi method Real(ComplexStr:U: --> Num:D)
+
+Coerces the numeric portion of the invocant to L<Num>. If the imaginary part
+isn't L<approximately|/routine/=~=> zero,
+coercion L<fails|/routine/fail> with C<X::Numeric::Real>.
+
+The C<:D> variant returns the result of that coercion. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns value C<0e0>.
+
+=head2 method Str
+
+Returns the string value of the C<ComplexStr>.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(ComplexStr:D: Any:D $value)
+
+If C<$value> is L<Numeric> (including another
+L<allomorph|/language/glossary#index-entry-Allomorph>), checks if invocant's
+L<Numeric> part L<ACCEPTS|/type/Numeric#method_ACCEPTS> the C<$value>.
+If C<$value> is L<Str>, checks if invocant's L<Str> part
+L<ACCEPTS|/type/Str#method_ACCEPTS> the C<$value>. If value is anything else,
+checks if both L<Numeric> and L<Str> parts C<ACCEPTS> the C<$value>.
+
+    say < 5+0i> ~~ "5.0"; # OUTPUT: «False␤»
+    say < 5+0i> ~~  5.0 ; # OUTPUT: «True␤»
+    say < 5+0i> ~~ <5.0>; # OUTPUT: «True␤»
+
+=head1 Operators
+
+=head2 infix cmp
+
+    multi sub infix:<cmp>(ComplexStr:D $a, ComplexStr:D $b)
+
+Compare two C<ComplexStr> objects.  The comparison is done on the C<Complex> value first and
+then on the C<Str> value. If you want to compare in a different order then you would
+coerce to the C<Complex> or C<Str> values first:
+
+    my $f = ComplexStr.new(42+0i, "smaller");
+    my $g = ComplexStr.new(43+0i, "larger");
+    say $f cmp $g;          # OUTPUT: «Less␤»
+    say $f.Str cmp $g.Str;  # OUTPUT: «More␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

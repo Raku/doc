@@ -1,0 +1,208 @@
+
+=begin pod
+
+=TITLE class Telemetry
+
+=SUBTITLE Collect performance state for analysis
+
+    class Telemetry { }
+
+B<Note: > This class is a Rakudo-specific feature and not standard Perl 6.
+
+On creation, a C<Telemetry> object contains a snapshot of various aspects of
+the current state of the virtual machine.  This is in itself useful, but
+generally one needs two snapshots for the difference (which is a
+L<Telemetry::Period|/type/Telemetry::Period> object).
+
+The Telemetry object is really a collection of snapshots taken by different
+"instruments".  By default, the
+L<Telemetry::Instrument::Usage|/type/Telemetry::Instrument::Usage>
+and L<Telemetry::Instrument::ThreadPool>
+instruments are activated.
+
+The Telemetry (and Telemetry::Period) object also C<Associative>.  This means
+that you can treat a Telemetry object as a read-only C<Hash>, with all of the
+data values of the instruments as keys.
+
+You can determine which instruments C<Telemetry> should use by setting the
+C<$*SAMPLER> dynamic variable, which is a
+L<Telemetry::Sampler|/type/Telemetry::Sampler> object.
+
+Currently, the following instruments are supported by the Rakudo core:
+
+=item Telemetry::Instrument::Usage
+
+Provides (in alphabetical order): C<cpu>, C<cpu-sys>, C<cpu-user>, C<cpus>,
+C<id-rss>, C<inb>, C<invcsw>, C<is-rss>, C<ix-rss>, C<majf>, C<max-rss>,
+C<minf>, C<mrcv>, C<msnd>, C<nsig>, C<nswp>, C<volcsw>, C<outb>, C<util%>
+and C<wallclock>.  For complete documentation of the meaning of these data
+values, see L<Telemetry::Instrument::Usage|/type/Telemetry::Instrument::Usage>.
+
+=item Telemetry::Instrument::Thread
+
+Provides (in alphabetical order): C<tad>, C<tcd>, C<thid>, C<tjd>, C<tsd> and
+C<tys>.  For complete documentation of the meaning of these data values, see
+L<Telemetry::Instrument::Thread|/type/Telemetry::Instrument::Thread>.
+
+=item Telemetry::Instrument::ThreadPool
+
+Provides (in alphabetical order): C<atc>, C<atq>, C<aw>, C<gtc>, C<gtq>, C<gw>,
+C<s>, C<ttc>, C<ttq> and C<tw>.  For complete documentation of the meaning of
+these data values, see
+L<Telemetry::Instrument::ThreadPool>.
+
+=item Telemetry::Instrument::AdHoc
+
+Does not provide any data by itself: one must indicate which variables are
+to be monitored, which will then become available as methods with the same name
+on the instrument.  For complete documentation, see
+L<Telemetry::Instrument::AdHoc|/type/Telemetry::Instrument::AdHoc>.
+
+=head2 routine T
+
+    sub T()
+
+Shortcut for C<Telemetry.new>.  It is exported by default.  Since the
+C<Telemetry> class also provides an C<Associative> interface, one can easily
+interpolate multiple values in a single statement:
+
+=begin code
+use Telemetry;
+say "Used {T<max-rss cpu>} (KiB CPU) so far";
+=end code
+
+=head2 routine snap
+
+    multi sub snap(--> Nil)
+    multi sub snap(@s --> Nil)
+
+The C<snap> subroutine is shorthand for creating a new C<Telemetry> object and
+pushing it to an array for later processing.  It is exported by default.
+
+=begin code
+use Telemetry;
+my @t;
+for ^5 {
+    snap(@t);
+    # do some stuff
+    LAST snap(@t);
+}
+=end code
+
+If no array is specified, it will use an internal array for convenience.
+
+=head2 routine snapper
+
+    sub snapper($sleep = 0.1, :$stop, :$reset --> Nil)
+
+The C<snapper> routine starts a separate thread that will call C<snap>
+repeatedly until the end of program.  It is exported by default.
+
+By default, it will call C<snap> every B<0.1> second.  The only positional
+parameter is taken to be the delay between C<snap>s.
+
+Please see the L<snapper> module for externally starting a snapper without
+having to change the code.  Simply adding C<-Msnapper> as a command line
+parameter, will then start a snapper for you.
+
+=head2 routine periods
+
+    multi sub periods( --> Seq)
+    multi sub periods(@s --> Seq)
+
+The C<periods> subroutine processes an array of C<Telemetry> objects and
+generates a L<Seq> of C<Telemetry::Period> objects out of that.  It is exported
+by default.
+
+=begin code :preamble<my @t;use Telemetry;>
+.<cpu wallclock>.say for periods(@t);
+
+# OUTPUT:
+# ====================
+# (164 / 160)
+# (23 / 21)
+# (17 / 17)
+# (15 / 16)
+# (29 / 28)
+=end code
+
+If no array is specified, it will use the internal array of C<snap> without
+parameters B<and> will reset that array upon completion (so that new C<snap>s
+can be added again).
+
+=begin code
+use Telemetry;
+for ^5 {
+    snap;
+    LAST snap;
+}
+say .<cpu wallclock>.join(" / ") for periods;
+
+# OUTPUT:
+# ====================
+# 172 / 168
+# 24 / 21
+# 17 / 18
+# 17 / 16
+# 27 / 27
+=end code
+
+If only one C<snap> was done, another C<snap> will be done to create at least
+one C<Telemetry::Period> object.
+
+=head2 routine report
+
+    multi sub report(:@columns, :$legend, :$header-repeat, :$csv, :@format)
+
+The C<report> subroutine generates a report about an array of C<Telemetry>
+objects.  It is exported by default.  These can have been created by regularly
+calling C<snap>, or by having a L<snapper> running.  If no positional parameter
+is used, it will assume the internal array to which the parameterless C<snap>
+pushes.
+
+Below are the additional named parameters of C<report>.
+
+=item C<:columns>
+
+Specify the names of the columns to be included in the report.  Names can
+be specified with the column name (e.g. C<gw>).  If not specified, defaults to
+what is specified in the C<RAKUDO_REPORT_COLUMNS> environment variable.
+If that is not set either, defaults to:
+
+    =begin code :lang<text>
+    wallclock util% max-rss gw gtc tw ttc aw atc
+    =end code
+
+=item C<:header-repeat>
+
+Specifies after how many lines the header should be repeated in the report.
+If not specified, defaults to what is specified in the
+C<RAKUDO_REPORT_HEADER_REPEAT> environment variable.  If that is not set either,
+defaults to 32.
+
+=item C<:legend>
+
+Specifies whether a legend should be added to the report.  If not specified,
+defaults to what is specified in the C<RAKUDO_REPORT_LEGEND> environment variable.
+If that is not set either, defaults to True.
+
+If there are C<snap>s available in the internal array at the end of the
+program, then C<report> will be automatically generated and printed on C<STDERR>.
+
+=head2 module snapper
+
+Start a thread taking repeated system state snapshots.
+
+This module contains no subroutines or methods or anything.  It is intended
+as a shortcut for starting the L<snapper> subroutine of the C<Telemetry> module,
+allowing taking snapshots of the execution of a program without needing to change
+the program.  Simple loading the module with C<-Msnapper> will do all that is
+needed to start the snapper, and have a report printed on STDERR upon completion
+of the program.
+
+The C<RAKUDO_SNAPPER> environment variable can be set to indicate the time
+between snapshots.  If not specified, it will default to B<0.1> seconds.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

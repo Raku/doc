@@ -1,0 +1,249 @@
+=begin pod
+
+=TITLE class IO::Socket::Async
+
+=SUBTITLE Asynchronous TCP socket
+
+    class IO::Socket::Async {}
+
+C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
+server and the client side.
+
+Here is a simple example of a simple "hello world"
+http server that listens on port 3333:
+
+=begin code :skip-test<IO>
+react {
+    whenever IO::Socket::Async.listen('0.0.0.0', 3333) -> $conn {
+        whenever $conn.Supply.lines -> $line {
+            $conn.print: qq:heredoc/END/;
+                HTTP/1.1 200 OK
+                Content-Type: text/html; charset=UTF-8
+                Content-Encoding: UTF-8
+
+                <html>
+                <body>
+                    <h1>Hello World!</h1>
+                    <p>{ $line }</p>
+                </body>
+                </html>
+                END
+            $conn.close;
+        }
+    }
+    CATCH {
+        default {
+            say .^name, ': ', .Str;
+            say "handled in $?LINE";
+        }
+    }
+}
+=end code
+
+And a client that connects to it, and prints out what the server answers:
+
+=begin code
+await IO::Socket::Async.connect('127.0.0.1', 3333).then( -> $promise {
+    given $promise.result {
+        .print("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n");
+        react {
+            whenever .Supply() -> $v {
+                $v.print;
+                done;
+            }
+        }
+        .close;
+    }
+});
+=end code
+
+Alternatively L<IO::Socket::Async> can send and receive UDP messages.
+An example server that outputs all the data it receives would be:
+
+=begin code
+my $socket = IO::Socket::Async.bind-udp('localhost', 3333);
+
+react {
+    whenever $socket.Supply -> $v {
+        if $v.chars > 0 {
+            say $v;
+        }
+    }
+}
+=end code
+
+And an associated client might be:
+
+=begin code
+
+my $socket = IO::Socket::Async.udp();
+await $socket.print-to('localhost', 3333, "Hello, Perl 6!");
+
+=end code
+
+=head1 Methods
+
+The L<IO::Socket::Async> cannot be constructed directly, either C<connect>
+or C<listen> (for TCP connections) or C<udp> or C<bind-udp> (for UDP
+data) should be used to create a client or a server respectively.
+
+=head2 method connect
+
+    method connect(Str $host, Int $port --> Promise)
+
+Attempts to connect to the TCP server specified by C<$host> and C<$port>,
+returning a L<Promise> that will either be kept with a connected L<IO::Socket::Async> or broken if the connection cannot be made.
+
+=head2 method listen
+
+    method listen(Str $host, Int $port --> Supply)
+
+Creates a listening socket on the specified C<$host> and C<$port>, returning
+a L<Supply> to which the accepted client L<IO::Socket::Async>s will be
+C<emit>ted. This L<Supply> should be tapped start listening for client
+connections.
+
+To close the underlying listening socket, the L<Tap> returned by tapping the
+listener should be C<close>d.
+
+For example, when using C<tap>:
+
+    =begin code
+    my $listener = IO::Socket::Async.listen('127.0.0.1', 8080);
+    my $tap = $listener.tap({ ... });
+
+    # When you want to close the listener
+    $tap.close;
+    =end code
+
+Or when using C<whenever>:
+
+    =begin code
+    my $listener = IO::Socket::Async.listen('127.0.0.1', 5000);
+    my $big-finish = Promise.new;
+    my $tap = do whenever $listener -> $conn { ... }
+    await $big-finish;
+    $tap.close;
+    =end code
+
+=head2 method udp
+
+    method udp(IO::Socket::Async:U: :$broadcast --> IO::Socket::Async)
+
+Returns an initialised C<IO::Socket::Async> client object that is
+configured to send UDP messages using C<print-to> or C<write-to>.  The
+C<:broadcast> adverb will set the C<SO_BROADCAST> option which will allow
+the socket to send packets to a broadcast address.
+
+=head2 method bind-udp
+
+    method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port, :$broadcast --> IO::Socket::Async)
+
+This returns an initialised C<IO::Socket::Async> server object that is
+configured to receive UDP messages sent to the specified C<$host> and C<$port>
+and is equivalent to C<listen> for a TCP socket.  The C<:broadcast> adverb
+can be specified to allow the receipt of messages sent to the broadcast
+address.
+
+=head2 method print
+
+    method print(Str $str --> Promise)
+
+Attempt to send C<$str> on the L<IO::Socket::Async> that will
+have been obtained indirectly via C<connect> or C<listen>, returning a
+L<Promise> that will be kept with the number of bytes
+sent or broken if there was an error sending.
+
+=head2 method print-to
+
+    method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str --> Promise)
+
+This is the equivalent of C<print> for UDP sockets that have been created with
+the C<udp> method, it will try send a UDP message of C<$str> to the specified
+C<$host> and C<$port> returning a L<Promise|/type/Promise> that will be kept
+when the data is successfully sent or broken if it was unable to send the
+data. In order to send to a broadcast address the C<:broadcast> flag must
+have been specified when the socket was created.
+
+=head2 method write
+
+    method write(Blob $b --> Promise)
+
+Attempt to send the bytes in C<$b> on the L<IO::Socket::Async> that will
+have been obtained indirectly via C<connect> or C<listen>, returning a
+L<Promise> that will be kept with the number of bytes
+sent or broken if there was an error sending.
+
+=head2 method write-to
+
+    method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b --> Promise)
+
+This is the equivalent of C<write> for UDP sockets that have been created
+with the C<udp> method, it will try send a UDP message comprised of
+the bytes in the L<Blob|/type/Blob>  C<$b> to the specified C<$host>
+and C<$port> returning a L<Promise|/type/Promise> that will be kept
+when the data is successfully sent or broken if it was unable to send
+the data. In order to send to a broadcast address the C<:broadcast>
+flag must have been specified when the socket was created.
+
+=head2 method Supply
+
+    method Supply(:$bin, :$buf = buf8.new --> Supply)
+
+Returns a L<Supply> which can be tapped to obtain the data read from
+the connected L<IO::Socket::Async> as it arrives.  By default the data
+will be emitted as characters, but if the C<:bin> adverb is provided a
+L<Buf|/type/Buf> of bytes will be emitted instead, optionally in this
+case you can provide your own C<Buf> with the C<:buf> named parameter.
+
+A UDP socket in character mode will treat each packet as a complete
+message and decode it. In the event of a decoding error, the C<Supply>
+will C<quit>. A TCP socket treats the incoming packets as part of a
+stream, and feeds the incoming bytes into a streaming decoder. It then
+emits whatever characters the decoder considers ready. Since strings
+work at grapheme level in Perl 6, this means that only known complete
+graphemes will be emitted. For example, if the UTF-8 encoding were
+being used and the last byte in the packet decoded to C<a>, this would
+not be emitted since the next packet may include a combining character
+that should form a single grapheme together with the C<a>. Control
+characters (such as C<\n>) always serve as grapheme boundaries, so any
+text-based protocols that use newlines or null bytes as terminators
+will not need special consideration. A TCP socket will also C<quit>
+upon a decoding error.
+
+=head2 method close
+
+    method close()
+
+Close the connected client L<IO::Socket::Async> which will have been
+obtained from the C<listen> L<Supply> or the C<connect>
+L<Promise>.
+
+In order to close the underlying listening socket created by C<listen> you
+can C<close> the L<Tap>. See C<listen> for examples.
+
+=head2 method socket-host
+
+    method socket-host(--> Str)
+
+Returns the IP address of the local end of this socket.
+
+=head2 method peer-host
+
+    method peer-host(--> Str)
+
+Returns the IP address of the remote end of this socket.
+
+=head2 method socket-port
+
+    method socket-port(--> Int)
+
+Returns the port of the local end of this socket.
+
+=head2 method peer-port
+
+    method peer-port(--> Int)
+
+Returns the port of the remote end of this socket.
+
+=end pod

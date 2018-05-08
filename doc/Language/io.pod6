@@ -1,0 +1,228 @@
+=begin pod :tag<perl6>
+
+=TITLE Input/Output
+
+=SUBTITLE File-related operations
+
+Here we present a quick overview of the file-related input/output
+operations.  Details can be found in the documentation for the
+L<IO|/type/IO> role, as well as the L<IO::Handle|/type/IO::Handle> and
+L<IO::Path|/type/IO::Path> types.
+
+=head1 Reading from files
+
+One way to read the contents of a file is to open the file via the C<open>
+function with the C<:r> (read) file mode option and slurp in the contents:
+
+=for code
+my $fh = open "testfile", :r;
+my $contents = $fh.slurp-rest;
+$fh.close;
+
+Here we explicitly close the file handle using the C<close> method on the
+C<IO::Handle> object. This is a very traditional way of reading the
+contents of a file. However, the same can be done more easily and clearly
+like so:
+
+=for code
+my $contents = "testfile".IO.slurp;
+# or in procedural form:
+$contents = slurp "testfile"
+
+By adding the C<IO> role to the file name string, we are effectively able to
+refer to the string as the file object itself and thus slurp in its
+contents directly.  Note that the C<slurp> takes care of opening and closing
+the file for you.
+
+=head2 Line by line
+
+Of course, we also have the option to read a file line-by-line. The new line
+separator (i.e., C<$*IN.nl-in>) will be excluded.
+
+=begin code
+for 'huge-csv'.IO.lines -> $line {
+    # Do something with $line
+}
+
+# or if you'll be processing later
+my @lines = 'huge-csv'.IO.lines;
+=end code
+
+=head1 Writing to files
+
+To write data to a file, again we have the choice of the traditional method
+of calling the C<open> function – this time with the C<:w> (write) option
+-- and printing the data to the file:
+
+=for code
+my $fh = open "testfile", :w;
+$fh.print("data and stuff\n");
+$fh.close;
+
+Or equivalently with C<say>, thus the explicit newline is no longer necessary:
+
+=for code
+my $fh = open "testfile", :w;
+$fh.say("data and stuff");
+$fh.close;
+
+We can simplify this by using C<spurt> to open the file in write mode,
+writing the data to the file and closing it again for us:
+
+=for code
+spurt "testfile", "data and stuff\n";
+
+By default all (text) files are written as UTF-8, however if necessary, an
+explicit encoding can be specified via the C<:enc> option:
+
+=for code
+spurt "testfile", "latin1 text: äöüß", enc => "latin1";
+
+To write formatted strings to a file, use the L<printf|/routine/printf> function
+of L<IO::Handle>.
+
+=for code
+my $fh = open "testfile", :w;
+$fh.printf("formatted data %04d\n", 42);
+$fh.close;
+
+To append to a file, specify the C<:a> option when opening the file handle
+ explicitly,
+
+=for code
+my $fh = open "testfile", :a;
+$fh.print("more data\n");
+$fh.close;
+
+or equivalently with C<say>, thus the explicit newline is no longer necessary,
+
+=for code
+my $fh = open "testfile", :a;
+$fh.say("more data");
+$fh.close;
+
+or even simpler with the C<:append> option in the call to C<spurt>:
+
+=for code
+spurt "testfile", "more data\n", :append;
+
+To explicitly write binary data to a file, open it with the C<:bin> option.
+The input/output operations then will take place using the C<Buf> type instead
+of the C<Str> type.
+
+=head1 Copying and renaming files
+
+Routines C<copy>, C<rename>, and C<move> are available to avoid low-level system commands.
+See details at L<copy|/routine/copy>, L<rename|/routine/rename>, and L<move|/routine/move>.
+Some examples:
+
+=begin code
+my $filea = 'foo';
+my $fileb = 'foo.bak';
+my $filec = '/disk1/foo';  # note 'diskN' is assumed to be a physical storage device
+
+copy $filea, $fileb;              # overwrites $fileb if it exists
+copy $filea, $fileb, :createonly; # fails if $fileb exists
+
+rename $filea, 'new-foo';              # overwrites 'new-foo' if it exists
+rename $filea, 'new-foo', :createonly; # fails if 'new-foo' exists
+
+# use move when a system-level rename may not work
+move $fileb, '/disk2/foo';              # overwrites '/disk2/foo' if it exists
+move $fileb, '/disk2/foo', :createonly; # fails if '/disk2/foo' exists
+=end code
+
+=head1 Checking files and directories
+
+Use the C<e> method on an C<IO::Handle> object to test whether the file or
+directory exists.
+
+=for code
+if "nonexistent_file".IO.e {
+    say "file exists";
+}
+else {
+    say "file doesn't exist";
+}
+
+It is also possible to use the colon pair syntax to achieve the same thing:
+
+=for code
+if "path/to/file".IO ~~ :e {
+    say 'file exists';
+}
+
+    my $file = "path/to/file";
+    if $file.IO ~~ :e {
+        say 'file exists';
+    }
+
+Similarly to the file existence check, one can also check to see if a path
+is a directory.  For instance, assuming that the file C<testfile> and the
+directory C<lib> exist, we would obtain from the existence test method C<e>
+the same result, namely that both exist:
+
+=for code
+say "testfile".IO.e;  # OUTPUT: «True␤»
+say "lib".IO.e;       # OUTPUT: «True␤»
+
+However, since only one of them is a directory, the directory test method
+C<d> will give a different result:
+
+=for code
+say "testfile".IO.d;  # OUTPUT: «False␤»
+say "lib".IO.d;       # OUTPUT: «True␤»
+
+Naturally the tables are turned if we check to see if the path is a file via
+the file test method C<f>:
+
+=for code
+say "testfile".IO.f;  # OUTPUT: «True␤»
+say "lib".IO.f;       # OUTPUT: «False␤»
+
+There are other methods that can be used to query a file or directory, some useful ones are:
+
+=begin code
+my $f = "file";
+
+say $f.IO.modified; # return time of last file (or directory) change
+say $f.IO.accessed; # return last time file (or directory) was read
+say $f.IO.s;        # return size of file (or directory inode) in bytes
+=end code
+
+See more methods and details at L<IO::Path|/type/IO::Path>.
+
+=head1 Getting a directory listing
+
+To list the contents of the current directory, use the C<dir> function. It
+returns a list of L<IO::Path> objects.
+
+    say dir;          # OUTPUT: «"/path/to/testfile".IO "/path/to/lib".IO␤»
+
+To list the files and directories in a given directory, simply pass a path
+as an argument to C<dir>:
+
+    say dir "/etc/";  # OUTPUT: «"/etc/ld.so.conf".IO "/etc/shadow".IO ....␤»
+
+=head1 Creating and removing directories
+
+To create a new directory, simply call the C<mkdir> function with the
+directory name as its argument:
+
+=for code
+mkdir "newdir";
+
+The function returns the name of the created directory on success and C<Nil>
+on failure. Thus the standard Perl idiom works as expected:
+
+=for code
+mkdir "newdir" or die "$!";
+
+Use C<rmdir> to remove I<empty> directories:
+
+=for code
+rmdir "newdir" or die "$!";
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

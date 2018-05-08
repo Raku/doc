@@ -1,0 +1,364 @@
+=begin pod
+
+=TITLE class Date
+
+=SUBTITLE Calendar date
+
+    class Date { }
+
+A C<Date> is an immutable object identifying a day in the Gregorian calendar.
+
+C<Date> objects support addition and subtraction of integers, where an
+integer is interpreted as the number of days. You can compare C<Date> objects
+with the numeric comparison operators C<< ==, <, <=, >, >=, != >>.
+Their stringification in C<YYYY-MM-DD> format means that comparing them
+with the string operators C<eq, lt, le> etc. also gives the right result.
+
+C<Date.today> creates
+an object the current day according to the system clock.
+
+    my $d = Date.new(2015, 12, 24); # Christmas Eve!
+    say $d;                         # OUTPUT: «2015-12-24␤»
+    say $d.year;                    # OUTPUT: «2015␤»
+    say $d.month;                   # OUTPUT: «12␤»
+    say $d.day;                     # OUTPUT: «24␤»
+    say $d.day-of-week;             # OUTPUT: «4␤» (Thursday)
+    say $d.later(days => 20);       # OUTPUT: «2016-01-13␤»
+    my $n = Date.new('2015-12-31'); # New Year's Eve
+    say $n - $d;                    # OUTPUT: «7␤», 7 days between New Years/Christmas Eve
+    say $n + 1;                     # OUTPUT: «2016-01-01␤»
+
+=head1 Methods
+
+=head2 method new
+
+Defined as:
+
+    multi method new($year, $month, $day, :&formatter --> Date:D)
+    multi method new(:$year!, :$month = 1, :$day = 1  --> Date:D)
+    multi method new(Str $date                        --> Date:D)
+    multi method new(Instant:D $dt                    --> Date:D)
+    multi method new(DateTime:D $dt                   --> Date:D)
+
+Creates a new C<Date> object, either from a triple of (year, month, day)
+that can be coerced to integers, or from a string of the form C<YYYY-MM-DD>
+(L<ISO 8601|https://en.wikipedia.org/wiki/ISO_8601>), or from an Instant
+or DateTime object.  Optionally accepts a formatter as a named parameter.
+
+    my $date = Date.new(2042, 1, 1);
+    $date = Date.new(year => 2042, month => 1, day => 1);
+    $date = Date.new("2042-01-01");
+    $date = Date.new(Instant.from-posix: 1482155532);
+    $date = Date.new(DateTime.now);
+
+=head2 method new-from-daycount
+
+Defined as:
+
+    method new-from-daycount($daycount,:&formatter --> Date:D)
+
+Creates a new C<Date> object given C<$daycount> which is the number
+of days from epoch Nov. 17, 1858, i.e. the
+L<Modified Julian Day|https://en.wikipedia.org/wiki/Julian_day>.
+Optionally accepts a formatter as a named parameter.
+
+    say Date.new-from-daycount(49987);          # OUTPUT: «1995-09-27␤»
+
+=head2 method clone
+
+Defined as:
+
+    method clone(:$year, :$month, :$day, :&formatter)
+
+Creates a new C<Date> object based on the invocant, but with the given
+arguments overriding the values from the invocant.
+
+    say Date.new('2015-11-24').clone(month => 12);    # OUTPUT: «2015-12-24␤»
+
+=head2 method today
+
+Defined as:
+
+    method today(:&formatter --> Date:D)
+
+Returns a C<Date> object for the current day.  Optionally accepts a
+formatter named parameter.
+
+    say Date.today;
+
+=head2 method later
+
+Defined as:
+
+    method later(Date:D: *%unit)
+
+Returns a C<Date> object based on the current one, but with a date delta
+applied. The date delta can be passed as a named argument where the argument
+name is the unit.
+
+Allowed units are C<day>, C<days>, C<week>, C<weeks>, C<month>, C<months>,
+C<year>, C<years>.  Please note that the plural forms can only be used with
+the C<later> method.
+
+Please note that the special ":2nd" named parameter syntax can be a compact
+and self-documenting way of specifying the delta
+
+    say Date.new('2015-12-24').later(:2years);  # OUTPUT: «2017-12-24␤»
+
+Since addition of several different time units is not commutative, only one
+unit may be passed.
+
+    my $d = Date.new('2015-02-27');
+    say $d.later(month => 1).later(:2days);  # OUTPUT: «2015-03-29␤»
+    say $d.later(days => 2).later(:1month);  # OUTPUT: «2015-04-01␤»
+    say $d.later(days => 2).later(:month);   # same, as +True === 1
+
+Negative offsets are allowed, though L<#method earlier> is more idiomatic for
+that.
+
+=head2 method earlier
+
+Defined as:
+
+    method earlier(Date:D: *%unit)
+
+Returns a C<Date> object based on the current one, but with a date delta
+towards the past applied. See L<#method later> for usage.
+
+    my $d = Date.new('2015-02-27');
+    say $d.earlier(month => 5).earlier(:2days);  # OUTPUT: «2014-09-25␤»
+
+=head2 method truncated-to
+
+Defined as:
+
+    method truncated-to(Date:D: Cool $unit)
+
+Returns a C<Date> truncated to the first day of its year, month or week.
+For example
+
+    my $c = Date.new('2012-12-24');
+    say $c.truncated-to('year');     # OUTPUT: «2012-01-01␤»
+    say $c.truncated-to('month');    # OUTPUT: «2012-12-01␤»
+    say $c.truncated-to('week');     # OUTPUT: «2012-12-24␤», because it's Monday already
+
+=head2 method succ
+
+Defined as:
+
+    method succ(Date:D: --> Date:D)
+
+Returns a C<Date> of the following day. "succ" is short for "successor".
+
+    say Date.new("2016-02-28").succ;   # OUTPUT: «2016-02-29␤»
+
+=head2 method pred
+
+Defined as:
+
+    method pred(Date:D: --> Date:D)
+
+Returns a C<Date> of the previous day. "pred" is short for "predecessor".
+
+    say Date.new("2016-01-01").pred;   # OUTPUT: «2015-12-31␤»
+
+=head2 method Str
+
+Defined as:
+
+    multi method Str(Date:D: --> Str:D)
+
+Returns a string representation of the invocant, as specified by
+L<the formatter|/type/Dateish#method_formatter>. If no formatter was
+specified, an (L<ISO 8601|https://en.wikipedia.org/wiki/ISO_8601>) date
+will be returned.
+
+    say Date.new('2015-12-24').Str;                     # OUTPUT: «2015-12-24␤»
+
+    my $fmt = { sprintf "%02d/%02d/%04d", .month, .day, .year };
+    say Date.new('2015-12-24', formatter => $fmt).Str;  # OUTPUT: «12/24/2015␤»
+
+=head2 method gist
+
+Defined as:
+
+    multi method gist(Date:D: --> Str:D)
+
+Returns the date in C<YYYY-MM-DD> format (L<ISO 8601|https://en.wikipedia.org/wiki/ISO_8601>)
+
+    say Date.new('2015-12-24').gist;                    # OUTPUT: «2015-12-24␤»
+
+=head2 method Date
+
+Defined as:
+
+    method Date(--> Date)
+
+Returns the invocant.
+
+    say Date.new('2015-12-24').Date;  # OUTPUT: «2015-12-24␤»
+    say Date.Date;                    # OUTPUT: «(Date)␤»
+
+=head2 method DateTime
+
+Defined as:
+
+    multi method DateTime(Date:U --> DateTime:U)
+    multi method DateTime(Date:D --> DateTime:D)
+
+Converts the invocant to L«C<DateTime>|/type/DateTime»
+
+    say Date.new('2015-12-24').DateTime; # OUTPUT: «2015-12-24T00:00:00Z␤»
+    say Date.DateTime;                   # OUTPUT: «(DateTime)␤»
+
+=head1 Functions
+
+=head2 sub sleep
+
+    sub sleep($seconds = Inf --> Nil)
+
+Attempt to sleep for the given number of C<$seconds>.  Returns C<Nil> on
+completion.  Accepts C<Int>, C<Num>, C<Rat>, or C<Duration> types as an
+argument since all of these also do C<Real>.
+
+=for code
+sleep 5;                # Int
+sleep 5.2;              # Num
+sleep (5/2);            # Rat
+sleep (now - now + 5);  # Duration
+
+It is thus possible to sleep for a non-integer amount of time.  For
+instance, the following code shows that C<sleep (5/2)> sleeps for 2.5
+seconds and C<sleep 5.2> sleeps for 5.2 seconds:
+
+    my $before = now;
+    sleep (5/2);
+    my $after = now;
+    say $after-$before;  # OUTPUT: «2.502411561␤»
+
+    $before = now;
+    sleep 5.2;
+    $after = now;
+    say $after-$before;  # OUTPUT: «5.20156987␤»
+
+=head2 sub sleep-timer
+
+    sub sleep-timer(Real() $seconds = Inf --> Duration:D)
+
+This function is implemented like C<sleep>, but unlike the former it does
+return a L<Duration> instance with the number of seconds the system did not
+sleep.
+
+In particular, the returned C<Duration> will handle the number of seconds remaining
+when the process has been awakened by some external event (e.g., Virtual Machine
+or Operating System events).
+Under normal condition, when sleep is not interrupted, the returned C<Duration>
+has a value of C<0>, meaning no extra seconds remained to sleep.
+Therefore, in normal situations:
+
+    say sleep-timer 3.14;  # OUTPUT: «0␤»
+
+The same result applies to edge cases, when a negative or zero time to sleep
+is passed as argument:
+
+=begin code
+say sleep-timer -2; # OUTPUT: 0
+say sleep-timer 0;  # OUTPUT: 0
+=end code
+
+See also L<sleep-until|/routine/sleep-until>.
+
+=head2 sub sleep-until
+
+    sub sleep-until(Instant $until --> Bool)
+
+Works similar to C<sleep> but checks the current time and keeps sleeping
+until the required instant in the future has been reached.
+It uses internally the C<sleep-timer> method in a loop to ensure that,
+if accidentally woken up early, it will wait again for the specified
+amount of time remaining to reach the specified instant.
+goes back to sleep
+
+Returns C<True> if the C<Instant> in the future has been achieved (either
+by mean of sleeping or because it is right now), C<False> in the case
+an C<Instant> in the past has been specified.
+
+To sleep until 10 seconds into the future, one could write something like this:
+
+    say sleep-until now+10;   # OUTPUT: «True␤»
+
+Trying to sleep until a time in the past doesn't work:
+
+    my $instant = now - 5;
+    say sleep-until $instant; # OUTPUT: «False␤»
+
+However if we put the instant sufficiently far in the future, the sleep
+should run:
+
+=for code
+my $instant = now + 30;
+# assuming the two commands are run within 30 seconds of one another...
+say sleep-until $instant; # OUTPUT: «True␤»
+
+To specify an exact instant in the future, first create a C<DateTime> at the
+appropriate point in time, and cast to an C<Instant>.
+
+=for code
+my $instant = DateTime.new(
+    year => 2020,
+    month => 9,
+    day => 1,
+    hour => 22,
+    minute => 5);
+say sleep-until $instant.Instant; # True (eventually...)
+
+This could be used as a primitive kind of alarm clock.  For instance, say
+you need to get up at 7am on the 4th of September 2015, but for some reason
+your usual alarm clock is broken and you only have your laptop.  You can
+specify the time to get up (being careful about timezones, since
+C<DateTime.new> uses UTC by default) as an C<Instant> and pass this to
+C<sleep-until>, after which you can play an mp3 file to wake you up instead
+of your normal alarm clock.  This scenario looks roughly like this:
+
+=for code
+# DateTime.new uses UTC by default, so get timezone from current time
+my $timezone = DateTime.now.timezone;
+my $instant = DateTime.new(
+    year => 2015,
+    month => 9,
+    day => 4,
+    hour => 7,
+    minute => 0,
+    timezone => $timezone
+).Instant;
+sleep-until $instant;
+qqx{mplayer wake-me-up.mp3};
+
+=head2 sub infix:<->
+
+    multi sub infix:<-> (Date:D, Int:D --> Date:D)
+    multi sub infix:<-> (Date:D, Date:D --> Int:D)
+
+Takes a date to subtract from and either an L«C<Int>|/type/Int», representing
+the number of days to subtract, or another L«C<Date>|/type/Date» object.
+Returns a new L«C<Date>|/type/Date» object or the number of days between the
+two dates, respectively.
+
+    say Date.new('2016-12-25') - Date.new('2016-12-24'); # OUTPUT: «1␤»
+    say Date.new('2015-12-25') - Date.new('2016-11-21'); # OUTPUT: «-332␤»
+    say Date.new('2016-11-21') - 332;                    # OUTPUT: «2015-12-25␤»
+
+=head2 sub infix:<+>
+
+    multi sub infix:<+> (Date:D, Int:D --> Date:D)
+    multi sub infix:<+> (Int:D, Date:D --> Date:D)
+
+Takes an L«C<Int>|/type/Int» and adds that many days to the given
+L«C<Date>|/type/Date» object.
+
+    say Date.new('2015-12-25') + 332; # OUTPUT: «2016-11-21␤»
+    say 1 + Date.new('2015-12-25');   # OUTPUT: «2015-12-26␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

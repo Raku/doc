@@ -1,0 +1,152 @@
+=begin pod :tag<perl6>
+
+=TITLE Unicode
+
+=SUBTITLE Unicode Support in Perl 6
+
+Perl 6 has a high level of support of Unicode. This document aims to be both an
+overview as well as describe Unicode features which don't belong in the documentation
+for routines and methods.
+
+For an overview on MoarVM's internal representation of strings, see the
+L<MoarVM string documentation|https://github.com/MoarVM/MoarVM/blob/master/docs/strings.asciidoc>.
+
+=head1 File Handles and I/O
+
+X<|Normalization>
+=head2 Normalization
+
+Perl6 applies normalization by default to all input and output except for
+file names which are stored as L<C<UTF8-C8>|#UTF8-C8>.
+What does this mean? For example á can be represented 2 ways. Either using
+one codepoint:
+
+=for code :lang<text>
+á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
+
+Or two codepoints:
+
+=for code :lang<text>
+a +  ́ (U+61 "LATIN SMALL LETTER A" + U+301 "COMBINING ACUTE ACCENT")
+
+Perl 6 will turn both these inputs into one codepoint, as is specified for
+Normalization Form C (B<X<NFC>>). In most cases this is useful and means
+that two inputs that are equivalent are both treated the same. Unicode has a concept
+of canonical equivalence which allows us to determine the canonical form of a string,
+allowing us to properly compare strings and manipulate them, without having to worry
+about the text losing these properties. By default, any text you process or output
+from Perl 6 will be in this "canonical" form, even when making modifications or
+concatenations to the string (see below for how to avoid this). For more detailed information
+about Normalization Form C and canonical equivalence, see the Unicode Foundation's page on
+L<Normalization and Canonical Equivalence|https://unicode.org/reports/tr15/#Canon_Compat_Equivalence>.
+
+One case where we don't default to this, is for the names of files. This is because
+the names of files must be accessed exactly as the bytes are written on the disk.
+
+To avoid normalization you can use a special encoding format called L<UTF8-C8|#UTF8-C8>.
+Using this encoding with any file handle will allow you to read the exact bytes as they are
+on disk, without normalization. They may look funny when printed out, if you print it out using a
+UTF8 handle. If you print it out to a handle where the output encoding is UTF8-C8,
+then it will render as you would normally expect, and be a byte for byte exact
+copy. More technical details on L<UTF8-C8|#UTF8-C8> on MoarVM below.
+
+X<|UTF8-C8>
+=head2 UTF8-C8
+
+X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
+However, upon encountering a byte sequence that will either not decode as
+valid UTF-8, or that would not round-trip due to normalization, it will use
+NFG synthetics to keep track of the original bytes involved. This means that
+encoding back to UTF-8 Clean-8 will be able to recreate the bytes as they
+originally existed. The synthetics contain 4 codepoints:
+
+=item The codepoint 0x10FFFD (which is a private use codepoint)
+=item The codepoint 'x'
+=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
+=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
+
+Under normal UTF-8 encoding, this means the unrepresentable characters will
+come out as something like `?xFF`.
+
+UTF-8 Clean-8 is used in places where MoarVM receives strings from the
+environment, command line arguments, and file system queries.
+
+=head1 Entering Unicode Codepoints and Codepoint Sequences
+
+You can enter Unicode codepoints by number (decimal as well as hexadecimal). For example, the character named
+"latin capital letter ae with macron" has decimal codepoint 482 and hexadecimal codepoint 0x1E2:
+
+    say "\c[482]"; # OUTPUT: «Ǣ␤»
+    say "\x1E2";   # OUTPUT: «Ǣ␤»
+
+You can also access Unicode codepoints by name:
+Rakudo supports all Unicode 9.0 names. X<|\c[] unicode name>
+
+    say "\c[PENGUIN]"; # OUTPUT: «🐧␤»
+    say "\c[BELL]";    # OUTPUT: «🔔␤» (U+1F514 BELL)
+
+All Unicode codepoint names/named seq/emoji sequences are now case-insensitive:
+[Starting in 2017.02]
+
+    say "\c[latin capital letter ae with macron]"; # OUTPUT: «Ǣ␤»
+    say "\c[latin capital letter E]";              # OUTPUT: «E␤» (U+0045)
+
+You can specify multiple characters by using a comma separated list with C<\c[]>. You
+can combine numeric and named styles as well:
+
+    say "\c[482,PENGUIN]"; # OUTPUT: «Ǣ🐧␤»
+
+In addition to using C<\c[]> inside interpolated strings, you can also use
+the L<uniparse>:
+
+    say "DIGIT ONE".uniparse;  # OUTPUT: «1␤»
+    say uniparse("DIGIT ONE"); # OUTPUT: «1␤»
+
+=head2 Name Aliases
+
+By name alias. Name Aliases are used mainly for codepoints without an official
+name, for abbreviations, or for corrections (Unicode names never change).
+For full list of them see L<here|http://www.unicode.org/Public/UCD/latest/ucd/NameAliases.txt>.
+
+Control codes without any official name:
+
+    say "\c[ALERT]";     # Not visible (U+0007 control code (also accessible as \a))
+    say "\c[LINE FEED]"; # Not visible (U+000A same as "\n")
+
+Corrections:
+
+    say "\c[LATIN CAPITAL LETTER GHA]"; # OUTPUT: «Ƣ␤»
+    say "Ƣ".uniname; # OUTPUT: «LATIN CAPITAL LETTER OI␤»
+    # This one is a spelling mistake that was corrected in a Name Alias:
+    say "\c[PRESENTATION FORM FOR VERTICAL RIGHT WHITE LENTICULAR BRACKET]".uniname;
+    # OUTPUT: «PRESENTATION FORM FOR VERTICAL RIGHT WHITE LENTICULAR BRAKCET␤»
+
+Abbreviations:
+
+    say "\c[ZWJ]".uniname;  # OUTPUT: «ZERO WIDTH JOINER␤»
+    say "\c[NBSP]".uniname; # OUTPUT: «NO-BREAK SPACE␤»
+
+=head2 Named Sequences
+
+You can also use any of the L<Named Sequences|http://www.unicode.org/Public/UCD/latest/ucd/NamedSequences.txt>,
+these are not single codepoints, but sequences of them. [Starting in 2017.02]
+
+    say "\c[LATIN CAPITAL LETTER E WITH VERTICAL LINE BELOW AND ACUTE]";      # OUTPUT: «É̩␤»
+    say "\c[LATIN CAPITAL LETTER E WITH VERTICAL LINE BELOW AND ACUTE]".ords; # OUTPUT: «(201 809)␤»
+
+=head3 Emoji Sequences
+
+Rakudo has support for Emoji 4.0 (the latest non-draft release) sequences.
+For all of them see:
+L<Emoji ZWJ Sequences|http://www.unicode.org/Public/emoji/4.0/emoji-zwj-sequences.txt>
+and L<Emoji Sequences|http://www.unicode.org/Public/emoji/4.0/emoji-sequences.txt>.
+Note that any names with commas should have their commas removed, since Perl 6 uses
+commas to separate different codepoints/sequences inside the same C<\c> sequence.
+
+    say "\c[woman gesturing OK]";         # OUTPUT: «🙆‍♀️␤»
+    say "\c[family: man woman girl boy]"; # OUTPUT: «👨‍👩‍👧‍👦␤»
+
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

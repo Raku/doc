@@ -1,0 +1,241 @@
+=begin pod :tag<perl6>
+
+=TITLE Terms
+
+=SUBTITLE Perl 6 Terms
+
+Most syntactic constructs in Perl 6 can be categorized in I<terms> and
+L<operators|/language/operators>.
+
+Here you can find an overview of different kinds of terms.
+
+=head1 Literals
+
+=head2 Int
+
+    =begin code :skip-test
+    42
+    12_300_00
+    :16<DEAD_BEEF>
+    =end code
+
+L<Int> literals consist of digits and can contain underscores
+between any two digits.
+
+To specify a base other than ten, use the colonpair form C<< :radix<number> >>.
+
+=head2 Rat
+
+    =begin code :skip-test
+    12.34
+    1_200.345_678
+    =end code
+
+L<Rat> literals (rational numbers) contain two integer parts joined by a dot.
+
+Note that trailing dots are not allowed, so you have to write C<1.0> instead
+of C<1.> (this rule is important because there are infix operators starting
+with a dot, for example the C<..> L<Range> operator).
+
+=head2 Num
+
+    =begin code :skip-test
+    12.3e-32
+    3e8
+    =end code
+
+L<Num> literals (floating point numbers) consist of L<Rat> or L<Int>
+literals followed by an C<e> and a (possibly negative) exponent. C<3e8>
+constructs a L<Num> with value C<3 * 10**8>.
+
+=head2 Str
+
+    =begin code :skip-test
+    'a string'
+    'I\'m escaped!'
+    "I don't need to be"
+    "\"But I still can be,\" he said."
+    q|Other delimiters can be used too!|
+    =end code
+
+String literals are most often created with C<'> or C<">, however strings
+are actually a powerful sub-language of Perl 6. See L<Quoting Constructs|/language/quoting>.
+
+=head2 Regex
+
+    =begin code :skip-test
+    / match some text /
+    rx/slurp \s rest (.*) $/
+    =end code
+
+These forms produce regex literals. See L<Quoting Constructs|/language/quoting>.
+
+=head2 Pair
+
+    =begin code :skip-test
+    a => 1
+    'a' => 'b'
+    :identifier
+    :!identifier
+    :identifier<value>
+    :identifier<value1 value2>
+    :identifier($value)
+    :identifier['val1', 'val2']
+    :identifier{key1 => 'val1', key2 => 'value2'}
+    :valueidentifier
+    :$item
+    :@array
+    :%hash
+    :&callable
+    =end code
+
+L<Pair> objects can be created either with C<< infix:«=>» >> (which
+auto-quotes the left-hand side if it is an identifier), or with the various
+colon-pair forms. Those almost always start with a colon and then are followed
+either by an identifier or the name of an already existing variable (whose
+name without the sigil is used as the key and value of the variable is used
+as the value of the pair). There is a special form where an integer value
+is immediately after the colon and the key is immediately after the value.
+
+In the identifier form of a colon-pair, the optional value can be any
+circumfix.  If it is left blank, the value is C<Bool::True>. The value of
+the C<:!identifier> form is C<Bool::False>.
+
+If used in an argument list, all of these forms count as named arguments,
+with the exception of C<< 'quoted string' => $value >>.
+
+=head2 List
+
+    =begin code :skip-test
+    ()
+    1, 2, 3
+    <a b c>
+    «a b c»
+    qw/a b c/
+    =end code
+
+L<List> literals are: the empty pair of parentheses C<()>, a comma-separated
+list, or several quoting constructs.
+
+=head2 term *
+
+Creates an object of type C<Whatever>. See L<Whatever> documentation for
+more details.
+
+=head1 Identifier terms
+
+There are built-in identifier terms in Perl 6, which are listed below.  In
+addition one can add new identifier terms with the syntax:
+
+    sub term:<forty-two> { 42 };
+    say forty-two
+
+or as constants:
+
+    constant forty-two = 42;
+    say forty-two;
+
+=head2 term self
+
+Inside a method, C<self> refers to the invocant (i.e. the object the method
+was called on). If used in a context where it doesn't make sense, a
+compile-time exception of type L<X::Syntax::NoSelf> is thrown.
+
+=head2 term now
+
+Returns an L<Instant> object representing the current time. It includes
+L<leap seconds|https://en.wikipedia.org/wiki/Leap_second> and as such a few
+dozen seconds larger than L<time|/language/terms#term_time>:
+
+    say (now - time).Int; # OUTPUT: «37␤»
+
+=head2 term time
+
+Returns the current POSIX time as an L<Int>. See L<now|/language/terms#term_now>
+for high-resolution timestamp that includes
+L<leap seconds|https://en.wikipedia.org/wiki/Leap_second>.
+
+=head2 term rand
+
+Returns a pseudo-random L<Num> in the range C<0..^1>.
+
+=head2 term π
+
+Returns the number C<π>, i.e., the ratio between circumference and diameter
+of a circle. The ASCII equivalent of C<π> is C<pi>.
+
+=head2 term pi
+
+Returns the number C<π>, i.e., the ratio between circumference and diameter
+of a circle. C<pi> is the ASCII equivalent of C<π>.
+
+=head2 term τ
+
+Returns the number C<τ>, i.e., the ratio between circumference and radius
+of a circle. The ASCII equivalent of C<τ> is C<tau>.
+
+=head2 term tau
+
+Returns the number C<τ>, i.e., the ratio between circumference and radius
+of a circle. C<tau> is the ASCII equivalent of C<τ>.
+
+=head2 term e
+
+Returns Euler's number.
+
+=head2 term i
+
+Returns the imaginary unit (for L<Complex> numbers).
+
+=head1 Variables
+
+Variables are discussed in the L<variable language docs |/language/variables>.
+
+=head1 Constants
+
+X<|constant (Terms)>
+Constants are declared with C<constant>, followed by an
+L<identifier|/language/syntax#Identifiers> and do not require a
+sigil. The right-hand side is evaluated at compile time, therefore
+being possibly too early to make sense.
+
+
+    constant SpeedOfLight = 299792458;     # m/s
+    constant PHI          = 1.61803398875; # The golden ratio is everywhere!
+    constant POW2 = do { my int @table; @table = 1, 2, 4 ... 2**32; @table };
+    say POW2[16];
+    # OUTPUT: «65536␤»
+
+Since constant's right-hand side is evaluated at compile time, their
+usage within modules could lead to unexpected behavior, please see the
+related
+L<traps section|https://docs.perl6.org/language/traps#Constants_are_Compile_Time>.
+
+Constants are C<our>-scoped by default, but adding C<my> would make them lexical:
+
+=begin code
+constant SpeedOfLight = 186200;
+constant Unit         = 'mi/s';
+{
+    my constant SpeedOfLight  = 299_792_458;
+    my constant Unit          = 'm/s';
+    my constant Source        = 'wikipedia';
+    say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
+}
+say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
+# here 'wikipedia' is out of scope !
+=end code
+
+that will produce the following output (note how the constants have been
+lexically overwritten):
+
+=for code :lang<output>
+Speed of Light is 299792458 m/s
+Speed of Light is 186200 mi/s
+
+Referencing a lexical C<constant> outside of the block will produce
+an C<Undeclared name> compilation error.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

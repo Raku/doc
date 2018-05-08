@@ -1,0 +1,92 @@
+=begin pod
+
+=TITLE class Variable
+
+=SUBTITLE Object representation of a variable for use in traits
+
+    class Variable {}
+
+Variables have a wealth of compile-time information, but at run time, accesses
+to a variable usually act on the value stored inside the variable, not the
+variable itself. The run-time class of a variable is L<Scalar>.
+
+Class C<Variable> holds the compile-time information that traits can use to
+introspect and manipulate variables.
+
+=head1 Routines
+
+=head2 method name
+
+    method name(Variable:D: str)
+
+Returns the name of the variable, including the sigil.
+
+=head2 X<trait is default|is default (Variable)>
+
+    multi sub trait_mod:<is>(Variable:D, :$default!)
+
+Sets the default value with which a variable is initialized, and to which it
+is reset when L<Nil|/type/Nil> is assigned to it. Trait arguments are evaluated at compile
+time. Closures won't do what you expect: they are stored as is and need to be
+called by hand.
+
+    my Int $x is default(42);
+    say $x;     # OUTPUT: «42␤»
+    $x = 5;
+    say $x;     # OUTPUT: «5␤»
+    # explicit reset:
+    $x = Nil;
+    say $x;     # OUTPUT: «42␤»
+
+
+The trait C<is default> can be used also with subscripting things like arrays and hashes:
+
+=begin code
+my @array is default( 'N/A' );
+@array[22].say;  # OUTPUT: N/A
+@array = Nil;
+@array.say;      # OUTPUT: [N/A]
+@array[4].say;   # OUTPUT: N/A
+
+my %hash is default( 'no-value-here' );
+%hash<non-existent-key>.say; # OUTPUT: no-value-here
+%hash<foo> = 'bar';
+%hash<>.say;                 # OUTPUT: {foo => bar}
+%hash<wrong-key>.say;        # OUTPUT: no-value-here
+=end code
+
+
+=head2 trait is dynamic
+
+    multi sub trait_mod:<is>(Variable:D, :$dynamic)
+
+Marks a variable as dynamic, that is, accessible from inner dynamic scopes
+without being in an inner lexical scope.
+
+=begin code :allow<B L>
+sub introspect() {
+    say B<$CALLER::x>;
+}
+my $x B<is dynamic> = 23;
+introspect;         # OUTPUT: «23␤»
+{
+    # not dynamic
+    my $x;
+    introspect()    # dies with an exception of L<type X::Caller::NotDynamic|/type/X::Caller::NotDynamic>
+}
+=end code
+
+=head2 trait of
+
+    multi sub trait_mod:<of>(Mu:U $target, Mu:U $type)
+
+Sets the type constraint of a container bound to a variable.
+
+    my $i of Int = 42;
+    $i = "forty plus two";
+    CATCH { default { say .^name, ' ', .Str } }
+    # OUTPUT: «X::TypeCheck::Assignment Type check failed in assignment to $i; expected Int but got Str ("forty plus two")␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

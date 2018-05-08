@@ -1,0 +1,176 @@
+=begin pod
+
+=TITLE class Exception
+
+=SUBTITLE Anomalous event capable of interrupting normal control-flow
+
+    class Exception {}
+
+All exceptions that are placed into the C<$!> variable (or into C<$_>
+in C<CATCH> blocks) inherit from C<Exception>. When you call C<die>
+or C<fail> with a non-Exception argument, it is wrapped into an
+C<X::AdHoc> object, which also inherits from C<Exception>.
+
+User-defined exception classes should inherit from C<Exception> too, and
+define at least a method C<message>.
+
+    class X::YourApp::SomeError is Exception {
+        method message() {
+            "A YourApp-Specific error occurred: out of coffee!";
+        }
+    }
+
+=head1 Methods
+
+=head2 method message
+
+Defined as:
+
+    method message(Exception:D: --> Str:D)
+
+This is a stub that must be overwritten by subclasses, and should
+return the exception message.
+
+Special care should be taken that this method does not produce
+an exception itself.
+
+    try die "Something bad happened";
+    if ($!) {
+        say $!.message; # OUTPUT: «Something bad happened.␤»
+    }
+
+=head2 method backtrace
+
+Defined as:
+
+    method backtrace(Exception:D: --> Backtrace:D)
+
+Returns the backtrace associated with the exception. Only makes sense
+on exceptions that have been thrown at least once.
+
+    try die "Something bad happened";
+    if ($!) {
+        print $!.backtrace;
+    }
+
+=head2 method throw
+
+Defined as:
+
+    method throw(Exception:D:)
+
+Throws the exception.
+
+    my $exception = X::AdHoc.new;    # Totally fine
+    try $exception.throw;            # Throws
+    if ($!) { #`( some handling ) }; # Suppress the exception
+
+=head2 method resume
+
+Defined as:
+
+    method resume(Exception:D:)
+
+Resumes control flow where C<.throw> left it when handled in a C<CATCH> block.
+
+    # For example, resume control flow for any exception
+    CATCH { default { .resume } }
+
+=head2 method rethrow
+
+Defined as:
+
+    method rethrow(Exception:D:)
+
+Rethrows an exception that has already been thrown at least once.
+This is different from C<throw> in that it preserves the original
+backtrace.
+
+    my $e = X::AdHoc.new(payload => "Bad situation");
+    sub f() { die 'Bad' };
+    sub g() { try f; CATCH { default { .rethrow } } };
+    g;
+    CATCH { default { say .backtrace.full } };
+
+=head2 method fail
+
+Defined as:
+
+    multi sub    fail(*@text)
+    multi sub    fail(Exception $e)
+    method fail(Exception:D:)
+
+Exits the calling C<Routine> and returns a L<Failure> object wrapping the
+exception C<$e> - or, for the C<*@text> form, an L<X::AdHoc> exception
+constructed from the concatenation of C<@text>. If the caller
+activated fatal exceptions via the pragma C<use fatal;>, the exception is
+thrown instead of being returned as a C<Failure>.
+
+    sub copy-directory-tree ($dir) {
+        fail "$dir is not a directory" if !$dir.IO.d;
+        ...
+    }
+
+=head2 method gist
+
+Defined as:
+
+    multi method gist(Exception:D:)
+
+Returns whatever the exception printer should produce for this exception.
+The default implementation returns message and backtrace separated by
+a newline.
+
+    my $e = X::AdHoc.new(payload => "This exception is pretty bad");
+    try $e.throw;
+    if ($!) { say $!.gist; };
+    # OUTPUT: «This exception is pretty bad
+    #   in block <unit> at <unknown file> line 1␤»
+
+=head2 sub die
+
+Defined as:
+
+    multi sub die()
+    multi sub die(*@message)
+    multi sub die(Exception:D $e)
+    method    die(Exception:D:)
+
+Throws a fatal L<Exception>. The default exception handler prints each
+element of the list to
+L«C<$*ERR>|/language/variables#index-entry-%24%2AERR» (STDERR).
+
+=for code
+die "Important reason";
+
+If the subroutine form is called without arguments, the value of
+L«C<$!> variable|/syntax/$!» is checked. If it is set to a
+L«C<.DEFINITE>|/language/mop#index-entry-syntax_DEFINITE-DEFINITE»
+value, its value will be used as the L<Exception> to throw if it's
+of type L<Exception>, otherwise, it will be used as payload of L<X::AdHoc>
+exception. If C<$!> is not C<.DEFINITE>, L<X::AdHoc> with string C<"Died">
+as payload will be thrown.
+
+=head2 sub warn
+
+Defined as:
+
+    multi sub warn(*@message)
+
+Throws a resumable warning exception, which is considered a control
+exception, and hence is invisible to most normal exception handlers.  The
+outermost control handler will print the warning to C<$*ERR>. After printing
+the warning, the exception is resumed where it was thrown.  To override this
+behavior, catch the exception in a C<CONTROL> block.  A C<quietly {...}>
+block is the opposite of a C<try {...}> block in that it will suppress any
+warnings but pass fatal exceptions through.
+
+To simply print to C<$*ERR>, please use C<note> instead.  C<warn> should be
+reserved for use in threatening situations when you don't quite want to
+throw an exception.
+
+    warn "Warning message";
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

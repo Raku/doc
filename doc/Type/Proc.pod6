@@ -1,0 +1,168 @@
+=begin pod
+
+=TITLE class Proc
+
+=SUBTITLE Running process (filehandle-based interface)
+
+    class Proc {}
+
+C<Proc> is a representation of an invocation of an external
+process. It provides access to the input, output and error stream as well as
+the exit code. It is typically created through the C<run> subroutine:
+
+=for code
+my $proc = run 'echo', 'Hallo world', :out;
+my $captured-output = $proc.out.slurp: :close;
+say "Output was $captured-output.perl()";       # OUTPUT: «Output was "Hallo world\n"␤»
+
+Piping several commands is easy too. To achieve the equivalent of the pipe
+C<echo "Hello, world" | cat -n> in Perl 6, and capture the output from the
+second command, you can do
+
+=for code
+my $p1 = run 'echo', 'Hello, world', :out;
+my $p2 = run 'cat', '-n', :in($p1.out), :out;
+say $p2.out.get;
+
+You can also feed the C<:in> pipe directly from your program, by setting it
+to C<True>, which will make the pipe available via C<.in> method on the C<Proc>:
+
+=for code
+my $p = run "cat", "-n", :in, :out;
+$p.in.say: "Hello,\nworld!";
+$p.in.close;
+say $p.out.slurp: :close;
+# OUTPUT: «1  Hello,␤
+#          2  world!␤»
+
+In order to capture the standard error C<:err> can be supplied:
+
+=for code
+my $p = run "ls", "-l", ".", "qqrq", :out, :err;
+my $captured-output = $p.out.slurp: :close;
+my $captured-error  = $p.err.slurp: :close;
+my $exit-code       = $p.exitcode;
+
+B<Note:> Versions of L<Rakudo|/language/glossary#Rakudo> older than 2017.04 do not have C<.slurp> available on L<IO::Pipe> objects; use
+L«C<.slurp-rest>|/routine/slurp-rest» instead.
+
+Use L<Proc::Async|/type/Proc::Async> for non-blocking operations.
+
+=head1 Methods
+
+=head2 method new
+
+=begin code :skip-test
+method new(Proc:U:
+        :$in = '-',
+        :$out = '-',
+        :$err = '-',
+        Bool :$bin = False,
+        Bool :$chomp = True,
+        Bool :$merge = False,
+        Str:D :$enc = 'UTF-8',
+        Str:D :$nl = "\n",
+    --> Proc:D)
+sub run(
+        *@args ($, *@),
+        :$in = '-',
+        :$out = '-',
+        :$err = '-',
+        Bool :$bin = False,
+        Bool :$chomp = True,
+        Bool :$merge = False,
+        Str:D :$enc = 'UTF-8',
+        Str:D :$nl = "\n",
+        :$cwd = $*CWD,
+        Hash() :$env = %*ENV
+    --> Proc:D)
+sub shell(
+        $cmd,
+        :$in = '-',
+        :$out = '-',
+        :$err = '-',
+        Bool :$bin = False,
+        Bool :$chomp = True,
+        Bool :$merge = False,
+        Str:D :$enc = 'UTF-8',
+        Str:D :$nl = "\n",
+        :$cwd = $*CWD,
+        Hash() :$env = %*ENV
+    --> Proc:D)
+=end code
+
+C<new> creates a new C<Proc> object, whereas C<run> or C<shell> create one and spawn it
+with the command and arguments provided in C<@args> or C<$cmd>, respectively.
+
+C<$in>, C<$out> and C<$err> are the three
+standard streams of the to-be-launched program, and default to C<"-">, which
+means they inherit the stream from the parent process. Setting one (or more)
+of them to C<True> makes the stream available as an L<IO::Pipe> object of the
+same name, so for example C<$proc.out>. You can set them to C<False> to discard
+them. Or you can pass an existing
+L<IO::Handle> object (for example IO::Pipe) in, in which case this handle is
+used for the stream.
+
+C<$bin> controls whether the streams are handled as binary (i.e.
+L<Blob|/type/Blob> object) or text (i.e. L<Str|/type/Str> objects). If C<$bin>
+is False, C<$enc> holds the character encoding to encode strings sent to the
+input stream and decode binary data from the output and error streams.
+
+With C<$chomp> set to C<True>, newlines are stripped from the output and err
+streams when reading with C<lines> or C<get>. C<$nl> controls what your idea
+of a newline is.
+
+If C<$merge> is set to True, the standard output and error stream end up
+merged in C<$proc.out>.
+
+
+=head2 method sink
+
+    method sink(--> Nil)
+
+When sunk, the C<Proc> object will throw L<X::Proc::Unsuccessful>
+if the process it ran exited unsuccessfully.
+
+=head2 method spawn
+
+    method spawn(*@args ($, *@), :$cwd = $*CWD, Hash() :$env = %*ENV --> Bool:D)
+
+Runs the C<Proc> object with the given command, argument list, working directory,
+and environment.
+
+=head2 method shell
+
+    method shell($cmd, :$cwd = $*CWD, :$env --> Bool:D)
+
+Runs the C<Proc> object with the given command and environment which are passed
+through to the shell for parsing and execution. See L<C<IO::shell>|/type/IO#sub_shell> for an explanation of which shells are used by default in the most common operating systems.
+
+=head2 method command
+
+    method command(Proc:D: --> Array:D)
+
+The command method is an accessor to an array containing the arguments that were
+passed when the Proc object was executed via C<spawn> or C<shell> or C<run>.
+
+=head2 method pid
+
+    method pid(Proc:D:)
+
+Returns the C<$*PID> value of the process if available, or C<Nil>.
+
+=head2 method exitcode
+
+    method exitcode(Proc:D: --> Int:D)
+
+Returns the exit code of the external process, or -1 if it has not exited yet.
+
+=head2 method signal
+
+    method signal(Proc:D:)
+
+Returns the signal number with which the external process was killed, or 0 or
+an undefined value otherwise.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

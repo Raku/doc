@@ -1,0 +1,351 @@
+=begin pod
+
+=TITLE class Routine
+
+=SUBTITLE Code object with its own lexical scope and `return` handling
+
+    class Routine is Block { }
+
+A C<Routine> is a code object meant for larger unities of code than L<Block>.
+Routine is the common superclass for L<Sub> (and therefore operators) and
+L<Method>, the two primary code objects for code reuse.
+
+Routines serve as a scope limiter for C<return> (i.e. a C<return> returns
+from the innermost outer Routine).
+
+Routine is also the level at which
+L<multiness|/language/glossary#Multi-Dispatch> (multi subs and multi methods)
+are handled.
+
+=head2 X<Trait is default|is default (Routine)>
+
+There is a special trait for C<Routine>s called C<is default>. This trait is
+designed as a way to disambiguate C<multi> calls that would normally
+throw an error because the compiler would not know which one to use. This means that
+given the following two C<Routine>s, the one with the C<is default> trait will be
+called.
+
+    multi sub f() is default { say "Hello there" }
+    multi sub f() { say "Hello friend" }
+    f();   # OUTPUT: «"Hello there"␤»
+
+The C<is default> trait can become very useful for debugging and other uses but
+keep in mind that it will only resolve an ambiguous dispatch between two C<Routine>s
+of the same precedence. If one of the C<Routine>s are narrower than another, then
+that one will be called. For example:
+
+    =begin code
+    multi sub f() is default { say "Hello there" }
+    multi sub f(:$greet) { say "Hello " ~ $greet }
+    f();   # "Use of uninitialized value $greet..."
+    =end code
+
+In this example, the C<multi> without C<is default> was called because it was
+actually narrower than the C<Sub> with it.
+
+=head1 Methods
+
+=head2 method name
+
+    method name(Routine:D: --> Str:D)
+
+Returns the name of the sub or method.
+
+=head2 method package
+
+    method package(Routine:D:)
+
+Returns the package in which the routine is defined.
+
+=head2 method multi
+
+    method multi(Routine:D: --> Bool:D)
+
+Returns C<True> if the routine is a multi sub or method. Note that
+the name of a multi sub refers to its proto and this method would
+return false if called on it. It needs to be called on the
+candidates themselves:
+
+    multi foo ($, $) {};
+    say &foo.multi;             # OUTPUT: «False␤»
+    say &foo.candidates».multi; # OUTPUT: «(True)␤»
+
+=head2 method candidates
+
+    method candidates(Routine:D: --> Positional:D)
+
+Returns a list of multi candidates, or a one-element list with itself
+if it's not a multi
+
+=head2 method cando
+
+    method cando(Capture $c)
+
+Returns a possibly-empty list of candidates that can be called with the
+given L<Capture|/type/Capture>, ordered by narrowest candidate first. For
+methods, the first element of the Capture needs to be the invocant:
+
+    .signature.say for "foo".^can("comb")[0].cando: \(Cool, "o");
+    # OUTPUT: «(Cool $: Str $matcher, $limit = Inf, *%_)␤»
+
+=head2 method wrap
+
+    method wrap(Routine:D: &wrapper)
+
+Wraps (i.e. in-place modifies) the routine. That means a call to this routine
+first calls C<&wrapper>, which then can (but doesn't have to) call the
+original routine with the C<callsame>, C<callwith>, C<nextsame> and
+C<nextwith> dispatchers. The return value from the routine is also
+the return value from the wrapper.
+
+C<wrap> returns an instance of a private class called L<WrapHandle|/type/WrapHandle>,
+which you can pass to L<unwrap> to restore the original routine.
+
+=head2 method unwrap
+
+    method unwrap($wraphandle)
+
+Restores the original routine after it has been wrapped with L<wrap>. While
+the signature allows any type to be passed, only the L<WrapHandle|/type/WrapHandle>
+type returned from C<wrap> can usefully be.
+
+=head2 method yada
+
+    method yada(Routine:D: --> Bool:D)
+
+Returns C<True> if the routine is a stub
+
+    say (sub f() { ... }).yada;      # OUTPUT: «True␤»
+    say (sub g() { 1;  }).yada;      # OUTPUT: «False␤»
+
+=head2 trait is cached
+
+    multi sub trait_mod:<is>(Routine $r, :$cached!)
+
+B<NOTE:> this feature is currently EXPERIMENTAL.
+
+Causes the return value of a routine to be stored, so that when subsequent
+calls with the same list of arguments are made, the stored value can be
+returned immediately instead of re-running the routine.
+
+Useful when storing and returning the computed value is much faster than
+re-computing it every time, and when the time saving trumps the cost of the
+use of more memory.
+
+Even if the arguments passed to the routine are "reference types" (such as
+objects or arrays), then for the purpose of caching they will only be compared
+based on their contents. Thus the second invocation will hit the cache in this
+case:
+
+=for code :skip-test
+say foo( [1, 2, 3] );   # runs foo
+say foo( [1, 2, 3] );   # doesn't run foo, uses cached value
+
+=begin code
+use experimental :cached;
+
+sub nth-prime(Int:D $x where * > 0) is cached {
+    say "Calculating {$x}th prime";
+    return (2..*).grep(*.is-prime)[$x - 1];
+}
+
+say nth-prime(43);
+say nth-prime(43);
+say nth-prime(43);
+=end code
+
+produces this output:
+
+=begin code :skip-test
+Calculating 43th prime
+191
+191
+191
+=end code
+
+=head2 trait is pure
+
+    multi sub trait_mod:<is>(Routine $r, :$pure!)
+
+Marks a subroutine as I<pure>, that is, it asserts that for the same input, it
+will always produce the same output without any additional side effects.
+
+You can mark function as pure even if they throw exceptions in edge cases,
+or if they modify temporary objects; hence the C<is pure> trait can cover
+cases that the compiler cannot deduce on its own. On the other hand, you might
+not want to constant-fold functions that produce a large return value (such
+as the string or list repetition operators, infix C<x> and C<xx>) even if they
+are pure, to avoid large precompilation files.
+
+The C<is pure> trait is a promise by the programmer to the compiler that it
+can constant-fold
+calls to such functions when the arguments are known at compile time.
+
+    sub syllables() is pure {
+        say "Generating syllables";
+        my @vowels = <a e i o u>;
+        return  @vowels.append: <k m n sh d r t y> X~ @vowels;
+    }
+
+To see it an action with a particular compiler you can try this example:
+
+    =begin code :preamble<sub syllables {}>
+    BEGIN { say ‘Begin’ }
+    say ‘Start’;
+    say (^100).map: { syllables().pick(2..5).join("") };
+
+
+    # Example output:
+    # Begin
+    # Generating syllables
+    # Start
+    # (matiroi yeterani shoriyuru...
+    =end code
+
+
+Essentially this allows the compiler to perform some operations at
+compile time. The benefits of constant-folding I<may> include better
+performance, especially in cases when the folded code is precompiled.
+
+In addition, using a pure function or operator in sink context (that is,
+where the result is discarded) may lead to a warning. The code
+
+    sub double($x) is pure { 2 * $x };
+    double(21);
+    say "anything";
+    # WARNING: «Useless use of "double(21)" in expression "double(21)" in sink context (line 2)»
+
+
+=head2 trait is rw
+
+    multi sub trait_mod:<is>(Routine $r, :$rw!)
+
+When a routine is modified with this trait, its return value will be writable.
+This is useful when returning variables or writable elements of hashes or
+arrays, for example:
+
+=begin code
+sub walk(\thing, *@keys) is rw {
+    my $current := thing;
+    for @keys -> $k {
+        if $k ~~ Int {
+            $current := $current[$k];
+        }
+        else {
+            $current := $current{$k};
+        }
+    }
+    $current;
+}
+
+my %hash;
+walk(%hash, 'some', 'key', 1, 2) = 'autovivified';
+
+say %hash.perl;
+=end code
+
+produces
+
+=begin code
+("some" => {"key" => [Any, [Any, Any, "autovivified"]]}).hash
+=end code
+
+Note that C<return> marks return values as read only; if you need an early
+exit from an C<is rw> routine, you have to use X<C<return-rw>|return-rw> instead.
+
+=head2 trait is export
+
+    multi sub trait_mod:<is>(Routine $r, :$export!)
+
+Marks a routine as exported to the rest of the world
+
+=begin code :allow<B>
+module Foo {
+    sub double($x) B<is export> {
+        2 * $x
+    }
+}
+
+import Foo;         # makes sub double available
+say double 21;      # 42
+=end code
+
+From inside another file you'd say C<use Foo;> to load a module and import the
+exported functions.
+
+See L<Exporting and Selective Importing Modules|/language/modules#Exporting_and_Selective_Importing>
+for more details.
+
+=head2 trait is DEPRECATED
+
+    multi sub trait_mod:<is>(Routine:D $r, :$DEPRECATED!)
+
+Marks a routine as deprecated, optionally with a message what to use instead.
+
+This code
+
+=begin code
+sub f() is DEPRECATED('the literal 42') { 42 }
+say f();
+=end code
+
+produces this output:
+
+=begin code :skip-test
+42
+Saw 1 occurrence of deprecated code.
+================================================================================
+Sub f (from GLOBAL) seen at:
+  deprecated.p6, line 2
+Please use the literal 42 instead.
+--------------------------------------------------------------------------------
+Please contact the author to have these occurrences of deprecated code
+adapted, so that this message will disappear!
+=end code
+
+=head2 trait is hidden-from-backtrace
+
+    multi sub trait_mod:<is>(Routine:D, :$hidden-from-backtrace!)
+
+Hides a routine from showing up in a default backtrace. For example
+
+=begin code
+sub inner { die "OH NOEZ" };
+sub outer { inner() };
+outer();
+=end code
+
+produces the error message and backtrace
+
+=begin code :skip-test
+OH NOEZ
+  in sub inner at bt.p6:1
+  in sub outer at bt.p6:2
+  in block <unit> at bt.p6:3
+=end code
+
+but if C<inner> is marked with C<hidden-from-backtrace>
+
+=begin code
+sub inner is hidden-from-backtrace { die "OH NOEZ" };
+sub outer { inner() };
+outer();
+=end code
+
+the error backtrace does not show it:
+
+=begin code :skip-test
+OH NOEZ
+  in sub outer at bt.p6:2
+  in block <unit> at bt.p6:3
+=end code
+
+=begin comment
+
+TODO: explain export tags
+
+=end comment
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

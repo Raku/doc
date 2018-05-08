@@ -1,0 +1,79 @@
+=begin pod
+
+=TITLE class WhateverCode
+
+=SUBTITLE Code object constructed by Whatever-currying
+
+    class WhateverCode is Code { }
+
+C<WhateverCode> objects are the result of L<Whatever>-currying. See the
+L<Whatever> documentation for details.
+
+When you wish to control how a method or function interprets any
+I<Whatever stars>, you may use multi dispatch with C<Whatever> and
+C<WhateverCode> parameters to do so, as in the following example:
+
+    class Cycle {
+          has $.pos;
+          has @.vals;
+    }
+
+    multi sub get-val(Cycle $c, Int $idx) {
+          $c.vals[$idx % $c.vals.elems]
+    }
+
+    # Define what to do with a stand-alone * as the second argument
+    multi sub get-val(Cycle $c, Whatever $idx) {
+        get-val($c, $c.pos);
+    }
+
+    # Define what to do with a * WhateverCode in an expression
+    multi sub get-val(Cycle $c, WhateverCode $idx) {
+        get-val($c, $idx($c.pos));
+    }
+
+    my Cycle $c .= new(:pos(2), :vals(0..^10));
+
+    say get-val($c, 3);   # OUTPUT: «3␤»
+    say get-val($c, *);   # OUTPUT: «2␤»
+    say get-val($c, *-1); # OUTPUT: «1␤»
+
+The C<WhateverCode> C<does> L<Callable> role, so it's possible to introspect
+the type of C<Callable> it contains. Continuing the previous
+example, we can add a multi that handles a C<WhateverCode> with two arguments:
+
+=begin code :skip-test
+# Define what to do with two * in an expression
+multi sub get-val(Cycle $c, WhateverCode $idx where { .arity == 2 }) {
+    get-val($c, $idx($c.pos, $c.vals.elems));
+}
+
+say get-val($c, * + * div 2); # 2 + 10/2 = 7
+=end code
+
+Note, though, that subexpressions may impose their own I<Whatever star>
+rules:
+
+=for code :skip-test
+my @a = (0, 1, 2);
+say get-val($c, @a[*-1]) # 2, because the star belongs to the Array class
+
+This can make the ownership of I<Whatever stars> become confusing rather
+quickly, so be careful not to overdo it.
+
+You type-constraint using L<Callable> type to accept any C<Callable>, including
+C<WhateverCode>:
+
+    sub run-with-rand (Callable $code) { $code(rand) };
+    run-with-rand *.say;           # OUTPUT: «0.773672071688484␤»
+    run-with-rand {.say};          # OUTPUT: «0.38673179353983␤»
+    run-with-rand sub { $^v.say }; # OUTPUT: «0.0589543603685792␤»
+
+Type-constraining with C<&>-sigiled parameter works equally well and is shorter
+to type:
+
+    sub run-with-rand (&code) { code time };
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

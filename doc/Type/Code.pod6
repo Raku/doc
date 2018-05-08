@@ -1,0 +1,171 @@
+=begin pod
+
+=TITLE class Code
+
+=SUBTITLE Code object
+
+    class Code is Any does Callable {}
+
+C<Code> is the ultimate base class of all code objects in Perl 6. It
+exposes functionality that all code objects have. While thunks are
+directly of type C<Code>, most code objects (such as those resulting
+from blocks, subroutines or methods) will be of some subclass of C<Code>.
+
+
+=head1 Methods
+
+=head2 method ACCEPTS
+
+    multi method ACCEPTS(Code:D: Mu $topic)
+
+Usually calls the code object and passes C<$topic> as an argument.
+However, when called on a code object that takes no arguments, the code
+object is invoked with no arguments and C<$topic> is dropped. The
+result of the call is returned.
+
+=head2 method arity
+
+Defined as:
+
+    method arity(Code:D: --> Int:D)
+
+Returns the minimum number of positional arguments that must be passed
+in order to call the code object. Any optional or slurpy parameters in the
+code object's C<Signature> do not contribute, nor do named parameters.
+
+    sub argless() { }
+    sub args($a, $b?) { }
+    sub slurpy($a, $b, *@c) { }
+    say &argless.arity;             # OUTPUT: «0␤»
+    say &args.arity;                # OUTPUT: «1␤»
+    say &slurpy.arity;              # OUTPUT: «2␤»
+
+=head2 method assuming
+
+    method assuming(Callable:D $self: |primers)
+
+Returns a C<Callable> that implements the same behaviour as the
+original, but has the values passed to .assuming already bound to the
+corresponding parameters.
+
+    my sub slow($n){ my $i = 0; $i++ while $i < $n; $i };
+
+    # takes only one parameter and as such wont forward $n
+    sub bench(&c){ c, now - ENTER now };
+
+    say &slow.assuming(10000000).&bench; # OUTPUT: «(10000000 7.5508834)␤»
+
+For a sub with arity greater than one, you can use C<Whatever> C<*> for all of the positional parameters that are not "assumed".
+
+    sub first-and-last ( $first, $last ) {
+        say "Name is $first $last";
+    }
+
+    my &surname-smith = &first-and-last.assuming( *, 'Smith' );
+
+    &surname-smith.( 'Joe' ); # OUTPUT: «Name is Joe Smith␤»
+
+You can handle any combination of assumed and not assumed positional parameters:
+
+    sub longer-names ( $first, $middle, $last, $suffix ) {
+        say "Name is $first $middle $last $suffix";
+    }
+
+    my &surname-public = &longer-names.assuming( *, *, 'Public', * );
+
+    &surname-public.( 'Joe', 'Q.', 'Jr.'); # OUTPUT: «Name is Joe Q. Public Jr.␤»
+
+Named parameters can be assumed as well:
+
+    sub foo { say "$^a $^b $:foo $:bar" }
+    &foo.assuming(13, :42foo)(24, :72bar); # OUTPUT: «13 24 42 72␤»
+
+And you can use C<.assuming> on all types of L<Callables|/type/Callable>,
+including L<Methods|/type/Method> and L<Blocks|/type/Block>:
+
+    # We use a Whatever star for the invocant:
+    my &comber = Str.^lookup('comb').assuming: *, /P \w+/;
+    say comber 'Perl is awesome! Python is great! And PHP is OK too';
+    # OUTPUT: «(Perl Python PHP)␤»
+
+    my &learner = {
+        "It took me $:months months to learn $^lang"
+    }.assuming: 'Perl 6';
+    say learner :6months;  # OUTPUT: «It took me 6 months to learn Perl 6␤»
+
+=head2 method count
+
+Defined as:
+
+    method count(Code:D: --> Real:D)
+
+Returns the maximum number of positional arguments that may be passed
+when calling the code object. For code objects that can accept any
+number of positional arguments (that is, they have a slurpy parameter),
+C<count> will return C<Inf>. Named parameters do not contribute.
+
+    sub argless() { }
+    sub args($a, $b?) { }
+    sub slurpy($a, $b, *@c) { }
+    say &argless.count;             # OUTPUT: «0␤»
+    say &args.count;                # OUTPUT: «2␤»
+    say &slurpy.count;              # OUTPUT: «Inf␤»
+
+=head2 of
+
+Defined as:
+
+    method of(Code:D: --> Mu)
+
+Returns the L<return type constraint|/type/Signature#Constraining_Return_Types>
+of the C<Code>:
+
+    say -> () --> Int {}.of; # OUTPUT: «(Int)␤»
+
+=head2 method signature
+
+Defined as:
+
+    multi method signature(Code:D: --> Signature:D)
+
+Returns the L<C<Signature>> object for this code object, which describes
+its parameters.
+
+    sub a(Int $one, Str $two) {};
+    say &a.signature; # OUTPUT: «(Int $one, Str $two)␤»
+
+=head2 method Str
+
+Defined as:
+
+    multi method Str(Code:D: --> Str:D)
+
+Will produce a warning. Use C<.perl> or C<.gist> instead.
+
+    sub marine() { }
+    say ~&marine;    # OUTPUT: «marine␤»
+    say &marine.Str; # OUTPUT: «marine␤»
+
+=head2 method file
+
+Defined as:
+
+    method file(Code:D: --> Str:D)
+
+Returns the name of the file in which the code object was declared.
+
+    say &infix:<+>.file;
+
+=head2 method line
+
+Defined as
+
+    method line(Code:D: --> Int:D)
+
+Returns the line number in which the code object was declared.
+
+    say &infix:<+>.line;
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

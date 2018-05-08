@@ -1,0 +1,1096 @@
+=begin pod :tag<perl6>
+
+=TITLE Functions
+
+=SUBTITLE Functions and Functional Programming in Perl 6
+
+Routines are the smallest means of code reuse in Perl 6. They come in several
+forms, most notably L<methods|/type/Method>, which belong in classes and roles and are
+associated with an object; and functions (also called I<subroutines> or
+L<sub|/type/Sub>s, for short), which can be called independently of objects.
+
+Subroutines default to lexical (C<my>) scoping, and calls to them are
+generally resolved at compile time.
+
+Subroutines can have a L<signature|/type/Signature>, also called I<parameter
+list>, which specifies which, if any, arguments the signature expects. It can
+specify (or leave open) both the number and types of arguments, and the
+return value.
+
+Introspection on subroutines is provided via L<C<Routine>|/type/Routine>.
+
+=head1 Defining/Creating/Using Functions
+
+=head2 X<Subroutines|declarator,sub>
+
+To basic way to create a subroutine is to use the C<sub> declarator followed by
+an optional L<identifier|/language/syntax#Identifiers>:
+
+    sub my-func { say "Look ma, no args!" }
+    my-func;
+
+The sub declarator returns a value of type L<Sub|/type/Sub> that can be stored
+in any container:
+
+    my &c = sub { say "Look ma, no name!" }
+    c;     # OUTPUT: «Look ma, no name!␤»
+
+    my Any:D $f = sub { say 'Still nameless...' }
+    $f();  # OUTPUT: «Still nameless...␤»
+
+    my Code \a = sub { say ‚raw containers don't implement postcircumfix:<( )>‘ };
+    a.();  # OUTPUT: «raw containers don't implement postcircumfix:<( )>␤»
+
+The declarator C<sub> will declare a new name in the current scope at compile
+time. As such any indirection has to be resolved at compile time:
+
+    constant aname = 'foo';
+    sub ::(aname) { say 'oi‽' };
+    foo;
+
+This will become more useful once macros are added to Perl 6.
+
+To have the subroutine take arguments, a L<signature|Signature> goes
+between the subroutine's name and its body, in parentheses:
+
+=for code :allow<B L>
+sub exclaim B<($phrase)> {
+    say $phrase L<~> "!!!!"
+}
+exclaim "Howdy, World";
+
+By default, subroutines are L<lexically scoped|/syntax/my>. That is,
+C<sub foo {...}> is the same as C<my sub foo {...}> and is only
+defined within the current scope.
+
+=begin code :allow<L>
+sub escape($str) {
+    # Puts a slash before non-alphanumeric characters
+    S:g[<-alpha -digit>] = "\\$/" given $str
+}
+
+say escape 'foo#bar?'; # OUTPUT: «foo\#bar\?␤»
+
+{
+    sub escape($str) {
+        # Writes each non-alphanumeric character in its hexadecimal escape
+        S:g[<-alpha -digit>] = "\\x[{ $/.ord.base(16) }]" given $str
+    }
+
+    say escape 'foo#bar?' # OUTPUT: «foo\x[23]bar\x[3F]␤»
+}
+
+# Back to original escape function
+say escape 'foo#bar?'; # OUTPUT: «foo\#bar\?␤»
+=end code
+
+Subroutines don't have to be named. If unnamed, they're called anonymous subroutines.
+
+    say sub ($a, $b) { $a ** 2 + $b ** 2 }(3, 4) # OUTPUT: «25␤»
+
+But in this case, it's often desirable to use the more succinct L<block|Block>
+syntax. Subroutines and blocks can be called in place, as in the example above.
+
+=head2 X«Blocks and Lambdas|syntax,->»
+
+Whenever you see something like C«{ $_ + 42 }»,
+C«-> $a, $b { $a ** $b }», or C«{ $^text.indent($:spaces) }», that's
+L<Block> syntax. It's used after every C<if>, C<for>, C<while>, etc.
+
+    for 1, 2, 3, 4 -> $a, $b {
+        say $a ~ $b;
+    }
+    # OUTPUT: «12␤34␤»
+
+They can also be used on their own as anonymous blocks of code.
+
+    say { $^a ** 2 + $^b ** 2}(3, 4) # OUTPUT: «25␤»
+
+For block syntax details, see the documentation for the
+L<Block> type.
+
+=head2 Signatures
+
+The parameters that a function accepts are described in its I<signature>.
+
+=for code :allow<B>
+sub formatB<(Str $s)> { ... }
+-> B<$a, $b> { ... }
+
+Details about the syntax and use of signatures can be found in the
+L<documentation on the C<Signature> class|Signature>.
+
+=head3 Automatic Signatures
+
+X<|@_>X<|%_>
+If no signature is provided but either of the two automatic variables C<@_> or
+C<%_> are used in the function body, a signature with C<*@_> or C<*%_> will be
+generated. Both automatic variables can be used at the same time.
+
+    sub s { say @_, %_ };
+    say &s.signature # OUTPUT: «(*@_, *%_)␤»
+
+=head2 Arguments
+X<|Argument>
+
+Arguments are supplied as a comma separated list. To disambiguate nested calls,
+use parentheses:
+
+    sub f(&c){ c() * 2 }; # call the function reference c with empty parameter list
+    sub g($p){ $p - 2 };
+    say(g(42), 45);       # pass only 42 to g()
+
+When calling a function, positional arguments should be supplied
+in the same order as the function's signature.  Named arguments
+may be supplied in any order, but it's considered good form to
+place named arguments after positional arguments.  Inside the
+argument list of a function call, some special syntax is supported:
+
+    sub f(|c){};
+    f :named(35);     # A named argument (in "adverb" form)
+    f named => 35;    # Also a named argument
+    f :35named;       # A named argument using abbreviated adverb form
+    f 'named' => 35;  # Not a named argument, a Pair in a positional argument
+    my \c = <a b c>.Capture;
+    f |c;             # Merge the contents of Capture $c as if they were supplied
+
+Arguments passed to a function are conceptually first collected in a
+C<Capture> container.  Details about the syntax and use of these
+containers can be found in the L<documentation on the C<Capture> class|Capture>.
+
+When using named arguments, note that normal List "pair-chaining" allows
+one to skip commas between named arguments.
+
+    sub f(|c){};
+    f :dest</tmp/foo> :src</tmp/bar> :lines(512);
+    f :32x :50y :110z;   # This flavor of "adverb" works, too
+    f :a:b:c;            # The spaces are also optional.
+
+=head2 Return values
+
+Any C<Block> or C<Routine> will provide its last expression as a return value
+to the caller. If L<return|/language/control#return> or
+L<return-rw|/language/control#return-rw> are called their parameter, if any,
+will become the return value. The default return value is L<Nil|/type/Nil>.
+
+    sub a { 42 };
+    sub b { say a };
+    b;
+    # OUTPUT: «42␤»
+
+Multiple return values are returned as a list or by creating a
+L<Capture|/type/Capture>. Destructuring can be used to untangle multiple return
+values.
+
+    sub a { 42, 'answer' };
+    put a.perl;
+    # OUTPUT: «(42, "answer")␤»
+
+    my ($n, $s) = a;
+    put [$s, $n];
+    # OUTPUT: «answer 42␤»
+
+    sub b { <a b c>.Capture };
+    put b.perl;
+    # OUTPUT: «\("a", "b", "c")␤»
+
+=head2 Return Type Constraints
+
+Perl 6 has many ways to specify a function's return type:
+
+=for code
+sub foo(--> Int)      {}; say &foo.returns; # OUTPUT: «(Int)␤»
+=for code
+sub foo() returns Int {}; say &foo.returns; # OUTPUT: «(Int)␤»
+=for code
+sub foo() of Int      {}; say &foo.returns; # OUTPUT: «(Int)␤»
+=for code
+my Int sub foo()      {}; say &foo.returns; # OUTPUT: «(Int)␤»
+
+Attempting to return values of another type will cause a compilation error.
+
+=for code
+sub foo() returns Int { "a"; }; foo; # Type check fails
+
+C<returns> and C<of> are equivalent, and both take only a Type since they are declaring a trait of the L<Callable>. The last declaration is, in fact, a type declaration, which obviously can take only a type. C«-->», however, can take either undefinite or definite values.
+
+Note that C<Nil> and C<Failure> are exempt from return type constraints and
+can be returned from any routine, regardless of its constraint:
+
+=for code
+sub foo() returns Int { fail   }; foo; # Failure returned
+sub bar() returns Int { return }; bar; # Nil returned
+
+=head2 X<Multi-dispatch|declarator,multi>
+
+Perl 6 allows you to write several routines with the same name but different
+signatures. When the routine is called by name, the runtime environment
+determines the proper I<candidate> and calls it.
+
+You declare each candidate with the C<multi> declarator:
+
+    multi congratulate($name) {
+        say "Happy birthday, $name";
+    }
+    multi congratulate($name, $age) {
+        say "Happy {$age}th birthday, $name";
+    }
+
+    congratulate 'Larry';       # OUTPUT: «Happy birthday, Larry␤»
+    congratulate 'Bob', 45;     # OUTPUT: «Happy 45th birthday, Bob␤»
+
+Dispatch can happen on the number of arguments (the L<arity|/type/Routine#(Code)_method_arity>), the
+type of arguments but also on additional assertions which can be placed on them. For more information
+about type constraints see the documentation for the L<Signature|/type/Signature#Type_Constraints>
+class.
+
+    multi as-json(Bool $d) { $d ?? 'true' !! 'false'; }
+    multi as-json(Real $d) { ~$d }
+    multi as-json(@d)      { sprintf '[%s]', @d.map(&as-json).join(', ') }
+
+    say as-json([True, 42]);    # OUTPUT: «[true, 42]␤»
+
+Named parameters participate in the dispatch even if they are not provided in
+the call. Therefore a multi candidate with named parameters will be given
+precedence.
+
+C<multi> without any specific routine type always defaults to a C<sub>, but you
+can use it on methods as well. The candidates are all the multi methods of the
+object:
+
+    class Congrats {
+        multi method congratulate($reason, $name) {
+            say "Hooray for your $reason, $name";
+        }
+    }
+
+    role BirthdayCongrats {
+        multi method congratulate('birthday', $name) {
+            say "Happy birthday, $name";
+        }
+        multi method congratulate('birthday', $name, $age) {
+            say "Happy {$age}th birthday, $name";
+        }
+    }
+
+    my $congrats = Congrats.new does BirthdayCongrats;
+
+    $congrats.congratulate('promotion','Cindy'); # OUTPUT: «Hooray for your promotion, Cindy␤»
+    $congrats.congratulate('birthday','Bob');    # OUTPUT: «Happy birthday, Bob␤»
+
+Unlike C<sub>, if you use named parameters with multi methods, the parameters must
+be required parameters to behave as expected.
+
+Please note that a non-multi sub or operator will hide multi candidates of the
+same name in any parent scope or child scope. The same is true for imported
+non-multi candidates.
+
+=head3 X<proto|declarator>
+
+C<proto> is a way to formally declare commonalities between C<multi>
+candidates. It acts as a wrapper that can validate but not modify
+arguments. Consider this basic example:
+
+    proto congratulate(Str $reason, Str $name, |) {*}
+    multi congratulate($reason, $name) {
+       say "Hooray for your $reason, $name";
+    }
+    multi congratulate($reason, $name, Int $rank) {
+       say "Hooray for your $reason, $name -- got rank $rank!";
+    }
+
+    congratulate('being a cool number', 'Fred');     # OK
+    congratulate('being a cool number', 'Fred', 42); # OK
+    =for code :skip-test
+    congratulate('being a cool number', 42);         # Proto match error
+
+The proto insists that all C<multi congratulate> conform to the basic signature of two strings,
+optionally followed by further parameters. The C<|> is an un-named C<Capture>
+parameter, and allows a C<multi> to take additional arguments. The first two calls
+succeed, but the third fails (at compile time) because C<42> doesn't match C<Str>.
+
+=for code :skip-test
+say &congratulate.signature # OUTPUT: «(Str $reason, Str $name, | is raw)␤»
+
+You can give the C<proto> a function body, and place the C<{*}> where
+you want the dispatch to be done.
+
+    # attempts to notify someone -- False if unsuccessful
+    proto notify(Str $user,Str $msg) {
+       my \hour = DateTime.now.hour;
+       if hour > 8 or hour < 22 {
+          return {*};
+       } else {
+          # we can't notify someone when they might be sleeping
+          return False;
+       }
+    }
+
+C<{*}> always dispatches to candidates with the parameters it's called
+with. Parameter defaults and type coercions will work but are not passed on.
+
+=for code
+proto mistake-proto(Str() $str, Int $number = 42) {*}
+multi mistake-proto($str, $number) { say $str.^name }
+mistake-proto(7, 42);  # OUTPUT: «Int␤» -- not passed on
+=for code :skip-test
+mistake-proto('test'); # fails -- not passed on
+
+=comment only
+
+=head1 Conventions and Idioms
+
+While the dispatch system described above provides a lot of flexibility,
+there are some conventions that most internal functions, and those in
+many modules, will follow.
+
+=head2 Slurpy Conventions
+
+Perhaps the most important one of these conventions is the way slurpy list arguments are
+handled.  Most of the time, functions will not automatically flatten
+slurpy lists.
+The rare exceptions are those functions that don't have a
+reasonable behavior on lists of lists (e.g., L<chrs|/routine/chrs>)
+or where there is a conflict with an established idiom (e.g., L<pop|/routine/pop>
+being the inverse of L<push|/routine/push>).
+
+If you wish to match this look and feel, any L<Iterable|/type/Iterable> argument must
+be broken out element-by-element using a C<**@> slurpy, with two nuances:
+
+=item An L<Iterable|/type/Iterable> inside a L<Scalar container|/language/containers#Scalar_containers> doesn't count.
+
+=item L<List|/type/List>s created with a L<C<,>|/routine/,> at the top level only count as one L<Iterable|/type/Iterable>.
+
+This can be achieved by using a slurpy with a C<+> or C<+@> instead of C<**>:
+
+    sub grab(+@a) { "grab $_".say for @a }
+
+which is shorthand for something very close to:
+
+    multi sub grab(**@a) { "grab $_".say for @a }
+    multi sub grab(\a) {
+        a ~~ Iterable and a.VAR !~~ Scalar ?? nextwith(|a) !! nextwith(a,)
+    }
+
+This results in the following behavior, which is known as the
+I<"single argument rule"> and is important to understand when invoking slurpy functions:
+
+=for code :preamble<sub grab(+@a) {};>
+grab(1, 2);      # OUTPUT: «grab 1␤grab 2␤»
+grab((1, 2));    # OUTPUT: «grab 1␤grab 2␤»
+grab($(1, 2));   # OUTPUT: «grab 1 2␤»
+grab((1, 2), 3); # OUTPUT: «grab 1 2␤grab 3␤»
+
+This also makes user-requested flattening feel consistent whether there is
+one sublist, or many:
+
+=for code :preamble<sub grab(+@a) {};>
+grab(flat (1, 2), (3, 4));   # OUTPUT: «grab 1␤grab 2␤grab 3␤grab 4␤»
+grab(flat $(1, 2), $(3, 4)); # OUTPUT: «grab 1 2␤grab 3 4␤»
+grab(flat (1, 2));           # OUTPUT: «grab 1␤grab 2␤»
+grab(flat $(1, 2));          # OUTPUT: «grab 1␤grab 2␤»
+
+It's worth noting that mixing binding and sigilless variables
+in these cases requires a bit of finesse, because there is no L<Scalar|/type/Scalar>
+intermediary used during binding.
+
+=for code :preamble<sub grab(+@a) {};>
+my $a = (1, 2);  # Normal assignment, equivalent to $(1, 2)
+grab($a);        # OUTPUT: «grab 1 2␤»
+my $b := (1, 2); # Binding, $b links directly to a bare (1, 2)
+grab($b);        # OUTPUT: «grab 1␤grab 2␤»
+my \c = (1, 2);  # Sigilless variables always bind, even with '='
+grab(c);         # OUTPUT: «grab 1␤grab 2␤»
+
+=head1 Functions are First-Class Objects
+
+Functions and other code objects can be passed around as values, just like any
+other object.
+
+There are several ways to get hold of a code object. You can assign it to a
+variable at the point of declaration:
+
+    my $square = sub (Numeric $x) { $x * $x }
+    # and then use it:
+    say $square(6);    # OUTPUT: «36␤»
+
+X<|prefix &>
+Or you can reference an existing named function by using the C<&>-sigil in
+front of it.
+
+    sub square($x) { $x * $x };
+
+    # get hold of a reference to the function:
+    my $func = &square
+
+This is very useful for I<higher order functions>, that is, functions that
+take other functions as input. A simple one is L<map|/type/List#routine_map>,
+which applies a function to each input element:
+
+    sub square($x) { $x * $x };
+    my @squared = map &square,  1..5;
+    say join ', ', @squared;        # OUTPUT: «1, 4, 9, 16, 25␤»
+
+=head2 Z<>Infix Form
+
+To call a subroutine with 2 arguments like an infix operator, use a subroutine
+reference surrounded by C<[> and C<]>.
+
+    sub plus { $^a + $^b };
+    say 21 [&plus] 21;
+    # OUTPUT: «42␤»
+
+=head2 Closures
+
+All code objects in Perl 6 are I<closures>, which means they can reference
+lexical variables from an outer scope.
+
+    sub generate-sub($x) {
+        my $y = 2 * $x;
+        return sub { say $y };
+        #      ^^^^^^^^^^^^^^  inner sub, uses $y
+    }
+    my $generated = generate-sub(21);
+    $generated(); # OUTPUT: «42␤»
+
+Here, C<$y> is a lexical variable inside C<generate-sub>, and the inner
+subroutine that is returned uses it. By the time that the inner sub is called,
+C<generate-sub> has already exited. Yet the inner sub can still use C<$y>,
+because it I<closed> over the variable.
+
+Another closure example is the use of L<map|/type/List#routine_map>
+to multiply a list of numbers:
+
+    my $multiply-by = 5;
+    say join ', ', map { $_ * $multiply-by }, 1..5;     # OUTPUT: «5, 10, 15, 20, 25␤»
+
+Here, the block passed to C<map> references the variable C<$multiply-by> from
+the outer scope, making the block a closure.
+
+Languages without closures cannot easily provide higher-order functions that
+are as easy to use and powerful as C<map>.
+
+=head2 Routines
+
+Routines are code objects that conform to L<type Routine|/type/Routine>, most
+notably L<Sub|/type/Sub>, L<Method|/type/Method>, L<Regex|/type/Regex> and
+L<Submethod|/type/Submethod>.
+
+They carry additional functionality in addition to what L<Block|/type/Block>
+supplies: they can come as L<multis|#Multi-dispatch>,
+you can L<wrap|/type/Routine#method_wrap> them, and exit early with C<return>:
+
+    my $keywords = set <if for unless while>;
+
+    sub has-keyword(*@words) {
+        for @words -> $word {
+            return True if $word (elem) $keywords;
+        }
+        False;
+    }
+
+    say has-keyword 'not', 'one', 'here';       # OUTPUT: «False␤»
+    say has-keyword 'but', 'here', 'for';       # OUTPUT: «True␤»
+
+Here, C<return> doesn't just leave the block inside which it was called, but
+the whole routine. In general, blocks are transparent to C<return>, they
+attach to the outer routine.
+
+X<|use soft (pragma)>
+Routines can be inlined and as such provide an obstacle for wrapping. Use the
+pragma C<use soft;> to prevent inlining to allow wrapping at runtime.
+
+    sub testee(Int $i, Str $s){
+        rand.Rat * $i ~ $s;
+    }
+
+    sub wrap-to-debug(&c){
+        say "wrapping {&c.name} with arguments {&c.signature.perl}";
+        &c.wrap: sub (|args){
+            note "calling {&c.name} with {args.gist}";
+            my \ret-val := callwith(|args);
+            note "returned from {&c.name} with return value {ret-val.perl}";
+            ret-val
+        }
+    }
+
+    my $testee-handler = wrap-to-debug(&testee);
+    # OUTPUT: «wrapping testee with arguments :(Int $i, Str $s)»
+
+    say testee(10, "ten");
+    # OUTPUT: «calling testee with \(10, "ten")␤returned from testee with return value "6.151190ten"␤6.151190ten»
+    &testee.unwrap($testee-handler);
+    say testee(10, "ten");
+    # OUTPUT: «6.151190ten␤»
+
+
+=comment Important ones: candidates, wrap, unwrap, assuming, arity, count
+
+=head1 Defining Operators
+
+Operators are just subroutines with funny names. The funny names are composed
+of the category name (C<infix>, C<prefix>, C<postfix>, C<circumfix>,
+C<postcircumfix>), followed by a colon, and a list of the operator name or
+names (two components in the case of circumfix and postcircumfix).
+
+This works both for adding multi candidates to existing operators and for
+defining new ones. In the latter case, the definition of the new subroutine
+automatically installs the new operator into the grammar, but only in the
+current lexical scope. Importing an operator via C<use> or C<import> also
+makes it available.
+
+=begin code
+# adding a multi candidate to an existing operator:
+multi infix:<+>(Int $x, "same") { 2 * $x };
+say 21 + "same";            # OUTPUT: «42␤»
+
+# defining a new operator
+sub postfix:<!>(Int $x where { $x >= 0 }) { [*] 1..$x };
+say 6!;                     # OUTPUT: «720␤»
+=end code
+
+The operator declaration becomes available as soon as possible, so you can
+recurse into a just-defined operator:
+
+=begin code
+sub postfix:<!>(Int $x where { $x >= 0 }) {
+    $x == 0 ?? 1 !! $x * ($x - 1)!
+}
+say 6!;                     # OUTPUT: «720␤»
+=end code
+
+Circumfix and postcircumfix operators are made of two delimiters, one opening
+and one closing.
+
+=begin code
+sub circumfix:<START END>(*@elems) {
+    "start", @elems, "end"
+}
+
+say START 'a', 'b', 'c' END;        # OUTPUT: «(start [a b c] end)␤»
+=end code
+
+Postcircumfixes also receive the term after which they are parsed as
+an argument:
+
+=begin code
+sub postcircumfix:<!! !!>($left, $inside) {
+    "$left -> ( $inside )"
+}
+say 42!! 1 !!;      # OUTPUT: «42 -> ( 1 )␤»
+=end code
+
+Blocks can be assigned directly to operator names. Use a variable declarator and
+prefix the operator name with a C<&>-sigil.
+
+    my &infix:<ieq> = -> |l { [eq] l>>.fc };
+    say "abc" ieq "Abc";
+    # OUTPUT: «True␤»
+
+=head2 Precedence
+
+X«|is tighter»X«|is equiv»X«|is looser»
+Operator precedence in Perl 6 is specified relatively to existing operators.
+The traits C<is tighter>, C<is equiv> and C<is looser> can be provided with an
+operator, the new operators precedence is related to. More than one trait can
+be applied.
+
+For example, C«infix:<*>» has a tighter precedence than C«infix:<+>»,
+and squeezing one in between works like this:
+
+=begin code
+sub infix:<!!>($a, $b) is tighter(&infix:<+>) {
+    2 * ($a + $b)
+}
+
+say 1 + 2 * 3 !! 4;     # OUTPUT: «21␤»
+=end code
+
+Here, the C<1 + 2 * 3 !! 4> is parsed as C<1 + ((2 * 3) !! 4)>, because the
+precedence of the new C<!!> operator is between that of C<+> and C<*>.
+
+The same effect could have been achieved with:
+
+    sub infix:<!!>($a, $b) is looser(&infix:<*>) { ... }
+
+To put a new operator on the same precedence level as an existing operator,
+use C<is equiv(&other-operator)> instead.
+
+
+=head2 Associativity
+
+When the same operator appears several times in a row, there are multiple
+possible interpretations. For example:
+
+    1 + 2 + 3
+
+could be parsed as
+
+    (1 + 2) + 3         # left associative
+
+or as
+
+    1 + (2 + 3)         # right associative
+
+For addition of real numbers, the distinction is somewhat moot, because C<+> is
+L<mathematically associative|https://en.wikipedia.org/wiki/Associative_property>.
+
+But for other operators it matters a great deal. For example, for the
+exponentiation/power operator, C<< infix:<**> >>:
+
+    say 2 ** (2 ** 3);      # OUTPUT: «256␤»
+    say (2 ** 2) ** 3;      # OUTPUT: «64␤»
+
+Perl 6 has the following possible associativity configurations:
+
+=begin table
+
+    A   Assoc     Meaning of $a ! $b ! $c
+    =   =====     =======================
+    L   left      ($a ! $b) ! $c
+    R   right     $a ! ($b ! $c)
+    N   non       ILLEGAL
+    C   chain     ($a ! $b) and ($b ! $c)
+    X   list      infix:<!>($a; $b; $c)
+
+=end table
+
+X<|is assoc (trait)>
+You can specify the associativity of an operator with the C<is assoc> trait,
+where C<left> is the default associativity.
+
+=begin code
+sub infix:<§>(*@a) is assoc<list> {
+    '(' ~ @a.join('|') ~ ')';
+}
+
+say 1 § 2 § 3;      # OUTPUT: «(1|2|3)␤»
+=end code
+
+=head1 Traits
+
+I<Traits> are subroutines that run at compile time and modify the behavior of a
+type, variable, routine, attribute, or other language object.
+
+Examples of traits are:
+
+=for code :skip-test
+class ChildClass is ParentClass { ... }
+#                ^^ trait, with argument ParentClass
+has $.attrib is rw;
+#            ^^^^^  trait with name 'rw'
+class SomeClass does AnotherRole { ... }
+#               ^^^^ trait
+has $!another-attribute handles <close>;
+#                       ^^^^^^^ trait
+
+... and also C<is tighter>, C<is looser>, C<is equiv> and C<is assoc> from the previous
+section.
+
+Traits are subs of the form C<< trait_mod<VERB> >>, where C<VERB> stands for the
+name like C<is>, C<does> or C<handles>. It receives the modified thing as
+argument, and the name as a named argument. See L<Sub|/type/Sub#Traits> for details.
+
+=begin code
+multi sub trait_mod:<is>(Routine $r, :$doubles!) {
+    $r.wrap({
+        2 * callsame;
+    });
+}
+
+sub square($x) is doubles {
+    $x * $x;
+}
+
+say square 3;       # OUTPUT: «18␤»
+=end code
+
+See L<type Routine|/type/Routine> for the documentation of built-in routine
+traits.
+
+=head1 Re-dispatching
+
+There are cases in which a routine might want to call the next method
+from a chain. This chain could be a list of parent classes in a class
+hierarchy, or it could be less specific multi candidates from a multi
+dispatch, or it could be the inner routine from a C<wrap>.
+
+Fortunately, we have a series of re-dispatching tools that help us to make
+it easy.
+
+=head2 sub callsame
+
+X<|dispatch,callsame>
+
+C<callsame> calls the next matching candidate with the same arguments that were
+used for the current candidate and returns that candidate's return value.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+
+multi a(Int $x) {
+    say "Int $x";
+    my $res = callsame;
+    say "Back in Int with $res";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 1␤Back in Int with 5␤»
+=end code
+
+=head2 sub callwith
+
+X<|dispatch,callwith>
+
+C<callwith> calls the next matching candidate with arguments provided by users
+and returns that candidate's return value.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+multi a(Int $x) {
+    say "Int $x";
+    my $res = callwith($x + 1);
+    say "Back in Int with $res";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 2␤Back in Int with 5␤»
+=end code
+
+Here, C<a 1> calls the most specific C<Int> candidate first, and C<callwith>
+re-dispatches to the less specific C<Any> candidate. Note that although our
+parameter C<$x + 1> is an Int, still we call the next candidate in the chain.
+
+=head2 sub nextsame
+
+X<|dispatch,nextsame>
+
+C<nextsame> calls the next matching candidate with the same arguments that were
+used for the current candidate and B<never> returns.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+multi a(Int $x) {
+    say "Int $x";
+    nextsame;
+    say "never executed because nextsame doesn't return";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 1␤»
+=end code
+
+=head2 sub nextwith
+
+X<|dispatch,nextwith>
+
+C<nextwith> calls the next matching candidate with arguments provided by users
+and B<never> returns.
+
+=begin code
+proto a(|) {*}
+
+multi a(Any $x) {
+    say "Any $x";
+    return 5;
+}
+multi a(Int $x) {
+    say "Int $x";
+    nextwith($x + 1);
+    say "never executed because nextsame doesn't return";
+}
+
+a 1;        # OUTPUT: «Int 1␤Any 2␤»
+=end code
+
+=head2 sub samewith
+
+X<|dispatch,samewith>
+
+C<samewith> calls current candidate again with arguments provided by users
+and returns return value of the new instance of current candidate.
+
+=begin code
+proto a(|) {*}
+
+multi a(Int $x) {
+  return 1 unless $x > 1;
+  return $x * samewith($x-1);
+}
+
+say (a 10); # OUTPUT: «36288002␤»
+=end code
+
+=head2 sub nextcallee
+
+X<|dispatch,nextcallee>
+
+Redispatch may be required to call a block that is not the current scope what
+provides C<nextsame> and friends with the problem to referring to the wrong
+scope. Use C<nextcallee> to capture the right candidate and call it at the
+desired time.
+
+=begin code
+proto pick-winner(|) {*}
+
+multi pick-winner (Int \s) {
+    my &nextone = nextcallee;
+    Promise.in(π²).then: { nextone s }
+}
+multi pick-winner { say "Woot! $^w won" }
+
+with pick-winner ^5 .pick -> \result {
+    say "And the winner is...";
+    await result;
+}
+
+# OUTPUT:
+# And the winner is...
+# Woot! 3 won
+=end code
+
+The Int candidate takes the C<nextcallee> and then fires up a Promise to be
+executed in parallel, after some timeout, and then returns. We can't use
+C<nextsame> here, because it'd be trying to C<nextsame> the Promise's block
+instead of our original routine.
+
+=head2 wrapped routines
+
+X<|dispatch,wrapped routines>
+
+Besides those are mentioned above, re-dispatch is helpful in more situations.
+One is for dispatching to wrapped routines:
+
+=begin code
+# enable wrapping:
+use soft;
+
+# function to be wrapped:
+sub square-root($x) { $x.sqrt }
+
+&square-root.wrap(sub ($num) {
+   nextsame if $num >= 0;
+   1i * callwith(abs($num));
+});
+
+say square-root(4);     # OUTPUT: «2␤»
+say square-root(-4);    # OUTPUT: «0+2i␤»
+=end code
+
+=head2 routines of parent class
+
+X<|dispatch,super>
+
+Another use case is to re-dispatch to methods from parent classes.
+
+=begin code
+class LoggedVersion is Version {
+    method new(|c) {
+        note "New version object created with arguments " ~ c.perl;
+        nextsame;
+    }
+}
+
+say LoggedVersion.new('1.0.2');
+=end code
+
+=head1 Coercion Types
+
+Coercion types force a specific type for routine arguments while allowing
+the routine itself to accept a wider input. When invoked, the arguments are
+narrowed automatically to the stricter type, and therefore within the routine
+the arguments have always the desired type.
+
+In the case the arguments cannot be converted to the stricter type, a I<Type Check> error
+is thrown.
+
+=begin code
+sub double(Int(Cool) $x) {
+    2 * $x
+}
+
+say double '21';    # OUTPUT: «42␤»
+say double  21;     # OUTPUT: «42␤»
+say double Any;     # Type check failed in binding $x; expected 'Cool' but got 'Any'
+=end code
+
+In the above example, the L<Int|/type/Int> is the target type to which the argument C<$x> will be coerced, and
+L<Cool|/type/Cool> is the type that the routine accepts as wider input.
+
+If the accepted wider input type is L<Any|/type/Any>, it is possible to abbreviate the coercion C<Int(Any)>
+omitting the C<Any> type, thus resulting in  C<Int()>.
+
+The coercion works by looking for a method with the same name
+as the target type: if such method is found on the argument, it is invoked to
+convert the latter to the expected narrow type.
+From the above, it is clear that it is possible to provide coercion among user types
+just providing the required methods:
+
+=begin code
+class Bar {
+   has $.msg;
+}
+
+class Foo {
+   has $.msg = "I'm a foo!";
+
+   # allows coercion from Foo to Bar
+   method Bar {
+       Bar.new(:msg($.msg ~ ' But I am now Bar.'));
+   }
+}
+
+# wants a Bar, but accepts Any
+sub print-bar(Bar() $bar) {
+   say $bar.^name; # OUTPUT: «Bar␤»
+   say $bar.msg;   # OUTPUT: «I'm a foo! But I am now Bar.␤»
+}
+
+print-bar Foo.new;
+=end code
+
+In the above code, once a C<Foo> instance is passed as argument to C<print-bar>, the C<Foo.Bar>
+method is called and the result is placed into C<$bar>.
+
+Coercion types are supposed to work wherever types work, but Rakudo currently
+(2017.05) only implements them in signatures, for both parameters and return types.
+
+=comment is the above referencing rakudo 2017.05 still valid?
+=comment is it worth placing an example about return types?
+
+=head1 sub MAIN
+
+X<|MAIN>X<|command line arguments>
+
+The sub with the special name C<MAIN> is executed after all relevant phasers. Its signature is the means by which command line arguments can be
+parsed. Multi methods are supported and a usage method is automatically
+generated and displayed if no command line arguments are provided. All command
+line arguments are also available in
+L<C<@*ARGS>|/language/variables#Dynamic_variables>, which can be mutated before
+being processed by C<MAIN>.
+
+Unlike other ordinary functions, any return value provided by C<MAIN> will be
+ignored by the invoker, even if explicitly set by means of a C<return> statement
+(that will terminate the C<MAIN> function). The default return code of C<MAIN> is always
+zero (C<0>, success).
+In order to provide any return value different from zero, a call
+to L<exit|https://docs.perl6.org/routine/exit> has to be performed.
+
+    #|(optional description for USAGE message)
+    sub MAIN( Int :$length = 24,
+               :file($data) where { .IO.f // die "file not found in $*CWD" } = 'file.dat',
+               Bool :v(:$verbose) #`( -verbose, --verbose, -v or --v ) )
+    {
+        say $length if $length.defined;
+        say $data   if $data.defined;
+        say 'Verbosity ', ($verbose ?? 'on' !! 'off');
+
+        exit 1;
+    }
+
+With C<touch.dat> present, this will work this way
+=begin code :lang<shell>
+$ perl6 Main.p6
+24
+file.dat
+Verbosity off
+=end code
+
+Or this way with C<-v> or C<--verbose>
+
+=begin code :lang<shell>
+$ perl6 Main.p6 -v
+24
+file.dat
+Verbosity on
+=end code
+
+The C<:v(:$verbose)> is an alias, as explained in
+L<Signatures|/type/Signature#Positional_vs._Named>. In fact, since
+this is an alias, both C<verbose> and C<v> can use single or double
+dashes (C<-> or C<-->).
+
+=head2 C<%*SUB-MAIN-OPTS>
+
+It's possible to alter how arguments are processed before they're passed
+to C<sub MAIN {}> by setting options in C<%*SUB-MAIN-OPTS> hash.  Due to the
+nature of dynamic variables, one needs to set up its own C<%*SUB-MAIN-OPTS>
+hash and fill it with the appropriate settings.  For instance:
+
+    my %*SUB-MAIN-OPTS =
+      :named-anywhere,    # allow named variables at any location
+      :!foo,              # don't allow foo
+    ;
+    sub MAIN ($a, $b, :$c, :$d) {
+        say "Accepted!"
+    }
+
+Available options are:
+
+=head3 C<named-anywhere>
+
+By default, named arguments to the program cannot be given after any positional
+arguments are specified. However, if C«%*SUB-MAIN-OPTS<named-anywhere>» is
+set to a truthy value, named arguments can be specified anywhere, even after
+positional parameter. For example, the above program can be called with:
+
+=begin code :lang<shell>
+perl6 example.p6 1 --c=2 3 --d=4
+=end code
+
+=head2 X<Unit-scoped definition of MAIN|declarator,unit (MAIN)>
+
+If the entire script body resides within C<MAIN>, you can use the C<unit>
+declarator as follows:
+
+=begin code :skip-test<unit>
+unit sub MAIN( Int :$length = 24,
+                :file($data) where { .IO.f // die "file not found in $*CWD" } = 'file.dat',
+                Bool :v(:$verbose) #`( -verbose, --verbose, -v or --v ) );
+
+# rest of script is part of MAIN
+=end code
+
+Note that this is only appropriate if you do not need a C<proto> or C<multi> definition.
+
+X<|USAGE>X<|$*USAGE>
+=head1 sub USAGE
+
+If no multi candidate of C<MAIN> is found for the given command line
+parameters, the sub C<USAGE> is called. If no such method is found,
+the compiler will output a default generated usage message.
+
+    #|(is it the answer)
+    multi MAIN(Int $i){ say $i == 42 ?? 'answer' !! 'dunno' }
+    #|(divide two numbers)
+    multi MAIN($a, $b){ say $a/$b }
+
+    sub USAGE(){
+    print Q:c:to/EOH/;
+    Usage: {$*PROGRAM-NAME} [number]
+
+    Prints the answer or 'dunno'.
+    EOH
+    }
+
+The default usage message is available inside C<sub USAGE> via read-only
+C<$*USAGE> variable. It will be generated based on available C<sub MAIN>
+candidates and their parameters. You can specify additional extended
+description for each candidate using C<#|(...)> Pod block to set
+L«C<WHY>|/routine/WHY».
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
