@@ -135,7 +135,7 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
      zwischen verschiedenen Implementationen. Wir verhindern so
      potentielle Einflüsse der Laufzeit-Umgebung.
 
-  3. Ein separates Repository im perl6 Github Konto lädt potentiell
+  3. Ein separates Repository im perl6 GitHub Konto lädt potentiell
      mehr Beitragende und Editoren ein.
 
 **F:** Sollte ich Methoden von Super-Klassen und Rollen integrieren?<br>
@@ -167,7 +167,7 @@ Dies ist nützlich, um fehlgeschlagene Tests zu korrigieren.
 # LIZENZ
 
 Der Programm-Code in diesem Repository ist verfügbar unter der
-Artistic License 2.0, wie sie von der Perl Foundation veröffenticht
+Artistic License 2.0, wie sie von der Perl Foundation veröffentlicht
 wurde. Der komplette Text ist in der Datei [LICENSE](LICENSE) zu
 finden.
 
