@@ -17,6 +17,7 @@ sind, GitHub aber Perl 5 Pod an nimmt).
 
 * [README in Chinesisch](README.zh.md)
 * [README in Deutsch](README.it.md)
+* [README in Englisch](README.md)
 * [README in Italienisch](README.it.md)
 * [README in Spanisch](README.es.md)
 
