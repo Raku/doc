@@ -130,11 +130,11 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
   1. Diese Dokumentation sill allgemeingültig sein in Bezug zu einer
      bestimmten Version der Spezifikation und soll nicht an eine
      spezifische Perl_6 Implementierung gebunden sein.
-  
+
   2. Die Handhabung von eingebettetem Pod unterscheidet sich leicht
      zwischen verschiedenen Implementationen. Wir verhindern so
      potentielle Einflüsse der Laufzeit-Umgebung.
-  
+
   3. Ein separates Repository im perl6 Github Konto lädt potentiell
      mehr Beitragende und Editoren ein.
 
