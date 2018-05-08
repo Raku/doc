@@ -574,6 +574,32 @@ say 42 foo 42;            # OUTPUT: «full␤»
 say 42 foo my int $ = 42; # OUTPUT: «native␤»
 =end code
 
+The second relevance of auto-boxing is when you're using native types for performance gains.
+If the code you're using results in a lot of auto-boxing being performed you might get I<worse>
+performance with native types than you would with non-natives:
+
+=begin code
+my $a = -42;
+my int $a-native = -42;
+{ for ^1000_000 { $a.abs        }; say now - ENTER now } # OUTPUT: «0.38180862␤»
+{ for ^1000_000 { $a-native.abs }; say now - ENTER now } # OUTPUT: «0.938720␤»
+=end code
+
+As you can see above, the native variant is more than twice slower. The reason is the method
+call requires the native type to be boxed, while no such thing is needed in the non-native
+variant, hence the performance loss.
+
+In this particular case, we can simply switch to a subroutine form of L<abs>, which can work
+with native types without boxing them. In other cases, you may need to seek out other solutions
+to avoid excessive autoboxing, including switching to non-native types for a portion of the code.
+
+=begin code
+my $a = -42;
+my int $a-native = -42;
+{ for ^1000_000 { abs $a        }; say now - ENTER now } # OUTPUT: «0.38229177␤»
+{ for ^1000_000 { abs $a-native }; say now - ENTER now } # OUTPUT: «0.3088305␤»
+=end code
+
 =head1 Numeric Infectiousness
 
 Numeric "infectiousness" dictates the resultant type when two numerics of different types are
