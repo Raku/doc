@@ -482,13 +482,20 @@ some-native-taking-sub (my int $ = $y), (my int32 $ = $z)
 
 =head2 Overflow/Underflow
 
-Trying to B<assign> a value that does not fit into a particular native type, produces an exception:
+Trying to B<assign> a value that does not fit into a particular native type, produces an exception.
+This includes attempting to give too large an argument to a native parameter:
 
 =begin code
 my int $x = 2¹⁰⁰;
 # OUTPUT:
 # Cannot unbox 101 bit wide bigint into native integer
 #  in block <unit> at -e line 1
+
+sub f(int $x) { $x }; say f 2⁶⁴
+# OUTPUT:
+# Cannot unbox 65 bit wide bigint into native integer
+#   in sub f at -e line 1
+#   in block <unit> at -e line 1
 =end code
 
 However, modifying an already-existing value in such a way that it becomes too big/small, produces
@@ -505,18 +512,14 @@ say $x -= 100;      # OUTPUT: «156␤»
 =end code
 
 Creating objects that utilize native types does not involve direct assignment by the programmer
-and so these contructs offer overflow/underflow behaviour instead of throwing exceptions. The
-same reasoning applies when a routine with a smaller native type is called with a larger value.
+and so these contructs offer overflow/underflow behaviour instead of throwing exceptions.
 
 =begin code
 say Buf.new(1000, 2000, 3000).List; # OUTPUT: «(232 208 184)␤»
 say my uint8 @a = 1000, 2000, 3000; # OUTPUT: «232 208 184␤»
-
-sub foo(int8 $x) { say $x }
-foo my int $x = 10000;              # OUTPUT: «16␤»
 =end code
 
-=head2 Auto-boxing and Multi Dispatch
+=head2 Auto-Boxing
 
 While they can be referred to as "native I<types>", native numerics are not actually classes
 that have any sort of methods available. However, you I<can> call any of the methods available
@@ -532,49 +535,7 @@ into a full-featured higher-level type with all the methods. In other words, the
 was automatically converted to an L<Int> and it's the L<Int> class that then provided the L<abs>
 method that was called.
 
-This detail becomes significant in two situations. First, if a routine is an C<only>—i.e. it is
-not a L«C<multi>|/language/functions#Multi-dispatch»—that takes a non-native type but a native
-one was given during the call, it will be autoboxed. However, no auto-boxing will occur
-with a L«C<multi>|/language/functions#Multi-dispatch» candidate—you must provide a native candidate
-for it to be callable.
-
-=begin code
-sub one-over (Int $x) { 1/$x }
-one-over my int $ = 42; # OK; auto-boxed
-
-multi one-over-multi (Int $x) { 1/$x }
-one-over-multi my int $ = 42; # BAD; no native candidate
-
-multi one-over-multi2 (Int $x) { 1/$x }
-multi one-over-multi2 (int $x) { 1/$x }
-one-over-multi2 my int $ = 42; # OK; we have a native candidate
-=end code
-
-The size of the native type does not play a role in dispatch and an C<int8> is considered to be
-the same as C<int16> or C<int>:
-
-=begin code
-multi foo(int   $x) { say "int" }
-multi foo(int32 $x) { say "int32" }
-foo my int $x = 42;
-# OUTPUT:
-# Ambiguous call to 'foo(Int)'; these signatures all match:
-# :(int $x)
-# :(int32 $x)
-=end code
-
-A small exception to the multi dispatch rule involves constant-foldable routines that are called
-with a native type and another argument that's a numeric literal small enough to fit to a
-native type. This feature exists to support native (faster) versions of certain operators:
-
-=begin code
-multi infix:<foo> (Int, Int) is pure { "full" }
-multi infix:<foo> (int, int) is pure { "native" }
-say 42 foo 42;            # OUTPUT: «full␤»
-say 42 foo my int $ = 42; # OUTPUT: «native␤»
-=end code
-
-The second relevance of auto-boxing is when you're using native types for performance gains.
+This detail is significant when you're using native types for performance gains.
 If the code you're using results in a lot of auto-boxing being performed you might get I<worse>
 performance with native types than you would with non-natives:
 
@@ -599,6 +560,73 @@ my int $a-native = -42;
 { for ^1000_000 { abs $a        }; say now - ENTER now } # OUTPUT: «0.38229177␤»
 { for ^1000_000 { abs $a-native }; say now - ENTER now } # OUTPUT: «0.3088305␤»
 =end code
+
+=head2 Native Dispatch
+
+It is possible to have native candidates alongside non-native candidates to, for example,
+offer faster algorithms with native candidates when sizes are predictable, but to fallback
+to slower non-native alternatives otherwise. The following are the rules concerning multi-dispatch
+involving native candidates.
+
+First, the size of the native type does not play a role in dispatch and an C<int8> is considered
+to be the same as C<int16> or C<int>:
+
+=begin code
+multi foo(int   $x) { say "int" }
+multi foo(int32 $x) { say "int32" }
+foo my int $x = 42;
+# OUTPUT:
+# Ambiguous call to 'foo(Int)'; these signatures all match:
+# :(int $x)
+# :(int32 $x)
+=end code
+
+Second, if a routine is an C<only>—i.e. it is not a
+L«C<multi>|/language/functions#Multi-dispatch»—that
+takes a non-native type but a native one was given during the call, or vice-versa, then the argument
+will be auto-boxed or auto-unboxed to make the call possible. If the given
+argument is too large to fit into the native parameter, an exception will be thrown:
+
+=begin code
+-> int {}( 42 );            # OK; auto-unboxing
+-> int {}( 2¹⁰⁰ );          # Too large; exception
+-> Int {}( 2¹⁰⁰ );          # OK; non-native parameter
+-> Int {}( my int $ = 42 ); # OK; auto-boxing
+=end code
+
+When it comes to L«C<multi>|/language/functions#Multi-dispatch» routines, native arguments
+will always be auto-boxed if no native candidates are available to take them:
+
+=begin code
+multi foo (Int $x) { $x }
+say foo my int $ = 42; # OUTPUT: «42␤»
+=end code
+
+The same luxury is not afforded when going the other way. If only a native candidate is
+available, a non-native argument will I<not> be auto-unboxed and instead an exception indicating
+no candidates matched will be thrown (the reason for this asymmetry is a native type can always
+be boxed, but a non-native may be too large to fit into a native):
+
+=begin code
+multi f(int $x) { $x }
+my $x = 2;
+say f $x;
+# OUTPUT:
+# Cannot resolve caller f(Int); none of these signatures match:
+#     (int $x)
+#   in block <unit> at -e line 1
+=end code
+
+However, this rule is waived if a call is being made where one of the arguments is a native type
+and another one is a L<numeric literal>:
+
+=begin code
+multi f(int, int) {}
+f 42, my int $x; # Successfull call
+=end code
+
+This way you do not have to constantly write, for example, C«$n +> 2» as C«$n +> (my int $ = 2)».
+The compiler knows the literal is small enough to fit to a native type and converts it to a native.
 
 =head1 Numeric Infectiousness
 
