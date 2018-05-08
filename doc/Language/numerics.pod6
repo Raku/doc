@@ -576,6 +576,51 @@ say 42 foo my int $ = 42; # OUTPUT: «native␤»
 
 =head1 Numeric Infectiousness
 
+Numeric "infectiousness" dictates the resultant type when two numerics of different types are
+involved in some mathematical operations. A type is said to be more infectious than the other type
+if the result is of that type rather than the type of the other operand. For example, L<Num>
+type is more infectious than an L<Int>, thus we can expect C<42e0 + 42> to produce a L<Num> as the
+result.
+
+The infectiousness is as follow, with the most infectious type listed first:
+
+=begin table
+
+    Type    | Comments
+    ========+===========
+    Complex |
+    Num     |
+    FatRat  |
+    MidRat  | Special infectiousness. See prose that follows.
+    Rat     |
+    Int     |
+
+=end table
+
+The L<MidRat> type is a special type that offers greater precision, like a L<FatRat> type, yet
+has the same infectiousness as a L<Rat> type. In other words, operations involving a L<MidRat>
+type and a L<MidRat>, L<Rat>, or L<Int> type would result in a L<Rat> result, B<not> L<MidRat>
+result (or a L<Num> result if after reduction the denominator ended up over 64-bits, too large for
+a L<Rat>). Otherwise, we're dealing with a type more infectious than a L<MidRat> and the result will
+be of that type.
+
+Some examples of what we discussed:
+
+=begin code
+say (2 + 2e0).^name; # Int + Num => OUTPUT: «Num␤»
+say (½ + ½).^name; # Rat + Rat => OUTPUT: «Rat␤»
+say (FatRat.new(1,2) + ½).^name; # FatRat + Rat => OUTPUT: «FatRat␤»
+say (FatRat.new(1,2) + <1/99999999999999999999>).^name; # FatRat + MidRat => OUTPUT: «FatRat␤»
+
+say (99999999999999999999 * <1/99999999999999999999>).^name;
+# Int * MidRat (after reduction, denominator fits into a Rat) => OUTPUT: «Rat␤»
+say (1 + <1/99999999999999999999>).^name;
+# Int * MidRat (after reduction, denominator too big to fit into a Rat) => OUTPUT: «Num␤»
+=end code
+
+The allomorphs have the same infectiousness as their numeric component. Native types get autoboxed
+and have the same infectiousness as their boxed variant.
+
 =end pod
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
