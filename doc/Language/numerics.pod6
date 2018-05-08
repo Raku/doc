@@ -288,11 +288,141 @@ say <4/2>.nude; # OUTPUT: «(2 1)␤»
 
 =head1 Allomorphs
 
-=head2 C<IntStr>
-=head2 C<NumStr>
-=head2 C<ComplexStr>
-=head2 C<RatStr>
-=head2 C<MidRatStr>
+L<Allomorphs|/language/glossary#index-entry-Allomorph> are subclasses of two types that can
+behave as either of them. For example, the allomorph L<IntStr> is the subclass of L<Int> and
+L<Str> types and will be accepted by any type constraint that requires an L<Int> or L<Str> object.
+
+Allomorphs can be created using L«angle brackets|/language/quoting#Word_quoting:_<_>», either used
+standalone or as part of a hash key lookup; directly
+using method C<.new>; and are also provided by some constructs such as
+parameters of L«C<sub MAIN>|/language/functions#sub_MAIN» or, in the case of the L<MidRat>
+allomorph, L<Rational> literals with large denominators.
+
+=begin code
+say <42>.^name;                      # OUTPUT: «IntStr␤»
+say <42e0>.^name;                    # OUTPUT: «NumStr␤»
+say < 42+42i>.^name;                 # OUTPUT: «ComplexStr␤»
+say < 1/2>.^name;                    # OUTPUT: «RatStr␤»
+say <0.5>.^name;                     # OUTPUT: «RatStr␤»
+say <1/99999999999999999999>.^name;  # OUTPUT: «MidRat␤»
+say < 1/99999999999999999999>.^name; # OUTPUT: «MidRatStr␤»
+
+@*ARGS = "42";
+sub MAIN($x) { say $x.^name }        # OUTPUT: «IntStr␤»
+
+say IntStr.new(42, "42").^name;      # OUTPUT: «IntStr␤»
+=end code
+
+A couple of constructs above have a space after the opening angle bracket. That space isn't
+accidental. Numerics that are often written using an operator, such as C<1/2> (L<Rat>,
+division operator) and C<1+2i> (L<Complex>, addition) can be written as a literal that doesn't
+involve the use of an operator: angle brackets I<without> any spaces between the brackets and the
+characters inside. By adding spaces within the brackets, we tell the compiler that not only we
+want a L<Rat> or L<Complex> literal, but we also want it to be an allmorph: the L<RatStr> or
+L<ComplexStr>, in this case.
+
+If the numeric literal doesn't use any operators, then writing it inside the angle brackets, even
+without including any spaces within, would produce the allomorph. (Logic: if you didn't want
+the allomorph, you wouldn't use the angle brackets. The same isn't true for operator-using
+numbers as some constructs, such as signature literals, do not let you use operators, so you
+can't just omit angle brackets for such numeric literals).
+
+=head2 Available Allomorphs
+
+The core language offers the following allomorphs:
+
+=begin table
+
+    Type       | Allomorph of         | Example
+    ===========+======================+=================
+    IntStr     | Int and Str          | <42>
+    NumStr     | Num and Str          | <42e0>
+    ComplexStr | Complex and Str      | < 1+2i>
+    RatStr     | Rat and Str          | <1.5>
+    MidRat     | Rat and FatRat       | <1/99999999999999999999>
+    MidRatStr  | Rat, FatRat, and Str | < 1/99999999999999999999>
+
+=end table
+
+Note: there is no C<FatRatStr> type.
+
+=head2 Coercion of Allomorphs
+
+Keep in mind that allomorphs are simply subclasses of the two (or three) types they represent. Just
+as a variable or parameter type-constrained to C<Foo> can accept any subclass of C<Foo>, so will
+a variable or parameter type-constrained to L<Int> will accept an L<IntStr> allomorph:
+
+=begin code
+sub foo(Int $x) { say $x.^name }
+foo <42>;                          # OUTPUT: «IntStr␤»
+my Num $y = <42e0>;
+say $y.^name;                      # OUTPUT: «NumStr␤»
+=end code
+
+This, of course, also applies to parameter L<coercers|/type/Signature#Coercion_Type>:
+
+=begin code
+sub foo(Int(Cool) $x) { say $x.^name }
+foo <42>;  # OUTPUT: «IntStr␤»
+=end code
+
+The given allomorph is I<already> an object of type L<Int>, so it does not get converted to
+a "plain" L<Int> in this case.
+
+Of course, the power of allomorphs would be severely diminished if there were no way to
+"collapse" them to one of their components. Thus, if you explicitly call a method with the name
+of the type to coerce to, you'll get just that component. The same applies to any proxy methods,
+such as calling method L«C<.Numeric>|/routine/Numeric» instead of L«C<.Int>|/routine/Int»
+or using the L«C<< prefix:<~> >> operator|/routine/~» instead of
+L«C<.Str>|/routine/Str» method call.
+
+=begin code
+my $al := IntStr.new: 42, "forty two";
+say $al.Str;  # OUTPUT: «forty two␤»
+say +$al;     # OUTPUT: «42␤»
+
+say <1/99999999999999999999>.^name;        # OUTPUT: «MidRat␤»
+say <1/99999999999999999999>.Rat.^name;    # OUTPUT: «Rat␤»
+say <1/99999999999999999999>.FatRat.^name; # OUTPUT: «FatRat␤»
+=end code
+
+A handy way to coerce a whole list of allomorphs is by
+L<hypering|/language/operators#Hyper_Operators> the appropraite prefix operator:
+
+=begin code
+say map *.^name,   <42 50e0 100>;  # OUTPUT: «(IntStr NumStr IntStr)␤»
+say map *.^name, +«<42 50e0 100>;  # OUTPUT: «(Int Num Int)␤»
+say map *.^name, ~«<42 50e0 100>;  # OUTPUT: «(Str Str Str)␤»
+=end code
+
+=head2 Object Identity
+
+The above discussion on coercing allomorphs becomes more important when we consider object
+identity. Some constructs untilize it to ascertain whether two objects are "the same". And while
+to humans an allomorphic C<42> and regular C<42> might appear "the same", to those constructs,
+they're entirely different objects:
+
+=begin code
+# "42" shows up twice in the result: 42 and <42> are different objects:
+say unique 1, 1, 1, 42, <42>; # OUTPUT: «(1 42 42)␤»
+# Use a different operator to `unique` with:
+say unique :with(&[==]), 1, 1, 1, 42, <42>; # OUTPUT: «(1 42)␤»
+# Or coerce the input instead (faster than using a different `unique` operator):
+say unique :as(*.Int), 1, 1, 1, 42, <42>; # OUTPUT: «(1 42)␤»
+say unique +«(1, 1, 1, 42, <42>);         # OUTPUT: «(1 42)␤»
+
+# Parametarized Hash with `Any` keys does not stringify them; our key is of type `Int`:
+my %h{Any} = 42 => "foo";
+# But we use the allomorphic key of type `IntStr`, which is not in the Hash:
+say %h<42>:exists;           # OUTPUT: «False␤»
+# Must use curly braces to avoid the allomorph:
+say %h{42}:exists;           # OUTPUT: «False␤»
+
+# We are using a set operator to look up an `Int` object in a list of `IntStr` objects:
+say 42 ∈ <42 100 200>; # OUTPUT: «False␤»
+=end code
+
+Be mindful of these object identity differences and coerce your allomorphs as needed.
 
 =head1 Native
 
