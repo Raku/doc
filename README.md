@@ -75,7 +75,7 @@ a `node` executable should be in your `PATH`. Besides, you will need
 to have `g++` installed in order to build some of the dependencies
 that are installed with nodejs. nodejs is needed only to apply
 highlighting to the included code; if you do not want that, simply
-write 
+write
 
     $ make html-nohighlight
 
