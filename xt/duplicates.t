@@ -15,7 +15,7 @@ Allow a few well known duplicates, like 'long long'
 
 =end overview
 
-my $safe-dupes = Set.new(<method long default>); # Allow these dupes
+my $safe-dupes = Set.new(<method long default that>); # Allow these dupes
 
 my @files = Test-Files.files \
     .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'}) \
