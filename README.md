@@ -15,6 +15,7 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 ## README in other languages
 
 * [README in Chinese](README.zh.md)
+* [README in German](README.de.md)
 * [README in Italian](README.it.md)
 * [README in Spanish](README.es.md)
 
@@ -70,7 +71,13 @@ To build the documentation web pages, simply run:
 
 Please note that you will need to have [nodejs](https://nodejs.org)
 installed to produce HTML content with the above command, in particular
-a `node` executable should be in your `PATH`.
+a `node` executable should be in your `PATH`. Besides, you will need
+to have `g++` installed in order to build some of the dependencies
+that are installed with nodejs. nodejs is needed only to apply
+highlighting to the included code; if you do not want that, simply
+write
+
+    $ make html-nohighlight
 
 After the pages have been generated, you can view them on your local
 computer by starting the included `app.pl` program:

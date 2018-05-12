@@ -14,6 +14,8 @@
 
 * [英文版 README](README.md)
 * [意大利文版 README](README.it.md)
+* [德文版 README](README.de.md)
+* [西班牙文版 README](README.es.md)
 
 ## 安装 p6doc
 
@@ -25,11 +27,11 @@
 
 ## 使用 p6doc
 
-将 `perl6` 添加到 `PATH` 中后，使用命令
+把 `perl6` 添加到 `PATH` 中后，可以使用命令
 
     $ ./bin/p6doc Str
 
-查看 `Str` 类的文档，或者使用命令
+查看 `Str` 类的文档；或者使用命令
 
     $ ./bin/p6doc Str.split
 
@@ -37,7 +39,7 @@
 
     $ p6doc -f slurp
 
-浏览标准函数的文档。命令响应可能要等一会儿，这取决于磁盘的速度和 Rakudo 的版本。
+浏览标准函数的文档。命令的响应可能会花点时间，这取决于磁盘的速度和 Rakudo 的版本。
 
 -------
 

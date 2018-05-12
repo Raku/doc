@@ -240,6 +240,7 @@ Examples of word characters:
 Note that the last three character classes are so called zero-width assertions,
 which do not really match a character.
 
+X<Unicode character properties>
 =head2 X«Unicode Properties|regex,<:property>»
 
 The character classes mentioned so far are mostly for convenience; another
@@ -854,6 +855,19 @@ For instance, the following lines all produce the very same result:
     my @ending_letters = <d e f>;
     say 'abcdefg' ~~ rx{ abc <?@ending_letters> };   # OUTPUT: ｢abc｣
 
+A practical use of look-ahead assertions is in substitutions, where
+you only want to substitute regex matches that are in a certain
+context. For example, you might want to substitute only numbers
+that are followed by a unit (like I<kg>), but not other numbers:
+
+    my @units = <kg m km mm s h>;
+    $_ = "Please buy 2 packs of sugar, 1 kg each";
+    s:g[\d+ <?before \s* @units>] = 5 * $/;
+    say $_;         # OUTPUT: Please buy 2 packs of sugar, 5 kg each
+
+Since the look-ahead is not part of the match object, the unit
+is not substituted.
+
 =head2 X<Lookbehind assertions|regex,after>
 
 To check that a pattern appears after another pattern, use a
@@ -879,7 +893,16 @@ assertion, this has the form:
 Hence all occurrences of C<bar> which do not have C<foo> before them
 would be matched by
 
-    say "fotbar" ~~ / <!after foo> bar /    # OUTPUT: «bar␤»
+    say "fotbar" ~~ / <!after foo> bar /;    # OUTPUT: «bar␤»
+
+These are, as in the case of look-ahead, zero-width assertions which do not I<consume> characters, like here:
+
+    say "atfoobar" ~~ / (.**3) .**2 <?after foo> bar /;
+    # OUTPUT: «｢atfoobar｣␤ 0 => ｢atf｣␤»
+
+where we capture the first 3 of the 5 characters before bar, but only if C<bar> is preceded by C<foo>. The fact that the assertion is zero-width allows us to use part of the characters in the assertion for capture.
+
+
 
 =head1 Grouping and Capturing
 
@@ -1247,11 +1270,12 @@ expression does not terminate on the required closing atom. So it
 really does pay attention to the left bracket as well, and it actually
 rewrites our example to something more like:
 
+X<|SETGOAL>
     =begin code :skip-test
     $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
     =end code
 
-FAILGOAL is a special method that can be defined by the user and it
+X<FAILGOAL> is a special method that can be defined by the user and it
 will be called on parse failure:
 
     grammar A { token TOP { '[' ~ ']' \w+  };
