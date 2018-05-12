@@ -1,0 +1,96 @@
+=begin pod
+
+=TITLE class MidRat
+
+=SUBTITLE An allomorph of Rat and FatRat
+
+    class FatRat is Rat is FatRat {}
+
+The features of a C<MidRat> place it somewhat I<midway> between a L<Rat>
+and a L<FatRat>. It inherits from both types and so is accepted by typechecks
+for either type. It offers arbitrary precision, just like a L<FatRat>, however,
+it's infectiousness is that of a L<Rat>, so in operations that do not involve
+L<FatRat> types, it behaves just like a L<Rat>, including potentially degrading
+to a L<Num>, if the denominator after an operation with a C<MidRat>
+is larger than 64 bits.
+
+C<MidRat> objects are created automatically if you attempt to create a
+L<Rat> object with a denominator that (after reduction) ends up being over
+64 bits:
+
+=begin code
+say 0.0000000000000000001.^name;            # OUTPUT: «Rat␤»
+say 0.00000000000000000001.^name;           # OUTPUT: «MidRat␤»
+
+say <1/9999999999999999999>.^name;          # OUTPUT: «Rat␤»
+say <1/99999999999999999999>.^name;         # OUTPUT: «MidRat␤»
+
+say Rat.new(1, 9999999999999999999 ).^name; # OUTPUT: «Rat␤»
+say Rat.new(1, 99999999999999999999).^name; # OUTPUT: «MidRat␤»
+
+say MidRat.new(1,2).^name;                  # OUTPUT: «MidRat␤»
+=end code
+
+It might feel slightly strange to have C<Rat.new> produce a subclass of
+a C<Rat>, but because denominator's size is evaluated only after reduction of
+the fraction, it can be hard to predict whether it is too large before
+reduction. Since the user asked for a L<Rational> object, instead of throwing
+an exception, a subclass that can hold the requested denominator is returned.
+
+Another handy usecase of a L<MidRat> is offering high-precision constants
+that will maintain all of their precision if used in computations with
+L<FatRat> types, but will degrade to a L<Rat> or a L<Num> otherwise. The user
+of the constants has the choice of how much precision to use:
+
+=begin code
+constant sqrt2 = 1.414213562373095048801688724209698078569671875376948073176679;
+say sqrt2.^name; # OUTPUT: «MidRat␤»
+
+say sqrt2 × FatRat.new(1, 2)
+# OUTPUT: «0.7071067811865475244008443621048490392848359376884740365883395␤»
+say (sqrt2 × FatRat.new(1, 2)).^name; # OUTPUT: «FatRat␤»
+
+say  sqrt2 × ½;           # OUTPUT: «0.7071067811865476␤»
+say (sqrt2 × ½).^name;    # OUTPUT: «Num␤»
+
+say (sqrt2 * 10⁶⁰).^name; # OUTPUT: «Rat␤»
+=end code
+
+=head1 Methods
+
+=head2 method FatRat
+
+Defined as:
+
+    multi method FatRat(MidRat:U: --> FatRat:U)
+    multi method FatRat(MidRat:D: --> FatRat:D)
+
+Coerces the invocant to a L<FatRat> object by creating a L<FatRat> with the
+same L<numerator> and L<denominator> as the invocant. If the invocant is
+a type object, simply returns a L<FatRat> type object.
+
+=head2 method Rat
+
+Defined as:
+
+    multi method Rat(MidRat:U: --> Rat:U)
+    multi method Rat(MidRat:D: --> Rat:D)
+
+Coerces the invocant to a L<Rat>. If the denominator fits into C<uint64>, no
+precision loss occurs and a L<Rat> object with the same L<numerator> and L<denominator> as the invocant is returned. Otherwise, an operation equivalent
+to coercing the invocant to a L<Num> and then coercing that L<Num> to a L<Rat>
+is performed. If the invocant is
+a type object, simply returns a L<Rat> type object.
+
+=head2 method perl
+
+Defined as:
+
+    multi method perl(MidRat:D: --> Str:D)
+
+Returns a string that can be fed to L<EVAL> to get the equivalent L<MidRat>
+object.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
