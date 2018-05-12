@@ -527,6 +527,8 @@ size on 32-bit machines, and how to detect when your program is running on such 
     num32       | floating point   | 32-bits
     num64       | floating point   | 64-bits
 
+    atomicint   | integer          | sized to offer CPU-provided atomic operations. (typically 64 bits on 64-bit platforms and 32 bits on 32-bit ones)
+
 =end table
 
 =head2 Creating Native Numerics
@@ -702,6 +704,33 @@ f 42, my int $x; # Successfull call
 
 This way you do not have to constantly write, for example, C«$n +> 2» as C«$n +> (my int $ = 2)».
 The compiler knows the literal is small enough to fit to a native type and converts it to a native.
+
+=head2 Atomic Operations
+
+The language offers L<some operations|https://docs.perl6.org/type/atomicint>
+that are guaranteed to be performed atomically, i.e. safe to be executed
+by multiple threads without the need for locking with no risk of data races.
+
+For such operations, the L<atomicint> native type is required. This type is
+similar to a plain native L<int>, except it is sized such that CPU-provided atomic operations can be performed upon it. On a 32-bit CPU it will typically
+be 32 bits in size, and on an a 64-bit CPU it will typically be 64 bits in size.
+
+=begin code
+# !!WRONG!! Might be non-atomic on some systems
+my int $x;
+await ^100 .map: { start $x⚛++ };
+say $x; # OUTPUT: «98␤»
+
+# RIGHT! The use of `atomicint` type guarantees operation is atomic
+my atomicint $x;
+await ^100 .map: { start $x⚛++ };
+say $x; # OUTPUT: «100␤»
+=end code
+
+The similarity to C<int> is present in multi dispatch as well: an
+C<atomicint>, plain C<int>, and the sized C<int> variants are all considered
+to be the same by the dispatcher and cannot be differentiated through
+multi-dispatch.
 
 =head1 Numeric Infectiousness
 
