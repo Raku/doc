@@ -1,0 +1,124 @@
+=begin pod
+
+=TITLE class MidRatStr
+
+=SUBTITLE Dual Value MidRat number and String
+
+    class MidRatStr is MidRat is Str {}
+
+The dual value types (often referred to as L<allomorphs|/language/glossary#Allomorph>)
+allow for the representation of a value as both a string and a numeric type, typically
+they will be created for you when the context is "stringy" but they can be determined
+to be numbers, such as in some L<quoting constructs|/language/quoting>:
+
+    my $f = <0.00000000000000000001>; say $f.^name; # OUTPUT: «MidRatStr␤»
+
+As a subclass of both L<MidRat> and L<Str>, a C<MidRatStr>
+will be accepted where either is expected. However, C<MidRatStr> does not share
+object identity with C<Rat>- or C<Str>-only variants:
+
+    my $midrat-str = <0.00000000000000000001>;
+    my Rat $rat = $midrat-str; # OK!
+    my Str $str = $midrat-str; # OK!
+    say 0.00000000000000000001 ∈ <0.00000000000000000001  55  1>;
+    # False; ∈ operator cares about object identity
+
+=head1 Methods
+
+=head2 method new
+
+    method new(MidRat $i, Str $s)
+
+The constructor requires both the C<MidRat> and the C<Str> value,
+when constructing one directly the values can be whatever is required:
+
+    my $f = MidRatStr.new(<0.00000000000000000001>, "zeros and one");
+    say +$f; # OUTPUT: «0.00000000000000000001␤»
+    say ~$f; # OUTPUT: «"zeros and one"␤»
+
+=head2 method Bool
+
+Defined as:
+
+    multi method Bool(MidRatStr:D: --> Bool:D)
+
+I<This method may be provided by the parent classes and not implemented in MidRatStr directly>.
+
+Returns C<False> if the L<numerator> of the numeric portion is C<0>, otherwise returns C<True>.
+This applies for zero-denominator L<MidRatStr> as well, despite C<.Num.Bool>
+of it being C<True>. String portion is not considered.
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(MidRatStr:D --> Capture:D)
+
+Equivalent to L«C<Mu.Capture>|/type/Mu#method_Capture».
+
+=head2 method MidRat
+
+    method MidRat
+
+Returns the C<MidRat> portion of the C<MidRatStr>.
+
+=head2 method Numeric
+
+Defined as:
+
+    multi method Numeric(MidRatStr:D: --> MidRat:D)
+    multi method Numeric(MidRatStr:U: --> MidRat:D)
+
+The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns a L<MidRat> object numerically equivalent to zero.
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real(Real:D: --> MidRat:D)
+    multi method Real(Real:U: --> MidRat:D)
+
+The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
+a warning about using an uninitialized value in numeric context and then returns a L<MidRat> object numerically equivalent to zero.
+
+=head2 method Str
+
+Returns the string value of the C<MidRatStr>.
+
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(MidRatStr:D: Any:D $value)
+
+If C<$value> is L<Numeric> (including another
+L<allomorph|/language/glossary#index-entry-Allomorph>), checks if invocant's
+L<Numeric> part L<ACCEPTS|/type/Numeric#method_ACCEPTS> the C<$value>. If
+C<$value> is L<Str>, checks if invocant's L<Str> part
+L<ACCEPTS|/type/Str#method_ACCEPTS> the C<$value>. If value is anything else,
+checks if both L<Numeric> and L<Str> parts C<ACCEPTS> the C<$value>.
+
+    my $mid-rat := <0.00000000000000000001>;
+    say $mid-rat ~~ ".00000000000000000001"; # OUTPUT: «False␤»
+    say $mid-rat ~~  .00000000000000000001 ; # OUTPUT: «True␤»
+    say $mid-rat ~~ <.00000000000000000001>; # OUTPUT: «True␤»
+
+=head1 Operators
+
+=head2 infix cmp
+
+    multi sub infix:<cmp>(MidRatStr:D $a, MidRatStr:D $b)
+
+Compare two C<MidRatStr> objects. The comparison is done on the C<MidRat> value
+first and then on the C<Str> value. If you want to compare in a different order
+then you would coerce to the C<MidRat> or C<Str> values first:
+
+    my $f = MidRatStr.new(MidRat.new(421,1000), "smaller");
+    my $g = MidRatStr.new(MidRat.new(431,1000), "larger");
+    say $f cmp $g;          # OUTPUT: «Less␤»
+    say $f.Str cmp $g.Str;  # OUTPUT: «More␤»
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
