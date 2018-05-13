@@ -35,7 +35,11 @@ sub test-files( @files ) {
         my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
         $p.stdout.tap: {;};
         $p.stderr.tap: {
-            %*ENV<P6_DOC_TEST_VERBOSE> and diag "$file STDERR: $_";
+            %*ENV<P6_DOC_TEST_VERBOSE>
+            and diag qq:to/EOF/;
+There's been this error in file: $file
+$_
+EOF
             %data{$file} = 1;
         }
         push @jobs: $p.start;
