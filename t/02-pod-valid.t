@@ -44,6 +44,7 @@ sub test-files( @files ) {
         }
     }
 
+    # In case there's something left to run.
     for @jobs.map: {await $_} -> $r { test-it($r) }
 }
 
