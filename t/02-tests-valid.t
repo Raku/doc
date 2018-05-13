@@ -9,28 +9,28 @@ use Test-Files;
 
 =begin overview
 
-Ensure any text that isn't a code example is valid C<Pod 6>.
+Ensure any test file, including author tests, have clean syntax and POD
 
 =end overview
 
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
-my @files-pod = Test-Files.files.grep({$_.ends-with: '.pod6'});
-plan +@files-pod;
+my @files-t = Test-Files.files.grep({$_.ends-with: '.t'});
+plan +@files-t;
 
 my %data;
-test-files( @files-pod ); #Splits in two batches to avoid some errors.
+test-files( @files-t );
 
 sub test-it($job) {
     my $file = $job.command[*-1];
-    ok !$job.exitcode && !%data{$file}, "$file has clean POD6"
+    ok !$job.exitcode && !%data{$file}, "$file POD6 and syntax check out"
 }
 
 sub test-files( @files ) {
     my @jobs;
     %data{@files} = 0 xx @files;
     for @files -> $file {
-        my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--c', $file);
         $p.stdout.tap: {;};
         $p.stderr.tap: {
             %*ENV<P6_DOC_TEST_VERBOSE>
