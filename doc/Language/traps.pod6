@@ -249,12 +249,40 @@ my $a = 2; say join ",", ($a, ++$a);  # OUTPUT: «3,3␤»
 Here the C<Capture> contained the B<container> pointed to by C<$a> and the
 B<value> of the result of the expression C<++$a>.  Since the C<Capture> must
 be reified before C<&say> can use it, the C<++$a> may happen before C<&say>
-looks inside the container in C<$a> and so it may already be incremented.
+looks inside the container in C<$a> (and before the C<List> is created with the two terms) and so it may already be incremented.
 
 Instead, use an expression that produces a value when you want a value.
 
 =for code
 my $a = 2; say join ",", (+$a, ++$a); # OUTPUT: «2,3␤»
+
+Or even simpler
+=for code
+my $a = 2; say  "$a, {++$a}"; # OUTPUT: «2, 3␤»
+
+The same happens in this case:
+=begin code
+my @arr;
+my ($a, $b) = (1,1);
+for ^5 {
+    ($a,$b) = ($b, $a+$b);
+    @arr.push: ($a, $b);
+    say @arr
+};
+=end code
+
+Outputs C<«[(1 2)]␤[(2 3) (2 3)]␤[(3 5) (3 5) (3 5)]␤...>. C<$a> and C<$b> are not reified until C<say> is called, the value that they have in that precise moment is the one printed. To avoid that, decontainerize values or take them out of the variable in some way before using them.
+=begin code
+my @arr;
+my ($a, $b) = (1,1);
+for ^5 {
+    ($a,$b) = ($b, $a+$b);
+    @arr.push: ($a.item, $b.item);
+    say @arr
+};
+=end code
+
+With L<item|/routine/item>, the container will be evaluated in item context, its value extracted, and the desired outcome achieved.
 
 =head1 C<Cool> tricks
 
@@ -1495,7 +1523,7 @@ Will fail with C<Cannot assign to a readonly variable ($/) or a value>
 on method C<TOP>. The problem here is that regular expressions also
 affect C<$/>. Since it is in C<TOP>'s signature, it is a read-only
 variable, which is what produces the error. You can safely either use
-another variable in the signature or add `is copy`, this way:
+another variable in the signature or add C<is copy>, this way:
 
 =begin code
 method TOP ($/ is copy) { my $foo = ~$/; my $v = $foo ~~ /foo/;  }
