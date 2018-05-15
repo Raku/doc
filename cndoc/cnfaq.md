@@ -46,18 +46,28 @@ Linux和Mac用户也可以通过操作系统发行方或者第三方的二进制
 我们也提供Rakudo Star docker容器的镜像，地址为 [https://hub.docker.com/\_/rakudo-star/](https://hub.docker.com/_/rakudo-star/)
 
 ## 对于perl老司机我对 Rakudo的开发感兴趣，有啥好的建议？
-X<|rakudobrew (FAQ)>
 
-最简便的方法是clone仓库[the repository](https://github.com/rakudo/rakudo)并且对其编译
-[从源码编译文档](https://github.com/zoffixznet/r#table-of-contents)。
+最简便的方法是clone[仓库](https://github.com/rakudo/rakudo)并且[编译它](https://github.com/zoffixznet/r#table-of-contents)。
 
-部分人也可以选择[rakudobrew](https://github.com/tadzik/rakudobrew)这允许我们安装多版本
+这样我们可以随时得到最新进展的，最小测试的，可能有部分bug的。如果你对
+Perl6编译器感兴趣，通过以下链接获得信息：
+[Z-Script helper tool](https://github.com/zoffixznet/z)
+
+可以通过
+(https://raw.githubusercontent.com/rakudo/rakudo/nom/VERSION) 可以安装月度发布版本。
+
+部分人也可以选择[rakudobrew](https://github.com/tadzik/rakudobrew),这允许我们安装多版本
 rakudo，从中选择自己喜欢的版本。
 
-请先浏览文档<rakudobrew|https://github.com/tadzik/rakudobrew#making-new-scripts-available>
+请先浏览文档[rakudobrew](https://github.com/tadzik/rakudobrew#making-new-scripts-available)
 这个工具相当于perl5的perlbrew或者python，ruby的相应的多版本管理工具。
 
-无论以上哪一种方法，你都需要从生态系统安装zef和p6doc。
+无论以上哪一种方法，你都需要从生态系统安装：
+[zef](https://modules.perl6.org/dist/zef:github) 和
+[p6doc](https://modules.perl6.org/dist/p6doc:github)
+
+生态系统链接如下：
+[ecosystem](http://modules.perl6.org/)
 
 ## 上哪里找Perl6的文档?
 
@@ -144,6 +154,20 @@ Rakudo编译器发布仅仅包括一些最常用的[基本模块](https://docs.p
 
 当你第一次载入一个模块时，Rakudo会将它编译成字节码，并且将其存储在磁盘里，之后需要再次载入此模块时，Rakudo
 会直接读取这些编译好的字节码，从而节省了编译时间，极大地提高运行速度。
+
+## 在模块支持循环依赖关系吗？
+
+不，不支持有循环依赖，如果试图这么做，会报`Circular module loading detected`的错误提示。
+
+很可能你可以使用[roles](/language/objects#Roles)满足的需求。不要用`A.pm6`依赖`B.pm6`
+并且`B.pm6`依赖`A.pm6`，你可以用`A-Role.pm6`和`B-Role.pm6`，并且在`A.pm6`和`B.pm6`
+类中分别实现这些角色。这样你就可以可以依赖`A-Role.pm6`和`B-Role.pm6`，而不会用循环依赖。
+
+Perl6不支持循环依赖的原因之一是一次解析特性。当我们是使用A，意味着解析B，当使用B时候，解析A
+会陷入无限循环。
+
+请注意，Perl 6没有“1个文件对应一个类”的限制，并且是循环的
+单个编译单元（例如文件）内的循环依赖关系是可能的，因此另一个可能的解决方案把类放入同一个编译单元。
 
 # 语言特性
 
@@ -335,7 +359,8 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
     say @nested.elems;          # 输出: «2␤»
     =end code
 
-你可以用`@( ... )` 或者 用表达式的`.list`方法，强制展开，或者为成员上下文（不能展开）
+你可以用`@( ... )` 或者 用表达式的`.list`方法，强制展开，或者用`$( ... )`为item上下文
+或者通过表达式的C<.item>方法调用。
 
 ## 为什么要用sigil? 不能没有他们么?
 
@@ -492,7 +517,18 @@ scalar或者列表。perl6没有这样的结构，因为在perl6中上下文不�
 
 `OpaquePointer`已经过时，被`Pointer`取代了.
 
+## 为什么可以Perl6标识符中使用冒号对?
+
+[标识符中使用冒号对, 作为名称的一部分](https://docs.perl6.org/language/syntax#Identifiers)
+对这个问题[Larry Wall教主的回答](https://github.com/perl6/doc/issues/1753#issuecomment-362875676)
+
+    We already had the colon pair mechanism available, so it was a no-brainer to use that to extend any name that needs to be able to quote uniquefying but non-standard characters (or other information with a unique stringification to such characters).
+
 # Perl6实现
+
+## 下个版本的Rakudo Star何时发布?
+
+Rakudo Star现在按照季度发布，浏览[rakudo.org About](http://rakudo.org/about/)获得更多信息。
 
 ## 那种perl6实现可用的?
 
