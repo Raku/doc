@@ -5,6 +5,12 @@ use Test;
 use lib 'lib';
 use Test-Files;
 
+=begin overview
+
+Insure any text that mentions Perl uses a no-break space after it. 
+
+=end overview
+
 my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.md'});
 
 plan +@files;
