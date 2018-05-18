@@ -786,9 +786,12 @@ sub write-search-file() {
 
 sub write-disambiguation-files() {
     say 'Writing disambiguation files ...';
-    for $*DR.grouped-by('name').kv -> $name, $p is copy {
+    for $*DR.grouped-by('name').kv -> $name is copy, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
+        if ( $name ~~ "type" | "index" ) {
+            $name = "«$name»";
+        }
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
