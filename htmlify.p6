@@ -930,6 +930,13 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
+            CATCH {
+                default {
+                    say $name;
+                    .Str.say;
+                    say "Error when writing per-$kind files";
+                }
+            }
             my @subkinds = @docs.map({slip .subkinds}).unique;
             my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
