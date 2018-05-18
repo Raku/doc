@@ -4,6 +4,12 @@
 
 (如果你通过 github浏览本仓库, 显示可能会部分不协调的,因为使用Perl 6 Pod格式, github用的 Perl 5 POD).
 
+最近发现一个很好的[Perl6 博客-深入浅出系列]( https://perl6.online/contents/)，其内容短小精悍，有意将其中文化：
+
+故建了一个仓库，欢迎有志之士加入一起翻译，可以作为Perl6doc翻译的练手
+
+(https://github.com/bollwarm/Perl6_Inside_OUT)
+
 ## 文档中文化进度
 
 [Perl6常见问题](cndoc/cnfaq.md) 
