@@ -227,17 +227,42 @@ Perl 6 allows you to write several routines with the same name but different
 signatures. When the routine is called by name, the runtime environment
 determines the proper I<candidate> and calls it.
 
-You declare each candidate with the C<multi> declarator:
+Each candidate is declared with the C<multi> keyword. Dispatch happens depending
+on the number (L<arity|/type/Routine#(Code)_method_arity>), type and name of arguments.
+Consider the following example:
 
-    multi congratulate($name) {
-        say "Happy birthday, $name";
-    }
-    multi congratulate($name, $age) {
-        say "Happy {$age}th birthday, $name";
-    }
+=begin code
+# version 1
+multi happy-birthday( $name ) {
+    say "Happy Birthday $name !";
+}
 
-    congratulate 'Larry';       # OUTPUT: «Happy birthday, Larry␤»
-    congratulate 'Bob', 45;     # OUTPUT: «Happy 45th birthday, Bob␤»
+# version 2
+multi happy-birthday( $name, $age ) {
+    say "Happy {$age}th Birthday $name !";
+}
+
+# version 3
+multi happy-birthday( :$name, :$age, :$title  = 'Mr' ) {
+    say "Happy {$age}th Birthday $title $name !";
+}
+
+
+# calls version 1 (arity)
+happy-birthday 'Larry';                        # OUTPUT: «Happy Birthday Larry !␤»
+# calls version 2 (airty)
+happy-birthday 'Luca', 40;                     # OUTPUT: «Happy 40th Birthday Luca !␤»
+# calls version 3
+# (named arguments win against arity)
+happy-birthday( age => '50', name => 'John' ); # OUTPUT: «Happy 50th Birthday Mr John !␤»
+# calls version 2 (arity)
+happy-birthday( 'Jack', 25 );                  # OUTPUT: «Happy 25th Birthday Jack !␤»
+
+=end code
+
+The first two versions of the C<happy-birthday> method differs only in the arity (number of
+arguments), while the third version uses named arguments and is chosen only when named
+arguments are used, even if the arity is the same of another C<multi> method.
 
 Dispatch can happen on the number of arguments (the L<arity|/type/Routine#(Code)_method_arity>), the
 type of arguments but also on additional assertions which can be placed on them. For more information
