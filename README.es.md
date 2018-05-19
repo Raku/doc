@@ -21,13 +21,13 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 
 ## Instalar p6doc
 
-Éste módulo está disponible en el ecosistema de módulos de Perl 6. Usa:
+Este módulo está disponible en el ecosistema de módulos de Perl 6. Usa:
 
     $ zef install p6doc
 
 para instalar los binarios y añadirlo a tu path.
 
-## Usa p6doc
+## Usar p6doc
 
 Cuando tengas `perl6` (Rakudo) añadido al `PATH`, ejecuta
 
@@ -60,7 +60,7 @@ Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también:
 
 para actualizar los correctores de compatibilidad de los ejecutables instalados.
 
-A parte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian
+Aparte de las dependencias de Perl 6, necesitas tener `graphviz` instalado. En Debian
 lo puedes instalar mediante:
 
     $ sudo apt-get install graphviz
@@ -111,7 +111,7 @@ Algunas maneras en las que puedes ayudarnos:
 
   1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente estar atada a una implementación específica de Perl 6.
 
-  2. El tratamiento que las implementaciones hacen de Pod 6, es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
+  2. El tratamiento que las implementaciones hacen de Pod 6 es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
 
   3. Un repo separado en la cuenta de Perl 6 de GitHub invita a más contribuidores y editores a participar.
 
