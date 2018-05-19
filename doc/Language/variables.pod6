@@ -102,42 +102,35 @@ seen in the current expression or declarator:
     say $baz.perl;          # OUTPUT: «$(11, 13)␤»
 
 Thus, the behavior of an assignment contained within a list assignment depends
-on the expression or declarator that contains it.
+on the expression that contains it or declarator that precedes it.
 
-For instance, if the internal assignment is a declarator, item assignment
+For instance, if the contained assignment is a declarator, item assignment
 is used, which has tighter precedence than both the comma and the list
 assignment:
 
     my @array;
-    @array = my $num = 42, "str";   # item assignment: uses declarator
+    @array = my $num = 42, "str";   # item assignment: uses declarator for $num
     say @array.perl;                # OUTPUT: «[42, "str"]␤» (an Array)
     say $num.perl;                  # OUTPUT: «42␤» (a Num)
 
-Similarly, if the internal assignment is an expression that is being
-used as an initializer for a declarator, the context of the internal
+Similarly, if the internal or contained assignment is an expression that is being
+used as an initializer for a container declarator, the context of the internal
 expression determines the assignment type:
 
     my $num;
-    my @array = $num = 42, "str";    # item assignment: uses expression
+    my @array = $num = 42, "str";    # item assignment for $num: uses expression
     say @array.perl;                 # OUTPUT: «[42, "str"]␤» (an Array)
     say $num.perl;                   # OUTPUT: «42␤» (a Num)
 
+The same result would be obtained if C<@array> is declared before the assignment; C<$num> would be still item-assigned, C<@array> list-assigned; the assignment expression is parsed as C<@array = (($num = 42), "str")>,
+because item assignment has tighter precedence than the comma. However, let's see what happens if the internal variable assignment is in a list context:
+
     my ( @foo, $bar );
-    @foo = ($bar) = 42, "str";       # list assignment: uses parentheses
+    @foo = ($bar) = 42, "str";       # list assignment for $bar: uses parentheses
     say @foo.perl;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
     say $bar.perl;                   # OUTPUT: «$(42, "str")␤» (a List)#
 
-However, if the internal assignment is neither a declarator nor an
-expression, but is part of a larger expression, the context of the
-larger expression determines the assignment type:
-
-    my ( @array, $num );
-    @array = $num = 42, "str";    # list assignment
-    say @array.perl;              # OUTPUT: «[42, "str"]␤»
-    say $num.perl;                # OUTPUT: «42␤»
-
-The assignment expression is parsed as C<@array = (($num = 42), "str")>,
-because item assignment has tighter precedence than the comma.
+In this case, C<()> is the list contextualizer, putting the assignment to C<$bar> in a list context; C<$bar> then I<decides> to include all the items to the right hand side of the C<=> sign; this is still included in a list assignment to C<@foo>, which then becomes an array with a single element, a C<List>.
 
 See L<operators|/language/operators> for more details on precedence.
 
