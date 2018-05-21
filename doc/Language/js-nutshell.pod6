@@ -151,9 +151,223 @@ say %bound;         # {foo => bar}
 say %bound;         # {}
 =end code
 
-=comment TODO: operators for equality, bitwise, etc.
+=head3 Equality
+
+Node.js has two equality operators: C<==> and C<===>.
+
+C<==> is the loose equality operator. When comparing operands with the same
+type, it will return true if both operands are equal. However, if the
+operands are different types, they are both cast to their primitives before
+being compared, meaning these will return true:
+
+=begin code :lang<javascript>
+console.log(1 == 1);   // true
+console.log('1' == 1); // true
+console.log([] == 0);  // true
+=end code
+
+Similarly, in Perl 6, both operands are cast to Numeric before comparison if
+they don't share the same type:
+
+=begin code
+say 1 == 1;       # True
+say '1' == 1;     # True
+say [1,2,3] == 3; # True, since the array has three elements
+=end code
+
+The inverse of C<==> is C<!=>.
+
+Perl 6 has another operator similar to C<==>: C<eq>. Instead of casting operands
+to Numeric if they're different types, C<eq> will cast them to strings:
+
+=begin code
+say '1' eq '1'; # True
+say 1 eq '1';   # True
+=end code;
+
+The inverse of C<eq> is C<ne> or C<!eq>.
+
+C<===> is the strict equality operator. This returns true if both operands are
+the same value. When comparing objects, this will I<only> return true if they
+are the exact same object:
+
+=begin code :lang<javascript>
+console.log(1 === 1);   // true
+console.log('1' === 1); // false
+console.log({} === {}); // false
+
+let obj = {};
+let obj2 = obj;
+console.log(obj === obj2); // true;
+=end code
+
+In Perl 6, the operator behaves the same, with one exception: two objects that
+have the same value, but different containers, will return false:
+
+=begin code
+say 1 === 1; # True
+say '1' === 1; # True
+say {} === {}  # False
+
+my \hash = {};
+my %hash := hash;
+say hash === %hash; # False
+=end code
+
+The inverse of C<===> is C<!==>.
+
+This is where Perl 6's other equality operators are useful. If the values have
+different containers, the C<eqv> operator can be used. This operator can be also
+be used to check for deep equality, which you would normally need to use a
+library for in Node.js:
+
+=begin code
+say {a => 1} eqv {a => 1}; # True;
+
+my \hash = {};
+my %hash := hash
+say hash eqv %hash; # True
+=end code
+
+In the case you need to check if two variables have the same container and
+value, use the C<=:=> operator.
+
+=begin code
+my @arr = [1,2,3];
+my @arr2 := @arr;   # Bound variables keep the container of the other variable
+say @arr =:= @arr2; # True
+=end code
+
+=head3 Smart Matching
+
+Perl 6 has one last operator for comparing values, but it is not exactly an
+equality operator. This is C<~~>, the smart match operator. This has several
+uses: it can be used like C<instanceof> in Node.js, to match a regex, and to
+check if a value is a key in a hash, bag, set, or map:
+
+=begin code
+say 'foo' ~~ Str; # True
+
+my %hash = a => 1;
+say 'a' ~~ %hash; # True
+
+my $str = 'abc';
+$str ~~ s/abc/def/; # Mutates $str, like foo.replace('abc', 'def')
+say $str;           # def
+=end code
+
+While we are talking about C<instanceof>, the equivalent to C<typeof> or the
+C<constructor> property on Node.js objects in Perl 6 is the C<WHAT> attribute:
+
+=begin code :lang<javascript>
+console.log(typeof 'foo');      // string
+console.log('foo'.constructor); // String
+=end code
+
+=begin code
+say 'foo'.WHAT; # (Str)
+=end code
+
+=head3 Numeric
+
+Node.js has C<+>, C<->, C</>, C<*>, C<%>, and (in ES6) C<**> for numeric
+operators. When the operands are different types, similarly to the equality
+operators, are cast to their primitives before following through with the
+operation, making this possible:
+
+=begin code :lang<javascript>
+console.log(1 + 2);   // 3
+console.log([] + {}); // [object Object]
+console.log({} + []); // 0
+=end code
+
+In Perl 6, again, they are converted to a Numeric type, as before:
+
+=begin code
+say 1 + 2;        # 3
+say [] + {};      # 0
+say {} + [1,2,3]; # 3
+=end code
+
+In addition, Perl 6 has C<div> and C<%%>. C<div> behaves like C<int> division in
+C, while C<%%> checks if one number is cleanly divisible by another or not:
+
+=begin code
+say 4 div 3; # 1
+say 4 %% 3;  # False
+say 6 %% 3;  # True
+=end code
+
+=head3 Bitwise
+
+Node.js has C<&>, C<|>, C<^>, C<~>, C<<<>, C<>>>, C<>>>>, and C<~> for bitwise
+operators. In Perl 6, C<>>>> does not exist, and the rest of the operators are
+prefixed with C<&>:
+
+=begin code :lang<javascript>
+console.log(1 << 1);  // 2
+console.log(1 >> 1);  // 0
+console.log(1 >>> 1); // 0
+console.log(1 & 1);   // 1
+console.log(0 | 1);   // 1
+console.log(1 ^ 1);   // 0
+console.log(~1);      // -2
+=end code
+
+In Perl 6, there is no equivalent to C<>>>>. All other operators are prefixed
+with C<+>, however two's complement uses C<+^> instead of C<~>:
+
+=begin code
+say 1 +< 1; # 2
+say 1 +> 1; # 0
+            # No equivalent for >>>
+say 1 +& 1; # 1
+say 0 +| 1; # 1
+say 1 +^ 1; # 0
+say +^1;    # -2
+=end code
+
+=head3 Custom Operators and Operator Overloading
+
+Node.js does not allow operator overloading without having to use a Makefile or
+build Node.js with a custom version of V8. Perl 6 allows custom operators and
+operator overloading natively! Since all operators are subroutines, you can
+define your own like so:
+
+=begin code
+multi sub infix:<||=>($a, $b) is equiv(&infix:<+=>) { $a || $b }
+
+my $foo = 0;
+$foo ||= 1;
+say $foo; # 1
+=end code
+
+Operators can be defined as C<prefix>, C<infix>, or C<postfix>. The
+C<is tighter>, C<is equiv>, and C<is looser> traits optionally define the
+operator's precedence. In this case, C<||=> has the same precedence as C<+=>.
+
+Note how C<multi> is used when declaring the operator subroutines. This allows
+multiple subroutines with the same name to be declared while also having
+different signatures. This will be explained in greater detail in the
+L<Functions|#Functions> section. For now, all we need to know is that it allows
+us to override any native operator we want:
+
+=begin code
+# Using the `is default` trait here forces this subroutine to be chosen first,
+# so long as the signature of the subroutine matches.
+multi sub prefix:<++>($a) is default { $a - 1 }
+
+my $foo = 1;
+say ++$foo; # 0
+=end code
 
 =head2 Conditionals
+
+=comment TODO
+
+# TBD
+
+=head2 Control Flow
 
 =comment TODO
 
