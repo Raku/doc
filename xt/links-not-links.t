@@ -36,10 +36,13 @@ $link
 =pod
 END
 
-        my @number-of-links = ( $link ~~ m:g{ https?\: } );
+        my @number-of-links = ( $link ~~ m:g{\| https?\: } );
         my $html = pod2html(EVAL($pod~ "\n\$=pod"));
-
         my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
+        if +@number-of-links > +@number-of-hrefs {
+            say @number-of-links;
+            say @number-of-hrefs;
+        }
         push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
     }
     if @links-not-links {
