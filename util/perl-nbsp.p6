@@ -25,7 +25,7 @@ sub check-line($line, $state) {
         default               { $state                          }
     }
 }
- 
+
 my @promises = @files.map(-> $file {
     Promise.start({
         my Str        @contents;
