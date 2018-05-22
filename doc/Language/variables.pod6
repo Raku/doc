@@ -667,8 +667,8 @@ State variables are shared between all threads. The result can be unexpected.
     # OUTPUT: «2␤1␤3␤4␤5␤»
     # many other more or less odd variations can be produced
 
-=head3 The C<$> Variable
 X<|anon state variables>X<|nameless variables>X<|$ (variable)>
+=head3 The C<$> Variable
 
 In addition to explicitly declared named state variables, C<$> can be used
 as an anonymous state variable without an explicit C<state> declaration.
@@ -691,38 +691,30 @@ perl6 -e '{ say ++$; say $++  } for ^5'
 # OUTPUT: «1␤0␤2␤1␤3␤2␤4␤3␤5␤4␤»
 =end code
 
-If you need to use the value of $ more than once in a scope, it should be
-copied to a new variable.
+That is why, if you need to reference the same $ variable (or, for that matter, any of the other anon state variables C<@> and C<%>) more than once, a possible solution is to bind another variable to it, although in this example it would be more straightforward to just declare state $x and not use the magical/anonymous $ variable:
 
-    sub foo() {
-        given ++$ {
-            when 1 {
-                say "one";
-            }
-            when 2 {
-                say "two";
-            }
-            when 3 {
-                say "three";
-            }
-            default {
-                say "many";
-            }
-        }
-    }
+=begin code
+sub foo () {
+    my $x := $;
+    $x++;
+    say $x;
+    $x = $x + 1;
+}
 
-    foo() for ^3;
-    # OUTPUT: «one␤two␤three␤»
+foo() for ^3; # OUTPUT: «1␤3␤5␤»
+=end code
+
+In general, it is better style and p6ier to declare a named state variable in case you have to refer to it several times.
 
 Note that the implicit state declarator is only applied to the variable
 itself, not the expression that may contain an initializer. If the
 initializer has to be called exactly once, the C<state> declarator has to be
 provided.
 
-    =begin code :skip-test
-    subset DynInt where $ = ::('Int'); # the initializer will be called for each type check
-    subset DynInt where state $ = ::('Int'); # the initializer is called once, this is a proper cache
-    =end code
+=begin code :skip-test
+subset DynInt where $ = ::('Int'); # the initializer will be called for each type check
+subset DynInt where state $ = ::('Int'); # the initializer is called once, this is a proper cache
+=end code
 
 =head3 The C<@> Variable
 
