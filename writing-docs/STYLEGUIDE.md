@@ -66,6 +66,11 @@ For examples where a particular format is required, or exact data is expected
 
 You may use `object` for anything you can call methods on, including value objects and type objects. Consider `instance` for defined objects.
 
+### 'filehandle' vs 'file-handle', 'file handle', etc.
+
+Be consistent when writing about `filehandle`s.
+As of [issue 2015](https://github.com/perl6/doc/issues/2015) the term must be written without spaces between words.
+
 ### Use present tense when talking about Perl 5 features
 
 Perl 5 is still an active language, therefore instead of
