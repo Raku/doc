@@ -18,6 +18,7 @@ ya que esto es Perl 6 Pod, y GitHub asume que es Perl 5 Pod).
 * [README en chino](README.zh.md)
 * [README en italiano](README.it.md)
 * [README en inglés](README.md)
+* [README en francés](README.fr.md)
 
 ## Instalar p6doc
 
