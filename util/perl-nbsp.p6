@@ -5,8 +5,7 @@ use lib 'lib';
 use Test-Files;
 
 my $degree = %*ENV<TEST_THREADS> // 2;
-my @files = Test-Files.files
-    .grep({ .ends-with: '.pod6' | '.md' });
+my @files = Test-Files.documents;
 
 enum Syntax (
     CodeDoc => 0,
