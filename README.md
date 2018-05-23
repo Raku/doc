@@ -20,7 +20,6 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 * [README in Spanish](README.es.md)
 * [README in French](README.fr.md)
 
-
 ## Install p6doc
 
 This module is available via the Perl 6 module ecosystem. Use:
