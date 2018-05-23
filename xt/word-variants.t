@@ -11,7 +11,7 @@ Insure any text that mentions Perl uses a no-break space after it.
 
 =end overview
 
-my @files = Test-Files.documents;
+my @files = Test-Files.pods;
 
 my %variants = %( "file handle" | "file-handle" => "filehandle" );
 plan +@files;
