@@ -17,8 +17,7 @@ Allow a few well known duplicates, like 'long long'
 
 my $safe-dupes = Set.new(<method long default that>); # Allow these dupes
 
-my @files = Test-Files.files \
-    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'}) \
+my @files = Test-Files.documents \
     .grep({$_ ne "doc/HomePage.pod6"}) \  # mostly HTML
     .grep({$_ ne "doc/404.pod6"});
 

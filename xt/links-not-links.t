@@ -16,7 +16,7 @@ use Pod::To::HTML;
 use MONKEY-SEE-NO-EVAL;
 
 # Every .pod6 file in the Type and Language directory.
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'}).grep(* ~~ /Type | Language/);
+my @files = Test-Files.pods.grep(* ~~ /Type | Language/);
 
 plan +@files;
 

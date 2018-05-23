@@ -11,7 +11,7 @@ Insure any text that mentions Perl uses a no-break space after it.
 
 =end overview
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.md'});
+my @files = Test-Files.documents;
 
 plan +@files;
 

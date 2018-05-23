@@ -32,7 +32,7 @@ Perl 6 level one.
 
 =end overview
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
+my @files = Test-Files.pods;
 
 sub walk($arg) {
     given $arg {
