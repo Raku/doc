@@ -19,6 +19,7 @@ sind, GitHub aber Perl 5 Pod an nimmt).
 * [README in Englisch](README.md)
 * [README in Italienisch](README.it.md)
 * [README in Spanisch](README.es.md)
+* [README in Französisch](README.fr.md)
 
 ## Installation von p6doc
 

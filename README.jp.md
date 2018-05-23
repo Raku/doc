@@ -17,6 +17,7 @@
 * [README in English](README.md)
 * [README in German](README.de.md)
 * [README in Spanish](README.es.md)
+* [README in French](README.fr.md)
 
 ## p6docの使用
 
