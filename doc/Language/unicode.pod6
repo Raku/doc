@@ -69,7 +69,24 @@ Under normal UTF-8 encoding, this means the unrepresentable characters will
 come out as something like C<?xFF>.
 
 UTF-8 Clean-8 is used in places where MoarVM receives strings from the
-environment, command line arguments, and file system queries.
+environment, command line arguments, and file system queries, for instance when decoding buffers:
+
+    say Buf.new(ord('A'), 0xFE, ord('Z')).decode('utf8-c8');
+    #  OUTPUT: «A􏿽xFEZ␤»
+
+You can see how the two initial codepoints used by UTF8-C8 show up here, right before the "FE". You can use this type of encoding to read files with unknown encoding:
+
+    my $test-file = "/tmp/test";
+    given open($test-file, :w, :bin) {
+      .write: Buf.new(ord('A'), 0xFA, ord('B'), 0xFB, 0xFC, ord('C'), 0xFD);
+      .close;
+    }
+
+    say slurp($test-file, enc => 'utf8-c8'); # OUTPUT: «(65 250 66 251 252 67 253)»
+
+Reading with this type of encoding and encoding them back to UTF8-C8 will give you back the original bytes; this would not have been possible with the default UTF8-C8.
+
+Please note that this encoding so far is not supported in the JVM implementation of Rakudo.
 
 =head1 Entering Unicode Codepoints and Codepoint Sequences
 
