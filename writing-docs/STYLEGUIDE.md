@@ -167,9 +167,13 @@ is to cover items that are part of the specification (the roast test suite)
 * If something is visible to users of Perl 6 and is not in roast:
   check with the dev team (#perl6-dev on freenode) - This might need
   have a test added (and therefore docs), or it might need to be
-  hidden so users cannot see it.
+  hidden so users cannot see it. In general, documentation of
+  implementation-specific features should be avoided; however, if
+  eventually the feature is added to the documentation, always specify
+  clearly its implementation-specific nature and where possible show
+  the first and latest version the documented feature is available.
 
-Future considerations on this line include: documenting things that are rakudo
+Future considerations along this line include: documenting things that are rakudo
 specific (like "dd"), and documenting which versions of the spec items are
 available in.
 
