@@ -2,6 +2,16 @@
 
 Please follow these style rules when contributing to the documentation
 
+## Text
+
+Please follow these rules when writing the text itself:
+
+* Avoid trailing whitespace in every line, including examples.
+* Use always space, never tabs.
+* Configure your editor for auto-flowing (or
+hard-wrapping) line length at 72 whenever possible.
+
+
 ## Structure
 
 ### How to document multiple similar routines
