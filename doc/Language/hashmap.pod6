@@ -4,8 +4,82 @@
 
 =SUBTITLE Working with associative arrays/dictionaries/hashes.
 
-=head1 The Associative role
+=head1 The Associative role and associative classes
 
+The L<Associative> role underlies hashes and maps, as well as other classes such
+as L<MixHash>. It defines the two types that will be used in associative
+classes; by default, you can use anything (literally, since any class that
+subclasses L<Any> can be used) L<as a key|#Non-string_keys_(object_hash),
+although it will be coerced to a string, and any object as value. You can access these types using the C<of> and C<keyof> methods.
+
+By default, any object declared with the C<%> sigil will get the Associative
+role, and will by default behave like a hash, but this role will only provide
+the two methods above, as well as the default Hash behavior.
+
+    say (%).^name ;# OUTPUT: «Hash␤»
+
+Inversely, you cannot use the C<%> sigil if the C<Associative> role is not mixed in. However, you might want to
+redefine the behavior of the L<hash subscript operator|/language/operators#postcircumfix_{_}>. If you want to do that, there
+are several functions you will have to override:
+
+=begin code
+class Logger does Associative[Cool,DateTime] {
+    has %.store;
+
+    method log( Cool $event ) {
+        %.store{ DateTime.new( now ) } = $event;
+    }
+
+    multi method AT-KEY ( ::?CLASS:D: $key) {
+        my @keys = %.store.keys.grep( /$key/ );
+        %.store{ @keys };
+    }
+
+    multi method EXISTS-KEY (::?CLASS:D: $key) {
+        %.store.keys.grep( /$key/ )??True!!False;
+    }
+
+    multi method DELETE-KEY (::?CLASS:D: $key) {
+        X::Assignment::RO.new.throw;
+    }
+
+    multi method ASSIGN-KEY (::?CLASS:D: $key, $new) {
+        X::Assignment::RO.new.throw;
+    }
+
+    multi method BIND-KEY (::?CLASS:D: $key, \new){
+        X::Assignment::RO.new.throw;
+    }
+}
+say Logger.of;                   # OUTPUT: «(Cool)»
+my $logger = Logger.new;
+say $logger.of;                  # OUTPUT: «(Cool)»
+
+$logger.log( "Stuff" );
+$logger.log( "More stuff");
+
+say $logger<2018-05-26>;         # OUTPUT: «(More stuff Stuff)»
+say $logger<2018-04-22>:exists;  # OUTPUT: «False»
+
+=end code
+
+In this case, we are definning a logger with Associative semantics that would be
+able to use dates (or a part of them) as keys. Since we are parametrizing
+C<Associative> to those particular classes, C<of> will return the value type we
+have used, C<Cool> in this case (we can log lists or strings only).
+
+This log is going to be append-only, that is why we escape the associative array
+metaphor to use a C<log> method to add new events to the log. Once they have
+been added, however, we can retrieve them by date or check if they exist. For
+the first we have to override the C<AT-KEY> multi method, for the latter
+C<EXIST-KEY>. In the last two statements, we show how the subscript operation
+invokes C<AT-KEY>, while the C<:exists> adverb invokes C<EXISTS-KEY>.
+
+We override C<DELETE-KEY>, C<ASSIGN-KEY> and C<BIND-KEY>, but only to throw an
+exception. Attempting to assign, delete or bind a value to a key will result in
+a C<Cannot modify an immutable Str (value)> exception thrown.
+
+Making classes associative provides a very convenient way of using and working with them using hashes; an example can be seen in L<Cro|http://cro.services/docs/reference/cro-http-client#Setting_the_request_body>, which uses it extensively for the convenience of using hashes to define structured requests and express its response.
 
 =head1 Mutable hashes and immutable maps
 
