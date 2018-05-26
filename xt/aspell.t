@@ -63,7 +63,7 @@ my @jobs;
 for @files -> $file {
     if $file ~~ / '.pod6' $/ {
         my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}');
         $fixer.bind-stdin: $pod.stdout: :bin;
         my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
         $proc.bind-stdin: $fixer.stdout: :bin;
