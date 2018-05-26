@@ -7,15 +7,15 @@ use Test-Files;
 
 =begin overview
 
-Spell check all the pod files in the documentation directory.
+Spell check all the pod and most markdown files in the documentation directory.
 
 Ignore case, and provide a repo-specific list of approved words,
 which include technical jargon, method and class names, etc.
 
 If the test fails, you can make it pass again by changing the
 text (fixing the spelling issue), or adding the new word to
-xt/words.pws (if it's a word, a class/method name, known
-program name, etc.), or to xt/code.pws (if it's a fragment of
+C<xt/words.pws> (if it's a word, a class/method name, known
+program name, etc.), or to C<xt/code.pws> (if it's a fragment of
 text that is part of a code example)
 
 =end overview
