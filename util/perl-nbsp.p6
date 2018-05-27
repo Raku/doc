@@ -29,6 +29,7 @@ my @promises = @files.map(-> $file {
         my Str    @out      = [];
         my Syntax $state    = TextDoc;
         my Bool   $modified = False;
+        my Bool   $split    = False;
         for @in -> $in-line {
             unless $in-line {
                 @out.push($in-line);
@@ -42,20 +43,18 @@ my @promises = @files.map(-> $file {
                 next;
             }
 
-            if $in-line.chars < 6 {
-                # Too short to contain Perl 5 or Perl 6.
-                @out.push($in-line);
-                next;
+            my $out-line = $in-line;
+            if $split {
+                $out-line = $in-line.subst(/^\s?<?before 5||6>/, "\x00A0");
+                $split = False;
+            } else {
+                $out-line = $in-line;
+                $split = True if $out-line.ends-with('Perl');
             }
 
-            my $out-line = $in-line;
             $out-line ~~ s:g/Perl\x[0020](5||6)/Perl\x[00A0]$0/;
-            if $out-line ne $in-line and ~$/ {
-                $modified = True;
-                @out.push($out-line);
-            } else {
-                @out.push($in-line);
-            }
+            $modified = True if $out-line ne $in-line;
+            @out.push($out-line);
         }
 
         if $modified {
@@ -66,4 +65,4 @@ my @promises = @files.map(-> $file {
     })
 });
 
-@promises.race(:$degree).map(-> $p { await $p });
+@promises.race(:$degree);
