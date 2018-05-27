@@ -42,7 +42,7 @@ test:
 
 # Extended tests
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 xt t; else prove -e perl6 xt t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t xt; else prove -e perl6 t xt; fi
 
 # Content tests
 ctest:
