@@ -19,7 +19,7 @@ for @files.sort -> $file {
     my $ok = True;
     my $row = 0;
     my @bad;
-    my $content = $file.IO.slurp.lines.join(""); 
+    my $content = $file.IO.slurp.lines.join("\n");
     for $content ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
         my $spaces = ~$match<space>;
         if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
