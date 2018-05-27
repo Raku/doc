@@ -114,7 +114,7 @@ Algunas maneras en las que puedes ayudarnos:
 
   2. El tratamiento que las implementaciones hacen de Pod 6 es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
 
-  3. Un repo separado en la cuenta de Perl 6 de GitHub invita a más contribuidores y editores a participar.
+  3. Un repo separado en la cuenta de Perl 6 de GitHub invita a más contribuidores y editores a participar.
 
 **P:** ¿Debería incluir los métodos de las superclases o de los roles?<br>
 **A:** No. La versión en HTML ya los incluye, y el script `p6doc` también.
