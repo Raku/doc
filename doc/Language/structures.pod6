@@ -118,7 +118,8 @@ data structures by overriding the L<iterator> method (from role C<Iterable>):
     my @thing := SortedArray.new([3,2,1,4]);
     .say for @thing; # OUTPUT: «1␤2␤3␤4␤»
 
-C<for> calls directly the C<iterator> method on C<@thing> making it return the elements of the array in order.
+C<for> calls directly the C<iterator> method on C<@thing> making it return the
+elements of the array in order. Much more on L<iterating on the page devoted to it|/language/iterating>.
 
 =head1 Functional structures
 
@@ -131,6 +132,74 @@ always allowed in the case of C<Callables>.
     my &a-func= { (^($^þ)).Seq };
     say a-func(3), a-func(7)# OUTPUT: «(0 1 2)(0 1 2 3 4 5 6)␤»
 
+L<Block>s are the simplest callable structures, since C<Callable>s cannot be
+instantiated. In this case we implement a block that logs events and can
+retrieve them
+
+    my $logger = -> $event, $key = Nil  {
+      state %store;
+      if ( $event ) {
+        %store{ DateTime.new( now ) } = $event;
+      } else {
+        %store.keys.grep( /$key/ )
+      }
+    }
+    $logger( "Stuff" );
+    $logger( "More stuff");
+    say $logger( Nil, "2018-05-28"); # OUTPUT: «(Stuff More stuff)»
+»
+
+A C<Block> has a L<Signature>, in this case two arguments, the first of which is
+the event that is going ot be logged, and the second is the key to retrieve the
+events. They will be used in an independent way, but its intention is to
+showcase the use of a L<state variable|/syntax/state> that is kept from every
+invocation to the next. This state variable is encapsulated within the block,
+and cannot be accessed from outside except by using the simple API the block
+provides: calling the block with a second argument. The two first invocations
+log two events, the third invocation at the bottom of the example use this
+second type of call to retrieve the stored values. C<Block>s can be cloned
+
+=begin code :preamble<my $logger = sub ( $a, $b  ){ return $a, $b }>
+my $clogger = $logger.clone;
+$clogger( "Clone stuff" );
+$clogger( "More clone stuff");
+say $clogger( Nil, "2018-05-28");
+# OUTPUT: «(Clone stuff More clone stuff)»
+=end code
+
+And cloning will reset the state variable; instead of cloning, we can create
+I<façades> that change the API. For instance, eliminate the need to use C<Nil>
+as first argument to retrieve the log for a certain date:
+
+=begin code :preamble<my $logger = sub ( $a, $b  ){ return $a, $b }>
+my $gets-logs = $logger.assuming( Nil, * );
+$logger( %(changing => "Logs") );
+say $gets-logs( "2018-05-28" );
+# OUTPUT: «({changing => Logs} Stuff More stuff)»
+=end code
+
+L<C<assuming>|/type/Block#(Code)_method_assuming> wraps around a block call,
+giving a value (in this case, C<Nil>) to the arguments we need, and passing on
+the arguments to the other arguments we represent using C<*>. In fact, this
+corresponds to the natural language statement "We are calling C<$logger>
+I<assuming> the first argument is C<Nil>". We can slightly change the appearance of these two Blocks to clarify they are actually acting on the same block:
+
+=begin code :preamble<my $logger = sub ( $a, $b  ){ return $a, $b }>
+my $Logger = $logger.clone;
+my $Logger::logs = $Logger.assuming( *, Nil );
+my $Logger::get = $Logger.assuming( Nil, * );
+$Logger::logs( <an array> );
+$Logger::logs( %(key => 42 ) );
+say $Logger::get( "2018-05-28");
+=end code
+
+Although C<::> is generally used for invocation of class methods, it is actually
+a valid part of the name of a variable. In this case we use them conventionally
+to simply indicate C<$Logger::logs> and C<$Logger::get> are actually calling
+C<$Logger>, which we have capitalized to use a class-like appearance. The point
+of this tutorial is that using functions as first-class citizens, together with
+the use of state variables, allows the use of certain interesting design
+patterns such as this one.
 
 =head1 Infinite structures and laziness
 
