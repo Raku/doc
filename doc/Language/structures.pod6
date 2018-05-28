@@ -238,6 +238,49 @@ keep state, thus creating complex transformative callables, in a design
 pattern that is similar to object composition in the object oriented
 realm. You will have to choose, in every particular case, what is the programming style which is most suitable for your problem.
 
+=head1 Defining and constraining data structures
+
+Perl 6 has different ways of defining data structures, but also many
+ways to constrain them so that you can create the most adequate data
+structure for every problem domain. L<C<but>|/routine/but>, for example,
+mixes roles or values into a value or a variable:
+
+=begin code
+my %not-scalar := %(2 => 3) but Associative[Int,Int];
+say %not-scalar.^name; # OUTPUT: «Hash+{Associative[Int,Int]}␤»
+say %not-scalar.of;    # Associative[Int,Int]»
+%not-scalar{3}=4;
+%not-scalar<thing>=3;
+say %not-scalar;       #  OUTPUT: «{2 => 3, 3 => 4, thing => 3}␤»
+=end code;
+
+In this case, C<but> is mixing in the C<Associative[Int,Int]> role;
+please note that we are using binding so that the type of the variable
+is the one defined, and not the one imposed by the C<%> sigil; this
+mixed-in role shows in the C<name> surrounded by brackets. What does
+that really mean? That role includes two methods, C<of> and C<keyof>; by
+mixing the role in, the new C<of> will be called (the old C<of> would
+return C<Mu>, which is the default value type for Hashes). However, that
+is all it does. It is not really changing the type of the variable, as
+you can see since we are using any kind of key and values in the next
+few statements.
+
+However, we can provide new functionality to a variable using this type
+of mixin:
+
+=begin code
+role Lastable {
+  method last() {
+    self.sort.reverse[0]
+  }
+}
+my %hash-plus := %( 3 => 33, 4 => 44) but Lastable;
+say %hash-plus.sort[0]; # OUTPUT: «3 => 33»
+say %hash-plus.last;    # OUTPUT: «4 => 44»
+=end code
+
+In C<Lastable> we use the universal C<self> variable to refer to whatever object this particular role is mixed in; in this case it will contain the hash it is mixed in with; it will contain something else (and possibly work some other way) in other case. This role will provide the C<last> method to any variable it's mixed with, providing new, attachable, functionalities to I<regular> variables.
+
 =head1 Infinite structures and laziness
 
 TBD
