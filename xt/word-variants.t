@@ -19,7 +19,11 @@ my %variants = %(
                    "short-hand" => "shorthand",
                    "look-ahead" => "lookahead", 
                    "look-behind" => "lookbehind", 
-                   "smart-match" | "smartmatches" | "smartmatching" | "smartmatched" => "smartmatch", 
+                   "smart-match" => "smartmatch", 
+                   "smart-matches" => "smartmatches",
+                   "smart-matching" => "smartmatching",
+                   "smart-matched" => "smartmatched",
+                   "smart-match" => "smartmatch" 
                );
 plan +@files;
 
