@@ -43,6 +43,41 @@ a behaviour similar to a constant, but allowing the value to get updated:
 unit module Something::Or::Other;
 my $config-file := "config.txt".IO.slurp;
 
+=head2 Assigning to C<Nil> produces a different value, usually C<Any>.
+
+Actually, assigning to C<Nil> L<reverts the variable to its default value|https://docs.perl6.org/type/Nil>. So:
+
+=begin code
+my @a = 4, 8, 15, 16;
+@a[2] = Nil;
+say @a; # OUTPUT: «[4 8 (Any) 16]␤»
+=end code
+
+In this case, C<Any> is the default value of an C<Array> element.
+
+You can purposefully assign C<Nil> as a default value:
+
+=begin code
+my %h is default(Nil) = a => Nil;
+say %h; # OUTPUT: «Hash %h = {:a(Nil)}␤»
+=end code
+
+Or bind a value to C<Nil> if that is the result you want:
+
+=begin code :preamble<my @a = 1,2,3,4;>
+@a[3] := Nil;
+say @a; # OUTPUT: «[4 8 (Any) Nil]␤»
+=end code
+
+This trap might be hidden in the result of functions, such as matches:
+
+=begin code
+my $result2 = 'abcdef' ~~ / dex /;
+say "Result2 is { $result2.^name }"; # OUTPUT: «Result2 is Any␤»
+=end code
+
+A L<C<Match> will be C<Nil>|https://docs.perl6.org/language/regexes#Literals> if it finds nothing; however it assigning C<Nil> to C<$result2> above will result in its default value, which is C<Any> as shown.
+
 =head1 Blocks
 
 =head2 Beware of empty "blocks"
@@ -288,7 +323,7 @@ With L<item|/routine/item>, the container will be evaluated in item context, its
 
 Perl 6 includes a L<Cool|/type/Cool> class, which provides some of the DWIM
 behaviors we got used to by coercing arguments when necessary.
-However, DWIM is never perfect.
+However, DWIM is never perfect. Especially with L<List>s, which are C<Cool>, there are many methods that will not do what you probably think they do, including C<contains>, C<starts-with> or C<index>. Please see some examples in the section below.
 
 =head2 Strings are not C<List>s, so beware indexing
 
@@ -369,6 +404,18 @@ say @colors.pick;       # orange
 say @colors.roll;       # blue
 say @colors.pick(2);    # yellow violet  (cannot repeat)
 say @colors.roll(3);    # red green red  (can repeat)
+
+=head2 List numify to their number of elements in numeric context
+
+You want to check whether a number is divisible by any of a set of numbers:
+
+    say 42 %% <11 33 88 55 111 20325>; # OUTPUT: «True␤
+
+What? There's no single number 42 should be divisible by. However, that list has 6 elements, and 42 is divisible by 6. That's why the output is true. In this case, you should turn the C<List> into a L<Junction>:
+
+    say 42 %% <11 33 88 55 111 20325>.any;# OUTPUT: «any(False, False, False, False, False, False)␤»
+
+which will clearly reveal the falsehood of the divisiveness of all the numbers in the list, which will be numified separately.
 
 =head1 Arrays
 
@@ -827,6 +874,23 @@ say 'foo' ~~ /<foo>/;
 Be wary of the difference; if you intend to use a quoted list, ensure that
 whitespace follows the initial C«<».
 
+=head2 Non-capturing, non-global matching in list context
+
+Unlike Perl 5, non-capturing and non-global matching in list context doesn't produce any values:
+
+    if  'x' ~~ /./ { say 'yes' }  # OUTPUT: «yes␤»
+    for 'x' ~~ /./ { say 'yes' }  # NO OUTPUT
+
+This is because its 'list' slot (inherited from Capture class) doesn't get populated with the original Match object:
+
+    say ('x' ~~ /./).list  # OUTPUT: «()␤»
+
+To achieve the desired result, use global matching, capturing parentheses or a list with a trailing comma:
+
+    for 'x' ~~ m:g/./ { say 'yes' }  # OUTPUT: «yes␤»
+    for 'x' ~~ /(.)/  { say 'yes' }  # OUTPUT: «yes␤»
+    for ('x' ~~ /./,) { say 'yes' }  # OUTPUT: «yes␤»
+
 =head1 Common Precedence Mistakes
 
 =head2 Adverbs and Precedence
@@ -1048,7 +1112,7 @@ sub explicitly-return-ret () {
 =head2 Closing Open File Handles and Pipes
 
 Unlike some other languages, Perl 6 does not use reference counting,
-and so B<the file handles are NOT closed when they go out of scope>. You
+and so B<the filehandles are NOT closed when they go out of scope>. You
 have to explicitly close them either by using L<close> routine or using the
 C<:close> argument several of L<IO::Handle's|/type/IO::Handle> methods accept.
 See L«C<IO::Handle.close>|/type/IO::Handle#routine_close» for details.
@@ -1369,7 +1433,7 @@ L<filenames that begin with hyphens|http://mywiki.wooledge.org/BashPitfalls#File
 
 =head1 Scope
 
-=head2 Using a C<once> block
+=head2 Using an C<once> block
 
 The C<once> block is a block of code that will only run once when its parent block is run. As an example:
 
@@ -1529,6 +1593,41 @@ another variable in the signature or add C<is copy>, this way:
 method TOP ($/ is copy) { my $foo = ~$/; my $v = $foo ~~ /foo/;  }
 =end code
 
+=head2 Using certain names for rules/token/regexes
+
+Grammars are actually a type of classes.
+
+    grammar G {};
+    say G.^mro; # OUTPUT: «((G) (Grammar) (Match) (Capture) (Cool) (Any) (Mu))␤»
+
+C<^mro> prints the class hierarchy of this empty grammar, showing all the
+superclasses. And these superclasses have their very own methods. Defining a
+method in that grammar might clash with the ones inhabiting the class hierarchy:
+
+=begin code :skit-test<throws exception>
+grammar g {
+    token TOP { <item> };
+    token item { 'defined' }
+};
+say g.parse('defined');
+# OUTPUT: «(exit code 1) Too many positionals passed; expected 1 argument but #
+# got 2␤  in regex item at /tmp/dZ3evir0pb line 1␤  in regex TOP at
+# /tmp/dZ3evir0pb line 1␤  in block <unit> at /tmp/dZ3evir0pb line 1␤␤»
+=end code
+
+C«item» seems innocuous enough, but it is a L<C<sub> defined in class
+C<Mu>|/routine/item>. The message is a bit cryptic and totally unrelated to that
+fact, but that is why this is listed as a trap. In general, all subs defined in
+any part of the hierarchy are going to cause problems; some methods will too.
+For instance, C<CREATE>, C<take> and C<defined> (which are defined in L<Mu>). In
+general, multi methods and simple methods will not have any problem, but it
+might not be a good practice to use them as rule names.
+
+Also avoid L<phasers|/language/objects#Object_Construction> for rule/token/regex
+names: C<TWEAK>, C<BUILD>, C<BUILD-ALL> will throw another kind of exception if
+you do that: C<Cannot find method 'match': no method cache and no
+.^find_method>, once again only slightly related to what is actually going on.
+
 =head1 Unfortunate generalization
 
 =head2 C<:exists> with more than one key
@@ -1582,6 +1681,39 @@ say @transpose;              # [(X Y)] – not the expected transpose [(X) (Y)]
 This happens partly because of the
 L<single argument rule|/language/functions#Slurpy_Conventions>, and
 there are other cases when this kind of a generalization may not work.
+
+=head1 Maps
+
+=head2 Beware of nesting C<Map>s in sink context.
+
+Maps apply an expression to every element of a L<List> and return a L<Seq>:
+
+    say <þor oðin loki>.map: *.codes; # OUTPUT: «(3 4 4)␤»
+
+Maps are often used as a compact substitute for a loop, performing some kind of action in the map code block:
+
+    <þor oðin loki>.map: *.codes.say; # OUTPUT: «3␤4␤4␤»
+
+The problem might arise when maps are nested and L<in a sink context|/language/contexts#index-entry-sink_context>.
+
+    <foo bar ber>.map: { $^a.comb.map: { $^b.say}}; # OUTPUT: «»
+
+You might expect the innermost map to I<bubble> the result up to the outermost map, but it simply does nothing. Maps return C<Seq>s, and in sink context the innermost map will iterate and discard the produced values, which is why it yields nothing.
+
+Simply using C<say> at the beginning of the sentence will save the result from sink context:
+
+    say <foo bar ber>.map: *.comb.map: *.say ;
+    # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤((True True True) (True True True) (True True True))␤»
+
+However, it will not be working as intended; the first C«f␤o␤o␤b␤a␤r␤b␤e␤r␤»
+is the result of the innermost C<say>, but then L<C<say> returns a C<Bool>|/routine/say#(Mu)_method_say>, C<True> in this case. Those C<True>s are what get printed by the outermost C<say>, one for every letter. A much better option would be to C<flat>ten the outermost sequence:
+
+    <foo bar ber>.map({ $^a.comb.map: { $^b.say}}).flat # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤»
+
+Of course, saving C<say> for the result will also produce the intended result, as it will be saving the two nested sequences from void context:
+
+    say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
+
 
 =end pod
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

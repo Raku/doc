@@ -121,8 +121,8 @@ What is considered as a single newline character is defined via the compile
 time variable L«C<$?NL>|/language/variables#index-entry-$?NL», and the
 L<newline pragma|/language/pragmas>.
 
-Therefore C<\n> is supposed to be able to either match a Unix-like
-newline C<"\n"> or a Microsoft Windows style one C<"\r\n">.
+Therefore, C<\n> is supposed to be able to match either a Unix-like
+newline C<"\n">, a Microsoft Windows style one C<"\r\n">, or one in the Mac style C<"\r">.
 
 =item X<C<\t> and C<\T>|regex,\t;regex,\T>
 
@@ -173,7 +173,8 @@ Use C<\s> to match any kind of whitespace, not just vertical whitespace.
 C<\s> matches a single whitespace character. C<\S> matches a single
 character that is not whitespace.
 
-    say $/.prematch if 'Match the first word.' ~~ / \s+ /; # OUTPUT: «Match␤»
+    say $/.prematch if 'Match the first word.' ~~ / \s+ /;
+    # OUTPUT: «Match␤»
 
 =item X<C<\d> and C<\D>|regex,\d;regex,\D>
 
@@ -183,8 +184,8 @@ single character that is not a digit.
     'ab42' ~~ /\d/ and say ~$/;     # OUTPUT: «4␤»
     'ab42' ~~ /\D/ and say ~$/;     # OUTPUT: «a␤»
 
-Note that not only the Arabic digits (commonly used in the Latin alphabet)
-match C<\d>, but also digits from other scripts.
+Note that not only the Arabic digits (commonly used in the Latin
+alphabet) match C<\d>, but also digits from other scripts.
 
 Examples for digits are:
 
@@ -197,9 +198,9 @@ Examples for digits are:
 
 =item X<C<\w> and C<\W>|regex,\w;regex,\W>
 
-C<\w> matches a single word character, i.e. a letter (Unicode category L), a
-digit or an underscore. C<\W> matches a single character that is not a word
-character.
+C<\w> matches a single word character, i.e. a letter (Unicode category
+L), a digit or an underscore. C<\W> matches a single character that is
+not a word character.
 
 Examples of word characters:
 
@@ -217,7 +218,7 @@ Examples of word characters:
 
     Class    | Shorthand | Description
     =========+===========+=============
-    <alpha>  | <:L>      | Alphabetic characters
+    <alpha>  |           | Alphabetic characters including _
     <digit>  | \d        | Decimal digits
     <xdigit> |           | Hexadecimal digit [0-9A-Fa-f]
     <alnum>  | \w        | <alpha> plus <digit>
@@ -237,25 +238,25 @@ Examples of word characters:
 
 =end table
 
-Note that the last three character classes are so called zero-width assertions,
-which do not really match a character.
+Note that the last three character classes are so called zero-width
+assertions, which do not really match a character.
 
 X<Unicode character properties>
 =head2 X«Unicode Properties|regex,<:property>»
 
-The character classes mentioned so far are mostly for convenience; another
-approach is to use Unicode character properties. These come in the form
-C«<:property>», where C<property> can be a short or long Unicode General
-Category name. These use pair syntax.
+The character classes mentioned so far are mostly for convenience;
+another approach is to use Unicode character properties. These come in
+the form C«<:property>», where C<property> can be a short or long
+Unicode General Category name. These use pair syntax.
 
-To match against a Unicode Property:
+To match against a Unicode property you can use either smartmatch or L<C<uniprop>|/routine/uniprop>:
 
     "a".uniprop('Script');                 # OUTPUT: «Latin␤»
     "a" ~~ / <:Script<Latin>> /;           # OUTPUT: «｢a｣␤»
     "a".uniprop('Block');                  # OUTPUT: «Basic Latin␤»
     "a" ~~ / <:Block('Basic Latin')> /;    # OUTPUT: «｢a｣␤»
 
-Unicode General Categories:
+These are the unicode general categories used for matching:
 
 =begin table
 
@@ -310,15 +311,10 @@ character that is not an upper-case letter.
 Categories can be used together, with an infix operator:
 
 =begin table
-
     Operator  |  Meaning
     ==========+=========
-    \+        |  set union
-    \|        |  set union
-    &         |  set intersection
+    +         |  set union
     -         |  set difference
-    ^         |  set symmetric difference
-
 =end table
 
 To match either a lower-case letter or a number, write
@@ -331,10 +327,11 @@ parentheses; for example:
 
 =head2 X«Enumerated Character Classes and Ranges|regex,<[ ]>;regex,<-[ ]>»
 
-Sometimes the pre-existing wildcards and character classes are not enough.
-Fortunately, defining your own is fairly simple. Within C«<[ ]>», you
-can put any number of single characters and ranges of characters (expressed
-with two dots between the end points), with or without whitespace.
+Sometimes the pre-existing wildcards and character classes are not
+enough. Fortunately, defining your own is fairly simple. Within C«<[ ]>»,
+you can put any number of single characters and ranges of characters
+(expressed with two dots between the end points), with or without
+whitespace.
 
     "abacabadabacaba" ~~ / <[ a .. c 1 2 3 ]>* /;
     # Unicode hex codepoint range
@@ -350,6 +347,11 @@ write the backslashed forms for character classes between the C<[ ]>.
     # starts with \d and removes odd ASCII digits, but not quite the same as
     / <[02468]> /;
     # because the first one also contains "weird" unicodey digits
+
+You can include Unicode properties in the list as well:
+
+    /<:Zs + [\x9] - [\xA0]>/
+    # Any character with "Zs" property, or a tab, but not a newline
 
 You can use C<\> to escape characters that would have some meaning in the regular expression:
 
@@ -1022,8 +1024,33 @@ it in a variable first:
 
     # CORRECT: $0 is saved into a variable outside the second capture
     # before it is used inside (the `{}` is needed to update the current match)
-    say "11" ~~ /(\d) {} :my $c = $0; ($c)/;
-    # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
+    say "11" ~~ /(\d) {} :my $c = $0; ($c)/; # OUTPUT: «｢11｣␤ 0 => ｢1｣␤ 1 => ｢1｣␤»
+    say "Matched $c"; # OUTPUT: «␤Matched 1␤»
+
+
+X<|:my>
+C<:my> helps scoping the C<$c> variable within the regex and beyond; in this case we can use it in the next sentence to show what has been matched inside the regex. This can be used for debugging inside regular expressions, for instance:
+
+    my $paragraph="line\nline2\nline3";
+    $paragraph ~~ rx| :my $counter = 0; ( \V* { ++$counter } ) *%% \n |;
+    say "Matched $counter lines"; # OUTPUT: «Matched 3 lines␤»
+
+X<|:our>
+The C<:our>, similarly to L<C<our>|/syntax/our> in classes, can be used in L<Grammar>s to declare variables that can be accessed, via its fully qualified name, from outside the grammar:
+
+=begin code
+grammar HasOur {
+    token TOP {
+        :our $our = 'þor';
+        $our \s+ is \s+ mighty
+    }
+}
+
+say HasOur.parse('þor is mighty'); # OUTPUT: «｢þor is mighty｣␤»
+say $HasOur::our;                  # OUTPUT: «þor␤»
+=end code
+
+Once the parsing has been done successfully, we use the FQN name of the C<$our> variable to access its value, that can be none other than C<þor>
 
 =head2 X<Named captures|regex, Named captures>
 
@@ -1416,10 +1443,10 @@ The use of hash variables in regexes is preserved.
 The special operator C«<?{}>» allows the evaluation of a boolean expression that can perform
 a semantic evaluation of the match before the regular expression continues. In other words, it is possible
 to check in a boolean context a part of a regular expression and therefore invalidate the whole match (or allow it
-to continue) even if the match succeed from a syntactic point of view.
+to continue) even if the match succeeds from a syntactic point of view.
 
 In particular the C«<?{}>» operator requires a C<True> value in order to allow the regular expression to match, while its
-negate form  C«<!{}>» requires a C<False> value.
+negated form  C«<!{}>» requires a C<False> value.
 
 In order to demonstrate the above operator, please consider the following example that involves
 a simple IPv4 address matching:

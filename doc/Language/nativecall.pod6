@@ -25,18 +25,18 @@ loaded and the "some_argless_function" will be located in it. A call will then
 be made. Subsequent calls will be faster, since the symbol handle is retained.
 
 Of course, most functions take arguments or return values—but everything else
-that you can do is just adding to this simple pattern of declaring a Perl 6
-sub, naming it after the symbol you want to call and marking it with the "native"
+that you can do is just adding to this simple pattern of declaring a Perl 6 sub,
+naming it after the symbol you want to call and marking it with the "native"
 trait.
 
 =head1 Changing names
 
-Sometimes you want the name of your Perl subroutine to be different from the name
-used in the library you're loading.  Maybe the name is long or has different casing
-or is otherwise cumbersome within the context of the module you are trying to
-create.
+Sometimes you want the name of your Perl subroutine to be different from the
+name used in the library you're loading.  Maybe the name is long or has
+different casing or is otherwise cumbersome within the context of the module you
+are trying to create.
 
-NativeCall provides a "symbol" trait for you to specify the name of the native
+NativeCall provides a C<symbol> trait for you to specify the name of the native
 routine in your library that may be different from your Perl subroutine name.
 
 =begin code :skip-test
@@ -45,9 +45,9 @@ use NativeCall;
 our sub init() is native('foo') is symbol('FOO_INIT') { * }
 =end code
 
-Inside of "libfoo" there is a routine called "FOO_INIT" but, since we're
+Inside of C<libfoo> there is a routine called C<FOO_INIT> but, since we're
 creating a module called Foo and we'd rather call the routine as C<Foo::init>,
-we use the "symbol" trait to specify the name of the symbol in "libfoo"
+we use the C<symbol> trait to specify the name of the symbol in C<libfoo>
 and call the subroutine whatever we want ("init" in this case).
 
 =head1 Passing and Returning Values
@@ -63,12 +63,14 @@ Here, we have declared that the function takes two 32-bit integers and returns
 a 32-bit integer. Here are some of the other types that you may pass (this will
 likely grow with time).
 
-X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|long>X<|longlong>X<|ulong>X<|ulonglong>X<|num32>X<|num64>X<|Str>X<|CArray>X<|Pointer>X<|bool>X<|size_t>X<|ssize_t>
+X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|long>X<|longlong>X<|ulong>X<|ulonglong>X<|num32>X<|num64>X<|Str>X<|Pointer>X<|bool>X<|size_t>X<|ssize_t>
 =begin table
+    int            (long in C)
     int8           (int8_t in C, also used for char)
     int16          (int16_t in C, also used for short)
     int32          (int32_t in C, also used for int)
     int64          (int64_t in C)
+    uint           (ulong in C)
     uint8          (uint8_t in C, also used for unsigned char)
     uint16         (uint16_t in C, also used for unsigned short)
     uint32         (uint32_t in C, also used for unsigned int)
@@ -77,6 +79,8 @@ X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|lon
     longlong       (long long in C, at least 64-bit)
     ulong          (unsigned long in C)
     ulonglong      (unsigned long long in C, at least 64-bit)
+    longdouble     (longdouble in C)
+    Num, num       (double in C)
     num32          (float in C)
     num64          (double in C)
     Str            (C string)
@@ -85,14 +89,15 @@ X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|lon
     bool           (bool from C99)
     size_t         (size_t in C)
     ssize_t        (ssize_t in C)
+    Callable       (callback in C)
 =end table
 
-Don't use Perl 6 native types like C<int> or C<num> in native calls, as they don't have to
-correspond to the local C equivalent (e.g., Perl 6's C<int> can be 8 bytes but
-C's C<int> is only 4 bytes).
+Don't use Perl 6 native types like C<int> or C<num> in native calls, as they
+don't have to correspond to the local C equivalent (e.g., Perl 6's C<int> can be
+8 bytes but C's C<int> is only 4 bytes).
 
 Note that the lack of a C<returns> trait is used to indicate C<void> return type.
-Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
+Do I<not> use the C<void> type anywhere except in the Pointer parameterization.
 
 For strings, there is an additional "encoded" trait to give some extra hints on
 how to do the marshaling.
@@ -131,7 +136,9 @@ call, the argument must be manually encoded and passed as C<CArray[uint8]>:
 X<|repr>X<|is repr>X<|CStruct (native representation)>
 =head1 Specifying the native representation
 
-When working with native functions, sometimes you need to specify what kind of native data structure is going to be used. C<is repr> is the term employed for that.
+When working with native functions, sometimes you need to specify what kind of
+native data structure is going to be used. C<is repr> is the term employed for
+that.
 
 =begin code
 use NativeCall;
@@ -150,8 +157,13 @@ my $result = clock_gettime( 0, $this-time);
 say "$result, $this-time"; # OUTPUT: «0, timespec<65385480>␤»
 =end code
 
-The L<original function we are calling, C<clock_gettime>>, uses a pointer to the C<timespec> struct as second argument. We declare it as a L<class> here, but specify its representation as C<is repr('CStruct')>, to indicate it corresponds to a C data structure. When we create an object of that class, we are creating exactly the kind of pointer C<clock_gettime> expects. This way, data can be transferred seamlessly to and from the native interface.
-
+The L<original function we are calling,
+L<clock_gettime>|https://linux.die.net/man/3/clock_gettime>, uses a pointer to
+the C<timespec> struct as second argument. We declare it as a L<class> here, but
+specify its representation as C<is repr('CStruct')>, to indicate it corresponds
+to a C data structure. When we create an object of that class, we are creating
+exactly the kind of pointer C<clock_gettime> expects. This way, data can be
+transferred seamlessly to and from the native interface.
 
 
 =head1 Basic use of Pointers
@@ -307,10 +319,12 @@ offer you no protection whatsoever here - do the wrong thing, and you will get a
 segfault or cause memory corruption. This isn't a shortcoming of NativeCall, it's
 the way the big bad native world works. Scared? Here, have a hug. Good luck!
 
+X<|CArray>
+X<|CArray methods>
 =head2 CArray methods
 
-Besides the usual methods available on every Perl 6 instances,
-C<CArray> provides the following methods that can be used to interact with the array
+Besides the usual methods available on every Perl 6 instance,
+C<CArray> provides the following methods that can be used to interact with the it
 from the Perl 6 point of view:
 
 =item C<elems> provides the number of elements within the array;
@@ -841,8 +855,8 @@ This is an example for calling a standard function and using the returned
 information in a Perl 6 program.
 
 C<getaddrinfo> is a POSIX standard function for obtaining network information
-about a network node, e.g., C<google.com>. It is an interesting function to look at because
-it illustrates a number of the elements of NativeCall.
+about a network node, e.g., C<google.com>. It is an interesting function to look
+at because it illustrates a number of the elements of NativeCall.
 
 The Linux manual provides the following information about the C callable function:
 

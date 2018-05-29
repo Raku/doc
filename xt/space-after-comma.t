@@ -11,8 +11,7 @@ Insure any text that isn't a code example has a space after each comma.
 
 =end overview
 
-my @files = Test-Files.files\
-    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
+my @files = Test-Files.documents\
     .grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;

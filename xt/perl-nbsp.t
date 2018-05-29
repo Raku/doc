@@ -5,7 +5,13 @@ use Test;
 use lib 'lib';
 use Test-Files;
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'|'.md'});
+=begin overview
+
+Insure any text that mentions Perl uses a no-break space after it.
+
+=end overview
+
+my @files = Test-Files.documents;
 
 plan +@files;
 
@@ -13,17 +19,12 @@ for @files.sort -> $file {
     my $ok = True;
     my $row = 0;
     my @bad;
-    for $file.IO.slurp.lines -> $line {
-        $row++;
-        if $line ~~ / ^ \s+ / {
-            next;
-        }
-        for $line ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
-            my $spaces = ~$match<space>;
-            if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
-                $ok = False;
-                @bad.push: $row;
-            }
+    my $content = $file.IO.slurp.lines.join("\n");
+    for $content ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
+        my $spaces = ~$match<space>;
+        if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
+            $ok = False;
+            @bad.push: $row;
         }
     }
     my $error = $file;

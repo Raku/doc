@@ -16,7 +16,7 @@ use Pod::To::HTML;
 use MONKEY-SEE-NO-EVAL;
 
 # Every .pod6 file in the Type and Language directory.
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'}).grep(* ~~ /Type | Language/);
+my @files = Test-Files.pods.grep(* ~~ /Type | Language/);
 
 plan +@files;
 
@@ -36,10 +36,13 @@ $link
 =pod
 END
 
-        my @number-of-links = ( $link ~~ m:g{ https?\: } );
+        my @number-of-links = ( $link ~~ m:g{\| https?\: } );
         my $html = pod2html(EVAL($pod~ "\n\$=pod"));
-
         my @number-of-hrefs = ( $html ~~ m:g{a\s+href\= } );
+        if +@number-of-links > +@number-of-hrefs {
+            say @number-of-links;
+            say @number-of-hrefs;
+        }
         push @links-not-links, $link if +@number-of-links > +@number-of-hrefs;
     }
     if @links-not-links {

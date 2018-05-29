@@ -4,16 +4,68 @@
 
 =SUBTITLE Object that supports looking up values by key
 
-    role Associative { }
+    role Associative[::TValue = Mu, ::TKey = Str(Any)] { }
 
 A common role for types that support name-based lookup through
-L«postcircumfix:<{ }>|/language/operators#postcircumfix_{_}», for example L<Hash> and L<Map>.
-It is used for type checks in operators that expect to find specific methods to
-call. See L<Subscripts|/language/subscripts#Methods_to_implement_for_associative_subscripting> for details.
+L«postcircumfix:<{ }>|/language/operators#postcircumfix_{_}», for example
+L<Hash> and L<Map>. It is used for type checks in operators that expect to find
+specific methods to call. See
+L<Subscripts|/language/subscripts#Methods_to_implement_for_associative_subscripting>
+for details.
 
-The C<%> sigil restricts variables to objects that do C<Associative>.
+The C<%> sigil restricts variables to objects that do C<Associative>, so you
+will have to mix in that role if you want to use it for your classes.
 
-Associative does not provide any methods.
+=begin code :skip-test<Throws exception>
+class Whatever {};
+my %whatever := Whatever.new;
+# OUTPUT: «(exit code 1) Type check failed in binding; expected Associative but got Whatever
+=end code
+
+Please note that we are using binding  C<:=> here, since by default C<%>
+assignments expect a C<Hash> in the right-hand side. However, with the
+Associative role:
+
+    class Whatever is Associative {};
+    my %whatever := Whatever.new;
+
+will be syntactically correct.
+
+=head1 Methods
+
+=head2 of
+
+Defined as:
+
+    method of()
+
+C<Associative> is actually a L<parametrized role|language/objects#Parameterized_Roles>
+which can use different classes for keys and values. As seen above, by default
+it coerces to C<Str> for the key and uses a very generic C<Mu> for value.
+
+    my %any-hash;
+    say %any-hash.of;#  OUTPUT: «(Mu)␤»
+
+The value is the first parameter you use when instantiating C<Associative> with
+particular classes:
+
+    class DateHash is Hash does Associative[Cool,DateTime] {};
+    my %date-hash := DateHash.new;
+    say %date-hash.of; # OUTPUT: «(Cool)␤»
+
+=head2 keyof
+
+Defined as:
+
+    method keyof()
+
+Returns the parametrized key used for the Associative role, which is C<Any>
+coerced to C<Str> by default. This is the class used as second parameter when
+you use the parametrized version of Associative.
+
+    my %any-hash;
+    %any-hash.keyof; #OUTPUT: «(Str(Any))␤»
+
 
 =end pod
 

@@ -18,6 +18,7 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 * [README in German](README.de.md)
 * [README in Italian](README.it.md)
 * [README in Spanish](README.es.md)
+* [README in French](README.fr.md)
 
 ## Install p6doc
 

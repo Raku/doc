@@ -2,6 +2,16 @@
 
 Please follow these style rules when contributing to the documentation
 
+## Text
+
+Please follow these rules when writing the text itself:
+
+* Avoid trailing whitespace in every line, including examples.
+* Use always space, never tabs.
+* Configure your editor for auto-flowing (or
+hard-wrapping) line length at 72 whenever possible.
+
+
 ## Structure
 
 ### How to document multiple similar routines
@@ -25,7 +35,7 @@ Try to avoid absolute URLs.
 
     L<foo|/routine/foo>
 
-Works well.
+Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
@@ -64,35 +74,45 @@ For examples where a particular format is required, or exact data is expected
 
 ### 'object' vs 'value'
 
-You may use `object` for anything you can call methods on, including value objects and type objects. Consider `instance` for defined objects.
+You may use `object` for anything you can call methods on, including
+value objects and type objects. Consider `instance` for defined
+objects.
+
+### 'filehandle' vs 'file-handle', 'file handle' and other dashed or space-separated constructs
+
+Be consistent when using this kind of constructs. Generally, the form
+with no dash or space is preferred.  As of
+[issue 2015](https://github.com/perl6/doc/issues/2015) the term must
+be written without spaces between words. When in doubt, search for the
+term in the documentation and stick to the form that is used the most
+(and create an issue to change the form that is not).
 
 ### Use present tense when talking about Perl 5 features
 
-Perl 5 is still an active language, therefore instead of
-"In Perl 5 this was used for ..., but in Perl 6 ..."
-use a form like "In Perl 5 this is used for ..., but in Perl 6 ..."
-('was' has been made a present 'is').
+Perl 5 is still an active language, therefore instead of "In Perl 5
+this was used for ..., but in Perl 6 ..."  use a form like "In Perl 5
+this is used for ..., but in Perl 6 ..."  ('was' has been made a
+present 'is').
 
 ### Prefer clear and readable variable names
 
 While Perl 6 allows all kinds of fancy characters in identifiers,
 stick to easily understandable names:
 
-    my $sub; # GOOD
-    my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
+    my $sub; # GOOD my $ßub; # BAD; Is it a twigil? How do I type
+    this? HELP!
 
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
 
 ### Prefer non-ASCII syntax in examples
 
-    my @infinite-sequence = 1,3...∞ # GOOD
-    my @infinite-sequence = 1,3...Inf # OK, but rather not
-    <a b c > ⊖ <c d e> # Good
-    <a b c > (^) <c d e> # OK, but don't do that
+    my @infinite-sequence = 1,3...∞ # GOOD my @infinite-sequence =
+    1,3...Inf # OK, but rather not <a b c > ⊖ <c d e> # Good <a b c >
+    (^) <c d e> # OK, but don't do that
 
-All operators have a ASCII equivalent, but they are more
-verbose and do not correspond exactly to the mathematical operator or constant
+All operators have a ASCII equivalent, but they are more verbose and
+do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible.
 
 ### Prefer the %() form of declaring hashes
@@ -128,11 +148,13 @@ should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
 
-To avoid the version number to be wrapped on a separate line from the 'Perl' term,
-use a [non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
+To avoid the version number to be wrapped on a separate line from the
+'Perl' term, use a
+[non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
 that is coded as Unicode character U+00A0.
 
-To convert all Perl names to this style in `SOME-FILE`, you can use this one liner:
+To convert all Perl names to this style in `SOME-FILE`, you can use
+this one liner:
 
     perl -C -pi -e 's/Perl (6|5)/Perl\x{A0}$1/g'  SOME-FILE
 
@@ -142,20 +164,32 @@ What should be documented? The primary goal of the programmatic documentation
 is to cover items that are part of the specification (the roast test suite)
 
 * If something is visible to users of Perl 6 and is in roast: document it.
-* If something is visible to users of Perl 6 and is not in roast: check with the dev team (#perl6-dev on freenode) - This might need have a test added (and therefore docs), or it might need to be hidden so users cannot see it.
+* If something is visible to users of Perl 6 and is not in roast:
+  check with the dev team (#perl6-dev on freenode) - This might need
+  have a test added (and therefore docs), or it might need to be
+  hidden so users cannot see it. In general, documentation of
+  implementation-specific features should be avoided; however, if
+  eventually the feature is added to the documentation, always specify
+  clearly its implementation-specific nature and where possible show
+  the first and latest version the documented feature is available.
 
-Future considerations on this line include: documenting things that are rakudo
+Future considerations along this line include: documenting things that are rakudo
 specific (like "dd"), and documenting which versions of the spec items are
 available in.
 
 ## Use of HTML
 
-Generally, Pod 6 should be more than enough for any documentation. However, if you need to embed HTML into the documentation after thinking it twice,  bear in mind that we support the current and previous major releases of Chrome, Firefox,
-Internet Explorer (Edge), and Safari. Please test layout changes.
-Lacking actual browsers to test in, you can use [browsershots.org](http://browsershots.org)
-or [browserstack.com](http://browserstack.com). Ensure the layout looks OK on mobile.
+Generally, Pod 6 should be more than enough for any
+documentation. However, if you need to embed HTML into the
+documentation after thinking it twice, bear in mind that we support
+the current and previous major releases of Chrome, Firefox, Internet
+Explorer (Edge), and Safari. Please test layout changes.  Lacking
+actual browsers to test in, you can use
+[browsershots.org](http://browsershots.org) or
+[browserstack.com](http://browserstack.com). Ensure the layout looks
+OK on mobile.
 
 ### Viewport size
 
-If you change the layout please check different screen sizes. Debug mode will
-display the viewport size in the bottom left corner.
+If you change the layout please check different screen sizes. Debug
+mode will display the viewport size in the bottom left corner.

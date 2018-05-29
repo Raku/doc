@@ -112,7 +112,13 @@ indirect lookup.
 The symbols provided by the loaded module will not be imported into the current
 scope. You may use L<dynamic lookup|/language/packages#index-entry-::()> or
 L<dynamic subsets|/language/typesystem#subset> to use them by providing the
-fully qualified name of a symbol.
+fully qualified name of a symbol, for instance:
+
+    require ::("Test");
+    my &mmk = ::("Test::EXPORT::DEFAULT::&ok");
+    mmk('oi‽'); # OUTPUT: «ok 1 - ␤»
+
+The FQN of C<ok> is C<Test::EXPORT::DEFAULT::&ok>. We are aliasing it to C<mmk> so that we can use that symbol provided by C<Test> in the current scope.
 
 To import symbols you must define them at compile time. B<NOTE:> C<require>
 is lexically scoped:
@@ -403,6 +409,20 @@ Then use the tag you like and pick the symbol by its name.
     say URI::Escape::EXPORT::DEFAULT::.keys;
     # OUTPUT: «(&uri-escape &uri-unescape &uri_escape &uri_unescape)␤»
     my &escape-uri = URI::Escape::EXPORT::DEFAULT::<&uri_escape>;
+
+Be careful I<not> to put C<sub EXPORT> after L«C<unit> declarator|/syntax/unit».
+If you do so, it'll become just a sub inside your package, rather than the special
+export sub:
+
+=begin code :skip-test<unit module can't work here>
+    unit module Bar;
+    sub EXPORT { %(Foo => &say) } # WRONG!!! Sub is scoped wrong
+
+    # ---------
+
+    sub EXPORT { %(Foo => &say) } # RIGHT!!! Sub is outside the module
+    unit module Bar;
+=end code
 
 =head2 Finding Modules
 

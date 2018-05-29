@@ -89,7 +89,7 @@ sub header-html($current-selection, $pod-path) {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
-        q[<div class="menu-items dark-green">],
+        q[<div class="menu-items dark-green"><a class='menu-item darker-green' href='https://perl6.org'><strong>Perl&nbsp;6 homepage</strong></a> ],
         @menu>>.key.map(-> ($dir, $name) {qq[
             <a class="menu-item {$dir eq $current-selection ?? "selected darker-green" !! ""}"
                 href="/$dir.html">
@@ -786,9 +786,12 @@ sub write-search-file() {
 
 sub write-disambiguation-files() {
     say 'Writing disambiguation files ...';
-    for $*DR.grouped-by('name').kv -> $name, $p is copy {
+    for $*DR.grouped-by('name').kv -> $name is copy, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
+        if ( $name ~~ "type" | "index" ) {
+            $name = "«$name»";
+        }
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
@@ -930,6 +933,13 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
+            CATCH {
+                default {
+                    say $name;
+                    .Str.say;
+                    say "Error when writing per-$kind files";
+                }
+            }
             my @subkinds = @docs.map({slip .subkinds}).unique;
             my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(

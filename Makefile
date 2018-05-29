@@ -3,7 +3,8 @@ PATH := $(PATH)
 DOCKER_IMAGE_NAME    ?= p6doc
 DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
-SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' || echo '' )
+COLON_Z              := :Z
+SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-examples clean-images \
@@ -42,7 +43,7 @@ test:
 
 # Extended tests
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 xt t; else prove -e perl6 xt t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t xt; else prove -e perl6 t xt; fi
 
 # Content tests
 ctest:

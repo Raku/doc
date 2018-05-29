@@ -15,7 +15,7 @@ Ensure any text that isn't a code example is valid C<Pod 6>.
 
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
-my @files-pod = Test-Files.files.grep({$_.ends-with: '.pod6'});
+my @files-pod = Test-Files.pods;
 plan +@files-pod;
 
 my %data;
