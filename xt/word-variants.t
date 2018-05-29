@@ -13,7 +13,17 @@ Insure any text that mentions Perl uses a no-break space after it.
 
 my @files = Test-Files.pods;
 
-my %variants = %( "file handle" | "file-handle" => "filehandle" );
+my %variants = %( 
+                   "file handle" | "file-handle" => "filehandle",
+                   "run-time" => "runtime",
+                   "short-hand" => "shorthand",
+                   "look-ahead" => "lookahead", 
+                   "look-behind" => "lookbehind", 
+                   "smart-match" => "smartmatch", 
+                   "smart-matches" => "smartmatches",
+                   "smart-matching" => "smartmatching",
+                   "smart-matched" => "smartmatched"
+               );
 plan +@files;
 
 for @files.sort -> $file {
@@ -30,11 +40,11 @@ for @files.sort -> $file {
             }
         }
     }
-    my $error = $file;
+    my $result = $file;
     if !$ok {
-        $error ~= " {@bad.join: ', '})";
+        $result ~= " {@bad.join: ', '}): Certain words should be normalized. ";
     }
-    ok $ok, "$error: Certain words should be normalized." ;
+    ok $ok, "$result" ;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
