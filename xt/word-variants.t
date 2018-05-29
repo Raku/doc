@@ -22,8 +22,7 @@ my %variants = %(
                    "smart-match" => "smartmatch", 
                    "smart-matches" => "smartmatches",
                    "smart-matching" => "smartmatching",
-                   "smart-matched" => "smartmatched",
-                   "smart-match" => "smartmatch" 
+                   "smart-matched" => "smartmatched"
                );
 plan +@files;
 
