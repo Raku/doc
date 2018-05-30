@@ -1,4 +1,4 @@
-# Documentação Oficial do Perl o6
+# Documentação Oficial do Perl 6
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -96,7 +96,7 @@ E também outros módulos Perl 5, instalados executando:
 
 ## Precisamos de Ajuda!
 
-Perl 6 não é uma linguagem de programação pequena, e documentá-la requer bastante esforço. Qualquier ajuda é bem-vinda.
+Perl 6 não é uma linguagem de programação pequena, e documentá-la requer bastante esforço. Qualquer ajuda é bem-vinda.
 
 Algumas maneira de nos ajudar:
 
