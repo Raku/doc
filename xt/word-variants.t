@@ -13,13 +13,13 @@ Insure any text that mentions Perl uses a no-break space after it.
 
 my @files = Test-Files.pods;
 
-my %variants = %( 
+my %variants = %(
                    "file handle" | "file-handle" => "filehandle",
                    "run-time" | "run time" => "runtime",
                    "short-hand" | "short hand" => "shorthand",
-                   "look-ahead" => "lookahead", 
-                   "look-behind" | "look behind" => "lookbehind", 
-                   "smart-match" | "smart match" => "smartmatch", 
+                   "look-ahead" => "lookahead",
+                   "look-behind" | "look behind" => "lookbehind",
+                   "smart-match" | "smart match" => "smartmatch",
                    "smart-matches" | "smart matches" => "smartmatches",
                    "smart-matching" | "smart matching" => "smartmatching",
                    "smart-matched" | "smart matched" => "smartmatched"
