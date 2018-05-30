@@ -27,9 +27,9 @@ class DNA does Iterable {
 
 my @longer-chain =  DNA.new('ACGTACGTT');
 say @longer-chain.perl;
-# OUTPUT: «[("A", "C", "G"), ("T", "A", "C"), ("G", "T", "T")]»
+# OUTPUT: «[("A", "C", "G"), ("T", "A", "C"), ("G", "T", "T")]␤»
 
-say  @longer-chain».join("").join("|"); #OUTPUT: «ACG|TAC|GTT»
+say  @longer-chain».join("").join("|"); #OUTPUT: «ACG|TAC|GTT␤»
 =end code
 
 In this example, which is an extension of the L<example in C<Iterable> that
@@ -45,7 +45,57 @@ which allows for a finer operation of iteration in several contexts: adding or
 elminating items, or skipping over them to access other items. In fact, the role
 provides a default implementation for all the other methods, so the only one
 that has to be defined is precisely C<pull-one>, of which only a stub is
-provided.
+provided. While C<Iterable> provides the high-level variable loops will be
+working in, C<Iterator> provides the lower-level functions that will be called
+in every iteration of the loop. Let's extend the previous example with this
+role.
+
+=begin code
+class DNA does Iterable does Iterator {
+    has $.chain;
+    has Int $!index = 0;
+
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator( ){ self }
+    method pull-one( --> Mu){
+        if $!index < $.chain.chars {
+            my $codon = $.chain.comb.rotor(3)[$!index div 3];
+            $!index += 3;
+            return $codon;
+        } else {
+            return IterationEnd;
+        }
+    }
+};
+
+my $a := DNA.new('GAATCC');
+.say for $a; # OUTPUT: «(G A A)␤(T C C)␤»
+=end code
+
+We declare a C<DNA> class which does the two roles, C<Iterator> and C<Iterable>;
+the class will include a string that will be constrained to have a length that
+is a multiple of 3 and composed only of ACGT. Let us first look at the
+C<pull-one> method. This one is going to be called every time a new iteration
+occurs, so it must keep the state of the last one. A C<$.index> property will
+hold that state across invocations; C<pull-one> will check if the end of the
+chain has been reached and will return the C<IterationEnd> constant provided by
+the role. Implementint this low-level interface, in fact, simplifies the
+implementation of the C<Iterable> interface. Now the iterator will be the object
+itself, since we can call C<pull-one> on it to access every member in turn;
+C<.iterator> will thus return just C<self>; this is possible since the object
+will be, at the same time, C<Iterable> and C<Iterator>.
+
+This need not always be the case, and in most cases C<.iterator> will have to
+build an iterator type  to be returned, such as we did in the previous example;
+however, this example shows the minimal code needed to build a class that
+fulfills the two iter(ator|able) roles.
+
+
 
 =head1 How to iterate: contextualizing and topic variables
 
