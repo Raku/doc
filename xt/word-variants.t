@@ -14,6 +14,7 @@ Insure any text that mentions Perl uses a no-break space after it.
 my @files = Test-Files.pods;
 
 my %variants = %( filehandle => rx/file [\s+|\-] handle/,
+                  filesystem => rx/file [\s+|\-] system/,
                   runtime => rx/run [\s+|\-] time/,
                   shorthand => rx/short [\s+|\-] hand/,
                   lookahead  => rx/look \- ahead/,
