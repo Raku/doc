@@ -7,7 +7,7 @@ use Test-Files;
 
 =begin overview
 
-Insure any text that mentions Perl uses a no-break space after it.
+Make sure certain words are normalized by checking regular expressions.
 
 =end overview
 
