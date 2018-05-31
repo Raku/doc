@@ -498,10 +498,45 @@ ordinary and a modified quantifier:
 You can prevent backtracking in regexes by attaching a C<:> modifier
 to the quantifier:
 
-    =begin code
-    say so 'abababa' ~~ /a .* aba/;    # OUTPUT: «True␤»
-    say so 'abababa' ~~ /a .*: aba/;   # OUTPUT: «False␤»
-    =end code
+=begin code
+my $str = "ACG GCT ACT An interesting chain";
+say $str ~~ /<[ACGT\s]>+ \s+ (<[A..Z a..z \s]>+)/;
+# OUTPUT: «｢ACG GCT ACT An interesting chain｣␤ 0 => ｢An interesting chain｣␤»
+say $str ~~ /<[ACGT\s]>+: \s+ (<[A..Z a..z \s]>+)/;
+# OUTPUT: «Nil␤»
+=end code
+
+In the second case, the C<A> in C<An> had already been "absorbed" by the
+pattern, preventing the matching of the second part of the pattern, after
+C<\s+>. Generally we will want the opposite: prevent backtracking to match
+precisely what we are looking for.
+
+In most cases, you will want to prevent backtracking for efficiency reasons, for
+instance here:
+
+=for code :preamble<my $str>
+    say $str ~~ m:g/[(<[ACGT]> **: 3) \s*]+ \s+ (<[A..Z a..z \s]>+)/;
+    # OUTPUT:
+    # (｢ACG GCT ACT An interesting chain｣
+    # 0 => ｢ACG｣
+    # 0 => ｢GCT｣
+    # 0 => ｢ACT｣
+    # 1 => ｢An interesting chain｣)
+
+Although in this case, eliminating the C<:> from behind C<**> would make it behave exactly in the same way. The best use is to create I<tokens> that will not be backtracked:
+
+    $_ = "ACG GCT ACT IDAQT";
+    say  m:g/[(\w+:) \s*]+ (\w+) $$/;
+    # OUTPUT:
+    # (｢ACG GCT ACT IDAQT｣
+    # 0 => ｢ACG｣
+    # 0 => ｢GCT｣
+    # 0 => ｢ACT｣
+    # 1 => ｢IDAQT｣)
+
+Without the C<:> following C<\w+>, the I<ID> part captured would have been
+simply C<T>, since the pattern would go ahead and match everything, leaving a
+single letter to match the C<\w+> expression at the end of tne line.
 
 =head2 X<Greedy versus frugal quantifiers: C<?>|regex,?>
 
