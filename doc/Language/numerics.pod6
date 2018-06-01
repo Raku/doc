@@ -62,7 +62,7 @@ L<double-precision floating-point|https://en.wikipedia.org/wiki/Double-precision
 
 A L<Num> literal is written with the exponent separated using letter C<e>. Keep
 in mind that letter C<e> B<is required> even if the exponent is zero, as
-otherwise you'll get a L<Rat> or L<MidRat> rational literal instead:
+otherwise you'll get a L<Rat> rational literal instead:
 
 =begin code
 say 42e0.^name; # OUTPUT: «Num␤»
@@ -137,18 +137,19 @@ how-is-it 3+2i;  # OUTPUT: «meh␤»
 
 The types that do the L<Rational> role offer high-precision and
 arbitrary-precision decimal numbers. Since the higher the precision the
-larger the performance penalty, the L<Rational> types come in three flavours:
-L<Rat>, L<MidRat>, and L<FatRat>. The L<Rat> is the most oft-used variant
-that degrades into a L<Num> when it can no longer hold all of the requested
-precision. The L<FatRat> is the arbitrary-precision variant that keeps growing
-to provide all of the requested precision. Lastly, the L<MidRat> type is
-somewhat in-between of a L<Rat> and L<FatRat>: offering arbitrary-precision
-but degrading like a L<Rat>, when used in lower-precision operations.
+larger the performance penalty, the L<Rational> types come in two flavours:
+L<Rat> and L<FatRat>. The L<Rat> is the most oft-used variant
+that degrades into a L<Num> in most cases, when it can no longer hold all of
+the requested precision. The L<FatRat> is the arbitrary-precision variant that
+keeps growing to provide all of the requested precision.
 
 =head2 C<Rat>
 
 The most common of L<Rational> types. It supports rationals with denominators
 as large as 64 bits (after reduction of the fraction to the lowest denominator).
+C<Rat> objects with larger denominators can be created directly, however, when
+C<Rat>s with such denominators are the result of mathematical operations, they
+degrade to a L<Num> object.
 
 The L<Rat> literals use syntax similar to L<Num> literals in many other
 languages, using the dot to indicate the number is a decimal:
@@ -209,29 +210,8 @@ say ½ + ⅓ + ⅝ + ⅙; # OUTPUT: «1.625␤»
 If a I<mathematical operation> that produces a L<Rat> answer would produce
 a L<Rat> with denominator larger than 64 bits, that operation would instead
 return a L<Num> object. When I<constructing> a L<Rat> (i.e. when it is not
-a result of some mathematical expression), however, in similar
-circumstances a L<MidRat> type is produced instead.
-
-=head2 C<MidRat>
-
-The L<MidRat> type is a subclass of a L<Rat>: it's used when construction of a
-L<Rat> object is attempted, but too much precision is requested. The L<MidRat>
-can hold all of the given precision, just like a L<FatRat> would, but it doesn't
-have the same "infectiousness" so if it's not used in high-precision operations
-with other L<FatRat> objects, it'll degrade to a L<Num>, just like a L<Rat>
-object would.
-
-Attempts to I<construct> a L<Rat> with denominator larger (after reduction)
-than 64 bits in size produce a L<MidRat>
-object (L<MidRatStr> allomorph for L<RatStr> allomorph constructon). Such
-construction occurs when a L<Rational> literal is written in the code, the
-L«C<Str.Rat>|/type/Str#method_Rat» or L«C<Str.Numeric>|/type/Str#method_Numeric»
-methods are used, or a L<RatStr> allomorph is created using L<val>,
-L<angle brackets|/language/quoting#index-entry-<_>_word_quote>, or other
-allomorph-producing means, such as arguments to
-L«C<MAIN> routine|/language/functions#sub_MAIN» or calling
-L«C<RatStr.new>|/type/RatStr#method_new». Mathematical operations are B<NOT>
-subject to this rule and instead degrade their result to a L<Num> instead.
+a result of some mathematical expression), however, a "fattish" L<Rat> with
+larger denominator will be created.
 
 =head2 C<FatRat>
 
@@ -307,18 +287,8 @@ which can be explosive.
 =head2 Zero-Denominator Rationals
 
 A Zero-Denominator Rational is a numeric that does role L<Rational>, which
-among core numerics would be L<Rat>, L<MidRat>, and L<FatRat> objects, which
+among core numerics would be L<Rat> and L<FatRat> objects, which
 has denominator of zero.
-
-On creation, the numerator of such numerics is always normalized to C<-1>,
-C<1>, C<0>, depending on whether the original numerator is negative,
-positive, or zero respectively:
-
-=begin code
-say  <1000/0>.nude; # OUTPUT: «(1 0)␤»
-say <-1000/0>.nude; # OUTPUT: «(-1 0)␤»
-say     <0/0>.nude; # OUTPUT: «(0 0)␤»
-=end code
 
 Operations that can be performed without requiring actual division to occur
 are non-explosive. For example, you can separately examine
@@ -360,23 +330,20 @@ L<Str> types and will be accepted by any type constraint that requires an L<Int>
 
 Allomorphs can be created using L«angle brackets|/language/quoting#Word_quoting:_<_>», either used
 standalone or as part of a hash key lookup; directly
-using method C<.new>; and are also provided by some constructs such as
-parameters of L«C<sub MAIN>|/language/functions#sub_MAIN» or, in the case of the L<MidRat>
-allomorph, L<Rational> literals with large denominators.
+using method C<.new> and are also provided by some constructs such as
+parameters of L«C<sub MAIN>|/language/functions#sub_MAIN».
 
 =begin code
-say <42>.^name;                      # OUTPUT: «IntStr␤»
-say <42e0>.^name;                    # OUTPUT: «NumStr␤»
-say < 42+42i>.^name;                 # OUTPUT: «ComplexStr␤»
-say < 1/2>.^name;                    # OUTPUT: «RatStr␤»
-say <0.5>.^name;                     # OUTPUT: «RatStr␤»
-say <1/99999999999999999999>.^name;  # OUTPUT: «MidRat␤»
-say < 1/99999999999999999999>.^name; # OUTPUT: «MidRatStr␤»
+say <42>.^name;                 # OUTPUT: «IntStr␤»
+say <42e0>.^name;               # OUTPUT: «NumStr␤»
+say < 42+42i>.^name;            # OUTPUT: «ComplexStr␤»
+say < 1/2>.^name;               # OUTPUT: «RatStr␤»
+say <0.5>.^name;                # OUTPUT: «RatStr␤»
 
 @*ARGS = "42";
-sub MAIN($x) { say $x.^name }        # OUTPUT: «IntStr␤»
+sub MAIN($x) { say $x.^name }   # OUTPUT: «IntStr␤»
 
-say IntStr.new(42, "42").^name;      # OUTPUT: «IntStr␤»
+say IntStr.new(42, "42").^name; # OUTPUT: «IntStr␤»
 =end code
 
 A couple of constructs above have a space after the opening angle bracket. That space isn't
@@ -405,8 +372,6 @@ The core language offers the following allomorphs:
     NumStr     | Num and Str          | <42e0>
     ComplexStr | Complex and Str      | < 1+2i>
     RatStr     | Rat and Str          | <1.5>
-    MidRat     | Rat and FatRat       | <1/99999999999999999999>
-    MidRatStr  | Rat, FatRat, and Str | < 1/99999999999999999999>
 
 =end table
 
@@ -447,7 +412,6 @@ my $al := IntStr.new: 42, "forty two";
 say $al.Str;  # OUTPUT: «forty two␤»
 say +$al;     # OUTPUT: «42␤»
 
-say <1/99999999999999999999>.^name;        # OUTPUT: «MidRat␤»
 say <1/99999999999999999999>.Rat.^name;    # OUTPUT: «Rat␤»
 say <1/99999999999999999999>.FatRat.^name; # OUTPUT: «FatRat␤»
 =end code
@@ -740,42 +704,24 @@ result.
 
 The infectiousness is as follows, with the most infectious type listed first:
 
-=begin table
+=item *  Complex
 
-    Type    | Comments                                        |
-    ========+=================================================+
-    Complex |                                                 |
-    Num     |                                                 |
-    FatRat  |                                                 |
-    MidRat  | Special infectiousness. See prose that follows. |
-    Rat     |                                                 |
-    Int     |                                                 |
+=item * Num
 
-=end table
+=item * FatRat
 
-The L<MidRat> type is a special type that offers greater precision, like a L<FatRat> type, yet
-has the same infectiousness as a L<Rat> type. In other words, operations involving a L<MidRat>
-type and a L<MidRat>, L<Rat>, or L<Int> type would result in a L<Rat> result, B<not> L<MidRat>
-result (or a L<Num> result if after reduction the denominator ended up over 64-bits, too large for
-a L<Rat>). Otherwise, we're dealing with a type more infectious than a L<MidRat> and the result will
-be of that type.
+=item * Rat
 
-Some examples of what we discussed:
+=item * Int
 
 =begin code
 say (2 + 2e0).^name; # Int + Num => OUTPUT: «Num␤»
 say (½ + ½).^name; # Rat + Rat => OUTPUT: «Rat␤»
 say (FatRat.new(1,2) + ½).^name; # FatRat + Rat => OUTPUT: «FatRat␤»
-say (FatRat.new(1,2) + <1/99999999999999999999>).^name; # FatRat + MidRat => OUTPUT: «FatRat␤»
-
-say (99999999999999999999 * <1/99999999999999999999>).^name;
-# Int * MidRat (after reduction, denominator fits into a Rat) => OUTPUT: «Rat␤»
-say (1 + <1/99999999999999999999>).^name;
-# Int * MidRat (after reduction, denominator too big to fit into a Rat) => OUTPUT: «Num␤»
 =end code
 
-The allomorphs have the same infectiousness as their numeric component. Native types get autoboxed
-and have the same infectiousness as their boxed variant.
+The allomorphs have the same infectiousness as their numeric component. Native
+types get autoboxed and have the same infectiousness as their boxed variant.
 
 =end pod
 
