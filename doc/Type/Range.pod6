@@ -43,11 +43,11 @@ Use the L<...|/language/operators#infix_...> sequence operator to produce lists 
 go from larger to smaller values, or to use offsets other than
 increment-by-1 and other complex cases.
 
-Use C<Inf> or C<*> (Whatever) to indicate an end point to be open-ended.
+Use C<∞> or C<*> (Whatever) to indicate an end point to be open-ended.
 
 =for code
 for 1..* { .say };       # start from 1, continue until stopped
-for 1..Inf { .say };     # the same
+for 1..∞ { .say };       # the same
 
 =head2 Ranges in subscripts
 
@@ -61,8 +61,82 @@ binding, @-sigiled containers or a slip to get what you mean.
     my @range = 0..2;
     .say for @numbers[@range]; # OUTPUT: «4␤8␤15␤»
 
+=head2 Shifting and scaling intervals
+
+It is possible to shift or scale the interval of a range:
+
+    say (1..10) + 1;       # OUTPUT: «2..11␤»
+    say (1..10) - 1;       # OUTPUT: «0..9␤»
+    say (1..10) * 2;       # OUTPUT: «2..20␤»
+    say (1..10) / 2;       # OUTPUT: «0.5..5.0␤»
+
+=head2 Matching against Ranges
+
+You can use  L<smartmatch|/routine/~~> to match against Ranges.
+
+    say 3 ~~ 1..12;          # OUTPUT: «True␤»
+    say 2..3 ~~ 1..12;       # OUTPUT: «True␤»
 
 =head1 Methods
+
+
+=head2 method ACCEPTS
+
+Defined as
+
+     multi method ACCEPTS(Range:D: Mu \topic)
+     multi method ACCEPTS(Range:D: Range \topic)
+     multi method ACCEPTS(Range:D: Cool:D \got)
+     multi method ACCEPTS(Range:D: Complex:D \got)
+
+
+Indicates if the C<Range> contains (overlaps with) another C<Range>.
+As an example:
+
+    my $p = Range.new( 3, 5  );
+    my $r = Range.new( 1, 10 );
+
+    say $p.ACCEPTS( $r );    # OUTPUT: «False␤»
+    say $r.ACCEPTS( $p );    # OUTPUT: «True␤»
+    say $r ~~ $p;            # OUTPUT: «False␤»  (same as $p.ACCEPTS( $r )
+    say $p ~~ $r;            # OUTPUT: «True␤»   (same as $r.ACCEPTS( $p )
+
+Of course, an infinite C<Range> always contains another C<Range>, therefore:
+
+    say 1..10 ~~ -∞..∞;    # OUTPUT: «True␤»
+    say 1..10 ~~ -∞^..^∞;  # OUTPUT: «True␤»
+
+Similarly, a C<Range> with open boundaries often includes other ranges:
+
+    say 1..2 ~~ *..10;  # OUTPUT: «True␤»
+    say 2..5 ~~ 1..*;   # OUTPUT: «True␤»
+
+
+It is also possible to use non-numeric ranges, for instance string based
+ones:
+
+   say 'a'..'j' ~~ 'b'..'c';  # OUTPUT: «False␤»
+   say 'b'..'c' ~~ 'a'..'j';  # OUTPUT: «True␤»
+   say 'perl' ~~ -∞^..^∞;     # OUTPUT: «True␤»
+   say 'perl' ~~ -∞..∞;       # OUTPUT: «True␤»
+   say 'perl' ~~ 1..*;        # OUTPUT: «True␤»
+
+
+When smartmatching a C<Range> of integers with a L<Cool> (string)
+the C<ACCEPTS> methods exploits the  L<before|/routine/before>
+and L<after|/routine/after> operators in order to check that
+the C<Cool> value is overlapping the range:
+
+   say 1.10 ~~ '5';   # OUTPUT: «False␤»
+   say '5' before 1;  # OUTPUT: «False␤»
+   say '5' after 10;  # OUTPUT: «True␤»
+   say '5' ~~ *..10;  # OUTPUT: «False␤»
+
+In the above example, since the C<'5'> string is I<after> the C<10> integer value,
+the C<Range> does not overlap with the specified value.
+
+When matching with a C<Mu> instance (i.e., a generic instance),
+the L<cmp|/routine/cmp> operator is used.
 
 =head2 method min
 
@@ -115,7 +189,7 @@ Returns a list consisting of the start and end point.
 
     method infinite(Range:D: --> Bool:D)
 
-Returns C<True> if either end point was declared with C<Inf> or C<*>.
+Returns C<True> if either end point was declared with C<∞> or C<*>.
 
     say (1..5).infinite;                              # OUTPUT: «False␤»
     say (1..*).infinite;                              # OUTPUT: «True␤»
@@ -132,13 +206,15 @@ Returns C<True> if both end points are C<Int> values.
 
 =head2 method int-bounds
 
-    method bounds(Range:D: --> Positional)
+    method int-bounds(Range:D: --> Positional)
 
 If the C<Range> is an integer range (as indicated by L<is-int>), then this
 method returns a list with the first and last value it will iterate over
 (taking into account L<excludes-min> and L<excludes-max>).  Returns a
 Failure if it is not an integer range.
 
+    say (2..5).int-bounds;                            # OUTPUT: «(2 5)␤»
+    say (2..^5).int-bounds;                           # OUTPUT: «(2 4)␤»
 
 =head2 method minmax
 
@@ -224,8 +300,34 @@ Returns a L<Seq> where all elements that the C<Range> represents have been
 reversed. Note that reversing an infinite C<Range> won't produce any meaningful
 results.
 
-    say (1^..5).reverse;                              # OUTPUT: «(5 4 3 2)␤»
-    say ('a'..'d').reverse;                           # OUTPUT: «(d c b a)␤»
-    say (1..Inf).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
+    say (1^..5).reverse;                            # OUTPUT: «(5 4 3 2)␤»
+    say ('a'..'d').reverse;                         # OUTPUT: «(d c b a)␤»
+    say (1..∞).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(Range --> Capture:D)
+
+Returns a L<Capture> with values of L«C<.min>|/type/Range#method_min»
+L«C<.max>|/type/Range#method_max»,
+L«C<.excludes-min>|/type/Range#method_excludes-min»,
+L«C<.excludes-max>|/type/Range#method_excludes-max»,
+L«C<.infinite>|/type/Range#method_infinite», and
+L«C<.is-int>|/type/Range#method_is-int» as named arguments.
+
+=head2 method rand
+
+Defined as:
+
+    method rand(Range:D --> Num:D)
+
+Returns a pseudo-random value belonging to the range.
+
+    say (1^..5).rand;                              # OUTPUT: «1.02405550417031␤»
+    say (0.1..0.3).rand;                           # OUTPUT: «0.2130353370062␤»
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

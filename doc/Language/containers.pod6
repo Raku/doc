@@ -18,7 +18,7 @@ registers it in some internal symbol table. This internal symbol table is
 used to detect undeclared variables and to tie the code generation for the
 variable to the correct scope.
 
-At run time, a variable appears as an entry in a I<lexical pad>, or
+At runtime, a variable appears as an entry in a I<lexical pad>, or
 I<lexpad> for short. This is a per-scope data structure that stores a
 pointer for each variable.
 
@@ -28,7 +28,7 @@ container>.
 
 =head1 Scalar containers
 
-Although objects of type C<Scalar> are everywhere in Perl 6, you rarely
+Although objects of type L<C<Scalar>|/type/Scalar> are everywhere in Perl 6, you rarely
 see them directly as objects, because most operations
 I<decontainerize>, which means they act on the C<Scalar> container's
 contents instead of the container itself.
@@ -95,6 +95,28 @@ container:
     CATCH { default { say .^name, ': ', .Str } };
     # OUTPUT: «X::Parameter::RW: Parameter '$x' expected a writable container, but got Int value␤»
 
+=head1 Callable containers
+
+Callable containers provide a bridge between the syntax of a
+L<Routine|/type/Routine> call and the actual call of the method
+L<CALL-ME|/type/Callable#method_CALL-ME> of the object that is stored in the
+container. The sigil C<&> is required when declaring the container and has to be
+omitted when executing the C<Callable>. The default type constraint is
+L<Callable|/type/Callable>.
+
+   my &callable = -> $ν { say "$ν is", $ν ~~ Int??" whole"!!" not whole" }
+   callable( ⅓ );
+   callable( 3 );
+
+The sigil has to be provided when referring to the value stored in the
+container. This in turn allows C<Routine>s to be uses as
+L<arguments|/type/Signature#Constraining_signatures_of_Callables> to calls.
+
+    sub f() {}
+    my &g = sub {}
+    sub caller(&c1, &c2){ c1, c2 }
+    caller(&f, &g);
+
 =head1 Binding
 
 Next to assignment, Perl 6 also supports I<binding> with the C<:=> operator.
@@ -127,7 +149,8 @@ You've seen this situation before: it is exactly what happened with the
 signature parameter marked as C<is rw>.
 
 X<|\ (container binding)>
-Sigilless variables also bind by default and so do parameters with the trait C<is raw>.
+Sigilless variables and parameters with the trait C<is raw> always
+bind (whether C<=> or C<:=> is used):
 
     my $a = 42;
     my \b = $a;
@@ -141,8 +164,8 @@ Sigilless variables also bind by default and so do parameters with the trait C<i
 =head1 Scalar containers and listy things
 
 There are a number of positional container types with slightly different
-semantics in Perl 6. The most basic one is L<List|/type/List>
-It is created by the comma operator.
+semantics in Perl 6. The most basic one is L<List|/type/List>;
+it is created by the comma operator.
 
     say (1, 2, 3).^name;    # OUTPUT: «List␤»
 
@@ -160,7 +183,7 @@ you can still assign to it:
 So the list doesn't care about whether its elements are values or
 containers, they just store and retrieve whatever was given to them.
 
-Lists can also be lazy, so elements at the end are generated on demand from an
+Lists can also be lazy; in that case, elements at the end are generated on demand from an
 iterator.
 
 An C<Array> is just like a list, except that it forces all its elements to
@@ -176,7 +199,7 @@ container with the new one, C<42>.
 
 =head1 Assigning and binding to array variables
 
-Assigning to a scalar variable and to an array variable both do basically
+Assignment to a scalar variable and to an array variable both do
 the same thing: discard the old value(s), and enter some new value(s).
 
 Nevertheless, it's easy to observe how different they are:
@@ -203,10 +226,10 @@ As a curious side note, Perl 6 supports binding to array elements:
     say @a;                     # OUTPUT: «[42 2 3]␤»
 
 If you've read and understood the previous explanations, it is now time to
-wonder how this can possibly work. After all, binding to a variable requires
-a lexpad entry for that variable, and while there is one for an array, there
-aren't lexpad entries for each array element (you cannot expand the lexpad
-at run time).
+wonder how this can possibly work. After all, binding to a variable requires a
+lexpad entry for that variable, and while there is one for an array, there
+aren't lexpad entries for each array element, because you cannot expand the
+lexpad at runtime.
 
 The answer is that binding to array elements is recognized at the syntax
 level and instead of emitting code for a normal binding operation, a special
@@ -255,16 +278,33 @@ container: slurpy parameters (C<*@a>) and explicit calls to C<flat>:
     sub f(*@x) { @x.elems };
     say f @a, 4, 5;             # OUTPUT: «5␤»
 
+You can also use C<|> to create a L<Slip>, introducing a list into the other.
+
+    my @l := 1, 2, (3, 4, (5, 6)), [7, 8, (9, 10)];
+    say (|@l, 11, 12); # OUTPUT: «(1 2 (3 4 (5 6)) [7 8 (9 10)] 11 12)␤»
+    say (flat @l, 11, 12) # OUTPUT: «(1 2 3 4 5 6 7 8 (9 10) 11 12)␤»
+
+In the first case, every element of C<@l> is I<slipped> as the corresponding elements of the resulting list. C<flat>, in the other hand, I<flattens> all elements including the elements of the included array, except for C«(9 10)».
+
 As hinted above, scalar containers prevent that flattening:
 
     sub f(*@x) { @x.elems };
     my @a = 1, 2, 3;
     say f $@a, 4, 5;            # OUTPUT: «3␤»
 
-The C<@> character can also be used as a prefix to remove a scalar container:
+The C<@> character can also be used as a prefix to coerce the argument to a list, thus removing a scalar container:
 
     my $x = (1, 2, 3);
     .say for @$x;               # 3 iterations
+
+However, the I<decont> operator C«<>» is more appropriate to decontainerize items that aren't
+lists:
+
+    my $x = ^Inf .grep: *.is-prime;
+    say "$_ is prime" for @$x;  # WRONG! List keeps values, thus leaking memory
+    say "$_ is prime" for $x<>; # RIGHT. Simply decontainerize the Seq
+
+    my $y := ^Inf .grep: *.is-prime; # Even better; no Scalars involved at all
 
 Methods generally don't care whether their invocant is in a scalar, so
 
@@ -273,31 +313,50 @@ Methods generally don't care whether their invocant is in a scalar, so
 
 maps over a list of three elements, not of one.
 
-=head1 Self Reference
+=head1 Self-Referential Data
 
-Complex containers, like Array or Hash and relatives, can contain a reference
-to itself, forming recursive data structures. Please note that very few builtin
-functions and methods will detect infinite loops. It is the responsibility of the
-user to L<handle|/type/Promise#method_in> timeouts.
+Containers types, including C<Array> and C<Hash>, allow you to create
+self-referential structures.
 
     my @a;
     @a[0] = @a;
     put @a.perl;
     # OUTPUT: «((my @Array_75093712) = [@Array_75093712,])␤»
 
+Perl 6 does not prevent you from creating and using self-referential
+data; You may end up in a loop trying to dump the data; as a
+last resort, you can use Promises to L<handle|/type/Promise#method_in> timeouts.
+
 =head1 Type Constraints
 
 Any container can have a type constraint in the form of
 a L<type object|/language/typesystem#Type_objects> or a L<subset|/language/typesystem#subset>.
 Both can be placed between a declarator and the variable name or after the trait L<of|/type/Variable#trait_is_dynamic>.
-The constraint is a property of the container, not the variable. Any (re-)binding may change the
-type constraint or remove the constraint altogether if bound to a value instead of a container.
-Introspection of type constraints on containers is provided by C<.VAR.of>.
+The constraint is a property of the variable, not the container.
 
-    EVAL ‚my Int $i = 42; $i := "forty plus two";‘;
-    CATCH { default { say .^name, ' ', .Str } }
-    # OUTPUT: «Type check failed in binding; expected Int but got Str ("forty plus two")␤…»
+Variables may have no container in them, yet still offer the ability to
+re-bind and typecheck that rebind. The reason for that is in such cases the
+binding operator L<:=|/operators#infix_:=> performs the typecheck:
 
+    my Int \z = 42;
+    z := 100; # OK
+    z := "x"; # Typecheck failure
+
+The same isn't the case when, say, binding to a L<Hash> key, as there the
+binding is handled by a method call (even though the syntax remains the same,
+using C<:=> operator).
+
+The default type constraint of a C<Scalar> container is L<Mu>.
+Introspection of type constraints on containers is provided by C<.VAR.of>
+method, which for C<@> and C<%> sigiled variables gives the constraint for
+values:
+
+    my Str $x;
+    say $x.VAR.of;  # OUTPUT: «(Str)␤»
+    my Num @a;
+    say @a.VAR.of;  # OUTPUT: «(Num)␤»
+    my Int %h;
+    say %h.VAR.of;  # OUTPUT: «(Int)␤»
 
 =head1 Custom containers
 
@@ -327,3 +386,5 @@ work with types in Perl 6.
     CATCH { default { say .^name, ': ', .Str } };
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

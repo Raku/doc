@@ -9,16 +9,32 @@
 C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
 server and the client side.
 
-Here is the equivalent example to that in L<IO::Socket::INET> of a simple
-echo server that listens on port 3333:
+Here is a simple example of a simple "hello world"
+http server that listens on port 3333:
 
-=begin code
-use v6.c;
-
+=begin code :skip-test<IO>
 react {
-    whenever IO::Socket::Async.listen('localhost', 3333) -> $conn {
-        whenever $conn.Supply(:bin) -> $buf {
-            await $conn.write: $buf
+    whenever IO::Socket::Async.listen('0.0.0.0', 3333) -> $conn {
+        whenever $conn.Supply.lines -> $line {
+            $conn.print: qq:heredoc/END/;
+                HTTP/1.1 200 OK
+                Content-Type: text/html; charset=UTF-8
+                Content-Encoding: UTF-8
+
+                <html>
+                <body>
+                    <h1>Hello World!</h1>
+                    <p>{ $line }</p>
+                </body>
+                </html>
+                END
+            $conn.close;
+        }
+    }
+    CATCH {
+        default {
+            say .^name, ': ', .Str;
+            say "handled in $?LINE";
         }
     }
 }
@@ -27,20 +43,16 @@ react {
 And a client that connects to it, and prints out what the server answers:
 
 =begin code
-use v6.c;
-
-await IO::Socket::Async.connect('localhost', 3333).then( -> $p {
-    if $p.status {
-        given $p.result {
-            .print('Hello, Perl 6');
-            react {
-                whenever .Supply() -> $v {
-                    $v.say;
-                    done;
-                }
+await IO::Socket::Async.connect('127.0.0.1', 3333).then( -> $promise {
+    given $promise.result {
+        .print("Lorem ipsum dolor sit amet, consectetur adipiscing elit.\n");
+        react {
+            whenever .Supply() -> $v {
+                $v.print;
+                done;
             }
-            .close;
         }
+        .close;
     }
 });
 =end code
@@ -209,5 +221,29 @@ L<Promise>.
 
 In order to close the underlying listening socket created by C<listen> you
 can C<close> the L<Tap>. See C<listen> for examples.
+
+=head2 method socket-host
+
+    method socket-host(--> Str)
+
+Returns the IP address of the local end of this socket.
+
+=head2 method peer-host
+
+    method peer-host(--> Str)
+
+Returns the IP address of the remote end of this socket.
+
+=head2 method socket-port
+
+    method socket-port(--> Int)
+
+Returns the port of the local end of this socket.
+
+=head2 method peer-port
+
+    method peer-port(--> Int)
+
+Returns the port of the remote end of this socket.
 
 =end pod

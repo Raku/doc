@@ -83,6 +83,19 @@ sequence, and marks it as consumed.
 If called on an already consumed sequence, throws an error of type
 L<X::Seq::Consumed>.
 
+    my $s = lazy 1..5;
+
+    say $s.is-lazy; # OUTPUT: «True␤»
+    say $s.eager;   # OUTPUT: «(1 2 3 4 5)␤»
+
+    say $s.eager;
+    CATCH {
+        when X::Seq::Consumed {
+            say 'Throws exception if already consumed';
+        }
+    }
+    # OUTPUT: «Throws exception if already consumed␤»
+
 
 =head2 method from-loop
 
@@ -90,7 +103,7 @@ L<X::Seq::Consumed>.
     multi method from-loop(&body, &cond, :$repeat --> Seq:D)
     multi method from-loop(&body, &cond, &afterward --> Seq:D)
 
-Creates a new C<Seq> based callbacks.
+These methods create new C<Seq>-based callbacks.
 
 The first form produces an infinite C<Seq> by calling C<&body> each time a new
 element is requested, using the return value from C<&body> as the item. This
@@ -105,4 +118,36 @@ C<repeat { body } while cond> loops.
 The third form enables C-style looping by calling a third callback,
 C<&afterward>, after each call to C<&body>.
 
+=head2 method sink
+
+Defined as:
+
+    method sink(--> Nil)
+
+Calls L<C<sink-all>|/routine/sink-all> if it is an C<Iterator>, C<sink> if the Sequence is a list.
+
+    say (1 ... 1000).sink; # OUTPUT: «Nil␤»
+
+This is something you might want to do for the side effects of producing those values.
+
+=head2 method skip
+
+Defined as:
+
+    multi method skip(Int() $n = 1 --> Seq)
+
+Returns a Seq containing whatever is left of the invocant after
+throwing away C<$n> of the next available values. Negative values of
+C<$n> count as 0.  Also can take a WhateverCode to indicate how many values
+to skip from the end.  Will block on lazy Seqs until the requested
+number of values have been discarded.
+
+    say (1..5).map({$_}).skip;      # OUTPUT: «(2,3,4,5)␤»
+    say (1..5).map({$_}).skip(3);   # OUTPUT: «(4,5)␤»
+    say (1..5).map({$_}).skip(5);   # OUTPUT: «()␤»
+    say (1..5).map({$_}).skip(-1);  # OUTPUT: «(1,2,3,4,5)␤»
+    say (1..5).map({$_}).skip(*-3); # OUTPUT: «(3,4,5)␤»
+
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

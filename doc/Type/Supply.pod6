@@ -41,6 +41,9 @@ The L<live method|#method live> returns C<True> on live supplies. Factory
 methods such as L<interval|#method interval>, L<from-list|#method from-list>
 will return I<on demand> supplies.
 
+A live C<Supply> that keeps values until tapped the first time can be created
+with L<Supplier::Preserving|/type/Supplier::Preserving>.
+
 Further examples can be found in the L<concurrency page|/language/concurrency#Supplies>.
 
 =head1 Methods that return Taps
@@ -91,6 +94,15 @@ C<tap>, the given code is guaranteed to be only executed by one thread at
 a time.
 
 =head1 Utility methods
+
+=head2 method Capture
+
+Defined as:
+
+    method Capture(Supply:D --> Capture:D)
+
+Equivalent to calling L«C<.List.Capture>|/type/List#method_Capture»
+on the invocant.
 
 =head2 method Channel
 
@@ -146,8 +158,10 @@ the GUI thread.
 
     method wait(Supply:D:)
 
-Waits until the supply is done (in which case it returns C<True>) or C<quit>
-(in which case it will throw the exception that was passed to C<quit>).
+Taps the C<Supply> it is called on, and blocks execution until the either the supply
+is C<done> (in which case it evaluates to the final value that was emitted on the
+C<Supply>, or C<Nil> if not value was emitted) or C<quit> (in which case it will throw
+the exception that was passed to C<quit>).
 
    my $s = Supplier.new;
    start {
@@ -164,16 +178,19 @@ Waits until the supply is done (in which case it returns C<True>) or C<quit>
 
     method list(Supply:D: --> List:D)
 
-Waits until the supply is done, then returns a list of all values emitted
-since the C<list> call.
+Taps the C<Supply> it is called on, and returns a lazy list that will be reified
+as the C<Supply> emits values. The list will be terminated once the C<Supply> is
+C<done>. If the C<Supply> C<quit>s, then an exception will be thrown once that
+point in the lazy list is reached.
 
 =head2 method grab
 
     method grab(Supply:D: &when-done --> Supply:D)
 
-Waits until the given C<Supply> is done.  It will then call the C<&when-done>
-closure passing all of the values seen,  Then creates a C<Supply> to which all
-values returned from the C<&when-done> closure are emitted.
+Taps the C<Supply> it is called on. When it is C<done>, calls C<&when-done> and
+then emits the list of values that it returns on the result C<Supply>. If the
+original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $t = $s.grab(&sum);
@@ -183,8 +200,10 @@ values returned from the C<&when-done> closure are emitted.
 
     method reverse(Supply:D: --> Supply:D)
 
-Waits until the given C<Supply> is done, then creates a C<Supply> to which all
-values seen are emitted in reverse order.
+Taps the C<Supply> it is called on. Once that C<Supply> emits C<done>, all of the
+values it emitted will be emitted on the returned C<Supply> in reverse order. If
+the original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(1, 2, 3);
     my $t = $s.reverse;
@@ -194,9 +213,11 @@ values seen are emitted in reverse order.
 
     method sort(Supply:D: &custom-routine-to-use? --> Supply:D)
 
-Waits until the given C<Supply> is done, then creates a C<Supply> to which all
-values seen are emitted in sorted order.  Optionally accepts a comparator
-L<Block|/type/Block>.
+Taps the C<Supply> it is called on. Once that C<Supply> emits C<done>, all of the
+values that it emitted will be sorted, and the results emitted on the returned
+C<Supply> in the sorted order. Optionally accepts a comparator L<Block|/type/Block>.
+If the original C<Supply> C<quit>s, then the exception is immediately conveyed on the
+return C<Supply>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $t = $s.sort();
@@ -260,7 +281,7 @@ phaser is usually a better choice.
         quit    => -> $ex { say "Supply finished with error $ex" },
     );
 
-    $s.emit('Perl 6');
+    $s.emit('Perl 6');
     $tap.close;        # OUTPUT: «Tap closed␤»
 
 =head2 method interval
@@ -268,17 +289,18 @@ phaser is usually a better choice.
     method interval(Supply:U: $interval, $delay = 0, :$scheduler = $*SCHEDULER --> Supply:D)
 
 Creates a supply that emits a value every C<$interval> seconds, starting
-C<$delay> seconds from the call. The value is an integer, starting from 0,
-and is incremented by one for each value emitted. Note that if the supplied
-interval is less than one millisecond it will be changed to one millisecond
-and a warning will be emitted.
+C<$delay> seconds from the call. The emitted value is an integer, starting from
+0, and is incremented by one for each value emitted.
+
+Implementations may treat too-small values as lowest resolution they support,
+possibly warning in such situations; e.g. treating C<0.0001> as C<0.001>.
 
 =head2 method grep
 
     method grep(Supply:D: Mu $test --> Supply:D)
 
 Creates a new supply that only emits those values from the original supply
-that smart-match against C<$test>.
+that smartmatch against C<$test>.
 
     my $supplier = Supplier.new;
     my $all      = $supplier.Supply;
@@ -320,7 +342,7 @@ to be updated every so many seconds.
 
     method head(Supply:D: Int(Cool) $number = 1 --> Supply:D)
 
-Creates a "head" supply with the same semantics as L<List.head|/type/List#routine_head>.
+Creates a "head" supply with the same semantics as L<List.head|/type/List#method_head>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $hs = $s.head(2);
@@ -330,7 +352,7 @@ Creates a "head" supply with the same semantics as L<List.head|/type/List#routin
 
     method tail(Supply:D: Int(Cool) $number = 1 --> Supply:D)
 
-Creates a "tail" supply with the same semantics as L<List.tail|/type/List#routine_tail>.
+Creates a "tail" supply with the same semantics as L<List.tail|/type/List#method_tail>.
 
     my $s = Supply.from-list(4, 10, 3, 2);
     my $ts = $s.tail(2);
@@ -340,7 +362,7 @@ Creates a "tail" supply with the same semantics as L<List.tail|/type/List#routin
 
     method rotor(Supply:D: @cycle --> Supply:D)
 
-Creates a "rotoring" supply with the same semantics as L<List.rotor|/type/List#routine_rotor>.
+Creates a "rotoring" supply with the same semantics as L<List.rotor|/type/List#method_rotor>.
 
 =head2 method delayed
 
@@ -684,13 +706,6 @@ watch-stock('GOOG');
 sleep 3;
 watch-stock('AAPL');
 sleep 3;
-
-$stock-sources.Supply.migrate.tap: *.say;
-
-watch-stock('GOOG');
-sleep 3;
-watch-stock('AAPL');
-sleep 3;
 =end code
 
 Which produces output like:
@@ -754,7 +769,7 @@ the supply.  For example:
 
 would catch Control-C, thank you, and then exit.
 
-To go from a signal number to a Signal, you can do something like this:
+To go from a signal number to a X<Signal>, you can do something like this:
 
     signal(Signal(2)).tap( -> $sig { say "Received signal: $sig" } );
 
@@ -762,13 +777,22 @@ The list of supported signals can be found by checking C<Signal::.keys> (as
 you would any enum). For more details on how enums work see
 L<enum|/language/typesystem#enum>.
 
+B<Note:> L<Rakudo|/language/glossary#Rakudo> versions up to 2018.05
+had a bug due to which numeric values of signals were incorrect on
+some systems. For example, C<Signal(10)> was returning C<SIGBUS> even
+if it was actually C<SIGUSR1> on a particular system. That being said,
+using C<signal(SIGUSR1)> was working as expected on all Rakudo
+versions except 2018.04, 2018.04.1 and 2018.05, where the intended
+behavior can be achieved by using C<signal(SIGBUS)> instead. These
+issues are resolved in Rakudo releases after 2018.05.
+
 =head2 method IO::Notification.watch-path
 
 =for code
 method watch-path($path --> Supply:D)
 
 Creates a supply to which the OS will emit values to indicate changes on the
-file system for the given path.  Also has a shortcut with the C<watch> method
+filesystem for the given path.  Also has a shortcut with the C<watch> method
 on an IO object, like this:
 
 =for code
@@ -776,3 +800,5 @@ IO::Notification.watch-path(".").act( { say "$^file changed" } );
 ".".IO.watch.act(                     { say "$^file changed" } );   # same
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

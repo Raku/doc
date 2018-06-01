@@ -13,11 +13,11 @@ Here you can find an overview of different kinds of terms.
 
 =head2 Int
 
-    =begin code :skip-test
-    42
-    12_300_00
-    :16<DEAD_BEEF>
-    =end code
+=begin code :skip-test
+42
+12_300_00
+:16<DEAD_BEEF>
+=end code
 
 L<Int> literals consist of digits and can contain underscores
 between any two digits.
@@ -39,10 +39,10 @@ with a dot, for example the C<..> L<Range> operator).
 
 =head2 Num
 
-    =begin code :skip-test
-    12.3e-32
-    3e8
-    =end code
+=begin code :skip-test
+12.3e-32
+3e8
+=end code
 
 L<Num> literals (floating point numbers) consist of L<Rat> or L<Int>
 literals followed by an C<e> and a (possibly negative) exponent. C<3e8>
@@ -143,11 +143,17 @@ compile-time exception of type L<X::Syntax::NoSelf> is thrown.
 
 =head2 term now
 
-Returns an L<Instant> object representing the current time.
+Returns an L<Instant> object representing the current time. It includes
+L<leap seconds|https://en.wikipedia.org/wiki/Leap_second> and as such a few
+dozen seconds larger than L<time|/language/terms#term_time>:
+
+    say (now - time).Int; # OUTPUT: «37␤»
 
 =head2 term time
 
-Returns the current POSIX time as an L<Int>. See L<now|/language/terms#term_now> for high-resolution timestamp.
+Returns the current POSIX time as an L<Int>. See L<now|/language/terms#term_now>
+for high-resolution timestamp that includes
+L<leap seconds|https://en.wikipedia.org/wiki/Leap_second>.
 
 =head2 term rand
 
@@ -156,22 +162,22 @@ Returns a pseudo-random L<Num> in the range C<0..^1>.
 =head2 term π
 
 Returns the number C<π>, i.e., the ratio between circumference and diameter
-of a circle. The Texas (ASCII) equivalent of C<π> is C<pi>.
+of a circle. The ASCII equivalent of C<π> is C<pi>.
 
 =head2 term pi
 
 Returns the number C<π>, i.e., the ratio between circumference and diameter
-of a circle. C<pi> is the Texas (ASCII) equivalent of C<π>.
+of a circle. C<pi> is the ASCII equivalent of C<π>.
 
 =head2 term τ
 
 Returns the number C<τ>, i.e., the ratio between circumference and radius
-of a circle. The Texas (ASCII) equivalent of C<τ> is C<tau>.
+of a circle. The ASCII equivalent of C<τ> is C<tau>.
 
 =head2 term tau
 
 Returns the number C<τ>, i.e., the ratio between circumference and radius
-of a circle. C<tau> is the Texas (ASCII) equivalent of C<τ>.
+of a circle. C<tau> is the ASCII equivalent of C<τ>.
 
 =head2 term e
 
@@ -189,8 +195,10 @@ Variables are discussed in the L<variable language docs |/language/variables>.
 
 X<|constant (Terms)>
 Constants are declared with C<constant>, followed by an
-L<identifier|/language/syntax#Identifiers> and do not require a sigil. The RHS
-is evaluated at compile time, what may be too early to make sense.
+L<identifier|/language/syntax#Identifiers> and do not require a
+sigil. The right-hand side is evaluated at compile time, therefore
+being possibly too early to make sense.
+
 
     constant SpeedOfLight = 299792458;     # m/s
     constant PHI          = 1.61803398875; # The golden ratio is everywhere!
@@ -198,9 +206,36 @@ is evaluated at compile time, what may be too early to make sense.
     say POW2[16];
     # OUTPUT: «65536␤»
 
-Constants are C<our>-scoped by default, but adding C<my> would make them lexical.
+Since constant's right-hand side is evaluated at compile time, their
+usage within modules could lead to unexpected behavior, please see the
+related
+L<traps section|https://docs.perl6.org/language/traps#Constants_are_Compile_Time>.
 
-    # Use "my" to make it only visible within the current block
-    my constant SpeedOfLight = 186200; # mi/s (watch out, not SI units)
+Constants are C<our>-scoped by default, but adding C<my> would make them lexical:
+
+=begin code
+constant SpeedOfLight = 186200;
+constant Unit         = 'mi/s';
+{
+    my constant SpeedOfLight  = 299_792_458;
+    my constant Unit          = 'm/s';
+    my constant Source        = 'wikipedia';
+    say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
+}
+say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
+# here 'wikipedia' is out of scope !
+=end code
+
+that will produce the following output (note how the constants have been
+lexically overwritten):
+
+=for code :lang<output>
+Speed of Light is 299792458 m/s
+Speed of Light is 186200 mi/s
+
+Referencing a lexical C<constant> outside of the block will produce
+an C<Undeclared name> compilation error.
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -16,37 +16,49 @@ L<Any|/type/Any>.
 
 =head1 Methods
 
-=head2 routine defined
+=head2 method defined X<|method,defined>
 
-    multi sub    defined(Mu --> Bool:D)
+Declared as
+
     multi method defined(   --> Bool:D)
 
-Returns C<False> on the type object, and C<True> otherwise.
+Returns C<False> on a type object, and C<True> otherwise.
 
     say Int.defined;                # OUTPUT: «False␤»
     say 42.defined;                 # OUTPUT: «True␤»
 
-Very few types (like L<Failure|/type/Failure>) override C<defined> to return
+A few types (like L<Failure|/type/Failure>) override C<defined> to return
 C<False> even for instances:
 
     sub fails() { fail 'oh noe' };
     say fails().defined;            # OUTPUT: «False␤»
+
+
+=head2 routine defined
+
+Declared as
+
+    multi sub defined(Mu --> Bool:D)
+
+invokes the C<.defined> method on the object and returns its result.
+
 
 =head2 routine isa
 
     multi method isa(Mu $type     --> Bool:D)
     multi method isa(Str:D $type  --> Bool:D)
 
-Returns C<True> if the invocant is an instance of class C<$type>, a subset type or a derived class (through inheritance) of C<$type>.
+Returns C<True> if the invocant is an instance of class C<$type>, a subset type or a derived class (through inheritance) of C<$type>. Unlike L<C<does>|/routine/does#(Mu)_routine_does>, which includes roles.
 
     my $i = 17;
     say $i.isa("Int");   # OUTPUT: «True␤»
     say $i.isa(Any);     # OUTPUT: «True␤»
+    role Truish {};
+    my $but-true = 0 but Truish;
+    say $but-true.^name;        # OUTPUT: «Int+{Truish}␤»
+    say $but-true.does(Truish); # OUTPUT: «True␤»
+    say $but-true.isa(Truish);  # OUTPUT: «False␤»
 
-A more idiomatic way to do this is to use the smartmatch operator L<~~|/routine/~~> instead.
-
-    my $s = "String";
-    say $s ~~ Str;       # OUTPUT: «True␤»
 
 =head2 routine does
 
@@ -59,7 +71,14 @@ Returns C<True> if and only if the invocant conforms to type C<$type>.
     say $d.does(Any);                 # True    (Date is a subclass of Any)
     say $d.does(DateTime);            # False   (Date is not a subclass of DateTime)
 
-Using the smart match operator L<~~|/routine/~~> is a more idiomatic alternative.
+Unlike L<C<isa>|https://docs.perl6.org/routine/isa#(Mu)_routine_isa>, which
+returns C<True> only for superclasses, C<does> includes both superclasses and
+roles.
+
+=for code :preamble<my $d = Date.new('2016-06-03');>
+say $d.isa(Dateish); # OUTPUT: «False␤»
+
+Using the smartmatch operator L<~~|/routine/~~> is a more idiomatic alternative.
 
     my $d = Date.new('2016-06-03');
     say $d ~~ Dateish;                # OUTPUT: «True␤»
@@ -80,7 +99,7 @@ empty L<string|/type/Str> or numerical zeros
     say Mu.new.Bool;                # OUTPUT: «True␤»
     say [1, 2, 3].Bool;             # OUTPUT: «True␤»
     say [].Bool;                    # OUTPUT: «False␤»
-    say { 'hash' => 'full' }.Bool;  # OUTPUT: «True␤»
+    say %( hash => 'full' ).Bool;   # OUTPUT: «True␤»
     say {}.Bool;                    # OUTPUT: «False␤»
     say "".Bool;                    # OUTPUT: «False␤»
     say 0.Bool;                     # OUTPUT: «False␤»
@@ -89,7 +108,7 @@ empty L<string|/type/Str> or numerical zeros
 
 =head2 method Capture
 
-Defined as:
+Declared as:
 
     method Capture(Mu:D: --> Capture:D)
 
@@ -109,7 +128,7 @@ public attributes:
 Returns a string representation of the invocant, intended to be machine
 readable. Method C<Str> warns on type objects, and produces the empty string.
 
-    say Mu.Str;                     # Use of uninitialized value of type Mu in string context.
+    say Mu.Str;   # Use of uninitialized value of type Mu in string context.
 
 =head2 routine gist
 
@@ -125,17 +144,15 @@ defined invocants, and returns the type name in parenthesis for type object
 invocants. Many built-in classes override the case of instances to something
 more specific that may truncate output.
 
-C<gist> is the method that L<say> calls implicitly, for non-L<Str> types,
-so C<say $something> and C<say $something.gist> generally produce the same
-output.
+C<gist> is the method that L<say> calls implicitly, so C<say $something> and
+C<say $something.gist> generally produce the same output.
 
     say Mu.gist;        # OUTPUT: «(Mu)␤»
     say Mu.new.gist;    # OUTPUT: «Mu.new␤»
 
 =head2 routine perl
 
-    multi sub    perl(Mu --> Str)
-    multi method perl(   --> Str)
+    multi method perl(--> Str)
 
 Returns a Perlish representation of the object (i.e., can usually
 be re-evaluated with L<EVAL|/routine/EVAL> to regenerate the object). The exact output of
@@ -148,9 +165,9 @@ write a Perl expression that produces a particular value
 
 Forces the invocant to be evaluated in item context and returns the value of it.
 
-    say [1,2,3].item.perl;         # OUTPUT: «$[1, 2, 3]␤»
-    say { apple => 10 }.item.perl; # OUTPUT: «${:apple(10)}␤»
-    say "abc".item.perl;           # OUTPUT: «"abc"␤»
+    say [1,2,3].item.perl;          # OUTPUT: «$[1, 2, 3]␤»
+    say %( apple => 10 ).item.perl; # OUTPUT: «${:apple(10)}␤»
+    say "abc".item.perl;            # OUTPUT: «"abc"␤»
 
 =head2 method self
 
@@ -162,9 +179,9 @@ Returns the object it is called on.
 
     method clone(*%twiddles)
 
-Creates a shallow clone of the invocant. Alternative values for I<public>
-attributes can be provided via named arguments with names matching the
-attributes' names.
+Creates a shallow clone of the invocant, including shallow cloning of private
+attributes. Alternative values for I<public> attributes can be provided via
+named arguments with names matching the attributes' names.
 
 =begin code
 class Point2D {
@@ -178,6 +195,58 @@ my $p = Point2D.new(x => 2, y => 3);
 
 say $p;                     # OUTPUT: «Point(2, 3)␤»
 say $p.clone(y => -5);      # OUTPUT: «Point(2, -5)␤»
+=end code
+
+Note that C<.clone> does not go the extra mile to shallow-copy C<@.> and C<%.>
+sigiled attributes and, if modified, the modifications will still be available
+in the original object:
+
+=begin code
+class Foo {
+    has $.foo is rw = 42;
+    has &.boo is rw = { say "Hi" };
+    has @.bar       = <a b>;
+    has %.baz       = <a b c d>;
+}
+
+my $o1 = Foo.new;
+with my $o2 = $o1.clone {
+    .foo = 70;
+    .bar = <Z Y>;
+    .baz = <Z Y X W>;
+    .boo = { say "Bye" };
+}
+
+# Hash and Array attribute modifications in clone appear in original as well:
+say $o1;    # OUTPUT: «Foo.new(foo => 42, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+say $o2;    # OUTPUT: «Foo.new(foo => 70, bar => ["Z", "Y"], baz => {:X("W"), :Z("Y")}, …␤»
+$o1.boo.(); # OUTPUT: «Hi␤»
+$o2.boo.(); # OUTPUT: «Bye␤»
+=end code
+
+To clone those, you could implement your own C<.clone> that clones the
+appropriate attributes and passes the new values to C<Mu.clone>, for example,
+via L«C<nextwith>|/language/functions#sub_nextwith». Alternatively,
+your own C<.clone> could clone self first
+(using C<self.Mu::clone> or L«C<callsame>|/language/functions#sub_callsame»)
+and then manipulate the clone as needed, before returning it.
+
+=begin code
+class Bar {
+    has @.foo = <a b>;
+    has %.bar = <a b c d>;
+    method clone { nextwith :foo(@!foo.clone) :bar(%!bar.clone) }
+}
+
+my $o1 = Bar.new;
+with my $o2 = $o1.clone {
+    .foo = <Z Y>;
+    .bar = <Z Y X W>;
+}
+
+# Hash and Array attribute modifications in clone do not affect original:
+say $o1; # OUTPUT: «Bar.new(foo => ["a", "b"], bar => {:a("b"), :c("d")})␤»
+say $o2; # OUTPUT: «Bar.new(foo => ["Z", "Y"], bar => {:X("W"), :Z("Y")})␤»
 =end code
 
 =head2 method new
@@ -250,20 +319,26 @@ stringifying non-C<Str> object using the C<.Str> method.
 
     multi method say(--> Bool:D)
 
-Prints value to C<$*OUT> after stringification using C<.gist> method with
+Prints value to C<$*OUT> after stringification using L<gist|/routine/gist> method with
 newline at end. To produce machine readable output use C<.put>.
 
     say 42;                 # OUTPUT: «42␤»
+
+In non-sink context, C<say> will always return C<True>.
+
+    say (1,[1,2],"foo",Mu).map: so *.say ;# OUTPUT: «1␤[1 2]␤foo␤(Mu)␤(True True True True)␤»
+
+C<say> is first printing out, but the outermost C<say> is printing the C<True> values returned by the C<so> operation.
 
 =head2 method ACCEPTS
 
     multi method ACCEPTS(Mu:U: $other)
 
-C<ACCEPTS> is the method that smart matching with the L<infix ~~|/routine/~~>
+C<ACCEPTS> is the method that smartmatching with the L<infix ~~|/routine/~~>
 operator and given/when invokes on the right-hand side (the matcher).
 
-The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms to the invocant
-(which is always a type object or failure).
+The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms
+to the invocant (which is always a type object or failure).
 
     say 42 ~~ Mu;           # OUTPUT: «True␤»
     say 42 ~~ Int;          # OUTPUT: «True␤»
@@ -291,25 +366,22 @@ Returns an C<Int> representing the memory address of the object.
 
 =head2 method WHY
 
-    multi method WHY()
+    multi method WHY(--> Pod::Block::Declarator)
 
-Returns the attached Pod value.  For instance,
+Returns the attached Pod::Block::Declarator.
 
-=for code :skip-test
-sub cast(Spell $s)
-#= Initiate a specified spell normally
-#= (do not use for class 7 spells)
-{
-do-raw-magic($s);
+For instance:
+
+=for code :preamble<class Spell {};sub do-raw-magic(Spell) {};> :method<False>
+#| Initiate a specified spell normally
+sub cast(Spell $s) {
+  do-raw-magic($s);
 }
+#= (do not use for class 7 spells)
 say &cast.WHY;
+# OUTPUT: «Initiate a specified spell normally␤(do not use for class 7 spells)␤»
 
-prints
-
-=for code :skip-test
-Initiate a specified spell normally (do not use for class 7 spells)
-
-See the L<documentation specification|https://design.perl6.org/S26.html> for
+See L<Pod declarator blocks|/language/pod#Declarator_blocks> for
 details about attaching Pod to variables, classes, functions, methods, etc.
 
 =head2 trait is export
@@ -337,7 +409,7 @@ checked unless the return value is C<Nil>. A control exception is raised and
 can be caught with L<CONTROL|/language/phasers#CONTROL>.
 
     sub f { (1|2|3).return };
-    dd f(); # OUTPUT: «any(1, 2, 3)␤»
+    say f(); # OUTPUT: «any(1, 2, 3)␤»
 
 =head2 method return-rw
 
@@ -440,4 +512,4 @@ like so:
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

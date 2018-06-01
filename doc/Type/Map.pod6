@@ -21,6 +21,30 @@ return them always in the same order when called on the same object.
     say %e.values;  # prints "1 2\n" if the previous line
                     # printed "a b\n", "b a\n" otherwise
 
+
+To retrieve a value from the Map by key, use the C<{ }> postcircumfix
+operator:
+
+    my $map = Map.new('a', 1, 'b', 2);
+    say $map{'a'};      # OUTPUT: «1␤»
+    say $map{ 'a', 'b' }; # OUTPUT: «(1 2)␤»
+
+To check whether a given key is stored in a Map, modify the access
+with the C<:exists> adverb:
+
+    my $map = Map.new('a', 1, 'b', 2);
+    my $key = 'a';
+    if $map{$key}:exists {
+        say "$map{} has key $key";
+    }
+
+Being an immutable instance, it is not possible to add keys after
+a C<Map> has been initialized:
+
+   my $m = Map.new( 'a', 1, 'b', 2 );
+   $m{ 'c' } = 'foo'; # WRONG!
+                      # Cannot modify an immutable Str
+
 =head1 Methods
 
 =head2 method new
@@ -63,7 +87,7 @@ Defined as:
     multi method ACCEPTS(Map:D: Regex      $topic)
     multi method ACCEPTS(Map:D: Any        $topic)
 
-Used in smart-matching if the right-hand side is an C<Map>.
+Used in smartmatching if the right-hand side is an C<Map>.
 
 If the topic is list-like (L<Positional>), returns True if
 any of the list elements exist as a key in the Map.
@@ -77,20 +101,16 @@ the regex.
 As a fallback, the topic is coerced to a list, and the C<Positional>
 behavior is applied.
 
-To retrieve a value from the Map by key, use the C<{ }> postcircumfix
-operator:
 
-    my $map = Map.new('a', 1, 'b', 2);
-    say $map{'a'}; # OUTPUT: «1␤»
+=head2 method gist
 
-To check whether a given key is stored in a Map, modify the access
-with the C<:exists> adverb:
+Defined as:
 
-    my $map = Map.new('a', 1, 'b', 2);
-    my $key = 'a';
-    if $map{$key}:exists {
-        say "$map{} has key $key";
-    }
+    method gist(Map:D: --> Str:D)
+
+Returns the string containing the "gist" of the L<Map>,
+sorts the pairs and lists B<up to the first 100>,
+appending an ellipsis if the L<Map> has more than 100 pairs.
 
 =head2 method keys
 
@@ -163,6 +183,21 @@ Returns a C<Seq> of keys and values interleaved.
 
     Map.new('a', 1, 'b', 2).kv  # (a 1 b 2)
 
+=head2 method sort
+
+Defined as:
+
+    multi method sort(Map:D: --> Seq:D)
+
+Returns a L<Seq> of L<Pair> objects, which are the pairs of the hash,
+sorted by key. Equivalent to C<%hash.sort: *.key>
+
+    # These are equivalent:
+    say Map.new(<c 3 a 1 b 2>).sort;        # OUTPUT: «(a => 1 b => 2 c => 3)␤»
+    say Map.new(<c 3 a 1 b 2>).sort: *.key; # OUTPUT: «(a => 1 b => 2 c => 3)␤»
+
+See L<Any.sort|/type/Any#method_sort> for additional available candidates.
+
 =head2 method Int
 
 Defined as:
@@ -215,3 +250,5 @@ The returned C<Capture> will not contain any positional arguments.
     }
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

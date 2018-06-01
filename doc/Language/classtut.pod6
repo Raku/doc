@@ -269,11 +269,10 @@ task's dependency list.
     =end code
 
 X<|invocant>
-
 In many ways, this looks a lot like a C<sub> declaration. However, there are
 two important differences. First, declaring this routine as a method adds it
-to the list of methods for the current class.  Thus any instance of the
-C<Task> class can call this method with the C<.> method call operator.
+to the list of methods for the current class, thus any instance of the
+C<Task> class can call it with the C<.> method call operator.
 Second, a method places its invocant into the special variable C<self>.
 
 The method itself takes the passed parameter – which must be an instance of
@@ -313,6 +312,7 @@ C<$!done> attribute to C<True>, so that subsequent invocations of C<perform>
 on this object (if this C<Task> is a dependency of another C<Task>, for
 example) will not repeat the task.
 
+X<|! (private methods)>
 =head2 Private Methods
 
 Just like attributes, methods can also be private. Private methods are declared
@@ -462,7 +462,7 @@ on the various other dependencies in order, giving the output:
 
 =head1 Inheritance
 
-X<|is (inheritance)>
+X<|classes, inheritance>
 
 Object Oriented Programming provides the concept of inheritance as one of
 the mechanisms for code reuse.  Perl 6 supports the ability for one
@@ -475,10 +475,6 @@ other means, such as attribute accessors.
     =begin code
     class Employee {
         has $.salary;
-
-        method pay() {
-            say "Here is \$$.salary";
-        }
     }
 
     class Programmer is Employee {
@@ -486,8 +482,8 @@ other means, such as attribute accessors.
         has $.favorite_editor;
 
         method code_to_solve( $problem ) {
-            say "Solving $problem using $.favorite_editor in "
-            ~ $.known_languages[0] ~ '.';
+            return "Solving $problem using $.favorite_editor in "
+            ~ $.known_languages[0];
         }
     }
     =end code
@@ -502,8 +498,8 @@ defined in the Employee class as though they were from the Programmer class.
         favorite_editor => 'vim'
     );
 
-    $programmer.code_to_solve('halting problem');
-    $programmer.pay();
+    say $programmer.code_to_solve('halting problem'), " will get ", $programmer.salary(), "\$";
+    #OUTPUT: «Solving halting problem using vim in Perl5 will get 100000$␤»
     =end code
 
 =head2 Overriding inherited methods
@@ -537,14 +533,20 @@ class overriding the C<Cook>'s C<cook> method.
         cookbooks => 'The Joy of Cooking',
         salary => 40000);
 
-    $cook.cook( 'pizza' ); # OUTPUT: «Cooking pizza␤»
+    $cook.cook( 'pizza' );       # OUTPUT: «Cooking pizza␤»
+    say $cook.utensils.perl;     # OUTPUT: «["spoon", "ladle", "knife", "pan"]␤»
+    say $cook.cookbooks.perl;    # OUTPUT: «["The Joy of Cooking"]␤»
+    say $cook.salary;            # OUTPUT: «40000␤»
 
     my $baker = Baker.new(
         utensils => 'self cleaning oven',
         cookbooks => "The Baker's Apprentice",
         salary => 50000);
 
-    $baker.cook('brioche'); # OUTPUT: «Baking a tasty brioche␤»
+    $baker.cook('brioche');      # OUTPUT: «Baking a tasty brioche␤»
+    say $baker.utensils.perl;    # OUTPUT: «["self cleaning oven"]␤»
+    say $baker.cookbooks.perl;   # OUTPUT: «["The Baker's Apprentice"]␤»
+    say $baker.salary;           # OUTPUT: «50000␤»
     =end code
 
 Because the dispatcher will see the C<cook> method on C<Baker> before it
@@ -558,10 +560,9 @@ L<MOP|/type/Metamodel::ClassHOW#method_can>.
 
 As mentioned before, a class can inherit from multiple classes.  When a
 class inherits from multiple classes the dispatcher knows to look at both
-classes when looking up a method to search for.  Perl 6 uses the C3
-algorithm to linearize multiple inheritance hierarchies, which is a
-significant improvement over Perl 5's default approach
-(depth-first search) to handling multiple inheritance.
+classes when looking up a method to search for.  Perl 6 uses the L<C3 algorithm|https://en.wikipedia.org/wiki/C3_linearization> to linearize
+multiple inheritance hierarchies, which is better than depth-first search
+for handling multiple inheritance.
 
     =begin code :skip-test
     class GeekCook is Programmer is Cook {
@@ -639,7 +640,7 @@ The output can look like this:
     Programmer
     =end code
 
-The first two tests each smart-match against a class name. If the object is
+The first two tests each smartmatch against a class name. If the object is
 of that class, or of an inheriting class, it returns true. So the object in
 question is of class C<Employee> or one that inherits from it, but not
 C<GeekCook>.
@@ -681,4 +682,37 @@ But there are other applications too: a routine that serializes objects to a
 bunch of bytes needs to know the attributes of that object, which it can
 find out via introspection.
 
+=head2 X<Overriding default gist method>
+
+Some classes might need its own version of C<gist>, which overrides the terse way it is printed when called to provide a default representation of the class. For instance, L<exceptions|/language/exceptions#Uncaught_Exceptions> might want to write just the C<payload> and not the full object so that it is clearer what has happened. But you can do that with every class:
+
+=begin code
+class Cook {
+    has @.utensils  is rw;
+    has @.cookbooks is rw;
+
+    method cook( $food ) {
+        return "Cooking $food";
+    }
+
+    method clean_utensils {
+        return "Cleaning $_" for @.utensils;
+    }
+
+    multi method gist(Cook:U:) { '⚗' ~ self.^name ~ '⚗' }
+    multi method gist(Cook:D:) { '⚗ Cooks with ' ~ @.utensils.join( " ‣ ") ~ ' using ' ~ @.cookbooks.map( "«" ~ * ~ "»").join( " and ") }
+}
+
+my $cook = Cook.new(
+    utensils => <spoon ladle knife pan>,
+    cookbooks => ['Cooking for geeks','The French Chef Cookbook']);
+
+say Cook.gist; # OUTPUT: «⚗Cook⚗»
+say $cook.gist; # OUTPUT: «⚗ Cooks with spoon ‣ ladle ‣ knife ‣ pan using «Cooking for geeks» and «The French Chef Cookbook»␤»
+=end code
+
+Usually you will want to define two methods, one for the class and another for instances; in this case, the class method uses the alembic symbol, and the instance method, defined below, aggregates the data we have on the cook to show it in a narrative way.
+
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

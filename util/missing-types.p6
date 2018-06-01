@@ -11,7 +11,7 @@ for $t.sorted  -> $type {
     printf "%-40s not defined in this Perl\n", $type.name()
         if $actual === Any and $type.name ne "Any" | "Failure" | "Nil";
     next unless $actual.^name eq $type.name;
-    my $filename = 'doc/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.pod';
+    my $filename = 'doc/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.pod6';
     printf "%-40s not found in documentation\n", $type.name() unless $filename.IO.e;
     CATCH { default { } }
 }

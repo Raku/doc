@@ -2,13 +2,18 @@
 
 =TITLE class Cool
 
-=SUBTITLE Value that can be treated as a string or number interchangeably
+=SUBTITLE Object that can be treated as both a string and number
 
     class Cool is Any { }
 
 C<Cool>, also known as the B<C>onvenient B<OO> B<L>oop, is a base class
-for strings, numbers and other built-in classes that you are supposed to use
-mostly interchangeably.
+employed by a number of built-in classes that can be meaningfully coerced
+to a string and a number. For example, an L<Array> can be used in mathematical
+operations, where its numerical representation is the number of elements it
+contains. At the same time, it can be concatenated to a string, where its
+stringy representation is all of its elements L<joined|/routine/join> by
+a space. Because L<Array> is L<Cool>, the appropriate coercion happens
+automatically.
 
 Methods in C<Cool> coerce the invocant to a more
 specific type, and then call the same method on that type. For example both
@@ -651,8 +656,7 @@ Defined as:
     method ord()
 
 Coerces the invocant (or in sub form, its argument) to
-L<Str|/type/Str>, and returns the L<Unicode code
-point|https://en.wikipedia.org/wiki/Code_point> number of the first
+L<Str|/type/Str>, and returns the L<Unicode code point|https://en.wikipedia.org/wiki/Code_point> number of the first
 code point.
 
     say 'a'.ord;            # OUTPUT: «97␤»
@@ -660,6 +664,19 @@ code point.
 The inverse operation is L<chr|#method chr>.
 
 Mnemonic: returns an ordinal number
+
+=head2 method path
+
+Defined as:
+
+    method path()
+
+B<DEPRECATED>. I<Existed only in the Rakudo implementation and isn't part of
+any language released. Issues deprecation warnings in 6.d language and will be
+removed  entirely when 6.e language is released.>
+
+Stringifies the invocant and converts it to L<IO::Path> object.
+Use the L«C<.IO method>|/routine/IO» instead.
 
 =head2 routine chr
 
@@ -690,6 +707,30 @@ number of characters in the string. Please note that on the JVM, you currently g
 codepoints instead of graphemes.
 
     say 'møp'.chars;    # OUTPUT: «3␤»
+    say 'ã̷̠̬̊'.chars;     # OUTPUT: «1␤»
+    say '👨‍👩‍👧‍👦🏿'.chars;    # OUTPUT: «1␤»
+
+X<|Grapheme>
+
+Graphemes are user visible characters. That is, this is what the user
+thinks of as a “character”.
+
+Graphemes can contain more than one
+codepoint. Typically the number of graphemes and codepoints differs
+when C<Prepend> or C<Extend> characters are involved (also known as
+L<Combining characters|https://en.wikipedia.org/wiki/Combining_character>), but
+there are many other cases when this may happen. Another example is C<\c[ZWJ]>
+(L<Zero-width joiner|https://en.wikipedia.org/wiki/Zero-width_joiner>).
+
+You can check C<Grapheme_Cluster_Break> property of a character in
+order to see how it is going to behave:
+
+    say ‘ã̷̠̬̊’.uniprops(‘Grapheme_Cluster_Break’); # OUTPUT: «(Other Extend Extend Extend Extend)␤»
+    say ‘👨‍👩‍👧‍👦🏿’.uniprops(‘Grapheme_Cluster_Break’); # OUTPUT: «(E_Base_GAZ ZWJ E_Base_GAZ ZWJ E_Base_GAZ ZWJ E_Base_GAZ E_Modifier)␤»
+
+You can read more about graphemes in the
+L<Unicode Standard|http://unicode.org/reports/tr29/#Grapheme_Cluster_Boundaries>,
+which Perl 6 tightly follows, using a method called L<NFG, normal form graphemes|/language/glossary#NFG> for efficiently representing them.
 
 =head2 routine codes
 
@@ -702,6 +743,12 @@ Coerces the invocant (or in sub form, its argument) to L<Str|/type/Str>, and ret
 L<Unicode code points|https://en.wikipedia.org/wiki/Code_point>.
 
     say 'møp'.codes;    # OUTPUT: «3␤»
+
+The same result will be obtained with
+
+    say +'møp'.ords;    # OUTPUT: «3␤»
+
+L<ords> first obtains the actual codepoints, so there might be a difference in speed.
 
 =head2 routine flip
 
@@ -812,7 +859,7 @@ Defined as:
 
 Coerces the invocant (or in sub form, its argument) to L<Str|/type/Str>, and returns it with the first letter
 case-folded to title case (or where not available, upper case), and the rest
-of the string case-folded to lower case..
+of the string case-folded to lower case.
 
     say 'abC'.tclc;     # OUTPUT: «Abc␤»
 
@@ -824,7 +871,7 @@ Defined as:
     method wordcase(:&filter = &tclc, Mu :$where = True)
 
 Coerces the invocant (or in sub form, the first argument) to L<Str|/type/Str>, and filters each word that
-smart-matches against C<$where> through the C<&filter>. With the default
+smartmatches against C<$where> through the C<&filter>. With the default
 filter (first character to upper case, rest to lower) and matcher (which
 accepts everything), this title-cases each word:
 
@@ -862,14 +909,13 @@ C<$pattern> is applied to the remaining characters of C<$string>.
 
 Defined as:
 
-    multi sub uniprop(Str(Cool), |c)
+    multi sub uniprop(Str:D, |c)
+    multi sub uniprop(Int:D $code)
     multi sub uniprop(Int:D $code, Stringy:D $propname)
-    multi sub uniprop(Str, $code, Stringy:D $propname)
     multi method uniprop(|c)
 
-Interprets the invocant as a L<Str|/type/Str>, and returns the
-L<unicode property|http://userguide.icu-project.org/strings/properties> of the first
-character. If no property is specified returns the
+Returns the L<unicode property|http://userguide.icu-project.org/strings/properties>
+of the first character. If no property is specified returns the
 L<General Category|https://en.wikipedia.org/wiki/Unicode_character_property#General_Category>.
 Returns a Bool for Boolean properties.
 
@@ -900,7 +946,8 @@ Defined as:
 
 Interprets the invocant / first argument as a L<Str|/type/Str>, and returns the
 Unicode codepoint name of the first codepoint of the first character. See
-L<uninames|#routine_uninames> for a routine that works with multiple codepoints.
+L<uninames|#routine_uninames> for a routine that works with multiple
+codepoints, and L<uniparse> for the opposite direction.
 
     # Camelia in Unicode
     say ‘»ö«’.uniname;
@@ -929,6 +976,8 @@ codepoints in that character.
 
     say "Ḍ̇'oh".comb>>.uninames.perl;
     # OUTPUT: «(("LATIN CAPITAL LETTER D WITH DOT BELOW", "COMBINING DOT ABOVE").Seq, ("APOSTROPHE",).Seq, ("LATIN SMALL LETTER O",).Seq, ("LATIN SMALL LETTER H",).Seq)␤»
+
+See L<uniparse> for the opposite direction.
 
 =head2 method unimatch
 
@@ -974,27 +1023,12 @@ character removed, if it is a logical newline.
 
 Defined as:
 
-    sub substr(Str(Cool) $str, $from, $chars?)
-    method substr($from, $chars?)
+    sub substr(Str(Cool) $str, |c)
+    method substr(|c)
 
 Coerces the invocant (or in the sub form, the first argument) to
-L<Str|/type/Str>, and returns the string starting from offset C<$from>. If
-C<$chars> is supplied, at most C<$chars> characters are returned.
-
-    say 'zenith'.substr(2);         # OUTPUT: «nith␤»
-    say 'zenith'.substr(0, 3);      # OUTPUT: «zen␤»
-
-    # works on non-strings too:
-    say 20151224.substr(6);         # OUTPUT: «24␤»
-
-    # sub form:
-    say substr "zenith", 0, 3;      # OUTPUT: «zen␤»
-
-If the C<$from> parameter is a L<Callable|/type/Callable>, it is called with
-the number of chars in the string as argument. This allows easy indexing
-relative to the end:
-
-    say 20151224.substr(*-2);       # OUTPUT: «24␤»
+L<Str|/type/Str>, and calls L<Str.substr|/type/Str#routine_substr> with
+the arguments.
 
 =head2 routine ords
 
@@ -1010,7 +1044,8 @@ L<Str|/type/Str>, and returns a list of Unicode codepoints for each character.
     say ords 10;                     # OUTPUT: «49 48␤»
 
 This is the list-returning version of L<ord>. The inverse operation in
-L<chrs>.
+L<chrs>. If you are only interested in the number of codepoints,
+L<codes> is a possibly faster option.
 
 =head2 routine chrs
 
@@ -1088,7 +1123,7 @@ You can only use one of the C<:k, :v, :kv, :p> adverbs in a single call
 to C<split>.
 
 Note that empty chunks are not removed from the result list.
-For that behavior, use the `:skip-empty` named argument:
+For that behavior, use the C<:skip-empty> named argument:
 
     say ("f,,b,c,d".split: /","/             ).perl;  # OUTPUT: «("f", "", "b", "c", "d")␤»
     say ("f,,b,c,d".split: /","/, :skip-empty).perl;  # OUTPUT: «("f", "b", "c", "d")␤»
@@ -1248,16 +1283,12 @@ say @roots;
 for @roots -> $r {
     say abs($r ** 4 - $original);
 }
-=end code
 
-produces this output:
-
-=begin code :skip-test
-2+0i 1.22464679914735e-16+2i -2+2.44929359829471e-16i -3.67394039744206e-16-2i
-1.77635683940025e-15
-4.30267170434156e-15
-8.03651692704705e-15
-1.04441561648202e-14
+# OUTPUT:«2+0i 1.22464679914735e-16+2i -2+2.44929359829471e-16i -3.67394039744206e-16-2i␤»
+# OUTPUT:«1.77635683940025e-15␤»
+# OUTPUT:«4.30267170434156e-15␤»
+# OUTPUT:«8.03651692704705e-15␤»
+# OUTPUT:«1.04441561648202e-14␤»
 =end code
 
 =head2 method IO
@@ -1275,9 +1306,17 @@ Coerces the invocant to L<IO::Path>.
 
 Defined as:
 
-    sub EVAL(Cool $code, :$lang = { ... })
+=for code
+method EVAL(*%_)
+=for code
+sub EVAL($code where Cool|Blob, :$lang = 'perl6')
 
-Coerces the invocant to L<Str>.
+Method form calls subroutine form with invocant as C<$code>, passing along
+named args, if any. Subroutine form coerces L<Cool> C<$code> to L<Str>.
+If C<$code> is a L<Blob>, it'll be processed using the same encoding as
+the C<$lang> compiler would: for C<perl6>, uses the encoding specified
+via C<--encoding> command line argument, or C<utf-8> if none were given;
+for C<Perl5>, processes using same rules as C<perl>.
 
 This works as-is with a literal string parameter. More complex input, such as
 a variable or string with embedded code, is illegal by default. This can be
@@ -1331,10 +1370,10 @@ EVAL "use v5.20; say 'Hello from perl5!'", :lang<Perl5>;
 
 Defined as:
 
-    sub EVALFILE(Cool $filename, :$lang = { ... })
+    sub EVALFILE($filename where Blob|Cool, :$lang = 'perl6')
 
 Slurps the specified file and evaluates it. Behaves the same way as C<EVAL>
-with regard to both scoping and the C<$lang> parameter. Evaluates to the value
+with regard to L<Blob> decoding, scoping, and the C<$lang> parameter. Evaluates to the value
 produced by the final statement in the file.
 
 =for code
@@ -1350,4 +1389,4 @@ match, subst, sprintf, printf, samecase
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

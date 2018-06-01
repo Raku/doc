@@ -1,6 +1,9 @@
+#!/usr/bin/env perl6
+
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
 =begin overview
 
@@ -8,17 +11,8 @@ Insure any text that isn't a code example has a space after each comma.
 
 =end overview
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.' ('pod6'|'md') $/;
-        next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-        push @files, $file;
-    }
-}
+my @files = Test-Files.documents\
+    .grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
@@ -32,6 +26,7 @@ sub test-promise($promise) {
 sub test-it(Str $output, Str $file) {
     my $ok = True;
 
+    my $msg = '';
     for $output.lines -> $line-orig {
         next if $line-orig ~~ / ^ '    '/;
         my $line = $line-orig;
@@ -53,12 +48,19 @@ sub test-it(Str $output, Str $file) {
         $line ~~ s:g/ << 'thing,category' >> //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
-            diag "Failure on line `$line-orig`";
+            $msg ~= "Must have space after comma on line `$line`\n";
+            diag "Failure on line `$line`";
+            $ok = False;
+        }
+
+        if $line-orig ~~ / <alpha> '..' (<space> | $) / {
+            $msg ~= "File contains .. in `$line-orig`\n";
+            diag "Failure on line `$line`";
             $ok = False;
         }
     }
     my $error = $file;
-    ok $ok, "$error: Must have space after comma.";
+    ok $ok, "$error: $msg";
 }
 
 my @jobs;

@@ -1,9 +1,19 @@
+#!/usr/bin/env perl6
+
 use v6;
+
+{
+    # Cache no worries pragma; workaround for https://github.com/rakudo/rakudo/issues/1630
+    # to avoid warnings produced from regexes when we're compiling examples.
+    no worries;
+    "" ~~ /./;
+}
+
 use Test;
-use IO::String;
 
 use lib 'lib';
 use Pod::Convenience;
+use Test-Files;
 
 =begin overview
 
@@ -15,18 +25,14 @@ avoid requiring a body.
 Skip any bits marked :skip-test unless the environment variable
 P6_DOC_TEST_FUDGE is set to a true value.
 
+Note: This test generates a lot of noisy output to stderr; we
+do hide $*ERR, but some of these are emitted from parts of
+the compiler that only know about the low level handle, not the
+Perl 6 level one.
+
 =end overview
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    for qx<git ls-files doc>.lines -> $file {
-        next unless $file ~~ / '.pod6' $/;
-        push @files, $file;
-    }
-}
+my @files = Test-Files.pods;
 
 sub walk($arg) {
     given $arg {
@@ -56,7 +62,7 @@ for @files -> $file {
                 'todo',      $todo,
                 'ok-test',   $chunk.config<ok-test> // "",
                 'preamble',  $chunk.config<preamble> // "",
-                'method',    $chunk.config<method> // False,
+                'method',    $chunk.config<method> // "",
             );
         }
     }
@@ -65,13 +71,16 @@ for @files -> $file {
 my $proc;
 plan +@examples;
 
-my $dummy-io = IO::String.new();
 for @examples -> $eg {
     use MONKEY-SEE-NO-EVAL;
 
     # #1355 - don't like .WHAT in examples
     if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
-        flunk "$eg<file> chunk $eg<count>" ~ ' uses .WHAT: try .^name instead';
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .WHAT: try .^name instead';
+        next;
+    }
+    if ! $eg<ok-test>.contains('dd') && $eg<contents> ~~ / << 'dd' >> / {
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
 
@@ -79,26 +88,28 @@ for @examples -> $eg {
     # Further wrap in an anonymous class (so bare method works)
     # Add in empty routine bodies if needed
 
-    my $code = "if False \{\n class :: \{\n";
+    my $code = 'no worries; ';
+    $code ~= "if False \{\nclass :: \{\n";
     $code ~= $eg<preamble> ~ ";\n";
 
     for $eg<contents>.lines -> $line {
         $code ~= $line;
-        $line.trim;
-        if $line.starts-with(any(<multi method proto only sub>)) && !$line.ends-with(any('}',',')) && !$eg<method> {
+        if $line.trim.starts-with(any(<multi method proto only sub>)) && !$line.trim.ends-with(any('}',',')) && $eg<method> eq "" {
            $code ~= " \{}";
         }
-        $code ~= "\n" unless $eg<method>;
+        if $eg<method> eq "" || $eg<method> eq "False" {
+            $code ~= "\n";
+        }
     }
-    $code ~= "\{}\n" if $eg<method>;
+    $code ~= "\{}\n" if $eg<method> eq "True";
     $code ~= "\n}}";
 
-    my $msg = "$eg<file> chunk $eg<count> compiles";
+    my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
 
     my $status;
     {
-        $*OUT = $dummy-io;
-        $*ERR = $dummy-io;
+        temp $*OUT = open :w, $*SPEC.devnull;
+        temp $*ERR = open :w, $*SPEC.devnull;
         try EVAL $code;
         $status = $!;
     }
@@ -110,4 +121,8 @@ for @examples -> $eg {
     } else {
         pass $msg;
     }
+}
+
+sub starts-with( Str $chunk ) {
+    ($chunk.lines)[0].substr(0,10).trim
 }

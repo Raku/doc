@@ -1,11 +1,12 @@
+#!/usr/bin/env perl6
+
 use v6;
 use Test;
 use lib 'lib';
-
-my @files;
+use Test-Files;
 
 # Every .pod6 file in the Type directory.
-@files = qx<git ls-files>.lines.grep(* ~~ /'.pod6'/).grep(* ~~ /Type | Language/);
+my @files = Test-Files.pods.grep(* ~~ /Type | Language/);
 
 plan +@files;
 

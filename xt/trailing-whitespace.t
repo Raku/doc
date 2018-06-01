@@ -1,19 +1,24 @@
+#!/usr/bin/env perl6
+
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
-my @files;
+=begin overview
 
-for qx<git ls-files>.lines -> $file {
-    next if $file eq "LICENSE"|"Makefile";
-    next if $file ~~ / 'custom-theme'/;
-    next if $file ~~ / 'jquery'/;
-    next if $file ~~ / '.png' $/;
-    next if $file ~~ / '.ico' $/;
-    next if $file ~~ / 'util/trigger-rebuild.txt' /;
+Make sure that no line includes trailing whitespace.
 
-    push @files, $file;
-}
+=end overview
+
+my @files = Test-Files.files\
+    .grep({$_ ne 'LICENSE'})\
+    .grep({! $_.contains: 'custom-theme'})\
+    .grep({! $_.contains: 'util/trigger-rebuild.txt'})\
+    .grep({! $_.contains: 'jquery'})\
+    .grep({! $_.ends-with: '.png'})\
+    .grep({! $_.ends-with: '.svg'})\
+    .grep({! $_.ends-with: '.ico'});
 
 plan +@files;
 

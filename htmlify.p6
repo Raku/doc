@@ -1,28 +1,31 @@
 #!/usr/bin/env perl6
 use v6;
 
-# This script isn't in bin/ because it's not meant to be installed.
-# For syntax highlighting, needs node.js installed.
-# Please run make init-highlights to automatically pull in the highlighting
-# grammar and build the highlighter.
-#
-# for doc.perl6.org, the build process goes like this:
-# * a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
-# It looks like this:
-#
-# */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
-#
-# util/update-and-sync is under version control in the perl6/doc repo (same as
-# this file), and it first updates the git repository. If something changed, it
-# run htmlify, captures the output, and on success, syncs both the generated
-# files and the logs. In case of failure, only the logs are synchronized.
-#
-# The build logs are available at https://docs.perl6.org/build-log/
-#
+=begin overview
+
+This script isn't in bin/ because it's not meant to be installed.
+For syntax highlighting, needs node.js installed.
+Please run C<make init-highlights> to automatically pull in the highlighting
+grammar and build the highlighter.
+
+For doc.perl6.org, the build process goes like this:
+a cron job on hack.p6c.org as user 'doc.perl6.org' triggers the rebuild.
+
+    */5 * * * * flock -n ~/update.lock -c ./doc/util/update-and-sync > update.log 2>&1
+
+C<util/update-and-sync> is under version control in the perl6/doc repo (same as
+this file), and it first updates the git repository. If something changed, it
+runs C<htmlify.p6>, captures the output, and on success, syncs both the generated
+files and the logs. In case of failure, only the logs are synchronized.
+
+The build logs are available at https://docs.perl6.org/build-log/
+
+=end overview
 
 BEGIN say 'Initializing ...';
 
 use lib 'lib';
+use File::Temp;
 use JSON::Fast;
 use Pod::To::HTML;
 use URI::Escape;
@@ -60,13 +63,10 @@ monitor UrlLog {
     method log($url) { @!URLS.push($url) }
 }
 my $url-log = UrlLog.new;
-&rewrite-url.wrap(sub (|c){
-    $url-log.log(my \r = callsame);
-#    die c if r eq '$SOLIDUSsyntax$SOLIDUS#class_Slip';
+sub rewrite-url-logged(\url) {
+    $url-log.log: my \r = rewrite-url url;
     r
-});
-
-use experimental :cached;
+}
 
 my $type-graph;
 my %routines-by-type;
@@ -81,16 +81,15 @@ my @menu =
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
-#    ('module', 'Modules'   ) => (),
-#    ('formalities',''      ) => ();
 ;
 
 my $head = slurp 'template/head.html';
-sub header-html($current-selection = 'nothing selected') is cached {
+
+sub header-html($current-selection, $pod-path) {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
-        q[<div class="menu-items dark-green">],
+        q[<div class="menu-items dark-green"><a class='menu-item darker-green' href='https://perl6.org'><strong>Perl&nbsp;6 homepage</strong></a> ],
         @menu>>.key.map(-> ($dir, $name) {qq[
             <a class="menu-item {$dir eq $current-selection ?? "selected darker-green" !! ""}"
                 href="/$dir.html">
@@ -113,17 +112,32 @@ sub header-html($current-selection = 'nothing selected') is cached {
             q[</div>];
     }
 
-    state $menu-pos = ($header ~~ /MENU/).from;
-    $header.subst('MENU', :p($menu-pos), $menu-items ~ $sub-menu-items);
+    my $edit-url = "";
+    if defined $pod-path {
+      $edit-url = qq[
+      <div align="right">
+        <button title="Edit this page"  class="pencil" onclick="location='https://github.com/perl6/doc/edit/master/doc/$pod-path'">
+        {svg-for-file("html/images/pencil.svg")}
+        </button>
+      </div>]
+    }
+
+    $header.subst('MENU', $menu-items ~ $sub-menu-items)
+           .subst('EDITURL', $edit-url)
+           .subst: 'CONTENT_CLASS',
+                'content_' ~ ($pod-path
+                    ??  $pod-path.subst(/\.pod6$/, '').subst(/\W/, '_', :g)
+                    !! 'fragment');
 }
 
-sub p2h($pod, $selection = 'nothing selected', :$pod-path = 'unknown') {
+sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
     pod2html $pod,
-        :url(&rewrite-url),
+        :url(&rewrite-url-logged),
         :$head,
-        :header(header-html $selection),
+        :header(header-html($selection, $pod-path)),
         :footer(footer-html($pod-path)),
         :default-title("Perl 6 Documentation"),
+        :css-url(''), # disable Pod::To::HTML's default CSS
     ;
 }
 
@@ -150,45 +164,23 @@ sub recursive-dir($dir) {
 # in Rakudo you risk segfaults, weird errors, etc.
 my $proc;
 my $proc-supply;
-my $proc-prom;
-my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee';
+my $coffee-exe = './highlights/node_modules/coffee-script/bin/coffee'.IO.e??'./highlights/node_modules/coffee-script/bin/coffee'!!'./highlights/node_modules/coffeescript/bin/coffee';
+
 sub MAIN(
     Bool :$typegraph = False,
     Int  :$sparse,
     Bool :$disambiguation = True,
     Bool :$search-file = True,
     Bool :$no-highlight = False,
-    Bool :$force-proc-async = False,
-    Bool :$no-proc-async    = False,
     Int  :$parallel = 1,
 ) {
-
-    # TODO: For the moment rakudo doc pod files were copied
-    #       from its repo to subdir doc/Programs and modified to Perl 6 pod.
-    #       The rakudo install needs
-    #       to (1) copy those files to its installation directory (share/pod)
-    #       and (2) use Perl 5's pod2man to convert them to man pages in
-    #       the installation directory (share/man).
-    #
-    #       Then they can be copied to doc/Programs.
     if !$no-highlight {
         if ! $coffee-exe.IO.f {
             say "Could not find $coffee-exe, did you run `make init-highlights`?";
             exit 1;
         }
-        if $*DISTRO eq 'macosx' and !$force-proc-async {
-            warn-user Q/"\$*DISTRO == macos, so Proc::Async will not be used.
-            due to freezes from using Proc::Async.
-            For more info see Issue #1129/;
-            $no-proc-async := True;
-        }
-        if $no-proc-async {
-            warn-user "Proc::Async is disabled, this build will take a very long time.";
-        }
-        else {
-            $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
-            $proc-supply = $proc.stdout.lines;
-        }
+        $proc = Proc::Async.new($coffee-exe, './highlights/highlight-filename-from-stdin.coffee', :r, :w);
+        $proc-supply = $proc.stdout.lines;
     }
     say 'Creating html/subdirectories ...';
 
@@ -207,7 +199,7 @@ sub MAIN(
     process-pod-dir 'Language', :$sparse, :$parallel;
     process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
-    highlight-code-blocks(:no-proc-async($no-proc-async)) unless $no-highlight;
+    highlight-code-blocks unless $no-highlight;
 
     say 'Composing doc registry ...';
     $*DR.compose;
@@ -241,7 +233,7 @@ sub MAIN(
         say "This is a sparse or incomplete run. DO NOT SYNC WITH doc.perl6.org!";
     }
 
-    spurt('html/links.txt', $url-log.URLS.sort.unique.join("\n"));
+    spurt('links.txt', $url-log.URLS.sort.unique.join("\n"));
 }
 
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
@@ -274,11 +266,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         }
 
         if $num %% $parallel {
-            await Promise.allof: @pod-files;
+            await @pod-files;
             @pod-files = ();
         }
 
-        LAST await Promise.allof: @pod-files;
+        LAST await @pod-files;
     }
 }
 
@@ -332,7 +324,6 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     }
 }
 
-# XXX: Generalize
 multi write-type-source($doc) {
     sub href_escape($ref) {
         # only valid for things preceded by a protocol, slash, or hash
@@ -350,18 +341,21 @@ multi write-type-source($doc) {
     }
 
     if $type {
-        my $graph-contents = slurp 'template/type-graph.html';
-        $graph-contents .= subst('ESCAPEDPODNAME', uri_escape($podname), :g);
-        $graph-contents .= subst('PODNAME', $podname);
-        $graph-contents .= subst('INLINESVG', svg-for-file("html/images/type-graph-$podname.svg"));
-
-        $pod.contents.append: Pod::Raw.new(
-            target => 'html',
-            contents => $graph-contents,
-        );
-
-        my @mro = $type.mro;
-           @mro.shift; # current type is already taken care of
+        $pod.contents.append:
+          pod-heading("Type Graph"),
+          Pod::Raw.new: :target<html>, contents => q:to/CONTENTS_END/;
+              <figure>
+                <figcaption>Type relations for
+                  <code>\qq[$podname]</code></figcaption>
+                \qq[&svg-for-file("html/images/type-graph-$podname.svg")]
+                <p class="fallback">
+                  Stand-alone image:
+                  <a rel="alternate"
+                    href="/images/type-graph-\qq[&uri_escape($podname)].svg"
+                    type="image/svg+xml">vector</a>
+                </p>
+              </figure>
+              CONTENTS_END
 
         my @roles-todo = $type.roles;
         my %roles-seen;
@@ -374,32 +368,35 @@ multi write-type-source($doc) {
                 pod-block(
                     "$podname does role ",
                     pod-link($role.name, "/type/{href_escape ~$role}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$role}.list,
             ;
         }
-        for @mro -> $class {
+        for $type.mro.skip -> $class {
+            if $type ne "Any" {
+                next if $class ~~ "Any" | "Mu";
+            }
             next unless %routines-by-type{$class};
             $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
                     pod-link($class.name, "/type/{href_escape ~$class}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$class}.list,
             ;
             for $class.roles -> $role {
                 next unless %routines-by-type{$role};
                 $pod.contents.append:
-                    pod-heading("Methods supplied by role $role"),
+                    pod-heading("Routines supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
                         pod-link($class.name, "/type/{href_escape ~$class}"),
                         ", which does role ",
                         pod-link($role.name, "/type/{href_escape ~$role}"),
-                        ", which provides the following methods:",
+                        ", which provides the following routines:",
                     ),
                     %routines-by-type{$role}.list,
                 ;
@@ -456,12 +453,12 @@ sub register-reference(:$pod!, :$origin, :$url) {
         for @( $pod.meta ) -> $meta {
             my $name;
             if $meta.elems > 1 {
-                my $last = $meta[*-1];
-                my $rest = $meta[0..*-2].join;
+                my $last = textify-guts $meta[*-1];
+                my $rest = $meta[0..*-2]».&textify-guts.join;
                 $name = "$last ($rest)";
             }
             else {
-                $name = $meta.Str;
+                $name = textify-guts $meta;
             }
             $*DR.add-new(
                 :$pod,
@@ -480,9 +477,17 @@ sub register-reference(:$pod!, :$origin, :$url) {
             :$url,
             :kind<reference>,
             :subkinds['reference'],
-            :$name,
+            :name(textify-guts $name),
         );
     }
+}
+
+multi textify-guts (Any:U,       ) { '' }
+multi textify-guts (Str:D      \v) { v }
+multi textify-guts (List:D     \v) { v».&textify-guts.Str }
+multi textify-guts (Pod::Block \v) {
+    use Pod::To::Text;
+    pod2text v;
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
@@ -516,18 +521,20 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             # XXX: Remove when extra "" have been purged
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
@@ -544,15 +551,18 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = .[2].words[0], .[1].contents[0];
+                @definitions = .[2].words[0], textify-guts .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
+                proceed if ( # not looking for - baz X<baz>
+                    (@definitions[1] // '') eq '' and .[1].type eq 'X'
+                );
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             default { next }
         }
@@ -586,7 +596,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :$summary,
                     ;
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
+                when 'variable'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
@@ -648,12 +658,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                 $created.categories = @subkinds;
             }
             if %attr<kind> eq 'routine' {
-                %routines-by-type{$origin.name}.append: $chunk;
-                write-qualified-method-call(
-                    :$name,
-                    :pod($chunk),
-                    :type($origin.name),
-                );
+              %routines-by-type{$origin.name}.append: $chunk;
             }
         }
         $i = $new-i + 1;
@@ -680,13 +685,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await Promise.allof: @type-graph-images;
+            await @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await Promise.allof: @type-graph-images;
+        LAST await @type-graph-images;
     }
     say '';
 
@@ -703,11 +708,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await Promise.allof: @specialized-visualizations;
+            await @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        LAST await Promise.allof: @specialized-visualizations;
+        LAST await @specialized-visualizations;
     }
 }
 
@@ -761,7 +766,9 @@ sub write-search-file() {
             .pairs.sort({.key}).map: -> (:key($name), :value(@docs)) {
                 qq[[\{ category: "{
                     ( @docs > 1 ?? $kind !! @docs.[0].subkinds[0] ).wordcase
-                }", value: "$name", url: " {rewrite-url(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g) }" \}]] #"
+                }", value: "$name",
+                    url: " {rewrite-url-logged(@docs.[0].url).subst(｢\｣, ｢%5c｣, :g).subst('"', '\"', :g).subst(｢?｣, ｢%3F｣, :g) }" \}
+                  ]] # " and ?
             }
     }).flat;
 
@@ -773,14 +780,18 @@ sub write-search-file() {
         $_, $url
       );
     });
-    spurt("html/js/search.js", $template.subst("ITEMS", @items.join(",\n") ).subst("WARNING", "DO NOT EDIT generated by $?FILE:$?LINE"));
+    mkdir 'html/js';
+    spurt("html/js/search.js", $template.subst("ITEMS", @items.join(",\n")).subst("WARNING", "DO NOT EDIT generated by $?FILE:$?LINE"));
 }
 
 sub write-disambiguation-files() {
     say 'Writing disambiguation files ...';
-    for $*DR.grouped-by('name').kv -> $name, $p is copy {
+    for $*DR.grouped-by('name').kv -> $name is copy, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
+        if ( $name ~~ "type" | "index" ) {
+            $name = "«$name»";
+        }
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
@@ -843,6 +854,7 @@ sub write-index-files() {
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
+        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in alphabetical order. Scroll down or search 'tutorial' or 'from' to see all of them."),
         pod-table($*DR.lookup('language', :by<kind>).sort(*.name).map({[
             pod-link(.name, .url),
             .summary
@@ -883,28 +895,32 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
             "s that are documented here as part of the Perl 6 language. " ~
             "Use the above menu to narrow it down topically."
         ),
-        pod-table([[pod-bold('Name'), pod-bold('Declarator'), pod-bold('Source')],
-            $*DR.lookup($kind, :by<kind>)\
-            .categorize(*.name).sort(*.key)>>.value
-            .map({[
-                pod-link(.[0].name, .[0].url),
-                .map({.subkinds // Nil}).flat.unique.join(', '),
-                .&summary
-            ]}).cache.Slip
-       ].flat)
+        pod-table(
+            :headers[<Name  Declarator  Source>],
+            [
+                $*DR.lookup($kind, :by<kind>)\
+                .categorize(*.name).sort(*.key)>>.value
+                .map({[
+                    pod-link(.[0].name, .[0].url),
+                    .map({.subkinds // Nil}).flat.unique.join(', '),
+                    .&summary
+                ]}).cache.Slip
+            ].flat
+        )
     ), $kind);
 }
 
 # XXX: Only handles normal routines, not types nor operators
 sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
     say "Writing html/$kind-$category.html ...";
+    my $this-category = $category.tc eq "Exceptions" ?? "Exception" !! $category.tc;
     spurt "html/$kind-$category.html", p2h(pod-with-title(
-        "Perl 6 {$category.tc} {$kind.tc}s",
+        "Perl 6 {$this-category} {$kind.tc}s",
         pod-table($*DR.lookup($kind, :by<kind>)\
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
             .map({[
-                .map({.subkinds // Nil}).unique.join(', '),
+                .map({slip .subkinds // Nil}).unique.join(', '),
                 pod-link(.[0].name, .[0].url),
                 .&summary
             ]})
@@ -917,11 +933,18 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
-            my @subkinds = @docs.map({.subkinds}).unique;
-            my $subkind = @subkinds.elems == 1 ?? @subkinds.list[0] !! $kind;
+            CATCH {
+                default {
+                    say $name;
+                    .Str.say;
+                    say "Error when writing per-$kind files";
+                }
+            }
+            my @subkinds = @docs.map({slip .subkinds}).unique;
+            my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(
-                "Documentation for $subkind $name",
-                pod-block("Documentation for $subkind $name, assembled from the following types:"),
+                "$subkind $name",
+                pod-block("Documentation for $subkind ", pod-code($name), " assembled from the following types:"),
                 @docs.map({
                     pod-heading("{.origin.human-kind} {.origin.name}"),
                     pod-block("From ",
@@ -934,7 +957,16 @@ sub write-kind($kind) {
                                       # splits by space character and we take a correct category name.
                                       # It works with sub/method/term/routine/*fix types, so all our links
                                       # here are correct.
-                                      else { .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_'; }
+                                      else {
+                                          CATCH {
+                                              default {
+                                                  say $name;
+                                                  .Str.say;
+                                                  say "Error when generating links";
+                                              }
+                                          }
+                                          .pod[0].contents[0].contents.Str.split(' ')[1] ~ '_';
+                                      }
                                   ) ~ .name.subst(' ', '_')),
                     ),
                     .pod.list,
@@ -946,28 +978,8 @@ sub write-kind($kind) {
     say '';
 }
 
-sub write-qualified-method-call(:$name!, :$pod!, :$type!) {
-    my $p = pod-with-title(
-        "Documentation for method $type.$name",
-        pod-block('From ', pod-link($type, "/type/{$type}#$name")),
-        @$pod,
-    );
-    return if $name ~~ / '/' /;
-    spurt "html/routine/{replace-badchars-with-goodnames $type}.{replace-badchars-with-goodnames $name}.html", p2h($p, 'routine');
-}
-sub get-temp-filename {
-    state %seen-temps;
-    my $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
-    while %seen-temps{$temp} {
-        $temp = join '-', %*ENV<USER> // 'u', (^1_000_000).pick, 'pod_to_pyg.pod';
-    }
-    %seen-temps{$temp}++;
-    $temp;
-}
-sub highlight-code-blocks(:$no-proc-async = False) {
-    unless $no-proc-async {
-        $proc-prom = $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
-    }
+sub highlight-code-blocks {
+    $proc.start andthen say "Starting highlights worker thread" unless $proc.started;
     %*POD2HTML-CALLBACKS = code => sub (:$node, :&default) {
         for @($node.contents) -> $c {
             if $c !~~ Str {
@@ -975,29 +987,20 @@ sub highlight-code-blocks(:$no-proc-async = False) {
                 return default($node);
             }
         }
-        my $basename = get-temp-filename();
-        my $tmp_fname = "$*TMPDIR/$basename";
-        spurt $tmp_fname, $node.contents.join;
-        LEAVE try unlink $tmp_fname;
+        my ($tmp_fname, $tmp_io) = tempfile;
+        $tmp_io.spurt: $node.contents.join, :close;
         my $html;
-        if ! $no-proc-async {
-            my $promise = Promise.new;
-            my $tap = $proc-supply.tap( -> $json {
-                my $parsed-json = from-json($json);
-                if $parsed-json<file> eq $tmp_fname {
-                    $promise.keep($parsed-json<html>);
-                    $tap.close();
-                }
-            } );
-            $proc.say($tmp_fname);
-            await $promise;
-            $html = $promise.result;
-        }
-        else {
-            my $command = qq[$coffee-exe ./highlights/highlight-file.coffee "$tmp_fname"];
-            $html = qqx{$command};
-        }
-        $html;
+        my $promise = Promise.new;
+        my $tap = $proc-supply.tap( -> $json {
+            my $parsed-json = from-json($json);
+            if $parsed-json<file> eq $tmp_fname {
+                $promise.keep($parsed-json<html>);
+                $tap.close();
+            }
+        } );
+        $proc.say($tmp_fname);
+        await $promise;
+        $promise.result;
     }
 }
 

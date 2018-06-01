@@ -1,55 +1,35 @@
 os:
     - linux
-#    - osx
+
 cache:
     directories:
         - precompiled
         - html
         - highlights/node_modules
         - $HOME/.rakudobrew
-addons:
-  apt:
-    sources:
-    - ubuntu-toolchain-r-test
-    packages:
-      - graphviz
-      - g++-4.8
-      - ruby-sass
+
+services:
+  - docker
 
 fast_finish: true
 
 branches:
   except:
     - gh-pages
-notifications:
-  irc:
-    channels:
-    - "irc.freenode.net#perl6"
-    on_success: change
-    on_failure: always
-    template:
-      - "Doc build %{result}. %{author} '%{commit_message}'"
-      - "%{build_url} %{compare_url}"
 
-language: perl6
-sudo: false
-perl6:
-  - latest
 before_install:
   - nvm install 7.2.1
   - nvm use 7.2.1
+
 install:
-  - rakudobrew build-zef
-  - export PATH="$PATH:/$HOME/.rakudobrew/moar-nom/install/share/perl6/site/bin"
-  - travis_retry zef --/tap-harness --force --/test install LWP::Simple
-  - travis_retry zef --/tap-harness --depsonly install .
+  - util/travis-build.sh
 
 script:
-  - make test
   - export CXX=$(command -v g++-4.8 >/dev/null 2>&1; if [ $? -eq 1 ]; then printf "g++"; else printf "g++-4.8"; fi)
   - $CXX --version
-  - make html-nohighlight
-#  - make html
+  - util/travis-test.sh
+
 matrix:
-  allow_failures:
-    - os: osx
+    include:
+        - env: BUILDENV=whateverable
+        - env: BUILDENV=docker

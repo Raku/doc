@@ -9,15 +9,20 @@ Testing code is an integral part of software development.
 Tests provide automated, repeatable
 verifications of code behaviour, and ensures your code works as expected.
 
-In Perl 6, the L<Test|https://github.com/rakudo/rakudo/blob/nom/lib/Test.pm6> module provides a testing framework similar to the
-Perl 5 L<Test::More|http://perldoc.perl.org/Test/More.html>
-module.  Therefore, anyone familiar with C<Test::More> (and related modules) should be
-comfortable with Perl 6's C<Test> module.
+In Perl 6, the L<Test|https://github.com/rakudo/rakudo/blob/master/lib/Test.pm6>
+module provides a testing framework. Perl 6's official spectest suite uses C<Test>.
 
-Perl 6's official spectest suite uses C<Test>.
+The testing functions emit output conforming to the L<Test Anything Protocol|http://testanything.org>. In general, they are used in sink context:
 
-The testing functions emit output conforming to the L<Test Anything
-Protocol|http://testanything.org>.
+=for code :preamble<my ($meta,$relaxed-name); sub check-name($meta,:$relaxed-name){}>
+ok check-name($meta, :$relaxed-name), "name has a hyphen rather than '::'"
+
+but all functions also return as a Boolean if the test has been successful or not, which can be used to print a message if the test fails:
+
+=begin code :preamble<my ($meta,$relaxed-name); sub check-name($meta,:$relaxed-name){}>
+ok check-name($meta, :$relaxed-name), "name has a hyphen rather than '::'" \
+  or diag "\nTo use hyphen in name, pass :relaxed-name to meta-ok\n";
+=end code
 
 =head1 Reference
 
@@ -61,7 +66,7 @@ Protocol|http://testanything.org>.
     — is falsy
 
 
-=item L«C<cmp-ok>|/language/testing#index-entry-cmp-ok-cmp-ok($value,_$comparison,_$expected,_$description?)»
+=item L«C<cmp-ok>|/language/testing#By_arbitrary_comparison»
     — compare with a value using the given operator
 
 =item L«C<is>|/language/testing#index-entry-is_testing»
@@ -112,6 +117,9 @@ Protocol|http://testanything.org>.
 =item L«C<throws-like>|/language/testing#index-entry-throws-like»
     — a given block of code (or string to be evaled) throws a given exception
 
+=item L«C<fails-like>|/language/testing#index-entry-fails-like»
+    — a given block of code (or string to be evaled) fails with a given exception
+
 =head1 Writing tests
 
 As with any Perl project, the tests live under the C<t> directory in the
@@ -120,15 +128,15 @@ project's base directory.
 A typical test file looks something like this:
 
 =begin code :skip-test
-    use v6.c;
-    use Test;      # a Standard module included with Rakudo
-    use lib 'lib';
+use v6.c;
+use Test;      # a Standard module included with Rakudo
+use lib 'lib';
 
-    plan $num-tests;
+plan $num-tests;
 
-    # .... tests
+# .... tests
 
-    done-testing;  # optional with 'plan'
+done-testing;  # optional with 'plan'
 =end code
 
 We ensure that we're using Perl 6, via the C<use v6.c> pragma, then we load
@@ -137,25 +145,37 @@ many tests we I<plan> to run (such that the testing framework can tell us if
 more or fewer tests were run than we expected) and when finished with the
 tests, we use I<done-testing> to tell the framework we are done.
 
+=head2 Thread Safety
+
+Note that routines in C<Test> module are I<not> thread-safe. This means you
+should not attempt to use the testing routines in multiple threads simultaneously,
+as the L<TAP|https://testanything.org/> output might
+come out of order and confuse the program interpreting it.
+
+There are no current plans to make it thread safe. If threaded-testing is
+crucial to you, you may find some suitable
+L<ecosystem modules|https://modules.perl6.org/search/?q=Test> to use
+instead of C<Test> for your testing needs.
+
 =head1 Running tests
 
 Tests can be run individually by specifying the test filename on the
 command line:
 
 =for code :lang<shell>
-    $ perl6 t/test-filename.t
+$ perl6 t/test-filename.t
 
 Or via the L<prove|http://perldoc.perl.org/prove.html> command from Perl 5,
 where C<perl6> is specified as the executable that runs the tests:
 
 =for code :lang<shell>
-    $ prove --exec perl6 -r t
+$ prove --exec perl6 -r t
 
 To abort the test suite upon first failure, set the
 C<PERL6_TEST_DIE_ON_FAIL> environmental variable:
 
 =for code :lang<shell>
-    $ PERL6_TEST_DIE_ON_FAIL=1 perl6 t/test-filename.t
+$ PERL6_TEST_DIE_ON_FAIL=1 perl6 t/test-filename.t
 
 The same variable can be used within the test file. Set it before loading
 the C<Test> module:
@@ -391,7 +411,7 @@ and the test will fail if C<rel-diff> is higher than C<$rel-tol>.
 =head3 Both Absolute and Relative Tolerance Specified
 
 =for code :skip-test
-    is-approx $value, $expected, :rel-tol<.5>, :abs-tol<10>;
+is-approx $value, $expected, :rel-tol<.5>, :abs-tol<10>;
 
 When both absolute and relative tolerances are specified, each will be
 tested independently, and the C<is-approx> test will succeed only if both pass.
@@ -430,11 +450,11 @@ B<Note:> for L<historical
 reasons|https://github.com/rakudo/rakudo/commit/096bc17cd5>, L<Seq:D|/type/Seq> arguments
 to C<is-deeply> get converted to L<Lists|/type/List>. If you want to ensure
 strict C<Seq> comparisons, use
-L«C<cmp-ok $got, 'eqv', $expected, $desc>|/language/testing#index-entry-cmp-ok-cmp-ok%28%24value%2C_%24comparison%2C_%24expected%2C_%24description%3F%29» instead.
+L«C<cmp-ok $got, 'eqv', $expected, $desc>|/language/testing#By_arbitrary_comparison» instead.
 
 =head2 By arbitrary comparison
 
-=item X<cmp-ok($value, $comparison, $expected, $description?)|cmp-ok>
+=item cmp-ok(Mu $value is raw, $comparison, Mu $expected is raw, $description?) X<|cmp-ok>
 
 Compares C<$value> and C<$expected> with the given C<$comparison> comparator and
 passes the test if the comparison yields a C<True> value. The C<$description>
@@ -445,6 +465,10 @@ a L<Str> containing an infix operator, such as C<'=='>, a C<'~~'>, or a
 user-defined infix.
 
     cmp-ok 'my spelling is apperling', '~~', /perl/, "bad speller";
+
+Meta operators cannot be given as a string; pass them as a L<Callable> instead:
+
+    cmp-ok <a b c>, &[!eqv], <b d e>, 'not equal';
 
 A L<Callable> C<$comparison> lets you use custom comparisons:
 
@@ -617,11 +641,37 @@ throws-like { frodo }, Exception, message => /dies/;
 
 The function accepts an optional C<$description> of the test.
 
+The routine makes L<Failures|/type/Failure> fatal. If you wish to avoid that,
+use L«C<no fatal> pragma|/language/pragmas#index-entry-fatal-fatal» and ensure the
+tested code does not sink the possible L<Failures|/type/Failure>. If you wish
+to test that the code returns a L<Failure> instead of throwing, use
+L«C<fails-like>|/language/testing#index-entry-fails-like» routine instead.
+
+    sub fails-not-throws { +"a" }
+    # test passes, even though it's just a Failure and would not always throw:
+    throws-like { fails-not-throws }, Exception;
+
+    # test detects nothing got thrown, because our Failure wasn't sunk or made fatal:
+    throws-like { no fatal; my $ = fails-not-throws; Nil }, Exception;
+
 Please note that you can only use the string form (for C<EVAL>) if you are not referencing
 any symbols in the surrounding scope. If you are, you should encapsulate
 your string with a block and an EVAL instead. For instance:
 
     throws-like { EVAL q[ fac("foo") ] }, X::TypeCheck::Argument;
+
+X<|fails-like>
+
+=item fails-like($code, $expected-exception, $description?, *%matcher)
+
+Same interface as L«C<throws-like>|/language/testing#index-entry-throws-like»,
+except checks that the code returns a L<Failure> instead of throwing. If the
+code does throw or if the returned L<Failure> has already been L<handled>,
+that will be considered as a failed test.
+
+    fails-like { +"a" }, X::Str::Numeric,
+        :message(/'Cannot convert string to number'/),
+    'converting non-numeric string to number fails';
 
 =head1 Grouping tests
 
@@ -691,12 +741,12 @@ only one test will be marked TODO.
 The result from the test code above will be something like:
 
 =begin code :lang<TAP>
-    not ok 1 - my-custom-pi# TODO not yet precise enough
+not ok 1 - my-custom-pi# TODO not yet precise enough
 
-    # Failed test 'my-custom-pi'
-    # at test-todo.t line 7
-    # expected: '3.14159265358979'
-    #      got: '3'
+# Failed test 'my-custom-pi'
+# at test-todo.t line 7
+# expected: '3.14159265358979'
+#      got: '3'
 =end code
 
 Note that if you C<todo> a C<subtest>, all of the failing tests inside of it will be
@@ -757,9 +807,9 @@ If you already know the tests will fail, you can bail out of the test run
 using C<bail-out()>:
 
 =begin code
-    my $has-db-connection;
-    ...
-    $has-db-connection  or bail-out 'Must have database connection for testing';
+my $has-db-connection;
+...
+$has-db-connection  or bail-out 'Must have database connection for testing';
 =end code
 
 The function aborts the current test run, signaling failure to the harness.
@@ -801,4 +851,4 @@ to provide visual markers on how the testing of a test-file is progressing
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

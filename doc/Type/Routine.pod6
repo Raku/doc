@@ -2,7 +2,7 @@
 
 =TITLE class Routine
 
-=SUBTITLE Code object with its own lexical scope and `return` handling
+=SUBTITLE Code object with its own lexical scope and C<return> handling
 
     class Routine is Block { }
 
@@ -17,7 +17,8 @@ Routine is also the level at which
 L<multiness|/language/glossary#Multi-Dispatch> (multi subs and multi methods)
 are handled.
 
-=head2 X<Trait is default|trait,is default (Routine)>
+X<|is default (Routine)>
+=head2 X<Trait is default>
 
 There is a special trait for C<Routine>s called C<is default>. This trait is
 designed as a way to disambiguate C<multi> calls that would normally
@@ -42,6 +43,8 @@ that one will be called. For example:
 
 In this example, the C<multi> without C<is default> was called because it was
 actually narrower than the C<Sub> with it.
+
+Subroutines can also be declared C<anon>. See the L<documentation on the C<anon> declarator|/language/variables#The_anon_Declarator> for more information.
 
 =head1 Methods
 
@@ -170,12 +173,51 @@ Calculating 43th prime
 Marks a subroutine as I<pure>, that is, it asserts that for the same input, it
 will always produce the same output without any additional side effects.
 
-This is a promise by the programmer to the compiler that it can constant-fold
+You can mark function as pure even if they throw exceptions in edge cases,
+or if they modify temporary objects; hence the C<is pure> trait can cover
+cases that the compiler cannot deduce on its own. On the other hand, you might
+not want to constant-fold functions that produce a large return value (such
+as the string or list repetition operators, infix C<x> and C<xx>) even if they
+are pure, to avoid large precompilation files.
+
+The C<is pure> trait is a promise by the programmer to the compiler that it
+can constant-fold
 calls to such functions when the arguments are known at compile time.
 
-    sub double(Numeric:D $x) is pure {
-        2 * $x;
+    sub syllables() is pure {
+        say "Generating syllables";
+        my @vowels = <a e i o u>;
+        return  @vowels.append: <k m n sh d r t y> X~ @vowels;
     }
+
+To see it an action with a particular compiler you can try this example:
+
+    =begin code :preamble<sub syllables {}>
+    BEGIN { say ‘Begin’ }
+    say ‘Start’;
+    say (^100).map: { syllables().pick(2..5).join("") };
+
+
+    # Example output:
+    # Begin
+    # Generating syllables
+    # Start
+    # (matiroi yeterani shoriyuru...
+    =end code
+
+
+Essentially this allows the compiler to perform some operations at
+compile time. The benefits of constant-folding I<may> include better
+performance, especially in cases when the folded code is precompiled.
+
+In addition, using a pure function or operator in sink context (that is,
+where the result is discarded) may lead to a warning. The code
+
+    sub double($x) is pure { 2 * $x };
+    double(21);
+    say "anything";
+    # WARNING: «Useless use of "double(21)" in expression "double(21)" in sink context (line 2)»
+
 
 =head2 trait is rw
 
@@ -308,3 +350,5 @@ TODO: explain export tags
 =end comment
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

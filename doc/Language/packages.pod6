@@ -11,7 +11,8 @@
 
 =end comment
 
-Packages are nested namespaces of named program elements. Modules, classes,
+Packages are nested namespaces of named program elements.
+L<Modules|/language/module-packages>, classes,
 grammars, and others are types of packages. Like files in a directory, you can
 generally refer to named elements with their short-name if they are local, or
 with a longer name to disambiguate.
@@ -21,28 +22,40 @@ with a longer name to disambiguate.
 A I<name> is anything that is a legal part of a variable name (not counting the
 sigil). This includes:
 
-=for code :skip-test
-$foo                # simple identifiers
-$Foo::Bar::baz      # compound identifiers separated by ::
-$Foo::($bar)::baz   # compound identifiers that perform interpolations
-$42                 # numeric names
-$!                  # certain punctuation variables
+=for code
+class Foo {
+    sub zape () { say "zipi" }
+    class Bar {
+        method baz () { return 'Þor is mighty' }
+        our &zape = { "zipi" };
+        our $quux = 42;
+    }
+}
+
+my $foo;                # simple identifiers
+say Foo::Bar.baz;       # Calling a method; OUTPUT: «Þor is mighty␤»
+say $Foo::Bar::zape;    # compound identifiers separated by ::; OUTPUT: «zipi␤»
+my $bar = 'Bar';
+say $Foo::($bar)::quux; # compound identifiers with interpolations; OUTPUT: «42␤»
+$42;                    # numeric names
+$!;                     # certain punctuation variables
 
 X<|::,package>
 C<::> is used to separate nested package names.
 
 =head2 Package-qualified names
 
-Ordinary package-qualified names look like:
-
-    $Foo::Bar::baz      # the $baz variable in package Foo::Bar
+Ordinary package-qualified names look like; C<$Foo::Bar::quux> would be the
+C<$quux> variable in package C<Foo::Bar>; C<Foo::Bar::zape> would represent the
+C<&zape> variable in the same package.
 
 Sometimes it's clearer to keep the sigil with the variable name, so an
 alternate way to write this is:
 
-    Foo::Bar::<$baz>
+    Foo::Bar::<$quux>
 
-This is resolved at compile time because the variable name is a constant.
+(This does not work with the C<&zape> variable) The name is resolved at compile
+time because the variable name is a constant.
 
 If the name part before C<::> is null, it means the package is unspecified and
 must be searched for. Generally this means that an initial C<::> following the
@@ -131,6 +144,33 @@ C<CORE>). The current package is searched last.
 Use the C<MY> pseudopackage to limit the lookup to the current lexical scope,
 and C<OUR> to limit the scopes to the current package scope.
 
+In the same vein, class and method names can be interpolated too.
+
+    role with-method {
+        method a-method { return "in-a-method of " ~ $?CLASS.^name  };
+    }
+
+    class a-class does with-method {
+        method another-method { return 'in-another-method' };
+    }
+
+    class b-class does with-method {};
+
+    my $what-class='a-class';
+
+    say ::($what-class).a-method;
+    $what-class = 'b-class';
+    say ::($what-class).a-method;
+
+    my $what-method='a-method';
+    say a-class."$what-method"();
+    $what-method='another-method';
+    say a-class."$what-method"();
+
+X<|::($c).m>
+X<|A."$m"()>
+
+
 =head2 Direct lookup
 
 To do direct lookup in a package's symbol table without scanning, treat the
@@ -179,6 +219,14 @@ from a type name by use of the C<::> postfix:
 =for code :skip-test
 MyType::<$foo>
 
+=head2 Class member lookup
+
+Methods—including auto-generated methods, such as public attributes' accessors—are stored
+in the class meta object and can be looked up through by the L<lookup|/routine/lookup> method.
+
+=for code :skip-test
+Str.^lookup('chars')
+
 =head1 Globals
 
 Interpreter globals live in the C<GLOBAL> package. The user's program
@@ -195,3 +243,5 @@ object can be accessed via C<$?PACKAGE.^ver> or from outside the package
 C<Fully::Qualified::Name.^ver>.
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -73,6 +73,13 @@ sub pod-bold($text) is export {
     );
 }
 
+sub pod-code($text) is export {
+    Pod::FormattingCode.new(
+        type     => 'C',
+        contents => [$text],
+    );
+}
+
 sub pod-item(*@contents, :$level = 1) is export {
     Pod::Item.new(
         :$level,
@@ -87,8 +94,9 @@ sub pod-heading($name, :$level = 1) is export {
     );
 }
 
-sub pod-table(@contents) is export {
+sub pod-table(@contents, :@headers) is export {
     Pod::Block::Table.new(
+        |(:@headers if @headers),
         :@contents
     );
 }

@@ -1,6 +1,6 @@
 =begin pod :tag<perl6>
 
-=TITLE Typesystem
+=TITLE Type system
 
 =SUBTITLE Introduction to the type system of Perl 6
 
@@ -36,15 +36,22 @@ type constraint may change in this case.
 
 =head2 Type Objects
 
-To test if an object is a type object, test for definedness and check for
-identity between the object and its C<.WHAT> pseudo-method. Note that the
-method C<.defined> can be overloaded and may provide false information.
+To test if an object is a type object, use
+L<smartmatch|/language/operators#index-entry-smartmatch_operator>
+against a type constrained with a
+L<type smiley|/type/Signature#Constraining_Defined_and_Undefined_Values> or
+L«C<.DEFINITE>|/language/mop#index-entry-syntax_DEFINITE-DEFINITE» method:
 
 =begin code :ok-test<WHAT>
-    my $a = Int;
-    say so $a // $a === $a.WHAT;
-    # OUTPUT: «True␤»
+my $a = Int;
+say $a ~~ Mu:U;
+# OUTPUT: «True␤»
+say not $a.DEFINITE;
+# OUTPUT: «True␤»
 =end code
+
+C<.DEFINITE> will return C<True> if the invocant is an instance. If it returns
+C<False>, then the invocant is a type object.
 
 =head3 Undefinedness
 
@@ -79,9 +86,10 @@ L<signatures|/type/Signature#Constraining_Defined_and_Undefined_Values>.
 Turning one type into another is done with coercion methods that have the same
 name as the target type. This convention is made mandatory by
 L<Signatures|/type/Signature#Coercion_Type>. The source type has to know how to
-turn itself into the target type. To allow built-in types to turn themselves into
-user defined types use L<augment|/language/variables#The_augment_Declarator> or
-the L<MOP|/language/mop>.
+turn itself into the target type. To allow built-in types to turn themselves
+into user defined types use
+L<augment|/language/variables#The_augment_Declarator> or the
+L<MOP|/language/mop>.
 
     class C {
         has $.int;
@@ -171,13 +179,12 @@ for L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>.
     say C.HOW ~~ Metamodel::ClassHOW;
     # OUTPUT: «True␤»
 
-=head3 Attributes
+=head3 Private Attributes
 
-=head4 Private Attributes
-
-Private L<attribute|/type/Attribute>s are addressed with any of the twigils C<$!>, C<@!> and
-C<%!>. They do not have public accessor methods generated automatically.  As
-such they can not be altered from outside the class they are defined in.
+Private L<attribute|/type/Attribute>s are addressed with any of the twigils
+C<$!>, C<@!> and C<%!>. They do not have public accessor methods generated
+automatically.  As such they can not be altered from outside the class they are
+defined in.
 
     class C {
         has $!priv;
@@ -219,7 +226,7 @@ X«|only method»
 
 To explicitly state that a method is not a multi method use the C<only method> declarator.
 
-=for code :skip-test
+=for code :skip-test<compile time error>
 class C {
     only method m {};
     multi method m {};
@@ -275,12 +282,12 @@ those names will silently fail. A dynamic call will work, what allows to call
 methods from foreign objects.
 
 =begin code :ok-test<WHAT>
-    class A {
-        method WHAT { "ain't gonna happen" }
-    };
+class A {
+    method WHAT { "ain't gonna happen" }
+};
 
-    say A.new.WHAT;    # OUTPUT: «(A)␤»
-    say A.new."WHAT"() # OUTPUT: «ain't gonna happen␤»
+say A.new.WHAT;    # OUTPUT: «(A)␤»
+say A.new."WHAT"() # OUTPUT: «ain't gonna happen␤»
 =end code
 
 =head4 Methods in package scope
@@ -291,8 +298,8 @@ Any C<our> scoped method will be visible in the package scope of a class.
         our method packaged {};
         method loose {}
     };
-    dd C::.keys
-    # OUTPUT: «("\&packaged",).Seq␤»
+    say C::.keys
+    # OUTPUT: «(&packaged)␤»
 
 =head4 Setting Attributes with Namesake Variables and Methods
 
@@ -314,7 +321,10 @@ C<:&attr-with-code-in-it>, and so on.
 
 =head4 trait C<is nodal>
 
-Mark a C<method> so hyperoperators do not descend into it.
+Marks a L<List> method to indicate to hyperoperator to not descend into inner
+L<Iterables|/type/Iterable> to call this method. This trait generally isn't
+something end users would be using, unless they're subclassing or augmenting
+core L<List> type.
 
 In order to demonstrate the difference consider the following examples, the first
 using a method (C<elems>) that C<is nodal> and the second using a method (C<Int>)
@@ -368,15 +378,15 @@ C<HyperWhatever>.
     }
     E.new.em1;
 
-=head3 trait C<is>
+=head3  X<trait C<is>|classes,is>
 
 Defined as:
 
     multi sub trait_mod:<is>(Mu:U $child, Mu:U $parent)
 
-The L<trait|/type/Sub#Traits> X<C<is>|is (inheritance)> accepts a type object to be
+The L<trait|/type/Sub#Traits> C<is> accepts a type object to be
 added as a parent class of a class in its definition. To allow multiple
-inheritance the trait can be applied more then once. Adding parents to a class
+inheritance the trait can be applied more than once. Adding parents to a class
 will import their methods into the target class. If the same method name occurs
 in multiple parents, the first added parent will win.
 
@@ -387,7 +397,7 @@ methods to provide an interface for introspection and coercion to basic types.
     class A {
         multi method from-a(){ 'A::from-a' }
     }
-    dd A.new.^parents(:all);
+    say A.new.^parents(:all).perl;
     # OUTPUT: «(Any, Mu)␤»
 
     class B {
@@ -396,8 +406,8 @@ methods to provide an interface for introspection and coercion to basic types.
     }
 
     class C is A is B {}
-    dd C.new.from-a();
-    # OUTPUT: «"A::from-a"␤»
+    say C.new.from-a();
+    # OUTPUT: «A::from-a␤»
 
 =head3 trait X«C<is rw>|is rw (class)»
 
@@ -412,7 +422,7 @@ public attributes of that class.
         has $.a;
     };
     my $c = C.new.a = 42;
-    dd $c; # OUTPUT: «Int $c = 42␤»
+    say $c; # OUTPUT: «42␤»
 
 =head3 trait C<is required>
 
@@ -422,7 +432,7 @@ Defined as:
 
 Marks a class or roles attribute as required. If the attribute is not
 initialized at object construction time throws
-L<X::Attribute::Required|/type/X::Attribute::Required>.
+C<X::Attribute::Required>.
 
     class Correct {
         has $.attr is required;
@@ -556,7 +566,7 @@ C<X::Comp::AdHoc> will be thrown.
     CATCH { default { say .^name, ' ', .Str } }
     # OUTPUT: «X::Comp::AdHoc Method 'overload-this' must be implemented by A because it is required by roles: R.␤»
 
-=head3 Role auto-punning
+=head3 Auto-punning
 
 A role can be used instead of a class to create objects. Since roles can't
 exist at runtime, a class of the same name is created that will type check
@@ -575,7 +585,7 @@ successful against the role.
 The trait C<does> can be applied to roles and classes providing compile time
 mixins. To refer to a role that is not defined yet, use a forward declaration.
 The type name of the class with mixed in roles does not reflect the mixin, a
-type check does. If methods are provided in more then one mixed in role, the
+type check does. If methods are provided in more than one mixed in role, the
 method that is defined first takes precedence. A list of roles separated by
 comma can be provided. In this case conflicts will be reported at compile time.
 
@@ -589,7 +599,7 @@ comma can be provided. In this case conflicts will be reported at compile time.
 
 For runtime mixins see L<but|/language/operators#infix_but> and L<does|/language/operators#infix_does>.
 
-=head3 Role Parameters
+=head3 Parameterized
 
 Roles can be provided with parameters in-between C<[]> behind a roles name.
 X<|Type Capture (role)>L<Type captures|/type/Signature#Type_Captures> are supported.
@@ -598,8 +608,8 @@ X<|Type Capture (role)>L<Type captures|/type/Signature#Type_Captures> are suppor
     class C does R["default"] { };
 
     my $c = C.new;
-    dd $c;
-    # OUTPUT: «C $c = C.new(a => "default")␤»
+    say $c;
+    # OUTPUT: «C.new(a => "default")␤»
 
 Parameters can have type constraints, C<where> clauses are not supported for types but can
 be implemented via C<subset>s.
@@ -617,7 +627,7 @@ Default parameters can be provided.
     CATCH { default { say .^name, ': ', .Str} }
     # OUTPUT: «X::AdHoc: Could not instantiate role 'R':␤Please provide a parameter to role R␤»
 
-=head3 Roles as Types
+=head3 As Type Constraints
 
 Roles can be used as type constraints wherever a type is expected. If a role is
 mixed in with C<does> or C<but>, its type-object is added to the type-object
@@ -706,20 +716,25 @@ value types C<Numerical> and C<Str> are supported.
 All keys have to be of the same type.
 
     enum Mass ( mg => 1/1000, g => 1/1, kg => 1000/1 );
-    dd Mass.enums; # OUTPUT: «{:g(1.0), :kg(1000.0), :mg(0.001)}␤»
+
+    say Mass.enums;
+    # OUTPUT: «Map.new((g => 1, kg => 1000, mg => 0.001))␤»
 
 If no value is given C<Int> will be assumed as the values type and incremented
 by one per key starting at zero. As enum key types C<Int>, C<Num>, C<Rat> and
 C<Str> are supported.
 
     enum Numbers <one two three four>;
-    dd Numbers.enums; # OUTPUT: «{:four(3), :one(0), :three(2), :two(1)}␤»
+
+    say Numbers.enums;
+    # OUTPUT: «Map.new((four => 3, one => 0, three => 2, two => 1))␤»
 
 A different starting value can be provided.
 
     enum Numbers «:one(1) two three four»;
-    dd Numbers.enums; # OUTPUT: «{:four(4), :one(1), :three(3), :two(2)}␤»
 
+    say Numbers.enums;
+    # OUTPUT: «Map.new((four => 4, one => 1, three => 3, two => 2))␤»
 
 Enums can be anonymous. There will be no type created, resulting in a lack of
 introspectiveness. The returned object is of type C<Map>.
@@ -733,8 +748,11 @@ There are various methods to get access to keys and values. All of them turn the
 values into C<Str>, which may not be desirable. By treating the enum as a
 package, we can get a list of type objects for the keys.
 
-    enum E(<one two>); dd E::.values;
-    # OUTPUT: «(E::two, E::one).Seq␤»
+    enum E(<one two>);
+    my @keys = E::.values;
+
+    say @keys.map: *.perl;
+    # OUTPUT: «(E::two E::one)␤»
 
 =head3 Introspection
 
@@ -764,14 +782,14 @@ Returns the list of enum-pairs. Works both on the enum type and any key.
 
 Returns the key of an enum-pair.
 
-=for code :skip-test
+=for code :preamble<<enum Mass<g> >>
 say g.key; # OUTPUT: «g␤»
 
 =head4 method value
 
 Returns the value of an enum-pair.
 
-=for code :skip-test
+=for code :preamble<<enum Mass<g> >>
 say g.value; # OUTPUT: «1␤»
 
 =head4 method pair
@@ -783,7 +801,7 @@ method pair(::?CLASS:D:)
 
 Returns a C<Pair> of the enum-pair.
 
-=for code :skip-test
+=for code :preamble<<enum Mass<g> >>
 say g.pair; # OUTPUT: «g => 1␤»
 
 =head4 method kv
@@ -795,7 +813,7 @@ multi method kv(::?CLASS:D:)
 
 Returns a list with key and value of the enum-pair.
 
-=for code :skip-test
+=for code :preamble<<enum Mass<g> >>
 say g.kv; # OUTPUT: «(g 1)␤»
 
 =head3 Coercion
@@ -872,3 +890,5 @@ require ::('YourModule');
 subset C where ::('YourModule::C');
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

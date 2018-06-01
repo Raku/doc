@@ -26,6 +26,18 @@ Variants of this are
     :key;                     # same as   key => True
     :!key;                    # same as   key => False
 
+And this other variant, to be used in routine invocation
+
+=begin code
+sub colon-pair( :$key-value ) {
+    say $key-value;
+}
+my $key-value = 'value';
+colon-pair( :$key-value );               # OUTPUT: «value␤»
+colon-pair( key-value => $key-value );   # OUTPUT: «value␤»
+=end code
+
+
 X<|colon list (Pair)>
 Colon pairs can be chained without a comma to create a List of Pairs. Depending
 on context you may have to be explicit when assigning colon lists.
@@ -45,8 +57,38 @@ on context you may have to be explicit when assigning colon lists.
 Any variable can be turned into a C<Pair> of its name and its value.
 
     my $bar = 10;
-    my %h = :$bar;
-    dd %h;  # OUTPUT: «Hash %h = {:bar(10)}␤»
+    my $p   = :$bar;
+    say $p; # OUTPUT: «bar => 10␤»
+
+
+It is worth noting that when assigning a L<Scalar|/type/Scalar> as value of a C<Pair>
+the value holds the container of the value itself. This means that it is possible to change the
+value from outside of the C<Pair> itself:
+
+=begin code
+my $v = 'value A';
+my $pair = a => $v;
+$pair.say;  # OUTPUT: a => value A
+
+$v = 'value B';
+$pair.say; # OUTPUT: a => value B
+=end code
+
+Please also note that this behavior is totally unrelated to the way used to build the C<Pair> itself
+(i.e., explicit usage of C<new>, use of colon, fat arrow), as well as if the C<Pair> is bound
+to a variable.
+
+It is possible to change the above behaviour forcing the C<Pair> to remove the scalar container
+and to hold the effective value itself via the method L<freeze|/type/Pair#method_freeze>:
+
+=begin code
+my $v = 'value B';
+my $pair = a => $v;
+$pair.freeze;
+$v = 'value C';
+$pair.say; # OUTPUT: a => value B
+=end code
+
 
 =head1 Methods
 
@@ -257,7 +299,9 @@ Makes the I<value> of the C<Pair> read-only, by removing it from its L<Scalar co
     $p.freeze.say;                    # OUTPUT: «orange␤»
     $p.value = "a new apple";         # Fails
     CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Str␤»
+    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Str (apple)␤»
+
+B<NOTE:> this method is proposed for removal in B<6.d> language and its use is not recommended.
 
 =head2 method Str
 
@@ -272,3 +316,5 @@ as I<key ~ \t ~ value>.
     say $b.Str;                                       # OUTPUT: «eggs  3␤»
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

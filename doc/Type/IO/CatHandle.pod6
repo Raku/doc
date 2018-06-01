@@ -201,6 +201,9 @@ with IO::CatHandle.new: :on-switch{ print 'SWITCH! ' }, $f1, $f2 {
 }
 =end code
 
+The same caveats for non-seekable handles and empty files that apply to
+L<IO::Handle.eof|/type/IO::Handle#method_eof> apply here.
+
 =head2 method get
 
 Defined as:
@@ -211,7 +214,7 @@ Returns a single line of input from the handle, with the new line string
 defined by the value(s) of
 L«C<$.nl-in> attribute|/type/IO::CatHandle#method_nl-in», which will be removed
 from the line if L«C<$.chomp> attribute|/type/IO::CatHandle#method_chomp»
-attribute is set to C<True>. Returns C<Nil> when there is no more input.
+is set to C<True>. Returns C<Nil> when there is no more input.
 It is an error to call this method when the handle is
 L<in binary mode|/type/IO::CatHandle#method_encoding>, resulting in
 C<X::IO::BinaryMode> exception being thrown.
@@ -230,7 +233,7 @@ Defined as:
     method getc(IO::CatHandle:D: --> Bool:D)
 
 Returns a single character of input from the handle. All
-the caveats described in L«C<IO::Handle.getc>|/type/IO::Handle#method_getc»
+the caveats described in L«C<IO::Handle.getc>|/type/IO::Handle#routine_getc»
 apply. Returns C<Nil> when there is no more input.
 It is an error to call this method when the handle is
 L<in binary mode|/type/IO::CatHandle#method_encoding>, resulting in
@@ -242,6 +245,42 @@ C<X::IO::BinaryMode> exception being thrown.
 my $cat = IO::CatHandle.new: $f1, $f2;
 .say while $_ = $cat.getc; # OUTPUT: «I␤ ␤♥␤ ␤P␤e␤r␤l␤m␤e␤o␤w␤»
 =end code
+
+=head2 method handles
+
+Defines as:
+
+    method handles(IO::CatHandle:D: --> Seq:D)
+
+Returns a L<Seq> containing the currently-active handle, as well as all the
+remaining source handles produced by calling L<next-handle>. If the invocant
+has already been fully-consumed, returns an empty L<Seq>.
+
+This method is especially handy when working with L<IO::ArgFiles>, where you
+want to treat each filehandle separately:
+
+    # print at most the first 2 lines of each file in $*ARGFILES:
+    .say for flat $*ARGFILES.handles.map: *.lines: 2
+
+It I<is> acceptable to call this method multiple times and C<.handles.head> is a
+valid idiom for obtaining the currently-active handle. If, between
+L<reification|/language/glossary#index-entry-Reify> of the elements of the
+returned L<Seq> the handles get switched by some other means, the next
+element produced by the L<Seq> would be the next handle of the invocant, not
+the handle that would've been produced if no switching occurred:
+
+    (my $file1 := 'file1'.IO).spurt: "1a\n1b\n1c";
+    (my $file2 := 'file2'.IO).spurt: "2a\n2b\n2c";
+    (my $file3 := 'file3'.IO).spurt: "3a\n3b\n3c";
+    my $cat := IO::CatHandle.new: $file1, $file2, $file3;
+    for $cat.handles {
+        say .lines: 2;
+        $cat.next-handle;
+    }
+    # OUTPUT: «(1a 1b)␤(3a 3b)␤»
+
+Likewise, reifying the returned L<Seq> consumes the invocant's source handles
+and once it is fully reified, the invocant becomes fully-consumed.
 
 =head2 method IO
 
@@ -671,7 +710,7 @@ Defined as:
 
     method unlock(IO::CatHandle:D:)
 
-Same as L«C<IO::Handle.unlock>|/type/IO::Handle#method_lock». Returns L<Nil>
+Same as L«C<IO::Handle.unlock>|/type/IO::Handle#method_unlock». Returns L<Nil>
 if the L<source handle queue has been
 exhausted|/type/IO::CatHandle#method_next-handle>.
 
@@ -701,8 +740,7 @@ IO::CatHandle.new($f1, $f2).words.perl.say;
 
 In Rakudo, the L<IO::CatHandle> type overrides these methods to throw C<X::NYI>
 exception. If you have a good idea for how these methods should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method flush
 
@@ -712,8 +750,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method nl-out
 
@@ -723,8 +760,17 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+
+=head2 method out-buffer
+
+Defined as:
+
+    multi method out-buffer(|)
+
+In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
+exception. If you have a good idea for how this method should behave,
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method print
 
@@ -734,8 +780,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method printf
 
@@ -745,8 +790,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method print-nl
 
@@ -756,8 +800,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method put
 
@@ -767,8 +810,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method say
 
@@ -778,8 +820,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =head2 method write
 
@@ -789,8 +830,7 @@ Defined as:
 
 In Rakudo, the L<IO::CatHandle> type overrides this method to throw C<X::NYI>
 exception. If you have a good idea for how this method should behave,
-L<tell Rakudo developers
-about it|https://webchat.freenode.net/?channels=#perl6-dev>!
+L<tell Rakudo developers about it|https://webchat.freenode.net/?channels=#perl6-dev>!
 
 =end pod
 

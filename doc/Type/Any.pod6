@@ -6,12 +6,12 @@
 
     class Any is Mu {}
 
-While L<Mu|/type/Mu> is the root of the Perl 6 class hierarchy, C<Any> is the class
+While L<Mu> is the root of the Perl 6 class hierarchy, L<Any> is the class
 that serves as a default base class for new classes, and as the base class for
 most built-in classes.
 
 Since Perl 6 intentionally confuses items and single-element lists, most
-methods in C<Any> are also present on class L<List|/type/List>, and coerce to
+methods in L<Any> are also present on class L<List>, and coerce to
 List or a list-like type.
 
 =head1 Methods
@@ -24,7 +24,7 @@ Defined as:
 
 Usage:
 
-=begin code :skip-test
+=begin code :lang<pseudo>
 EXPR.ACCEPTS(EXPR);
 =end code
 
@@ -39,7 +39,7 @@ Defined as:
     method any(--> Junction:D)
 
 Interprets the invocant as a list and creates an
-C<any>-L<Junction|/type/Junction> from it.
+L<any>-L<Junction> from it.
 
     say so 2 == <1 2 3>.any;        # OUTPUT: «True␤»
     say so 5 == <1 2 3>.any;        # OUTPUT: «False␤»
@@ -51,7 +51,7 @@ Defined as:
     method all(--> Junction:D)
 
 Interprets the invocant as a list and creates an
-C<all>-L<Junction|/type/Junction> from it.
+L<all>-L<Junction> from it.
 
     say so 1 < <2 3 4>.all;         # OUTPUT: «True␤»
     say so 3 < <2 3 4>.all;         # OUTPUT: «False␤»
@@ -63,7 +63,7 @@ Defined as:
     method one(--> Junction:D)
 
 Interprets the invocant as a list and creates a
-C<one>-L<Junction|/type/Junction> from it.
+L<one>-L<Junction> from it.
 
     say so 1 == (1, 2, 3).one;      # OUTPUT: «True␤»
     say so 1 == (1, 2, 1).one;      # OUTPUT: «False␤»
@@ -75,7 +75,7 @@ Defined as:
     method none(--> Junction:D)
 
 Interprets the invocant as a list and creates a
-C<none>-L<Junction|/type/Junction> from it.
+L<none>-L<Junction> from it.
 
     say so 1 == (1, 2, 3).none;     # OUTPUT: «False␤»
     say so 4 == (1, 2, 3).none;     # OUTPUT: «True␤»
@@ -84,9 +84,13 @@ C<none>-L<Junction|/type/Junction> from it.
 
 Defined as:
 
-    method list(--> List:D)
+    multi method list(Any:U: -->List)
+    multi method list(Any:D \SELF: -->List)
 
-Interprets the invocant as a list, and returns that L<List|/type/List>.
+
+Applies the infix L«C<,>|/routine/,»
+operator to the invocant
+and returns the resulting L<List>:
 
     say 42.list.^name;           # OUTPUT: «List␤»
     say 42.list.elems;           # OUTPUT: «1␤»
@@ -98,14 +102,14 @@ Defined as:
     method push(|values --> Positional:D)
 
 The method push is defined for undefined invocants and allows for
-autovivifying undefined to an empty C<Array>, unless the undefined value
-implements C<Positional> already.  The argument provided will then be pushed
+autovivifying undefined to an empty L<Array>, unless the undefined value
+implements L<Positional> already. The argument provided will then be pushed
 into the newly created Array.
 
     my %h;
-    dd %h<a>;      # Any (and therefore undefined)
+    say %h<a>;     # OUTPUT: «(Any)␤»      <-- Undefined
     %h<a>.push(1); # .push on Any
-    dd %h;         # «Hash %h = {:a($[1])}␤» # please note the Array
+    say %h;        # OUTPUT: «{a => [1]}␤» <-- Note the Array
 
 =head2 routine reverse
 
@@ -114,7 +118,7 @@ Defined as:
     multi sub    reverse(*@list  --> Seq:D)
     multi method reverse(List:D: --> Seq:D)
 
-Returns a L«C<Seq>|/type/Seq» with the same elements in reverse order.
+Returns a L<Seq> with the same elements in reverse order.
 
 Note that C<reverse> always refers to reversing elements of a list;
 to reverse the characters in a string, use L<flip>.
@@ -131,7 +135,7 @@ Defined as:
     multi method sort()
     multi method sort(&custom-routine-to-use)
 
-Sorts iterables with C<infix:<cmp>> or given code object and returns a new C<List>.
+Sorts iterables with L<cmp> or given code object and returns a new L<Seq>.
 Optionally, takes a L<Callable> as a positional parameter, specifying how to
 sort.
 
@@ -147,14 +151,13 @@ Examples:
 Defined as:
 
     multi method map(\SELF: &block;; :$label, :$item)
-    multi method map(HyperIterable:D: &block;; :$label)
 
 C<map> will iterate over the invocant and apply the number of positional
 parameters of the code object from the invocant per call.  The returned values
-of the code object will become elements of the returned C<Seq>.
+of the code object will become elements of the returned L<Seq>.
 
 The C<:$label> and C<:$item> are useful only internally, since C<for> loops
-get converted to C<map>s. The C<:$label> takes an existing C<Label> to label
+get converted to C<map>s. The C<:$label> takes an existing L<Label> to label
 the C<.map>'s loop with and C<:$item> controls whether the iteration will
 occur over C<(SELF,)> (if C<:$item> is set) or C<SELF>.
 
@@ -164,12 +167,12 @@ Defined as:
 
     method deepmap(&block --> List) is nodal
 
-C<deepmap> will apply C<&block> to each element and return a new C<List> with
-the return values of C<&block>, unless the element does the C<Iterable> role.
-For those elements C<deepmap> will descend recursively into the sublist.
+C<deepmap> will apply C<&block> to each element and return a new L<List> with
+the return values of C<&block>, unless the element does the L<Iterable> role.
+For those elements L<deepmap> will descend recursively into the sublist.
 
-    dd [[1,2,3],[[4,5],6,7]].deepmap(*+1);
-    # OUTPUT: «[[2, 3, 4], [[5, 6], 7, 8]]␤»
+    say [[1,2,3],[[4,5],6,7]].deepmap(* + 1);
+    # OUTPUT: «[[2 3 4] [[5 6] 7 8]]␤»
 
 =head2 method duckmap
 
@@ -177,14 +180,27 @@ Defined as:
 
     method duckmap(&block) is rw is nodal
 
-C<duckmap> will apply C<&block> on each element and return a new list with
-defined return values of the block. For undefined return values, C<duckmap>
-will try to descend into the element if that element implements C<Iterable>.
+C<duckmap> will apply C<&block> on each element that behaves in such a way that C<&block> can be applied. If it fails, it will descend recursively if possible, or otherwise return the item without any transformation.
 
     <a b c d e f g>.duckmap(-> $_ where <c d e>.any { .uc }).say;
     # OUTPUT: «(a b C D E f g)␤»
     (('d', 'e'), 'f').duckmap(-> $_ where <e f>.any { .uc }).say;
     # OUTPUT: «((d E) F)␤»
+
+In the first case, it is applied to C<c>, C<d> and C<e> which are the ones that meet the conditions for the block (C<{ .uc }>) to be applied; the rest are returned as is.
+
+In the second case, the first item is a list that does not meet the condition, so it's visited; that flat list will behave in the same way as the first one. In this case:
+
+    say [[1,2,3],[[4,5],6,7]].duckmap( *² ); # OUTPUT: «[9 9]␤»
+
+You can square anything as long as it behaves like a number. In this case, there are two arrays with 3 elements each; these arrays will be converted into the number 3 and squared. In the next case, however
+
+    say [[1,2,3],[[4,5],6.1,7.2]].duckmap( -> Rat $_ { $_²} );
+    # OUTPUT: «[[1 2 3] [[4 5] 37.21 51.84]]␤»
+
+3-item lists are not C<Rat>, so it descends recursively, but eventually only applies the operation to those that walk (or slither, as the case may be) like a C<Rat>.
+
+Although on the surface (and name), C<duckmap> might look similar to L<C<deepmap>|/routine/deepmap>, the latter is applied recursively regardless of the type of the item.
 
 =head2 method nodemap
 
@@ -192,9 +208,9 @@ Defined as:
 
     method nodemap(&block --> List) is nodal
 
-C<nodemap> will apply C<&block> to each element and return a new C<List> with
-the return values of C<&block>. In contrast to C<deepmap> it will B<not> descend
-recursively into sublists if it finds elements which does the C<Iterable> role.
+C<nodemap> will apply C<&block> to each element and return a new L<List> with
+the return values of C<&block>. In contrast to L<deepmap> it will B<not> descend
+recursively into sublists if it finds elements which L<does> the L<Iterable> role.
 
     say [[1,2,3], [[4,5],6,7], 7].nodemap(*+1);
     # OUTPUT: «(4, 4, 8)␤»
@@ -203,8 +219,8 @@ recursively into sublists if it finds elements which does the C<Iterable> role.
     # OUTPUT: «((3 4) (5 3))␤»
 
 The examples above would have produced the exact same results if we had used
-C<map> instead of C<nodemap>. The difference between the two lies in the
-fact that C<map> flattens out L<slips|/type/Slip> while C<nodemap> doesn't.
+L<map> instead of C<nodemap>. The difference between the two lies in the
+fact that L<map> flattens out L<slips|/type/Slip> while C<nodemap> doesn't.
 
     say [[2,3], [[4,5],6,7], 7].nodemap({.elems == 1 ?? $_ !! slip});
     # OUTPUT: «(() () 7)␤»
@@ -218,7 +234,7 @@ Defined as:
     method flat(--> Seq:D) is nodal
 
 Interprets the invocant as a list, flattens
-L<non-containerized|/language/containers> L<Iterables|/type/Iterable>
+L<non-containerized|/language/containers> L<Iterable>s
 into a flat list, and returns that list. Keep in mind L<Map> and
 L<Hash> types are L<Iterable> and so will be flattened into lists
 of pairs.
@@ -235,8 +251,8 @@ and so de-containerize them, so that C<flat> can flatten them:
     say [[1, 2, 3], [(4, 5), 6, 7]]      .flat; # OUTPUT: «([1 2 3] [(4 5) 6 7])␤»
     say [[1, 2, 3], [(4, 5), 6, 7]]».List.flat; # OUTPUT: «(1 2 3 4 5 6 7)␤»
 
-For more fine-tuned options, see L«C<deepmap>|/routine/deepmap»,
-L«C<duckmap>|/routine/duckmap», and
+For more fine-tuned options, see L<deepmap>,
+L<duckmap>, and
 L<signature destructuring|/type/Signature#Destructuring_Parameters>
 
 =head2 method eager
@@ -245,10 +261,12 @@ Defined as:
 
     method eager(--> Seq:D) is nodal
 
-Interprets the invocant as a list, evaluates it eagerly, and returns that
-list.
+Interprets the invocant as a L<List>, evaluates it eagerly, and returns that
+L<List>.
 
-    say (1..10).eager;              # OUTPUT: «(1 2 3 4 5 6 7 8 9 10)␤»
+    my  $range = 1..5;
+    say $range;         # OUTPUT: «1..5␤»
+    say $range.eager;   # OUTPUT: «(1 2 3 4 5)␤»
 
 =head2 method elems
 
@@ -279,22 +297,12 @@ Defined as:
 
 Interprets the invocant as a list, and constructs a list of
 L<pairs|/type/Pair> from it, in the same way that assignment to a
-L<Hash|/type/Hash> does.  That is, it takes two consecutive elements and
+L<Hash> does.  That is, it takes two consecutive elements and
 constructs a pair from them, unless the item in the key position already is a
-pair (in which case the pair is passed is passed through, and the next
-list item, if any, is considered to be a key again).
+pair (in which case the pair is passed through, and the next list item, if any,
+is considered to be a key again).
 
     say (a => 1, 'b', 'c').pairup.perl;     # OUTPUT: «(:a(1), :b("c")).Seq␤»
-
-=head2 sub exit
-
-Defined as:
-
-    sub exit(Int() $status = 0)
-
-Exits the current process with return code C<$status>.
-
-=comment TODO maybe find a better place to document &exit
 
 =head2 sub item
 
@@ -303,14 +311,14 @@ X<|$ (item contextualizer)>
 Defined as:
 
     proto sub item(|) is pure
-    multi sub item(\x)
-    multi sub item(|c)
-    multi sub item(Mu $a)
+    multi item(\x)
+    multi item(|c)
+    multi item(Mu $a)
 
 Forces given object to be evaluated in item context and returns the value of it.
 
     say item([1,2,3]).perl;              # OUTPUT: «$[1, 2, 3]␤»
-    say item({ apple => 10 }).perl;      # OUTPUT: «${:apple(10)}␤»
+    say item( %( apple => 10 ) ).perl;   # OUTPUT: «${:apple(10)}␤»
     say item("abc").perl;                # OUTPUT: «"abc"␤»
 
 You can also use C<$> as item contextualizer.
@@ -324,7 +332,7 @@ Defined as:
 
     method Array(--> Array:D) is nodal
 
-Coerce the invocant to L<Array|/type/Array>.
+Coerce the invocant to L<Array>.
 
 =head2 method List
 
@@ -332,23 +340,50 @@ Defined as:
 
     method List(--> List:D) is nodal
 
-Coerce the invocant to L<List|/type/List>.
+Coerce the invocant to L<List>, using the L<list> method.
+
+=head2 serial
+
+Defined as
+
+    proto method serial(|) is nodal
+    multi method serial( --> Any)
+
+Returns the self-reference to the instance itself:
+
+=begin code
+my $b; # defaults to Any
+say $b.serial.^name; # OUTPUT: Any
+=end code
 
 =head2 method Hash
 
 Defined as:
 
-    method Hash(--> Hash:D) is nodal
+    proto method Hash(|) is nodal
+    multi method Hash( --> Hash:D)
 
-Coerce the invocant to L<Hash|/type/Hash>.
+
+Coerce the invocant to L<Hash> by invoking the method C<hash> on it.
 
 =head2 method hash
 
 Defined as:
 
-    method hash(--> Hash:D) is nodal
+    proto method hash(|) is nodal
+    multi method hash(Any:U: --> Hash:D)
+    multi method hash(Any:D: --> Hash:D)
 
-Coerce the invocant to L<Hash|/type/Hash>.
+Creates a new L<Hash|/type/Hash>, empty in the case the invocant is
+undefined, or coerces the invocant to an C<Hash> in the case it is
+defined.
+
+=begin code
+my $d; # $d is Any
+say $d.hash; # OUTPUT: {}
+$d.append: 'a', 'b';
+say $d.hash; # OUTPUT: {a => b}
+=end code
 
 =head2 method Slip
 
@@ -356,7 +391,7 @@ Defined as:
 
     method Slip(--> Slip:D) is nodal
 
-Coerce the invocant to L<Slip|/type/Slip>.
+Coerce the invocant to L<Slip>.
 
 =head2 method Map
 
@@ -364,7 +399,7 @@ Defined as:
 
     method Map(--> Map:D) is nodal
 
-Coerce the invocant to L<Map|/type/Map>.
+Coerce the invocant to L<Map>.
 
 =head2 method Bag
 
@@ -372,8 +407,8 @@ Defined as:
 
     method Bag(--> Bag:D) is nodal
 
-Coerce the invocant to L<Bag|/type/Bag>, whereby C<Positionals> are treated as
-lists of values.
+Coerce the invocant to L<Bag>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method BagHash
 
@@ -381,8 +416,8 @@ Defined as:
 
     method BagHash(--> BagHash:D) is nodal
 
-Coerce the invocant to L<BagHash|/type/BagHash>, whereby C<Positionals> are
-treated as lists of values.
+Coerce the invocant to L<BagHash>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method Set
 
@@ -390,8 +425,8 @@ Defined as:
 
     method Set(--> Set:D) is nodal
 
-Coerce the invocant to L<Set|/type/Set>, whereby C<Positionals> are treated as
-lists of values.
+Coerce the invocant to L<Set>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method SetHash
 
@@ -399,8 +434,8 @@ Defined as:
 
     method SetHash(--> SetHash:D) is nodal
 
-Coerce the invocant to L<SetHash|/type/SetHash>, whereby C<Positionals> are
-treated as lists of values.
+Coerce the invocant to L<SetHash>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method Mix
 
@@ -408,8 +443,8 @@ Defined as:
 
     method Mix(--> Mix:D) is nodal
 
-Coerce the invocant to L<Mix|/type/Mix>, whereby C<Positionals> are treated as
-lists of values.
+Coerce the invocant to L<Mix>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method MixHash
 
@@ -417,8 +452,8 @@ Defined as:
 
     method MixHash(--> MixHash:D) is nodal
 
-Coerce the invocant to L<MixHash|/type/MixHash>, whereby C<Positionals> are
-treated as lists of values.
+Coerce the invocant to L<MixHash>, whereby L<Positionals|/type/Positional>
+are treated as lists of values.
 
 =head2 method Supply
 
@@ -426,48 +461,65 @@ Defined as:
 
     method Supply(--> Supply:D) is nodal
 
-Coerce the invocant first to a C<List> and then to a L<Supply|/type/Supply>.
+Coerce the invocant first to a C<list> by applying the invocant's
+L«C<.list>|/routine/list» method, and then to a L<Supply>.
 
 =head2 method min
 
-Defined As:
+Defined as:
 
     multi method min(--> Any:D)
-    multi method min(&custom-routine-to-use --> Any:D)
+    multi method min(&filter --> Any:D)
 
-Coerces to Iterable and returns the numerically smallest element. If a
-C<Callable> positional argument is provided it is called with each element
-and its smallest return values is returned.
+Coerces to L<Iterable> and returns the numerically smallest element.
+
+If a L<Callable> positional argument is provided, each value is passed
+into the filter, and its return value is compared instead of the
+original value. The original value is still the one returned from C<min>.
+
+    say (1,7,3).min();       # OUTPUT:«1␤»
+    say (1,7,3).min({1/$_}); # OUTPUT:«7␤»
 
 =head2 method max
 
-Defined As:
+Defined as:
 
     multi method max(--> Any:D)
-    multi method max(&custom-routine-to-use --> Any:D)
+    multi method max(&filter --> Any:D)
 
-Coerces to Iterable and returns the numerically biggest element. If a
-C<Callable> positional argument is provided it is called with each element
-and its biggest return values is returned.
+Coerces to L<Iterable> and returns the numerically largest element.
+
+If a L<Callable> positional argument is provided, each value is passed
+into the filter, and its return value is compared instead of the
+original value. The original value is still the one returned from C<max>.
+
+    say (1,7,3).max();       # OUTPUT:«7␤»
+    say (1,7,3).max({1/$_}); # OUTPUT:«1␤»
 
 =head2 method minmax
 
-Defined As:
+Defined as:
 
-    multi method minmax(--> List:D)
-    multi method minmax(&custom-routine-to-use --> List:D)
+    multi method minmax(--> Range:D)
+    multi method minmax(&filter --> Range:D)
 
-Returns a list containing the smallest and the biggest element. If a
-C<Callable> positional argument is provided each element is filtered and
-then numerically compared.
+Returns a Range from the smallest to the largest element.
+
+If a L<Callable> positional argument is provided, each value is passed
+into the filter, and its return value is compared instead of the
+original value. The original values are still used in the returned
+Range.
+
+    say (1,7,3).minmax();      # OUTPUT:«1..7␤»
+    say (1,7,3).minmax({-$_}); # OUTPUT:«7..1␤»
 
 =head2 method minpairs
 
-Defined As:
+Defined as:
 
     multi method minpairs(Any:D: --> Seq:D)
 
-Calls L«C<.pairs>|/routine/pairs» and returns a L«C<Seq>|/type/Seq» with
+Calls L«C<.pairs>|/routine/pairs» and returns a L<Seq> with
 all of the Pairs with minimum values, as judged by the
 L«C<cmp> operator|/routine/cmp»:
 
@@ -476,351 +528,489 @@ L«C<cmp> operator|/routine/cmp»:
 
 =head2 method maxpairs
 
-Defined As:
+Defined as:
 
     multi method maxpairs(Any:D: --> Seq:D)
 
-Calls L«C<.pairs>|/routine/pairs» and returns a L«C<Seq>|/type/Seq» with
+Calls L«C<.pairs>|/routine/pairs» and returns a L<Seq> with
 all of the Pairs with maximum values, as judged by the
 L«C<cmp> operator|/routine/cmp»:
 
     <a b c a b c>.maxpairs.perl.put; # OUTPUT: «(2 => "c", 5 => "c").Seq␤»
     %(:42a, :75b).maxpairs.perl.put; # OUTPUT: «(:b(75),).Seq␤»
 
-=head2 method sum
-
-Defined As:
-
-=for code :skip-test
-    method sum(--> TODO)
-
-TODO
-
 =head2 method keys
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method keys(--> TODO)
+    multi method keys(Any:U: --> List)
+    multi method keys(Any:D: --> List)
 
-TODO
+For defined L<Any> returns its L<keys> after calling C<list> on it, otherwise calls C<list> and returns it.
+
+    say Any.keys; # OUTPUT: «()␤»
 
 =head2 method flatmap
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method flatmap(--> TODO)
+    method flatmap(Any:U: &code --> Seq)
 
-TODO
+Coerces the L<Any> to a C<list> by applying the
+L«C<.list>|/routine/list» method and uses
+L«C<List.flatmap>|/type/List#method_flatmap» on it.
+
+    say Any.flatmap({.reverse}); # OUTPUT: «((Any))␤»
+
+In the case of L<Any>, C<Any.list> returns a 1-item list, as is shown.
 
 =head2 method roll
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method roll(--> TODO)
+    multi method roll(--> Any)
+    multi method roll($n --> Seq)
 
-TODO
+Coerces the invocant L<Any> to a C<list> by applying
+the L«C<.list>|/routine/list» method and uses
+L«C<List.roll>|/type/List#routine_roll» on it.
+
+    say Any.roll;    # OUTPUT: «(Any)␤»
+    say Any.roll(5); # OUTPUT: «((Any) (Any) (Any) (Any) (Any))␤»
 
 =head2 method pick
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method pick(--> TODO)
+    multi method pick(--> Any)
+    multi method pick($n --> Seq)
 
-TODO
+Coerces the L<Any> to a C<list> by applying the
+L«C<.list>|/routine/list» method and uses
+L«C<List.pick>|/type/List#routine_pick» on it.
 
-=head2 method head
-
-Defined As:
-
-=for code :skip-test
-    method head(--> TODO)
-
-TODO
-
-=head2 method tail
-
-Defined As:
-
-=for code :skip-test
-    method tail(--> TODO)
-
-TODO
+    say Any.pick;    # OUTPUT: «(Any)␤»
+    say Any.pick(5); # OUTPUT: «((Any))␤»
 
 =head2 method skip
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method skip(--> TODO)
+    multi method skip(--> Seq)
+    multi method skip($n --> Seq)
 
-TODO
+Creates a L<Seq> from 1-item list's iterator and uses
+L«C<Seq.skip>|/type/Seq#method_skip» on it.
+
+    say Any.skip;      # OUTPUT: «()␤»
+    say Any.skip(5);   # OUTPUT: «()␤»
+    say Any.skip(-1);  # OUTPUT: «((Any))␤»
+    say Any.skip(*-1); # OUTPUT: «((Any))␤»
 
 =head2 method prepend
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method prepend(--> TODO)
+    multi method prepend(--> Array)
+    multi method prepend(@values --> Array)
 
-TODO
+Initializes L<Any> variable as empty L<Array> and calls
+L«C<Array.prepend>|/type/Array#method_prepend» on it.
+
+    my $a;
+    say $a.prepend; # OUTPUT: «[]␤»
+    say $a;         # OUTPUT: «[]␤»
+    my $b;
+    say $b.prepend(1,2,3); # OUTPUT: «[1 2 3]␤»
 
 =head2 method unshift
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method unshift(--> TODO)
+    multi method unshift(--> Array)
+    multi method unshift(@values --> Array)
 
-TODO
+Initializes L<Any> variable as empty L<Array> and calls
+L«C<Array.unshift>|/type/Array#routine_unshift» on it.
+
+    my $a;
+    say $a.unshift; # OUTPUT: «[]␤»
+    say $a;         # OUTPUT: «[]␤»
+    my $b;
+    say $b.unshift([1,2,3]); # OUTPUT: «[[1 2 3]]␤»
 
 =head2 method first
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method first(--> TODO)
+    method first(Mu $matcher?, :$k, :$kv, :$p, :$end)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.first>|/type/List#routine_first» on it.
+
+    say Any.first; # OUTPUT: «(Any)␤»
 
 =head2 method unique
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method unique
+    method unique(:&as, :&with --> Seq:D)
 
 Treats the C<Any> as a 1-item list and uses
 L«C<List.unique>|/type/List#routine_unique» on it.
 
+    say Any.unique; # OUTPUT: «((Any))␤»
+
 =head2 method repeated
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method repeated(--> TODO)
+    method repeated(:&as, :&with --> Seq)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.repeated>|/type/List#routine_repeated» on it.
+
+    say Any.repeated; # OUTPUT: «()␤»
 
 =head2 method squish
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method squish(--> TODO)
+    method squish(:&as, :&with --> Seq)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.squish>|/type/List#routine_squish» on it.
 
-=head2 method reduce
+    say Any.squish; # OUTPUT: «((Any))␤»
 
-Defined As:
-
-=for code :skip-test
-    method reduce(--> TODO)
-
-TODO
 
 =head2 method permutations
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method permutations(--> TODO)
+    method permutations(--> Seq)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.permutations>|/type/List#routine_permutations» on it.
+
+    say Any.permutations; # OUTPUT: «(((Any)))␤»
 
 =head2 method categorize
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method categorize(--> TODO)
+    method categorize(&mapper --> Hash:D)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.categorize>|/type/List#routine_categorize» on it.
+
+    say Any.categorize({ $_ }); # OUTPUT: «{(Any) => [(Any)]}␤»
 
 =head2 method classify
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method classify(--> TODO)
+    method classify(&mapper -->Hash:D)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.classify>|/type/List#routine_classify» on it.
+
+    say Any.classify({ $_ }); # OUTPUT: «{(Any) => [(Any)]}␤»
 
 =head2 method produce
 
-Defined As:
-
-=for code :skip-test
-    method produce(--> TODO)
-
-TODO
-
-=head2 method rotor
-
-Defined As:
-
-=for code :skip-test
-    method rotor(--> TODO)
-
-TODO
 
 =head2 method pairs
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method pairs(--> TODO)
+    multi method pairs(Any:U:  -->List)
+    multi method pairs(Any:D:  -->List)
 
-TODO
+Returns an empty L<List> if the invocant is undefined, otherwise
+converts the invocant to a L<List> via the C<list> method
+and calls L<List.pairs|/type/List#routine_pairs> on it:
+
+    say Any.pairs; # OUTPUT: «()␤»
+    my $a;
+    say $a.pairs;  # OUTPUT: «()»
+    $a = Any.new;
+    say $a.pairs;  # OUTPUT: «(0 => Any.new)»
+
 
 =head2 method antipairs
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method antipairs(--> TODO)
+    multi method antipairs(Any:U:  -->List)
+    multi method antipairs(Any:D:  -->List)
 
-TODO
+Applies the method L<List.antipairs|/type/List#routine_antipairs> to the invocant, if it is defined,
+after having invoked C<list> on it. If the invocant is not defined,
+it returns an empty L<List>:
+
+    my $a;
+    say $a.antipairs;      # OUTPUT: «()»
+    $a = Any.new;
+    say $a.antipairs;      # OUTPUT: «(Any.new => 0)»
+
 
 =head2 method kv
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method kv(--> TODO)
+    multi method kv(Any:U:  -->List)
+    multi method kv(Any:D:  -->List)
 
-TODO
+Returns an empty L<List> if the invocant is not defined, otherwise it
+does invoke C<list> on the invocant and then returns the result
+of L<List.kv|/type/List#routine_kv> on the latter:
+
+    my $a;
+    say $a.kv;      # OUTPUT: «()»
+    $a = Any.new;
+    say $a.kv;      # OUTPUT: «(0 Any.new)»
+    say Any.kv;     # OUTPUT: «()␤»
+
+=head2 method toggle
+
+Defined as:
+
+    method toggle(Any:D: *@conditions where .all ~~ Callable:D, Bool :$off  --> Seq:D)
+
+L<Iterates|/routine/iterator> over the invocant, producing a L<Seq>, toggling
+whether the received values are propagated to the result on and off, depending
+on the results of calling L<Callables|/type/Callable> in C<@conditions>:
+
+    say ^10 .toggle: * < 4, * %% 2, &is-prime; # OUTPUT: «(0 1 2 3 6 7)␤»
+    say ^10 .toggle: :off, * > 4;              # OUTPUT: «(5 6 7 8 9)␤»
+
+Imagine a switch that's either on or off (C<True> or C<False>), and values are
+produced if it's on. By default, the initial state of that switch is in "on"
+position, unless C<:$off> is set to a true value, in which case the initial
+state will be "off".
+
+A L<Callable> from the L<head> of C<@conditions> is taken (if any are available)
+and it becomes the current tester. Each value from the original sequence is
+tested by calling the tester L<Callable> with that value. The state of our
+imaginary switch is set to the return value from the tester: if it's truthy,
+set switch to "on",  otherwise set it to "off".
+
+Whenever the switch is I<toggled> (i.e. switched  from "off" to "on" or
+from "on" to "off"), the current tester L<Callable> is replaced by the next
+L<Callable> in C<@conditions>, if available, which will be used to test any
+further values. If no more tester Callables are available, the switch will
+remain in its current state until the end of iteration.
+
+    =begin code
+    # our original sequence of elements:
+    say list ^10; # OUTPUT: «(0 1 2 3 4 5 6 7 8 9)␤»
+    # toggled result:
+    say ^10 .toggle: * < 4, * %% 2, &is-prime; # OUTPUT: «(0 1 2 3 6 7)␤»
+
+    # First tester Callable is `* < 4` and initial state of switch is "on".
+    # As we iterate over our original sequence:
+    # 0 => 0 < 4 === True  switch is on, value gets into result, switch is
+    #                      toggled, so we keep using the same Callable:
+    # 1 => 1 < 4 === True  same
+    # 2 => 2 < 4 === True  same
+    # 3 => 3 < 4 === True  same
+    # 4 => 4 < 4 === False switch is now off, "4" does not make it into the
+    #                      result. In addition, our switch got toggled, so
+    #                      we're switching to the next tester Callable
+    # 5 => 5 %% 2 === False  switch is still off, keep trying to find a value
+    # 6 => 6 %% 2 === True   switch is now on, take "6" into result. The switch
+    #                        toggled, so we'll use the next tester Callable
+    # 7 => is-prime(7) === True  switch is still on, take value and keep going
+    # 8 => is-prime(8) === False switch is now off, "8" does not make it into
+    #                            the result. The switch got toggled, but we
+    #                            don't have any more tester Callables, so it
+    #                            will remain off for the rest of the sequence.
+    =end code
+
+Since the toggle of the switch's state loads the next tester L<Callable>,
+setting C<:$off> to a C<True> value affects when first tester is discarded:
+
+    =begin code
+    # our original sequence of elements:
+    say <0 1 2>; # OUTPUT: «(0 1 2)␤»
+    # toggled result:
+    say <0 1 2>.toggle: * > 1; # OUTPUT: «()␤»
+
+    # First tester Callable is `* > 1` and initial state of switch is "on".
+    # As we iterate over our original sequence:
+    # 0 => 0 > 1 === False  switch is off, "0" does not make it into result.
+    #                      In addition, switch got toggled, so we change the
+    #                      tester Callable, and since we don't have any more
+    #                      of them, the switch will remain "off" until the end
+    =end code
+
+    =begin code
+    # our original sequence of elements:
+    say <0 1 2>; # OUTPUT: «(0 1 2)␤»
+    # toggled result:
+    say <0 1 2>.toggle: :off, * > 1; # OUTPUT: «(2)␤»
+
+    # First tester Callable is `* > 1` and initial state of switch is "off".
+    # As we iterate over our original sequence:
+    # 0 => 0 > 1 === False  switch is off, "0" does not make it into result.
+    #                       The switch did NOT get toggled this time, so we
+    #                       keep using our current tester Callable
+    # 1 => 1 > 1 === False  same
+    # 2 => 2 > 1 === True   switch is on, "2" makes it into the result
+    =end code
+
 
 =head2 method tree
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method tree(--> TODO)
+    method tree(--> Any)
 
-TODO
+Returns the class if it's undefined or if it's not iterable, returns the result of applying the C<tree> method to the elements if it's L<Iterable>.
+
+    say Any.tree; # OUTPUT: «Any␤»
+
+C<.tree> has different prototypes for L<Iterable> elements.
+
+    my @floors = ( 'A', ('B','C', ('E','F','G')));
+    say @floors.tree(1).flat.elems; # OUTPUT: «6␤»
+    say @floors.tree(2).flat.elems; # OUTPUT: «2␤»
+    say @floors.tree( *.join("-"), *.join("—"), *.join("|" )); # OUTPUT: «A-B—C—E|F|G␤»
+
+With a number, it iteratively applies C<tree> to every element in the
+lower level; the first instance will apply C<.tree(0)> to every
+element in the array, and likewise for the next example.
+
+The second prototype applies the C<Whatever> code passed as arguments
+to every level in turn; the first argument will go to level 1 and so
+on. C<tree> can, thus, be a great way to process complex all levels of
+complex, multi-level, data structures.
 
 =head2 method nl-out
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method nl-out(--> TODO)
+    method nl-out(--> Str)
 
-TODO
+Returns Str with the value of "\n". See
+L«C<IO::Handle.nl-out>|/type/IO::Handle#method_nl-out» for the
+details.
+
+    say Any.nl-out; # OUTPUT: «␤␤»
 
 =head2 method invert
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method invert(--> TODO)
+    method invert(--> List)
 
-TODO
+Returns an empty List.
+
+    say Any.invert; # OUTPUT: «()␤»
 
 =head2 method combinations
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method combinations(--> TODO)
+    method combinations(--> Seq)
 
-TODO
+Treats the C<Any> as a 1-item list and uses
+L«C<List.combinations>|/type/List#routine_combinations» on it.
 
-=head2 method print-nl
-
-Defined As:
-
-=for code :skip-test
-    method print-nl(--> TODO)
-
-TODO
+    say Any.combinations; # OUTPUT: «(() ((Any)))␤»
 
 =head2 method iterator
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method iterator(--> TODO)
+    method iterator(--> Iterator)
 
-TODO
+Coerces the C<Any> to a C<list> by applying the C<.list> method and uses
+L«C<iterator>|/type/Iterable#method_iterator» on it.
+
+    my $it = Any.iterator;
+    say $it.pull-one; # OUTPUT: «(Any)␤»
+    say $it.pull-one; # OUTPUT: «IterationEnd␤»
 
 =head2 method grep
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method grep(--> TODO)
+    method grep(Mu $matcher, :$k, :$kv, :$p, :$v --> Seq)
 
-TODO
+Coerces the C<Any> to a C<list> by applying the C<.list> method and uses
+L«C<List.grep>|/type/List#routine_grep» on it.
 
-=head2 method match
+Based on C<$matcher> value can be either C<((Any))> or empty List.
 
-Defined As:
-
-=for code :skip-test
-    method match(--> TODO)
-
-TODO
+    my $a;
+    say $a.grep({ True }); # OUTPUT: «((Any))␤»
+    say $a.grep({ $_ });   # OUTPUT: «()␤»
 
 =head2 method append
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method append(--> TODO)
+    proto method append(|) is nodal {*}
+    multi method append(Any:U \SELF: |values --> Array)
 
-TODO
+In the case the instance is not a positional-thing, it instantiate it
+as a new L<Array|/type/Array>, otherwise clone the current
+instance.
+After that, it appends the values passed as arguments to
+the array obtained calling L«C<Array.append>|/type/Array#method_append» on it.
 
-=head2 method join
-
-Defined As:
-
-=for code :skip-test
-    method join(--> TODO)
-
-TODO
+    my $a;
+    say $a.append; # OUTPUT: «[]␤»
+    my $b;
+    say $b.append((1,2,3)); # OUTPUT: «[1 2 3]␤»
 
 =head2 method values
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method values(--> TODO)
+    method values(--> List)
 
-TODO
+Returns an empty List.
 
 =head2 method collate
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method collate(--> TODO)
+    method collate(--> Seq)
 
-TODO
+Collate sorts taking into account Unicode grapheme characteristics; that is, sorting more or less as one would expect instead of using the order in which their codepoints appear. Collate will behave this way if the object it is applied to is Iterable.
 
-=head2 method batch
+=begin code
+say ('a', 'Z').sort; # (Z a)
+say ('a', 'Z').collate; # (a Z)
+say <ä a o ö>.collate; # (a ä o ö)
+my %hash = 'aa' => 'value', 'Za' => 'second';
+say %hash.collate; # (aa => value Za => second);
+=end code
 
-Defined As:
-
-=for code :skip-test
-    method batch(--> TODO)
-
-TODO
+C<collate> behavior can be changed by using the (so far experimental) L<C<$*COLLATION>|/language/experimental#index-entry-%24%2ACOLLATION-%24%2ACOLLATION> dynamic variable. Please refer to its description in the L<experimental features page|/language/experimental> for further information.
 
 =head2 method cache
 
-Defined As:
+Defined as:
 
-=for code :skip-test
-    method cache(--> TODO)
+    method cache(--> List)
 
-TODO
+Provides a L<List> representation of the object itself, calling
+the method C<list> on the instance.
+
+=head2 method batch
+
+Defined as:
+
+    multi method batch(Int:D $batch --> Seq)
+    multi method batch(Int:D :$elems --> Seq)
+
+Coerces the C<Any> to a C<List> by applying the C<.list> method and uses
+L«C<List.batch>|/type/List#method_batch» on it.
 
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

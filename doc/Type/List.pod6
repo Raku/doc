@@ -84,6 +84,36 @@ Coercion to C<Bool> also indicates if the C<List> got any elements.
 
 =head1 Methods
 
+=head2 method ACCEPTS
+
+Defined as:
+
+    multi method ACCEPTS(List:D: $topic)
+
+If C<$topic> is an L<Iterable>, returns C<True> or C<False> based on whether
+the contents of the two C<Iterables> match. A L<Whatever> element in the
+invocant matches anything in the corresponding position of the C<$topic>
+C<Iterable>. A L<HyperWhatever> matches any number of any elements, including
+no elements:
+
+    say (1, 2, 3)       ~~ (1,  *, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (9,  *, 5);  # OUTPUT: «False␤»
+    say (1, 2, 3)       ~~ (   **, 3);  # OUTPUT: «True␤»
+    say (1, 2, 3)       ~~ (   **, 5);  # OUTPUT: «False␤»
+    say (1, 3)          ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 3) ~~ (1, **, 3); # OUTPUT: «True␤»
+    say (1, 2, 4, 5, 6) ~~ (1, **, 5); # OUTPUT: «False␤»
+    say (1, 2, 4, 5, 6) ~~ (   **   ); # OUTPUT: «True␤»
+    say ()              ~~ (   **   ); # OUTPUT: «True␤»
+
+In addition, returns C<False> if either the invocant or C<$topic>
+L<is a lazy|/routine/is-lazy> C<Iterable>, unless C<$topic> is the same object
+as the invocant, in which case C<True> is returned.
+
+If C<$topic> is I<not> an L<Iterable>, returns the invocant if the invocant
+has no elements or its first element is a L<Match> object (this behaviour
+powers C<m:g//> smartmatch), or C<False> otherwise.
+
 =head2 routine elems
 
 Defined as:
@@ -252,7 +282,7 @@ Like L«C<map>|/type/Any#method_map» iterates over the elements of the invocant
 list, feeding each element in turn to the code reference, and assembling the
 return values from these invocations in a result list.
 
-It is considered B<bad practice> to use flatmap. Instead of C<.flatmap( )>,
+The use of C<flatmap> B<is strongly discouraged>. Instead of C<.flatmap( )>,
 please use C<.map( ).flat> as it is clear when the C<.flat> is called and is
 not confusing like C<.flatmap>.
 
@@ -300,7 +330,7 @@ Defined as:
     sub    grep(Mu $matcher, *@elems, :$k, :$kv, :$p, :$v --> Seq:D)
     method grep(List:D:  Mu $matcher, :$k, :$kv, :$p, :$v --> Seq:D)
 
-Returns a sequence of elements against which C<$matcher> smart-matches.
+Returns a sequence of elements against which C<$matcher> smartmatches.
 The elements are returned in the order in which they appear in the original
 list.
 
@@ -308,6 +338,26 @@ Examples:
 
     say ('hello', 1, 22/7, 42, 'world').grep: Int;              # OUTPUT: «(1 42)␤»
     say grep { .Str.chars > 3 }, 'hello', 1, 22/7, 42, 'world'; # OUTPUT: «(hello 3.142857 world)␤»
+
+
+Note that if you want to grep for elements that do not match, you can
+use a C<none>-L<Junction|/type/Junction>:
+
+    say <a b 6 d 8 0>.grep(none Int);           # OUTPUT: «(a b d)␤»
+    say <a b c d e f>.grep(none /<[aeiou]>/);   # OUTPUT: «(b c d f)␤»
+
+Another option to grep for elements that do not match a regex is to
+use a block:
+
+    say <a b c d e f>.grep({! /<[aeiou]>/})     # OUTPUT: «(b c d f)␤»
+
+The reason the example above works is because a regex in boolean
+context applies itself to C<$_>. In this case, C<!> boolifies the
+C«/<[aeiou]>/» regex and negates the result. Smartmatching against a
+L<Callable> (in this case a L<Block>) returns the value returned from
+that callable, so the boolified result of a regex is then used to
+decide whether the current value should be kept in the result of a
+grep.
 
 The optional named parameters C<:k>, C<:kv>, C<:p>, C<:v> provide the same
 functionality as on slices:
@@ -338,12 +388,6 @@ Examples:
     say grep { .Str.chars > 3 }, :p, 'hello', 1, 22/7, 42, 'world';
     # OUTPUT: «(0 => hello 2 => 3.142857 4 => world)␤»
 
-Note that if you want to grep for elements that do not match a regular
-expression, you should use the following syntax, with a block:
-
-    say <a b c d e f>.grep({! /<[aeiou]>/})
-    # OUTPUT: «b c d f␤»
-
 =head2 routine first
 
 Defined as:
@@ -351,7 +395,7 @@ Defined as:
     sub    first(Mu $matcher, *@elems, :$k, :$kv, :$p, :$end)
     method first(List:D:  Mu $matcher?, :$k, :$kv, :$p, :$end)
 
-Returns the first item of the list which smart-matches against C<$matcher>,
+Returns the first item of the list which smartmatches against C<$matcher>,
 returns C<Nil> when no values match.  The optional named parameter C<:end>
 indicates that the search should be from the B<end> of the list, rather than
 from the start.
@@ -401,9 +445,9 @@ NUMBER <= 0.  Defaults to the first element seen if no NUMBER specified.
 Examples:
 
     say ^10 .head(5);      # OUTPUT: «(0 1 2 3 4)␤»
-    say ^Inf .head(5);     # OUTPUT: «(0 1 2 3 4)␤»
+    say ^∞ .head(5);       # OUTPUT: «(0 1 2 3 4)␤»
     say ^10 .head;         # OUTPUT: «0␤»
-    say ^Inf .head;        # OUTPUT: «0␤»
+    say ^∞ .head;          # OUTPUT: «0␤»
 
 =head2 method tail
 
@@ -419,9 +463,9 @@ Examples:
 
 =for code
 say ^10 .tail(5);      # OUTPUT: «(5 6 7 8 9)␤»
-say ^Inf .tail(5);     # Cannot tail a lazy list
+say ^∞ .tail(5);       # Cannot tail a lazy list
 say ^10 .tail;         # OUTPUT: «(9)␤»
-say ^Inf .tail;        # Cannot tail a lazy list
+say ^∞ .tail;        # Cannot tail a lazy list
 
 =head2 routine categorize
 
@@ -600,9 +644,12 @@ Defined as:
     multi method eager(List:D: --> List:D)
     multi sub eager(*@elems --> List:D)
 
-Evaluates all elements in the list eagerly, and returns them as a list.
+Evaluates all elements in the C<List> eagerly, and returns them as a C<List>.
 
-    say (1,2,3,4,5).eager; # OUTPUT: «(1 2 3 4 5)␤»
+    my  \ll = (lazy 1..5).cache;
+
+    say ll[];     # OUTPUT: «(...)␤»
+    say ll.eager  # OUTPUT: «(1 2 3 4 5)␤»
 
 =head2 routine reverse
 
@@ -644,7 +691,7 @@ Defined as:
     multi method sort(List:D:      --> Seq:D)
     multi method sort(List:D: &custom-routine-to-use  --> Seq:D)
 
-Sorts the list, smallest element first. By default C<< infix:<cmp> >>
+Sorts the list, smallest element first. By default L«C<< infix:<cmp> >>|/routine/cmp»
 is used for comparing list elements.
 
 If C<&custom-routine-to-use> is provided, and it accepts two arguments,
@@ -662,6 +709,25 @@ Examples:
     say (3, -4, 7, -1, 2, 0).sort;                  # OUTPUT: «(-4 -1 0 2 3 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: *.abs;           # OUTPUT: «(0 -1 2 3 -4 7)␤»
     say (3, -4, 7, -1, 2, 0).sort: { $^b leg $^a }; # OUTPUT: «(7 3 2 0 -4 -1)␤»
+
+Additionally, if C<&custom-routine-to-use> returns a C<List>, elements will be
+sorted based upon multiple values with subsequent values in the C<List> being
+used to break the tie if the comparison between the prior elements evaluate to
+C<Order::Same>.
+
+    my @resistance = (
+        %( first-name => 'Kyle',  last-name => 'Reese'  ),
+        %( first-name => 'Sarah', last-name => 'Connor' ),
+        %( first-name => 'John',  last-name => 'Connor' ),
+    );
+    .say for @resistance.sort: { .<last-name>, .<first-name> };
+
+    #`(
+    OUTPUT:
+      {first-name => John, last-name => Connor}
+      {first-name => Sarah, last-name => Connor}
+      {first-name => Kyle, last-name => Reese}
+    )
 
 =head2 routine unique
 
@@ -699,7 +765,7 @@ comparator.
 
 Example:
 
-    my @list = {a => 42}, {b => 13}, {a => 42};
+    my @list = %(a => 42), %(b => 13), %(a => 42);
     say @list.unique(:with(&[eqv]))               # OUTPUT: «({a => 42} {b => 13})␤»
 
 B<Note:> since C<:with> L<Callable> has to be tried with all the items in the list,
@@ -724,15 +790,15 @@ Examples:
     say <a b b c c b a>.repeated;                   # OUTPUT: «(b c b a)␤»
     say <a A B b c b C>.repeated(:as(&lc));         # OUTPUT: «(A b b C)␤»
 
-    my @list = {a => 42}, {b => 13}, {a => 42};
+    my @list = %(a => 42), %(b => 13), %(a => 42);
     say @list.repeated(:with(&[eqv]))               # OUTPUT: «({a => 42})␤»
 
 =head2 routine squish
 
 Defined as:
 
-    multi sub    squish(*@values, :&as --> Seq:D)
-    multi method squish(List:D:  :&as --> Seq:D)
+    multi sub    squish(*@values, :&as, :&with --> Seq:D)
+    multi method squish(List:D:   :&as, :&with --> Seq:D)
 
 Returns a sequence of values from the invocant/argument list where runs
 of more than one value are replaced with only the first instance.
@@ -750,6 +816,13 @@ Examples:
 The optional C<:as> parameter, just like with L<C<unique>>, allows values to be
 temporarily transformed before comparison.
 
+The optional C<:with> parameter is used to set an appropriate comparison operator:
+
+    say [42, "42"].squish;                      # OUTPUT: «(42 42)␤»
+    # Note that the second item in the result is still Str
+    say [42, "42"].squish(with => &infix:<eq>); # OUTPUT: «(42)␤»
+    # The resulting item is Int
+
 =head2 routine reduce
 
 Defined as:
@@ -760,8 +833,12 @@ Defined as:
 Generates a single "combined" value from a list of arbitrarily many of values,
 by iteratively applying a function which knows how to combine I<two> values.
 
-If C<@values> contains just a single element, that element is returned
-immediately. If it contains no elements, an exception is thrown, unless
+If C<@values> contains just a single element, the operator is applied to that single element if possible; if not, it returns the element itself.
+
+    say [-] <10 5 3>; #OUTPUT: 2␤
+    say [-] 10;       #OUTPUT: 10␤
+
+If it contains no elements, an exception is thrown, unless
 C<&with> is an I<operator> with a known identity value. For this
 reason, you may want to prefix the input list with an explicit identity
 value:
@@ -813,8 +890,7 @@ Practical example:
     }
 
 I<Note:> In the functional programming world, this operation is generally
-called a L<fold|
-https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+called a L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
 With a right-associative operator it is a right fold, otherwise (and usually)
 it is a left fold:
 
@@ -885,81 +961,86 @@ C<redo> statements inside C<&with>:
 
 Defined as:
 
-    multi sub    combinations($n, $k                     --> Seq:D)
-    multi method combinations(List:D: Int:D $of          --> Seq:D)
+    multi sub    combinations($from, $of = 0..*          --> Seq:D)
+    multi method combinations(List:D: Int() $of          --> Seq:D)
     multi method combinations(List:D: Range:D $of = 0..* --> Seq:D)
 
-The C<Int> variant returns all C<$of>-combinations of the invocant list.
-For example
+Returns a L<Seq> with all C<$of>-combinations of the invocant list.
+C<$of> can be a numeric L<Range>, in which
+case combinations of the range of item numbers it represents will be returned (i.e. C<2.6 .. 4>
+will return 2-, 3-, and 4-item combinations>). Otherwise, C<$of> is coerced to an L<Int>.
 
-    say .join('|') for <a b c>.combinations(2);
-    # OUTPUT: «a|b␤
-    # a|c␤
-    # b|c␤»
+    .say for <a b c>.combinations: 2;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
 
-because all the 2-combinations of C<'a', 'b', 'c'> are
-C<['a', 'b'], ['a', 'c'], ['b', 'c']>.
+Above, there are three possible ways to combine the 2-items lists from the original list, which
+is what we receive in the output. See L<permutations> if you want permutations instead of
+combinations.
 
-The C<Range> variant combines all the individual combinations into a single
-list, so
+With L<Range> argument, we get both three 2-item combinations and one 3-item combination:
 
-    say .join('|') for <a b c>.combinations(2..3);
-    # OUTPUT: «a|b
-    # a|c␤
-    # b|c␤
-    # a|b|c␤»
+    .say for <a b c>.combinations: 2..3;
+    # OUTPUT:
+    # (a b)
+    # (a c)
+    # (b c)
+    # (a b c)
 
-because that's the list of all 2- and 3-combinations.
-
-The subroutine form C<combinations($n, $k)> is equivalent to
-C<(^$n).combinations($k)>, so
-
-    .say for combinations(4, 2)
-    # OUTPUT: «0 1
-    # 0 2␤
-    # 0 3␤
-    # 1 2␤
-    # 1 3␤
-    # 2 3␤»
-
-If C<$k> is negative or is larger than there are items in the given list, an
-empty list will be returned. If C<$k> is zero, a 1-item list containing an empty
+If C<$of> is negative or is larger than there are items in the given list, an
+empty list will be returned. If C<$of> is zero, a 1-item list containing an empty
 list will be returned (there's exactly 1 way to pick no items).
 
-B<Note:> some implementations may limit the maximum C<$n>. On Rakudo, 64-bit
-systems have a limit of C<2³¹-1> and 32-bit systems have a limit of C<2²⁸-1>.
+The subroutine form is equivalent to the method form called on the first argument (C<$from>), with
+the exception that if C<$from> is not an L<Iterable>, it gets coerced to an C<Int> and combinations
+are made from a L<Range> constructed with C<0..^$from> instead:
+
+    .say for combinations 3, 2
+    # OUTPUT:
+    # (0 1)
+    # (0 2)
+    # (1 2)
+
+B<Note:> some implementations may limit the maximum value of non-L<Iterable> C<$from>.
+On Rakudo, 64-bit systems have a limit of C<2³¹-1> and 32-bit systems have a limit of C<2²⁸-1>.
 
 =head2 routine permutations
 
 Defined as:
 
-    multi sub    permutations($n      --> Seq:D)
-    multi method permutations(List:D: --> Seq:D)
+    multi sub    permutations(Int()    $from --> Seq:D)
+    multi sub    permutations(Iterable $from --> Seq:D)
+    multi method permutations(List:D:        --> Seq:D)
 
-Returns all possible permutations of a list as a sequence of lists. So
+Returns all possible permutations of a list as a L<Seq> of lists:
 
-    say .join('|') for <a b c>.permutations
-    # OUTPUT: «a|b|c␤
-    # a|c|b␤
-    # b|a|c␤
-    # b|c|a␤
-    # c|a|b␤
-    # c|b|a␤»
+    .say for <a b c>.permutations;
+    # OUTPUT:
+    # (a b c)
+    # (a c b)
+    # (b a c)
+    # (b c a)
+    # (c a b)
+    # (c b a)
 
-C<permutations> treats all list elements as distinguishable, so
-C<(1, 1, 2).permutations> still returns a list of 6 elements, even though
-there are only three distinct permutations.
+C<permutations> treats all elements as unique, thus C<(1, 1, 2).permutations> returns
+a list of 6 elements, even though there are only three distinct permutations, due to first two
+elements being the same.
 
-The subroutine form C<permutations($n)> is equivalent to
-C<(^$n).permutations>, so
+The subroutine form behaves the same as the method form, computing permutations from its
+first argument C<$from>. If C<$from> is not an L<Iterable>, coerces C<$from> to an C<Int> and
+picks from a L<Range> constructed with C<0..^$from>:
 
     .say for permutations 3;
-    # OUTPUT: «0 1 2␤
-    # 0 2 1␤
-    # 1 0 2␤
-    # 1 2 0␤
-    # 2 0 1␤
-    # 2 1 0␤»
+    # OUTPUT:
+    # (0 1 2)
+    # (0 2 1)
+    # (1 0 2)
+    # (1 2 0)
+    # (2 0 1)
+    # (2 1 0)
 
 =head2 method rotor
 
@@ -997,6 +1078,18 @@ Combining multiple cycles and C<:partial> also works:
     # OUTPUT: «a|c d e|e|g h␤»
 
 See L<this blog post for more elaboration on rotor|http://perl6.party/post/Perl-6-.rotor-The-King-of-List-Manipulation>.
+
+=head2 method batch
+
+Defined As:
+
+    multi method batch(Int:D $batch --> Seq)
+    multi method batch(Int:D :$elems --> Seq)
+
+Returns a C<Seq> of the elements in batches of C<:$elems> or C<$batch>,
+respectively. If the number of elements is not a multiple of C<$batch>, the
+last batch may have less than C<$batch> elements, similar to
+C<.rotor($batch, :partial)>.
 
 =head2 routine cross
 
@@ -1066,7 +1159,7 @@ elements from longer input lists are discarded.
     # ((a d g) (b e h) (c f i))
 
 In cases where data clipping is possible, but undesired, then consider using
-L<roundrobin|/type/List#sub_roundrobin> instead of C<zip>.
+L<roundrobin> instead of C<zip>.
 
 The optional C<with> parameter will additionally reduce the zipped lists. For
 example, the following multiplies corresponding elements together to return a
@@ -1086,12 +1179,12 @@ C<with> parameter with a meta-operator :
 
 Defined as:
 
-    method roundrobin(List:D: --> Seq)
+    sub roundrobin(+list-of-lists --> Seq)
 
 Builds a 'list of lists', returned as a sequence, from multiple input lists or
 other L<iterables|/type/Iterable>. C<roundrobin> returns an identical result to
-that of L<zip|/type/List#routine_zip>, except when the input lists have an
-unequal number of elements.
+that of L<zip|/type/List#routine_zip>, except when the input lists are allowed
+to have an unequal number of elements.
 
     say roundrobin <a b c>, <d e f>, <g h i>;
     # OUTPUT: «((a d g) (b e h) (c f i))␤»
@@ -1167,6 +1260,41 @@ Assumes the C<List> contains L«C<Match> objects|/type/Match», such as the
 C<$/> variable being a C<List>, when using C<:g> modifier in regexes. Returns the
 value of C<.to> called on the last element of the list.
 
+=head2 method sink
+
+Defined as:
+
+     method sink(--> Nil) { }
+
+It does nothing, and returns C<Nil>, as the definition clearly shows.
+
+    sink [1,2,Failure.new("boo!"),"still here"]; # OUTPUT: «»
+
+=head1 Operators
+
+=head2 infix C«cmp»
+
+    multi sub infix:<cmp>(List @a, List @b)
+
+Evaluates C<Lists> by comparing element C<@a[$i]> with C<@b[$i]> (for some
+C<Int $i>, beginning at 0) and returning C<Order::Less>, C<Order::Same>, or
+C<Order::More> depending on if and how the values differ. If the operation
+evaluates to C<Order::Same>, C<@a[$i + 1]> is compared with C<@b[$i + 1]>. This
+is repeated until one is greater than the other or all elements are exhausted.
+
+If the C<Lists> are of different lengths, at most only C<$n> comparisons will be
+made (where C<$n = @a.elems min @b.elems>). If all of those comparisons evaluate
+to C<Order::Same>, the final value is selected based upon which C<List> is
+longer.
+
+    say (1, 2, 3) cmp (1, 2, 3);   # OUTPUT: «Same␤»
+    say (4, 5, 6) cmp (4, 5, 7);   # OUTPUT: «Less␤»
+    say (7, 8, 9) cmp (7, 8, 8);   # OUTPUT: «More␤»
+
+    say (1, 2)    cmp (1, 2, 3);   # OUTPUT: «Less␤»
+    say (1, 2, 3) cmp (1, 2);      # OUTPUT: «More␤»
+    say (9).List  cmp (^10).List;  # OUTPUT: «More␤»
+
 =end pod
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

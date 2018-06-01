@@ -5,15 +5,11 @@
 =SUBTITLE Concurrency and Asynchronous Programming
 
 In common with most modern programming languages, Perl 6 is designed to
-L<support concurrency|https://en.wikipedia.org/wiki/Concurrent_computing>
-(allowing more than one thing to happen at the same time) and
-asynchronous programming (sometimes called event driven or reactive
-programming - that is an event or change in some part of a program
-may lead to an event or change in some other part of the program
-asynchronously to the program flow).
+support parallelism, asynchronicity and L<concurrency|https://en.wikipedia.org/wiki/Concurrent_computing>.  Parallelism is about doing multiple things at once. I<Asynchronous programming>, which is sometimes called event driven or reactive
+programming, is about supporting changes in the program flow caused by events triggered elsewhere in the program. Finally, concurrency is about the coordination of access and modification of some shared resources.
 
-The aim of the Perl concurrency design is to provide a high-level,
-composable, consistent interface, regardless of how a virtual machine
+The aim of the Perl 6 concurrency design is to provide a high-level,
+composable and consistent interface, regardless of how a virtual machine
 may implement it for a particular operating system, through layers of
 facilities as described below.
 
@@ -28,10 +24,11 @@ hyper-operators, autothreading junctions?
 Additionally, certain Perl features may implicitly operate in an asynchronous
 fashion, so in order to ensure predictable interoperation with these features,
 user code should, where possible, avoid the lower level concurrency APIs
-(e.g., L<Thread> and L<Scheduler> ) and use the higher-level interfaces.
+(e.g., L<Thread> and L<Scheduler>) and use the higher-level interfaces.
 
 =head1 High-level APIs
 
+X<|Futures>
 =head2 Promises
 
 A L<Promise|/type/Promise> (also called I<future> in other programming
@@ -72,11 +69,11 @@ chaining, usually by the L<then|/type/Promise#method_then> method:
 Here the L<then|/type/Promise#method_then> method schedules code to be
 executed when the first L<Promise> is kept or broken, itself returning
 a new L<Promise> which will be kept with the result of the code when
-it is executed (or broken if the code fails.)  C<keep> changes the
+it is executed (or broken if the code fails).  C<keep> changes the
 status of the promise to C<Kept> setting the result to the positional
 argument. C<result> blocks the current thread of execution until the
 promise is kept or broken, if it was kept then it will return the
-result (that is the value passed to C<keep>, ) otherwise it will throw an
+result (that is the value passed to C<keep>), otherwise it will throw an
 exception based on the value passed to C<break>. The latter behaviour
 is illustrated with:
 
@@ -202,7 +199,7 @@ If you are creating a promise that you intend to keep or break yourself
 then you probably don't want any code that might receive the promise to
 inadvertently (or otherwise) keep or break the promise before you do.
 For this purpose there is the L<method vow|/type/Promise#method_vow>, which
-returns a L<Vow> object which becomes the only mechanism by which the promise
+returns a Vow object which becomes the only mechanism by which the promise
 can be kept or broken.  If an attempt to keep or break the Promise is made
 directly then the exception L<X::Promise::Vowed> will be thrown, as long
 as the vow object is kept private, the status of the promise is safe:
@@ -262,8 +259,7 @@ Note that the C<tap> is called on a L<Supply> object created by the
 L<Supplier> and new values are emitted on the L<Supplier>.
 
 X«|supply (on-demand)»
-Or alternatively as an C<on-demand> L<Supply> created by the C<supply>
-keyword:
+An C<on-demand> L<Supply> is created by the C<supply> keyword:
 
     my $supply = supply {
         for 1 .. 10 {
@@ -310,7 +306,8 @@ following code outputs 0 .. 5 :
     $supply.tap(-> $v { say $v });
     sleep 10;
 
-X<|react>
+=head3 X<C<react>|react> and X<C<whenever>|whenever>
+
 This could also be written using the C<react> keyword:
 
     react {
@@ -320,9 +317,9 @@ This could also be written using the C<react> keyword:
         }
     }
 
-Here the X<C<whenever>> keyword uses L«C<.act>|/type/Supply#method_act»
+Here the C<whenever> keyword uses L«C<.act>|/type/Supply#method_act»
 to create a tap on the L<Supply> from the provided block. The C<react>
-block is exited when C<done()> is called in one of the taps.
+block is exited when C<done()> is called in one of the taps. Using C<last> to exit the block would produce an error indicating that it's not really a loop construct.
 
 A second argument can be supplied to C<interval> which specifies a delay
 in seconds before the first event is fired. Each tap of a supply created
@@ -344,6 +341,9 @@ written as:
             say $v;
         }
     }
+
+A live C<Supply> that keeps values until first tapped can be created with
+L<Supplier::Preserving|/type/Supplier::Preserving>.
 
 An existing supply object can be filtered or transformed, using the methods
 C<grep> and C<map> respectively, to create a new supply in a manner like
@@ -391,7 +391,6 @@ as seen by a C<when> or C<default> block, the exception is caught and handled.
 Otherwise, the exception continues to up the call tree (i.e., the same behavior
 as when C<quit> is not set).
 
-X<|whenever>
 If you are using the C<react> or C<supply> block syntax with C<whenever>, you
 can add phasers within your C<whenever> blocks to handle the C<done> and C<quit>
 messages from the tapped supply:
@@ -497,7 +496,7 @@ will be kept (and consequently will evaluate to True in a boolean context)
 when the channel is closed.
 
 The C<.poll> method can be used in combination with C<.receive> method, as a
-caching mechanism where lack of value returned by `.poll` is a signal that
+caching mechanism where lack of value returned by C<.poll> is a signal that
 more values need to be fetched and loaded into the channel:
 
     =begin code :preamble<my $c; sub slowly-fetch-a-thing {};>
@@ -789,3 +788,5 @@ possibly better fix would be to refactor the code so that sharing a container
 is not necessary.
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

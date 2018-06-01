@@ -1,35 +1,29 @@
+#!/usr/bin/env perl6
+
 use v6;
 use Test;
 use lib 'lib';
+use Test-Files;
 
 =begin overview
 
-Spell check all the pod files in the documentation directory.
+Spell check all the pod and most markdown files in the documentation directory.
 
 Ignore case, and provide a repo-specific list of approved words,
 which include technical jargon, method and class names, etc.
 
 If the test fails, you can make it pass again by changing the
 text (fixing the spelling issue), or adding the new word to
-xt/words.pws (if it's a word, a class/method name, known
-program name, etc.), or to xt/code.pws (if it's a fragment of
+C<xt/words.pws> (if it's a word, a class/method name, known
+program name, etc.), or to C<xt/code.pws> (if it's a fragment of
 text that is part of a code example)
 
 =end overview
 
-my @files;
-
-if @*ARGS {
-    @files = @*ARGS;
-} else {
-    for qx<git ls-files>.lines -> $file {
-        next unless $file ~~ / '.' ('pod6'|'md') $/;
-        next if $file ~~ / 'contributors.pod6' $/; # names are hard.
-        push @files, $file;
-    }
-}
+my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
+my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 my $proc = shell('aspell -v');
 if $proc.exitcode {
@@ -44,21 +38,17 @@ $dict.say("xt/words.pws".IO.slurp.chomp);
 $dict.say("xt/code.pws".IO.slurp.chomp);
 $dict.close;
 
-for @files -> $file {
-    my $fixer;
+my %output;
 
-    if $file ~~ / '.pod6' $/ {
-        my $pod2text = run($*EXECUTABLE-NAME, '--doc', $file, :out);
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', :in($pod2text.out), :out);
-    } else {
-        $fixer = run('awk', 'BEGIN {print "!"} {print "^" $0}', $file, :out);
-    }
+sub test-it($promises) {
 
-    my $proc = run(<aspell -a --ignore-case --extra-dicts=./xt/aspell.pws>, :in($fixer.out), :out);
+    await Promise.allof: |$promises;
+    my $tasks = $promises».result;
+    my $file = $tasks[0].command[*-1];
 
-    $proc.out.get; # dump first line.
     my $count;
-    for $proc.out.lines -> $line {
+    for %output{$file}.lines -> $line {
+        FIRST next; # dump first line
         next if $line eq '';
         diag $line;
         $count++;
@@ -67,5 +57,36 @@ for @files -> $file {
     my $so-many  = $count // "no";
     ok !$count, "$file has $so-many spelling errors";
 }
+
+my @jobs;
+
+for @files -> $file {
+    if $file ~~ / '.pod6' $/ {
+        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}');
+        $fixer.bind-stdin: $pod.stdout: :bin;
+        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$pod.start, $fixer.start, $proc.start];
+    } else {
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
+        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
+        $proc.bind-stdin: $fixer.stdout: :bin;
+        %output{$file}="";
+        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+        $proc.stderr.tap(-> $buf {});
+        push @jobs, [$fixer.start, $proc.start];
+    }
+
+    if +@jobs > $max-jobs {
+        test-it(@jobs.shift);
+    }
+}
+
+
+@jobs.map({test-it($_)});
 
 # vim: expandtab shiftwidth=4 ft=perl6

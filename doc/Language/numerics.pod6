@@ -1,0 +1,728 @@
+=begin pod :tag<perl6>
+
+=TITLE Numerics
+
+=SUBTITLE Numeric types available in Perl 6
+
+=head1 C<Int>
+
+The C<Int> type offers arbitrary-size integer numbers. They can get as big
+as your computer memory allows, although some implementations choose to
+throw a numeric overflow error when asked to produce integers of truly
+staggering size:
+
+=begin code :skip-test<compile-time constant folding will throw example error>
+say 10**600**600
+# OUTPUT: «Numeric overflow␤»
+=end code
+
+Unlike some languages, division performed using
+L<C«/» operator|/routine/$SOLIDUS> when both operands are of L<Int>
+type, would produce a fractional number, without any rounding performed.
+
+=begin code
+say 4/5; # OUTPUT: «0.8␤»
+=end code
+
+The type produced by this division is either a L<Rat> or a L<Num> type. The
+L<Rat> is produced if, after reduction, the fraction's denominator is smaller
+than 64 bits, otherwise a L<Num> type is produced.
+
+The L<div> and L<narrow> routines can be helpful if you wish to end
+up with an L<Int> result, whenever possible. The L<div> operator performs
+integer division, discarding the remainder, while L<narrow> fits the number
+into the narrowest type it'll fit:
+
+=begin code
+say 5 div 2; # OUTPUT: «2␤»
+
+# Result `2` is narrow enough to be an Int:
+say (4/2).narrow; # OUTPUT: «2␤»
+say (4/2).narrow.^name; # OUTPUT: «Int␤»
+
+# But 2.5 has fractional part, so it ends up being a Rat type:
+say (5/2).narrow.^name; # OUTPUT: «Rat␤»
+say (5/2).narrow;       # OUTPUT: «2.5␤»
+
+# Denominator is too big for a Rat, so a Num is produced:
+say 1 / 10⁹⁹; # OUTPUT: «1e-99␤»
+=end code
+
+Perl 6 has L<FatRat> type that offers arbitrary precision fractions. How come
+a limited-precision L<Num> is produced instead of a L<FatRat> type in the
+last example above? The reason is: performance. Most operations are fine
+with a little bit of precision lost and so do not require the use of a more
+expensive L<FatRat> type. You'll need to instantiate one yourself if you wish
+to have the extra precision.
+
+=head1 C<Num>
+
+The L<Num> type offers
+L<double-precision floating-point|https://en.wikipedia.org/wiki/Double-precision_floating-point_format> decimal numbers, sometimes called "doubles" in other languages.
+
+A L<Num> literal is written with the exponent separated using letter C<e>. Keep
+in mind that letter C<e> B<is required> even if the exponent is zero, as
+otherwise you'll get a L<Rat> rational literal instead:
+
+=begin code
+say 42e0.^name; # OUTPUT: «Num␤»
+say 42.0.^name; # OUTPUT: «Rat␤»
+=end code
+
+Case-sensitive words L<Inf> and L<NaN> represent special values infinity and
+not-a-number respectively. The U+221E INFINITY (C<∞>) character can be used
+instead of L<Inf>:
+
+Perl 6 follows the
+L<IEEE 754-2008 Standard for Floating-Point Arithmetic|https://en.wikipedia.org/wiki/IEEE_754> as much as possible, with
+more conformance planned to be implemented in later language versions. The
+language guarantees the closest representable number is chosen for any given
+L<Num> literal and does offer support for negative zero and
+L<denormals|https://en.wikipedia.org/wiki/Denormal_number> (also known as
+"subnormals").
+
+Keep in mind that output routines like L<say> or L<put> do not try very hard to
+distinguish between how L<Numeric> types are output and may choose to display
+a L<Num> as an L<Int> or a L<Rat> number. For a more definitive string to
+output, use the L<perl> method:
+
+=begin code
+say  1e0;      # OUTPUT: «1␤»
+say .5e0;      # OUTPUT: «0.5␤»
+say  1e0.perl; # OUTPUT: «1e0␤»
+say .5e0.perl; # OUTPUT: «0.5e0␤»
+=end code
+
+=head1 C<Complex>
+
+The L<Complex> type numerics of the
+L<complex plane|https://en.wikipedia.org/wiki/Complex_plane>. The L<Complex>
+objects consist of two L<Num> objects representing the
+L<real|/routine/re> and L<imaginary|/routine/im> portions of the complex number.
+
+To create a L<Complex>, you can use the L«postfix C<i> operator|/routine/i»
+on any other non-complex number, optionally setting the real part with
+addition. To use the C<i> operator on C<NaN> or C<Inf> literals, separate it
+from them with a backslash.
+
+=begin code
+say 42i;      # OUTPUT: «0+42i␤»
+say 73+42i;   # OUTPUT: «73+42i␤»
+say 73+Inf\i; # OUTPUT: «73+Inf\i␤»
+=end code
+
+Keep in mind the above syntax is just an addition expression and precedence
+rules apply. It also cannot be used in places that forbit expressions, such
+as literals in routine parameters.
+
+=begin code
+# Precedence of `*` is higher than that of `+`
+say 2 * 73+10i; # OUTPUT: «146+10i␤»
+=end code
+
+To avoid these issues, you can choose to use the L<Complex> literal syntax
+instead, which involves surrounding the real and imaginary parts with angle
+brackets, I<without any spaces>:
+
+=begin code
+say 2 * <73+10i>; # OUTPUT: «146+20i␤»
+
+multi how-is-it (<2+4i>) { say "that's my favorite number!" }
+multi how-is-it (|)      { say "meh"                        }
+how-is-it 2+4i;  # OUTPUT: «that's my favorite number!␤»
+how-is-it 3+2i;  # OUTPUT: «meh␤»
+=end code
+
+=head1 C<Rational>
+
+The types that do the L<Rational> role offer high-precision and
+arbitrary-precision decimal numbers. Since the higher the precision the
+larger the performance penalty, the L<Rational> types come in two flavours:
+L<Rat> and L<FatRat>. The L<Rat> is the most oft-used variant
+that degrades into a L<Num> in most cases, when it can no longer hold all of
+the requested precision. The L<FatRat> is the arbitrary-precision variant that
+keeps growing to provide all of the requested precision.
+
+=head2 C<Rat>
+
+The most common of L<Rational> types. It supports rationals with denominators
+as large as 64 bits (after reduction of the fraction to the lowest denominator).
+C<Rat> objects with larger denominators can be created directly, however, when
+C<Rat>s with such denominators are the result of mathematical operations, they
+degrade to a L<Num> object.
+
+The L<Rat> literals use syntax similar to L<Num> literals in many other
+languages, using the dot to indicate the number is a decimal:
+
+=begin code
+say .1 + .2 == .3; # OUTPUT: «True␤»
+=begin code
+
+If you try to execute a statement similar to the above in many common
+languages, you'll get C<False> as the answer, due to imprecision of
+floating point math. To get the same result in Perl 6, you'd have to use
+L<Num> literals instead:
+
+=begin code
+say .1e0 + .2e0 == .3e0; # OUTPUT: «False␤»
+=begin code
+
+You can also use L«C</> division operator|/routine/$SOLIDUS» with L<Int> or
+L<Rat> objects to produce a L<Rat>:
+
+=begin code
+say 3/4;     # OUTPUT: «0.75␤»
+say 3/4.2;   # OUTPUT: «0.714286␤»
+say 1.1/4.2; # OUTPUT: «0.261905␤»
+=end code
+
+Keep in mind the above syntax is just a division expression and precedence
+rules apply. It also cannot be used in places that forbit expressions, such
+as literals in routine parameters.
+
+=begin code
+# Precedence of power operators is higher than division
+say 3/2²; # OUTPUT: «0.75␤»
+=end code
+
+To avoid these issues, you can choose to use the L<Rational> literal syntax
+instead, which involves surrounding the numerator and denominator with angle
+brackets, I<without any spaces>:
+
+=begin code
+say <3/2>²; # OUTPUT: «2.25␤»
+
+multi how-is-it (<3/2>) { say "that's my favorite number!" }
+multi how-is-it (|)     { say "meh"                        }
+how-is-it 3/2;  # OUTPUT: «that's my favorite number!␤»
+how-is-it 1/3;  # OUTPUT: «meh␤»
+=end code
+
+Lastly, any Unicode character with property C<No> that represents a fractional
+number can be used as a L<Rat> literal:
+
+=begin code
+say ½ + ⅓ + ⅝ + ⅙; # OUTPUT: «1.625␤»
+=end code
+
+=head3 Degradation to C<Num>
+
+If a I<mathematical operation> that produces a L<Rat> answer would produce
+a L<Rat> with denominator larger than 64 bits, that operation would instead
+return a L<Num> object. When I<constructing> a L<Rat> (i.e. when it is not
+a result of some mathematical expression), however, a "fattish" L<Rat> with
+larger denominator will be created.
+
+=head2 C<FatRat>
+
+The last L<Rational> type—L<FatRat>—keeps all of the precision you ask of
+it, storing the numerator and denominator as two L<Int> objects. A L<FatRat>
+is more infectious than a L<Rat>, so many math operations with a L<FatRat> will
+produce another L<FatRat>, preserving all of the available precision. Where
+a L<Rat> degrades to a L<Num>, math with a L<FatRat> keeps chugging along:
+
+=begin code
+say ((42 + Rat.new(1,2))/999999999999999999).^name;         # OUTPUT: «Rat␤»
+say ((42 + Rat.new(1,2))/9999999999999999999).^name;        # OUTPUT: «Num␤»
+say ((42 + FatRat.new(1,2))/999999999999999999).^name;      # OUTPUT: «FatRat␤»
+say ((42 + FatRat.new(1,2))/99999999999999999999999).^name; # OUTPUT: «FatRat␤»
+=end code
+
+There's no special operator or syntax available for construction of L<FatRat>
+objects. Simply use L«C<FatRat.new> method|/type/FatRat#(Rational)_method_new»,
+giving numerator as first positional argument and denominator as the second.
+
+If your program requires a significant amount of L<FatRat> creation, you could
+create your own custom operator:
+
+=begin code
+sub infix:<🙼> { FatRat.new: $^a, $^b }
+say (1🙼3).perl; # OUTPUT: «FatRat.new(1, 3)␤»
+=end code
+
+=head2 Printing Rationals
+
+Keep in mind that output routines like L<say> or L<put> do not try very hard to
+distinguish between how L<Numeric> types are output and may choose to display
+a L<Num> as an L<Int> or a L<Rat> number. For a more definitive string to
+output, use the L<perl> method:
+
+=begin code
+say 1.0;        # OUTPUT: «1␤»
+say ⅓;          # OUTPUT: «0.333333␤»
+say 1.0.perl;   # OUTPUT: «1.0␤»
+say ⅓.perl;     # OUTPUT: «<1/3>␤»
+=end code
+
+For even more information, you may choose see the L<Rational> object in
+the L<nude>, displaying its B<nu>merator and B<de>nominator:
+
+=begin code
+say ⅓;          # OUTPUT: «0.333333␤»
+say 4/2;        # OUTPUT: «2␤»
+say ⅓.perl;     # OUTPUT: «<1/3>␤»
+say <4/2>.nude; # OUTPUT: «(2 1)␤»
+=end code
+
+=head1 Division By Zero
+
+In many languages division by zero is an immediate exception. In Perl 6, what
+happens depends on what you're dividing and how you use the result.
+
+Perl 6 follows L<IEEE 754-2008 Standard for Floating-Point Arithmetic|https://en.wikipedia.org/wiki/IEEE_754>, but for historical reasons
+6.c language does not comply fully. L<Num> division by zero produces a
+L<Failure>, while L<Complex> division by zero produces C<NaN> components,
+regardlesss of what the numerator is.
+
+As of 6.d language, both L<Num> and L<Complex> division by zero will produce
+a L<-Inf>, L<+Inf>, or L<NaN> depending on whether the numerator was negative, positive, or zero, respectively (for L<Complex> the real and imaginary
+components are L<Num> and are considered separately).
+
+Division of L<Int> numerics produces a L<Rat> object (or a L<Num>, if
+after reduction the denominator is larger than 64-bits, which isn't the case
+when you're dividing by zero). This means such division never produces
+an L<Exception> or a L<Failure>. The result is a Zero-Denominator Rational,
+which can be explosive.
+
+=head2 Zero-Denominator Rationals
+
+A Zero-Denominator Rational is a numeric that does role L<Rational>, which
+among core numerics would be L<Rat> and L<FatRat> objects, which
+has denominator of zero.
+
+Operations that can be performed without requiring actual division to occur
+are non-explosive. For example, you can separately examine
+L<numerator> and L<denominator> in the L<nude> or perform mathematical
+operations without any exceptions or failures popping up.
+
+Converting zero-denominator rationals to L<Num> follows
+the L<IEEE|https://en.wikipedia.org/wiki/IEEE_754> conventions, and the
+result is a C<-Inf>, C<Inf>, or C<NaN>, depending on whether the numerator
+is negative, positive, or zero, respectively. The same is true going the
+other way: converting C<±Inf>/C<NaN> to one of the L<Rational> types will
+produce a zero-denominator rational with an appropriate numerator:
+
+=begin code
+say  <1/0>.Num;   # OUTPUT: «Inf␤»
+say <-1/0>.Num;   # OUTPUT: «-Inf␤»
+say  <0/0>.Num;   # OUTPUT: «NaN␤»
+say Inf.Rat.nude; # OUTPUT: «(1 0)␤»
+=end code
+
+All other operations that require
+non-L<IEEE|https://en.wikipedia.org/wiki/IEEE_754> division of the numerator
+and denominator to occur will result in C<X::Numeric::DivideByZero> exception
+to be thrown. The most common of such operations would likely be trying to
+print or stringify a zero-denominator rational:
+
+=begin code
+say 0/0;
+# OUTPUT:
+# Attempt to divide by zero using div
+#  in block <unit> at -e line 1
+=end code
+
+=head1 Allomorphs
+
+L<Allomorphs|/language/glossary#index-entry-Allomorph> are subclasses of two types that can
+behave as either of them. For example, the allomorph L<IntStr> is the subclass of L<Int> and
+L<Str> types and will be accepted by any type constraint that requires an L<Int> or L<Str> object.
+
+Allomorphs can be created using L«angle brackets|/language/quoting#Word_quoting:_<_>», either used
+standalone or as part of a hash key lookup; directly
+using method C<.new> and are also provided by some constructs such as
+parameters of L«C<sub MAIN>|/language/functions#sub_MAIN».
+
+=begin code
+say <42>.^name;                 # OUTPUT: «IntStr␤»
+say <42e0>.^name;               # OUTPUT: «NumStr␤»
+say < 42+42i>.^name;            # OUTPUT: «ComplexStr␤»
+say < 1/2>.^name;               # OUTPUT: «RatStr␤»
+say <0.5>.^name;                # OUTPUT: «RatStr␤»
+
+@*ARGS = "42";
+sub MAIN($x) { say $x.^name }   # OUTPUT: «IntStr␤»
+
+say IntStr.new(42, "42").^name; # OUTPUT: «IntStr␤»
+=end code
+
+A couple of constructs above have a space after the opening angle bracket. That space isn't
+accidental. Numerics that are often written using an operator, such as C<1/2> (L<Rat>,
+division operator) and C<1+2i> (L<Complex>, addition) can be written as a literal that doesn't
+involve the use of an operator: angle brackets I<without> any spaces between the brackets and the
+characters inside. By adding spaces within the brackets, we tell the compiler that not only we
+want a L<Rat> or L<Complex> literal, but we also want it to be an allmorph: the L<RatStr> or
+L<ComplexStr>, in this case.
+
+If the numeric literal doesn't use any operators, then writing it inside the angle brackets, even
+without including any spaces within, would produce the allomorph. (Logic: if you didn't want
+the allomorph, you wouldn't use the angle brackets. The same isn't true for operator-using
+numbers as some constructs, such as signature literals, do not let you use operators, so you
+can't just omit angle brackets for such numeric literals).
+
+=head2 Available Allomorphs
+
+The core language offers the following allomorphs:
+
+=begin table
+
+    Type       | Allomorph of         | Example
+    ===========+======================+=================
+    IntStr     | Int and Str          | <42>
+    NumStr     | Num and Str          | <42e0>
+    ComplexStr | Complex and Str      | < 1+2i>
+    RatStr     | Rat and Str          | <1.5>
+
+=end table
+
+Note: there is no C<FatRatStr> type.
+
+=head2 Coercion of Allomorphs
+
+Keep in mind that allomorphs are simply subclasses of the two (or three) types they represent. Just
+as a variable or parameter type-constrained to C<Foo> can accept any subclass of C<Foo>, so will
+a variable or parameter type-constrained to L<Int> will accept an L<IntStr> allomorph:
+
+=begin code
+sub foo(Int $x) { say $x.^name }
+foo <42>;                          # OUTPUT: «IntStr␤»
+my Num $y = <42e0>;
+say $y.^name;                      # OUTPUT: «NumStr␤»
+=end code
+
+This, of course, also applies to parameter L<coercers|/type/Signature#Coercion_Type>:
+
+=begin code
+sub foo(Int(Cool) $x) { say $x.^name }
+foo <42>;  # OUTPUT: «IntStr␤»
+=end code
+
+The given allomorph is I<already> an object of type L<Int>, so it does not get converted to
+a "plain" L<Int> in this case.
+
+Of course, the power of allomorphs would be severely diminished if there were no way to
+"collapse" them to one of their components. Thus, if you explicitly call a method with the name
+of the type to coerce to, you'll get just that component. The same applies to any proxy methods,
+such as calling method L«C<.Numeric>|/routine/Numeric» instead of L«C<.Int>|/routine/Int»
+or using the L«C<< prefix:<~> >> operator|/routine/~» instead of
+L«C<.Str>|/routine/Str» method call.
+
+=begin code
+my $al := IntStr.new: 42, "forty two";
+say $al.Str;  # OUTPUT: «forty two␤»
+say +$al;     # OUTPUT: «42␤»
+
+say <1/99999999999999999999>.Rat.^name;    # OUTPUT: «Rat␤»
+say <1/99999999999999999999>.FatRat.^name; # OUTPUT: «FatRat␤»
+=end code
+
+A handy way to coerce a whole list of allomorphs is by
+L<hypering|/language/operators#Hyper_Operators> the appropraite prefix operator:
+
+=begin code
+say map *.^name,   <42 50e0 100>;  # OUTPUT: «(IntStr NumStr IntStr)␤»
+say map *.^name, +«<42 50e0 100>;  # OUTPUT: «(Int Num Int)␤»
+say map *.^name, ~«<42 50e0 100>;  # OUTPUT: «(Str Str Str)␤»
+=end code
+
+=head2 Object Identity
+
+The above discussion on coercing allomorphs becomes more important when we consider object
+identity. Some constructs untilize it to ascertain whether two objects are "the same". And while
+to humans an allomorphic C<42> and regular C<42> might appear "the same", to those constructs,
+they're entirely different objects:
+
+=begin code
+# "42" shows up twice in the result: 42 and <42> are different objects:
+say unique 1, 1, 1, 42, <42>; # OUTPUT: «(1 42 42)␤»
+# Use a different operator to `unique` with:
+say unique :with(&[==]), 1, 1, 1, 42, <42>; # OUTPUT: «(1 42)␤»
+# Or coerce the input instead (faster than using a different `unique` operator):
+say unique :as(*.Int), 1, 1, 1, 42, <42>; # OUTPUT: «(1 42)␤»
+say unique +«(1, 1, 1, 42, <42>);         # OUTPUT: «(1 42)␤»
+
+# Parametarized Hash with `Any` keys does not stringify them; our key is of type `Int`:
+my %h{Any} = 42 => "foo";
+# But we use the allomorphic key of type `IntStr`, which is not in the Hash:
+say %h<42>:exists;           # OUTPUT: «False␤»
+# Must use curly braces to avoid the allomorph:
+say %h{42}:exists;           # OUTPUT: «False␤»
+
+# We are using a set operator to look up an `Int` object in a list of `IntStr` objects:
+say 42 ∈ <42 100 200>; # OUTPUT: «False␤»
+# Convert it to an allomorph:
+say <42> ∈ <42 100 200>; # OUTPUT: «True␤»
+# Or convert the items in the list to plain `Int` objects:
+say 42 ∈ +«<42 100 200>; # OUTPUT: «True␤»
+=end code
+
+Be mindful of these object identity differences and coerce your allomorphs as needed.
+
+=head1 Native Numerics
+
+As the name suggests, native numerics offer access to native numerics—i.e. those offered directly
+by your hardware. This in turn offers two features: overflow/underflow and better performance.
+
+B<NOTE:> at the time of this writing (2018.05), certain implementations (such as Rakudo) offer
+somewhat spotty details on native types, such as whether C<int64> is available and is of 64-bit
+size on 32-bit machines, and how to detect when your program is running on such hardware.
+
+=head2 Available Native Numerics
+
+=begin table
+
+    Native type | Base numeric     | Size
+    ============+==================+===============
+    int         | integer          | 64-bits
+    int8        | integer          | 8-bits
+    int16       | integer          | 16-bits
+    int32       | integer          | 32-bits
+    int64       | integer          | 64-bits
+
+    uint        | unsigned integer | 64-bits
+    uint8       | unsigned integer | 8-bits
+    uint16      | unsigned integer | 16-bits
+    uint32      | unsigned integer | 32-bits
+    uint64      | unsigned integer | 64-bits
+
+    num         | floating point   | 64-bits
+    num32       | floating point   | 32-bits
+    num64       | floating point   | 64-bits
+
+    atomicint   | integer          | sized to offer CPU-provided atomic operations. (typically 64 bits on 64-bit platforms and 32 bits on 32-bit ones)
+
+=end table
+
+=head2 Creating Native Numerics
+
+To create a natively-typed variable or parameter, simply use the name of one of the available
+numerics as the type constraint:
+
+=begin code
+my int32 $x = 42;
+sub foo(num $y) {}
+class { has int8 $.z }
+=end code
+
+At times, you may wish to coerce some value to a native type without creating any usable variables.
+There are no C<.int> or similar coersion methods (method calls are latebound, so they're not
+well-suited for this purpose). Instead, simply use an anonymous variable:
+
+=begin code :preamble<my $y; my $z;>
+some-native-taking-sub (my int $ = $y), (my int32 $ = $z)
+=end code
+
+=head2 Overflow/Underflow
+
+Trying to B<assign> a value that does not fit into a particular native type, produces an exception.
+This includes attempting to give too large an argument to a native parameter:
+
+=begin code
+my int $x = 2¹⁰⁰;
+# OUTPUT:
+# Cannot unbox 101 bit wide bigint into native integer
+#  in block <unit> at -e line 1
+
+sub f(int $x) { $x }; say f 2⁶⁴
+# OUTPUT:
+# Cannot unbox 65 bit wide bigint into native integer
+#   in sub f at -e line 1
+#   in block <unit> at -e line 1
+=end code
+
+However, modifying an already-existing value in such a way that it becomes too big/small, produces
+overflow/underflow behaviour:
+
+=begin code
+my int $x = 2⁶³-1;
+say $x;             # OUTPUT: «9223372036854775807␤»
+say ++$x;           # OUTPUT: «-9223372036854775808␤»
+
+my uint8 $x;
+say $x;             # OUTPUT: «0␤»
+say $x -= 100;      # OUTPUT: «156␤»
+=end code
+
+Creating objects that utilize native types does not involve direct assignment by the programmer
+and so these contructs offer overflow/underflow behaviour instead of throwing exceptions.
+
+=begin code
+say Buf.new(1000, 2000, 3000).List; # OUTPUT: «(232 208 184)␤»
+say my uint8 @a = 1000, 2000, 3000; # OUTPUT: «232 208 184␤»
+=end code
+
+=head2 Auto-Boxing
+
+While they can be referred to as "native I<types>", native numerics are not actually classes
+that have any sort of methods available. However, you I<can> call any of the methods available
+on non-native versions of these numerics. What's going on?
+
+=begin code
+my int8 $x = -42;
+say $x.abs; # OUTPUT: «42␤»
+=end code
+
+This behaviour is known as "auto-boxing". The compiler automatically "boxes" the native type
+into a full-featured higher-level type with all the methods. In other words, the C<int8> above
+was automatically converted to an L<Int> and it's the L<Int> class that then provided the L<abs>
+method that was called.
+
+This detail is significant when you're using native types for performance gains.
+If the code you're using results in a lot of auto-boxing being performed you might get I<worse>
+performance with native types than you would with non-natives:
+
+=begin code
+my $a = -42;
+my int $a-native = -42;
+{ for ^1000_000 { $a.abs        }; say now - ENTER now } # OUTPUT: «0.38180862␤»
+{ for ^1000_000 { $a-native.abs }; say now - ENTER now } # OUTPUT: «0.938720␤»
+=end code
+
+As you can see above, the native variant is more than twice slower. The reason is the method
+call requires the native type to be boxed, while no such thing is needed in the non-native
+variant, hence the performance loss.
+
+In this particular case, we can simply switch to a subroutine form of L<abs>, which can work
+with native types without boxing them. In other cases, you may need to seek out other solutions
+to avoid excessive autoboxing, including switching to non-native types for a portion of the code.
+
+=begin code
+my $a = -42;
+my int $a-native = -42;
+{ for ^1000_000 { abs $a        }; say now - ENTER now } # OUTPUT: «0.38229177␤»
+{ for ^1000_000 { abs $a-native }; say now - ENTER now } # OUTPUT: «0.3088305␤»
+=end code
+
+=head2 Default Values
+
+Since there are no classes behind native types, there are no type objects you'd normally get
+with variables that haven't been initialized. Thus, native types are automatically initialized
+to zero. In 6.c language, native floating point types (C<num>, C<num32>, and C<num64>) are
+initialized to value C<NaN>; it is proposed for default to become C<0e0> in 6.d language.
+
+=head2 Native Dispatch
+
+It is possible to have native candidates alongside non-native candidates to, for example,
+offer faster algorithms with native candidates when sizes are predictable, but to fallback
+to slower non-native alternatives otherwise. The following are the rules concerning multi-dispatch
+involving native candidates.
+
+First, the size of the native type does not play a role in dispatch and an C<int8> is considered
+to be the same as C<int16> or C<int>:
+
+=begin code
+multi foo(int   $x) { say "int" }
+multi foo(int32 $x) { say "int32" }
+foo my int $x = 42;
+# OUTPUT:
+# Ambiguous call to 'foo(Int)'; these signatures all match:
+# :(int $x)
+# :(int32 $x)
+=end code
+
+Second, if a routine is an C<only>—i.e. it is not a
+L«C<multi>|/language/functions#Multi-dispatch»—that
+takes a non-native type but a native one was given during the call, or vice-versa, then the argument
+will be auto-boxed or auto-unboxed to make the call possible. If the given
+argument is too large to fit into the native parameter, an exception will be thrown:
+
+=begin code
+-> int {}( 42 );            # OK; auto-unboxing
+-> int {}( 2¹⁰⁰ );          # Too large; exception
+-> Int {}( 2¹⁰⁰ );          # OK; non-native parameter
+-> Int {}( my int $ = 42 ); # OK; auto-boxing
+=end code
+
+When it comes to L«C<multi>|/language/functions#Multi-dispatch» routines, native arguments
+will always be auto-boxed if no native candidates are available to take them:
+
+=begin code
+multi foo (Int $x) { $x }
+say foo my int $ = 42; # OUTPUT: «42␤»
+=end code
+
+The same luxury is not afforded when going the other way. If only a native candidate is
+available, a non-native argument will I<not> be auto-unboxed and instead an exception indicating
+no candidates matched will be thrown (the reason for this asymmetry is a native type can always
+be boxed, but a non-native may be too large to fit into a native):
+
+=begin code
+multi f(int $x) { $x }
+my $x = 2;
+say f $x;
+# OUTPUT:
+# Cannot resolve caller f(Int); none of these signatures match:
+#     (int $x)
+#   in block <unit> at -e line 1
+=end code
+
+However, this rule is waived if a call is being made where one of the arguments is a native type
+and another one is a L<numeric literal>:
+
+=begin code
+multi f(int, int) {}
+f 42, my int $x; # Successfull call
+=end code
+
+This way you do not have to constantly write, for example, C«$n +> 2» as C«$n +> (my int $ = 2)».
+The compiler knows the literal is small enough to fit to a native type and converts it to a native.
+
+=head2 Atomic Operations
+
+The language offers L<some operations|https://docs.perl6.org/type/atomicint>
+that are guaranteed to be performed atomically, i.e. safe to be executed
+by multiple threads without the need for locking with no risk of data races.
+
+For such operations, the L<atomicint> native type is required. This type is
+similar to a plain native L<int>, except it is sized such that CPU-provided atomic operations can be performed upon it. On a 32-bit CPU it will typically
+be 32 bits in size, and on an a 64-bit CPU it will typically be 64 bits in size.
+
+=begin code
+# !!WRONG!! Might be non-atomic on some systems
+my int $x;
+await ^100 .map: { start $x⚛++ };
+say $x; # OUTPUT: «98␤»
+
+# RIGHT! The use of `atomicint` type guarantees operation is atomic
+my atomicint $x;
+await ^100 .map: { start $x⚛++ };
+say $x; # OUTPUT: «100␤»
+=end code
+
+The similarity to C<int> is present in multi dispatch as well: an
+C<atomicint>, plain C<int>, and the sized C<int> variants are all considered
+to be the same by the dispatcher and cannot be differentiated through
+multi-dispatch.
+
+=head1 Numeric Infectiousness
+
+Numeric "infectiousness" dictates the resultant type when two numerics of different types are
+involved in some mathematical operations. A type is said to be more infectious than the other type
+if the result is of that type rather than the type of the other operand. For example, L<Num>
+type is more infectious than an L<Int>, thus we can expect C<42e0 + 42> to produce a L<Num> as the
+result.
+
+The infectiousness is as follows, with the most infectious type listed first:
+
+=item *  Complex
+
+=item * Num
+
+=item * FatRat
+
+=item * Rat
+
+=item * Int
+
+=begin code
+say (2 + 2e0).^name; # Int + Num => OUTPUT: «Num␤»
+say (½ + ½).^name; # Rat + Rat => OUTPUT: «Rat␤»
+say (FatRat.new(1,2) + ½).^name; # FatRat + Rat => OUTPUT: «FatRat␤»
+=end code
+
+The allomorphs have the same infectiousness as their numeric component. Native
+types get autoboxed and have the same infectiousness as their boxed variant.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

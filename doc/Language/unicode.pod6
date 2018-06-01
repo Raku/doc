@@ -8,9 +8,93 @@ Perl 6 has a high level of support of Unicode. This document aims to be both an
 overview as well as describe Unicode features which don't belong in the documentation
 for routines and methods.
 
+For an overview on MoarVM's internal representation of strings, see the
+L<MoarVM string documentation|https://github.com/MoarVM/MoarVM/blob/master/docs/strings.asciidoc>.
+
+=head1 File Handles and I/O
+
+X<|Normalization>
+=head2 Normalization
+
+Perl 6 applies normalization by default to all input and output except for file
+names which are stored as L<C<UTF8-C8>|#UTF8-C8>; graphemes, which are
+user-visible forms of the characters, will use a normalized representation. What
+does this mean? For example, the grapheme C<á> can be represented in two ways,
+either using one codepoint:
+
+=for code :lang<text>
+á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
+
+Or two codepoints:
+
+=for code :lang<text>
+a +  ́ (U+61 "LATIN SMALL LETTER A" + U+301 "COMBINING ACUTE ACCENT")
+
+Perl 6 will turn both these inputs into one codepoint, as is specified for
+Normalization Form C (B<X<NFC>>). In most cases this is useful and means
+that two inputs that are equivalent are both treated the same. Unicode has a concept
+of canonical equivalence which allows us to determine the canonical form of a string,
+allowing us to properly compare strings and manipulate them, without having to worry
+about the text losing these properties. By default, any text you process or output
+from Perl 6 will be in this "canonical" form, even when making modifications or
+concatenations to the string (see below for how to avoid this). For more detailed information
+about Normalization Form C and canonical equivalence, see the Unicode Foundation's page on
+L<Normalization and Canonical Equivalence|https://unicode.org/reports/tr15/#Canon_Compat_Equivalence>.
+
+One case where we don't default to this, is for the names of files. This is because
+the names of files must be accessed exactly as the bytes are written on the disk.
+
+To avoid normalization you can use a special encoding format called L<UTF8-C8|#UTF8-C8>.
+Using this encoding with any filehandle will allow you to read the exact bytes as they are
+on disk, without normalization. They may look funny when printed out, if you print it out using a
+UTF8 handle. If you print it out to a handle where the output encoding is UTF8-C8,
+then it will render as you would normally expect, and be a byte for byte exact
+copy. More technical details on L<UTF8-C8|#UTF8-C8> on MoarVM below.
+
+X<|UTF8-C8>
+=head2 UTF8-C8
+
+X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
+However, upon encountering a byte sequence that will either not decode as valid
+UTF-8, or that would not round-trip due to normalization, it will use
+L<NFG synthetics|/language/glossary#NFG>
+to keep track of the original bytes involved.
+This means that encoding back to UTF-8 Clean-8 will be able to recreate the
+bytes as they originally existed. The synthetics contain 4 codepoints:
+
+=item The codepoint 0x10FFFD (which is a private use codepoint)
+=item The codepoint 'x'
+=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
+=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
+
+Under normal UTF-8 encoding, this means the unrepresentable characters will
+come out as something like C<?xFF>.
+
+UTF-8 Clean-8 is used in places where MoarVM receives strings from the
+environment, command line arguments, and filesystem queries, for instance when decoding buffers:
+
+    say Buf.new(ord('A'), 0xFE, ord('Z')).decode('utf8-c8');
+    #  OUTPUT: «A􏿽xFEZ␤»
+
+You can see how the two initial codepoints used by UTF8-C8 show up here, right
+before the "FE". You can use this type of encoding to read files with unknown
+encoding:
+
+    my $test-file = "/tmp/test";
+    given open($test-file, :w, :bin) {
+      .write: Buf.new(ord('A'), 0xFA, ord('B'), 0xFB, 0xFC, ord('C'), 0xFD);
+      .close;
+    }
+
+    say slurp($test-file, enc => 'utf8-c8'); # OUTPUT: «(65 250 66 251 252 67 253)»
+
+Reading with this type of encoding and encoding them back to UTF8-C8 will give you back the original bytes; this would not have been possible with the default UTF8-C8.
+
+Please note that this encoding so far is not supported in the JVM implementation of Rakudo.
+
 =head1 Entering Unicode Codepoints and Codepoint Sequences
 
-You can enter Unicode codepoints by number (decimal as well as hexadecimal).  For example, the character named
+You can enter Unicode codepoints by number (decimal as well as hexadecimal). For example, the character named
 "latin capital letter ae with macron" has decimal codepoint 482 and hexadecimal codepoint 0x1E2:
 
     say "\c[482]"; # OUTPUT: «Ǣ␤»
@@ -34,11 +118,10 @@ can combine numeric and named styles as well:
     say "\c[482,PENGUIN]"; # OUTPUT: «Ǣ🐧␤»
 
 In addition to using C<\c[]> inside interpolated strings, you can also use
-the L<parse-names routine|/type/Str#routine_parse-names>
-or the parse-names method.
+the L<uniparse>:
 
-    say "DIGIT ONE".parse-names;  # OUTPUT: «1␤»
-    say parse-names("DIGIT ONE"); # OUTPUT: «1␤»
+    say "DIGIT ONE".uniparse;  # OUTPUT: «1␤»
+    say uniparse("DIGIT ONE"); # OUTPUT: «1␤»
 
 =head2 Name Aliases
 
@@ -84,52 +167,7 @@ commas to separate different codepoints/sequences inside the same C<\c> sequence
     say "\c[woman gesturing OK]";         # OUTPUT: «🙆‍♀️␤»
     say "\c[family: man woman girl boy]"; # OUTPUT: «👨‍👩‍👧‍👦␤»
 
-=head1 File Handles and I/O
-
-Perl6 applies X<normalization> by default to all input and output it makes.
-What does this mean? For example á can be represented 2 ways. Either using
-one codepoint:
-
-=for code :skip-test
-    á (U+E1 "LATIN SMALL LETTER A WITH ACUTE")
-
-Or two codepoints:
-
-=for code :skip-test
-    a +  ́ (U+61 "LATIN SMALL LETTER A" + U+301 "COMBINING ACUTE ACCENT")
-
-Perl 6 will turn both these inputs into one codepoint, as is specified for
-normalization form canonical (B<X<NFC>>). In most cases this is useful and means
-that two inputs that are equivalent both are treated the same, and any text
-you process or output from Perl 6 will be in this "canonical" form.
-
-One case where we don't default to this, is for file handles. This is because
-file handles must be accessed exactly as the bytes are written on the disk.
-
-You can use UTF8-C8 with any file handle to read the exact bytes as they are
-on disk. They may look funny when printed out, if you print it out using a
-UTF8 handle. If you print it out to a handle where the output is UTF8-C8,
-then it will render as you would normally expect, and be a byte for byte exact
-copy. More technical details on UTF8-C8 on MoarVM below.
-
-=head2 X<UTF8-C8>
-
-X<UTF-8 Clean-8> is an encoder/decoder that primarily works as the UTF-8 one.
-However, upon encountering a byte sequence that will either not decode as
-valid UTF-8, or that would not round-trip due to normalization, it will use
-NFG synthetics to keep track of the original bytes involved. This means that
-encoding back to UTF-8 Clean-8 will be able to recreate the bytes as they
-originally existed. The synthetics contain 4 codepoints:
-
-=item The codepoint 0x10FFFD (which is a private use codepoint)
-=item The codepoint 'x'
-=item The upper 4 bits of the non-decodable byte as a hex char (0..9A..F)
-=item The lower 4 bits as the non-decodable byte as a hex char (0..9A..F)
-
-Under normal UTF-8 encoding, this means the unrepresentable characters will
-come out as something like `?xFF`.
-
-UTF-8 Clean-8 is used in places where MoarVM receives strings from the
-environment, command line arguments, and file system queries.
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

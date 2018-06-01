@@ -14,6 +14,73 @@ moment.
 C<Proc::Async> allows you to run external commands asynchronously, capturing
 standard output and error handles, and optionally write to its standard input.
 
+=begin code
+my $file = ‘foo’.IO;
+spurt $file, “and\nCamelia\n♡\nme\n”;
+
+my $proc = Proc::Async.new: :w, ‘tac’, ‘--’, $file, ‘-’;
+# my $proc = Proc::Async.new: :w, ‘sleep’, 15; # uncomment to try timeouts
+
+react {
+    whenever $proc.stdout.lines { # split input on \r\n, \n, and \r
+        say ‘line: ’, $_
+    }
+    whenever $proc.stderr { # chunks
+        say ‘stderr: ’, $_
+    }
+    whenever $proc.ready {
+        say ‘PID: ’, $_ # Only in Rakudo 2018.04 and newer, otherwise Nil
+    }
+    whenever $proc.start {
+        say ‘Proc finished: exitcode=’, .exitcode, ‘ signal=’, .signal;
+        done # gracefully jump from the react block
+    }
+    whenever $proc.print: “I\n♥\nCamelia\n” {
+        $proc.close-stdin
+    }
+    whenever signal(SIGTERM).merge: signal(SIGINT) {
+        once {
+            say ‘Signal received, asking the process to stop’;
+            $proc.kill; # sends SIGHUP, change appropriately
+            whenever signal($_).zip: Promise.in(2).Supply {
+                say ‘Kill it!’;
+                $proc.kill: SIGKILL
+            }
+        }
+    }
+    whenever Promise.in(5) {
+        say ‘Timeout. Asking the process to stop’;
+        $proc.kill; # sends SIGHUP, change appropriately
+        whenever Promise.in(2) {
+            say ‘Timeout. Forcing the process to stop’;
+            $proc.kill: SIGKILL
+        }
+    }
+}
+
+say ‘Program finished’;
+=end code
+
+Example above produces the following output:
+=begin code :skip-test
+line: me
+line: ♡
+line: Camelia
+line: and
+line: Camelia
+line: ♥
+line: I
+Proc finished. Exit code: 0
+Program finished
+=end code
+
+B<Note:> Using C<.zip> and C<.merge> as suggested above is known not
+to work in L<Rakudo|/language/glossary#Rakudo> releases before
+2017.09.
+
+Alternatively, you can use C<Proc::Async> without using a
+L<react|/language/concurrency#index-entry-react> block:
+
     # command with arguments
     my $proc = Proc::Async.new('echo', 'foo', 'bar');
 
@@ -38,12 +105,20 @@ Done.
 
 An example that opens an external program for writing:
 
-    use v6.c;
+    use v6;
     my $prog = Proc::Async.new(:w, 'hexdump', '-C');
     my $promise = $prog.start;
     await $prog.write(Buf.new(12, 42));
     $prog.close-stdin;
     await $promise;
+
+An example of piping several commands like C<echo "Hello, world" | cat -n>:
+
+    use v6;
+    my $proc-echo = Proc::Async.new: 'echo', 'Hello, world';
+    my $proc-cat = Proc::Async.new: 'cat', '-n';
+    $proc-cat.bind-stdin: $proc-echo.stdout;
+    await $proc-echo.start, $proc-cat.start;
 
 =head1 Methods
 
@@ -92,6 +167,8 @@ Note that you cannot call C<stdout> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
 
+Use L«C<.Supply>|/type/Proc::Async#method_Supply» for merged STDOUT and STDERR.
+
 =head2 method stderr
 
     method stderr(Proc::Async:D: :$bin --> Supply:D)
@@ -119,6 +196,56 @@ Note that you cannot call C<stderr> both with and without C<:bin> on the same
 object; it will throw an exception of type L<X::Proc::Async::CharsOrBytes> if
 you try.
 
+Use L«C<.Supply>|/type/Proc::Async#method_Supply» for merged STDOUT and STDERR.
+
+=head2 method bind-stdin
+
+    multi method bind-stdin(IO::Handle:D $handle)
+    multi method bind-stdin(Proc::Async::Pipe:D $pipe)
+
+Sets a handle (which must be opened) or a C<Pipe> as a source of C<STDIN>. The C<STDIN> of
+the target process must be writable or
+C<X::Proc::Async::BindOrUse> will be thrown.
+
+    my $p = Proc::Async.new("cat", :in);
+    my $h = "/etc/profile".IO.open;
+    $p.bind-stdin($h);
+    $p.start;
+
+This is equivalent to
+
+=for code :lang<shell>
+    cat < /etc/profile
+
+and will print the content of C</etc/profile> to standard output.
+
+=head2 method bind-stdout
+
+    method bind-stdout(IO::Handle:D $handle)
+
+Redirects STDOUT of the target process to a handle (which must be opened).
+If STDOUT is closed L<X::Proc::Async::BindOrUse|/type/x/proc/async/BindOrUse>
+will be thrown.
+
+    my $p = Proc::Async.new("ls", :out);
+    my $h = "ls.out".IO.open(:w);
+    $p.bind-stdout($h);
+    $p.start;
+
+This program will pipe the output of the C<ls> shell command to a file called C<ls.out>, which we are opened for reading.
+
+=head2 method bind-stderr
+
+    method bind-stderr(IO::Handle:D $handle)
+
+Redirects STDERR of the target process to a handle (which must be opened).
+If STDERR is closed C<X::Proc::Async::BindOrUse> will be thrown.
+
+    my $p = Proc::Async.new("ls", "--foo", :err);
+    my $h = "ls.err".IO.open(:w);
+    $p.bind-stderr($h);
+    $p.start;
+
 =head2 method w
 
     method w(Proc::Async:D:)
@@ -131,8 +258,8 @@ the program through the C<.print>, C<.say> and C<.write> methods.
 
     method start(Proc::Async:D: :$scheduler = $*SCHEDULER, :$cwd = $*CWD --> Promise:D)
 
-Initiates spawning of the external program. Returns a promise that will be
-kept with a L<Proc|/type/Proc> object once the external
+Initiates spawning of the external program. Returns a  L<Promise|/type/Promise>
+that will be kept with a L<Proc|/type/Proc> object once the external
 program exits, and that will be broken if the program cannot be started.
 
 If C<start> is called on a Proc::Async object on which it has already been
@@ -168,6 +295,21 @@ Returns C<False> before C<.start> has been called, and C<True> afterwards.
 Returns a L<Promise|/type/Promise> that will be kept once the process
 has successfully started. L<Promise|/type/Promise> will be broken if the program
 fails to start.
+
+B<Implementation-specific note:> Starting from Rakudo 2018.04, the
+returned promise will hold the process id (PID).
+
+=head2 method pid
+
+    method pid(Proc::Async:D: --> Promise:D)
+
+Equivalent to L<ready>.
+
+Returns a L<Promise|/type/Promise> that will be kept once the process
+has successfully started. L<Promise|/type/Promise> will be broken if the program
+fails to start. Returned promise will hold the process id (PID).
+
+B<Implementation-specific note:> Available starting from Rakudo 2018.04.
 
 =head2 method path
 
@@ -234,6 +376,32 @@ L<X::Proc::Async::OpenForWriting> exception will the thrown.
 
 C<start> must have been called before calling method say, otherwise an
 L<X::Proc::Async::MustBeStarted> exception is thrown.
+
+=head2 method Supply
+
+    multi method Supply(Proc::Async:D: :$bin!)
+    multi method Supply(Proc::Async:D: :$enc, :$translate-nl)
+
+Returns a L<Supply> of merged L<stdout> and L<stderr> streams. If C<:$bin>
+named argument is provided, the C<Supply> will be binary, producing L<Buf>
+objects, otherwise, it will be in character mode, producing L<Str> objects and
+C<:$enc> named argument can specify L<encoding> to use.
+The C<:$translate-nl> option specifies whether new line endings should be
+translated for to match those used by the current operating system (e.g.
+C<\r\n> on Windows).
+
+=for code
+react {
+    with Proc::Async.new: «"$*EXECUTABLE" -e 'say 42; note 100'» {
+        whenever .Supply { .print }  # OUTPUT: «42␤100␤»
+        whenever .start {}
+    }
+}
+
+It is an error to create both binary and non-binary
+L«C<.Supply>|/type/Proc::Async#method_Supply». It is also an error
+to use both L«C<.Supply>|/type/Proc::Async#method_Supply» and either
+L<stderr> or L<stdout> supplies.
 
 =head2 method close-stdin
 

@@ -2,29 +2,34 @@
 
 =TITLE Grammar Tutorial
 
-=SUBTITLE Why Grammars?
+=SUBTITLE An introduction to grammars
 
-Grammars parse strings and return data structures from those strings. Grammars can
-be used to prepare a program for execution, to determine if a program can run at
-all (if it's a valid program), to break down a web page into constituent parts,
-or to identify the different parts of a sentence, among other things.
+=head1 Before We Start
 
-=SUBTITLE When Would I Use Grammars?
+=head2 Why grammars?
 
-If you have strings to tame or interpret, grammars provide the
-tools to do the job.
+Grammars parse strings and return data structures from those strings.
+Grammars can be used to prepare a program for execution, to determine
+if a program can run at all (if it's a valid program), to break down
+a web page into constituent parts, or to identify the different parts
+of a sentence, among other things.
 
-The string could be a file that you're looking to break into sections; perhaps a
-protocol, like SMTP, where you need to specify which "commands" come after
-what user-supplied data; maybe you're designing your own domain specific
-language. Grammars can help.
+=head2 When would I use grammars?
 
-=SUBTITLE The Broad Concept of Perl Grammars
+If you have strings to tame or interpret, grammars provide the tools
+to do the job.
 
-Regular expressions work well for finding patterns in strings. However, for some
-tasks -- like finding multiple patterns at once, or
-combining patterns, or testing for patterns that may surround strings --
-regular expressions, alone, are not enough.
+The string could be a file that you're looking to break into sections;
+perhaps a protocol, like SMTP, where you need to specify which "commands"
+come after what user-supplied data; maybe you're designing your own
+domain specific language. Grammars can help.
+
+=head2 The broad concept of grammars
+
+Regular expressions (L<Regexes|/language/regexes>) work well for finding
+patterns in strings. However, for some tasks, like finding multiple patterns
+at once, or combining patterns, or testing for patterns that may surround
+strings regular expressions, alone, are not enough.
 
 When working with HTML, you could define a grammar to recognize HTML tags, both
 the opening and closing elements, and the text in between. You could then
@@ -39,62 +44,66 @@ as you would any other class, except that you use the I<grammar> keyword instead
 of I<class>.
 
     =begin code :skip-test
-    grammar My::Gram { ... }
+    grammar G { ... }
     =end code
 
 Grammars are made up of methods that define a regex, a token, or a rule.
 These are all varieties of different types of match methods. Once you have a
 grammar defined, you call it and pass in a string for parsing.
 
-    =begin code :skip-test
-    my $matchObject = My::Gram.parse($string);
+    =begin code :preamble<grammar G{};my $string;>
+    my $matchObject = G.parse($string);
     =end code
 
 Now, you may be wondering, if I have all these regexes defined that just return
-their results, how does that help with parsing strings that may be ahead or backwards in a string, or things that need to be combined from many of
-those regexes... and that's where grammar actions come in.
+their results, how does that help with parsing strings that may be ahead
+or backwards in a string, or things that need to be combined from many of
+those regexes... And that's where grammar actions come in.
 
 For every "method" you match in your grammar, you get an action you can use
-to act on that match. You also get an over-arching action that you can use to
-tie together all your matches and to build a data structure. This over-arching
-method is called TOP by default.
+to act on that match. You also get an overarching action that you can use to
+tie together all your matches and to build a data structure. This overarching
+method is called C<TOP> by default.
 
 =head2 The technical overview
 
 As already mentioned, grammars are declared using the I<grammar> keyword and its
 "methods" are declared with I<regex>, or I<token>, or I<rule>.
 
-=item Regex methods are slow but thorough -- they will look back in the string
+=item Regex methods are slow but thorough, which will look back in the string
 and really try.
 
 =item Token methods are faster than regex methods and ignore whitespace.
 
-=item Rule methods are the same as token methods except whitespace is not ignored.
+=item Rule methods are the same as token methods except whitespace
+is not ignored.
 
-When a method (regex, token or rule) matches in the grammar, that matched string
-is put into a match object and keyed with the same name as the method.
+When a method (regex, token or rule) matches in the grammar,
+the string matched is put into a L<match object|/type/Match> and
+keyed with the same name as the method.
 
     =begin code
-    grammar My::Gram {
+    grammar G {
         token TOP { <thingy> .* }
         token thingy { 'clever_text_keyword' }
     }
     =end code
 
-If you were to use my $match = My::Gram.parse( $string ) and your
+If you were to use C<my $match = G.parse($string)> and your
 string started with 'clever_text_keyword', you would get a match
-object back that contained 'clever_text_keyword' keyed by the name of 'thingy'
-in your match object.
+object back that contained 'clever_text_keyword' keyed by
+the name of C«<thingy>» in your match object.
 
-The TOP method (whether regex, token, or rule) is the overarching pattern that must
-match everything (by default). If the parsed string doesn't match the TOP regex,
-your returned match object will be empty (Any).
+The C<TOP> method (whether regex, token, or rule) is the overarching pattern
+that must match everything (by default). If the parsed string doesn't
+match the TOP regex, your returned match object will be empty (C<Nil>).
 
-As you can see above, in TOP, the "<thingy>" token is mentioned. The <thingy>
-is defined on the next line, "token thingy...". That means that
-'clever_text_keyword' B<must> be the first thing in the string or
+As you can see above, in C<TOP>, the C«<thingy>» token is mentioned. The
+C«<thingy>» is defined on the next line. That means that
+C<'clever_text_keyword'> B<must> be the first thing in the string, or
 the grammar parse will fail and we'll get an empty match. This is great for
 recognizing a malformed string that should be discarded.
+
 
 =head1 Learning By Example - a REST Contrivance
 
@@ -114,8 +123,8 @@ we'll be working with or a long list of data separated by "/"'s.
 structure that we can easily work with (and later enhance).
 
 So, if we have "/product/update/7/notify", we would want
-our grammar to give us a $match object that has a "I<subject>" of
-"product", a "I<command>" of "update", and "I<data>" of "7/notify" (for now, anyway).
+our grammar to give us a match object that has a C<subject> of
+"product", a C<command> of "update", and C<data> of "7/notify".
 
 We'll start by defining a grammar class and some match methods for the
 subject, command, and data. We'll use the token declarator since we don't care
@@ -150,7 +159,7 @@ regex from our named regexes.
 
 With this code, we can already get the three parts of our RESTful request:
 
-    =begin code :skip-test
+    =begin code :preamble<grammar REST {};>
     my $match = REST.parse('/product/update/7/notify');
     say $match;
 
@@ -160,10 +169,10 @@ With this code, we can already get the three parts of our RESTful request:
     #          data => ｢7/notify｣»
     =end code
 
-The data can be accessed directly by using $match<subject> or
-$match<command> or $match<data> to return the values parsed. They each contain
-match objects that you can work further with, such as coercing into a string (
-$match<command>.Str ).
+The data can be accessed directly by using C«$match<subject>» or
+C«$match<command>» or C«$match<data>» to return the values parsed.
+They each contain match objects that you can work further with,
+such as coercing into a string ( C«$match<command>.Str» ).
 
 =head2 Adding some flexibility
 
@@ -219,6 +228,87 @@ this, we could replace the '/'s in TOP with a token that allowed for spaces.
 
 We're getting some extra junk in the match object now, with those slashes.
 There's techniques to clean that up that we'll get to later.
+=head2 Inheriting from a grammar
+
+Since grammars are classes, they behave, OOP-wise, in the same way as any other class; specifically, they can inherit from base classes that include some tokens or rules, this way:
+
+=begin code
+grammar Letters {
+    token letters { \w+ }
+}
+
+grammar Quote-Quotes {
+    token quote { "\""|"`"|"'" }
+}
+
+grammar Quote-Other {
+    token quote { "|"|"/"|"¡" }
+}
+
+grammar Quoted-Quotes is Letters is Quote-Quotes {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+grammar Quoted-Other is Letters is Quote-Other {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+my $quoted = q{"enhanced"};
+my $parsed = Quoted-Quotes.parse($quoted);
+say $parsed;
+#OUTPUT:
+#｢"enhanced"｣
+# quote => ｢"｣
+# letters => ｢enhanced｣
+#quote => ｢"｣
+
+$quoted = "|barred|";
+$parsed = Quoted-Other.parse($quoted);
+say $parsed;
+#OUTPUT:
+#|barred|｣
+#quote => ｢|｣
+#letters => ｢barred｣
+#quote => ｢|｣
+=end code
+
+This example uses multiple inheritance to compose two different grammars by varying the rules that correspond to C<quotes>. In this case, besides, we are rather using composition than inheritance, so we could use Roles instead of inheritance.
+
+=begin code
+role Letters {
+    token letters { \w+ }
+}
+
+role Quote-Quotes {
+    token quote { "\""|"`"|"'" }
+}
+
+role Quote-Other {
+    token quote { "|"|"/"|"¡" }
+}
+
+grammar Quoted-Quotes does Letters does Quote-Quotes {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+}
+
+grammar Quoted-Other does Letters does Quote-Other {
+    token TOP { ^  <quoted> $}
+    token quoted { <quote>? <letters> <quote>?  }
+
+}
+=end code
+
+Will output exactly the same as the code above.  Symptomatic of the difference
+between Classes and Roles, a conflict like defining C<token quote> twice
+using Role composition will result in an error:
+
+=begin code :skip-test<compilation error>
+grammar Quoted-Quotes does Letters does Quote-Quotes does Quote-Other { ... }
+# OUTPUT: ... Error while compiling ... Method 'quote' must be resolved ...
+=end code
 
 =head2 Adding some constraints
 
@@ -242,10 +332,10 @@ between '/'s must be one of those CRUD values, otherwise the parsing fails.
 Exactly what we want.
 
 There's another technique that provides greater flexibility and improved
-readability when options grow large: proto-regexes.
+readability when options grow large: I<proto-regexes>.
 
-To utilize these proto-regexes (multimethods, in fact) to limit ourselves to the
-valid CRUD options, we'll replace "token command" with the following:
+To utilize these proto-regexes (multimethods, in fact) to limit ourselves to
+the valid CRUD options, we'll replace C<token command> with the following:
 
     =begin code
     proto token command {*}
@@ -255,26 +345,27 @@ valid CRUD options, we'll replace "token command" with the following:
     token command:sym<delete>   { <sym> }
     =end code
 
-The 'sym' keyword is used to create the various proto-regex options. Each option
-is named (e.g., sym<update>), and for that option's use, a special <sym> token is
-auto-generated with the same name.
+The C<sym> keyword is used to create the various proto-regex options.
+Each option is named (e.g., C«sym<update>»), and for that option's use,
+a special C«<sym>» token is auto-generated with the same name.
 
-The <sym> token, as well as other user-defined tokens, may be used in the proto-
-regex option block to define the specific 'match condition'. Regex tokens are
-compiled forms and, once defined, cannot subsequently be modified by adverb
-actions (e.g., :i). Therefore, as it's auto-generated, the special <sym> token
-is useful only where an exact match of the option name is required.
+The C«<sym>» token, as well as other user-defined tokens, may be used in the
+proto-regex option block to define the specific I<match condition>.
+Regex tokens are compiled forms and, once defined, cannot subsequently be
+modified by adverb actions (e.g., C<:i>). Therefore, as it's auto-generated,
+the special C«<sym>» token is useful only where an exact match of the option
+name is required.
 
-If, for one of the proto-regex options, a match condition occurs, then the whole
-proto's search terminates. The matching data, in the form of a match object, is
-assigned to the parent proto token. If the special <sym> token was employed and
-formed all or part of the actual match, then it's preserved as a sub-level in
-the match object, otherwise it's absent.
+If, for one of the proto-regex options, a match condition occurs, then
+the whole proto's search terminates. The matching data, in the form of a match
+object, is assigned to the parent proto token. If the special C«<sym>» token
+was employed and formed all or part of the actual match, then it's preserved as
+a sub-level in the match object, otherwise it's absent.
 
-Using proto-regexes like this gives us a lot of flexibility. For example,
-instead of returning <sym>, which in this case is the entire string that was
+Using proto-regex like this gives us a lot of flexibility. For example,
+instead of returning C«<sym>», which in this case is the entire string that was
 matched, we could instead enter our own string, or do other funny stuff. We
-could do the same with the "token subject" method and limit it also to only
+could do the same with the C<token subject> method and limit it also to only
 parsing correctly on valid subjects (like 'part' or 'people', etc.).
 
 =head2 Putting our RESTful grammar together
@@ -300,7 +391,7 @@ This is what we have for processing our RESTful URIs, so far:
 
 Let's look at various URIs and see how they work with our grammar.
 
-    =begin code :skip-test
+    =begin code :preamble<grammar REST{};>
     my @uris = ['/product/update/7/notify',
                 '/product/create',
                 '/item/delete/4'];
@@ -311,16 +402,19 @@ Let's look at various URIs and see how they work with our grammar.
     }
 
     # OUTPUT: «Sub: product Cmd: update Dat: 7/notify␤
-    #          Sub: product Cmd: create Dat:
-    #          Sub: item Cmd: delete Dat: 4»
+    #          Sub: product Cmd: create Dat: ␤
+    #          Sub: item Cmd: delete Dat: 4␤»
     =end code
+
+Note that since C«<data>» matches nothing on the second string, C«$m<data>»
+will be C<Nil>, then using it in string context in the C<say> function warns.
 
 With just this part of a grammar, we're getting almost everything we're
 looking for. The URIs get parsed and we get a data structure with the data.
 
 The I<data> token returns the entire end of the URI as one string. The 4 is
-fine. However from the '7/notify', we only want the 7. To get just the 7, we'll use
-another feature of grammar classes: actions.
+fine. However from the '7/notify', we only want the 7. To get just the 7,
+we'll use another feature of grammar classes: I<actions>.
 
 =head1 Grammar Actions
 
@@ -332,10 +426,9 @@ grammars. A lot of the time you'll be happy using grammars all by their own.
 But when you need to further process some of those strings, you can plug in the
 Actions expansion module.
 
-To work with actions, you use a named parameter called
-"actions" which should contain an instance of your actions class. With the
-code above, if our actions class called REST-actions, we would parse the
-URI string like this:
+To work with actions, you use a named parameter called C<actions> which
+should contain an instance of your actions class. With the code above, if our
+actions class called REST-actions, we would parse the URI string like this:
 
     =begin code :skip-test
     my $matchObject = REST.parse($uri, actions => REST-actions.new);
@@ -347,12 +440,12 @@ URI string like this:
 
 If you I<name your action methods with the same name as your grammar methods>
 (tokens, regexes, rules), then when your grammar methods match, your action
-method with the same name will get called automatically. The method will also be
-passed the corresponding match object (represented by the $/ variable).
+method with the same name will get called automatically. The method will also
+be passed the corresponding match object (represented by the C<$/> variable).
 
 Let's turn to an example.
 
-=head1 Grammars by Example with Actions
+=head2 Grammars by example with actions
 
 Here we are back to our grammar.
 
@@ -374,9 +467,9 @@ Here we are back to our grammar.
     =end code
 
 Recall that we want to further process the data token "7/notify", to get the 7.
-To do this, we'll create an action class that has a method with the same name as
-the named token. In this case, our token is named "data" so our method is also
-named "data".
+To do this, we'll create an action class that has a method with the same name
+as the named token. In this case, our token is named C<data> so our method
+is also named C<data>.
 
     =begin code
     class REST-actions
@@ -385,25 +478,25 @@ named "data".
     }
     =end code
 
-Now when we pass the URI string through the grammar, the "data" token match
-will be passed to the REST-actions' "data" method. The action method will split
-the string by the '/' character and the first element of the returned
+Now when we pass the URI string through the grammar, the I<data token match>
+will be passed to the I<REST-actions' data method>. The action method will
+split the string by the '/' character and the first element of the returned
 list will be the ID number (7 in the case of "7/notify").
 
 But not really; there's a little more.
 
-=head2 Keeping grammars with actions tidy with "make" and "made"
+=head2 Keeping grammars with actions tidy with C<make> and C<made>
 
 If the grammar calls the action above on data, the data method will be called,
-but nothing will show up in the big TOP grammar match result returned to our
-program. In order to make the action results show up, we need to call "make" on
-that result. The result can be many things, including strings, array or
+but nothing will show up in the big C<TOP> grammar match result returned to our
+program. In order to make the action results show up, we need to call L<make>
+on that result. The result can be many things, including strings, array or
 hash structures.
 
-You can imagine that the "make" places the result in a special contained area
-for a grammar. Everything that we "make" can be accessed later by "made".
+You can imagine that the C<make> places the result in a special contained area
+for a grammar. Everything that we C<make> can be accessed later by L<made>.
 
-So instead of the REST-actions class above, we should write
+So instead of the REST-actions class above, we should write:
 
     =begin code
     class REST-actions
@@ -412,13 +505,13 @@ So instead of the REST-actions class above, we should write
     }
     =end code
 
-When we add "make" to the match split (which returns a list), the action will
+When we add C<make> to the match split (which returns a list), the action will
 return a data structure to the grammar that will be stored separately from
-the "data" token of the original grammar. This way, we can work with both
+the C<data> token of the original grammar. This way, we can work with both
 if we need to.
 
 If we want to access just the ID of 7 from that long URI, we access the first
-element of the list returned from the "data" action that we "made" with "make":
+element of the list returned from the C<data> action that we C<made>:
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
@@ -429,21 +522,20 @@ element of the list returned from the "data" action that we "made" with "make":
     say $match<command>.Str;   # OUTPUT: «update␤»
     =end code
 
-Here we call "made" on data, because we want the result of the action that
-we "made" (with "make") to get the split array. That's lovely! But, wouldn't
-it be lovelier if we could "make" a friendlier data structure that contained
+Here we call C<made> on data, because we want the result of the action that
+we C<made> (with C<make>) to get the split array. That's lovely! But, wouldn't
+it be lovelier if we could C<make> a friendlier data structure that contained
 all of the stuff we want, rather than having to coerce types and remember
 arrays?
 
-Just like TOP, which over-arches and matches the entire
-string, actions have a TOP method as well. We can "make" all of the
-individual match components, like "data" or "subject" or "command", and then we
-can place them in a data structure that we will "make" in
-TOP. When we return the final match object, we can
-then access this data structure.
+Just like Grammar's C<TOP>, which matches the entire string, actions
+have a TOP method as well. We can C<make> all of the individual match
+components, like C<data> or C<subject> or C<command>, and then we can
+place them in a data structure that we will C<make> in TOP. When we return
+the final match object, we can then access this data structure.
 
-To do this, we add the method TOP to the action class and "make" whatever data
-structure we like from the component pieces.
+To do this, we add the method C<TOP> to the action class and C<make>
+whatever data structure we like from the component pieces.
 
 So, our action class becomes:
 
@@ -460,17 +552,17 @@ So, our action class becomes:
     }
     =end code
 
-Here in the TOP method, the "subject" remains the same as the subject we
-matched in the grammar. Also, "command" returns the valid <sym> that was
-matched (create, update, retrieve, or delete). We coerce each into .Str, as
+Here in the C<TOP> method, the C<subject> remains the same as the subject we
+matched in the grammar. Also, C<command> returns the valid C«<sym>» that was
+matched (create, update, retrieve, or delete). We coerce each into C<.Str>, as
 well, since we don't need the full match object.
 
-We want to make sure to use the "made" method on the
-$<data> object, since we want to access the split one that we "made" with
-"make" in our action, rather than the proper $<data> object.
+We want to make sure to use the C<made> method on the C«$<data>» object,
+since we want to access the split one that we C<made> with C<make> in our
+action, rather than the proper C«$<data>» object.
 
-After we "make" something in the TOP method of a grammar action, we can then
-access all the custom values by calling the "made" method on the grammar
+After we C<make> something in the C<TOP> method of a grammar action, we can then
+access all the custom values by calling the C<made> method on the grammar
 result object. The code now becomes
 
     =begin code :skip-test
@@ -485,7 +577,7 @@ result object. The code now becomes
     =end code
 
 If the complete return match object is not needed, you could return only the made
-data from your action's TOP.
+data from your action's C<TOP>.
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
@@ -498,8 +590,8 @@ data from your action's TOP.
     =end code
 
 Oh, did we forget to get rid of that ugly array element number? Hmm. Let's make
-something new in the grammar's custom return in TOP... how about we call it
-"subject-id" and have it set to element 0 of <data>.
+something new in the grammar's custom return in C<TOP>... how about we call it
+C<subject-id> and have it set to element 0 of C«<data>».
 
     =begin code
     class REST-actions
@@ -515,7 +607,7 @@ something new in the grammar's custom return in TOP... how about we call it
     }
     =end code
 
-Now we can do this instead
+Now we can do this instead:
 
     =begin code :skip-test
     my $uri = '/product/update/7/notify';
@@ -559,10 +651,45 @@ Here's the final code:
     }
     =end code
 
+=head2 Add actions directly
+
+Above we see how to associate grammars with action objects and perform
+actions on the match object. However, when we want to deal with the match
+object, that isn't the only way. See the example below:
+
+    =begin code
+    grammar G {
+      rule TOP { <function-define> }
+      rule function-define {
+        'sub' <identifier>
+        {
+          say "func " ~ $<identifier>.made;
+          make $<identifier>.made;
+        }
+        '(' <parameter> ')' '{' '}'
+        { say "end " ~ $/.made; }
+      }
+      token identifier { \w+ { make ~$/; } }
+      token parameter { \w+ { say "param " ~ $/; } }
+    }
+
+    G.parse('sub f ( a ) { }');
+    # OUTPUT: «func f␤param a␤end f␤»
+    =end code
+
+This example is a reduced portion of a parser. Let's focus more on the feature
+it shows.
+
+First, we can add actions inside the grammar itself, and such actions are
+performed once the control flow of the regex arrives at them. Note that action
+object's method will always be performed after the whole regex item matched.
+Second, it shows what C<make> really does, which is no more than a sugar of
+C<$/.made = ...>. And this trick introduces a way to pass messages from within
+a regex item.
+
 Hopefully this has helped introduce you to the grammars in Perl 6 and shown you
 how grammars and grammar action classes work together. For more information,
-check out the more advanced L<Perl Grammar
-Guide|https://docs.perl6.org/language/grammars>.
+check out the more advanced L<Perl Grammar Guide|https://docs.perl6.org/language/grammars>.
 
 For more grammar debugging, see
 L<Grammar::Debugger|https://github.com/jnthn/grammar-debugger>. This provides
@@ -570,3 +697,5 @@ breakpoints and color-coded MATCH and FAIL output for each of your grammar
 tokens.
 
 =end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -1,0 +1,321 @@
+=begin pod
+
+=TITLE class atomicint
+
+=SUBTITLE Integer (native storage at the platform's atomic operation size)
+
+    class atomicint is Int is repr('P6int') { }
+
+An C<atomicint> is a native integer sized such that CPU-provided atomic
+operations can be performed upon it. On a 32-bit CPU it will typically be
+32 bits in size, and on an a 64-bit CPU it will typically be 64 bits in size.
+It exists to allow writing portable code that uses atomic operations.
+
+    # Would typically only work on a 64-bit machine and VM build.
+    my int64 $active = 0;
+    $active⚛++;
+
+    # Would typically only work on a 32-bit machine and VM build.
+    my int32 $active = 0;
+    $active⚛++;
+
+    # Will work portably, though can only portably assume range of 32 bits.
+    my atomicint $active = 0;
+    $active⚛++;
+
+The use of the C<atomicint> type does not automatically provide atomicity; it
+must be used in conjunction with the atomic operations.
+
+    # Correct (will always output 80000)
+    my atomicint $total = 0;
+    await start { for ^20000 { $total⚛++ } } xx 4;
+    say $total;
+
+    # *** WRONG *** due to lack of use of the atomicint type.
+    # Either works correctly or dies, depending on platform.
+    my int $total = 0;
+    await start { for ^20000 { $total⚛++ } } xx 4;
+    say $total;
+
+    # *** WRONG *** due to lack of use of the atomic increment operator.
+    my atomicint $total = 0;
+    await start { for ^20000 { $total++ } } xx 4;
+    say $total;
+
+=head1 Routines
+
+=head2 sub atomic-assign
+
+Defined as:
+
+    multi sub atomic-assign(atomicint $ is rw, int $value)
+    multi sub atomic-assign(atomicint $ is rw, Int() $value)
+
+Performs an atomic assignment to a native integer, which may be in a lexical,
+attribute, or native array element. If C<$value> cannot unbox to a 64-bit
+native integer due to being too large, an exception will be thrown. If the
+size of C<atomicint> is only 32 bits, then an out of range C<$value> will be
+silently truncated. The C<atomic-assign> routine ensures that any required
+barriers are performed such that the changed value will be "published" to
+other threads.
+
+=head2 sub atomic-fetch
+
+Defined as:
+
+    multi sub atomic-fetch(atomicint $ is rw)
+
+Performs an atomic read of a native integer, which may live in a lexical,
+attribute, or native array element. Using this routine instead of simply
+using the variable ensures that the latest update to the variable from other
+threads will be seen, both by doing any required hardware barriers and also
+preventing the compiler from lifting reads. For example:
+
+    my atomicint $i = 0;
+    start { atomic-assign($i, 1) }
+    while atomic-fetch($i) == 0 { }
+
+Is certain to terminate, while in:
+
+    my atomicint $i = 0;
+    start { atomic-assign($i, 1) }
+    while $i == 0 { }
+
+It would be legal for a compiler to observe that C<$i> is not updated in the
+loop, and so lift the read out of the loop, thus causing the program to never
+terminate.
+
+=head2 sub atomic-fetch-inc
+
+Defined as:
+
+    multi sub atomic-fetch-inc(atomicint $ is rw)
+
+Performs an atomic increment on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value as seen before incrementing
+it. Overflow will wrap around silently.
+
+=head2 sub atomic-fetch-dec
+
+Defined as:
+
+    multi sub atomic-fetch-dec(atomicint $ is rw)
+
+Performs an atomic decrement on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value as seen before decrementing
+it. Overflow will wrap around silently.
+
+=head2 sub atomic-fetch-add
+
+Defined as:
+
+    multi sub atomic-fetch-add(atomicint $ is rw, int $value)
+    multi sub atomic-fetch-add(atomicint $ is rw, Int() $value)
+
+Performs an atomic addition on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value as seen before the addition
+was performed. Overflow will wrap around silently. If C<$value> is too big to
+unbox to a 64-bit integer, an exception will be thrown. If C<$value> otherwise
+overflows C<atomicint> then it will be silently truncated before the addition
+is performed.
+
+=head2 sub atomic-fetch-sub
+
+Defined as:
+
+    multi sub atomic-fetch-sub(atomicint $ is rw, int $value)
+    multi sub atomic-fetch-sub(atomicint $ is rw, Int() $value)
+
+Performs an atomic subtraction on a native integer. This will be performed
+using hardware-provided atomic operations. Since the operation is atomic, it is
+safe to use without acquiring a lock. Returns the value as seen before the
+subtraction was performed. Underflow will wrap around silently. If C<$value> is
+too big to unbox to a 64-bit integer, an exception will be thrown. If C<$value>
+otherwise overflows C<atomicint> then it will be silently truncated before the
+subtraction is performed.
+
+=head2 sub atomic-inc-fetch
+
+    multi sub atomic-inc-fetch(atomicint $ is rw)
+
+Performs an atomic increment on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value resulting from the
+increment. Overflow will wrap around silently.
+
+=head2 sub atomic-dec-fetch
+
+    multi sub atomic-dec-fetch(atomicint $ is rw)
+
+Performs an atomic decrement on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value resulting from the
+decrement. Overflow will wrap around silently.
+
+=head2 sub cas
+
+Defined as:
+
+    multi sub cas(atomicint $target is rw, int $expected, int $value)
+    multi sub cas(atomicint $target is rw, Int() $expected, Int() $value)
+    multi sub cas(atomicint $target is rw, &operation)
+
+Performs an atomic compare and swap of the native integer value in location
+C<$target>. The first two forms have semantics like:
+
+=for code :preamble<no strict;>
+my int $seen = $target;
+if $seen == $expected {
+    $target = $value;
+}
+return $seen;
+
+Except it is performed as a single hardware-supported atomic instruction, as
+if all memory access to C<$target> were blocked while it took place. Therefore
+it is safe to attempt the operation from multiple threads without any other
+synchronization. For example:
+
+    my atomicint $master = 0;
+    await start {
+        if cas($master, 0, 1) == 0 {
+            say "Master!"
+        }
+    } xx 4
+
+Will reliably only ever print C<Master!> one time, as only one of the threads
+will be successful in changing the 0 into a 1.
+
+Both C<$expected> and C<$value> will be coerced to C<Int> and unboxed if
+needed. An exception will be thrown if the value cannot be represented as a
+64-bit integer. If the size of C<atomicint> is only 32 bits then the values
+will be silently truncated to this size.
+
+The third form, taking a code object, will first do an atomic fetch of the
+current value and invoke the code object with it. It will then try to do an
+atomic compare and swap of the target, using the value passed to the code
+object as C<$expected> and the result of the code object as C<$value>. If
+this fails, it will read the latest value, and retry, until a CAS operation
+succeeds. Therefore, an atomic multiply of an C<atomicint> C<$i> by 2 could
+be implemented as:
+
+=for code :preamble<no strict;>
+cas $i, -> int $current { $current * 2 }
+
+If another thread changed the value while C<$current * 2> was being calculated
+then the block would be called again with the latest value for a further
+attempt, and this would be repeated until success.
+
+=head1 Operators
+
+=head2 infix ⚛=
+
+    multi sub infix:<⚛=>(atomicint $ is rw, int $value)
+    multi sub infix:<⚛=>(atomicint $ is rw, Int() $value)
+
+Performs an atomic assignment to a native integer, which may be in a lexical,
+attribute, or native array element. If C<$value> cannot unbox to a 64-bit
+native integer due to being too large, an exception will be thrown. If the
+size of C<atomicint> is only 32 bits, then an out of range C<$value> will be
+silently truncated. The C<⚛=> operator ensures that any required barriers are
+performed such that the changed value will be "published" to other threads.
+
+=head2 prefix ⚛
+
+    multi sub prefix:<⚛>(atomicint $ is rw)
+
+Performs an atomic read of a native integer, which may live in a lexical,
+attribute, or native array element. Using this operator instead of simply
+using the variable ensures that the latest update to the variable from other
+threads will be seen, both by doing any required hardware barriers and also
+preventing the compiler from lifting reads. For example:
+
+    my atomicint $i = 0;
+    start { $i ⚛= 1 }
+    while ⚛$i == 0 { }
+
+Is certain to terminate, while in:
+
+    my atomicint $i = 0;
+    start { $i ⚛= 1 }
+    while $i == 0 { }
+
+It would be legal for a compiler to observe that C<$i> is not updated in the
+loop, and so lift the read out of the loop, thus causing the program to never
+terminate.
+
+=head2 prefix ++⚛
+
+    multi sub prefix:<++⚛>(atomicint $ is rw)
+
+Performs an atomic increment on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value resulting from the
+increment. Overflow will wrap around silently.
+
+=head2 postfix ⚛++
+
+    multi sub postfix:<⚛++>(atomicint $ is rw)
+
+Performs an atomic increment on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value as seen before incrementing
+it. Overflow will wrap around silently.
+
+=head2 prefix --⚛
+
+    multi sub prefix:<--⚛>(atomicint $ is rw)
+
+Performs an atomic decrement on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value resulting from the
+decrement. Overflow will wrap around silently.
+
+=head2 postfix ⚛--
+
+    multi sub postfix:<⚛-->(atomicint $ is rw)
+
+Performs an atomic decrement on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Returns the value as seen before decrementing
+it. Overflow will wrap around silently.
+
+=head2 infix ⚛+=
+
+Defined as:
+
+    multi sub infix:<⚛+=>(atomicint $ is rw, int $value)
+    multi sub infix:<⚛+=>(atomicint $ is rw, Int() $value)
+
+Performs an atomic addition on a native integer. This will be performed using
+hardware-provided atomic operations. Since the operation is atomic, it is safe
+to use without acquiring a lock. Evaluates to the result of the addition.
+Overflow will wrap around silently. If C<$value> is too big to unbox to a
+64-bit integer, an exception will be thrown. If C<$value> otherwise overflows
+C<atomicint> then it will be silently truncated before the addition is
+performed.
+
+=head2 infix ⚛-=
+
+Defined as:
+
+    multi sub infix:<⚛-=>(atomicint $ is rw, int $value)
+    multi sub infix:<⚛-=>(atomicint $ is rw, Int() $value)
+
+Performs an atomic subtraction on a native integer. This will be performed
+using hardware-provided atomic operations. Since the operation is atomic, it is
+safe to use without acquiring a lock. Evaluates to the result of the
+subtraction.  Underflow will wrap around silently. If C<$value> is too big to
+unbox to a 64-bit integer, an exception will be thrown. If C<$value> otherwise
+overflows C<atomicint> then it will be silently truncated before the
+subtraction is performed.
+
+=head2 infix ⚛−=
+
+Synonym for ⚛-= using U+2212 minus.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
