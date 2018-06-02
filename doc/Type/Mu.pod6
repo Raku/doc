@@ -268,29 +268,73 @@ for more information.
 
     method bless(*%attrinit --> Mu:D)
 
-Low-level object construction method,  called within C<new>.
+Low-level object construction method, usually called from within C<new>,
+implicitly from the default constructor, or explicitly if you create your own
+constructor. C<bless> creates a new object of the same type as the invocant,
+using the named arguments to initialize attributes by calling C<BUILDALL>) and
+returns the created object.
 
-Creates a new object of the same type as the invocant, uses
-the named arguments to initialize attributes (i.e., calls C<BUILDALL>),
-and returns the created object.
-
-It is usually invoked with custom C<new> method implementations:
+It is usually invoked within custom C<new> method implementations:
 
 =begin code
-    class Point {
-        has $.x;
-        has $.y;
-        multi method new($x, $y) {
-            self.bless(:$x, :$y);
-        }
+class Point {
+    has $.x;
+    has $.y;
+    multi method new($x, $y) {
+        self.bless(:$x, :$y);
     }
-    my $p = Point.new(-1, 1);
+}
+my $p = Point.new(-1, 1);
 =end code
 
-Please consider that implementing a customized C<new> method is a poor practice because
-it can make harder to correctly initialize the class from a subclass. For instance, in the
-above example, the C<new> implementation takes two positional arguments that must be passed
-from the subclass to the superclass in the exact order.
+In this case we are declaring C<new> as a C<multi method> so that we can still
+use the default constructor like this: C«Point.new( x => 3, y => 8 )». In this
+case we are declaring this C<new> method simply to avoid the extra syntax of
+using pairs when creating the object. C<self.bless> returns the object, which is
+in turn returned by C<new>.
+
+However, in general, implementing a customized C<new> method might be the best
+way of initializing a class, even more so if the default constructor is
+disabled, since  it can make harder to correctly initialize the class from a
+subclass. For instance, in the above example, the C<new> implementation takes
+two positional arguments that must be passed from the subclass to the superclass
+in the exact order. That is not a real problem if it's not documented, but take
+into account C<bless>, through C<BUILDALL>, will eventually be calling C<BUILD>
+in the class that is being instantiated. This might result in some unwanted
+problems, like having to create a C<BUILD> submethod to serve it correctly:
+
+=begin code
+class Point {
+    has Int $.x;
+    has Int $.y;
+    multi method new($x, $y) {
+        self.bless(:$x, :$y);
+    }
+}
+
+class Point-with-ID is Point {
+    has Int $.ID  is rw = 0;
+
+    submethod BUILD( *%args ) {
+        say %args;                # OUTPUT: «{x => 1, y => 2}␤»
+        for self.^attributes -> $attr {
+            if $attr.Str ~~ /ID/ {
+                $attr.set_value( self, "*" ~ %args<x> ~ "-" ~ %args<y> ) ;
+            }
+        }
+    }
+}
+
+my $p = Point-with-ID.new(1,2);
+say $p.perl;
+# OUTPUT: «Point-with-ID.new(ID => "*1-2", x => 1, y => 2)␤»
+=end code
+
+In this code, C<bless> called within C<Point.new> is eventually caling C<BUILD>
+with the same parameters. We have to create a convoluted way of using the
+C<$.ID> attribute using the meta-object protocol so that we can instatiate it
+and thus serve that C<new> constructor, which can be called on C<Point-with-ID>
+since it is a subclass.
 
 For more details see
 L<the documentation on object construction|/language/objects#Object_Construction>.
