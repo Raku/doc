@@ -336,6 +336,45 @@ C<$.ID> attribute using the meta-object protocol so that we can instatiate it
 and thus serve that C<new> constructor, which can be called on C<Point-with-ID>
 since it is a subclass.
 
+We might have to use something similar if we want to instantiate superclasses.
+C<bless> will help us with that, since it is calling the default C<BUILDALL>
+across all the hierarchy:
+
+=begin code
+class Str-with-ID is Str {
+    my $.counter = 0;
+    has Int $.ID  is rw = 0;
+
+    multi method new( $str ) {
+        self.bless( value => $str, ID => $.counter++ );
+    }
+
+    submethod BUILD( *%args ) {
+        for self.^attributes -> $attr {
+            if $attr.Str ~~ /ID/ {
+                $attr.set_value( self, %args<ID> ) ;
+            }
+        }
+    }
+}
+
+say Str-with-ID.new("1.1,2e2").ID;                  # OUTPUT: «0␤»
+my $ided-str = Str-with-ID.new("3,4");
+say "$ided-str, {$ided-str.^name}, {$ided-str.ID}"; # OUTPUT: «3,4, Str-with-ID, 1␤»
+=end code
+
+We are *enriching* C<Str> with an auto-incrementing ID. We create a C<new> since
+we want to initialize it with a string and, besides, we need to instantiate the
+superclass. We do so using C<bless> from within C<new>. C<bless> is going to
+call BUILDALL, which will call C<Str.BUILD>. It will *capture* the value it's
+looking for, the pair C<value => $str> and initialize itself. But we have to
+initialize also the properties of the subclass, which is why within C<BUILD> we
+use the previously explained method to initialize C<$.ID> with the value that is
+in the C<%args> variable. As shown in the output, the objects will be correctly
+initialized with its ID, and will correctly behave as C<Str>, converting
+themselves in just the string in the C<say> statement, and including the C<ID>
+property as required.
+
 For more details see
 L<the documentation on object construction|/language/objects#Object_Construction>.
 
