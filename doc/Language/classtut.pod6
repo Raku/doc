@@ -35,6 +35,7 @@ say $r.area(); # OUTPUT: «100␤»
 In the two classes, the default constructor is being used. This constructor will
 use named parameters in its invocation: C<Point.new(x => 0, y => 0)>.
 
+X<submethods>
 You can also provide your own construction and C<BUILD> implementation.  The
 following, more elaborate example shows how a dependency handler might look in
 Perl 6.  It showcases custom constructors, private and public attributes,
@@ -94,6 +95,30 @@ the default constructor; tis implicit constructor uses the attributes as named
 parameters. That is one of the reasons why using C<new> is discouraged. If you
 need to declare it anyway, use C<multi method new> if you do not want to disable
 the default constructors.
+
+C<TWEAK> is the last submethod to be called, and it has got the advantage of
+having the object properties available without needing to use the meta object
+protocol. It can be used, for instance, to assign values to instance variables
+based on the values of other attributes or instance variables:
+
+=begin code
+class Str-with-ID is Str {
+    my $.counter = 0;
+    has Str $.string;
+    has Int $.ID;
+
+    method TWEAK() {
+        $!ID = $.counter++;
+    }
+}
+
+say Str-with-ID.new(string => 'First').ID;  # OUTPUT: «0»
+say Str-with-ID.new(string => 'Second').ID; # OUTPUT: «1»
+=end code
+
+In this case, we need to compute C<$.ID> from the value of a counter that is a
+class variable, C<$.counter>, thus we simply assign a value to it and increment
+the counter at the same time.
 
 =head1 Starting with class
 
@@ -239,7 +264,7 @@ class Str-with-ID is Str {
     has Int $.ID;
 
     method new( Str $string ) {
-        self.bless( $:string, ID => $.counter++ )
+        self.bless( :$string, ID => $.counter++ )
     }
 }
 
@@ -250,7 +275,10 @@ say Str-with-ID.new('Second').ID; # OUTPUT: «1»
 In this case, using C<new> might be the easiest way to initialize the C<$.ID>
 field and increment the value of the counter at the same time. C<new>, through
 C<bless>, will invoke the default C<BUILD>, assigninng the values to their
-properties correctly.
+properties correctly. You can obtain the same effect using C<TWEAK>, which is
+considered a more I<p6y> way. Please check <the section on submethods|/language/classtut#index-entry-OOP>
+for an alternative example on how
+to do this.
 
 =head1 Static fields?
 
