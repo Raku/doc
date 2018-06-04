@@ -297,8 +297,8 @@ from the Perl 6 point of view:
 
 =item C<AT-POS> provides a specific element at the given position (starting from zero);
 
-=item C<list> provides the L<List> of elements within the array building it from the
-native array iterator.
+=item C<list> provides the L<List> of elements within the array building
+it from the native array iterator.
 
 As an example, consider the following simple piece of code:
 
@@ -443,22 +443,20 @@ class AStringAndAnInt is repr("CStruct") {
   has Str $.a_string;
   has int32 $.an_int32;
 
-  submethod TWEAK {
-    $!a_string := Str.new;
-    $!an_int32 = 0;
-  }
-
   sub init_struct(AStringAndAnInt is rw, Str, int32) is native('simple-struct') { * }
-  method init(:$a_string, :$an_int) {
+
+  submethod BUILD(:$a_string, :$an_int) {
     init_struct(self, $a_string, $an_int);
   }
 }
 
 =end code
 
-In this code we first set up our members, C<$.a_string> and C<$.an_int32>. We then
-set the container of C<$.a_string> to a new C<Str>. After that we declare our
-C<init_struct()> function for the C<init()> method to wrap around.
+In this code we first set up our members, C<$.a_string> and
+C<$.an_int32>. After that we declare our C<init_struct()> function for
+the C<init()> method to wrap around; this function is then called from
+C<BUILD> to effectively assign the values before returning the created
+object.
 
 =head3 In your C code...
 
@@ -490,13 +488,11 @@ memory that it points <char *a_string> to within the structure as it
 copies the string.  (Note you will also have to manage deallocation of
 the memory as well to avoid memory leaks.)
 
+=begin code :preamble<class AStringAndAnInt {}>
 # A long time ago in a galaxy far, far away...
-
-=begin code :skip-test
-
-my $foo = AStringAndAnInt.new;
-$foo.init(a_string => "str", an_int => 123);
-
+my $foo = AStringAndAnInt.new(a_string => "str", an_int => 123);
+say "foo is {$foo.a_string} and {$foo.an_int32}";
+# OUTPUT: «foo is str and 123␤»
 =end code
 
 =head1 Typed Pointers
