@@ -20,7 +20,7 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   lookahead  => 'look \- ahead',
                   lookbehind => 'look [\s+|\-] behind',
                   smartmatch => 'smart  [\s+|\-] match',
-                  zero-width => 'zero \s+ width',
+                  zero-width => 'zero \s+ width<!before \' joiner\'>',
                );
 plan +@files;
 
@@ -30,7 +30,7 @@ for @files.sort -> $file {
     my @bad;
     my $content =  $file.IO.slurp.lines.join(" ");
     for %variants.kv -> $word, $rx {
-        if $content ~~ m/:i <{$rx}> / { 
+        if $content ~~ m/:i << <{$rx}> / {
             $ok = False;
             @bad.push: "«$/» found. We prefer ｢$word｣";
         }
