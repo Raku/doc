@@ -21,6 +21,7 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   lookbehind => 'look [\s+|\-] behind',
                   smartmatch => 'smart  [\s+|\-] match',
                   zero-width => 'zero \s+ width<!before \' joiner\'>',
+                  NYI        => 'niy',
                );
 plan +@files;
 
