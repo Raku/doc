@@ -56,7 +56,7 @@ help:
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   assets:           generate CSS/JS assets"
-	@echo " sparse:             generate HTML documention, but only every 10th file"
+	@echo " sparse:             generate HTML documentation, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
 	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
