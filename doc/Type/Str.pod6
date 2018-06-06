@@ -136,8 +136,8 @@ C<$str.encode('ISO-8859-1')> a C<buf8>.
     multi method index(Cool $needle, Cool $startpos = 0 --> Int)
 
 Searches for C<$needle> in the string starting from C<$startpos>. It returns
-the offset into the string where C<$needle> was found, and an undefined value
-if it was not found.
+the offset into the string where C<$needle> was found, and C<Nil> if it was not
+found.
 
 Examples:
 
@@ -155,7 +155,7 @@ Examples:
     multi method rindex(Str:D $haystack: Str:D $needle, Int $startpos = $haystack.chars --> Int)
 
 Returns the last position of C<$needle> in C<$haystack> not after C<$startpos>.
-Returns an undefined value if C<$needle> wasn't found.
+Returns C<Nil> if C<$needle> wasn't found.
 
 Examples:
 
@@ -186,16 +186,19 @@ after the previous match.
 
     method match($pat, :continue(:$c), :pos(:$p), :global(:$g), :overlap(:$ov), :exhaustive(:$ex), :st(:$nd), :rd(:$th), :$nth, :$x --> Match)
 
-Performs a match of the string against C<$pat> and returns a L<Match> object if there is a successful match,
-and C<(Any)> otherwise. Matches are stored in C<$/>. If C<$pat> is not a L<Regex> object, match will coerce
-the argument to a Str and then perform a literal match against C<$pat>.
+Performs a match of the string against C<$pat> and returns a L<Match> object if
+there is a successful match; it returns C<(Any)> otherwise. Matches are stored in the
+L<default match variable C<$/>|/language/variables#index-entry-match_variable>.
+If C<$pat> is not a L<Regex> object, match will coerce the argument to a
+Str and then perform a literal match against C<$pat>.
 
 A number of optional named parameters can be specified, which alter how the match is performed.
 
 =item :continue
 
-The C<:continue> adverb takes as an argument the position where the regex should start to search.
-If no position is specified for C<:c> it will default to 0 unless C<$/> is set, in which case it defaults to C<$/.to>.
+The C<:continue> adverb takes as an argument the position where the regex should
+start to search. If no position is specified for C<:c> it will default to 0
+unless C<$/> is set, in which case it defaults to C<$/.to>.
 
 =item :pos
 
@@ -203,17 +206,20 @@ Takes a position as an argument. Fails if regex cannot be matched from that posi
 
 =item :global
 
-Instead of searching for just one match and returning a C<Match> object, search for every non-overlapping match and return them in a C<List>.
+Instead of searching for just one match and returning a C<Match> object, search
+for every non-overlapping match and return them in a C<List>.
 
 =item :overlap
 
-Finds all matches including overlapping matches, but only returns one match from each starting position.
+Finds all matches including overlapping matches, but only returns one match from
+each starting position.
 
 =item :exhaustive
 
-Finds all possible matches of a regex, including overlapping matches and matches that start at the same position.
+Finds all possible matches of a regex, including overlapping matches and matches
+that start at the same position.
 
-=item :st, :nd, rd, nth
+=item :st, :nd, :rd, :nth
 
 Returns the nth match in the string. The argument can be a L<Numeric> or
 an L<Iterable> producing monotonically increasing numbers (that is, the
@@ -226,9 +232,10 @@ will be set to a possibly-empty L<List> of L<Match> objects.
 
 =item :x
 
-Takes as an argument the number of matches to return, stopping once the specified number of matches has been reached. The value must be a L<Numeric>
-or a L<Range>; other values will cause C<.match> to return a L<Failure>
-containing C<X::Str::Match::x> exception.
+Takes as an argument the number of matches to return, stopping once the
+specified number of matches has been reached. The value must be a L<Numeric> or
+a L<Range>; other values will cause C<.match> to return a L<Failure> containing
+C<X::Str::Match::x> exception.
 
 Examples:
 =begin code
@@ -274,6 +281,16 @@ Defined as:
 
 Coerces the string to L<Int>, using the same rules as
 L«C<Str.Numeric>|/type/Str#method_Numeric>».
+
+=head2 method Rat
+
+Defined as:
+
+    method Rat(Str:D: --> Rational:D)
+
+Coerces the string to a L<Rat> object, using the same rules as
+L«C<Str.Numeric>|/type/Str#method_Numeric>». If the denominator is larger
+than 64-bits is it still kept and no degradation to L<Num> occurs.
 
 =head2 method Bool
 
@@ -426,12 +443,12 @@ Examples:
     multi method comb(Str:D $input: Regex:D $matcher, $limit = Inf, Bool :$match)
     multi method comb(Str:D $input: Int:D $size, $limit = Inf)
 
-Searches for C<$matcher> in C<$input> and returns a list of all matches
-(as C<Str> by default, or as L<Match> if C<$match> is True), limited to at most
-C<$limit> matches.
+Searches for C<$matcher> in C<$input> and returns a list of non-overlapping
+matches limited to at most C<$limit> matches.  If C<$matcher> is a Regex,
+each C<Match> object is converted to a C<Str>, unless C<$match> is set.
 
-If no matcher is supplied, a list of characters in the string
-(e.g. C<$matcher = rx/./>) is returned.
+If no matcher is supplied, a list of characters in the string is returned,
+as if the matcher was C<rx/./>.
 
 Examples:
 
@@ -442,9 +459,13 @@ Examples:
     say comb(/\N/, "a;b;c").perl;        # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
     say comb(/\w/, "a;b;c", 2).perl;     # OUTPUT: «("a", "b").Seq␤»
     say comb(/\w\;\w/, "a;b;c", 2).perl; # OUTPUT: «("a;b",).Seq␤»
+    say comb(/.<(.)>/, "<>[]()").perl;   # OUTPUT: «(">", "]", ")").Seq␤»
 
-If the matcher is an integer value, it is considered to be a matcher that
-is similar to / . ** matcher /, but which is about 30x faster.
+If the matcher is an integer value, C<comb> behaves as if the matcher
+was C<rx/ . ** {$matcher} />, but which is optimized to be much faster.
+
+Note that a Regex matcher may control which portion of the matched text
+is returned by using features which explicitly set the top-level capture.
 
 =head2 routine lines
 
@@ -495,7 +516,7 @@ Examples:
 This function is mostly identical to the C library C<sprintf> and
 C<printf> functions.  The only difference between the two
 functions is that C<sprintf> returns a string while the C<printf> function
-writes to a file.
+writes to a filehandle. C<sprintf> returns a C<Str>, not a literal.
 
 The C<$format> is scanned for C<%> characters. Any C<%> introduces a
 format token. Format tokens have the following grammar:
@@ -615,12 +636,12 @@ is ignored:
   sprintf '<%+ d>', 12;   # RESULT: «<+12>␤»
   sprintf '<% +d>', 12;   # RESULT: «<+12>␤»
 
-When the C<#> flag and a precision are given in the C<%o> conversion, the
-precision is incremented if it's necessary for the leading "0":
+When the C<#> flag and a precision are given in the C<%o> conversion, the necessary number of 0s is added at the beginning. If the value of the number is C<0> and the precision is 0, it will output nothing; precision 0 or smaller than the actual number of elements will return the number with 0 to the left:
 
-  sprintf '<%#.5o>', 0o12;     # RESULT: «<000012>␤»
-  sprintf '<%#.5o>', 0o12345;  # RESULT: «<012345>␤»
-  sprintf '<%#.0o>', 0;        # RESULT: «<>␤» # zero precision results in no output!
+  say sprintf '<%#.5o>', 0o12;     # OUTPUT: «<00012>␤»
+  say sprintf '<%#.5o>', 0o12345;  # OUTPUT: «<012345>␤»
+  say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0 results in no output!
+  say sprintf '<%#.0o>', 0o1       # OUTPUT: «<01>␤»
 
 B<vector flag>
 
@@ -696,10 +717,10 @@ the C<0> flag is ignored:
 for signed integer.)
 
   =begin code :skip-test
-  NYI sprintf '<%.6d>', 1;      # <000001>
+  sprintf '<%.6d>', 1;      # <000001>
   NYI sprintf '<%+.6d>', 1;     # <+000001>
   NYI sprintf '<%-10.6d>', 1;   # <000001    >
-  NYI sprintf '<%10.6d>', 1;    # <    000001>
+  sprintf '<%10.6d>', 1;    # <    000001>
   NYI sprintf '<%010.6d>', 1;   #     000001>
   NYI sprintf '<%+10.6d>', 1;   # <   +000001>
   sprintf '<%.6x>', 1;         # RESULT: «<000001>␤»
@@ -839,8 +860,11 @@ Returns C<True> if the invocant is identical to or ends with C<$needle>.
 Returns the invocant string where C<$matcher> is replaced by C<$replacement>
 (or the original string, if no match was found).
 
-There is an in-place syntactic variant of C<subst> spelled L«C<s/matcher/replacement/>|/syntax/s$SOLIDUS%20$SOLIDUS%20$SOLIDUS»
-as well as the L«C<.subst-mutate> method|/routine/subst-mutate».
+There is an in-place syntactic variant of C<subst> spelled
+L«C<s/matcher/replacement/>|/syntax/s$SOLIDUS%20$SOLIDUS%20$SOLIDUS» and with
+adverb following the C<s> or inside the matcher,  as well as the
+L«C<.subst-mutate> method|/routine/subst-mutate» which modifies the string
+in-place.
 
 C<$matcher> can be a L<Regex>, or a literal C<Str>. Non-Str matcher arguments
 of type L<Cool> are coerced to C<Str> for literal matching.
@@ -857,10 +881,10 @@ multi-match options like C<:g> are used).
 
 =head3 Callable
 
-The replacement can be a L<Callable> in which the current L<Match> object will be
-placed in the C<$/> variable, as well as the C<$_> topic variable.
-Using a L<Callable> as replacement is how you can refer to any of the captures
-created in the regex:
+The replacement can be a L<Callable> in which the current L<Match> object will
+be placed in the C<$/> variable, as well as the C<$_> topic variable. Using a
+L<Callable> as replacement is how you can refer to any of the captures created
+in the regex:
 
     # Using capture from $/ variable (the $0 is the first positional capture)
     say 'abc123defg'.subst(/(\d+)/, { " before $0 after " });
@@ -879,25 +903,6 @@ created in the regex:
     my $str = "The answer is secret.";
     say $str.subst(/secret/, {++$i}); # The answer to everything
     # OUTPUT: «The answer is 42.␤»
-
-=head3 More Examples
-
-Here are other examples of usage:
-
-    my $str = "Hey foo foo foo";
-    $str.subst(/foo/, "bar", :g); # global substitution - returns Hey bar bar bar
-
-    $str.subst(/foo/, "no subst", :x(0)); # targeted substitution. Number of times to substitute. Returns back unmodified.
-    $str.subst(/foo/, "bar", :x(1)); #replace just the first occurrence.
-
-    $str.subst(/foo/, "bar", :nth(3)); # replace nth match alone. Replaces the third foo. Returns Hey foo foo bar
-
-The C<:nth> adverb has readable English-looking variants:
-
-    say 'ooooo'.subst: 'o', 'x', :1st; # OUTPUT: «xoooo␤»
-    say 'ooooo'.subst: 'o', 'x', :2nd; # OUTPUT: «oxooo␤»
-    say 'ooooo'.subst: 'o', 'x', :3rd; # OUTPUT: «ooxoo␤»
-    say 'ooooo'.subst: 'o', 'x', :4th; # OUTPUT: «oooxo␤»
 
 =head3 Adverbs
 
@@ -919,6 +924,27 @@ The following adverbs are supported
 Note that only in the C<s///> form C<:ii> implies C<:i> and C<:ss> implies
 C<:s>. In the method form, the C<:s> and C<:i> modifiers must be added to the
 regex, not the C<subst> method call.
+
+
+=head3 More Examples
+
+Here are other examples of usage:
+
+    my $str = "Hey foo foo foo";
+    $str.subst(/foo/, "bar", :g); # global substitution - returns Hey bar bar bar
+
+    $str.subst(/foo/, "no subst", :x(0)); # targeted substitution. Number of times to substitute. Returns back unmodified.
+    $str.subst(/foo/, "bar", :x(1)); #replace just the first occurrence.
+
+    $str.subst(/foo/, "bar", :nth(3)); # replace nth match alone. Replaces the third foo. Returns Hey foo foo bar
+
+The C<:nth> adverb has readable English-looking variants:
+
+    say 'ooooo'.subst: 'o', 'x', :1st; # OUTPUT: «xoooo␤»
+    say 'ooooo'.subst: 'o', 'x', :2nd; # OUTPUT: «oxooo␤»
+    say 'ooooo'.subst: 'o', 'x', :3rd; # OUTPUT: «ooxoo␤»
+    say 'ooooo'.subst: 'o', 'x', :4th; # OUTPUT: «oooxo␤»
+
 
 =head2 method subst-mutate
 

@@ -1,0 +1,235 @@
+=begin pod :tag<perl6>
+
+=TITLE Doing math with Perl 6
+
+=SUBTITLE Different mathematical paradigms and how they are implemented in this language.
+
+=head1 Sets.
+
+Perl 6 includes the L<Set> data type, as well as support for
+L<most set operations|/language/setbagmix#Set/Bag_Operators>.
+L<Union and intersection|https://en.wikipedia.org/wiki/Algebra_of_sets>
+are not only native operations, they use their I<natural> symbols, ∩ and ∪. For
+instance, this code would check the fundamental laws of the arithmetic of sets
+for a limited number of sets:
+
+=begin code
+my @arbitrary-numbers = ^100;
+my \U = @arbitrary-numbers.Set;
+
+my @sets;
+
+@sets.push: Set.new( @arbitrary-numbers.pick( @arbitrary-numbers.elems.rand)) for @arbitrary-numbers;
+
+my (@union, @intersection);
+
+for @sets -> $set {
+    @union.push: $set ∩ $set === $set;
+    @intersection.push: $set ∪ $set === $set;
+}
+
+say "Idempotent union is ", so @union.all;
+# OUTPUT: «Idempotent union is True»
+say "Idempotent intersection is ", so @intersection.all;
+# OUTPUT: «Idempotent intersection is True»
+my (@universe, @empty-set, @id-universe, @id-empty);
+
+for @sets -> \A {
+    @universe.push: A ∪ U === U;
+    @id-universe.push: A ∩ U === A;
+    @empty-set.push: A ∩ ∅ === ∅;
+    @id-empty.push: A ∪ ∅ === A;
+}
+
+say "Universe dominates ", so @universe.all;    # OUTPUT: «Universe dominates True»
+say "Empty set dominates ", so @empty-set.all;  # OUTPUT: «Empty set dominates True»
+
+say "Identity with U ", so @id-universe.all;    # OUTPUT: «Identity with U True»
+say "Identity with ∅ ", so @id-empty.all;       # OUTPUT: «Identity with ∅ True»
+=end code
+
+In this code, which uses the L<empty set|/language/setbagmix#term_%E2%88%85>
+which is already defined by Perl 6, not only we check if the equalities in the
+algebra of sets hold, we also use, via L<sigilless variables|/language/variables#index-entry-\_(sigilless_variables)> and the
+Unicode form of the set operators, expressions that are as close as possible to
+the original form; C<A ∪ U === U>, for example, except for the use of the
+L<value identity operator <===>|/routine/===> is very close to the actual
+mathematical expression in the L<Wikipedia entry|https://en.wikipedia.org/wiki/Algebra_of_sets>.
+
+We can even test de Morgan's law, as in the code below:
+
+=begin code
+my @alphabet = 'a'..'z';
+my \U = @alphabet.Set;
+sub postfix:<⁻>(Set $a) { U ⊖ $a }
+my @sets;
+@sets.push: Set.new( @alphabet.pick( @alphabet.elems.rand)) for @alphabet;
+my ($de-Morgan1,$de-Morgan2) = (True,True);
+for @sets X @sets -> (\A, \B){
+    $de-Morgan1 &&= (A ∪ B)⁻  === A⁻ ∩ B⁻;
+    $de-Morgan2 &&= (A ∩ B)⁻  === A⁻ ∪ B⁻;
+}
+say "1st De Morgan is ", $de-Morgan1;
+say "2nd De Morgan is ", $de-Morgan2;
+=end code
+
+We declare C<⁻> as the I<complement> operation, which computes the symmetrical
+difference ⊖ between the Universal set C<U> and our set. Once that is declared,
+it is relatively easy to express operations such as the complementary of the
+union of A and B C<(A ∪ B)⁻>, with a notation that is very close to the original
+mathematical notation.
+
+=head1 Arithmetic.
+
+Perl 6 can do arithmetic using different data types. L<Num>, L<Rat> and
+L<Complex> can all operate as a L<field under the operations addition, subtraction, multiplication and division|https://en.wikipedia.org/wiki/Field_(mathematics)>.
+The equivalent mathematical fields are:
+
+=begin table
+Perl 6 class       Field
+=============    ==============================================
+C<Rat>           ℚ
+C<Num>           ℝ
+C<Complex>       ℂ
+=end table
+
+The C<Int>s, although technically corresponding to Z, is not really a
+mathematical field since they are not closed under the four arithmetical
+operations, and integers do not satisfy the
+L<identity axiom|https://math.stackexchange.com/questions/2192317/set-of-integers-not-a-field/2192330>.
+However, if the integer division C<div> is used, their operations will always
+yield other integers; if C</> is used, however, in general the result will be a
+L<Rat>.
+
+Besides, C<Int> can do infinite-precision arithmetic (or at least infinite as
+memory allows; C<Numeric overflow> can still occur), without falling back to
+L<Num> if the number is too big:
+
+    my @powers = 2, 2 ** * ... Inf; say @powers[4].chars; # OUTPUT: «19729␤»
+
+Also strictly speaking, the Rational class that behaves like a mathematical
+field is L<FatRat>. For efficiency reasons, operating with C<Rat>s will fall
+back ton C<Num> when the numbers are big enough or when there is a big
+difference between numerator and denominator. C<FatRat> can work with arbitrary
+precision, the same as the default C<Int> class.
+
+Some modules in the ecosystem can work with additional data types
+mathematically:
+
+=item L<C<Math::Matrix>|https://github.com/pierre-vigier/Perl6-Math-Matrix>
+operates on the L<matrix field|https://en.wikipedia.org/wiki/Matrix_field>.
+
+=item L<C<Math::Quaternion>|https://github.com/Util/Perl6-Math-Quaternion>
+operates on the L<quaternion field|https://en.wikipedia.org/wiki/Quaternion>,
+which are a generalization of complex numbers.
+
+=item L<C<Math::Polynomial>|https://github.com/colomon/Math-Polynomial> works
+with polynomials, and is able to do simple arithmetic with them.
+
+=item L<C<Math::Symbolic>|https://github.com/raydiak/Math-Symbolic>, for
+symbolic math.
+
+Numbers are duck-typed automatically to the numeric class they actually
+represent:
+
+    .^name.say for (4, ⅗, 1e-9, 3+.1i); # OUTPUT: «Int␤Rat␤Num␤Complex␤»
+
+Which makes also arithmetic operations the most adequate for the particular type
+
+    say .33-.22-.11 == 0; # OUTPUT: «True␤»
+
+In this case, all numbers are interpreted as C<Rat>s, which makes the operation
+exact. In general, most languages would interpret them as floating point
+numbers,
+
+    say .33.Num -.22.Num - .11.Num; # OUTPUT: «1.3877787807814457e-17␤»
+
+For cases such as this, Perl 6 also includes an C<approximately equal> operator,
+L<≅|/language/operators#infix_=~=>
+
+    say .33.Num -.22.Num - .11.Num ≅ 0; # OUTPUT: «True␤»
+
+
+=head1 Sequences
+
+A L<sequence|https://en.wikipedia.org/wiki/Sequence> is I<an enumerated>
+collection of objects in which repetitions are allowed>, and also a first-class
+data type in Perl 6 called L<Seq>. C<Seq> is able to represent infinite
+sequences, like the natural numbers:
+
+    my \𝕟 = 1,2 … ∞;
+    say 𝕟[3];# OUTPUT: «4␤»
+
+Infinite sequences use ∞, C<Inf> or C<*> (Whatever) as terminator. L<…> is the
+list generator, which in fact can understand arithmetic and geometric
+progression sequences as long as you insert the first numbers:
+
+    say 1,5,9 … * > 100;
+    # OUTPUT: «(1 5 9 13 17 21 25 29 33 37 41 45 49 53 57 61 65 69 73 77 81 85 89 93 97 101)␤»
+    say 1,3,9 … * > 337; # OUTPUT: «(1 3 9 27 81 243 729)␤»
+
+The first sequence will be terminated when the generated number is bigger than
+100; the second sequence, which is a geometric progression, when it is bigger
+than 337.
+
+The fact that an arbitrary generator can be used makes easy to generate
+sequences such as L<Fibonacci's|https://en.wikipedia.org/wiki/Fibonacci_number>:
+
+    say 1,1, * + * … * > 50;#  OUTPUT: «(1 1 2 3 5 8 13 21 34 55)␤»
+
+We can, in fact, compute the approximation to the L<golden ratio|https://en.wikipedia.org/wiki/Golden_ratio> this way:
+
+    my @phis = (2.FatRat, 1 + 1 / * ... *);
+    my @otherphi = (1 - @phis[200], 1 + 1 / * ... *);
+    say @otherphi[^10, |(20, 30 ... 100)];# OUTPUT:
+    # «((-0.61803398874989484820458683436563811772030918
+    # -0.61803398874989484820458683436563811772030918
+    # -0.61803398874989484820458683436563811772030918
+    # -0.61803398874989484820458683436563811772030918
+    # -0.61803398874989484820458683436563811772030918
+    # -0.618033…»
+
+The L<Math::Sequences|https://github.com/ajs/perl6-Math-Sequences> module
+includes many mathematical sequences, already defined for you. It defines many
+L<sequences from the encyclopedia|https://oeis.org/>, some of them with their
+original name, such as ℤ or ℝ.
+
+Some set operators also operate on sequences, and they can be used to find out if an object is part of it:
+
+    say 876 ∈ (7,14 … * > 1000) ; # OUTPUT: «False␤»
+
+In this particular case, we can find out if C<876> is a multiple of 7 straight
+away, but the same principle holds for other sequences using complicated
+generators. And we can use set inclusion operators too:
+
+    say (55,89).Set ⊂ (1,1, * + * … * > 200); # OUTPUT: «True␤»
+
+although it does not take into account if it is effectively a subsequence, just
+the presence of the two elements here; Sets have no order, and even if you don't
+explicitly cast the subsequence into a Set or explicitly cast it into a C<Seq>
+it will be coerced into such for the application of the inclusion operator.
+
+
+=head1 Mathematical constants
+
+Perl 6 includes already a set of mathematical constants as part of the core.
+
+    say π; # OUTPUT: «3.141592653589793»
+    say τ; # Equivalent to 2π; OUTPUT: «6.283185307179586»
+    say 𝑒; # OUTPUT: «2.718281828459045␤»
+
+which are available also by their Latin name, C<e>, C<pi> and C<tau>, with the
+same value (although 𝑒 is not available outside the MoarVM).
+
+The L<Math::Constants|https://github.com/JJ/p6-math-constants/pulls> module
+includes an additional series of physical and mathematical constants such as the
+previously mentioned golden ratio φ or the Planck's constant ℎ.
+
+Since Perl 6 allows for definition of variables that use Unicode graphemes, and
+also variable and constant names without any kind of sigil, it is considered a
+good practice to use the actual mathematical name of concepts to denominate them
+wherever possible.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -15,4 +15,12 @@ method files() {
     return @files;
 }
 
+method pods() {
+    return $.files.grep({$_.ends-with: '.pod6'})
+}
+
+method documents() {
+    return $.files.grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})
+}
+
 # vim: expandtab shiftwidth=4 ft=perl6

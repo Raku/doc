@@ -3,7 +3,8 @@ PATH := $(PATH)
 DOCKER_IMAGE_NAME    ?= p6doc
 DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
-SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' || echo '' )
+COLON_Z              := :Z
+SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-examples clean-images \
@@ -13,7 +14,7 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo ':Z' |
 html: bigpage htmlify
 
 htmlify: init-highlights assets
-	perl6 htmlify.p6 --parallel=1
+	perl6 htmlify.p6
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
@@ -34,16 +35,15 @@ webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
 bigpage:
-	pod2onepage --threads=1 -v --source-path=./doc --exclude=404.pod6,/.git > html/perl6.xhtml
+	pod2onepage --html -v --source-path=./doc --exclude=404.pod6 > html/perl6.html
 
 # Common tests that are run by travis with every commit
 test:
-	echo $(PATH)
 	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
 
 # Extended tests
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 xt t; else prove -e perl6 xt t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t xt; else prove -e perl6 t xt; fi
 
 # Content tests
 ctest:
@@ -56,9 +56,9 @@ help:
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   assets:           generate CSS/JS assets"
-	@echo " sparse:             generate HTML documention, but only every 10th file"
+	@echo " sparse:             generate HTML documentation, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
-	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.xhtml)"
+	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"

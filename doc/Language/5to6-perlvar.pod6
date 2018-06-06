@@ -86,8 +86,8 @@ In Perl 6 the group information is handled by C<$*GROUP>,
 which holds an object of type L<IntStr|/type/IntStr>
 and therefore can be used either within a string
 or a numeric context.
-The group id is therefore obtained via C<$*GROUP.Numeric>, while the
-group name via C<$*GROUP.Str>.
+The group id is therefore obtained via C<+$*GROUP>, while the
+group name via C<~$*GROUP>.
 
 =item $EFFECTIVE_GROUP_ID
 
@@ -108,9 +108,8 @@ which holds an object of type L<IntStr|/type/IntStr>
 and therefore can be used either within a string
 or a numeric context (this is similar to how the group
 information is handled by the C<$*GROUP> object).
-The user id is therefore obtained via C<$*USER.Numeric>, while the
-username via C<$*USER.Str>.
-
+The user id is therefore obtained via C<+$*USER>, while the
+username via C<~$*USER>.
 
 =item $EFFECTIVE_USER_ID
 
@@ -170,8 +169,7 @@ C<OLDPWD> is missing from Perl 6's %ENV.
 The running version of Perl 6 is kept by C<$*PERL> special variable, that is an object.
 The running version is retrieved via C<$*PERL.version>, which returns something
 like C<v6.c>; the full stringified version of the Perl interpreter is obtained
-via C<$*PERL.Str>, which returns something like C<Perl 6 (6.c)>.
-
+via C<~$*PERL>, which returns something like C<Perl 6 (6.c)>.
 
 =item $SYSTEM_FD_MAX
 
@@ -269,9 +267,29 @@ exact running instance, for more information use <.^methods> to introspect all t
 
 =item %SIG
 
-[NEEDS FURTHER RESEARCH] No equivalent variable. S28 indicates that this
-functionality is dealt with in Perl 6 by event filters and exception
-translation.
+No equivalent variable. To have your code executed on the reception of a
+signal, you can call the L<signal|https://docs.perl6.org/routine/signal#(Supply)_sub_signal>
+subroutine, which returns a C<Supply> that can be tapped.
+
+=for code :lang<perl5>
+$SIG{"INT"} = sub { say "bye"; exit }
+=for code
+signal(SIGINT).tap: { say "bye"; exit }; loop {}
+
+Or, if you have a generic code that want to know which signal it got:
+
+=for code
+signal(SIGINT).tap: -> $signal { say "bye with $signal"; exit }; loop {}
+
+A more idiomatic way of using signals in an event driven situation:
+
+=for code
+react {
+    whenever signal(SIGINT) {
+        say "goodbye";
+        done
+    }
+}
 
 =item $BASETIME
 
@@ -429,7 +447,7 @@ No equivalent.
 =item $ARGV
 
 The name of the current file when reading lines can be obtained through
-C<$*ARGFILES.filename>.
+C<$*ARGFILES.path>.
 
 =item @ARGV
 
@@ -461,12 +479,11 @@ Currently no obvious equivalent.
 No direct replacement exists.
 
 When iterating using L<lines> method from L<IO::Path> or L<IO::Handle> types,
-you can L<zip|/language/operators#index-entry-Z_%28zip_meta_operator%29> with
-a L<Range>:
+you can call the C<.kv> method on it to get an interleaved list of indexes and values (then iterate by 2 each loop):
 
 =begin code
-for 1..* Z "foo".IO.lines -> ($ln, $text) {
-    say "$ln: $text"
+for "foo".IO.lines.kv -> $n, $line {
+    say "{$n + 1}: $line"
 }
 # OUTPUT:
 # 1: a

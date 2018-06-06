@@ -1,0 +1,86 @@
+=begin pod :tag<perl6>
+
+=TITLE Contexts and contextualizers
+
+=SUBTITLE What are contexts and how to get into them.
+
+A context is needed, in many occasions, to interpret the value of a container. In Perl 6, we will use context to coerce the value of a container into some type or class, or decide what to do with it, as in the case of the sink context.
+
+=head1 Sink X<|sink context>
+
+I<Sink> is equivalent to C<void> context, that is, a context in which we throw (down the sink, as it were) the result of an operation or the return value from a block. In general, this context will be invoked in warnings and errors when a statement does not know what to do with that value.
+
+=begin code
+my $sub = -> $a { return $a² };
+$sub; # OUTPUT: «WARNINGS:␤Useless use of $sub in sink context (line 1)␤»
+=end code
+
+X<|sinking>
+You can force that sink context on L<Iterator>s, by using the L<C<sink-all>|/routine/sink-all> method. L<Proc>s can also be L<sunk via the C<sink> method|https://docs.perl6.org/type/Proc#method_sink>, forcing them to raise an exception and not returning anything.
+
+In general, blocks will warn if evaluated in sink context; however, L<gather/take blocks|/language/control#Flow%29_gather_take> are explicitly evaluated in sink context, with values returned explicitly using C<take>.
+
+In sink context, an object will call its `sink` method if present:
+
+=begin code
+sub foo {
+    return [<a b c>] does role {
+        method sink { say "sink called" }
+    }
+}
+foo
+# OUTPUT: sink called
+=end code
+
+
+=head1 Number X<|number context>
+
+This context, and probably all of them except sink above, are I<conversion> or I<interpretation> contexts in the sense that they take an untyped or typed variable and duck-type it to whatever is needed to perform the operation. In some cases that will imply a conversion (from L<Str> to L<Int>, for instance); in other cases simply an interpretation (L<IntStr> will be interpreted as L<Int> or as L<Str>).
+
+I<Number context> is called whenever we need to apply a numerical operation on a variable.
+
+=begin code
+my $not-a-string="1                 ";
+my $neither-a-string="3                        ";
+say $not-a-string+$neither-a-string; # OUTPUT: «4␤»
+=end code
+
+In the code above, strings will be interpreted in numeric context as long as there is only some numbers and no other characters. It can have any number of leading or trailing whitespace, however.
+
+Numeric context can be forced by using arithmetic operators such as C<+> or C<->. In that context, the L<C<Numeric>|/routine/Numeric> method will be called if available and the value returned used as the numeric value of the object.
+
+=begin code
+my $t = True;
+my $f = False;
+say $t+$f;      # OUTPUT: «1␤»
+say $t.Numeric; # OUTPUT: «1␤»
+say $f.Numeric; # OUTPUT: «0␤»
+my $list= <a b c>;
+say True+$list; # OUTPUT: «4␤»
+=end code
+
+In the case of I<listy> things, the numeric value will be in general equivalent to C<.elems>; in some cases, like L<Thread|/Numeric#(Thread)_method_Numeric> it will return an unique thread identifier.
+
+=head1 String X<|string context>
+
+In a I<string context>, values can be manipulated as strings. This context is used, for instance, for printing values to standard output.
+
+=for code :preamble<my $very-complicated-and-hairy-object>
+    say $very-complicated-and-hairy-object; # OUTPUT: something meaningful
+
+Or when smartmatching to a regular expression:
+
+    say 333444777 ~~ /(3+)/; # OUTPUT: «｢333｣␤ 0 => ｢333｣␤»
+
+In general, the L<C<Str> routine|/routine/Str> will be called on a variable to contextualize it; since this method is inherited from L<Mu>, it is always present, but it is not always guaranteed to work. In some core classes it will issue a warning.
+
+L<C<~>|/routine/~> is the (unary) string contextualizer. As an operator, it concatenates strings, but as a prefix operator it becomes the string context operator.
+
+=begin code
+my @array = [ [1,2,3], [4,5,6]];
+say ~@array; # OUTPUT: «1 2 3 4 5 6␤»
+=end code
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

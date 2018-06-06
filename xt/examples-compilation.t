@@ -32,7 +32,7 @@ Perl 6 level one.
 
 =end overview
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6'});
+my @files = Test-Files.pods;
 
 sub walk($arg) {
     given $arg {
@@ -76,11 +76,11 @@ for @examples -> $eg {
 
     # #1355 - don't like .WHAT in examples
     if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
-        flunk "$eg<file> chunk $eg<count>" ~ ' uses .WHAT: try .^name instead';
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .WHAT: try .^name instead';
         next;
     }
     if ! $eg<ok-test>.contains('dd') && $eg<contents> ~~ / << 'dd' >> / {
-        flunk "$eg<file> chunk $eg<count>" ~ ' uses dd: try say instead';
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
 
@@ -104,7 +104,7 @@ for @examples -> $eg {
     $code ~= "\{}\n" if $eg<method> eq "True";
     $code ~= "\n}}";
 
-    my $msg = "$eg<file> chunk $eg<count> starts with “" ~ ($eg<contents>.lines)[0].substr(0,10).trim ~ "” compiles";
+    my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
 
     my $status;
     {
@@ -121,4 +121,8 @@ for @examples -> $eg {
     } else {
         pass $msg;
     }
+}
+
+sub starts-with( Str $chunk ) {
+    ($chunk.lines)[0].substr(0,10).trim
 }

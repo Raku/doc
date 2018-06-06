@@ -4,19 +4,19 @@
 
 =SUBTITLE Positional data constructs
 
-Lists have been a central part of computing since before there
-were computers, during which time many devils have taken up residence in
-their details. They were actually one of the hardest parts of Perl 6
-to design, but through persistence and patience, Perl 6 has arrived with
-an elegant system for handling them.
+Lists have been a central part of computing since before there were computers,
+during which time many devils have taken up residence in their details. They
+were actually one of the hardest parts of Perl 6 to design, but through
+persistence and patience, Perl 6 has arrived with an elegant system for handling
+them.
 
 =head1 Literal Lists
 
 Literal L<C<List>s|/type/List> are created with commas and semicolons B<not>
 with parentheses, so:
 
-    1, 2;        # This is two-element list
-    our $list = (1, 2);      # This is also a List, in parentheses
+    1, 2;                # This is two-element list
+    our $list = (1, 2);  # This is also a List, in parentheses
     $list = (1; 2);      # same List (see below)
     $list = (1);         # This is not a List, just a 1 in parentheses
     $list = (1,);        # This is a one-element List
@@ -85,16 +85,18 @@ also contain these objects, but C<@>-sigiled variables always do, and
 are expected to act the part.
 
 By default, when you assign a C<List> to an C<@>-sigiled variable, you create
-an C<Array>. Those are described below. If, instead you want to put an actual
-C<List> into an C<@>-sigiled variable, you can use binding with C<:=> instead.
+an C<Array>. Those are described below. If instead you want to refer directly to a
+C<List> object using an C<@>-sigiled variable, you can use binding with C<:=> instead.
 
     my @a := 1, 2, 3;
 
 One of the ways C<@>-sigiled variables act like lists is by always supporting
 L<positional subscripting|/language/subscripts>. Anything bound to a C<@>-sigiled
-value must support the L<Positional|/type/Positional> role which guarantees this:
+value must support the L<Positional|/type/Positional> role which guarantees that this is going to fail:
 
     my @a := 1; # Type check failed in binding; expected Positional but got Int
+
+
 
 =head1 Reset a List Container
 
@@ -113,6 +115,40 @@ All lists may be iterated, which means taking each element from the
 list in order and stopping after the last element:
 
     for 1, 2, 3 { .say }  # OUTPUT: «1␤2␤3␤»
+
+=head2 X<Single Argument Rule>
+
+It is the rule by which the set of parameters passed to an iterator such as C<for> is treated as a single argument, instead of several arguments; that is
+C<some-iterator( a, b, c, ...)> will always be treated as C<some-iterator( list-or-array(a, b, c))> and never as C<(some-iterator(a))(b)...>, that is, iterative application of the iterator to the first argument, then the result to the next argument, and so on. In this example
+
+=begin code
+my @list = [ (1, 2, 3),
+             (1, 2, ),
+             [<a b c>, <d e f>],
+             [[1]] ];
+
+for @list -> @element {
+  say "{@element} → {@element.^name}";
+    for @element -> $sub-element {
+      say $sub-element;
+    }
+}
+# OUTPUT
+#1 2 3 → List
+#1
+#2
+#3
+#1 2 → List
+#1
+#2
+#a b c d e f → Array
+#(a b c)
+#(d e f)
+#1 → Array
+#1
+=end code
+
+Since what C<for> receives is a single argument, it will be treated as a list of elements to iterate over. The rule of thumb is that L<if there's a comma, anything preceding it is an element|https://perl6advent.wordpress.com/2015/12/14/day-15-2015-the-year-of-the-great-list-refactor/> and the list thus created becomes the I<single element>. That happens in the case of the two arrays separated by a comma which are the third in the C<Array> we are iterating. In general, quoting the article linked above, the single argument rule I<... makes for behave as the programmer would expect>.
 
 =head1 Testing for Elements
 
@@ -136,14 +172,14 @@ ask them for all their elements.  In some cases, you may want to avoid
 asking them how long they are too – Perl 6 will try to return C<Inf> if
 it knows a sequence is infinite, but it cannot always know.
 
-=comment TODO link or describe C<...>
+These lists can be built using the L<...|/operators#infix_...> operator, which builds lazy lists using a variety of generating expressions.
 
 Although the C<Seq> class does provide some positional subscripting, it does
 not provide the full interface of C<Positional>, so an C<@>-sigiled variable
-may B<not> be bound to a C<Seq>.
+may B<not> be bound to a C<Seq>, and trying to do so will yield an error.
 
-    my @s := Seq.new(<a b c>); CATCH { default { say .^name, ' ', .Str } }
-    # OUTPUT «Type check failed in binding to $iter; expected Iterator but got List ($("a", "b", "c"))␤  in block <unit> at <tmp> line 1␤␤»
+    my @s := <a b c>.Seq; CATCH { default { say .^name, ' ', .Str } }
+    # OUTPUT «X::TypeCheck::Binding Type check failed in binding; expected Positional but got Seq ($(("a", "b","c").Seq))␤»
 
 This is because the C<Seq> does not keep values around after you have used them.
 This is useful behavior if you have a very long sequence, as you may want to
@@ -256,7 +292,7 @@ very context sensitive on a syntactical level.
 
 =head2 List Assignment Context
 
-When a list appears on the right hand side of an assignment into a C<@>-sigiled
+When a list appears on the right-hand side of an assignment into a C<@>-sigiled
 variable, it is "eagerly" evaluated.  This means that a C<Seq> will be iterated
 until it can produce no more elements.  This is one of the places you do not want
 to put an infinite list, lest your program hang and, eventually, run out of memory:
@@ -350,6 +386,13 @@ structure in the result:
 
     say ("a", "b", "c")[(1, 2), (0, 1)] eqv (("b", "c"), ("a", "b")) # OUTPUT: «True␤»
 
+Slices can be taken also across several dimensions using I<semilists>, which are lists of slices separated by semicolons:
+
+    my @sliceable = [[ ^10 ], ['a'..'h'], ['Ⅰ'..'Ⅺ']];
+    say @sliceable[ ^3; 4..6 ]; #OUTPUT: «(4 5 6 e f g Ⅴ Ⅵ Ⅶ)␤»
+
+which is selecting the 4 to 6th element from the three  first dimensions (C<^3>).
+
 =head2 Range as Slice
 
 A L<C<Range>|/type/Range> is a container for a lower and a upper boundary.
@@ -399,6 +442,7 @@ change its type by specifying the type of the elements when declaring it:
     =begin code
     my Int @a = 1, 2, 3;              # An Array that contains only Ints
     my @b := Array[Int].new(1, 2, 3); # Same thing, but the variable is not typed
+    my @b := Array[Int](1, 2, 3);     # Rakudo shortcut for the same code
     say @b eqv @a;                    # says True.
     my @c = 1, 2, 3;                  # An Array that can contain anything
     say @b eqv @c;                    # says False because types do not match
@@ -411,7 +455,7 @@ change its type by specifying the type of the elements when declaring it:
     =end code
 
 In the above example we bound a typed Array object to a C<@>-sigil variable for
-which no type had been specified.  The other way around does not work – you may
+which no type had been specified. The other way around does not work – you may
 not bind an Array that has the wrong type to a typed C<@>-sigiled variable:
 
     =begin code
@@ -463,10 +507,11 @@ promptly during assignment to the array, if they cannot be caught at compile
 time.  None of the core functions provided in Perl 6 for operating on lists
 should ever produce a wonky typed Array.
 
-Nonexistent elements (when indexed), or elements to which C<Nil> has been assigned,
-will assume a default value.  This default may be adjusted on a variable-by-variable
-basis with the C<is default> trait.  Note that an untyped C<@>-sigiled variable has
-an element type of C<Mu>, however its default value is an undefined C<Any>:
+Nonexistent elements (when indexed), or elements to which C<Nil> has been
+assigned, will assume a default value.  This default may be adjusted on a
+variable-by-variable basis with the C<is default> trait.  Note that an untyped
+C<@>-sigiled variable has an element type of C<Mu>, however its default value is
+an undefined C<Any>:
 
     my @a;
     @a.of.perl.say;                 # OUTPUT: «Mu␤»
@@ -500,10 +545,10 @@ Arrays.
 
 =head2 Itemization
 
-For most uses, Arrays consist of a number of slots each containing a C<Scalar> of
-the correct type.  Each such C<Scalar>, in turn, contains a value of that type.
-Perl 6 will automatically type-check values and create Scalars to contain them
-when Arrays are initialized, assigned to, or constructed.
+For most uses, Arrays consist of a number of slots each containing a C<Scalar>
+of the correct type.  Each such C<Scalar>, in turn, contains a value of that
+type. Perl 6 will automatically type-check values and create Scalars to contain
+them when Arrays are initialized, assigned to, or constructed.
 
 This is actually one of the trickiest parts of Perl 6 list handling to get a
 firm understanding of.

@@ -11,7 +11,7 @@ Avoid using C<..> - usually a typo for C<.> or C<...>
 
 =end overview
 
-my @files = Test-Files.files.grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'});
+my @files = Test-Files.documents;
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;

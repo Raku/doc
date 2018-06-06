@@ -7,7 +7,8 @@ that adheres to the common style and formatting guidelines.
 
 Your contributions will be credited in Rakudo release announcement. You name from
 the commit log will be used. If you'd like to be credited under a different name,
-please add it to [CREDITS file](https://github.com/rakudo/rakudo/blob/master/CREDITS)
+please add it to
+[CREDITS file](https://github.com/rakudo/rakudo/blob/master/CREDITS).
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](https://perl6.org/community/irc).
@@ -42,6 +43,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Be explicit about routine signatures. If a method accepts a `*%args`,
   but treats some of them specially, list them separately.
 * Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance.
+* If you are participating in one of the monthly squashathons, [please read this guide](writing-docs/SQUASHATHONS.md).
 
 ## Writing Code Examples
 

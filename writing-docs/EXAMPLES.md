@@ -1,6 +1,7 @@
 # Contributing examples to the documentation
 
-Please follow these guidelines if you are illustrating the documentation with some example.
+Please follow these guidelines if you are illustrating the
+documentation with some example.
 
 ## Writing Examples
 
@@ -93,7 +94,8 @@ example in the code.
 Some examples fail with compile time exceptions and would interrupt the test
 for a file. Use the pod-config option `skip-test` to skip them. When possible,
 specify a reason why you have to use this; it should be considered a last
-resort, and many examples might be amenable to using one of the previous annotations.
+resort, and many examples might be amenable to using one of the
+previous annotations.
 
     =begin code :skip-test<compile time error>
         if 1 "missing a block";
