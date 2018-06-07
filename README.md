@@ -7,7 +7,8 @@
 An HTML version of this documentation can be found at [https://docs.perl6.org/](https://docs.perl6.org/).
 This is currently the recommended way to consume the documentation.
 
-There is also a command line tool called "p6doc".
+There is also a command line tool called `p6doc`, which you can use to
+browse the documentation once it's installed (see below).
 
 (If you are browsing this repository via GitHub, it will not display most
 files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
