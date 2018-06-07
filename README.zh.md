@@ -6,7 +6,7 @@
 
 网站 [https://docs.perl6.org/](https://docs.perl6.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
 
-本仓库还提供命令行工具 p6doc 用于阅读文档。
+本仓库还提供命令行工具 p6doc 用于阅读文档（详见下文）。
 
 （如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 Pod）
 
@@ -17,6 +17,7 @@
 * [德文版 README](README.de.md)
 * [西班牙文版 README](README.es.md)
 * [法文版 README](README.fr.md)
+* [葡萄牙文版 README](README.pt.md)
 
 ## 安装 p6doc
 
