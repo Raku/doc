@@ -61,9 +61,10 @@ Perl6中，可以通过C<$*PROGRAM-NAME>获得到程序的名字。
 - $GID
 - $(
 
-Perl 6中组信息通过`$*GROUP`操作，它是一个[IntStr](/type/IntStr)类型的对象
-所以，可以把它当做一个字符串或者一个数字上下文。因此，组id可以通过`$*GROUP.Numeric`
-获得，组名可通过`$*GROUP.Str`取得。
+Perl 6中组信息通过`$*GROUP`操作，这是[`IntStr`]|(/type/IntStr)类型的对象
+因此，可以将其当做字符串或者数字来用。
+
+组id可以通过`+$*GROUP`获取，组名通过`~$*GROUP`。
 
 - $EFFECTIVE\_GROUP\_ID
 - $EGID
@@ -75,9 +76,10 @@ Perl 6中组信息通过`$*GROUP`操作，它是一个[IntStr](/type/IntStr)类�
 - $UID
 - $<
 
-Perl 6中用户信息通过`$*USER`操作，它是一个[IntStr](/type/IntStr)类型的对象
-所以，可以把它当做一个字符串或者一个数字上下文（和`$*GROUP`组信息类似）。
-因此，用户id可以通过`$*USER.Numeric`获得，用户名可通过`$*USER.Str`取得。
+Perl 6中用户信息通过`$*USER`操作，它是[IntStr](/type/IntStr)类型的对象
+因此，可以把它当做字符串或者数字（和`$*GROUP`组信息类似）。
+
+用户id可以通过`+$*USER`获取，用户名通过`~$*USER`。
 
 - $EFFECTIVE\_USER\_ID
 - $EUID
@@ -114,7 +116,7 @@ Perl 6中用户信息通过`$*USER`操作，它是一个[IntStr](/type/IntStr)�
 
 perl 6在线版本中是`$*PERL`特殊变量，是一个对象。
 向前兼容版本通过`$*PERL.version`，他返回信息类似于`v6.c`。Perl解释器完整直接获取
-是通过`$*PERL.Str`，他会返回类似`Perl 6 (6.c)`的信息。
+是通过`~$*PERL`，他会返回类似`Perl 6 (6.c)`的信息。
 
 - $SYSTEM\_FD\_MAX
 - $^F
@@ -193,9 +195,33 @@ for $*KERNEL, $*DISTRO, $*VM -> $what {
 
 - %SIG
 
-    \[需要深入研究\]没有等价的变量，S28显示此功能应该Perl6中的事件过滤器(event filters)以及
-    异常转换（exception translation）处理。
+无对应的变量。为了让你的代码在接收到信号后执行，你可以调用[signal](https://docs.perl6.org/routine/signal#(Supply)_sub_signal)
+子例程，它会返回一个 `Supply`对象，用来做触发。
 
+```
+=for code :lang<perl5>
+$SIG{"INT"} = sub { say "bye"; exit }
+
+=for code
+signal(SIGINT).tap: { say "bye"; exit }; loop {}
+```
+
+或者，如果你用一般性代码来测试具体收到哪个信号:
+
+```
+=for code
+signal(SIGINT).tap: -> $signal { say "bye with $signal"; exit }; loop {}
+```
+一个更傻瓜的方法，是在事件驱动的情况下使用信号：
+```
+=for code
+react {
+    whenever signal(SIGINT) {
+        say "goodbye";
+        done
+    }
+}
+```
 - $BASETIME
 - $^T
 
@@ -319,7 +345,7 @@ Perl5中与之相关的性能问题不会再产生。
 
 - $ARGV
 
-    正读取文件的名字现在通过`$*ARGFILES.filename`得到。
+    正读取文件的名字现在通过`$*ARGFILES.path`得到。
 
 - @ARGV
 
@@ -345,25 +371,27 @@ Perl5中与之相关的性能问题不会再产生。
 
     没有直接可以取代它的变量。
 
-    对[IO::Path](https://metacpan.org/pod/IO::Path)或者[IO::Handle](https://metacpan.org/pod/IO::Handle)类型，可在递归中使用[lines](https://metacpan.org/pod/lines)属性。可以用zip元
-    操作符[zip](#language-operators-index-entry-z_-28zip_meta_operator-29)指带
-    范围:
+对[IO::Path](https://metacpan.org/pod/IO::Path)或者
+[IO::Handle](https://metacpan.org/pod/IO::Handle)类型，
+可在递归中使用[lines](https://metacpan.org/pod/lines)属性。
 
-        for 1..* Z "foo".IO.lines -> ($ln, $text) {
-            say "$ln: $text"
-        }
-        # OUTPUT:
-        # 1: a
-        # 2: b
-        # 3: c
-        # 4: d
+你可以对其调用`.kv`方法，可以取得一个列表和值交叉的列表（每两行递归循环）
 
-    对[IO::CatHandle](https://metacpan.org/pod/IO::CatHandle)类型([$*ARGFILES](/language/variables#index-entry-%24%2AARGFILES)
-    是这种)，你可以用[on-switch](/type/IO::CatHandle#method\_on-switch)钩子，
-    在句柄变化时候重置行号，并且通过手动增加。
+```
+=begin code
 
-    你也可以用[IO::CatHandle::AutoLines](https://modules.perl6.org/repo/IO::CatHandle::AutoLines)
-    和[LN](https://modules.perl6.org/repo/LN)简单地实现这个功能。
+for "foo".IO.lines.kv -> $n, $line {
+    say "{$n + 1}: $line"
+ }
+ # OUTPUT:
+ # 1: a
+```
+对[IO::CatHandle](https://metacpan.org/pod/IO::CatHandle)类型([$*ARGFILES](/language/variables#index-entry-%24%2AARGFILES)
+是这种)，你可以用[on-switch](/type/IO::CatHandle#method\_on-switch)钩子，
+在句柄变化时候重置行号，并且通过手动增加。
+
+你也可以用[IO::CatHandle::AutoLines](https://modules.perl6.org/repo/IO::CatHandle::AutoLines)
+和[LN](https://modules.perl6.org/repo/LN)简单地实现这个功能。
 
 - $INPUT\_RECORD\_SEPARATOR
 - $RS

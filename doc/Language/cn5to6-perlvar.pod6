@@ -73,9 +73,10 @@ Perl6中，可以通过C<$*PROGRAM-NAME>获得到程序的名字。
 
 =item $(
 
-Perl 6中组信息通过C<$*GROUP>操作，它是一个 L<IntStr|/type/IntStr>类型的对象
-所以，可以把它当做一个字符串或者一个数字上下文。因此，组id可以通过C<$*GROUP.Numeric>
-获得，组名可通过C<$*GROUP.Str>取得。
+Perl 6中组信息通过C<$*GROUP>操作，这是一个 L<IntStr|/type/IntStr>类型的对象
+因此，可以将其当做字符串或者数字来用。
+
+组id可以通过C<+$*GROUP>获取，组名通过C<~$*GROUP>。
 
 =item $EFFECTIVE_GROUP_ID
 
@@ -92,8 +93,9 @@ Perl 6中组信息通过C<$*GROUP>操作，它是一个 L<IntStr|/type/IntStr>�
 =item $<
 
 Perl 6中用户信息通过C<$*USER>操作，它是一个 L<IntStr|/type/IntStr>类型的对象
-所以，可以把它当做一个字符串或者一个数字上下文（和C<$*GROUP>组信息类似）。
-因此，用户id可以通过C<$*USER.Numeric>获得，用户名可通过C<$*USER.Str>取得。
+因此，可以把它当做字符串或者数字（和C<$*GROUP>组信息类似）。
+
+用户id可以通过C<+$*USER>获取，用户名通过C<~$*USER>。
 
 =item $EFFECTIVE_USER_ID
 
@@ -147,7 +149,7 @@ $a和$b在Perl6中没有特殊的含义，sort()并不区别对待它们，它�
 
 Perl 6在线版本中是C<$*PERL>特殊变量，是一个对象。
 向前兼容版本通过C<$*PERL.version>，他返回信息类似于C<v6.c>。Perl解释器完整直接获取
-是通过C<$*PERL.Str>，他会返回类似 C<Perl 6 (6.c)>的信息
+是通过C<~$*PERL>，它会返回类似 C<Perl 6 (6.c)>的信息
 
 =item $SYSTEM_FD_MAX
 
@@ -237,6 +239,31 @@ for $*KERNEL, $*DISTRO, $*VM -> $what {
 
 [需要深入研究]没有等价的变量，S28显示此功能应该Perl6中的事件过滤器(event filters)以及
 异常转换（exception translation）处理。
+
+无对应的变量。为了让你的代码在接收到信号后执行，你可以调用L<signal|https://docs.perl6.org/routine/signal#(Supply)_sub_signal>
+子例程，它会返回一个 C<Supply>对象，用来做触发。
+
+=for code :lang<perl5>
+$SIG{"INT"} = sub { say "bye"; exit }
+
+=for code
+signal(SIGINT).tap: { say "bye"; exit }; loop {}
+
+或者，如果你用一般性代码来测试具体收到哪个信号:
+
+=for code
+signal(SIGINT).tap: -> $signal { say "bye with $signal"; exit }; loop {}
+
+一个更傻瓜的方法，是在事件驱动的情况下使用信号：
+
+=for code
+react {
+    whenever signal(SIGINT) {
+        say "goodbye";
+        done
+    }
+}
+
 
 =item $BASETIME
 
@@ -375,7 +402,7 @@ C<$/>提供。 或者，在这种情况下，数字变量是它的下标对象�
 
 =item $ARGV
 
-正读取文件的名字现在通过C<$*ARGFILES.filename>得到。
+正读取文件的名字现在通过C<$*ARGFILES.path>得到。
 
 =item @ARGV
 
@@ -405,20 +432,17 @@ C<@*ARGS>包含了当前的命令行参数。.
 
 没有直接可以取代它的变量。
 
-对L<IO::Path>或者L<IO::Handle>类型，可在递归中使用L<lines>属性。可以用zip元
-操作符L<zip|/language/operators#index-entry-Z_%28zip_meta_operator%29>指带
-范围:
+对L<IO::Path>或者L<IO::Handle>类型，可在递归中使用L<lines>属性。
+
+你可以对其调用C<.kv>方法，可以取得一个列表和值交叉的列表（每两行递归循环）
 
 =begin code
-    for 1..* Z "foo".IO.lines -> ($ln, $text) {
-        say "$ln: $text"
-    }
-    # OUTPUT:
-    # 1: a
-    # 2: b
-    # 3: c
-    # 4: d
-=end code
+
+for "foo".IO.lines.kv -> $n, $line {
+    say "{$n + 1}: $line"
+ }
+ # OUTPUT:
+ # 1: a
 
 对L<IO::CatHandle>类型(L«C<$*ARGFILES>|/language/variables#index-entry-%24%2AARGFILES»
 是这种)，你可以用L«C<on-switch>|/type/IO::CatHandle#method_on-switch»钩子，
