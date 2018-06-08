@@ -8,7 +8,7 @@
 
 X<|nativecall>
 
-The simplest imaginable use of NativeCall would look something like this:
+The simplest imaginable use of C<NativeCall> would look something like this:
 
     use NativeCall;
     sub some_argless_function() is native('something') { * }
@@ -25,18 +25,18 @@ loaded and the "some_argless_function" will be located in it. A call will then
 be made. Subsequent calls will be faster, since the symbol handle is retained.
 
 Of course, most functions take arguments or return values—but everything else
-that you can do is just adding to this simple pattern of declaring a Perl 6
-sub, naming it after the symbol you want to call and marking it with the "native"
+that you can do is just adding to this simple pattern of declaring a Perl 6 sub,
+naming it after the symbol you want to call and marking it with the "native"
 trait.
 
 =head1 Changing names
 
-Sometimes you want the name of your Perl subroutine to be different from the name
-used in the library you're loading.  Maybe the name is long or has different casing
-or is otherwise cumbersome within the context of the module you are trying to
-create.
+Sometimes you want the name of your Perl subroutine to be different from the
+name used in the library you're loading.  Maybe the name is long or has
+different casing or is otherwise cumbersome within the context of the module you
+are trying to create.
 
-NativeCall provides a "symbol" trait for you to specify the name of the native
+NativeCall provides a C<symbol> trait for you to specify the name of the native
 routine in your library that may be different from your Perl subroutine name.
 
 =begin code :skip-test
@@ -45,9 +45,9 @@ use NativeCall;
 our sub init() is native('foo') is symbol('FOO_INIT') { * }
 =end code
 
-Inside of "libfoo" there is a routine called "FOO_INIT" but, since we're
+Inside of C<libfoo> there is a routine called C<FOO_INIT> but, since we're
 creating a module called Foo and we'd rather call the routine as C<Foo::init>,
-we use the "symbol" trait to specify the name of the symbol in "libfoo"
+we use the C<symbol> trait to specify the name of the symbol in C<libfoo>
 and call the subroutine whatever we want ("init" in this case).
 
 =head1 Passing and Returning Values
@@ -59,42 +59,13 @@ an example.
     use NativeCall;
     sub add(int32, int32) returns int32 is native("calculator") { * }
 
-Here, we have declared that the function takes two 32-bit integers and returns
-a 32-bit integer. Here are some of the other types that you may pass (this will
-likely grow with time).
+Here, we have declared that the function takes two 32-bit integers and returns a
+32-bit integer. You can find the other types that you may pass in the
+L<native types|/language/nativetypes> page. Note that the lack of a C<returns>
+trait is used to indicate C<void> return type. Do I<not> use the C<void> type
+anywhere except in the Pointer parameterization.
 
-X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|long>X<|longlong>X<|ulong>X<|ulonglong>X<|num32>X<|num64>X<|Str>X<|CArray>X<|Pointer>X<|bool>X<|size_t>X<|ssize_t>
-=begin table
-    int8           (int8_t in C, also used for char)
-    int16          (int16_t in C, also used for short)
-    int32          (int32_t in C, also used for int)
-    int64          (int64_t in C)
-    uint8          (uint8_t in C, also used for unsigned char)
-    uint16         (uint16_t in C, also used for unsigned short)
-    uint32         (uint32_t in C, also used for unsigned int)
-    uint64         (uint64_t in C)
-    long           (long in C)
-    longlong       (long long in C, at least 64-bit)
-    ulong          (unsigned long in C)
-    ulonglong      (unsigned long long in C, at least 64-bit)
-    num32          (float in C)
-    num64          (double in C)
-    Str            (C string)
-    CArray[int32]  (int32_t* in C, an array of 32-bit ints)
-    Pointer[void]  (void* in C, can point to all other types)
-    bool           (bool from C99)
-    size_t         (size_t in C)
-    ssize_t        (ssize_t in C)
-=end table
-
-Don't use Perl 6 native types like C<int> or C<num>, as they don't have to
-correspond to the local C equivalent (e.g., Perl 6's C<int> can be 8 bytes but
-C's C<int> is only 4 bytes).
-
-Note that the lack of a C<returns> trait is used to indicate void return type.
-Do I<not> use the 'void' type anywhere except in the Pointer parameterization.
-
-For strings, there is an additional "encoded" trait to give some extra hints on
+For strings, there is an additional C<encoded> trait to give some extra hints on
 how to do the marshaling.
 
     use NativeCall;
@@ -127,6 +98,39 @@ call, the argument must be manually encoded and passed as C<CArray[uint8]>:
     # ...
     use_foo();
     # It's fine if $array goes out of scope starting from here.
+
+X<|repr>X<|is repr>X<|CStruct (native representation)>
+=head1 Specifying the native representation
+
+When working with native functions, sometimes you need to specify what kind of
+native data structure is going to be used. C<is repr> is the term employed for
+that.
+
+=begin code
+use NativeCall;
+
+class timespec is repr('CStruct') {
+    has uint32 $.tv_sec;
+    has long $.tv_nanosecs;
+}
+
+sub clock_gettime(uint32 $clock-id, timespec $tspec --> uint32) is native { * };
+
+my timespec $this-time .=new;
+
+my $result = clock_gettime( 0, $this-time);
+
+say "$result, $this-time"; # OUTPUT: «0, timespec<65385480>␤»
+=end code
+
+The L<original function we are calling,
+L<clock_gettime>|https://linux.die.net/man/3/clock_gettime>, uses a pointer to
+the C<timespec> struct as second argument. We declare it as a L<class> here, but
+specify its representation as C<is repr('CStruct')>, to indicate it corresponds
+to a C data structure. When we create an object of that class, we are creating
+exactly the kind of pointer C<clock_gettime> expects. This way, data can be
+transferred seamlessly to and from the native interface.
+
 
 =head1 Basic use of Pointers
 
@@ -261,10 +265,8 @@ subroutine, otherwise the C function may stomp all over Perl's memory
 leading to possibly unpredictable behaviour:
 
 =begin code :skip-test
-my $ints = CArray[int32].new;
 my $number_of_ints = 10;
-$ints[$number_of_ints - 1] = 0; # extend the array to 10 items
-
+my $ints = CArray[int32].allocate($number_of_ints); # instantiates an array with 10 elements
 my $n = get_n_ints($ints, $number_of_ints);
 =end code
 
@@ -283,18 +285,20 @@ offer you no protection whatsoever here - do the wrong thing, and you will get a
 segfault or cause memory corruption. This isn't a shortcoming of NativeCall, it's
 the way the big bad native world works. Scared? Here, have a hug. Good luck!
 
+X<|CArray>
+X<|CArray methods>
 =head2 CArray methods
 
-Besides the usual methods available on every Perl 6 instances,
-C<CArray> provides the following methods that can be used to interact with the array
+Besides the usual methods available on every Perl 6 instance,
+C<CArray> provides the following methods that can be used to interact with the it
 from the Perl 6 point of view:
 
 =item C<elems> provides the number of elements within the array;
 
 =item C<AT-POS> provides a specific element at the given position (starting from zero);
 
-=item C<list> provides the L<List> of elements within the array building it from the
-native array iterator.
+=item C<list> provides the L<List> of elements within the array building
+it from the native array iterator.
 
 As an example, consider the following simple piece of code:
 
@@ -374,7 +378,7 @@ class MyStruct is repr('CStruct') {
         $arr[0] = 0.9e0;
         $arr[1] = 0.2e0;
         $!arr := $arr;
-        $!str := 'Perl 6 is fun';
+        $!str := 'Perl 6 is fun';
         $!point := Point.new;
     }
 }
@@ -439,22 +443,20 @@ class AStringAndAnInt is repr("CStruct") {
   has Str $.a_string;
   has int32 $.an_int32;
 
-  submethod TWEAK {
-    $!a_string := Str.new;
-    $!an_int32 = 0;
-  }
-
   sub init_struct(AStringAndAnInt is rw, Str, int32) is native('simple-struct') { * }
-  method init(:$a_string, :$an_int) {
+
+  submethod BUILD(:$a_string, :$an_int) {
     init_struct(self, $a_string, $an_int);
   }
 }
 
 =end code
 
-In this code we first set up our members, C<$.a_string> and C<$.an_int32>. We then
-set the container of C<$.a_string> to a new C<Str>. After that we declare our
-C<init_struct()> function for the C<init()> method to wrap around.
+In this code we first set up our members, C<$.a_string> and
+C<$.an_int32>. After that we declare our C<init_struct()> function for
+the C<init()> method to wrap around; this function is then called from
+C<BUILD> to effectively assign the values before returning the created
+object.
 
 =head3 In your C code...
 
@@ -486,13 +488,11 @@ memory that it points <char *a_string> to within the structure as it
 copies the string.  (Note you will also have to manage deallocation of
 the memory as well to avoid memory leaks.)
 
+=begin code :preamble<class AStringAndAnInt {}>
 # A long time ago in a galaxy far, far away...
-
-=begin code :skip-test
-
-my $foo = AStringAndAnInt.new;
-$foo.init(a_string => "str", an_int => 123);
-
+my $foo = AStringAndAnInt.new(a_string => "str", an_int => 123);
+say "foo is {$foo.a_string} and {$foo.an_int32}";
+# OUTPUT: «foo is str and 123␤»
 =end code
 
 =head1 Typed Pointers
@@ -503,11 +503,11 @@ TBD more
 
 You can type your C<Pointer> by passing the type as a parameter. It works with the native type
 but also with C<CArray> and C<CStruct> defined types. NativeCall will not implicitly allocate the memory for it
-even when calling new on them.
+even when calling C<new> on them.
 It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
 embedded in a C<CStruct>.
 
-You have to call C<.deref> on it to access the embedded type.
+You have to call X<C<.deref>|deref> on C<Pointer>s to access the embedded type.
 
 =begin code :skip-test
 my Pointer[int32] $p; #For a pointer on int32;
@@ -678,8 +678,8 @@ It will only be called at the first invocation of the sub.
 =head2 Calling into the standard library
 
 If you want to call a C function that's already loaded, either from the
-standard library or from your own program, you can pass the C<Str> type object
-as the argument to C<is native>, so C<is native(Str)>.
+standard library or from your own program, you can omit the value, so
+C<is native>.
 
 For example on a UNIX-like operating system, you could use the following code
 to print the home directory of the current user:
@@ -694,13 +694,12 @@ to print the home directory of the current user:
         has Str $.pw_dir;
         has Str $.pw_shell;
     }
-    sub getuid()              returns uint32   is native(Str) { * };
-    sub getpwuid(uint32 $uid) returns PwStruct is native(Str) { * };
+    sub getuid()              returns uint32   is native { * };
+    sub getpwuid(uint32 $uid) returns PwStruct is native { * };
 
     say getpwuid(getuid()).pw_dir;
 
 Though of course C<$*HOME> is a much easier way :-)
-
 
 =head1 Exported variables
 
@@ -769,21 +768,32 @@ garbage collector.
 
 =head1 Examples
 
-Some examples can be found L<in the DBIsh repository |https://github.com/perl6/DBIish/tree/master/examples>.
+Some specific examples, and instructions to use examples above in particular platforms.
+
+=head2 PostgreSQL
+
+The PostgreSQL examples in L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/pg.p6> make use of the NativeCall library and C<is native> to use the native C<_putenv> function call in Windows.
 
 =head2 MySQL
 
-You'll need to install MySQL server locally; on Debian-esque systems
+B<NOTE:> Please bear in mind that, under the hood, Debian has substituted MySQL with MariaDB since the Stretch version, so if you want to install MySQL, use L<MySQL APT repository|https://dev.mysql.com/downloads/repo/apt/> instead of the default repository.
+
+To use the MySQL example in L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/mysql.p6>, you'll need to install MySQL server locally; on Debian-esque systems
 it can be installed with something like:
 
 =for code :lang<shell>
-sudo apt-get install mysql-server
+wget https://dev.mysql.com/get/mysql-apt-config_0.8.10-1_all.deb
+sudo dpkg -i mysql-apt-config_0.8.10-1_all.deb # Don't forget to select 5.6.x
+sudo apt-get update
+sudo apt-get install mysql-community-server -y
+sudo apt-get install libmysqlclient18 -y
 
 Prepare your system along these lines before trying out the examples:
 
 =for code :lang<shell>
 $ mysql -u root -p
-UPDATE mysql.user SET password=password('sa') WHERE user = 'root';
+SET PASSWORD = PASSWORD('sa');
+DROP DATABASE test;
 CREATE DATABASE test;
 
 =head2 Microsoft Windows
@@ -807,8 +817,8 @@ This is an example for calling a standard function and using the returned
 information in a Perl 6 program.
 
 C<getaddrinfo> is a POSIX standard function for obtaining network information
-about a network node, e.g., C<google.com>. It is an interesting function to look at because
-it illustrates a number of the elements of NativeCall.
+about a network node, e.g., C<google.com>. It is an interesting function to look
+at because it illustrates a number of the elements of NativeCall.
 
 The Linux manual provides the following information about the C callable function:
 
@@ -848,7 +858,7 @@ class Addrinfo is repr('CStruct') {
 >
 sub getaddrinfo( Str $node, Str $service, Addrinfo $hints, Pointer $res is rw )
     returns int32
-    is native(Str)
+    is native
     { * }
 =end code
 
@@ -968,7 +978,7 @@ enum AddrInfo-Flags (
 );
 
 sub inet_ntop(int32, Pointer, Blob, int32 --> Str)
-    is native() {}
+    is native {}
 
 class SockAddr is repr('CStruct') {
     has uint16 $.sa_family;
@@ -1037,10 +1047,10 @@ class Addrinfo is repr('CStruct') {
 
 sub getaddrinfo(Str $node, Str $service, Addrinfo $hints,
                 Pointer $res is rw --> int32)
-    is native() {};
+    is native {};
 
 sub freeaddrinfo(Pointer)
-    is native() {}
+    is native {}
 
 sub MAIN() {
     my Addrinfo $hint .= new(:ai_flags(AI_CANONNAME));

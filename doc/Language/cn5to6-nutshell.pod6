@@ -33,7 +33,18 @@ v5模块意在让Rakudo自身解析Perl5的代码，然后编译成和Perl6同�
 L<Inline::Perl5|https://github.com/niner/Inline-Perl5/>工程使用一个
 内嵌的 C<perl> 解释器运行 Perl 6脚本中调用到的Perl 5代码。
 
-其中，Inline::Perl5更完善，更有前途。
+一个最简单的实例：
+
+=for code :skip-test<Inline module not always present when testing>
+# from<Perl5> 使用 Perl 6 首先加载 Inline::Perl5(如果安装过的话)
+# 并且从Perl 5中加载Scalar::Util模块
+
+use Scalar::Util:from<Perl5> <looks_like_number>;
+say looks_like_number "foo";   # 0
+say looks_like_number "42";    # 1
+
+有很多Perl5 模块已经迁移到了Perl6中了，CPAN Butterfly计划提供了一个API
+来维护这些模块，列表见 L<https://modules.perl6.org/t/CPAN5>
 
 =head1 语法
 
@@ -62,7 +73,8 @@ L<Inline::Perl5|https://github.com/niner/Inline-Perl5/>工程使用一个
 =for code :preamble<no strict;>
     $object."$methodname"(@args); # Perl 6
 
-如果你省略了双引号，那么 Perl 6会认为  C<$methodname> 包含一个 C<Method> 对象，而不是简单的方法名字字符串。
+如果你省略了双引号，那么 Perl 6会认为  C<$methodname> 包含一个 C<Method> 对象，
+而不是简单的方法名字字符串。Perl 6中一切皆对象。
 
 =head2 空白
 
@@ -93,8 +105,10 @@ I<参数列表的开括号之前不允许包含空白>
 =for code :preamble<no strict;>
     substr($s, 4, 1);  # Perl 6
     substr $s, 4, 1;   # Perl 6 - 替代括号的风格
-
 =end item
+
+如果不习惯这种限制，你可以使用 C<Slang::Tuxic>模块，它修改了Perl 6的语法，让你可以
+在参数列表括号之前带有空格。
 
 =begin item
 I<关键字后面要紧跟空白>
@@ -128,15 +142,6 @@ I<前缀运算符后面或者后缀运算符、后缀环绕运算符（包含数
 =end item
 
 =begin item
-I<方法调用运算符周围不允许出现空白：>
-
-=for code :lang<perl5>
-    $customer -> name; # Perl 5
-=for code :preamble<no strict;>
-    $customer.name;    # Perl 6
-=end item
-
-=begin item
 I<中缀运算符在可能和存在的后缀运算符或者后缀环绕运算符冲突时前面要包含空白：>
 
 =for code :lang<perl5>
@@ -146,22 +151,28 @@ I<中缀运算符在可能和存在的后缀运算符或者后缀环绕运算符
 
 =end item
 
++=begin item
++I<但是, 在方法调用之前可以有空格>
+
+=for code :lang<perl5>
+# Perl 5
+my @books = $xml
+   ->parse_file($file)          # 注释
+   ->findnodes("/library/book");
+
+=for code :preamble<no strict;>
+# Perl 6
+my @books = $xml
+   .parse-file($file)         # 注释
+   .findnodes("/library/book");
+=end item
+
 不过，你可以使用L<unspace|https://design.perl6.org/S02.html#Unspaces>在Perl6
 的不允许使用空白的代码处增加空白：
-
-
-    # Perl 5
-    my @books = $xml->parse_file($file)          # 注释
-                    ->findnodes("/library/book");
-
-    # Perl 6
-    my @books = $xml.parse-file($file)\          # 注释
-                    .findnodes("/library/book");
 
 参考Perl6相关设计文档 L<S03#Minimal whitespace
 DWIMmery|https://design.perl6.org/S03.html#Minimal_whitespace_DWIMmery> 和
 L<S04#Statement parsing|https://design.perl6.org/S04.html#Statement_parsing>.
-
 
 =head2 Sigils
 
@@ -201,7 +212,7 @@ C<&>标识符现在始终（并且不再需要反斜杠了）引用一个命名�
     callback => &say            # Perl 6 -  & 给出任何过程的“名词”形式
 
 因为 Perl 6一旦完成编译就不允许在作用域内添加/删除符号，所以 Perl 6并没有与 Perl 5中C<undef &foo;>;
- 等效的语句，并且最接近Perl5的C<undef &foo;>是C<defined &::("foo")>（这使用了“动态符
+ 等效的语句，并且最接近Perl5的C<undef &foo;>是C<defined ::(&"foo")>（这使用了“动态符
 号查找(dynamic symbol lookup)”语法）。 然而，你可以使用 my &foo; 声明一个可修改名字的子例程，
 然后在运行过程中向C<&foo>赋值改变它。
 
@@ -224,15 +235,31 @@ C<&foo(...)> I<规避函数原型>
 
 =begin item
 C<&foo;>I<和>C<goto &foo;>I<用来重用调用者的参数列表或者替换调用栈的调用者>
+Perl 6中使用 L<C<callsame>|/language/functions#index-entry-dispatch_callsame>来re-dispatching 
+或者L<C<nextsame>|/language/functions#index-entry-dispatch_nextsame>和
+L<C<nextwith>|/language/functions#index-entry-dispatch_nextwith>, 在Perl 5中没有对应语法。
 
-    sub foo { say "before"; &bar;     say "after" } # Perl 5
-    sub foo { say "before"; bar(|@_); say "after" } # Perl 6 -需要显式传递
+begin comment
+   # TODO: 建议使用Rakudo中的 .nextsame 或者 .nextwith
+=end comment
 
-    # TODO: 建议使用Rakudo中的 .callsame
+=for code :lang<perl5> 
+sub foo { e"before"; &bar;     say "after" } # Perl 5
+=for code
+sub foo { say "before"; bar(|@_); say "after" } # Perl 6 - have to be explicit
 
-    sub foo { say "before"; goto &bar } # Perl 5
+=saybegin code
+proto foo (|) {*};
+multi foo ( Any $n ) {
+    say "Any"; say $n;
+};
+multi foo ( Int $n ) {
+    say "Int"; callsame;
+};
+foo(3); # /language/functions#index-entry-dispatch_callsame
 
-    # TODO: 建议使用Rakudo中的 .nextsame 或者 .nextwith
+=end code
+
 =end item
 
 =head3 C<*> Glob
@@ -340,83 +367,42 @@ I<Key/value-slicing>
 还有注意下标花括号现在不再是一个特殊的语法形式，而是一个普通的后缀环绕运算符，
 因此检测键是否存在和键移除使用副词完成。
 
-=head2 引用的创建
-
-=comment TODO: Rewrite this section to make it clear that the "referencing/
-         dereferencing" metaphor does not map cleanly to the actual Perl 6
-         container system, and focus more on how one would translate or
-         replace actual code that uses references in Perl 5.
+=head2 引用的创建和使用
 
 在 Perl 5中，引用一个匿名数组和哈希以及过程的在它们创建的时候返回，引用一个
-存在的命名变量和过程使用 C<\>运算符完成。
+存在的命名变量和过程使用 C<\>运算符完成。"引用/解引"在Perl 6 容器系统中没有
+明确的对应，所以我们更关注于引用操作符，而不是实际的语法
 
-在 Perl 6中，匿名数组和哈希以及过程依然在它们创建的时候返回，引用一个命名的
-过程需在它们的名字前面加一个C<&>标识符， 引用一个存在的命名变量使用C<item>上下文：
+=for code :lang<perl5>
+ my $aref =     \@aaa  ; # Perl 5
 
-    my $aref = [ 1, 2, 9 ];          # 使用于perl5&6
-    my $href = { A => 98, Q => 99 }; # 使用于perl5&6 [*See Note*]
+这可能用来给一个例程传递一个引用，但是在Perl 6 ，默认行为就是传递一个引用
 
-    my $aref =     \@aaa  ; # Perl 5
-    my $aref = item(@aaa) ; # Perl 6
+=begin code
+my @a = 4,8,15;
+(-> @array { @array[0] = 66})(@a);
+say @a; #  OUTPUT: «[66 8 15]␤»
+=end code
 
-    my $href =     \%hhh  ; # Perl 5
-    my $href = item(%hhh) ; # Perl 6
+数组C<@a>通过引用传递,并且在例程中第一个值被修改。
 
-    my $sref =     \&foo  ; # Perl 5
-    my $sref =      &foo  ; # Perl 6
+在Perl 5 中，解引用的语法是类型符后跟个花括号。Perl 6中，这个语法不再适用，
+解引用操作符没用了。
 
-B<NOTE:>如果一个或者多个值引用了主题变量C<$_>，等号右侧的值将被视为L<Block|/type/Block>，
- 而不是哈希：
+在Perl 5 中，箭头符号C«->»，用于对一个复合引用（数组，哈希）的单个元素的访问
+或者对函数引用的调用。在Perl 6 中C<.>操作符用于对象，其它则没有实际使用。 
 
-    my @people = [
-        %( id => "1A", firstName => "Andy", lastName => "Adams" ),
-        %( id => "2B", firstName => "Beth", lastName => "Burke" ),
-        # ...
-    ];
-
-    sub lookup-user (Hash $h) { #`(Do something...) $h }
-
-    my @names = map {
-        my $query = { name => "$_<firstName> $_<lastName>" };
-        say $query.^name;       # (Block)
-        say $query<name>;      # ERROR: Type Block does not support associative indexing
-
-        lookup-user($query);   # Type check failed in binding $h; expected Hash but got Block
-    }, @people;
-
-作为替代，你应该：
-
-=begin item
-1) 使用C<%()>构造器:
-
-    my $query = %( name => "$_<firstName> $_<lastName>" );
-=end item
-
-=begin item
-2) 直接赋值给哈希类型:
-
-    my %query = name => "$_<firstName> $_<lastName>";   # No braces required
-=end item
-
-=begin item
-或者 3) 给主题变量显式指定一个名字完全避免这个问题:
-
-    my @names = @people.map: -> $person {
-        lookup-user( %( name =点运算符C<.>完成这一任务：
-
-    # Perl 5
-        say $arrayref->[7];
-        say $hashref->{'fire bad'};
-        say $subref->($foo, $bar);
-
-    # Perl 6
-        say $arrayref.[7];
-        say $hashref.{'fire bad'};
-        say $subref.($foo, $bar);
+=for code :lang<perl5>
+# Perl 5
+    say $arrayref->[7];
+    say $hashref->{'fire bad'};
+    say $subref->($foo, $bar);
 
 在最近的 Perl5版本（5.20或者以后），一个新的特性允许使用箭头运算符解引用， 参见
 L<Postfix Dereferencing|http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200delta.pod#实验性的后缀解引用>，
 这个新特性和 Perl 6中的C<.list>以及C<.hash>方法对应：
+
+=for code :lang<perl5>
 
     # Perl 5.20
         use experimental qw< postderef >;
@@ -424,18 +410,20 @@ L<Postfix Dereferencing|http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200del
         my %h = $hashref->%*;
         my @slice = $arrayref->@[3..7];
 
+=for code :preamble<no strict;>
     # Perl 6
         my @a = $arrayref.list;         # 或 @($arrayref)
         my %h = $hashref.hash;          # 或 %($hashref)
         my @slice = $arrayref[3..7];
 
-“Zen”切片可以有同样的效果：
+“Zen”切片有异曲同工之妙：
 
+=for code :preamble<no strict;>
     # Perl 6
         my @a = $arrayref[];
         my %h = $hashref{};
 
-参考L<S32/Containers|https://design.perl6.org/S32/Containers.html>
+更多信息请参考L<S32/Containers|https://design.perl6.org/S32/Containers.html>
 
 =head1 操作符
 
@@ -458,14 +446,16 @@ L<Postfix Dereferencing|http://search.cpan.org/~shay/perl-5.20.1/pod/perl5200del
 
 =head2 C<,> 列表分割符
 
-  未变化，但是要注意为了把一个数组变量展开为一个列表（为了对其前后添加更多元素）
+未变化，但是要注意为了把一个数组变量展开为一个列表（为了对其前后添加更多元素）
 应该使用 C<|>操作符。例如:
 
-     my @numbers = (100, 200, 300);
-     my @more_numbers = (500, 600, 700);
-     my @all_numbers = [|@numbers, 400, |@more_numbers];
+my @numbers = 100, 200, 300;
+my @more_numbers = 500, 600, 700;
+my @all_numbers = |@numbers, 400, |@more_numbers;
 
 这样就可以可以合并数组，方便实现需求。
+
+我们可以注意到，表达式右边不再需要括弧：列表分隔关注的是创建列表，而不是括弧。
 
 =head2 C«<=> cmp» 三目运算符
 
@@ -565,10 +555,12 @@ Perl5中相同。
 
 条件运算符 C<? :>被C<?? !!>取代。
 
-=begin code
-    my $result = ( $score > 60 )  ? 'Pass'  : 'Fail'; # Perl 5
-    my $result = ( $score > 60 ) ?? 'Pass' !! 'Fail'; # Perl 6
-=end code
+ =for code :lang<perl5>
+    my $result = $score > 60  ? 'Pass'  : 'Fail'; # Perl 5
+
+=for code :preamble<my $score>
+    my $result = $score > 60  ?? 'Pass' !! 'Fail'; # Perl 6
+
 
 =head2 C<.> 连接运算符
 
@@ -608,8 +600,7 @@ Perl5中相同。
 
 在 Perl 5,C<..>依赖于上下文是两个完全不同的运算符。
 
-在列表上下文,C<..> 是熟悉的范围运算符，范围运算在 Perl 6有许多新的改变，
-不过 Perl 5的范围运算代码不需要翻译。
+在列表上下文,C<..> 是熟悉的范围运算符，Perl 5的范围运算代码不需要翻译。
 
 在标量上下文，C<..>和C<...>是鲜为人知的翻转运算符，在 Perl 6中它们被
 C<ff>和 C<fff>取代了。
@@ -618,6 +609,7 @@ C<ff>和 C<fff>取代了。
 
 在 Perl 5，C<"${foo}s">将变量名从普通的文本中分离出来，
 在 Perl 6中，简单的将花括号扩展到sigil外即可： C<"{$foo}s">。
+这实际上是一个简单的内插表达式。
 
 
 =head1 复合语句
@@ -650,19 +642,20 @@ C<given>-C<when>结构类似于if-elsif-else语句或者C里面的C<switch>-C<ca
 
 根据这个最简单的样式，有如下代码：
 
-    given $value {
-        when "a match" {
-            do-something();
-        }
-        when "another match" {
-            do-something-else();
-        }
-        default {
-            do-default-thing();
-        }
+=for code :preamble<no strict;>
+given $value {                   # assigns $_
+    when "a match" {             # if $_ ~~ "a match"
+        # do-something();
     }
+    when "another match" {       # elsif $_ ~~ "another match"
+        # do-something-else();
+    }
+    default {                    # else
+        # do-default-thing();
+    }
+}
 
-这是在C<when>语句中简单的使用标量匹配的场景，更普遍的实际情况都是利用如正则表达式一般的
+这是在C<when>语句中简单的使用标量匹配$_的场景,标量值由C<given>给出，更普遍的实际情况都是利用如正则表达式一般的
 复杂的实体等替代标量数据对输入数据进行智能匹配。
 
 同时参阅文章上面的智能匹配操作。
@@ -688,7 +681,10 @@ C<given>-C<when>结构类似于if-elsif-else语句或者C里面的C<switch>-C<ca
 
 
     while (<IN_FH>)  { } # Perl 5
+=for code :preamble<no strict;>
     for $IN_FH.lines { } # Perl 6
+
+需要注意的还有，Perl 6 中的行默认被C<chomp>的。
 
 =head3 C<do> C<while>/C<until>
 
@@ -733,10 +729,12 @@ Perl6 C-风格的for循环用C<loop>关键字，其它都没有变化，两边�
     for @cars  -> $car   {...} # Perl 6; 只读
     for @cars <-> $car   {...} # Perl 6; 读写
 
-如果使用默认的变量 C<$_>，但是又需要可读写，那么需要使用C«<->»并显示指定变量为 C«$_»。
+如果使用默认的变量 C<$_>，它也可读写的。
 
+ =for code :lang<perl5>
     for (@cars)      {...} # Perl 5; $_可读写
-    for @cars        {...} # Perl 6; $_ 只读
+ =for code :preamble<no strict;>
+    for @cars        {...} # Perl 6; $_ 可读写
     for @cars <-> $_ {...} # Perl 6; $_ 可读写
 
 我们也能在每次循环中取多个元素，只需在箭头后面添加多个变量即可。
@@ -790,11 +788,20 @@ C<continue>语句块已经被去掉了，做为替代，在循环体中使用C<N
             }
         }
 
+请注意，这种语法实际上不需要一个块，当你不需要额外的范围时候，这非常方便
+
+=for code
+# Perl 6
+    my $str = '';
+    for 1..5 {
+        next if $_ % 2 == 1;
+        $str ~= $_;
+        NEXT $str ~= ':';
+    }
 
 =head1 函数
 
-=comment NOTE FOR EDITORS: When adding functions, please place them in
-                           alphabetical order.
+=comment 未经确认: 当增加函数时候，需要以字母表顺序添加
 
 =head2 内建函数与纯代码块
 
@@ -867,6 +874,8 @@ L<S05/Substitution|https://design.perl6.org/S05.html#Substitution>.
     next if $line ~~ m:P5/[aeiou]/   ; # Perl 6, 使用:P5副词
     next if $line ~~ m/  <[aeiou]> / ; # Perl 6, 新的风格
 
+需要注意的是Perl 5 正则表达经年已久（架不住非常好用），有很多新功能在Perl 6开始加入。
+
 =head2 特殊的匹配语法通常属于<>的语法
 
 Perl 5的正则语法支持很多特殊的匹配语法，它们不会全部列在这里，但是一般在断言中作为C<()>的替代的是C«<>»。
@@ -936,7 +945,9 @@ C<no warnings>目前还是L<NYI|/language/glossary#NYI>状态， 但是把语句
 
 =head3 C<autodie>
 
-这个功能可以让程序在发生错误抛出异常，现在Perl6默认抛出异常，除非你显式的测试返回值。
+这个功能可以让程序在发生错误抛出异常，现在Perl6默认返回C<Failure>对象，你可以对良好定义和可信地
+的C<Failure>做测试，这没有任何问题。如果通过其他方式使用C<Failure>，则会抛出C<Failure>打包的
+C<Exception>对象。 
 
     # Perl 5
     open my $i_fh, '<', $input_path;  # 错误时保持沉默
@@ -944,8 +955,19 @@ C<no warnings>目前还是L<NYI|/language/glossary#NYI>状态， 但是把语句
     open my $o_fh, '>', $output_path; # 错误时抛出异常
 
     # Perl 6
-    my $i_fh = open $input_path,  :r; # 错误时抛出异常
-    my $o_fh = open $output_path, :w; # 错误时抛出异常
+    my $i_fh = open $input_path,  :r; # 错误时抛出Failure
+    my $o_fh = open $output_path, :w; # 错误时抛出Failure
+
+因为你可以测试C<Failure>，你可以在<if> 语句中对C<open>操作进行判断。
+
+=for code :preamble<no strict;>
+# Perl 6
+if open($input_path,:r) -> $handle {
+    .say for $handle.lines;
+}
+else {
+    # 非常优雅对open()失败的结果进行处理
+}
 
 =head3 C<base>
 =head3 C<parent>
@@ -956,8 +978,11 @@ C<no warnings>目前还是L<NYI|/language/glossary#NYI>状态， 但是把语句
     package Cat;
     use base qw(Animal);
 
+=for code :preamble<class Animal {}>
     # Perl 6
-    class Cat is Animal;
+    class Cat is Animal{};
+
+注意到C<Animal>类必须在编译时被感知，才能对其进行继承。
 
 =head3 C<bigint> C<bignum> C<bigrat>
 
@@ -973,29 +998,46 @@ C<constant>在Perl6用来变量声明，这类似与C<my>，不过变量会锁�
 
 那么，将C«=>»改为C<=>，并加上一个sigil。
 
+=for code :lang<perl5>
     use constant DEBUG => 0; # Perl 5
+
+=for code
     constant DEBUG = 0;      # Perl 6
-
+=for code :lang<perl5>
     use constant pi => 4 * atan2(1, 1); # Perl 5
-    # pi, e, i都是 Perl 6的内建变量
-
+=for code
+    tau, pi, e, i; # pi, e, i都是 Perl 6的内建变量
+    τ, π, 𝑒        # 相应的Unicode
+ 
 =head3 C<encoding>
 
 允许使用非ASCII或者非UTF8编码编写代码。
 
 =head3 C<integer>
 
-Perl的编译指示，使用整数运算替代浮点。
+Perl的编译指示，使用整数运算替代浮点。Perl 6中无对应语法，
+如果你计算中使用纯整型计算，则是最贴近的。
+
+=for code
+my int $foo = 42;
+my int $bar = 666;
+say $foo * $bar;    # 使用纯整型的乘法
 
 =head3 C<lib>
 
-在编译时期操作 @INC。
+在编译时查找的时候操作。底层逻辑和Perl 5有<很大>不同，但是大多数情况下C<use lib>
+和Perl5中的并没有两样。 
 
 =head3 C<mro>
 
 不再有意义。
 
 在Perl6中，方法调用现在使用 C3 方法调用顺序。
+
+如果你需要找出一个类的父类，你可以激活C<mro>原子方法：
+
+=for code :preamble<class Animal {}>
+say Animal.^mro;    # .^ 表示对对象调用一个原子方法。
 
 =head3 C<utf8>
 
@@ -1081,13 +1123,14 @@ Features|https://design.perl6.org/S19.html#Removed_Syntactic_Features>.
 
 在Perl5，读取文本文件的行通常是这样子：
 
+=for code :lang<perl5>
     open my $fh, "<", "file" or die "$!";
-    my @lines = <$fh>;
+    my @lines = <$fh>; # 行没有经过chomp处理
     close $fh;
 
 在Perl6，这简化成了这样：
 
-    my @lines = "file".IO.lines;
+    my @lines = "file".IO.lines; # 自动chomp
 
 不要尝试一次读入一个文件，然后使用换行符分割，因为这会导致数组尾部含有一个空行，
 比你想象的多了一行（它实际更复杂一些）。比如：
@@ -1101,6 +1144,10 @@ Features|https://design.perl6.org/S19.html#Removed_Syntactic_Features>.
     # 读文件
     my @lines = "test-file".IO.slurp.split(/\n/);
     say @lines.elems;    #-> 4
+
+如果处于某种原因你想首先slurp文件，你可以对其结果调用C<lines>方法获得行数：
+
+    my @lines = "test-file".IO.slurp.lines;  # 也自动chomp
 
 =head2 捕获可执行文件的标准输出
 
@@ -1268,6 +1315,27 @@ X<|import>
 指定某一个函数是导出的， Perl 6会自动以正确的方式创建 EXPORT 方法，所以你应该仔细的考虑
 创建一个自己的 C<EXPORT>方法是否值得。
 
+=head2 从模块中引入的一组特定函数
+
+如果你喜欢从模块引入一组函数，你只需在组里添加函数名，其他工作会自动完成。
+当你在一个子例程中指定 C<is export>时，你实际上添加这个子例程给C<:DEFAULT>输出组。
+你可以添加一个子例程给其他组，或者多个组。
+
+=for code :skip-test
+unit module Bar;
+sub foo() is export { }                   # 默认添加到 :DEFAULT
+sub bar() is export(:FNORBL) { }          # 添加到FNORBL输出租
+sub baz() is export(:DEFAULT:FNORBL) { }  # 添加给两个组
+
+所以你可以使用 C<Bar>模块，以下面的方式
+
+=for code :skip-test
+use Bar;                     # 引入 foo / baz
+use Bar :FNORBL;             # 引入 bar / baz
+use Bar :ALL;                # 引入 foo / bar / baz
+
+注意到C<:ALL>是一个自动创建的组，该组包含所有方法。
+
 =head1 核心模块
 
 =head3 C<Data::Dumper>
@@ -1311,11 +1379,20 @@ X<|import>
                  64,
                  'Hike!'
                );
+=begin code :preamble<no strict;>
     # Perl 6
         say [ :$foo, :$bar, :@baz ].perl;
-    # 结果
-        ["foo" => 42, "bar" => 44, "baz" => [16, 32, 64, "Hike!"]]
+    # 结果：«["foo" => 42, "bar" => 44, "baz" => [16, 32, 64, "Hike!"]]␤»
+=end code
 
+还有一个给开发者准备的debug辅助函数C<dd>（简化版的数据Dumper），它会打印C<.perl>
+的内容以及额外底层信息，在标准错误给出变量信息。
+
+=begin code :preamble<no strict;> :ok-test<dd>
+# Perl 6
+dd $foo, $bar, @baz;
+# OUTPUT: «Int $foo = 42␤Int $bar = 44␤Array @baz = [16, 32, 64, "Hike!"]␤»
+ =end code
 
 =head3 C<Getopt::Long>
 
@@ -1392,8 +1469,8 @@ Larry Wall 自己用来翻译Perl5到Perl6的代码已经太老了，在目前�
 中已经不可用了。
 
 MAD（Misc Attribute Definition）是一个通过源码构建Perl的时候可用的配置选项，
-'perl’执行程序分析并翻译你的Perl代码到op-tree，通过遍历op-tree执行你的程序。
-通常，这些分析的细节会在处理的时候丢掉，当MAD开启的时候，'perl' 执行程序会
+`perl`执行程序分析并翻译你的Perl代码到op-tree，通过遍历op-tree执行你的程序。
+通常，这些分析的细节会在处理的时候丢掉，当MAD开启的时候，`perl`执行程序会
 把这些细节保存成XML文件， 然后MAX解析器便可以读取它并进一步处理成 Perl6的代码。
 
 为了进行你的 MAD 实验，请前去 #perl6 频道咨询最适合的Perl5版本。

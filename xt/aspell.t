@@ -7,22 +7,20 @@ use Test-Files;
 
 =begin overview
 
-Spell check all the pod files in the documentation directory.
+Spell check all the pod and most markdown files in the documentation directory.
 
 Ignore case, and provide a repo-specific list of approved words,
 which include technical jargon, method and class names, etc.
 
 If the test fails, you can make it pass again by changing the
 text (fixing the spelling issue), or adding the new word to
-xt/words.pws (if it's a word, a class/method name, known
-program name, etc.), or to xt/code.pws (if it's a fragment of
+C<xt/words.pws> (if it's a word, a class/method name, known
+program name, etc.), or to C<xt/code.pws> (if it's a fragment of
 text that is part of a code example)
 
 =end overview
 
-my @files = Test-Files.files\
-    .grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})\
-    .grep({! $_.ends-with: 'contributors.pod6'});
+my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
@@ -65,7 +63,7 @@ my @jobs;
 for @files -> $file {
     if $file ~~ / '.pod6' $/ {
         my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}');
+        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}');
         $fixer.bind-stdin: $pod.stdout: :bin;
         my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
         $proc.bind-stdin: $fixer.stdout: :bin;

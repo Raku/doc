@@ -2,84 +2,125 @@
 
 =TITLE Classes and Objects
 
-=SUBTITLE A tutorial for creating and using classes in Perl 6
+=SUBTITLE A tutorial about creating and using classes in Perl 6
 
 X<|OOP>
-
-=comment More descriptive title?
 
 Perl 6 has a rich built-in syntax for defining and using classes.
 
 A default constructor allows the setting of attributes for the created object:
 
-    =begin code
-    class Point {
-        has Int $.x;
-        has Int $.y;
+=begin code
+class Point {
+    has Int $.x;
+    has Int $.y;
+}
+
+class Rectangle {
+    has Point $.lower;
+    has Point $.upper;
+
+    method area() returns Int {
+        ($!upper.x - $!lower.x) * ( $!upper.y - $!lower.y);
+    }
+}
+
+# Create a new Rectangle from two Points
+my $r = Rectangle.new(lower => Point.new(x => 0, y => 0),
+                      upper => Point.new(x => 10, y => 10));
+
+say $r.area(); # OUTPUT: «100␤»
+=end code
+
+In the two classes, the default constructor is being used. This constructor will
+use named parameters in its invocation: C<Point.new(x => 0, y => 0)>.
+
+X<submethods>
+You can also provide your own construction and C<BUILD> implementation.  The
+following, more elaborate example shows how a dependency handler might look in
+Perl 6.  It showcases custom constructors, private and public attributes,
+methods and various aspects of signatures. It's not a lot of code, and yet the
+result is interesting and useful.
+
+=begin code
+class Task {
+    has      &!callback;
+    has Task @!dependencies;
+    has Bool $.done;
+
+    # Normally doesn't need to be written
+    method new(&callback, *@dependencies) {
+        return self.bless(:&callback, :@dependencies);
     }
 
-    class Rectangle {
-        has Point $.lower;
-        has Point $.upper;
+    # BUILD is the equivalent of a constructor in other languages
+    submethod BUILD(:&!callback, :@!dependencies) { }
 
-        method area() returns Int {
-            ($!upper.x - $!lower.x) * ( $!upper.y - $!lower.y);
-        }
+    method add-dependency(Task $dependency) {
+        push @!dependencies, $dependency;
     }
 
-    # Create a new Rectangle from two Points
-    my $r = Rectangle.new(lower => Point.new(x => 0, y => 0), upper => Point.new(x => 10, y => 10));
-
-    say $r.area(); # OUTPUT: «100␤»
-    =end code
-
-You can also provide your own construction and build
-implementation.  The following, more elaborate example shows how
-a dependency handler might look in Perl 6.  It showcases custom
-constructors, private and public attributes, methods and various aspects
-of signatures. It's not very much code, and yet the result is interesting
-and useful.
-
-    =begin code
-    class Task {
-        has      &!callback;
-        has Task @!dependencies;
-        has Bool $.done;
-
-        # Normally doesn't need to be written
-        # BUILD is the equivalent of a constructor in other languages
-        method new(&callback, *@dependencies) {
-            return self.bless(:&callback, :@dependencies);
-        }
-
-        submethod BUILD(:&!callback, :@!dependencies) { }
-
-        method add-dependency(Task $dependency) {
-            push @!dependencies, $dependency;
-        }
-
-        method perform() {
-            unless $!done {
-                .perform() for @!dependencies;
-                &!callback();
-                $!done = True;
-            }
+    method perform() {
+        unless $!done {
+            .perform() for @!dependencies;
+            &!callback();
+            $!done = True;
         }
     }
+}
 
-    my $eat =
-        Task.new({ say 'eating dinner. NOM!' },
-            Task.new({ say 'making dinner' },
-                Task.new({ say 'buying food' },
-                    Task.new({ say 'making some money' }),
-                    Task.new({ say 'going to the store' })
-                ),
-                Task.new({ say 'cleaning kitchen' })
-            )
-        );
+my $eat =
+    Task.new({ say 'eating dinner. NOM!' },
+        Task.new({ say 'making dinner' },
+            Task.new({ say 'buying food' },
+                Task.new({ say 'making some money' }),
+                Task.new({ say 'going to the store' })
+            ),
+            Task.new({ say 'cleaning kitchen' })
+        )
+    );
 
-    $eat.perform();
-    =end code
+$eat.perform();
+=end code
+
+In this case, C<BUILD> is needed since we have overridden the default new.
+C<bless> is eventually (after calling C<BUILDALL>) invoking it with the two
+named arguments that correspond to the two properties without a default value.
+With its signature, C<BUILD> converts the two positionals to the two attributes,
+C<&!callback> and C<@!dependencies>, and returns the object (or turns it in to
+the next phase, C<TWEAK>, if available).
+
+Declaring C<new> as a C<method> and not a C<multi method> prevents us from using
+the default constructor; tis implicit constructor uses the attributes as named
+parameters. That is one of the reasons why using C<new> is discouraged. If you
+need to declare it anyway, use C<multi method new> if you do not want to disable
+the default constructors.
+
+C<TWEAK> is the last submethod to be called, and it has got the advantage of
+having the object properties available without needing to use the meta object
+protocol. It can be used, for instance, to assign values to instance variables
+based on the values of other attributes or instance variables:
+
+=begin code
+class Str-with-ID is Str {
+    my $.counter = 0;
+    has Str $.string;
+    has Int $.ID;
+
+    method TWEAK() {
+        $!ID = $.counter++;
+    }
+}
+
+say Str-with-ID.new(string => 'First').ID;  # OUTPUT: «0»
+say Str-with-ID.new(string => 'Second').ID; # OUTPUT: «1»
+=end code
+
+In this case, we need to compute C<$.ID> from the value of a counter that is a
+class variable, C<$.counter>, thus we simply assign a value to it and increment
+the counter at the same time. Please check also
+L<this section on C<TWEAK> in the OO document|/language/objects#index-entry-TWEAK>
+for the mechanics of object construction.
 
 =head1 Starting with class
 
@@ -128,13 +169,11 @@ You can also use type smileys to only accept instances or type objects:
     say foo Int; # OUTPUT: «It's a type object!␤»
     say foo 42;  # OUTPUT: «It's an instance!␤»
 
-=head1 State
-
 X<|attributes>
 X<|classes,attributes>
-
 X<|encapsulation>
 X<|classes,encapsulation>
+=head1 State
 
 The first three lines inside the class block all declare attributes (called
 I<fields> or I<instance storage> in other languages). Just as a C<my>
@@ -217,6 +256,32 @@ evaluated at that time, and can even reference earlier attributes:
 has Task @!dependencies;
 has $.ready = not @!dependencies;
 
+X<|class variables>
+A class declaration can also include I<class variables>, which are variables that are shared by all instances, and can be used for things like counting the number of instantiations or any other shared state. Class variables use the same syntax as the rest of the attributes, but are declared as C<my> or C<our>, depending on the scope; the second type of variables will be used across the class hierarchy.
+
+=begin code
+class Str-with-ID is Str {
+    my $.counter = 0;
+    has Str $.string;
+    has Int $.ID;
+
+    method new( Str $string ) {
+        self.bless( :$string, ID => $.counter++ )
+    }
+}
+
+say Str-with-ID.new('First').ID;  # OUTPUT: «0»
+say Str-with-ID.new('Second').ID; # OUTPUT: «1»
+=end code
+
+In this case, using C<new> might be the easiest way to initialize the C<$.ID>
+field and increment the value of the counter at the same time. C<new>, through
+C<bless>, will invoke the default C<BUILD>, assigning the values to their
+properties correctly. You can obtain the same effect using C<TWEAK>, which is
+considered a more I<p6y> way. Please check <the section on submethods|/language/classtut#index-entry-OOP>
+for an alternative example on how
+to do this.
+
 =head1 Static fields?
 
 Perl 6 has no B<static> keyword. Nevertheless, any class may declare anything
@@ -269,11 +334,10 @@ task's dependency list.
     =end code
 
 X<|invocant>
-
 In many ways, this looks a lot like a C<sub> declaration. However, there are
 two important differences. First, declaring this routine as a method adds it
-to the list of methods for the current class.  Thus any instance of the
-C<Task> class can call this method with the C<.> method call operator.
+to the list of methods for the current class, thus any instance of the
+C<Task> class can call it with the C<.> method call operator.
 Second, a method places its invocant into the special variable C<self>.
 
 The method itself takes the passed parameter – which must be an instance of
@@ -313,6 +377,7 @@ C<$!done> attribute to C<True>, so that subsequent invocations of C<perform>
 on this object (if this C<Task> is a dependency of another C<Task>, for
 example) will not repeat the task.
 
+X<|! (private methods)>
 =head2 Private Methods
 
 Just like attributes, methods can also be private. Private methods are declared
@@ -475,10 +540,6 @@ other means, such as attribute accessors.
     =begin code
     class Employee {
         has $.salary;
-
-        method pay() {
-            say "Here is \$$.salary";
-        }
     }
 
     class Programmer is Employee {
@@ -486,8 +547,8 @@ other means, such as attribute accessors.
         has $.favorite_editor;
 
         method code_to_solve( $problem ) {
-            say "Solving $problem using $.favorite_editor in "
-            ~ $.known_languages[0] ~ '.';
+            return "Solving $problem using $.favorite_editor in "
+            ~ $.known_languages[0];
         }
     }
     =end code
@@ -502,8 +563,8 @@ defined in the Employee class as though they were from the Programmer class.
         favorite_editor => 'vim'
     );
 
-    $programmer.code_to_solve('halting problem');
-    $programmer.pay();
+    say $programmer.code_to_solve('halting problem'), " will get ", $programmer.salary(), "\$";
+    #OUTPUT: «Solving halting problem using vim in Perl5 will get 100000$␤»
     =end code
 
 =head2 Overriding inherited methods
@@ -644,7 +705,7 @@ The output can look like this:
     Programmer
     =end code
 
-The first two tests each smart-match against a class name. If the object is
+The first two tests each smartmatch against a class name. If the object is
 of that class, or of an inheriting class, it returns true. So the object in
 question is of class C<Employee> or one that inherits from it, but not
 C<GeekCook>.
@@ -685,6 +746,37 @@ is. With C<.^methods> you can learn what you can do with the class.
 But there are other applications too: a routine that serializes objects to a
 bunch of bytes needs to know the attributes of that object, which it can
 find out via introspection.
+
+=head2 X<Overriding default gist method>
+
+Some classes might need its own version of C<gist>, which overrides the terse way it is printed when called to provide a default representation of the class. For instance, L<exceptions|/language/exceptions#Uncaught_Exceptions> might want to write just the C<payload> and not the full object so that it is clearer what has happened. But you can do that with every class:
+
+=begin code
+class Cook {
+    has @.utensils  is rw;
+    has @.cookbooks is rw;
+
+    method cook( $food ) {
+        return "Cooking $food";
+    }
+
+    method clean_utensils {
+        return "Cleaning $_" for @.utensils;
+    }
+
+    multi method gist(Cook:U:) { '⚗' ~ self.^name ~ '⚗' }
+    multi method gist(Cook:D:) { '⚗ Cooks with ' ~ @.utensils.join( " ‣ ") ~ ' using ' ~ @.cookbooks.map( "«" ~ * ~ "»").join( " and ") }
+}
+
+my $cook = Cook.new(
+    utensils => <spoon ladle knife pan>,
+    cookbooks => ['Cooking for geeks','The French Chef Cookbook']);
+
+say Cook.gist; # OUTPUT: «⚗Cook⚗»
+say $cook.gist; # OUTPUT: «⚗ Cooks with spoon ‣ ladle ‣ knife ‣ pan using «Cooking for geeks» and «The French Chef Cookbook»␤»
+=end code
+
+Usually you will want to define two methods, one for the class and another for instances; in this case, the class method uses the alembic symbol, and the instance method, defined below, aggregates the data we have on the cook to show it in a narrative way.
 
 =end pod
 

@@ -4,19 +4,22 @@
 
 =SUBTITLE Object Orientation in Perl 6
 
-Perl 6 provides strong support for object oriented programming. Although
-Perl 6 allows programmers to program in multiple paradigms, object oriented
-programming is at the heart of the language.
+Perl 6 provides strong support for L<Object Oriented Programming (OOP)|https://en.wikipedia.org/wiki/Object-oriented_programming>.
+Although Perl 6 allows programmers to program in multiple paradigms,
+Object Oriented Programming is at the heart of the language.
 
-Perl 6 comes with a wealth of predefined types, which can be classified in
-two categories: normal and I<native> types.
+Perl 6 comes with a wealth of predefined types, which can be classified in two
+categories: normal and L<I<native> types|/language/nativetypes>. Everything that
+you can store in a variable is either a I<native value> or an I<object>. That
+includes literals, types (type objects), code and containers.
 
-Native types are used for low-level types (like C<uint64>). They do not have
-the same capabilities as objects, though if you call methods on them, they
-are I<boxed> into normal objects.
+Native types are used for low-level types (like C<uint64>). Even if I<native>
+types do not have the same capabilities as objects, if you call methods on them,
+they are automatically I<boxed> into normal objects.
 
-Everything that you can store in a variable is either a native value or an
-object. That includes literals, types (type objects), code and containers.
+Everything that is not a I<native> value is an <object>.
+Objects do allow for both L<inheritance|https://en.wikipedia.org/wiki/Object-oriented_programming#Inheritance_and_behavioral_subtyping> and L<encapsulation|https://en.wikipedia.org/wiki/Object-oriented_programming#Encapsulation>.
+
 
 =head1 Using Objects
 
@@ -59,9 +62,8 @@ unambiguously a method call without an argument list:
     say 4.log: +2; # OUTPUT: «2␤» ( base-2 logarithm of 4 )
     say 4.log  +2; # OUTPUT: «3.38629436111989␤» ( natural logarithm of 4, plus 2 )
 
-Many operations that don't look like method calls (for example, smart
-matching, or interpolating an object into a string) result in method calls
-under the hood.
+Many operations that don't look like method calls (for example, smartmatching or
+interpolating an object into a string) result in method calls under the hood.
 
 Methods can return mutable containers, in which case you can assign to the
 return value of a method call. This is how read-writable attributes to
@@ -112,7 +114,7 @@ sub f($x) {
     ...
 }
 
-Subtype checking is done by L<smart-matching|/language/operators#infix_~~>:
+Subtype checking is done by L<smartmatching|/language/operators#infix_~~>:
 
 =for code :preamble<my $type;>
 if $type ~~ Real {
@@ -139,8 +141,9 @@ another class.
 =head2 Attributes
 X<|Attribute> X<|Property> X<|Member> X<|Slot>
 
-Attributes are variables that exist per instance of a class. They are where
-the state of an object is stored. In Perl 6, all attributes are private.
+Attributes are variables that exist per instance of a class; when instantiated to a value, the association between the variable and its value is called a property. They are where
+the state of an object is stored. In Perl 6, all attributes are I<private>,
+that means they can be accessed directly only by the class instance itself.
 They are typically declared using the C<has> declarator and the C<!> twigil.
 
     class Journey {
@@ -627,21 +630,21 @@ need to C<callsame> to invoke the parent classes C<BUILDALL>.
     }
     =end code
 
-The C<TWEAK> method allows you to check things or modify attributes after
+The C<TWEAK> submethod allows you to check things or modify attributes after
 object construction:
 
-    =begin code
-    class RectangleWithCachedArea {
-        has ($.x1, $.x2, $.y1, $.y2);
-        has $.area;
-        submethod TWEAK() {
-            $!area = abs( ($!x2 - $!x1) * ( $!y2 - $!y1) );
-        }
+=begin code
+class RectangleWithCachedArea {
+    has ($.x1, $.x2, $.y1, $.y2);
+    has $.area;
+    submethod TWEAK() {
+        $!area = abs( ($!x2 - $!x1) * ( $!y2 - $!y1) );
     }
+}
 
-    say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
-    # OUTPUT: «4␤»
-    =end code
+say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
+# OUTPUT: «4␤»
+=end code
 
 =head2 Object Cloning
 
@@ -830,8 +833,9 @@ role.
 
 =head2 Inheritance
 
-Roles cannot inherit from classes, but they may cause any class which does
-that role to inherit from another class. So if you write:
+Roles cannot inherit from classes, but they may I<carry> classes, causing
+any class which does that role to inherit from the carried classes.
+So if you write:
 
     =begin code
     role A is Exception { }
@@ -841,6 +845,24 @@ that role to inherit from another class. So if you write:
 
 then C<X::Ouch> will inherit directly from Exception, as we can see above
 by listing its parents.
+
+As they do not use what can properly be called inheritance, roles are not part of the class hierarchy.
+Roles are listed with the C<.^roles> meta-method instead, which uses C<transitive> as flag for including all levels or just the first one.  Despite this, a
+class or instance may still be tested with smartmatches or type constraints
+to see if it does a role.
+
+    =begin code
+    role F { }
+    class G does F { }
+    G.^roles.say;                    # OUTPUT: «((F))␤»
+    role Ur {}
+    role Ar does Ur {}
+    class Whim does Ar {}; Whim.^roles(:!transitive).say;   # OUTPUT: «((Ar))␤»
+    say G ~~ F;                      # OUTPUT: «True␤»
+    multi a (F $a) { "F".say }
+    multi a ($a)   { "not F".say }
+    a(G);                            # OUTPUT: «F␤»
+    =end code
 
 =head2 Pecking order
 
@@ -874,21 +896,26 @@ multi-method.
 
 =head2 Automatic Role Punning
 
-Any attempt to directly instantiate a role, as well as many other operations
-on it, will automatically create an instance of a class with the same name as
-the role, making it possible to transparently use a role as if it were a class.
+Any attempt to directly instantiate a role or use it as a type object
+will automatically create a class with the same name as the role,
+making it possible to transparently use a role as if it were a class.
 
     =begin code
     role Point {
         has $.x;
         has $.y;
         method abs { sqrt($.x * $.x + $.y * $.y) }
+        method dimensions { 2 }
     }
     say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
+    say Point.dimensions;              # OUTPUT «2␤»
     =end code
 
 We call this automatic creation of classes I<punning>, and the generated class
 a I<pun>.
+
+Punning is not caused by most L<meta-programming|/language/mop> constructs,
+however, as those are sometimes used to work directly with roles.
 
 X<|Parameterized Roles>
 =head2 Parameterized Roles

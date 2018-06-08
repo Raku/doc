@@ -37,7 +37,7 @@ use Pod::Convenience;
 use Pod::Htmlify;
 use OO::Monitors;
 # Don't include backslash in Win or forwardslash on Unix because they are used
-# as directory seperators. These are handled in lib/Pod/Htmlify.pm6
+# as directory separators. These are handled in lib/Pod/Htmlify.pm6
 my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
 my \badchars-unix = Qw[ ];
 my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
@@ -89,7 +89,7 @@ sub header-html($current-selection, $pod-path) {
     state $header = slurp 'template/header.html';
 
     my $menu-items = [~]
-        q[<div class="menu-items dark-green">],
+        q[<div class="menu-items dark-green"><a class='menu-item darker-green' href='https://perl6.org'><strong>Perl&nbsp;6 homepage</strong></a> ],
         @menu>>.key.map(-> ($dir, $name) {qq[
             <a class="menu-item {$dir eq $current-selection ?? "selected darker-green" !! ""}"
                 href="/$dir.html">
@@ -266,11 +266,11 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         }
 
         if $num %% $parallel {
-            await Promise.allof: @pod-files;
+            await @pod-files;
             @pod-files = ();
         }
 
-        LAST await Promise.allof: @pod-files;
+        LAST await @pod-files;
     }
 }
 
@@ -351,7 +351,7 @@ multi write-type-source($doc) {
                 <p class="fallback">
                   Stand-alone image:
                   <a rel="alternate"
-                    href="/images/type-graph-\qq[uri_escape($podname)].svg"
+                    href="/images/type-graph-\qq[&uri_escape($podname)].svg"
                     type="image/svg+xml">vector</a>
                 </p>
               </figure>
@@ -368,32 +368,35 @@ multi write-type-source($doc) {
                 pod-block(
                     "$podname does role ",
                     pod-link($role.name, "/type/{href_escape ~$role}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$role}.list,
             ;
         }
         for $type.mro.skip -> $class {
+            if $type ne "Any" {
+                next if $class ~~ "Any" | "Mu";
+            }
             next unless %routines-by-type{$class};
             $pod.contents.append:
                 pod-heading("Routines supplied by class $class"),
                 pod-block(
                     "$podname inherits from class ",
                     pod-link($class.name, "/type/{href_escape ~$class}"),
-                    ", which provides the following methods:",
+                    ", which provides the following routines:",
                 ),
                 %routines-by-type{$class}.list,
             ;
             for $class.roles -> $role {
                 next unless %routines-by-type{$role};
                 $pod.contents.append:
-                    pod-heading("Methods supplied by role $role"),
+                    pod-heading("Routines supplied by role $role"),
                     pod-block(
                         "$podname inherits from class ",
                         pod-link($class.name, "/type/{href_escape ~$class}"),
                         ", which does role ",
                         pod-link($role.name, "/type/{href_escape ~$role}"),
-                        ", which provides the following methods:",
+                        ", which provides the following routines:",
                     ),
                     %routines-by-type{$role}.list,
                 ;
@@ -450,12 +453,12 @@ sub register-reference(:$pod!, :$origin, :$url) {
         for @( $pod.meta ) -> $meta {
             my $name;
             if $meta.elems > 1 {
-                my $last = $meta[*-1];
-                my $rest = $meta[0..*-2].join;
+                my $last = textify-guts $meta[*-1];
+                my $rest = $meta[0..*-2]».&textify-guts.join;
                 $name = "$last ($rest)";
             }
             else {
-                $name = $meta.Str;
+                $name = textify-guts $meta;
             }
             $*DR.add-new(
                 :$pod,
@@ -474,9 +477,17 @@ sub register-reference(:$pod!, :$origin, :$url) {
             :$url,
             :kind<reference>,
             :subkinds['reference'],
-            :$name,
+            :name(textify-guts $name),
         );
     }
+}
+
+multi textify-guts (Any:U,       ) { '' }
+multi textify-guts (Str:D      \v) { v }
+multi textify-guts (List:D     \v) { v».&textify-guts.Str }
+multi textify-guts (Pod::Block \v) {
+    use Pod::To::Text;
+    pod2text v;
 }
 
 #| A one-pass-parser for pod headers that define something documentable.
@@ -510,18 +521,20 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             when :(Pod::FormattingCode $) {
                 my $fc := .[0];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             # XXX: Remove when extra "" have been purged
             when :("", Pod::FormattingCode $, "") {
                 my $fc := .[1];
                 proceed unless $fc.type eq "X";
-                @definitions = $fc.meta[0].flat;
+                (@definitions = $fc.meta[0]:v.flat) ||= '';
                 # set default name if none provide so X<if|control> gets name 'if'
-                @definitions[1] = $fc.contents[0] if @definitions == 1;
+                @definitions[1] = textify-guts $fc.contents[0]
+                    if @definitions == 1;
                 $unambiguous = True;
             }
             when :(Str $ where /^The \s \S+ \s \w+$/) {
@@ -538,15 +551,18 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
             }
             when :("The ", Pod::FormattingCode $, Str $ where /^\s (\w+)$/) {
                 # The C<Foo> infix
-                @definitions = .[2].words[0], .[1].contents[0];
+                @definitions = .[2].words[0], textify-guts .[1].contents[0];
             }
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $) {
                 # infix C<Foo>
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
+                proceed if ( # not looking for - baz X<baz>
+                    (@definitions[1] // '') eq '' and .[1].type eq 'X'
+                );
             }
             # XXX: Remove when extra "" have been purged
             when :(Str $ where /^(\w+) \s$/, Pod::FormattingCode $, "") {
-                @definitions = .[0].words[0], .[1].contents[0];
+                @definitions = .[0].words[0], textify-guts .[1].contents[0];
             }
             default { next }
         }
@@ -580,7 +596,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :$summary,
                     ;
                 }
-                when 'variable'|'sigil'|'twigil'|'declarator'|'quote' {
+                when 'variable'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
                     %attr = :kind<syntax>,
                             :categories($subkinds),
@@ -669,13 +685,13 @@ sub write-type-graph-images(:$force, :$parallel) {
         my $viz = Perl6::TypeGraph::Viz.new-for-type($type);
         @type-graph-images.push: $viz.to-file("html/images/type-graph-{$type}.svg", format => 'svg');
         if @type-graph-images %% $parallel {
-            await Promise.allof: @type-graph-images;
+            await @type-graph-images;
             @type-graph-images = ();
         }
 
         print '.';
 
-        LAST await Promise.allof: @type-graph-images;
+        LAST await @type-graph-images;
     }
     say '';
 
@@ -692,11 +708,11 @@ sub write-type-graph-images(:$force, :$parallel) {
                                             :rank-dir('LR'));
         @specialized-visualizations.push: $viz.to-file("html/images/type-graph-{$group}.svg", format => 'svg');
         if @specialized-visualizations %% $parallel {
-            await Promise.allof: @specialized-visualizations;
+            await @specialized-visualizations;
             @specialized-visualizations = ();
         }
 
-        LAST await Promise.allof: @specialized-visualizations;
+        LAST await @specialized-visualizations;
     }
 }
 
@@ -770,9 +786,12 @@ sub write-search-file() {
 
 sub write-disambiguation-files() {
     say 'Writing disambiguation files ...';
-    for $*DR.grouped-by('name').kv -> $name, $p is copy {
+    for $*DR.grouped-by('name').kv -> $name is copy, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
+        if ( $name ~~ "type" | "index" ) {
+            $name = "«$name»";
+        }
         if $p.elems == 1 {
             $p = $p[0] if $p ~~ Array;
             if $p.origin -> $o {
@@ -914,6 +933,13 @@ sub write-kind($kind) {
     $*DR.lookup($kind, :by<kind>)
         .categorize({.name})
         .kv.map: -> $name, @docs {
+            CATCH {
+                default {
+                    say $name;
+                    .Str.say;
+                    say "Error when writing per-$kind files";
+                }
+            }
             my @subkinds = @docs.map({slip .subkinds}).unique;
             my $subkind = @subkinds == 1 ?? @subkinds[0] !! $kind;
             my $pod = pod-with-title(

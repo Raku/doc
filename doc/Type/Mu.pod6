@@ -16,18 +16,18 @@ L<Any|/type/Any>.
 
 =head1 Methods
 
-=head2 method defined
+=head2 method defined X<|method,defined>
 
 Declared as
 
     multi method defined(   --> Bool:D)
 
-Returns C<False> on the type object, and C<True> otherwise.
+Returns C<False> on a type object, and C<True> otherwise.
 
     say Int.defined;                # OUTPUT: «False␤»
     say 42.defined;                 # OUTPUT: «True␤»
 
-Very few types (like L<Failure|/type/Failure>) override C<defined> to return
+A few types (like L<Failure|/type/Failure>) override C<defined> to return
 C<False> even for instances:
 
     sub fails() { fail 'oh noe' };
@@ -38,7 +38,7 @@ C<False> even for instances:
 
 Declared as
 
-    multi sub    defined(Mu --> Bool:D)
+    multi sub defined(Mu --> Bool:D)
 
 invokes the C<.defined> method on the object and returns its result.
 
@@ -48,16 +48,17 @@ invokes the C<.defined> method on the object and returns its result.
     multi method isa(Mu $type     --> Bool:D)
     multi method isa(Str:D $type  --> Bool:D)
 
-Returns C<True> if the invocant is an instance of class C<$type>, a subset type or a derived class (through inheritance) of C<$type>.
+Returns C<True> if the invocant is an instance of class C<$type>, a subset type or a derived class (through inheritance) of C<$type>. Unlike L<C<does>|/routine/does#(Mu)_routine_does>, which includes roles.
 
     my $i = 17;
     say $i.isa("Int");   # OUTPUT: «True␤»
     say $i.isa(Any);     # OUTPUT: «True␤»
+    role Truish {};
+    my $but-true = 0 but Truish;
+    say $but-true.^name;        # OUTPUT: «Int+{Truish}␤»
+    say $but-true.does(Truish); # OUTPUT: «True␤»
+    say $but-true.isa(Truish);  # OUTPUT: «False␤»
 
-A more idiomatic way to do this is to use the smartmatch operator L<~~|/routine/~~> instead.
-
-    my $s = "String";
-    say $s ~~ Str;       # OUTPUT: «True␤»
 
 =head2 routine does
 
@@ -70,7 +71,14 @@ Returns C<True> if and only if the invocant conforms to type C<$type>.
     say $d.does(Any);                 # True    (Date is a subclass of Any)
     say $d.does(DateTime);            # False   (Date is not a subclass of DateTime)
 
-Using the smart match operator L<~~|/routine/~~> is a more idiomatic alternative.
+Unlike L<C<isa>|https://docs.perl6.org/routine/isa#(Mu)_routine_isa>, which
+returns C<True> only for superclasses, C<does> includes both superclasses and
+roles.
+
+=for code :preamble<my $d = Date.new('2016-06-03');>
+say $d.isa(Dateish); # OUTPUT: «False␤»
+
+Using the smartmatch operator L<~~|/routine/~~> is a more idiomatic alternative.
 
     my $d = Date.new('2016-06-03');
     say $d ~~ Dateish;                # OUTPUT: «True␤»
@@ -120,7 +128,7 @@ public attributes:
 Returns a string representation of the invocant, intended to be machine
 readable. Method C<Str> warns on type objects, and produces the empty string.
 
-    say Mu.Str;                     # Use of uninitialized value of type Mu in string context.
+    say Mu.Str;   # Use of uninitialized value of type Mu in string context.
 
 =head2 routine gist
 
@@ -260,25 +268,115 @@ for more information.
 
     method bless(*%attrinit --> Mu:D)
 
-Lower-level object construction method than C<new>.
+Low-level object construction method, usually called from within C<new>,
+implicitly from the default constructor, or explicitly if you create your own
+constructor. C<bless> creates a new object of the same type as the invocant,
+using the named arguments to initialize attributes by calling C<BUILDALL>) and
+returns the created object.
 
-Creates a new object of the same type as the invocant, uses
-the named arguments to initialize attributes, and returns the
-created object.
+It is usually invoked within custom C<new> method implementations:
 
-You can use this method when writing custom constructors:
+=begin code
+class Point {
+    has $.x;
+    has $.y;
+    multi method new($x, $y) {
+        self.bless(:$x, :$y);
+    }
+}
+my $p = Point.new(-1, 1);
+=end code
 
-    class Point {
-        has $.x;
-        has $.y;
-        multi method new($x, $y) {
-            self.bless(:$x, :$y);
+In this case we are declaring C<new> as a C<multi method> so that we can still
+use the default constructor like this: C«Point.new( x => 3, y => 8 )». In this
+case we are declaring this C<new> method simply to avoid the extra syntax of
+using pairs when creating the object. C<self.bless> returns the object, which is
+in turn returned by C<new>.
+
+However, in general, implementing a customized C<new> method might be the best
+way of initializing a class, even more so if the default constructor is
+disabled, since  it can make harder to correctly initialize the class from a
+subclass. For instance, in the above example, the C<new> implementation takes
+two positional arguments that must be passed from the subclass to the superclass
+in the exact order. That is not a real problem if it's not documented, but take
+into account C<bless>, through C<BUILDALL>, will eventually be calling C<BUILD>
+in the class that is being instantiated. This might result in some unwanted
+problems, like having to create a C<BUILD> submethod to serve it correctly:
+
+=begin code
+class Point {
+    has Int $.x;
+    has Int $.y;
+    multi method new($x, $y) {
+        self.bless(:$x, :$y);
+    }
+}
+
+class Point-with-ID is Point {
+    has Int $.ID  is rw = 0;
+
+    submethod BUILD( *%args ) {
+        say %args;                # OUTPUT: «{x => 1, y => 2}␤»
+        for self.^attributes -> $attr {
+            if $attr.Str ~~ /ID/ {
+                $attr.set_value( self, "*" ~ %args<x> ~ "-" ~ %args<y> ) ;
+            }
         }
     }
-    my $p = Point.new(-1, 1);
+}
 
-(Though each time you write a custom constructor, remember that it makes
-subclassing harder).
+my $p = Point-with-ID.new(1,2);
+say $p.perl;
+# OUTPUT: «Point-with-ID.new(ID => "*1-2", x => 1, y => 2)␤»
+=end code
+
+In this code, C<bless> called within C<Point.new> is eventually calling C<BUILD>
+with the same parameters. We have to create a convoluted way of using the
+C<$.ID> attribute using the meta-object protocol so that we can instantiate it
+and thus serve that C<new> constructor, which can be called on C<Point-with-ID>
+since it is a subclass.
+
+We might have to use something similar if we want to instantiate superclasses.
+C<bless> will help us with that, since it is calling the default C<BUILDALL>
+across all the hierarchy:
+
+=begin code
+class Str-with-ID is Str {
+    my $.counter = 0;
+    has Int $.ID  is rw = 0;
+
+    multi method new( $str ) {
+        self.bless( value => $str, ID => $.counter++ );
+    }
+
+    submethod BUILD( *%args ) {
+        for self.^attributes -> $attr {
+            if $attr.Str ~~ /ID/ {
+                $attr.set_value( self, %args<ID> ) ;
+            }
+        }
+    }
+}
+
+say Str-with-ID.new("1.1,2e2").ID;                  # OUTPUT: «0␤»
+my $ided-str = Str-with-ID.new("3,4");
+say "$ided-str, {$ided-str.^name}, {$ided-str.ID}"; # OUTPUT: «3,4, Str-with-ID, 1␤»
+=end code
+
+We are *enriching* C<Str> with an auto-incrementing ID. We create a C<new> since
+we want to initialize it with a string and, besides, we need to instantiate the
+superclass. We do so using C<bless> from within C<new>. C<bless> is going to
+call BUILDALL, which will call C<Str.BUILD>. It will *capture* the value it's
+looking for, the pair C<value => $str> and initialize itself. But we have to
+initialize also the properties of the subclass, which is why within C<BUILD> we
+use the previously explained method to initialize C<$.ID> with the value that is
+in the C<%args> variable. As shown in the output, the objects will be correctly
+initialized with its ID, and will correctly behave as C<Str>, converting
+themselves in just the string in the C<say> statement, and including the C<ID>
+property as required.
+
+For more details see
+L<the documentation on object construction|/language/objects#Object_Construction>.
 
 =head2 method CREATE
 
@@ -311,20 +409,28 @@ stringifying non-C<Str> object using the C<.Str> method.
 
     multi method say(--> Bool:D)
 
-Prints value to C<$*OUT> after stringification using L<gist|/routine/gist> method with
-newline at end. To produce machine readable output use C<.put>.
+Will L<C<say>|https://docs.perl6.org/type/IO::Handle#method_say> to
+L<standard output|/language/variables#index-entry-%24*OUT>.
+To produce machine readable output use C<.put> instead.
 
     say 42;                 # OUTPUT: «42␤»
+
+In non-sink context, C<say> will always return C<True>.
+
+    say (1,[1,2],"foo",Mu).map: so *.say ;# OUTPUT: «1␤[1 2]␤foo␤(Mu)␤(True True True True)␤»
+
+C<say> is first printing out, but the outermost C<say> is printing the C<True>
+values returned by the C<so> operation.
 
 =head2 method ACCEPTS
 
     multi method ACCEPTS(Mu:U: $other)
 
-C<ACCEPTS> is the method that smart matching with the L<infix ~~|/routine/~~>
+C<ACCEPTS> is the method that smartmatching with the L<infix ~~|/routine/~~>
 operator and given/when invokes on the right-hand side (the matcher).
 
-The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms to the invocant
-(which is always a type object or failure).
+The C<Mu:U> multi performs a type check. Returns C<True> if C<$other> conforms
+to the invocant (which is always a type object or failure).
 
     say 42 ~~ Mu;           # OUTPUT: «True␤»
     say 42 ~~ Int;          # OUTPUT: «True␤»

@@ -1,0 +1,143 @@
+=begin pod :tag<perl6>
+
+=TITLE Iterating
+
+=SUBTITLE Functionalities available for visiting all items in a complex data structure
+
+=head1 The C<Iterator> and C<Iterable> roles
+
+Perl 6 is a functional language, but functions need something to hold on to when
+working on complex data structures. In particular, they need an uniform
+interface that can be applied to all of them. This interface is provided by the
+L<Iterator> and L<Iterable> roles.
+
+The C<Iterable> role is relatively simple. It provides a stub for the C<iterator> method, which is the one actually used by statements such as C<for>. C<for> will call C<.iterator> on the variable it precedes, and then run a block once for every item. Other methods, such as array assignment, will make the C<Iterable> class behave in the same way.
+
+=begin code
+class DNA does Iterable {
+    has $.chain;
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator(DNA:D:){ $.chain.comb.rotor(3).iterator }
+};
+
+my @longer-chain =  DNA.new('ACGTACGTT');
+say @longer-chain.perl;
+# OUTPUT: «[("A", "C", "G"), ("T", "A", "C"), ("G", "T", "T")]␤»
+
+say  @longer-chain».join("").join("|"); #OUTPUT: «ACG|TAC|GTT␤»
+=end code
+
+In this example, which is an extension of the L<example in C<Iterable> that
+shows how C<for> calls C<.iterator>|/type/Iterable>, this method is called
+simply when the created object is assigned to a L<Positional> variable,
+C<@longer-chain>; this variable is an L<Array> and we operate on that in the
+last example.
+
+The (maybe a bit confusingly named) C<Iterator> role is a bit more complex than
+C<Iterable>. First, it provides a constant, C<IterationEnd>, but then it
+provides a series of L<methods|/type/Iterator#Methods> such as C<.pull-one>,
+which allows for a finer operation of iteration in several contexts: adding or
+eliminating items, or skipping over them to access other items. In fact, the role
+provides a default implementation for all the other methods, so the only one
+that has to be defined is precisely C<pull-one>, of which only a stub is
+provided. While C<Iterable> provides the high-level variable loops will be
+working in, C<Iterator> provides the lower-level functions that will be called
+in every iteration of the loop. Let's extend the previous example with this
+role.
+
+=begin code
+class DNA does Iterable does Iterator {
+    has $.chain;
+    has Int $!index = 0;
+
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator( ){ self }
+    method pull-one( --> Mu){
+        if $!index < $.chain.chars {
+            my $codon = $.chain.comb.rotor(3)[$!index div 3];
+            $!index += 3;
+            return $codon;
+        } else {
+            return IterationEnd;
+        }
+    }
+};
+
+my $a := DNA.new('GAATCC');
+.say for $a; # OUTPUT: «(G A A)␤(T C C)␤»
+=end code
+
+We declare a C<DNA> class which does the two roles, C<Iterator> and C<Iterable>;
+the class will include a string that will be constrained to have a length that
+is a multiple of 3 and composed only of ACGT. Let us first look at the
+C<pull-one> method. This one is going to be called every time a new iteration
+occurs, so it must keep the state of the last one. A C<$.index> property will
+hold that state across invocations; C<pull-one> will check if the end of the
+chain has been reached and will return the C<IterationEnd> constant provided by
+the role. Implementing this low-level interface, in fact, simplifies the
+implementation of the C<Iterable> interface. Now the iterator will be the object
+itself, since we can call C<pull-one> on it to access every member in turn;
+C<.iterator> will thus return just C<self>; this is possible since the object
+will be, at the same time, C<Iterable> and C<Iterator>.
+
+This need not always be the case, and in most cases C<.iterator> will have to
+build an iterator type  to be returned, such as we did in the previous example;
+however, this example shows the minimal code needed to build a class that
+fulfills the two iter(ator|able) roles.
+
+=head1 How to iterate: contextualizing and topic variables
+
+C<for> and other loops place the item produced in every iteration into the
+L<topic variable C<$_>|/language/variables#index-entry-topic_variable>, or
+capture them into the variables that are declared along with the block. These
+variables can be directly used inside the loop, without needing to declare them,
+by using the
+L<C<^> twigil|https://docs.perl6.org/syntax/$CIRCUMFLEX_ACCENT#(Traps_to_avoid)_twigil_^>.
+
+Implicit iteration occurs when using the L<sequence operator|/language/operators#index-entry-..._operators>.
+
+    say 1,1,1, { $^a²+2*$^b+$^c } … * > 300; # OUTPUT: «(1 1 1 4 7 16 46 127 475)
+
+The generating block is being run once while the condition to finish the
+sequence, in this case the term being bigger than 300, is not met. This has the
+side effect of running a loop, but also creating a list that is output.
+
+This can be done more systematically through the use of the L<C<gather/take>
+blocks|/syntax/gather take>, which are a different kind of iterating construct
+that instead of running in sink context, returns an item every iteration. This
+L<Advent Calendar tutorial|https://perl6advent.wordpress.com/2009/12/23/day-23-lazy-fruits-from-the-gather-of-eden/>
+explains use cases for this kind of loops; in fact, gather is not so much a
+looping construct, but a statement prefix that collects the items produced by
+C<take> and creates a list out of them.
+
+=head1 C<Classic> loops and why we do not like them
+
+Classic C<for> loops, with a loop variable being incremented, can be done in
+Perl 6 through the L<C<loop> keyword|/language/control#loop>. Other
+L<repeat|/language/control#repeat/while,_repeat/until> and
+L<while|/language/control#while,_until> loops are also possible.
+
+However, in general, they are discouraged. Perl 6 is a functional and concurrent
+language; when coding in Perl 6, you should look at loops in a functional way:
+processing, one by one, the items produced by an iterator, that is, feeding an
+item to a block without any kind of secondary effects. This functional view
+allows also easy parallelization of the operation via the
+L<C<hyper>|/routine/hyper> or L<C<race>|/routine/race> auto-threading methods.
+
+If you feel more comfortable with your good old loops, the language allows you
+to use them. However, it is considered more I<p6y> to try and use, whenever
+possible, functional and concurrent iterating constructs.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

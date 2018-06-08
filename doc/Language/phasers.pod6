@@ -15,15 +15,15 @@ known as I<phasers>, since they generally mark the transition from one phase of
 computing to another. For instance, a C<CHECK> block is called at the end of
 compiling a compilation unit. Other kinds of phasers can be installed as well;
 these are automatically called at various times as appropriate, and some of
-them respond to various control exceptions and exit values.
+them respond to various control exceptions and exit values. For instance, some phasers might be called if the exit from a block is successful or not, with I<success> in this case defined by returning with a defined value or list without any C<Failure> or exception in the process.
 
 Here is a summary:
 
 =begin code :skip-test
   BEGIN {...} #  * at compile time, ASAP, only ever runs once
   CHECK {...} #  * at compile time, ALAP, only ever runs once
-   INIT {...} #  * at run time, ASAP, only ever runs once
-    END {...} #  at run time, ALAP, only ever runs once
+   INIT {...} #  * at runtime, ASAP, only ever runs once
+    END {...} #  at runtime, ALAP, only ever runs once
 
   ENTER {...} #  * at every block entry time, repeats on loop blocks.
   LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
@@ -44,10 +44,10 @@ CONTROL {...} #  catch control exceptions, before LEAVE
    QUIT {...} #  catch async exceptions within a whenever-block, runs very last
 
 COMPOSE {...} #  when a role is composed into a class
-CLOSE   {...} #  appears in a supply block, called when the supply is closed
+  CLOSE {...} #  appears in a supply block, called when the supply is closed
 =end code
 
-Phasers marked with a C<*> have a run-time value, and if evaluated earlier than
+Phasers marked with a C<*> have a runtime value, and if evaluated earlier than
 their surrounding expression, they simply save their result for use in the
 expression later when the rest of the expression is evaluated:
 
@@ -72,7 +72,7 @@ but run the statements as a whole at the indicated time:
     ENTER our $random = rand;
 
 (Note, however, that the value of a variable calculated at compile time may not
-persist under run-time cloning of any surrounding closure.)
+persist under runtime cloning of any surrounding closure.)
 
 Most of the non-value-producing phasers may also be so used:
 
@@ -93,13 +93,13 @@ handlers are supposed to reduce uncertainty, not increase it.)
 
 X<|Phasers, will trait>
 Some of these phasers also have corresponding traits that can be set on
-variables. These have the advantage of passing the variable in question into
+variables; they use C<will> followed by the name of the phaser in lowercase. These have the advantage of passing the variable in question into
 the closure as its topic:
 
     our $h will enter { .rememberit() } will undo { .forgetit() };
 
 Only phasers that can occur multiple times within a block are eligible for this
-per-variable form.
+per-variable form; this excludes C<CATCH> and others like C<CLOSE> or C<QUIT>.
 
 The topic of the block outside a phaser is still available as C<< OUTER::<$_>
 >>. Whether the return value is modifiable may be a policy of the phaser in
@@ -128,7 +128,7 @@ Compilation Begins
 Execution Begins
 
 =for code :skip-test
-       INIT {...} #  at run time, ASAP, only ever runs once
+       INIT {...} #  at runtime, ASAP, only ever runs once
 
 Before block execution begins
 
@@ -178,7 +178,7 @@ Async whenever-block is complete
 Program terminating
 
 =for code :skip-test
-        END {...} #  at run time, ALAP, only ever runs once
+        END {...} #  at runtime, ALAP, only ever runs once
 
 =head1 Program Execution Phasers
 
@@ -194,7 +194,7 @@ Runs at compile time, As late as possible, only runs once.
 
 Can have a return value that is provided even in later phases.
 
-Code that is generated at run time can still fire off C<CHECK> and C<INIT>
+Code that is generated at runtime can still fire off C<CHECK> and C<INIT>
 phasers, though of course those phasers can't do things that would require
 travel back in time. You need a wormhole for that.
 
@@ -210,7 +210,7 @@ treated as if declared at C<use> time in the using module. (It is erroneous to
 depend on this order if the module is used more than once, however, since the
 phasers are only installed the first time they're noticed.)
 
-Code that is generated at run time can still fire off C<CHECK> and C<INIT>
+Code that is generated at runtime can still fire off C<CHECK> and C<INIT>
 phasers, though of course those phasers can't do things that would require
 travel back in time. You need a wormhole for that.
 

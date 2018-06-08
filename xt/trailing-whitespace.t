@@ -5,8 +5,14 @@ use Test;
 use lib 'lib';
 use Test-Files;
 
+=begin overview
+
+Make sure that no line includes trailing whitespace.
+
+=end overview
+
 my @files = Test-Files.files\
-    .grep({$_ ne 'LICENSE'|'Makefile'})\
+    .grep({$_ ne 'LICENSE'})\
     .grep({! $_.contains: 'custom-theme'})\
     .grep({! $_.contains: 'util/trigger-rebuild.txt'})\
     .grep({! $_.contains: 'jquery'})\
