@@ -162,6 +162,18 @@ class DNA does Iterable does Iterator {
         self.bless( :$chain );
     }
 
+    method iterator( ){ self }
+
+    method pull-one( --> Mu){
+      if $!index < $.chain.chars {
+         my $codon = $.chain.comb.rotor(3)[$!index div 3];
+         $!index += 3;
+         return $codon;
+      } else {
+        return IterationEnd;
+      }
+    }
+
     method push-exactly(Iterator:D: $target, int $count --> Mu) {
         return IterationEnd if $.chain.elems / 3 < $count;
         for ^($count) {
@@ -227,7 +239,49 @@ Should produce all elements from the iterator and push them to C<$target>.
     my @array;
     say (1 .. 1000).iterator.push-all(@array); # All 1000 values are pushed
 
-The Iterator role implements this method in terms of C<push-at-least>.
+The Iterator role implements this method in terms of C<push-at-least>. As in the
+case of the other C<push-*> methods, it is mainly intended for developers
+implementing this role. C<push-all> is called when assigning an object with this
+role to an array, for instance, like in this example:
+
+=begin code
+class DNA does Iterable does Iterator {
+    has $.chain;
+    has Int $!index = 0;
+
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator( ){ self }
+    method pull-one( --> Mu){
+      if $!index < $.chain.chars {
+         my $codon = $.chain.comb.rotor(3)[$!index div 3];
+         $!index += 3;
+         return $codon;
+      } else {
+        return IterationEnd;
+      }
+    }
+
+    method push-all(Iterator:D: $target) {
+        for $.chain.comb.rotor(3) -> $codon {
+            $target.push: $codon;
+        }
+    }
+
+};
+
+my $b := DNA.new("AAGCCT");
+my @dna-array = $b;
+say @dna-array; # OUTPUT: «[(A A G) (C C T)]␤»
+=end code
+
+The C<push-all> method implemented pushes to the target iterator in lists of
+three aminoacid representations; this is called under the covers when we assign
+C<$b> to C<@dna-array>.
 
 =head2 method push-until-lazy
 
