@@ -22,7 +22,7 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   smartmatch => 'smart  [\s+|\-] match',
                   zero-width => 'zero \s+ width<!before \' joiner\'>',
                   NYI        => 'niy',
-		  metaoperator => 'meta [\s+|\-] operator',
+                  metaoperator => 'meta [\s+|\-] operator',
                );
 plan +@files;
 
