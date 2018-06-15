@@ -3,6 +3,7 @@ $(function(){
     setup_auto_title_anchors();
     setup_debug_mode();
     setup_tables();
+    add_syntax_highlighting_toggle_buttons();
     $(window).resize(setup_search_box);
 });
 
@@ -143,5 +144,53 @@ function setup_debug_mode(){
             }
         }
 
+    }
+}
+function add_syntax_highlighting_toggle_buttons() {
+    const editors = document.getElementsByClassName("editor-colors");
+    const colorsAre = window.sessionStorage.getItem("disable-syntax-highlighting")?"off":"on";
+    var allButtons = [];
+    var allEditors = [];
+
+    function removeColorsEverywhere() {
+        while (document.getElementsByClassName("perl6fe").length > 0) {
+            for (var elm of document.getElementsByClassName("perl6fe")) {
+                elm.dataset.removedClasses = elm.className;
+                elm.className = undefined;
+            }
+        }
+    }
+
+    for (var editor of editors) {
+        const buttonDiv = document.createElement("DIV");
+        const button    = document.createElement("BUTTON");
+        const text      = document.createTextNode("colors " + colorsAre);
+        buttonDiv.style.float = "right";
+        button.appendChild(text);
+        buttonDiv.appendChild(button);
+        editor.insertAdjacentElement("afterBegin", buttonDiv);
+
+        allButtons.push(button);
+        allEditors.push(editor);
+
+        button.addEventListener("click", function(elm) {
+            if (window.sessionStorage.getItem("disable-syntax-highlighting")) {
+                /* is disabled, restore colors */
+                const disabledElements = document.querySelectorAll('[data-removed-classes]');
+                for (var elm of disabledElements) {
+                    elm.className = elm.dataset.removedClasses;
+                    elm.dataset.removedClasses = undefined;
+                }
+                window.sessionStorage.removeItem("disable-syntax-highlighting");
+            }
+            else {
+                /* is enabled, strip colors */
+                removeColorsEverywhere();
+                window.sessionStorage.setItem("disable-syntax-highlighting", "on");
+            }
+        });
+    }
+    if (colorsAre === "off") {
+        removeColorsEverywhere();
     }
 }
