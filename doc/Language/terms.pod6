@@ -191,50 +191,122 @@ Returns the imaginary unit (for L<Complex> numbers).
 
 Variables are discussed in the L<variable language docs |/language/variables>.
 
+X<|constant (Terms)>
 =head1 Constants
 
-X<|constant (Terms)>
-Constants are declared with C<constant>, followed by an
-L<identifier|/language/syntax#Identifiers> and do not require a
-sigil. The right-hand side is evaluated at compile time, therefore
-being possibly too early to make sense.
+Constants are similar to L<variables/language/variables> that do not
+have a L<container|/language/containers> and cannot be rebound. However,
+their initializers are evaluated B<at compile time>:
 
+    constant speed-of-light = 299792458; # m/s
+    constant @foo  = 1, 2, 3;
+    constant &talk = &say;
+    talk speed-of-light²; # OUTPUT: «89875517873681764␤»
+    talk @foo;            # OUTPUT: «(1 2 3)␤»
 
-    constant SpeedOfLight = 299792458;     # m/s
-    constant PHI          = 1.61803398875; # The golden ratio is everywhere!
-    constant POW2 = do { my int @table; @table = 1, 2, 4 ... 2**32; @table };
-    say POW2[16];
-    # OUTPUT: «65536␤»
+Compile-time evaluation means
+L<you should be careful|https://docs.perl6.org/language/traps#Constants_are_Compile_Time>
+with using contants inside modules, which get automatically pre-compiled,
+and so the value of the constant would not change even between
+multiple executions of the program:
 
-Since constant's right-hand side is evaluated at compile time, their
-usage within modules could lead to unexpected behavior, please see the
-related
-L<traps section|https://docs.perl6.org/language/traps#Constants_are_Compile_Time>.
+    =begin code
+    # Foo.pm6
+    unit module Foo;
+    constant comp-time = DateTime.now;
+    =end code
 
-Constants are C<our>-scoped by default, but adding C<my> would make them lexical:
+    =begin code :lang<shell>
+    # The value of the constant remains the same eventhough our script is
+    # executed multiple times:
+    $ perl6 -I. -MFoo -e 'say Foo::comp-time'
+    2018-06-17T18:18:50.021484-04:00
+    $ perl6 -I. -MFoo -e 'say Foo::comp-time'
+    2018-06-17T18:18:50.021484-04:00
+    =end code
 
-=begin code
-constant SpeedOfLight = 186200;
-constant Unit         = 'mi/s';
-{
-    my constant SpeedOfLight  = 299_792_458;
-    my constant Unit          = 'm/s';
-    my constant Source        = 'wikipedia';
-    say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
-}
-say 'Speed of Light is ' ~ SpeedOfLight ~ ' ' ~ Unit;
-# here 'wikipedia' is out of scope !
-=end code
+Constants are declared with keyword C<constant> followed by
+an L<identifier|/language/syntax#Identifiers> with an I<optional> sigil.
+Constants are L«C<our> scoped|/language/variables#The_our_Declarator»
+by default.
 
-that will produce the following output (note how the constants have been
-lexically overwritten):
+        constant foo  = 42;
+    my  constant $baz = rand;
+    our constant @foo = 1, 2, 3;
+        constant %bar = %(:42foo, :100bar);
 
-=for code :lang<output>
-Speed of Light is 299792458 m/s
-Speed of Light is 186200 mi/s
+I<NOTE: if you're using the Rakudo compiler, you need version 2018.07
+or newer for type constraints and auto-coercion on constants to be available.
+Auto-coercion on %-sigilled constants requires 6.d language, preview version
+of which can be enabled with the C«use v6.d.PREVIEW» pragma>
 
-Referencing a lexical C<constant> outside of the block will produce
-an C<Undeclared name> compilation error.
+An optional type constraint can be used, in which case the use
+of scope declarator is required:
+
+    =begin code :skip<showcasing deliberate syntax error>
+    # !!WRONG!! missing scope declarator before type:
+    Int constant foo = 42;
+
+    # RIGHT:
+    our Int constant foo = 42;
+    =end code
+
+Unlike L<variables/language/variables>, you cannot parameterize C<@>-,
+C<%>-, and C<&>-sigilled constants by specifying the parameterization type
+in the declarator itself:
+
+    =begin code :skip<showcasing deliberate compile-time error>
+    # !!WRONG!! cannot parametarize @-sigilled constant with Int
+    our Int constant @foo = 42;
+
+    # OK: parametarized types as values are fine
+    constant @foo = Array[Int].new: 42;
+    =end code
+
+The reason for the restriction is that constants with C<@> and C<%> sigils
+default to L<List> and L<Map> types, which cannot be parametarized. To keep
+things simple and consistent, parametarization was simply disallowed in these
+constructs.
+
+The C<@>-, C<%>-, and C<&>-sigilled constants specify implied typecheck of
+the given value for L<Positional>, L<Associative>, and L<Callable> roles
+respectively. The C<@>-sigilled constants—and as of C<6.d> language version, the
+C<%>-sigilled constants as well—perform auto-coercion of the value if it
+does not pass the implied typecheck. The C<@>-sigilled constants will coerce
+using method L<cache> and C<%>-sigilled constants coerce using method L<Map>.
+
+    =begin code
+    constant @foo = 42;
+    @foo.perl.say; # OUTPUT: «(42,)»
+
+    constant @bar = [<a b c>];
+    @bar.perl.say; # OUTPUT: «["a", "b", "c"]»
+    =end code
+
+    =begin code
+    use v6.d.PREVIEW;
+    constant %foo = <foo bar>;
+    %foo.perl.say; # OUTPUT: «Map.new((:foo("bar")))»
+
+    constant %bar = {:10foo, :72bar};
+    %bar.perl.say; # OUTPUT: «{:bar(72), :foo(10)}»
+
+    # Pair is already Associative, so it remains a Pair
+    constant %baz = :72baz;
+    %baz.perl.say; # OUTPUT: «:baz(72)»
+    =end code
+
+For convenience and consistency reasons, you can use the
+L«binding operator (C<:=>)|/routine/:=» instead of the assignment operator,
+use backslash before sigilless name of the constant variable (same as with
+L<sigilless variables|/language/variables#Sigilless_variables>), and even
+omit the name of the constant entirely to have an anonymous constant. Since
+you can't refer to anonymous entities, you may be better off using
+a L«C<BEGIN> phaser|/language/phasers although» instead, for clarity.
+
+    constant %foo := :{:42foo};
+    constant \foo = 42;
+    constant = 'anon';
 
 =end pod
 
