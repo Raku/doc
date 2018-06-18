@@ -312,6 +312,53 @@ provided by parse methods:
     # OUTPUT: «12␤»
     =end code
 
+=head2 Dynamic Variables in Grammars
+
+Variables can be defined in tokens by prefixing the lines of code defining them
+with C<:>. Arbitrary code can be embedded anywhere in a token by surrounding it
+with curly braces. This is useful for keeping state between tokens, which can be
+used to alter how the grammar will parse text. Using dynamic variables
+(variables with C<$*>, C<@*>, C<&*>, C<%*> twigils) in tokens cascades down
+through I<all> tokens defined thereafter within the one where it's defined,
+avoiding having to pass them from token to token as arguments.
+
+One use for dynamic variables is guards for matches. This example uses guards to
+explain which regex classes parse whitespace literally:
+
+    grammar GrammarAdvice {
+        rule TOP {
+            :my Int $*USE-WS;
+            "use" <type> "for" <significance> "whitespace by default"
+        }
+        token type {
+            | "rules"   { $*USE-WS = 1 }
+            | "tokens"  { $*USE-WS = 0 }
+            | "regexes" { $*USE-WS = 0 }
+        }
+        token significance {
+            | <?{ $*USE-WS == 1 }> "significant"
+            | <?{ $*USE-WS == 0 }> "insignificant"
+        }
+    }
+
+Here, text such as "use rules for significant whitespace by default" will only
+match if the state assigned by whether rules, tokens, or regexes are mentioned
+matches with the correct guard:
+
+    =begin code :preamble<grammar GrammarAdvice{};>
+    say GrammarAdvice.subparse("use rules for significant whitespace by default");
+    # OUTPUT: «use rules for significant whitespace by default»
+
+    say GrammarAdvice.subparse("use tokens for insignificant whitespace by default");
+    # OUTPUT: «use tokens for insignificant whitespace by default»
+
+    say GrammarAdvice.subparse("use regexes for insignificant whitespace by default");
+    # OUTPUT: «use regexes for insignificant whitespace by default»
+
+    say GrammarAdvice.subparse("use regexes for significant whitespace by default")
+    # OUTPUT: #<failed match>
+    =end code
+
 =head1 X<Action Objects|Actions>
 
 A successful grammar match gives you a parse tree of L<Match|/type/Match>
