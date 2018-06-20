@@ -78,6 +78,11 @@ sub rewrite-url($s) is export {
     if !$r.contains('#') && ( $r.ends-with(<.>) || $r.match: / '%' <:AHex> ** 2 $ / ) {
         $r ~= '.html';
     }
+    # If it's got some dot, add .html too.
+    if !$r.contains('#') && !$r.ends-with('.html') && ( $r.match: / '/.' / ) {
+        say $r;
+        $r ~= '.html';
+    }
     return %cache{$s} = $r;
 }
 
