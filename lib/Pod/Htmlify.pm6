@@ -80,7 +80,6 @@ sub rewrite-url($s) is export {
     }
     # If it's got some dot, add .html too.
     if !$r.contains('#') && !$r.ends-with('.html') && ( $r.match: / '/.' / ) {
-        say $r;
         $r ~= '.html';
     }
     return %cache{$s} = $r;
