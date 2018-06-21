@@ -352,7 +352,9 @@ spurt 'file-that-already-exists', 'new text', :createonly;
 
     sub run(*@args ($, *@) --> Proc)
 
-Runs an external command without involving a shell and returns a L<Proc> object.
+Runs an external command I<without involving a shell> and returns a
+L<Proc> object. By default, the external command will print to standard
+output and error, and read from standard input.
 
     run 'touch', '>foo.txt'; # Create a file named >foo.txt
 
@@ -376,19 +378,33 @@ Note that C<--> is required for many programs to disambiguate between
 command-line arguments and
 L<filenames that begin with hyphens|http://mywiki.wooledge.org/BashPitfalls#Filenames_with_leading_dashes>.
 
-A sunk L<Proc> object for a process that L<exited|/routine/exitcode> unsuccessfully
-will throw. If you wish to ignore such failures, simply use L<run> in non-sink context:
+A sunk L<Proc> object for a process that L<exited|/routine/exitcode>
+unsuccessfully will throw. If you wish to ignore such failures, simply
+use L<run> in non-sink context:
 
     run 'false';     # SUNK! Will throw
     run('false').so; # OK. Evaluates Proc in Bool context; no sinking
 
-To capture output or error you can use the C<:out> or C<:err> arguments respectively:
+If you want to capture standard output or error instead of having it
+printed directly you can use the C<:out> or C<:err> arguments
+respectively, which will make them available using the
+L<C<Proc.out>|/type/Proc> method:
 
     my $proc = run 'echo', 'Perl 6 is Great!', :out, :err;
     $proc.out.slurp(:close).say; # OUTPUT: «Perl 6 is Great!␤»
     $proc.err.slurp(:close).say; # OUTPUT: «␤»
 
-See L<Proc|/type/Proc> and L<Proc::Async|/type/Proc::Async> for more details.
+You can use these arguments to redirect them to a filehandle, thus
+creating a kind of I<pipe>:
+
+    my $ls-alt-handle = open :w, '/tmp/cur-dir-ls-alt.txt';
+    my $proc = run "ls", "-alt", :out($ls-alt-handle);
+    # (The file will contain the output of the ls -alt command)
+
+
+These argument are quite flexible and admit, for instance, handles to
+redirect them. See L<Proc|/type/Proc> and
+L<Proc::Async|/type/Proc::Async> for more details.
 
 =head2 sub shell
 
