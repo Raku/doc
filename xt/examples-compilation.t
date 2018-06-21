@@ -112,6 +112,8 @@ for @examples -> $eg {
         temp $*ERR = open :w, $*SPEC.devnull;
         try EVAL $code;
         $status = $!;
+        close $*OUT;
+        close $*ERR;
     }
     todo(1) if $eg<todo>;
     if $status {

@@ -2,7 +2,9 @@
 
 use v6;
 use Test;
+
 use lib 'lib';
+use Pod::Cache;
 use Test-Files;
 
 =begin overview
@@ -14,13 +16,6 @@ Avoid using C<..> - usually a typo for C<.> or C<...>
 my @files = Test-Files.documents;
 
 plan +@files;
-my $max-jobs = %*ENV<TEST_THREADS> // 2;
-my %output;
-
-sub test-promise($promise) {
-    my $file = $promise.command[*-1];
-    test-it(%output{$file}, $file);
-}
 
 sub test-it(Str $output, Str $file) {
     my $ok = True;
@@ -35,24 +30,12 @@ sub test-it(Str $output, Str $file) {
     ok $ok, "$error: file contains ..";
 }
 
-my @jobs;
 for @files -> $file {
-
-    my $output = "";
-
-    if $file ~~ / '.pod6' $/ {
-        my $a = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        %output{$file} = "";
-        $a.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
-        push @jobs: $a.start;
-        if +@jobs > $max-jobs {
-            test-promise(await @jobs.shift)
-        }
+    if $file.ends-with('.pod6') {
+        test-it(Pod::Cache.cache-file($file).IO.slurp, $file)
     } else {
         test-it($file.IO.slurp, $file);
     }
 }
-
-for @jobs.map: {await $_} -> $r { test-promise($r) }
 
 # vim: expandtab shiftwidth=4 ft=perl6
