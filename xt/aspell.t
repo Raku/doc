@@ -2,7 +2,9 @@
 
 use v6;
 use Test;
+
 use lib 'lib';
+use Pod::Cache;
 use Test-Files;
 
 =begin overview
@@ -23,7 +25,6 @@ text that is part of a code example)
 my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
 plan +@files;
-my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 my $proc = shell('aspell -v');
 if $proc.exitcode {
@@ -40,11 +41,9 @@ $dict.close;
 
 my %output;
 
-sub test-it($promises) {
-
+sub test-it($promises, $file) {
     await Promise.allof: |$promises;
     my $tasks = $promises».result;
-    my $file = $tasks[0].command[*-1];
 
     my $count;
     for %output{$file}.lines -> $line {
@@ -58,35 +57,16 @@ sub test-it($promises) {
     ok !$count, "$file has $so-many spelling errors";
 }
 
-my @jobs;
-
 for @files -> $file {
-    if $file ~~ / '.pod6' $/ {
-        my $pod = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}');
-        $fixer.bind-stdin: $pod.stdout: :bin;
-        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
-        $proc.bind-stdin: $fixer.stdout: :bin;
-        %output{$file}="";
-        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
-        $proc.stderr.tap(-> $buf {});
-        push @jobs, [$pod.start, $fixer.start, $proc.start];
-    } else {
-        my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" $0}', $file);
-        my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
-        $proc.bind-stdin: $fixer.stdout: :bin;
-        %output{$file}="";
-        $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
-        $proc.stderr.tap(-> $buf {});
-        push @jobs, [$fixer.start, $proc.start];
-    }
+    my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
 
-    if +@jobs > $max-jobs {
-        test-it(@jobs.shift);
-    }
+    my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}', $input-file);
+    my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
+    $proc.bind-stdin: $fixer.stdout: :bin;
+    %output{$file}="";
+    $proc.stdout.tap(-> $buf { %output{$file} = %output{$file} ~ $buf });
+    $proc.stderr.tap(-> $buf {});
+    test-it([$fixer.start, $proc.start], $file);
 }
-
-
-@jobs.map({test-it($_)});
 
 # vim: expandtab shiftwidth=4 ft=perl6
