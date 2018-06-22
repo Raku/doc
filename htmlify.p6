@@ -1013,8 +1013,4 @@ sub pod-path-from-url($url) {
     return $pod-path;
 }
 
-sub warn-user (Str $warn-text) {
-    my $border = '=' x $warn-text.chars;
-    note "\n$border\n$warn-text\n$border\n";
-}
 # vim: expandtab shiftwidth=4 ft=perl6
