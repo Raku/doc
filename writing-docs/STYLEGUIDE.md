@@ -122,7 +122,10 @@ they often represent. Please use that syntax whenever possible.
 
 Using the second form is more idiomatic and avoids confusion with
 blocks. In fact, you don't need to use `:=` in the second sentence,
-precisely for this reason.
+precisely for this reason. This does not apply to empty hashes, which
+should be declared using `{}`:
+
+    my %hash = {};
 
 ### Try to express intent, rather than simply reflex syntax
 
