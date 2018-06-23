@@ -59,6 +59,12 @@ In this case, `this code initializes a hash` is short, but
 ambiguous. Opt for `The first line of this example initializes an
 empty hash`.
 
+In general, try to put yourself in the shoes of someone with no
+previous exposition to the language. Although it might seem obvious to
+you that only the first line can in fact initialize a hash, the
+documentation is targeted at people with no previous exposition to the
+language.
+
 ### 'say' vs 'put'
 
 While there is no hard and fast rule about which of these routines to use
