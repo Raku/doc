@@ -48,7 +48,7 @@ so it's best to use it from the start.
 ### Unambiguous is better than short
 
 When you have to choose between two sentence structures, opt for the
-unambiguous. 
+unambiguous.
 
 ```
 my %hash = hash;
