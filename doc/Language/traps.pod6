@@ -78,6 +78,72 @@ say "Result2 is { $result2.^name }"; # OUTPUT: «Result2 is Any␤»
 
 A L<C<Match> will be C<Nil>|https://docs.perl6.org/language/regexes#Literals> if it finds nothing; however it assigning C<Nil> to C<$result2> above will result in its default value, which is C<Any> as shown.
 
+=head2 Using a block to interpolate anon state vars
+
+The programmer intended for the code to count the number of times the routine
+is called, but the counter is not increasing:
+
+    =begin code
+    sub count-it { say "Count is {$++}" }
+    count-it;
+    count-it;
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 0
+    =end code
+
+When it comes to state variables, the block in which the vars are declared gets
+cloned—and vars get initialized anew—whenever that block's block is re-entered.
+This lets constructs like the one below behave appropriately: the state variable
+inside the loop gets initialized anew each time the sub is called:
+
+    =begin code
+    sub count-it {
+        for ^3 {
+            state $count = 0;
+            say "Count is $count";
+            $count++;
+        }
+    }
+
+    count-it;
+    say "…and again…";
+    count-it;
+    =end code
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 1
+    # Count is 2
+    # …and again…
+    # Count is 0
+    # Count is 1
+    # Count is 2
+
+The same layout exists in our buggy program. The C<{ }> inside a double-quoted
+string isn't merely an interpolation to execute a piece of code. It's actually
+its own block, which is just as in the example above gets cloned each time the
+sub is entered, re-initializing our state variable. To get the right count,
+we need to get rid of that inner block, using a scalar contextualizer to
+interpolate our piece of code instead:
+
+    =begin code
+    sub count-it { say "Count is $($++)" }
+    count-it;
+    count-it;
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 1
+    =end code
+
+Alternatively, you can also use the L<concatenation operator|/routine/~> instead:
+
+    =begin code
+    sub count-it { say "Count is " ~ $++ }
+    =end code
+
 =head1 Blocks
 
 =head2 Beware of empty "blocks"
