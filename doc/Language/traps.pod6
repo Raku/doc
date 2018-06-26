@@ -389,13 +389,16 @@ for ^5 {
 };
 =end code
 
-With L<item|/routine/item>, the container will be evaluated in item context, its value extracted, and the desired outcome achieved.
+With L<item|/routine/item>, the container will be evaluated in item context, its
+value extracted, and the desired outcome achieved.
 
 =head1 C<Cool> tricks
 
 Perl 6 includes a L<Cool|/type/Cool> class, which provides some of the DWIM
-behaviors we got used to by coercing arguments when necessary.
-However, DWIM is never perfect. Especially with L<List>s, which are C<Cool>, there are many methods that will not do what you probably think they do, including C<contains>, C<starts-with> or C<index>. Please see some examples in the section below.
+behaviors we got used to by coercing arguments when necessary. However, DWIM is
+never perfect. Especially with L<List>s, which are C<Cool>, there are many
+methods that will not do what you probably think they do, including C<contains>,
+C<starts-with> or C<index>. Please see some examples in the section below.
 
 =head2 Strings are not C<List>s, so beware indexing
 
@@ -1815,6 +1818,40 @@ Of course, saving C<say> for the result will also produce the intended result, a
 
     say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
 
+=head1 Blobs and Bufs
+
+Problems arising with these containers of binary values.
+
+=head2 Beware of empty lists (and any other kind of element) when concatenating Bufs or Blobs.
+
+The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used to
+concatenate L<Buf>s or L<Blob>s.
+
+    say [~] Buf.new(0x3, 0x33), Blob.new(0x2,0x22); # OUTPUT: «Buf:0x<03 33 02 22>␤»
+
+However, including anything else in the list will result in an error:
+
+=for code :skip-test<Error when concatenating stuff together>
+say [~] Buf.new(0x3, 0x33), Blob.new(0x2,0x22), 3;
+# ERROR!: «Cannot use a Buf as a string, but you called the Stringy method on it
+
+This is also true for empty lists
+
+=for code :skip-test<Error when concatenating stuff together>
+my @array = Buf.new(0x3, 0x33), Blob.new(0x2,0x22);
+my @empty;
+say [~] @array.push: @empty
+# ERROR!: «Cannot use a Buf as a string, but you called the Stringy method on it
+
+The problem here is explained L<in the string context
+document|/language/contexts#String>, but boils down to the fact that C<~> can be
+applied either to C<Str>s or to C<Buf>s. As long as they are all C<Buf>s, it is
+OK, but as soon as just one of the elements is a C<Str>, the I<C<Str>-only> form
+of the infix operator kicks in, trying to put everything in string context.
+Since that is not possible for a Buf, hence the error.
+
+As a solution, just make sure that all elements in a list or array are C<Buf>s
+(or convertable to it) before applying concatenation-reduction.
 
 =end pod
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
