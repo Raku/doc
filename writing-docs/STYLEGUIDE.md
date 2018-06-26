@@ -135,18 +135,6 @@ All operators have a ASCII equivalent, but they are more verbose and
 do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible.
 
-### Prefer the %() form of declaring hashes
-
-    my %hash := { this => "is", a => "hash" }; # Correct, but BAD
-    my %hash := %( this => "is", a => "hash" ); # GOOD
-
-Using the second form is more idiomatic and avoids confusion with
-blocks. In fact, you don't need to use `:=` in the second sentence,
-precisely for this reason. This does not apply to empty hashes, which
-should be declared using `{}`:
-
-    my %hash = {};
-
 ### Try to express intent, rather than simply reflex syntax
 
     my @l = lazy 0..5; # Correct, but BAD
