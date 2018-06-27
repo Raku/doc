@@ -91,17 +91,55 @@ sub shell(
     --> Proc:D)
 =end code
 
-C<new> creates a new C<Proc> object, whereas C<run> or C<shell> create one and spawn it
-with the command and arguments provided in C<@args> or C<$cmd>, respectively.
+C<new> creates a new C<Proc> object, whereas C<run> or C<shell> create one and
+spawn it with the command and arguments provided in C<@args> or C<$cmd>,
+respectively.
 
-C<$in>, C<$out> and C<$err> are the three
-standard streams of the to-be-launched program, and default to C<"-">, which
-means they inherit the stream from the parent process. Setting one (or more)
-of them to C<True> makes the stream available as an L<IO::Pipe> object of the
-same name, so for example C<$proc.out>. You can set them to C<False> to discard
-them. Or you can pass an existing
-L<IO::Handle> object (for example IO::Pipe) in, in which case this handle is
-used for the stream.
+C<$in>, C<$out> and C<$err> are the three standard streams of the to-be-launched
+program, and default to C<"-"> meaning they inherit the stream from the
+parent process. Setting one (or more) of them to C<True> makes the stream
+available as an L<IO::Pipe> object of the same name, like for example
+C<$proc.out>. You can set them to C<False> to discard them. Or you can pass an
+existing L<IO::Handle> object (for example C<IO::Pipe>) in, in which case this
+handle is used for the stream.
+
+Please bear in mind that the process streams reside in process variables, not in
+the dynamic variables that make them available to our programs. Thus, modifying
+L<the dynamic filehandle variables (such as C<$*OUT>)|/language/variables#Special_Filehandles:_STDIN,_STDOUT_and_STDERR>
+inside the host process will have no effect in the spawned process, unlike
+C<$*CWD> and C<$*ENV>, whose changes will be actually reflected in it.
+
+=begin code
+my $p-name = "/tmp/program.p6";
+my $program = Q:to/END/;
+    #!/usr/bin/env perl6
+
+    $*OUT.say( qq/\t$*PROGRAM: This goes to standard output/ );
+END
+
+spurt $p-name, $program;
+
+$*OUT.put: "1. standard output before doing anything weird";
+
+{
+    temp $*OUT = open '/tmp/out.txt', :w;
+    $*OUT.put: "2. temp redefine standard output before this message";
+    shell( "perl6 $p-name" ).so;
+}
+
+$*OUT.put: "3. everything should be back to normal";
+# OUTPUT
+# 1. standard output before doing anything weird
+#     /tmp/program.p6: This goes to standard output
+# 3. everything should be back to normal
+
+# /tmp/out.txt will contain:
+# 2. temp redefine standard output before this message
+=end code
+
+This program shows that the program spawned with C<shell> is not using the
+temporary C<$*OUT> value defined in the host process (redirected to
+C</tmp/out.txt>), but the initial C<STDOUT> defined in the process.
 
 C<$bin> controls whether the streams are handled as binary (i.e.
 L<Blob|/type/Blob> object) or text (i.e. L<Str|/type/Str> objects). If C<$bin>
