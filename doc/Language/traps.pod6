@@ -1789,34 +1789,47 @@ there are other cases when this kind of a generalization may not work.
 =head2 Beware of empty lists (and any other kind of element) when concatenating Bufs or Blobs.
 
 The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used to
-concatenate L<Buf>s or L<Blob>s.
+concatenate L<Buf>s or L<Blob>s; we can then use this reduction operator in this
+form:
 
     say [~] Buf.new(0x3, 0x33), Blob.new(0x2,0x22); # OUTPUT: «Buf:0x<03 33 02 22>␤»
 
-However, including anything else in the list will result in an error:
+However, an empty array will I<always> be reduced to an empty C<Str>:
 
-=for code :skip-test<Error when concatenating stuff together>
-say [~] Buf.new(0x3, 0x33), Blob.new(0x2,0x22), 3;
-# ERROR!: «Cannot use a Buf as a string, but you called the Stringy method on it
+     my @bufs;
+     say [~] @bufs;  # OUTPUT: «␤»
+     my Buf @buffs;
+     say [~] @buffs; # OUTPUT: «␤»
 
-This is also true for empty lists
+This is due to the fact that, in the presence of a list with no elements, the
+reduction operator applies the C<identity> for the operator used to reduce, C<~>
+in this case. And this results in an empty string, independently of the kind of
+elements the list could be populated with.
 
-=for code :skip-test<Error when concatenating stuff together>
-my @array = Buf.new(0x3, 0x33), Blob.new(0x2,0x22);
-my @empty;
-say [~] @array.push: @empty
-# ERROR!: «Cannot use a Buf as a string, but you called the Stringy method on it
+    my Int @bufs;
+    say [~] @bufs; # OUTPUT: «␤»
 
-The problem here is explained L<in the string context
-document|/language/contexts#String>, but boils down to the fact that C<~> can be
-applied either to C<Str>s or to C<Buf>s. As long as they are all C<Buf>s, it is
-OK, but as soon as just one of the elements is a C<Str>, the I<C<Str>-only> form
-of the infix operator kicks in, trying to put everything in string context.
-Since that is not possible for a Buf, hence the error.
+This might cause a problem if an empty list enters in a situation where you are
+concatenating buffers (for instance, reading from an empty file):
 
-As a solution, just make sure that all elements in a list or array are C<Buf>s
-(or convertable to it) before applying concatenation-reduction.
+=for code :skip-test<Documenting the error>
+my @array-of-arrays= [[], [Buf.new(0x2, 0x22), Buf.new( 0x3, 0x33)]];
+my @bufs;
+for @array-of-arrays -> @a {
+    @bufs = [~] |@bufs, | @a;
+}
+# OUTPUT: «(exit code 1) Cannot use a Buf as a string, but you called the Stringy method on it␤»
 
+So if you want to avoid this problem with L<Buf>s, initialize the array with an
+empty element.
+
+    my Buf @buffs = Buf.new;
+    say [~] @buffs; # OUTPUT: «Buf:0x<>␤»
+
+That way, you can safely concatenate it later on:
+
+    my Buf @buffs = Buf.new;
+    say [~] |@buffs, Buf.new(0x2, 0x22); # OUTPUT: «Buf:0x<02 22>␤»
 
 =head1 Maps
 
