@@ -1786,42 +1786,6 @@ This happens partly because of the
 L<single argument rule|/language/functions#Slurpy_Conventions>, and
 there are other cases when this kind of a generalization may not work.
 
-=head1 Maps
-
-=head2 Beware of nesting C<Map>s in sink context.
-
-Maps apply an expression to every element of a L<List> and return a L<Seq>:
-
-    say <þor oðin loki>.map: *.codes; # OUTPUT: «(3 4 4)␤»
-
-Maps are often used as a compact substitute for a loop, performing some kind of action in the map code block:
-
-    <þor oðin loki>.map: *.codes.say; # OUTPUT: «3␤4␤4␤»
-
-The problem might arise when maps are nested and L<in a sink context|/language/contexts#index-entry-sink_context>.
-
-    <foo bar ber>.map: { $^a.comb.map: { $^b.say}}; # OUTPUT: «»
-
-You might expect the innermost map to I<bubble> the result up to the outermost map, but it simply does nothing. Maps return C<Seq>s, and in sink context the innermost map will iterate and discard the produced values, which is why it yields nothing.
-
-Simply using C<say> at the beginning of the sentence will save the result from sink context:
-
-    say <foo bar ber>.map: *.comb.map: *.say ;
-    # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤((True True True) (True True True) (True True True))␤»
-
-However, it will not be working as intended; the first C«f␤o␤o␤b␤a␤r␤b␤e␤r␤»
-is the result of the innermost C<say>, but then L<C<say> returns a C<Bool>|/routine/say#(Mu)_method_say>, C<True> in this case. Those C<True>s are what get printed by the outermost C<say>, one for every letter. A much better option would be to C<flat>ten the outermost sequence:
-
-    <foo bar ber>.map({ $^a.comb.map: { $^b.say}}).flat # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤»
-
-Of course, saving C<say> for the result will also produce the intended result, as it will be saving the two nested sequences from void context:
-
-    say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
-
-=head1 Blobs and Bufs
-
-Problems arising with these containers of binary values.
-
 =head2 Beware of empty lists (and any other kind of element) when concatenating Bufs or Blobs.
 
 The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used to
@@ -1852,6 +1816,51 @@ Since that is not possible for a Buf, hence the error.
 
 As a solution, just make sure that all elements in a list or array are C<Buf>s
 (or convertable to it) before applying concatenation-reduction.
+
+
+=head1 Maps
+
+=head2 Beware of nesting C<Map>s in sink context.
+
+Maps apply an expression to every element of a L<List> and return a L<Seq>:
+
+    say <þor oðin loki>.map: *.codes; # OUTPUT: «(3 4 4)␤»
+
+Maps are often used as a compact substitute for a loop, performing some kind of
+action in the map code block:
+
+    <þor oðin loki>.map: *.codes.say; # OUTPUT: «3␤4␤4␤»
+
+The problem might arise when maps are nested and L<in a sink
+context|/language/contexts#index-entry-sink_context>.
+
+    <foo bar ber>.map: { $^a.comb.map: { $^b.say}}; # OUTPUT: «»
+
+You might expect the innermost map to I<bubble> the result up to the outermost
+map, but it simply does nothing. Maps return C<Seq>s, and in sink context the
+innermost map will iterate and discard the produced values, which is why it
+yields nothing.
+
+Simply using C<say> at the beginning of the sentence will save the result from
+sink context:
+
+    say <foo bar ber>.map: *.comb.map: *.say ;
+    # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤((True True True) (True True True) (True True True))␤»
+
+However, it will not be working as intended; the first C«f␤o␤o␤b␤a␤r␤b␤e␤r␤» is
+the result of the innermost C<say>, but then L<C<say> returns a
+C<Bool>|/routine/say#(Mu)_method_say>, C<True> in this case. Those C<True>s are
+what get printed by the outermost C<say>, one for every letter. A much better
+option would be to C<flat>ten the outermost sequence:
+
+    <foo bar ber>.map({ $^a.comb.map: { $^b.say}}).flat
+    # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤»
+
+Of course, saving C<say> for the result will also produce the intended result,
+as it will be saving the two nested sequences from void context:
+
+    say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
+
 
 =end pod
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
