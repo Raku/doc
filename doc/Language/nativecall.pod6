@@ -499,15 +499,24 @@ say "foo is {$foo.a_string} and {$foo.an_int32}";
 
 =comment TODO
 
-TBD more
+You can type your C<Pointer> by passing the type as a parameter. It works with
+the native type but also with C<CArray> and C<CStruct> defined types. NativeCall
+will not implicitly allocate the memory for it even when calling C<new> on them.
+It's mostly useful in the case of a C routine returning a pointer, or if it's a
+pointer embedded in a C<CStruct>.
 
-You can type your C<Pointer> by passing the type as a parameter. It works with the native type
-but also with C<CArray> and C<CStruct> defined types. NativeCall will not implicitly allocate the memory for it
-even when calling C<new> on them.
-It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
-embedded in a C<CStruct>.
+=begin code
+use NativeCall;
+sub strdup(Str $s --> Pointer[Str]) is native {*}
+my Pointer[Str] $p = strdup("Success!");
+say $p.deref;
+=end code
 
 You have to call X<C<.deref>|deref> on C<Pointer>s to access the embedded type.
+In the example above, declaring the type of the pointer avoids typecasting error
+when dereferenced. Please note that the original
+L<C<strdup>|https://en.cppreference.com/w/c/experimental/dynamic/strdup> returns
+a pointer to C<char>; we are using C<Pointer<Str>>.
 
 =begin code :skip-test
 my Pointer[int32] $p; #For a pointer on int32;
@@ -516,7 +525,9 @@ my MyCstruct $mc = $p2.deref;
 say $mc.field1;
 =end code
 
-It's quite common for a native function to return a pointer to an array of elements. Typed pointers can be dereferenced as an array to obtain individual elements.
+It's quite common for a native function to return a pointer to an array of
+elements. Typed pointers can be dereferenced as an array to obtain individual
+elements.
 
 =begin code :skip-test
 my $n = 5;
