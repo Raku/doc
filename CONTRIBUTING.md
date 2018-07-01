@@ -40,10 +40,23 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Link to external resources (like Wikipedia) for topics that are not
   directly related to Perl 6 (like the math that our routines implement).
 * Duplicate small pieces of information rather than rely on linking.
-* Be explicit about routine signatures. If a method accepts a `*%args`,
+* Be explicit about routine signatures. If a method accepts an `*%args`,
   but treats some of them specially, list them separately.
 * Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance.
-* If you are participating in one of the monthly squashathons, [please read this guide](writing-docs/SQUASHATHONS.md).
+* If you are participating in one of the monthly
+  squashathons,
+  [please read this guide](writing-docs/SQUASHATHONS.md).
+
+## Documenting versions
+
+* If you are adding a recently introduced feature, please indicate in a note which version was it introduced in.
+* Try to add documentation
+  for [Star versions](https://rakudo.org/files/star/source). Features
+  introduced into non-star versions should probably wait.
+* If you change an example to use the new feature, leave the old
+  example if it's still working, at least while it's not obsolete, for people who has not
+  upgraded yet, clarifying in the text around it the versions it will
+  run.
 
 ## Writing Code Examples
 
@@ -90,7 +103,7 @@ Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
         MyFunnyRole.do-it(2);   # OUTPUT: «example output␤»
 
 
-When documenting a pair of a sub and a method which both do the same thing, the
+When documenting a pair of a sub and a method with the same functionality, the
 heading should be `=head2 routine do-it`, and the next thing should be two or
 more lines with the signatures. Other allowed words instead of `method` are
 `sub`, `trait`, `infix`, `prefix`, `postfix`, `circumfix`, `postcircumfix`,
@@ -165,7 +178,10 @@ use
 among which these are probably the most common:
 
 * [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or
-  incorrect documentation; use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED) instead, if this is for a feature present in a compiler, but not in the Perl 6 test suite.
+  incorrect documentation;
+  use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED)
+  instead, if this is for a feature present in a compiler, but not in
+  the Perl 6 test suite.
 * [`search`](https://github.com/perl6/doc/labels/search) - the search
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
