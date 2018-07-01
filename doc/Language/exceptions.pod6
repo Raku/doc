@@ -193,7 +193,11 @@ Which would output:
 
 Since the C<CATCH> block is handling just the C<X::AdHoc> exception thrown by
 the C<die> statement, but not the C<E> exception. In the absence of a C<CATCH>
-block, all exceptions will be contained and dropped, as indicated above. C<resume> will resume execution right after the exception has been thrown; in this case, in the C<die> statement.
+block, all exceptions will be contained and dropped, as indicated above.
+C<resume> will resume execution right after the exception has been thrown; in
+this case, in the C<die> statement. Please consult the section on
+L<resuming of exceptions|/language/exceptions#Resuming_of_Exceptions>
+for more information on this.
 
 A C<try>-block is a normal block and as such treats its last statement as the
 return value of itself. We can therefore use it as a right-hand side.
@@ -311,6 +315,38 @@ method C<.resume> on the exception object.
     die "We leave control after this.";         # this is step 1
 
     say "We have continued with control flow."; # this is step 3
+
+Resuming will occur right after the statement that has caused the exception, and
+in the innermost call frame:
+
+=begin code
+sub bad-sub {
+    die "Something bad happened";
+    return "not returning";
+}
+
+{
+    my $return = bad-sub;
+    say "Returned $return";
+    CATCH {
+        default {
+            say "Error ", .^name, ': ',.Str;
+            $return = '0';
+            .resume;
+
+        }
+    }
+}
+# OUTPUT:
+# Error X::AdHoc: Something bad happened
+# Returned not returning
+=end code
+
+In this case, C<.resume> is getting to the C<return> statement that happens
+right after the C<die> statement. Please note that the assignment to C<$return>
+is taking no effect, since the C<CATCH> statement is happening I<inside> the
+call to C<bad-sub>, which, via the C<return> statement, assigns the C<not
+returning> value to it.
 
 =head1 Uncaught Exceptions
 
