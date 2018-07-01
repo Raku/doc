@@ -54,11 +54,13 @@ It's possible to handle exceptional circumstances by supplying a C<CATCH> block:
         when X::IO { $*ERR.say: "some kind of IO exception was caught!" }
     }
 
-    # RESULT: «some kind of IO exception was caught!»
+    # OUTPUT: «some kind of IO exception was caught!»
 
 Here, we are saying that if any exception of type C<X::IO> occurs, then the
-message C<some kind of IO exception was caught!> will be sent to I<stderr> and
-displayed.
+message C<some kind of IO exception was caught!> will be sent to I<stderr>,
+which is what C<$*ERR.say> does, getting displayed on whatever constitutes the
+standard error device in that moment, which will probably be the console by
+default.
 
 A X<C<CATCH>|CATCH> block uses smartmatching similar to how C<given/when>
 smartmatches on options, thus it's possible to catch and handle various
@@ -69,11 +71,11 @@ almost the same information as the normal backtrace printer.
 
     CATCH {
          default {
-             say .payload;
+             $*ERR.say: .payload;
              for .backtrace.reverse {
                  next if .file.starts-with('SETTING::');
                  next unless .subname;
-                 say "  in block {.subname} at {.file} line {.line}";
+                 $*ERR.say: "  in block {.subname} at {.file} line {.line}";
              }
          }
     }
@@ -84,9 +86,11 @@ in the same namespace will look alike but won't match in a C<CATCH> block.
 
 =head2  Exception handlers and enclosing blocks.
 
-After a CATCH has handled the exception, the block enclosing the CATCH is exited.
+After a CATCH has handled the exception, the block enclosing the C<CATCH> block
+is exited.
 
-In other words, even when the exception is handled successfully, the I<rest of the code> in the enclosing block will never be executed.
+In other words, even when the exception is handled successfully, the I<rest of
+the code> in the enclosing block will never be executed.
 
   die "something went wrong ...";
 
@@ -275,7 +279,7 @@ and are handled either automatically or by the appropriate
 L<phaser|/language/phasers#Loop_Phasers>. Any unhandled control exception is
 converted to a normal exception.
 
-    { return; CATCH { default { say .^name, ': ',.Str } } }
+    { return; CATCH { default { $*ERR.say: .^name, ': ',.Str } } }
 
     # OUTPUT: «X::ControlFlow::Return: Attempt to return outside of any Routine␤»
     # was CX::Return
