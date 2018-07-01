@@ -142,6 +142,21 @@ Any exception that is thrown in such a block
 will be caught by the implicit C<CATCH> block or a C<CATCH> block provided by
 the user. In the latter case, any unhandled exception will be rethrown. If you choose not to handle the exception, they will be contained by the block.
 
+=begin code
+try {
+    die "Tough luck";
+    say "Not gonna happen";
+}
+
+try {
+    fail "FUBAR";
+}
+=end code
+
+X<|resume (Exceptions)>
+In both C<try> blocks above, exceptions will be contained within the block, but
+the C<say> statement will not be run. We can handle them, though:
+
     class E is Exception { method message() { "Just stop already!" } }
 
     try {
@@ -176,10 +191,12 @@ Which would output:
       in block <unit> at exception.p6 line 21
     =end code
 
+Since the C<CATCH> block is handling just the C<X::AdHoc> exception thrown by
+the C<die> statement, but not the C<E> exception. In the absence of a C<CATCH>
+block, all exceptions will be contained and dropped, as indicated above. C<resume> will resume execution right after the exception has been thrown; in this case, in the C<die> statement.
+
 A C<try>-block is a normal block and as such treats its last statement as the
-return value of itself. We can therefore use it as a right-hand side. As a
-block, it will have by default turned on the
-L<C<use fatal> pragma|/language/pragmas#index-entry-fatal-fatal>.
+return value of itself. We can therefore use it as a right-hand side.
 
 =begin code
 say try { +"99999" } // "oh no"; # OUTPUT: «99999␤»
@@ -203,7 +220,29 @@ say try "some-filename.txt".IO.slurp // "sane default";
 # OUTPUT: «sane default␤»
 =end code
 
-What C<try> actually causes is, via the C<use fatal> pragma, a immediate throw of the exceptions that happen within its scope, but by doing so the C<CATCH> block is invoked from the point where the exception is thrown, which defines its scope.
+What C<try> actually causes is, via the C<use fatal> pragma, a immediate throw
+of the exceptions that happen within its scope, but by doing so the C<CATCH>
+block is invoked from the point where the exception is thrown, which defines its
+scope.
+
+=begin code
+my $error-code = "333";
+sub bad-sub {
+    die "Something bad happened";
+}
+try {
+    my $error-code = "111";
+    bad-sub;
+
+    CATCH {
+        default {
+            say "Error $error-code ", .^name, ': ',.Str
+        }
+    }
+}
+# OUTPUT: «Error 111 X::AdHoc: Something bad happened␤»
+=end code
+
 
 =head1 Throwing exceptions
 
