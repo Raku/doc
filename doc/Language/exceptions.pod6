@@ -24,16 +24,17 @@ a description of the error:
     # RESULT: «oops, something went wrong in block <unit> at my-script.p6:1␤»
 
 
-It is worth noting that C<die> prints the error message to the standard error C<$*ERR>.
+It is worth noting that C<die> prints the error message to the standard error
+C<$*ERR>.
 
 =head1 Typed exceptions
 
 Typed exceptions provide more information about the error stored
 within an exception object.
 
-For example, if while
-executing C<.zombie copy> on an object, a needed path C<foo/bar> becomes unavailable,
-then an L<X::IO::DoesNotExist> exception can be raised:
+For example, if while executing C<.zombie copy> on an object, a needed path
+C<foo/bar> becomes unavailable, then an L<X::IO::DoesNotExist> exception can be
+raised:
 
     die X::IO::DoesNotExist.new(:path("foo/bar"), :trying("zombie copy"))
 
@@ -121,10 +122,25 @@ See "Resuming of Exceptions", for how to return control back to where the except
 
 =head1 X<C<try>|try>
 
-To contain an exception, use a C<try> block. Any exception that is thrown in
-such a block will be caught by the implicit C<CATCH> block or a C<CATCH> block
-provided by the user. In the latter case, any unhandled exception will be
-rethrown.
+A C<try> block is a normal block with the
+L<C<use fatal> pragma|/language/pragmas#index-entry-fatal-fatal>
+turned on and an implicit C<CATCH> block that drops the exception, which means you can use it to contain them.
+
+=begin code
+{
+    my $x = +"a";
+    say $x.^name;
+} # OUTPUT: «Failure␤»
+
+try {
+    my $x = +"a";
+    say $x.^name;
+}
+=end code
+
+Any exception that is thrown in such a block
+will be caught by the implicit C<CATCH> block or a C<CATCH> block provided by
+the user. In the latter case, any unhandled exception will be rethrown. If you choose not to handle the exception, they will be contained by the block.
 
     class E is Exception { method message() { "Just stop already!" } }
 
@@ -150,7 +166,7 @@ rethrown.
         say "No, you don't!";
     }
 
-Output:
+Which would output:
 
     =begin code :lang<text>
     I'm alive!
@@ -161,9 +177,9 @@ Output:
     =end code
 
 A C<try>-block is a normal block and as such treats its last statement as the
-return value of itself. As a block, it will have by default turned on the
-L<C<use fatal> pragma|/language/pragmas#index-entry-fatal-fatal>. We can
-therefore use it as a right-hand side.
+return value of itself. We can therefore use it as a right-hand side. As a
+block, it will have by default turned on the
+L<C<use fatal> pragma|/language/pragmas#index-entry-fatal-fatal>.
 
 =begin code
 say try { +"99999" } // "oh no"; # OUTPUT: «99999␤»
@@ -186,6 +202,8 @@ C<try> can also be used with a statement instead of a block:
 say try "some-filename.txt".IO.slurp // "sane default";
 # OUTPUT: «sane default␤»
 =end code
+
+What C<try> actually causes is, via the C<use fatal> pragma, a immediate throw of the exceptions that happen within its scope, but by doing so the C<CATCH> block is invoked from the point where the exception is thrown, which defines its scope.
 
 =head1 Throwing exceptions
 
