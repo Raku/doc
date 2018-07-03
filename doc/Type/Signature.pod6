@@ -103,8 +103,8 @@ is bound to.
     say Foo.whoami; # OUTPUT: «Well I'm class Foo, of course!␤»
 
 X<|type constraint (Signature)>
-=head2 Type Constraints
 X<|Constraint>
+=head2 Type constraints
 
 Parameters can optionally have a type constraint (the default is L<C<Any>>).
 These can be used to restrict the allowed input to a function.
@@ -112,12 +112,21 @@ These can be used to restrict the allowed input to a function.
 =for code
 my $sig = :(Int $a, Str $b);
 
-=begin code :skip-test
-sub divisors(Int $n) { $_ if $n %% $_ for 1..$n };
+Type constraints can have any compile-time defined value
+=begin code :skip-test<illustrates error>
+subset Positive-integer of Int where * > 0;
+sub divisors(Positive-integer $n) { $_ if $n %% $_ for 1..$n };
 divisors 2.5;
-# ===SORRY!=== Error while compiling:
-# Calling divisors(Rat) will never work with declared signature (Int $n)
+# ERROR «Type check failed in binding to parameter '$n'; expected Positive-integer but got Rat (2.5) $n)»
+divisors -3;
+# ERROR: «Constraint type check failed in binding to parameter '$n'; expected Positive-integer but got Int (-3)»
 =end code
+
+Please note that in the code above type constraints are enforced at two
+different levels: the first level checks if it belongs to the type in which the
+subset is based, in this case C<Int>. If it fails, a C<Type check> error is
+produced. Once that filter is cleared, the constraint that defined the subset is
+checked, producing a C<I<Constraint> type check> error if it fails.
 
 X<|anonymous arguments (Signature)>
 Anonymous arguments are fine too, if a parameter is only needed for
