@@ -50,9 +50,6 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 ## Documenting versions
 
 * If you are adding a recently introduced feature, please indicate in a note which version was it introduced in.
-* Try to add documentation
-  for [Star versions](https://rakudo.org/files/star/source). Features
-  introduced into non-star versions should probably wait.
 * If you change an example to use the new feature, leave the old
   example if it's still working, at least while it's not obsolete, for people who has not
   upgraded yet, clarifying in the text around it the versions it will
