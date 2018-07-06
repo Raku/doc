@@ -851,11 +851,12 @@ sub write-index-files() {
         ]}))
     ), 'programs');
 
+    # sort language index by file name to allow author control of order
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
         pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in alphabetical order. Scroll down or search 'tutorial' or 'from' to see all of them."),
-        pod-table($*DR.lookup('language', :by<kind>).sort(*.name).map({[
+        pod-table($*DR.lookup('language', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
         ]}))
