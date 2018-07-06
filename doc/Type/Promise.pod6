@@ -77,9 +77,14 @@ Creates a new Promise that will be kept in C<$seconds> seconds, or later.
     my $proc = Proc::Async.new('perl6', '-e', 'sleep 10; warn "end"');
 
     my $result = await Promise.anyof(
-        my $promise = $proc.start,
-        Promise.in(5).then: { note 'timeout'; $proc.kill }
-    ).then: {$promise.result};
+        my $promise = $proc.start,  # may or may not work in time
+        Promise.in(5).then: {       # fires after 5 seconds no matter what
+            unless $promise {       # don't do anything if we were successful
+                note 'timeout';
+                $proc.kill;
+            }
+        }
+    ).then: { $promise.result }
     # OUTPUT: «timeout␤»
 
 C<$seconds> can be fractional or negative. Negative values are treated as
