@@ -239,15 +239,49 @@ sub MAIN(
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Reading doc/$dir ...";
 
-    my @pod-sources =
-        recursive-dir("doc/$dir/")
-        .grep({.path ~~ / '.pod6' $/})
-        .map({
-            .path.subst("doc/$dir/", '')
-                 .subst(rx{\.pod6$},  '')
-                 .subst(:g,    '/',  '::')
-            => $_
-        }).sort(&sorted-by);
+    # What does this array look like?
+    #
+    #   + an array of pairs sorted by some key
+    #   + the sort key defaults to the key below
+    #   + any other sort order has to be processed separately as in 'Language'
+    #     below
+    #  
+    #   the sorted pairs (regardless of how they are sorted) must consist of:
+    #     key:   base filename stripped of its ending .pod6
+    #     value: filename relative to the "doc/$dir" directory
+    my @pod-sources;
+    
+    if $dir eq 'Language' {
+        # uses a special sort order by :page-order<id> as a %config hash entry
+        # TODO treat the Programs directory the same way
+        @pod-sources = get-pod6-page-order(:$dir);
+    }
+    else {
+        # default sort is by name {%hash{.key} => file basename w/o extension
+        @pod-sources =
+            recursive-dir("doc/$dir/")
+            .grep({.path ~~ / '.pod6' $/})
+            .map({
+                .path.subst("doc/$dir/", '')
+                     .subst(rx{\.pod6$},  '')
+                     .subst(:g,    '/',  '::')
+                 => $_
+            }).sort(&sorted-by);
+     }
+
+    =begin comment
+    # PLEASE LEAVE THIS DEBUG CODE IN UNTIL WE'RE HAPPY
+    # WITH LANGUAGE PAGE SORTING AND DISPLAY
+    if 0 && $dir eq 'Language' {
+    #if 1 && $dir eq 'Programs' {
+        say "\@pod-sources:";
+        for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
+            say "num: $num; key: |$filename|; value : |$file|";
+        }
+        #die "debug exit";
+    }
+    =end comment
+
 
     if $sparse {
         @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
@@ -1012,6 +1046,61 @@ sub pod-path-from-url($url) {
     $pod-path = $pod-path.tc;
 
     return $pod-path;
+}
+
+sub get-pod6-page-order(:$dir) {
+    # caller: process-pod-dir
+    #
+    # Return the .pod6 files found in $dir with :page-order values
+    # as an array of pairs of file basename (stripped of 'pod6')
+    # as key, and file names (relative to 'doc') as values. 
+    # The array of such pairs is sorted in :page-order value 
+    # alphabetical order.
+    #
+    # Note any .pod6 not having a :page-order entry is not
+    # included in the outout array.
+    #
+    # An exception is thrown if a duplicate :page-order key is found.
+    #
+
+    my $d = "doc/$dir";
+    die "FATAL: '$d' is NOT a known directory'" if !$d.IO.d;
+
+    my %h;
+    FILE: 
+    for (dir $d) -> $f {
+        next if !$f.IO.f;
+        next if $f !~~ /'.pod6' $/;
+        for $f.IO.lines -> $line {
+            if $line ~~ /':page-order<' (.*) '>'/ {
+                my $sortid = ~$0;
+                # it must be unique
+                die "FATAL: Duplicate :page-order key '$sortid' in file '$f'"
+                    if %h{$sortid};
+
+                my $key = $f.basename;
+                # remove the pod6 extension
+                $key ~~ s/'.pod6'//;
+                my $value = $f;
+
+                # pack it all up
+                %h{$sortid} = ($key, $value);
+                next FILE;
+            }
+        }
+    }
+
+    # turn the hash into a sorted array
+    my @keys = %h.keys.sort;
+    my @arr;
+    # TODO below can be improved after all else is satisfactory
+    for @keys -> $k {
+        my @a = @(%h{$k});
+        my $hk = @a.shift;
+        my $hv = @a.shift;
+        push @arr, ($hk => $hv);
+    }
+    return @arr;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
