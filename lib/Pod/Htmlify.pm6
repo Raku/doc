@@ -113,4 +113,70 @@ sub svg-for-file($file) is export {
     .substr: .index: '<svg' given $file.IO.slurp;
 }
 
+#| Return the first value found for a :page-order key in a pod %config hash.
+sub get-page-order-value($fname) is export {
+    die "FATAL: '$fname' is NOT a known file" if !$fname.IO.f;
+    my $sortid = '';
+
+    for $fname.IO.lines -> $line {
+        if $line ~~ /':page-order<' (.*) '>'/ {
+            $sortid = ~$0;
+            last;
+        }
+    }
+    return $sortid;
+}
+
+#| Return an array of pod6 page file name data sorted by :page-order value
+sub get-pod6-page-order(:$dir) is export {
+    # caller: process-pod-dir
+    #
+    # Return the .pod6 files found in $dir with :page-order values
+    # as an array of pairs of file basename (stripped of 'pod6')
+    # as key, and file names (relative to 'doc') as values.
+    # The array of such pairs is sorted in :page-order value
+    # alphabetical order.
+    #
+    # Note any .pod6 not having a :page-order entry is not
+    # included in the outout array.
+    #
+    # An exception is thrown if a duplicate :page-order key is found.
+    #
+
+    my $d = "doc/$dir";
+    die "FATAL: '$d' is NOT a known directory'" if !$d.IO.d;
+
+    my %h;
+    for (dir $d) -> $f {
+        next if !$f.IO.f;
+        next if $f !~~ /'.pod6' $/;
+
+        my $sortid = get-page-order-value $f;
+        next if !$sortid;
+
+        # the sortid must be unique for each file in this directory
+        die "FATAL: Duplicate :page-order key '$sortid' in file '$f'"
+            if %h{$sortid};
+
+        my $key = $f.basename;
+        # remove the pod6 extension
+        $key ~~ s/'.pod6'//;
+        my $value = $f;
+        # pack it all up
+        %h{$sortid} = ($key, $value);
+    }
+
+    # turn the hash into a sorted array
+    my @keys = %h.keys.sort;
+    my @arr;
+    # TODO below can be improved after all else is satisfactory
+    for @keys -> $k {
+        my @a = @(%h{$k});
+        my $hk = @a.shift;
+        my $hv = @a.shift;
+        push @arr, ($hk => $hv);
+    }
+    return @arr;
+}
+
 # vim: expandtab shiftwidth=4 ft=perl6
