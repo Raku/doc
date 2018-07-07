@@ -17,10 +17,26 @@ BEGIN {
     }
 }
 
-plan 4;
+plan 5;
 
 use-ok('Pod::Htmlify');
 use Pod::Htmlify;
+
+subtest {
+    plan 1;
+
+    my $pod = q:to/EOF/;
+    =begin pod :page-order<a30>
+    =TITLE Some Page
+    =end pod
+    EOF
+
+    my ($filename, $filehandle) = tempfile;
+    $filehandle.close;
+    $filename.IO.spurt($pod);
+
+    is(get-page-order-value($filename), 'a30', ":page-order value extracted correctly");
+}
 
 subtest {
     plan 7;
