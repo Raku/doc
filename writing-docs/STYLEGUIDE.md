@@ -119,17 +119,18 @@ present 'is').
 While Perl 6 allows all kinds of fancy characters in identifiers,
 stick to easily understandable names:
 
-    my $sub; # GOOD my $ßub; # BAD; Is it a twigil? How do I type
-    this? HELP!
+    my $sub; # GOOD
+    my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
 
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
 
 ### Prefer non-ASCII syntax in examples
 
-    my @infinite-sequence = 1,3...∞ # GOOD my @infinite-sequence =
-    1,3...Inf # OK, but rather not <a b c > ⊖ <c d e> # Good <a b c >
-    (^) <c d e> # OK, but don't do that
+    my @infinite-sequence = 1,3...∞ # GOOD
+    my @infinite-sequence = 1,3...Inf # OK, but rather not
+    <a b c >  ⊖  <c d e> # Good
+    <a b c > (^) <c d e> # OK, but don't do that
 
 All operators have a ASCII equivalent, but they are more verbose and
 do not correspond exactly to the mathematical operator or constant
@@ -154,8 +155,8 @@ Style guidelines related to Perl *.
 
 ### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
-should not be part of the bulk of the documentation.
+We are not expecting our users to have to know Perl 5 to learn Perl 6,
+so this should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
 
@@ -171,8 +172,9 @@ this one liner:
 
 ## Domain
 
-What should be documented? The primary goal of the programmatic documentation
-is to cover items that are part of the specification (the roast test suite)
+What should be documented? The primary goal of the programmatic
+documentation is to cover items that are part of the specification (the
+roast test suite)
 
 * If something is visible to users of Perl 6 and is in roast: document it.
 * If something is visible to users of Perl 6 and is not in roast:
