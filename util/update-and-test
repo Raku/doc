@@ -1,0 +1,42 @@
+#!/usr/bin/env perl6
+
+=begin overview
+
+Not everyone runs the extended test suite; this gives developers the ability
+to test as they go; it updates the repository, runs xtest only on those
+files that have changed in that update, and leaves a local 'retest' script
+that can be rerun against those changes until xtest is clean.
+
+=end overview
+
+# Get the old and new commit IDs
+
+sub get-rev {
+    run(<git rev-parse HEAD>, :out).out.slurp(:close).chomp;
+}
+
+my $old-rev = get-rev;
+run(<git pull --rebase>);
+my $new-rev = get-rev;
+
+if $old-rev eq $new-rev {
+    say "No chages to test.";
+} else {
+    my $revs = $old-rev ~ ".." ~ $new-rev;
+    my $files = run('git', 'diff', '--name-only', $revs, :out).out.slurp(:close).chomp.split("\n").sort.join(" ");
+    my $outfile = "./retest";
+
+    my $of = $outfile.IO.open(:w);
+
+    $of.say: "#!/usr/bin/env perl6";
+    $of.say: "\%*ENV<TEST_FILES>='$files';";
+    $of.say: "say \%*ENV<TEST_FILES>;";
+    $of.say: "run(<make xtest>).so";
+
+    $of.close;
+
+    run('chmod', 'a+x', $outfile);
+
+    run($outfile).so;
+    say "Test same set of files again with $outfile";
+}
