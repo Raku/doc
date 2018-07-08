@@ -61,6 +61,9 @@ In this case, `this code initializes a hash` is short, but
 ambiguous. Opt for `The first line of this example initializes an
 empty hash`.
 
+Try to avoid abbreviations. For example, “RHS” is short, but
+“right-hand side” is much clearer for beginners.
+
 In general, try to put yourself in the shoes of someone with no
 previous exposition to the language. Although it might seem obvious to
 you that only the first line can in fact initialize a hash, the
