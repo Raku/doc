@@ -20,14 +20,16 @@ Avoid writing a routine's documentation in the form
 
     Like [other method] except [...]
 
-even when they're in the same class, because readers might not read the whole
-class page, but rather navigate to a specific routine (maybe even out of
-context in the /routine/ section of the website) and expect it to tell them how
-it works without being sent on a goose chase around the site.
+even when they're in the same class, because readers might not read
+the whole class page, but rather navigate to a specific routine (maybe
+even out of context in the /routine/ section of the website) and
+expect it to tell them how it works without being sent on a goose
+chase around the site.
 
-In other words, give each routine documentation a self-contained introduction,
-and only link to related/similar routines *below* that introduction, even if
-that means duplicating some half-sentences multiple times.
+In other words, give each routine documentation a self-contained
+introduction, and only link to related/similar routines *below* that
+introduction, even if that means duplicating some half-sentences
+multiple times.
 
 ### Links to docs
 
@@ -39,9 +41,9 @@ Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
-`https://docs.perl6.org/blah/blah`). Other variations of the URL will still
-work, for convenience, but they all simply redirect to the canonical version,
-so it's best to use it from the start.
+`https://docs.perl6.org/blah/blah`). Other variations of the URL will
+still work, for convenience, but they all simply redirect to the
+canonical version, so it's best to use it from the start.
 
 ## Language
 
@@ -186,9 +188,9 @@ roast test suite)
   clearly its implementation-specific nature and where possible show
   the first and latest version the documented feature is available.
 
-Future considerations along this line include: documenting things that are rakudo
-specific (like "dd"), and documenting which versions of the spec items are
-available in.
+Future considerations along this line include: documenting things that
+are rakudo specific (like "dd"), and documenting which versions of the
+spec items are available in.
 
 ## Use of HTML
 
