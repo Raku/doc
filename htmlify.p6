@@ -245,12 +245,12 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     #   + the sort key defaults to the key below
     #   + any other sort order has to be processed separately as in 'Language'
     #     below
-    #  
+    #
     #   the sorted pairs (regardless of how they are sorted) must consist of:
     #     key:   base filename stripped of its ending .pod6
     #     value: filename relative to the "doc/$dir" directory
     my @pod-sources;
-    
+
     if $dir eq 'Language' {
         # uses a special sort order by :page-order<id> as a %config hash entry
         # TODO treat the Programs directory the same way
