@@ -47,7 +47,7 @@ xtest:
 
 # Content tests
 ctest:
-	prove --exec perl6 -r t/tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec perl6 -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 help:
 	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"
