@@ -133,20 +133,20 @@ If you want to add some fancy characters, please stick to
 
 ### Prefer non-ASCII syntax in examples
 
-    my @infinite-sequence = 1,3...∞ # GOOD
-    my @infinite-sequence = 1,3...Inf # OK, but rather not
+    my @infinite-sequence = 1, 3 … ∞     # GOOD
+    my @infinite-sequence = 1, 3 ... Inf # OK, but rather not
     <a b c >  ⊖  <c d e> # Good
     <a b c > (^) <c d e> # OK, but don't do that
 
-All operators have a ASCII equivalent, but they are more verbose and
+All operators have an ASCII equivalent, but they are more verbose and
 do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible.
 
-### Try to express intent, rather than simply reflex syntax
+### Try to express intent, rather than just demonstrating the syntax
 
-    my @l = lazy 0..5; # Correct, but BAD
-    my @too-long-list = lazy 0..100000000  # GOOD
-    my @powers-of-eleven = lazy 1, 11, 121 ... 10**100 # EVEN BETTER
+    my @l = lazy 0..5;                             # Correct, but BAD
+    my @too-long-list = lazy 0..100000000          # GOOD
+    my @powers-of-eleven = lazy 1, 11, 121 … 10¹⁰⁰ # EVEN BETTER
 
 In the first case, the syntax is totally correct. But a list with 5
 elements need not be made lazy. The second is better, because it does
