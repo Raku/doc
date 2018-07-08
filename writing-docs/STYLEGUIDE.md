@@ -65,7 +65,8 @@ Try to avoid abbreviations. For example, “RHS” is short, but
 “right-hand side” is much clearer for beginners.
 
 In general, try to put yourself in the shoes of someone with no
-previous exposition to the language. Although it might seem obvious to
+previous exposition to the language (or computer science
+altogether). Although it might seem obvious to
 you that only the first line can in fact initialize a hash, the
 documentation is targeted at people with no previous exposition to the
 language.
