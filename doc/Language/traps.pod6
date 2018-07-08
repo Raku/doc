@@ -1789,53 +1789,61 @@ This happens partly because of the
 L<single argument rule|/language/functions#Slurpy_Conventions>, and
 there are other cases when this kind of a generalization may not work.
 
-=head2 Beware of empty lists (and any other kind of element) when concatenating Bufs or Blobs.
 
-The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used to
-concatenate L<Buf>s or L<Blob>s; we can then use this reduction operator in this
-form:
+=head2 Using [~] for concatenating a list of Blobs
 
-    say [~] Buf.new(0x3, 0x33), Blob.new(0x2,0x22); # OUTPUT: «Buf:0x<03 33 02 22>␤»
+The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used
+to concatenate L<Str>s I<or> L<Blob>s. However, an empty list will
+I<always> be reduced to an empty C<Str>. This is due to the fact that,
+in the presence of a list with no elements, the
+L<reduction|/language/operators#Reduction_Operators> metaoperator
+returns the
+L<identity element|https://en.wikipedia.org/wiki/Identity_element>
+for the given operator. Identity element for C<~> is an empty string,
+regardless of the kind of elements the list could be populated with.
 
-However, an empty array will I<always> be reduced to an empty C<Str>:
+=for code
+my Blob @chunks;
+say ([~] @chunks).perl; # OUTPUT: «""␤»
 
-     my @bufs;
-     say [~] @bufs;  # OUTPUT: «␤»
-     my Buf @buffs;
-     say [~] @buffs; # OUTPUT: «␤»
 
-This is due to the fact that, in the presence of a list with no elements, the
-reduction operator applies the C<identity> for the operator used to reduce, C<~>
-in this case. And this results in an empty string, independently of the kind of
-elements the list could be populated with.
-
-    my Int @bufs;
-    say [~] @bufs; # OUTPUT: «␤»
-
-This might cause a problem if an empty list enters in a situation where you are
-concatenating buffers (for instance, reading from an empty file):
+This might cause a problem if you attempt to use the result while
+assuming that it is a Blob:
 
 =for code :skip-test<Documenting the error>
-my @array-of-arrays= [[], [Buf.new(0x2, 0x22), Buf.new( 0x3, 0x33)]];
-my @bufs;
-for @array-of-arrays -> @a {
-    @bufs = [~] |@bufs, | @a;
-}
-# OUTPUT: «(exit code 1) Cannot use a Buf as a string, but you called the Stringy method on it␤»
+my Blob @chunks;
+say ([~] @chunks).decode;
+# OUTPUT: «No such method 'decode' for invocant of type 'Str'. Did you mean 'encode'?␤…»
 
-In the code above, the first element of C<@array-of-array> will be reduced to an
-empty string, causing the error when entering the second iteration.
 
-So if you want to avoid this problem with L<Buf>s, initialize the array with an
-empty element.
+There are many ways to cover that case. You can avoid C<[ ]>
+metaoperator altogether:
 
-    my Buf @buffs = Buf.new;
-    say [~] @buffs; # OUTPUT: «Buf:0x<>␤»
+=for code
+my @chunks;
+# …
+say Blob.new: |«@chunks; # OUTPUT: «Blob:0x<>␤»
 
-That way, you can safely concatenate it later on:
 
-    my Buf @buffs = Buf.new;
-    say [~] |@buffs, Buf.new(0x2, 0x22); # OUTPUT: «Buf:0x<02 22>␤»
+Alternatively, you can initialize the array with an empty Blob:
+
+=for code
+my @chunks = Blob.new;
+# …
+say [~] @chunks; # OUTPUT: «Blob:0x<>␤»
+
+
+Or you can utilize L<C<||>|#infix || > operator to make it use an
+empty Blob in case the list is empty:
+
+=for code
+my @chunks;
+# …
+say [~] @chunks || Blob.new; # OUTPUT: «Blob:0x<>␤»
+
+
+Please note that a similar issue may arise when reducing lists with
+other operators.
 
 =head1 Maps
 
