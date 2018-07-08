@@ -11,6 +11,12 @@ Please follow these rules when writing the text itself:
 * Configure your editor for auto-flowing (or
 hard-wrapping) line length at 72 whenever possible.
 
+When writing new text, try to be consistent with the rest of the
+docs. If it happens that there's no consistency and this style guide
+does not give a recommendation, consult
+[Wikipedia's Manual of Style](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style)
+and see if the issue is covered there. Typically, style decisions that
+work for Wikipedia can be safely used for writing Perl 6 documentation.
 
 ## Structure
 
