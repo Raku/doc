@@ -833,8 +833,9 @@ a 1;        # OUTPUT: «Int 1␤Any 1␤Back in Int with 5␤»
 
 X<|dispatch,callwith>
 
-C<callwith> calls the next matching candidate with arguments provided by users
-and returns that candidate's return value.
+C<callwith> calls the next candidate matching the original signature, that is,
+the next function that could possibly be used with the arguments provided by
+users and returns that candidate's return value.
 
 =begin code
 proto a(|) {*}
@@ -855,6 +856,47 @@ a 1;        # OUTPUT: «Int 1␤Any 2␤Back in Int with 5␤»
 Here, C<a 1> calls the most specific C<Int> candidate first, and C<callwith>
 re-dispatches to the less specific C<Any> candidate. Note that although our
 parameter C<$x + 1> is an C<Int>, still we call the next candidate in the chain.
+
+In this case, for example:
+
+=begin code
+proto how-many(|) {*}
+
+multi how-many( Associative $a ) {
+    say "Associative $a ";
+    my $calling = callwith( 1 => $a );
+    return $calling;
+}
+
+multi how-many( Pair $a ) {
+    say "Pair $a ";
+    return "There is $a "
+
+}
+
+multi how-many( Hash $a ) {
+    say "Hash $a";
+    return "Hashing $a";
+}
+
+my $little-piggie = little => 'piggie';
+say $little-piggie.^name;        # OUTPUT: «Pair␤»
+say &how-many.cando( \( $little-piggie ));
+# OUTPUT: «(sub how-many (Pair $a) { #`(Sub|68970512) ... } sub how-many (Associative $a) { #`(Sub|68970664) ... })␤»
+say how-many( $little-piggie  ); # OUTPUT: «Pair little     piggie␤There is little piggie␤»
+=end code
+
+the only candidates that take the C<Pair> argument supplied by the user are the
+two functions defined first. Although a C<Pair> can be easily coerced to a
+C<Hash>, here is how signatures match:
+
+=for code
+say :( Pair ) ~~ :( Associative ); # OUTPUT: «True␤»
+say :( Pair ) ~~ :( Hash );        # OUTPUT: «False␤»
+
+The arguments provided by us are a C<Pair>. It does not match a C<Hash>, so the
+corresponding function is thus not included in the list of candidates, as can be
+seen by the output of C<&how-many.cando( \( $little-piggie ));>.
 
 =head2 sub nextsame
 
