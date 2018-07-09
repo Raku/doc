@@ -74,7 +74,7 @@ help:
 
 run:
 	@echo "Starting local server…"
-	morbo -w assets app.pl
+	./app-start
 
 docker-image:
 	docker build -t $(DOCKER_IMAGE_NAME) .
