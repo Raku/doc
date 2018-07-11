@@ -120,6 +120,8 @@ clean-search:
 
 clean: clean-html clean-images clean-search
 
+distclean: clean
+
 test-links: links.txt
 	./util/test-links.sh
 
