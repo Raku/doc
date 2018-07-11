@@ -33,6 +33,8 @@ This module is available via the Perl 6 module ecosystem. Use:
 to install the binaries and make it available in your binaries
 execution path.
 
+**Note**: Please note that, due to changes in the parsing of Pod6, this will fail in versions older than 2018.06. Please upgrade to that version, or install using `--force`.
+
 ## Use p6doc
 
 With a Rakudo `perl6` executable in the `PATH`, try:
