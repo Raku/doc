@@ -13,11 +13,13 @@
 ## 其他语言版本的 README
 
 * [英文版 README](README.md)
-* [意大利文版 README](README.it.md)
-* [德文版 README](README.de.md)
-* [西班牙文版 README](README.es.md)
+* [荷兰文版 README](README.nl.md)
 * [法文版 README](README.fr.md)
+* [德文版 README](README.de.md)
+* [意大利文版 README](README.it.md)
+* [日文版 README](README.jp.md)
 * [葡萄牙文版 README](README.pt.md)
+* [西班牙文版 README](README.es.md)
 
 ## 安装 p6doc
 
