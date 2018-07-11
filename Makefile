@@ -7,8 +7,8 @@ COLON_Z              := :Z
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
-	bigpage test xtest ctest help run clean-html clean-examples clean-images \
-	clean-search clean test-links extract-examples push \
+	bigpage test xtest ctest help run clean-html clean-images \
+	clean-search clean test-links push \
 	docker-image docker-htmlify docker-test docker-xtest docker-ctest docker-testall docker-run
 
 html: bigpage htmlify
@@ -112,22 +112,16 @@ clean-html:
 		html/type/ \
 		$(NULL)
 
-clean-examples:
-	rm -fr examples/*
-
 clean-images:
 	rm -f html/images/type-graph*
 
 clean-search:
 	rm -f html/js/search.js
 
-clean: clean-html clean-images clean-search clean-examples
+clean: clean-html clean-images clean-search
 
 test-links: links.txt
 	./util/test-links.sh
-
-extract-examples:
-	./util/extract-examples.p6 --source-path=./doc/ --prefix=./examples/
 
 push: test
 	git pull --rebase && git push
