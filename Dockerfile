@@ -25,9 +25,7 @@ RUN buildDeps='         \
     && n=/usr/local/bin/n \
     && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n > "$n" \
     && chmod +x "$n"      \
-    && n stable           \
-                          \
-    && apt-get purge --yes --auto-remove $buildDeps
+    && n stable
 
 WORKDIR /perl6/doc
 EXPOSE  3000
