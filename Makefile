@@ -13,8 +13,11 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 
 html: bigpage htmlify
 
-htmlify: init-highlights assets
+htmlify: init-highlights assets gen-pod6-source
 	perl6 htmlify.p6
+
+gen-pod6-source:
+	perl6 manage-page-order.p6 update
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \

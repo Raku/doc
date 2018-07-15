@@ -254,7 +254,8 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     if $dir eq 'Language' {
         # uses a special sort order by :page-order<id> as a %config hash entry
         # TODO treat the Programs directory the same way
-        @pod-sources = get-pod6-page-order(:$dir);
+        # use the target files auto-generated:
+        @pod-sources = get-pod6-page-order(:dir("$dir/0-html-source"));
     }
     else {
         # default sort is by name {%hash{.key} => file basename w/o extension
