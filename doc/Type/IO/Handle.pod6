@@ -910,9 +910,56 @@ L<TTY|https://en.wikipedia.org/wiki/Terminal_emulator>, C<False> otherwise.
 
 =head1 Creating Custom Handles
 
-As of 6.d language (early implementation available in Rakudo compiler version 2018.07), a few
-helper methods are available to simplify creation of custom C<IO::Handle> objects. In your subclass
-you simply need to implement those methods to affect all of the related features.
+As of 6.d language (early implementation available in Rakudo compiler
+version 2018.07), a few helper methods are available to simplify creation of
+custom C<IO::Handle> objects. In your subclass you simply need to implement
+those methods to affect all of the related features. If your handle wants
+to work with textual read/write methods and doesn't use the standard C<.open>
+method, be sure to call C<.encoding> method in your custom handle to get
+decoder/encoder properly set up:
+
+    class IO::URL is IO::Handle {
+        has $.URL is required;
+        has Buf $!content;
+        submethod TWEAK {
+            use WWW; # ecosystem module that will let us `get` a web page
+            use DOM::Tiny; # ecosystem module that will parse out all text from HTML
+            $!content := Buf.new: DOM::Tiny.parse(get $!URL).all-text(:trim).encode;
+            self.encoding: 'utf8'; # set up encoder/decoder
+        }
+
+        method open(|)  { self }       # block out some IO::Handle methods
+        method close(|) { self }       # that work with normal low-level file
+        method opened   { ! self.EOF } # handles, since we don't. This isn't
+        method lock(| --> True) { }    # necessary, but will make our handle
+        method unlock( --> True) { }   # be more well-behaved if someone
+        # actually calls one of these methods. There are more of these you
+        # can handle, such as .tell, .seek, .flush, .native-descriptor, etc.
+
+        method WRITE(|) {
+            # For this handle we'll just die on write. If yours can handle writes.
+            # The data to write will be given as a Blob positional argument.
+            die "Cannot write into IO::URL";
+        }
+        method READ(\bytes) {
+            # We splice off the requested number of bytes from the head of
+            # our content Buf. The handle's decoder will handle decoding them
+            # automatically, if textual read methods were called on the handle.
+            $!content.splice: 0, bytes
+        }
+        method EOF {
+            # For "end of file", we'll simply report whether we still have
+            # any bytes of the website we fetched on creation.
+            not $!content
+        }
+    }
+
+    my $fh := IO::URL.new: :URL<www.perl6.org>;
+
+    # .slurp and print all the content from the website. We can use any other
+    # read methods, such as .lines, or .get, or .readchars. All of them work
+    # correctly, even though we only defined .READ and .EOF
+    $fh.slurp.say;
 
 =head2 method WRITE
 
