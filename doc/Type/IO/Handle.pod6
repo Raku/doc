@@ -908,6 +908,99 @@ Defined as:
 Returns C<True> if the handle is opened to a
 L<TTY|https://en.wikipedia.org/wiki/Terminal_emulator>, C<False> otherwise.
 
+=head1 Creating Custom Handles
+
+As of 6.d language (early implementation available in Rakudo compiler
+version 2018.07), a few helper methods are available to simplify creation of
+custom C<IO::Handle> objects. In your subclass you simply need to implement
+those methods to affect all of the related features. If your handle wants
+to work with textual read/write methods and doesn't use the standard C<.open>
+method, be sure to call C<.encoding> method in your custom handle to get
+decoder/encoder properly set up:
+
+    class IO::URL is IO::Handle {
+        has $.URL is required;
+        has Buf $!content;
+        submethod TWEAK {
+            use WWW; # ecosystem module that will let us `get` a web page
+            use DOM::Tiny; # ecosystem module that will parse out all text from HTML
+            $!content := Buf.new: DOM::Tiny.parse(get $!URL).all-text(:trim).encode;
+            self.encoding: 'utf8'; # set up encoder/decoder
+        }
+
+        method open(|)  { self }       # block out some IO::Handle methods
+        method close(|) { self }       # that work with normal low-level file
+        method opened   { ! self.EOF } # handles, since we don't. This isn't
+        method lock(| --> True) { }    # necessary, but will make our handle
+        method unlock( --> True) { }   # be more well-behaved if someone
+        # actually calls one of these methods. There are more of these you
+        # can handle, such as .tell, .seek, .flush, .native-descriptor, etc.
+
+        method WRITE(|) {
+            # For this handle we'll just die on write. If yours can handle writes.
+            # The data to write will be given as a Blob positional argument.
+            die "Cannot write into IO::URL";
+        }
+        method READ(\bytes) {
+            # We splice off the requested number of bytes from the head of
+            # our content Buf. The handle's decoder will handle decoding them
+            # automatically, if textual read methods were called on the handle.
+            $!content.splice: 0, bytes
+        }
+        method EOF {
+            # For "end of file", we'll simply report whether we still have
+            # any bytes of the website we fetched on creation.
+            not $!content
+        }
+    }
+
+    my $fh := IO::URL.new: :URL<www.perl6.org>;
+
+    # .slurp and print all the content from the website. We can use any other
+    # read methods, such as .lines, or .get, or .readchars. All of them work
+    # correctly, even though we only defined .READ and .EOF
+    $fh.slurp.say;
+
+=head2 method WRITE
+
+Defined as:
+
+    method WRITE(IO::Handle:D: Blob:D \data --> Bool:D)
+
+Called whenever a write operation is performed on the handle. Always receives the data as a
+L<Blob>, even if a textual writing method has been called.
+
+=head2 method READ
+
+Defined as:
+
+    method READ(IO::Handle:D: Int:D \bytes --> Buf:D)
+
+Called whenever a read operation is performed on the handle. Receives the number of bytes
+requested to read. Returns a L<Buf> with those bytes which can be used to either fill the
+decoder buffer or returned from reading methods directly. The result is allowed to have fewer than
+the requested number of bytes, including no bytes at all.
+
+If you provide your own C<.READ>, you very likely need to provide your own
+L<C«.EOF»|/routine/EOF> as well, for all the features to behave correctly.
+
+The compiler may call L<C«.EOF»|/routine/EOF> method any number of times during a read operation to
+ascertain whether a call to C<.READ> should be made. More bytes than necessary to satisfy a read
+operation may be requested from C<.READ>, in which case the extra data may be buffered by
+the L<IO::Handle> or the decoder it's using, to fullfill any subsequent reading operations, without
+necessarilly having to make another C<.READ> call.
+
+=head2 method EOF
+
+Defined as:
+
+    method EOF(IO::Handle:D: --> Bool:D)
+
+Indicates wether "end of file" has been reached for the B<data source> of the handle; i.e. no more
+data can be obtained by calling L<C«.READ»|/routine/READ> method. Note that this is B<not> the
+same as L<eof> method, which will return C<True> only if C<.EOF> returns C<True> B<and all
+the decoder buffers>, if any were used by the handle, are also empty.
+
 =head1 Related roles and classes
 
 See also the related role L<IO> and the related class L<IO::Path>.
