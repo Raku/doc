@@ -75,12 +75,18 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
     在缺少一个值的时候，abs可以工作在`$_`上面，但是不是一个函数，而是一个方法，你需要用`.abs`
     替换比较简单的`abs`来调用它。
 
+Perl 6生态系统有一个模块[P5math](https://modules.perl6.org/dist/P5math)，可以替代Perl5 abs
+的功能。
+
 ## accept
 
 - accept NEWSOCKET, GENERICSOCKET
 
     `accept` 是一个在服务器端调用的方法，例如`$server.accept()`，该方法不再是返回一个封装的地址，
     而是返回一个socket，最通常常用于某些类型IO::Socket对象。
+
+Perl 6生态系统模块 [P5caller](https://modules.perl6.org/dist/P5caller)的`caller`函数具有
+相似功能。
 
 ## alarm
 
@@ -159,30 +165,49 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - chdir EXPR
 
-    和perl5一样。
+和perl5差不多，但是必须带参数。`chdir()`（用来查询HOME和LOGDIR）功能不再支持。
+在Perl6中，L<chdir>只能改变`$*CWD`动态变量，不能实际改版默认目录。如有必要，需要
+专门的动态变量例程 L«`&*chdir`|/routine/&*chdir»来实现此种需求。
+这是因为，每个OS线程没有默认目录这个概念。从Perl 6开始，不再是使用fork，而是使用
+线程，对其而言，当前目录的概念应该是 `$*CWD`动态变量，该变量是词法范围的，所以
+线程安全。
+
+Perl 6生态系统有模块 [P5chdir](https://modules.perl6.org/dist/P5chdir)，和perl5
+`chdir`函数功能相似，包括查询HOME和LOGDIR。
+
 
 ## chmod
 
 - chmod LIST
 
     和Perl5中一样的函数，只是8进制数的表示有些不大一样（是`0o755`而不是`0755`），你也能把它作为方法使用，
-    比如`$fh.chmod(0o755)`。
 
 ## chomp
 
 - chomp VARIABLE
 
-    `chomp`的行为和Perl5中有些不同，它对目标不产生影响，而是返回一个去除逻辑换行符的新的目标,例如
-    `$x = "howdy\n";$y = chomp($x);`结果`$x`为“howdy\\n”以及`$y`为“howdy”。同样也可以作为方法使用，
-    例如`$y = $x.chomp`。和其他很多方法一样，它也可以以修改并赋值模式运行，例如`$x.=chomp`，结果`$x`
-    的值为"howdy"。
+`chomp`的行为和Perl5中有些不同，它对目标不产生影响，而是返回一个去除逻辑换行符的新的目标,例如
+`$x = "howdy\n";$y = chomp($x);`结果`$x`为“howdy\n”以及`$y`为“howdy”。同样也可以作为方法使用，
+例如`$y = $x.chomp`。和其他很多方法一样，它也可以以修改并赋值模式运行，例如`$x.=chomp`，结果`$x`
+的值为"howdy"。
+
+注意，不带参数的`chomp()`函数Perl不在支持。
+
+Perl 6生态系统模块[P5chomp](https://modules.perl6.org/dist/P5chomp)提供函数`chomp`，实现Perl5`chomp`函数类似功能
+和表现。
 
 ## chop
 
 - chop VARIABLE
 
-    和`chomp`一样，在Perl6中，它返回被截取以后的字符串，而不是直接截取替换，比如`$x = "howdy";$y = chop($x);`，
-    结果是`$x`为“howdy”以及`$y`为“howd”。同样可以做为方法使用：`$y = $x.chop`。
+和`chomp`一样，在Perl6中，它返回被截取以后的字符串，而不是直接截取替换，比如`$x = "howdy";$y = chop($x);`，
+结果是`$x`为“howdy”以及`$y`为“howd”。同样可以做为方法使用：`$y = $x.chop`。
+
+注意，不带参数的`chop()`函数Perl不在支持
+
+Perl 6生态系统模块[P5chomp](https://modules.perl6.org/dist/P5chomp)提供函数`chop`，实现Perl5`chop`函数类似功能
+和表现。
+
 
 ## chown
 
@@ -199,6 +224,9 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
         chr(65); # "A"
         65.chr;  # "A"
 
+Perl 6生态系统模块[P5chr](https://modules.perl6.org/dist/P5chr）的`chr`函数实现Perl5
+`chr`函数类似功能。
+
 ## chroot
 
 - chroot FILENAME
@@ -209,13 +237,16 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - close FILEHANDLE
 
-    和Perl5中一样，关闭一个文件句柄，返回一个布尔值。`close $fh`和 `$fh.close`都是可以的。
+不带参数的`close()`，Perl 6不再支持。
 
 ## closedir
 
 - closedir DIRHANDLE
 
-    Perl6中未提供`closedir`函数。他的功能可以用IO::Dir的一个方法代替。
+Perl6不再支持。
+
+Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)的`closedir`
+提供类似功能。
 
 ## connect
 
@@ -235,13 +266,22 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - cos EXPR
 
-    和Perl5中一样,同时也能作为对象方法使用,例如`(1/60000).cos`。
+和Perl5中一样。
+
+`cos`支持缺省参数时候对`$_`操作，但是不再是个函数，而是作为一个对象方法通过`.cos`调用。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math）提供函数 `cos`实现Perl5中类似
+功能和表现。
 
 ## crypt
 
 - crypt PLAINTEXT, SALT
 
-    Perl6还未实现。
+Perl6还未实现。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math）提供函数`crypt`实现
+P而l5中类似功能和表现。
+
 
 ## dbm functions
 
@@ -255,9 +295,15 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - defined EXPR
 
-    它可能能以你期望的那样工作，但是从技术上讲对于类型对象它返回`False`，其它情况返回`True`。
-    它使得当你没有为一个东西赋值时`$num.perl`会返回`Any`或者当你赋值了返回当前值更有意义。 
-    当然，你也可以作为一个方法使用它:`$num.defined`。
+它可能能以你期望的那样工作，但是从技术上讲对于类型对象它返回`False`，其它情况返回`True`。
+它使得当你没有为一个东西赋值时`$num.perl`会返回`Any`或者当你赋值了返回当前值更有意义。
+当然，你也可以作为一个方法使用它:`$num.defined`。并且任何新创建的类都可以有自己的
+`.defined`方法，可以用来判断何时以及如何是未定义的。
+
+注意，不带参数的`defined()`，Perl 6中不再支持。
+
+Perl 6生态系统模块[P5defined](https://modules.perl6.org/dist/P5defined）提供函数`defined`
+实现Perl5中类似功能和表现。
 
 ## delete
 
@@ -303,6 +349,9 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
     一个关于它是如何运作的清晰的解释。 
     [https://design.perl6.org/S04.html#The\_for\_statement](https://design.perl6.org/S04.html#The_for_statement)对你可能有些帮助，还有设计文档的
     [https://design.perl6.org/S06.html#%22Pointy\_blocks%22](https://design.perl6.org/S06.html#%22Pointy_blocks%22)， 另外还有[https://en.wikibooks.org/wiki/Perl\_6\_Programming/Blocks\_and\_Closures#Pointy\_Blocks](https://en.wikibooks.org/wiki/Perl_6_Programming/Blocks_and_Closures#Pointy_Blocks)
+
+Perl 6生态系统模块[P5each](https://modules.perl6.org/dist/P5each）提供函数`each`
+实现Perl5中类似功能和表现。
 
 ## eof
 
@@ -359,13 +408,19 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - exp EXPR
 
-    和perl5一样,也能作为对象方法：`5.exp`
+和perl5一样,`exp`缺省参数时候对`$_`操作，但是不再是个函数，而是作为一个对象方法通过`.cos`调用。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)提供函数`exp`
+实现Perl5中类似功能和表现。
 
 ## fc
 
 - fc EXPR
 
-    和perl5几乎一样。
+但是不带参数的形式不再支持。
+
+Perl 6生态系统模块[P5fc](https://modules.perl6.org/dist/P5fc)提供函数`fc`
+实现Perl5中类似功能和表现。
 
 ## fcntl
 
@@ -377,13 +432,20 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - \_\_FILE\_\_
 
-    用`$?FILE`代替。
+
+被`$?FILE`代替。但是表现稍有不同，他必须是绝对地址，而不是Perl5中的相对地址
+
+Perl 6生态系统模块[P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
+提供函数`__FILE__` 实现Perl5中类似功能和表现。
 
 ## fileno
 
 - fileno FILEHANDLE
 
-    S32说明作为对象方法，目前还未实现。
+`IO::Handle`的`native-descriptor`方法类似的`fileno`。
+
+Perl 6生态系统模块[P5fileno](https://modules.perl6.org/dist/P5fileno)
+提供函数`fileno` 实现Perl5中类似功能和表现。
 
 ## flock
 
@@ -395,8 +457,13 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - fork
 
-    未作为内建函数，可以通过`NativeCall`接口使用。例如：`use NativeCall; sub fork returns int32 is
-    native { * }; say fork;`。
+未作为内建函数，可以通过`NativeCall`接口使用，但是结果表现大不相同。
+
+Perl 6提供扩展提供支持内部使用以及线程中使用。然而，`fork`仅克隆`fork`线程
+结果是同进程的其他线程不可见，处于未知状态，还可能导致锁定。即使是Perl6程序
+没有明确启用线程，编译器也会生成一些预编译的进程,Perl6 运行时VMs也会生成它内建
+的工作线程来执行优化和GC的后台任务。因此，线程的很稳定，在这种情况下没有理由还
+需要`fork`的功能。
 
 ## formats
 
@@ -427,68 +494,126 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - getpgrp PID
 
-    还未实现。
+不会再实现。
+
+Perl 6生态系统模块[P5getpriority](https://modules.perl6.org/dist/P5getpriority)
+提供函数`getpgrp`实现Perl5中类似功能和表现。
+
+## getppid
+
+不会再实现。
+
+Perl 6生态系统模块[P5getpriority](https://modules.perl6.org/dist/P5getpriority)
+提供函数`getppid`实现Perl5中类似功能和表现。
 
 ## getpriority
 
 - getpriority WHICH, WHO
 
-    还未实现。
+Perl 6生态系统模块[P5getpriority](https://modules.perl6.org/dist/P5getpriority)
+提供函数`getpriority`实现Perl5中类似功能和表现。
 
 ## get and set functions
 
-- getpwnam NAME
-- getgrnam NAME
-- gethostbyname NAME
-- getnetbyname NAME
-- getprotobyname NAME
-- getpwuid UID
-- getgrgid GID
-- getservbyname NAME, PROTO
-- gethostbyaddr ADDR, ADDRTYPE
-- getnetbyaddr ADDR, ADDRTYPE
-- getprotobynumber NUMBER
-- getservbyport PORT, PROTO
-- getpwent
-- getgrent
-- gethostent
-- getnetent
-- getprotoent
-- getservent
-- setpwent
-- setgrent
-- sethostent STAYOPEN
-- setnetent STAYOPEN
-- setprotoent STAYOPEN
-- setservent STAYOPEN
-- endpwent
-- endgrent
-- endhostent
-- endnetent
-- endprotoent
-- endservent
+-  endpwent
 
-    \[需要进一步研究\]似乎这个列表中的函数可以被一些Roles比如 User,Group等处理。
+-  getlogin
 
-## getsock\*
+-  getpwent
 
-- getsockname SOCKET
-- getsockopt SOCKET, LEVEL, OPTNAME
+-  getpwnam NAME
 
-    \[需要进一步研究\]现在看起来可能被实现成某种IO::Socket对象，但是具体细节不详。
+-  getpwuid UID
 
-## glob
+-  setpwent
 
-- glob EXPR
+Perl 6生态系统模块 [P5getpwnam](https://modules.perl6.org/dist/P5getpwnam)
+`setpwent`实现Perl5中类似功能和表现。
 
-    在S32中有实例，但是似乎没有实现。
+-  endgrent
+
+-  getgrent
+
+-  getgrgid GID
+
+-  getgrnam NAME
+
+-  setgrent
+
+Perl 6生态系统模块[P5getgrnam](https://modules.perl6.org/dist/P5getgrnam)
+提供函数`endgrent`, `getgrent`, `getgrgid`, `getgrnam` 以及
+`setgrent`实现Perl5中类似功能和表现。
+
+-  endnetent
+
+-  getnetbyaddr ADDR, ADDRTYPE
+
+-  getnetbyname NAME
+
+-  getnetent
+
+-  setnetent STAYOPEN
+
+Perl 6生态系统模块[P5getnetbyname](https://modules.perl6.org/dist/P5getnetbyname)
+提供函数 `endnetent`, `getnetent`, `getnetbyaddr`, `getnetbyname`以及
+`setnetent`实现Perl5中类似功能和表现。
+
+-  endservent
+
+-  getservbyname NAME, PROTO
+
+-  getservbyport PORT, PROTO
+
+-  getservent
+
+-  setservent STAYOPEN
+
+Perl 6生态系统模块[P5getservbyname](https://modules.perl6.org/dist/P5getservbyname)
+提供函数 `endservent`, `getservent`, `getservbyname`,`getservbyport`以及
+`setservent`实现Perl5中类似功能和表现。
+
+-  endprotoent
+
+-  getprotobyname NAME
+
+-  getprotobynumber NUMBER
+
+-  getprotoent
+
+-  setprotoent STAYOPEN
+ 
+ Perl 6生态系统模块[P5getprotobyname](https://modules.perl6.org/dist/P5getprotobyname)
+提供函数`endprotoent`, `getprotoent`, `getprotobyname`,`getprotobynumber`以及
+`setprotoent`实现Perl5中类似功能和表现。
+
+-  gethostbyname NAME
+
+-  gethostbyaddr ADDR, ADDRTYPE
+
+-  gethostent
+
+-  sethostent STAYOPEN
+
+-  endhostent
+
+[需要进一步研究]似乎这个列表中的函数可以被一些Roles比如 User,Group等处理。
+
+
+-  glob EXPR
+
+在核心中还不能用，尽管一些功能可以通过L<dir>例程以及他的`test`参数提供。
+
+更多信息请浏览生态系统中的[`IO::Glob`模块](https://modules.perl6.org/dist/IO::Glob)
 
 ## gmtime
 
 - gmtime EXPR
 
-    `localtime`, `gmtime`的各种功能似乎在DateTime对象里，为获取一个UTC格式的当前时间的`DateTime`对象，
-    可以用： `my $gmtime = DateTime.now.utc`。
+`localtime`, `gmtime`的各种功能似乎在DateTime对象里，为获取一个UTC格式的当前时间的`DateTime`对象，
+可以用： `my $gmtime = DateTime.now.utc`。
+
+Perl 6生态系统模块[P5localtime](https://modules.perl6.org/dist/P5localtime)
+提供函数`gmtime`实现Perl5中类似功能和表现。
 
 ## goto
 
@@ -496,7 +621,10 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - goto EXPR
 - goto &NAME
 
-   goto还未实现。
+`goto LABEL`语法已经被接受，但是运行时部分的`goto`还未实现。所以以下语句
+会报运行时错误：
+
+    FOO: goto FOO; # Label.goto() not yet implemented. Sorry
 
 ## grep
 
@@ -511,12 +639,17 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - hex EXPR
 
-    用副词形式`:16`取代了，例如：`:16("aF")`返回175。
+Perl 6中表达式必须明确指定。
 
-    另外，可以使用 `.base`方法得到同样的结果：`0xaF.base(10)`。
+用副词形式`:16`取代了，例如：`:16("aF")`返回175。
 
-    碰巧 `.Str`默认显示的是10进制，所以如果你`say 0xaF`，它依然会打印175，
-    但这样不够直观，不是最好的方式。
+另外，可以使用 `.base`方法得到同样的结果：`0xaF.base(10)`。
+
+碰巧 `.Str`默认显示的是10进制，所以如果你`say 0xaF`，它依然会打印175，
+但这样不够直观，不是最好的方式。
+
+Perl 6生态系统模块[P5hex](https://modules.perl6.org/dist/P5hex)
+提供函数`hex`实现Perl5中类似功能和表现。
 
 ## import
 
@@ -530,16 +663,39 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - index STR, SUBSTR, POSITION
 
-    和perl5表现一样，同时可作为对象方法：
-    `"howdy!".index("how"); # 0`
+和perl5表现一样，同时可作为对象方法：
+`"howdy!".index("how"); # 0`
+
+和Perl 5主要的不同是，当子符串没有发现时返回`Nil`而不是`-1`，这个特性在和`with`
+语一起使用时非常有用。比如：
+
+     with index("foo","o") -> $index {
+         say "Found it at $index";
+     }
+     else {
+         say "Not found"
+
+    }
+
+Perl 6生态系统模块[P5index](https://modules.perl6.org/dist/P5index)
+提供函数`index`实现Perl5中类似功能和表现。
 
 ## int
 
 - int EXPR
 
-    在Perl6里面它是和Perl5中一样的truncate（截断）函数（也可作为对象方法），你直接使用它作为
-    Perl5代码的移植版本，但是在Perl6中，你可以对一个数字方便地直接调用`int`方法。 
-    `3.9.Int; # 3`和`3.9.truncate`等效。
+在Perl6里面它是和Perl5中一样的truncate（截断）函数（也可作为对象方法），你直接使用它作为
+Perl5代码的移植版本，但是在Perl6中，你可以对一个数字方便地直接调用`int`方法。
+`3.9.Int; # 3`和`3.9.truncate`等效。
+
+需要注意的是`int`在Perl 6中具有具体意义。是一种类型，用于显式定义是一个原生整型：
+
+    my int $a = 42; #  原生整数，和Perl 5 整数值类似。
+
+`int`缺省参数时候对 `$_`操作，但不是能简单函数调用，而是用`.int`方法调用。
+
+Perl 6生态系统模块[P5math](https://modules.perl6.org/dist/P5math)
+提供函数`int`实现Perl5中类似功能和表现。
 
 ## ioctl
 
@@ -585,25 +741,36 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - lc EXPR
 
-    和Perl5中表现一致，也可以作为对象方法：`"UGH".lc`
+和Perl5中表现一致，也可以作为对象方法：`"UGH".lc`在Perl 6中一个表达式
+必须是必须执行。
+Perl 6生态系统模块[P5lc](https://modules.perl6.org/dist/P5lc)
+提供函数`lc`实现Perl5中类似功能和表现。
 
 ## lcfirst
 
 - lcfirst EXPR
 
-    未定义。
+未定义。
+Perl 6生态系统模块[P5lcfirst](https://modules.perl6.org/dist/P5lcfirst)
+提供函数`lcfirst`实现Perl5中类似功能和表现。
 
 ## length
 
 - length EXPR
 
-    被`chars`取代，通常作为一个方法使用(`$string.chars`),也能作为函数用。
+被`chars`取代，通常作为一个方法使用(`$string.chars`),也能作为函数用。
+
+Perl 6生态系统模块 [P5length](https://modules.perl6.org/dist/P5length)
+提供函数`length`实现Perl5中类似功能和表现。
 
 ## \_\_LINE\_\_
 
 - \_\_LINE\_\_
 
-    被`$?LINE`取代。
+被`$?LINE`取代。
+
+Perl 6生态系统模块 [P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
+提供函数 `__LINE__` 实现Perl5中类似功能和表现。
 
 ## link
 
@@ -628,24 +795,27 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - localtime EXPR
 
-    `localtime`的大部分的功能都可以在`DateTime`中找到，`localtime`特定的部分如下：
+`localtime`的大部分的功能都可以在`DateTime`中找到，`localtime`特定的部分如下：
 
-    注意在Perl6中的范围并不是0开始的，上面的例子已经显示这点。
-
-    好像没有一种明确的方式可以得到Perl5中的`$isdst`对应的值，Perl5中提供的`scalar(localtime)`
-    已经不可用了,`$d.Str`会返回类似“2015-06-29T12:49:31-04:00”的字串。
+Perl 6生态系统模块 [P5localtime](https://modules.perl6.org/dist/P5localtime)
+提供函数 `localtime` 实现Perl5中类似功能和表现。
 
 ## lock
 
 - lock THING
 
-    Perl6中,是Lock类的一个方法。
+目前在Perl 6中还没有对应的功能。Perl 6有`Lock`类用来创建Lock对象，可以根据需求为
+locked或者unlocked，但是这样的锁定不能指向外部的对象。
 
 ## log
 
 - log EXPR
 
-    Perl6中也可用，也可以作为对象方法：例如`log(2)`和`2.log`等效。
+和Perl相同，`log`缺省参数对`$_`操作，但是不能不作为函数，你需要通过`.log`调用
+而不是`log`方法。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
+提供函数 `log` 实现Perl5中类似功能和表现。
 
 ## lstat
 
@@ -677,7 +847,8 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - mkdir FILENAME, MASK
 - mkdir FILENAME
 
-    和Perl5一样
+和Perl5一样。但是当给多级目录的参数时候，它会用同样的掩码自动生成不存在的中层目录（和Perl 5中
+File::Path 模块中make_path的功能相似）。
 
 - mkdir
 
@@ -723,9 +894,12 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - oct
 
-    被副词格式`:8`取代,例如：`:8("100")`返回 64。
+被副词格式`:8`取代,例如：`:8("100")`返回 64。
 
-    如果你想处理`0x`, `0o`,或者`0b`开头的字符串，你可以使用C«prefix:<+>»操作符。
+如果你想处理`0x`, `0o`,或者`0b`开头的字符串，你可以使用C«prefix:<+>»操作符。
+
+Perl 6生态系统模块 [P5hex](https://modules.perl6.org/dist/P5hex)
+提供函数n `oct` 实现Perl5中类似功能和表现。
 
 ## open
 
@@ -735,9 +909,12 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - open FILEHANDLE, MODE, REFERENCE
 - open FILEHANDLE
 
-    相对于Perl5最明显的改变就是文件模式的语法，以只读方式打开一个文件，你需要使用`open("file", :r)`，
-    以只写、读写以及追加的方式打开需要分别使用 `:w`, `:rw`和`:a`，另外还有
-    一些关于编码以及如何处理换行的选项，具体参见[here](#routine-open)。
+相对于Perl5最明显的改变就是文件模式的语法，以只读方式打开一个文件，你需要使用`open("file", :r)`，
+以只写、读写以及追加的方式打开需要分别使用 `:w`, `:rw`和`:a`，另外还有
+一些关于编码以及如何处理换行的选项，具体参见L<here|/routine/open>。
+
+Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)
+提供函数n `opendir` 实现Perl5中类似功能和表现。
 
 ## opendir
 
@@ -749,7 +926,12 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - ord EXPR
 
-    和Perl5中一样，也支持对象方法：`"howdy!".ord; # 104`。
+和Perl5中一样，也支持对象方法：`"howdy!".ord; # 104`。
+
+注意不带参数的`ord()`Perl6不再支持。
+
+Perl 6生态系统模块 [P5chr](https://modules.perl6.org/dist/P5chr)
+提供函数 `ord` 实现Perl5中类似功能和表现。
 
 ## our
 
@@ -764,7 +946,11 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - pack TEMPLATE, LIST
 
-    在Perl6中可用，模板的选项比Perl5更严格，详细文档可以参考[unpack](#routine-unpack)
+在Perl6中可用，当实验性质的 `use experimental :pack`被指定时，`pack`需要被调用。
+模板的选项比Perl5更严格，详细文档可以参考L<unpack|/routine/unpack>。
+
+Perl 6生态系统模块 [P5pack](https://modules.perl6.org/dist/P5pack)
+提供函数 `pack` 实现Perl5中类似功能和表现。
 
 ## package
 
@@ -783,7 +969,11 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - \_\_PACKAGE\_\_
 
-    被`$?PACKAGE`取代。
+被`$?PACKAGE`取代。但是与`__PACKAGE__`有稍许不同，因为它实际上是package对象，你必须通过
+ `.^name`方法获得字符串。
+
+Perl 6生态系统模块 [P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
+提供函数 `__PACKAGE__` 实现Perl5中类似功能和表现
 
 ## pipe
 
@@ -796,7 +986,22 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - pop ARRAY
 
-    Perl6中可用，也可用作对象方法，例如： `my $x = pop@a;` 和`my $x = @a.pop;`都是可以的。
+Perl6中可用，也可用作对象方法，例如： `my $x = pop@a;` 和`my $x = @a.pop;`都是可以的。
+
+`pop`现在必须后带参数。如果数组为空，在Perl 6中会返回Failure。
+
+如果你想使用数组中定义的值，你可以使用`with`来出来这种情况。
+
+=for code :preamble<my @array;>
+with pop @array -> $popped {
+    say "popped '$popped' of the array";
+}
+else {
+    say "there was nothing to pop";
+}
+
+Perl 6生态系统模块 [P5push](https://modules.perl6.org/dist/P5push)
+提供函数 `pop` 实现Perl5中类似功能和表现。
 
 ## pos
 
@@ -812,16 +1017,22 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - print LIST
 - print
 
-    `print`在Perl6中可以函数形式使用，默认输出到标准输出。作为函数使用print并且使用文件句柄输出时，
-    可以用方法调用。比如，`$fh.print("howdy!")`。
+`print`在Perl6中可以函数形式使用，默认输出到标准输出。作为函数使用print并且使用文件句柄输出时，
+可以用方法调用。比如，`$fh.print("howdy!")`。
+
+Perl 6生态系统模块 [P5print](https://modules.perl6.org/dist/P5print)
+提供函数 `print` 实现Perl5中类似功能和表现。
 
 ## printf
 
 - printf FORMAT, LIST
 - printf
 
-    Perl6中其功能类似。详情请看[sprintf](https://docs.perl6.org/type/Str#sub_sprintf)。如果输出到文件
-    句柄，使用对该句柄的L«`.printf`|/routine/printf»方法调用。
+Perl6中其功能类似。详情请看L<sprintf|https://docs.perl6.org/type/Str#sub_sprintf)。如果输出到文件
+句柄，使用对该句柄的[`.printf`](/type/printf)方法调用。
+
+Perl 6生态系统模块 [P5print](https://modules.perl6.org/dist/P5print)
+提供函数 `printf` 实现Perl5中类似功能和表现。
 
 ## prototype
 
@@ -833,8 +1044,13 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - push ARRAY, LIST
 
-    在Perl6中依然可用，也能以方法调用形式使用：`@a.push("foo");`，_注意:_数组内插行为和Perl5中不同：
-    `@b.push: @a`:将会把`@a`作为单个元素压入到`@b`中，更多请参考[append method](#type-array-method_append)。
+在Perl6中依然可用，也能以方法调用形式使用：`@a.push("foo");`，I<注意:>数组内插行为和Perl5中不同：
+`@b.push: @a`:将会把`@a`作为单个元素压入到`@b`中，更多请参考L<append method|/type/Array#method_append>。
+
+需要注意的是Perl 6中  `push`返回操作后的数组，而Perl 5中返回的是元素的个数。
+
+Perl 6生态系统模块 [P5push](https://modules.perl6.org/dist/P5push)
+提供函数 `push` 实现Perl5中类似功能和表现。
 
 ## quoting
 
@@ -855,19 +1071,25 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 被`rx/.../`取代。
 - quotemeta EXPR
 
-    没有直接的等价用法，例如，没有直接返回字符串中所有ASCII非单词转义字符的操作。
-    然而，在正则表达式中使用`$foo`会被视为字符串字面的字符，使用`<$foo>`
-    会将`$foo`的内容作为正则代码直接内插到表达式中，注意尖括号和它在正则表达式
-    外部的行为有点不同。更多详情，浏览[https://design.perl6.org/S05.html#Extensible\_metasyntax\_(%3C...%3E)](https://design.perl6.org/S05.html#Extensible_metasyntax_\(%3C...%3E\))
+没有直接的等价用法，例如，没有直接返回字符串中所有ASCII非单词转义字符的操作。
+然而，在正则表达式中使用`$foo`会被视为字符串字面的字符，使用`< <$foo` >>
+会将`$foo`的内容作为正则代码直接内插到表达式中，注意尖括号和它在正则表达式
+外部的行为有点不同。更多详情，浏览(https://design.perl6.org/S05.html#Extensible_metasyntax_(%3C...%3E))
+
+Perl 6生态系统模块 [P5quotemeta](https://modules.perl6.org/dist/P5quotemeta)
+提供函数 `quotemeta` 实现Perl5中类似功能和表现。
 
 ## rand
 
 - rand EXPR
 
-    `rand`和Perl5中功能一样，但是现在你不需要给它提供参数了。把它作为一个方法使用
-    就会是这样的效果，例如，Perl5中的`rand(100)`等价于Perl6中的`100.rand`。 另外，
-    你还可以通过`(^100).pick`获取一个随机的整数，为什么要这么做？，可以参考[^ operator](#language-operators-prefix_-5e)
-    操作符和[pick](#routine-pick)得到你要的答案。
+`rand`和Perl5中功能一样，但是现在你不需要给它提供参数了。把它作为一个方法使用
+就会是这样的效果，例如，Perl5中的`rand(100)`等价于Perl6中的`100.rand`。 另外，
+你还可以通过`(^100).pick`获取一个随机的整数，为什么要这么做？，可以参考[^ operator](/language/operators#prefix_%5E)
+操作符和[pick](/routine/pick)得到你要的答案。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
+提供函数 `rand` 实现Perl5中类似功能和表现。
 
 ## read
 
@@ -880,13 +1102,19 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - readdir DIRHANDLE
 
-    已去除，遍历一个目录的内容，请参考[dir routine](#type-io-path-routine_dir)。
+已去除，遍历一个目录的内容，请参考L<dir routine|/type/IO::Path#routine_dir>。
+
+Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)
+提供函数 `readdir` 实现Perl5中类似功能和表现。
 
 ## readline
 
 - readline
 
-    已去除，你可以使用`.lines`方法获得类似功能，更多细节请参考[io](#language-io)。
+貌似已去除。如果操作系统的文件系统支持的话，在`IO::Path`中有个方法`resolve` 可以操作符号链接。
+
+Perl 6生态系统模块 [P5readlink](https://modules.perl6.org/dist/P5readlink)
+提供函数 `readlink` 实现Perl5中类似功能和表现。
 
 ## readlink
 
@@ -919,8 +1147,10 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - ref EXPR
 
-    已经去除，S29指出“如果你真的想获得类型名字，你可以使用`$var.WHAT.perl`，如果你真的想
-    使用P5的ref机制，可以用`Perl5::p5ref`.”，但是目前`Perl5::p5ref`并不存在...
+已经去除，你可以使用`$var.WHAT.^name`。
+
+Perl 6生态系统模块 [P5ref](https://modules.perl6.org/dist/P5ref)
+提供函数 `ref` 实现Perl5中类似功能和表现。
 
 ## rename
 
@@ -938,7 +1168,10 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - reset EXPR
 
-    没有可替代功能。
+没有可替代功能。
+
+Perl 6生态系统模块 [P5reset](https://modules.perl6.org/dist/P5reset)
+提供函数 `reset` 实现Perl5中类似功能和表现。
 
 ## return
 
@@ -950,22 +1183,46 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - reverse LIST
 
-    在Perl6中，你只能使用`reverse(@a)`或者`@a.reverse`反转一个列表，
-    要反转一个字符串，请使用`.flip`方法。
+在Perl6中，你只能使用`reverse(@a)`或者`@a.reverse`反转一个列表，
+要反转一个字符串，请使用`.flip`方法。
+
+无参数`reverse`的函数在Perl 6中不在支持。
+
+Perl 6生态系统模块 [P5reverse](https://modules.perl6.org/dist/P5reverse)
+提供函数 `reverse` 实现Perl5中类似功能和表现。
 
 ## rewinddir
 
 - rewinddir DIRHANDLE
 
-    \[需要更多研究\]目前没有一个明显的可替代的功能，可能在`IO::Path`的一些
-    方法会提供类似的功能，截止目前还不确切。
+
+Perl 6中不在支持。
+
+Perl 6生态系统模块 [P5rewinddir](https://modules.perl6.org/dist/P5rewinddir)
+提供函数 `rewinddir` 实现Perl5中类似功能和表现。
 
 ## rindex
 
 - rindex STR, SUBSTR, POSITION
 
-    和Perl5中功能类似，还支持对象方法方式，例如：`$x =
-    "babaganush";say $x.rindex("a");say $x.rindex("a", 3); # 5, 3`。
+和Perl5中功能类似，还支持对象方法方式，例如：
+ 
+ `$x ="babaganush";
+say $x.rindex("a");
+say $x.rindex("a", 3); # 5, 3`。
+
+和Perl 5对比主要的不同是当子字串不存在时候返回`Nil`，而不是 `-1`。这在和`with`
+语句连接使用时候非常有用。
+
+    with index("foo","o") -> $index {
+        say "Found it at $index";
+    }
+    else {
+        say "Not found"
+    }
+
+Perl 6生态系统模块 [P5index](https://modules.perl6.org/dist/P5index)
+提供函数 `rindex` 实现Perl5中类似功能和表现。
 
 ## rmdir
 
@@ -989,28 +1246,40 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - say LIST
 - say
 
-    `say`可被当做函数使用，默认输出到标准输出。如果需要输出到文件句柄，需要在句柄
-    后加一个冒号，例如，`say $fh: "Howdy!"`。冒号是作为“调用者标记”来使用的， 
-    关于它的讨论见[https://design.perl6.org/S03.html#line\_4019](https://design.perl6.org/S03.html#line_4019)。 
-    你也可使用对象方法的形式调用`$fh.say("howdy!")`。
+`say`可被当做函数使用，默认输出到标准输出。如果需要输出到文件句柄，需要在句柄
+后加一个冒号，例如，`say $fh: "Howdy!"`。冒号是作为“调用者标记”来使用的，
+关于它的讨论见L<https://design.perl6.org/S03.html#line_4019>。
+你也可使用对象方法的形式调用`$fh.say("howdy!")`。
+
+Perl 6生态系统模块 [P5print](https://modules.perl6.org/dist/P5print)
+提供函数 `say` 实现Perl5中类似功能和表现。
 
 ## scalar
 
 - scalar EXPR
 
-    已去除。
+已去除。
+
+CPAN Butterfly Plan 创建了模块支持一些函数，`:scalar`命名的参数表明函数的
+具有`scalar`类似的行为。
 
 ## seek
 
 - seek FILEHANDLE, POSITION, WHENCE
 
-    还没有正式文档，不过它在`IO::Handle`类下。
+还没有正式文档，不过位于`IO::Handle`类中。
+
+Perl 6生态系统模块 [P5seek](https://modules.perl6.org/dist/P5seek)
+提供函数 `seek` 实现Perl5中类似功能和表现。
 
 ## seekdir
 
 - seekdir DIRHANDLE, POS
 
-    还没有正式文档，但是将会在`IO`的类中实现，可能是`IO::Path`。
+Perl 6 不支持。
+
+Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)
+提供函数 `seekdir` 实现Perl5中类似功能和表现。
 
 ## select
 
@@ -1048,13 +1317,18 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - setpgrp PID, PGRP
 
-    核心中不再包含,可能会在POSIX模块中找到。
+不会再实现。
+Perl 6生态系统模块 [P5getpriority](https://modules.perl6.org/dist/P5getpriority)
+提供函数 `setpgrp` 实现Perl5中类似功能和表现。
 
 ## setpriority
 
 - setpriority WHICH, WHO, PRIORITY
 
-    核心中不再包含,可能会在POSIX模块中找到。
+不会再实现。
+
+Perl 6生态系统模块 [P5getpriority](https://modules.perl6.org/dist/P5getpriority)
+提供函数 `setpriority` 实现Perl5中类似功能和表现。
 
 ## setsockopt
 
@@ -1068,7 +1342,24 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - shift EXPR
 - shift
 
-    即可以作为函数使用，又可以作为方法使用,`shift @a`和`@a.shift`是等价的。
+即可以作为函数使用，又可以作为方法使用,`shift @a`和`@a.shift`是等价的。
+
+缺省参数版本不在支持。而且，如果数组为空，则会返回Failure。
+
+如果要明确返回定义的数组元素，你需要使用`with`语句来做判断。
+
+```
+=for code :preamble<my @array;>
+with shift @array -> $shifted {
+    say "shifted '$shifted' of the array";
+}
+else {
+    say "there was nothing to shift";
+}
+```
+
+Perl 6生态系统模块 [P5shift](https://modules.perl6.org/dist/P5shift)
+提供函数 `shift` 实现Perl5中类似功能和表现。
 
 ## shm\*
 
@@ -1089,14 +1380,25 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - sin EXPR
 
-    即可以作为函数使用，又可以作为对象方法调用，`` sin(2)和`2.sin`是等价的。 ``
+和Perl 5中一样。`sin`缺省参数时候对`$_`操作。但是不在作为函数使用，但是
+你可以将其当做对象方法通过 `.sin`调用，而不是简单的`sin`函数。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
+提供函数 `sin` 实现Perl5中类似功能和表现。
 
 ## sleep
 
 - sleep EXPR
 
-    和Perl5中的功能一样，截止本文档编写，它还可以对象方法调用，但确定已被废弃，
-    将来可能会去掉。
+和Perl 5中的一样的使用，但是不在限制为整数值的秒数。并且他返回值一直为 Nil。
+如果你有意通过`sleep`返回值来确保sleeping到特定时间，你可以用`sleep-until`，
+它会返回`Instant`。
+
+如果你意图让代码运行N秒，并且不在意具体那个进程运行，请使用`Supply.interval`的
+`react`和`whenever`方法。
+
+Perl 6生态系统模块 [P5sleep](https://modules.perl6.org/dist/P5sleep)
+提供函数 `sleep` 实现Perl5中类似功能和表现。
 
 ## sockets
 
@@ -1202,7 +1504,11 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - sqrt EXPR
 
-    可以作为方法和函数使用，`sqrt(4)`和`4.sqrt`等价。
+可以Perl 5中一样。缺省值的`sqrt`对 `$_`运算，但是不能当做函数使用，而是当
+做对象方法你需要用`.sqrt`调用。
+
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
+提供函数 `sqrt` 实现Perl5中类似功能和表现。
 
 ## srand
 
@@ -1232,7 +1538,10 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - study SCALAR
 - study
 
-    `study`不在支持.
+`study`不在支持.
+
+Perl 6生态系统模块 [P5study](https://modules.perl6.org/dist/P5study)
+提供函数 `study` 实现Perl5中类似功能和表现。
 
 ## sub
 
@@ -1250,7 +1559,11 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - \_\_SUB\_\_
 
-    被`&?ROUTINE`替代。
+被`&?ROUTINE`替代，有点不同的是它实际上是 `Sub`（或者`Method`）对象，你需要
+通过调用`.name`获得一个字串。
+
+Perl 6生态系统模块 [P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
+提供函数 `__SUB__` 实现Perl5中类似功能和表现。
 
 ## substr
 
@@ -1265,7 +1578,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - symlink OLDFILE, NEWFILE
 
-    See [symlink](https://metacpan.org/pod/symlink)
+    见[symlink](https://metacpan.org/pod/symlink)。
 
 ## syscall
 
@@ -1302,7 +1615,10 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - tell FILEHANDLE
 
-    在`IO::Handle`,不过简单提了一句，还没有文档。
+Perl 6中不再支持。
+
+Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)
+提供函数 `telldir` 实现Perl5中类似功能和表现。
 
 ## telldir
 
@@ -1315,21 +1631,40 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 - tie VARIABLE, CLASSNAME, LIST
 - tied VARIABLE
 
-    \[需要进一步研究\] S29中指出变量类型已经被容器类型替代，
-    很不幸，这意味着实际中将不会有此函数定义。
+Perl 6 对应的scalar是`Proxy`容器，例如：
+
+```
+    sub lval() {
+      Proxy.new(
+        FETCH => method () { ...},
+        STORE => method ($new) { ... }
+      )
+    }
+
+ ```
+这是使得`lval`为一个左值子例程。无论任何值请求，会调用`FETCH`方法。而如果在
+一个赋值语句中使用，则会调用`STORE`方法。
+
+对函数和哈希（对象为`Positional`和（或） `Associative`角色），唯一需要提供的方法
+使得和Perl 5 `tie`一样功能的。这些说明详细描述在`Subscripts`部分。
+
+Perl 6生态系统模块 [P5tie](https://modules.perl6.org/dist/P5tie)
+which exports `tie` / `tied` 实现Perl5中类似功能和表现。
 
 ## time
 
 - time
 
-    “返回当前时间的Int类型的表达”，虽然目前文档还没有说明它具体如何表示当前时间，
-    不过看起来依然和Perl5一样是从纪元开始的秒数。
+返回从epoch开始的秒数（`Int`对象），和Perl一样。
 
 ## times
 
 - times
 
-    Not available in Perl 6.
+Perl 6中不支持。
+
+Perl 6生态系统模块 [P5times](https://modules.perl6.org/dist/P5times)
+提供函数 `times` 实现Perl5中类似功能和表现。
 
 ## tr///
 
@@ -1346,30 +1681,41 @@ Perl5的C</r>标识符被C<TR///>操作符代替了；C<y///>还没有替代方�
 - truncate FILEHANDLE, LENGTH
 - truncate EXPR, LENGTH
 
-    极有可能在`IO::Handle`模块中，还没有相关文档。
+目前版本还未实现 (2018.04)。
 
 ## uc
 
 - uc EXPR
 
-    支持函数以及对象方法两种形式。`uc("ha")`和`"ha".uc`都返回 "HA"。
+支持函数以及对象方法两种形式。`uc("ha")`和`"ha".uc`都返回 "HA"。
+
+忽略参数版本的函数不再支持。
+
+Perl 6生态系统模块 [P5lc](https://modules.perl6.org/dist/P5lc)
+提供函数 `uc` 实现Perl5中类似功能和表现。
 
 ## ucfirst
 
 - ucfirst EXPR
 - ucfirst
 
-    已被去除，现在函数 [`tc`](#routine-tc)可以完成你想做的事。
+已被去除，你可以使用标题大写函数[tc>|/routine/tc>。
+
+Perl 6生态系统模块 [P5lcfirst](https://modules.perl6.org/dist/P5lcfirst)
+提供函数 `ucfirst` 实现Perl5中类似功能和表现。
 
 ## undef
 
 - undef EXPR
 
-    `undef`被去除，你不能undefine函数，与其功能最接近的一个值是`Nil`，
-    但你可能用不到。在Perl6中，如果要使用诸如`(undef, $file, $line) = caller;`的语句，
-    你可以直接获得文件名以及行数而不是忽略`caller`的第一个返回值。`caller`已经被`callframe`
-    替代。所以Perl6中实现这样的功能的语句是 `($file, $line) =
-    callframe.annotations<file line`;>。
+`undef`被去除，你不能undefine函数，与其功能最接近的一个值是`Nil`，
+但你可能用不到。在Perl6中，如果要使用诸如`(undef, $file, $line) = caller;`的语句，
+你可以直接获得文件名以及行数而不是忽略`caller`的第一个返回值。`caller`已经被`callframe`
+替代。所以Perl6中实现这样的功能的语句是 `($file, $line) =
+callframe.annotations<file line`;>。
+
+Perl 6生态系统模块 [P5defined](https://modules.perl6.org/dist/P5defined)
+提供函数n `undef` 实现Perl5中类似功能和表现。
 
 ## unlink
 
@@ -1386,21 +1732,38 @@ Perl5的C</r>标识符被C<TR///>操作符代替了；C<y///>还没有替代方�
 - unpack TEMPLATE, EXPR
 - unpack TEMPLATE
 
-    在Perl6中可用，模板设置比Perl5中限制更多，目前的文档请查看[here](#routine-unpack)。
+在Perl6中可用，当在`unpack`调用作用域有`use experimental :pack`指定时，模版选项
+限制比Perl 5更严。详见文档L<unpack|/routine/unpack>。
+
+Perl 6生态系统模块 [P5pack](https://modules.perl6.org/dist/P5pack)
+提供函数n `unpack` 实现Perl5中类似功能和表现。
 
 ## unshift
 
 - unshift ARRAY, LIST
 - unshift EXPR, LIST
 
-    在Perl6中可用，也支持对象方法调用形式。`unshift(@a, "blah")`等价于`@a.unshift("blah")`。
+和Perl 5中使用方法类似，也支持对象方法调用形式：
+
+`@a.unshift("foo");`。
+
+注意，变量展开方式和Perl 5中大有不同：
+`@b.unshift: @a` 将会unshift `@a`作为一个独立元素到`@b`中。
+更多文档详见[prepend method](/type/Array#method_prepend)
+
+还有就是Perl 6的 `unshift`返回数组对象，而不是Perl 5中的元素个数。
+
+Perl 6生态系统模块 [P5shift](https://modules.perl6.org/dist/P5shift)
+提供函数n `unshift` 实现Perl5中类似功能和表现。
 
 ## untie
 
 - untie VARIABLE
 
-    \[需要进一步研究\] 根据S29，方法中对变量绑定的操作被容器类型取代，所以tie和unite功能不是很明确，
-    这在tie部分已经提到。
+Perl 6 不在支持，具体在tie部分已经提到。
+
+Perl 6生态系统模块 [P5tie](https://modules.perl6.org/dist/P5tie)
+提供函数n `untie` 实现Perl5中类似功能和表现。
 
 ## use
 
@@ -1431,8 +1794,12 @@ Perl5的C</r>标识符被C<TR///>操作符代替了；C<y///>还没有替代方�
 
 - vec EXPR, OFFSET, BITS
 
-    S29中指出，应该使用定义`bit`,`uint2`, `uint4`等类型的buffer/array来取代vec，
-    虽然还不是很明确，不过功能已经在实现中。
+Perl 6中不再支持。
+
+S29中指出，应该使用定义`bit`,`uint2`, `uint4`等类型的buffer或数组来取代vec，
+但是`bit`, `uint2`, `uint4`的支持还未就绪。 `uint8`, `int8`, `uint16`,
+`int16`,`uint32`, `int32`, `uint64`, `int64`以及随系统大小的`uint`和`int`
+已经可用。包括标量，数组和异形数组（aka矩阵）等形式。
 
 ## wait
 
@@ -1451,9 +1818,10 @@ Perl5的C</r>标识符被C<TR///>操作符代替了；C<y///>还没有替代方�
 
 - wantarray
 
-    Perl6中由于种种原因不在支持wantarray函数，具体这些原因可浏览[reasons](#language-faq-why_is_wantarray_or_want_gone-_can_i_return_different_things_in_different_contexts)。
+Perl 6 中没有`wantarray`，但是可以有很多简单的方法可以实现类似功能。
 
-    这里有几种简单的方式来实现wantarray的功能：
+首先，因为Perl6并不需要特殊的引用语法把`List`或者`Array`包装成`Scalar` ，
+简单的返回一个列表只需要：
 
     首先，因为Perl6并不需要特殊的引用语法把`List`或者`Array`包装成`Scalar` ，
     简单的返回一个列表只需要：
