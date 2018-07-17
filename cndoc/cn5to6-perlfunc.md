@@ -13,7 +13,7 @@
 
 通用的理念是：Perl6比Perl5 更面向对象，在Perl6中，一切皆对象，然而如果你不想这么做的话，
 perl6足够灵活到可以让你避免使用面向对象风格。 意思就是，不管怎样，有很多函数调用由 
-`function(@args)`风格变为了现在的 `@args.function`风格（很少情况下，仅有方法调用），
+`function(@args)`风格变为了现在的 `@args.function`风格（很少情况下，仅有方法调用)，
 这在下面的正文中会很显然，不过这可以让更快的进入意境。
 
 还有，除非另有说明，“function”一词意思就是一个`function(@args)`风格的函数，同时“method”
@@ -30,7 +30,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
     对于文件测试 Perl 6给了你两种选择，你可以使用智能匹配(`~~`)或者调用对应的方法。
     在Perl6中进行文件测试，你不必像传统方式一样需要打开一个文件句柄（当然你仍然可以
-    使用文件句柄）， 简单的向文件名字后面追加`.IO`即可。 下面是使用智能匹配检测一个
+    使用文件句柄)， 简单的向文件名字后面追加`.IO`即可。 下面是使用智能匹配检测一个
     文件是否可读的示例：
 
         '/path/to/file'.IO ~~ :r
@@ -52,7 +52,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
         :s 大小
         :z 零大小
 
-    所有这些测试也都可以作为方法使用（不加冒号）。
+    所有这些测试也都可以作为方法使用（不加冒号)。
 
     下面的三种测试_只有_方法调用版本：
 
@@ -69,7 +69,7 @@ perl6足够灵活到可以让你避免使用面向对象风格。 意思就是�
 
 - abs VALUE
 
-    作为函数(`abs($x)`)，或者类方法。需要注意的是，方法绑定的优先级大于-（负号），所以，
+    作为函数(`abs($x)`)，或者类方法。需要注意的是，方法绑定的优先级大于-（负号)，所以，
     `-15.abs`将作为 `-(15.abs)`求值， 结果是-15，对这种情况，你需要做类似于`(-15).abs`的处理。
 
     在缺少一个值的时候，abs可以工作在`$_`上面，但是不是一个函数，而是一个方法，你需要用`.abs`
@@ -165,7 +165,7 @@ Perl 6生态系统模块 [P5caller](https://modules.perl6.org/dist/P5caller)的`
 
 - chdir EXPR
 
-和perl5差不多，但是必须带参数。`chdir()`（用来查询HOME和LOGDIR）功能不再支持。
+和perl5差不多，但是必须带参数。`chdir()`（用来查询HOME和LOGDIR)功能不再支持。
 在Perl6中，L<chdir>只能改变`$*CWD`动态变量，不能实际改版默认目录。如有必要，需要
 专门的动态变量例程 L«`&*chdir`|/routine/&*chdir»来实现此种需求。
 这是因为，每个OS线程没有默认目录这个概念。从Perl 6开始，不再是使用fork，而是使用
@@ -180,7 +180,7 @@ Perl 6生态系统有模块 [P5chdir](https://modules.perl6.org/dist/P5chdir)，
 
 - chmod LIST
 
-    和Perl5中一样的函数，只是8进制数的表示有些不大一样（是`0o755`而不是`0755`），你也能把它作为方法使用，
+    和Perl5中一样的函数，只是8进制数的表示有些不大一样（是`0o755`而不是`0755`)，你也能把它作为方法使用，
 
 ## chomp
 
@@ -224,7 +224,7 @@ Perl 6生态系统模块[P5chomp](https://modules.perl6.org/dist/P5chomp)提供�
         chr(65); # "A"
         65.chr;  # "A"
 
-Perl 6生态系统模块[P5chr](https://modules.perl6.org/dist/P5chr）的`chr`函数实现Perl5
+Perl 6生态系统模块[P5chr](https://modules.perl6.org/dist/P5chr)的`chr`函数实现Perl5
 `chr`函数类似功能。
 
 ## chroot
@@ -270,7 +270,7 @@ Perl 6生态系统模块 [P5opendir](https://modules.perl6.org/dist/P5opendir)�
 
 `cos`支持缺省参数时候对`$_`操作，但是不再是个函数，而是作为一个对象方法通过`.cos`调用。
 
-Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math）提供函数 `cos`实现Perl5中类似
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)提供函数 `cos`实现Perl5中类似
 功能和表现。
 
 ## crypt
@@ -279,7 +279,7 @@ Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math）提供
 
 Perl6还未实现。
 
-Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math）提供函数`crypt`实现
+Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)提供函数`crypt`实现
 P而l5中类似功能和表现。
 
 
@@ -289,7 +289,7 @@ P而l5中类似功能和表现。
 - dbmopen HASH, DBNAME, MASK
 
     这些函数在Perl5中很大程度上被取代了，不太可能出现在Perl6中（尽管Perl6的数据库
-    实现还未成熟的）。
+    实现还未成熟的)。
 
 ## defined
 
@@ -302,7 +302,7 @@ P而l5中类似功能和表现。
 
 注意，不带参数的`defined()`，Perl 6中不再支持。
 
-Perl 6生态系统模块[P5defined](https://modules.perl6.org/dist/P5defined）提供函数`defined`
+Perl 6生态系统模块[P5defined](https://modules.perl6.org/dist/P5defined)提供函数`defined`
 实现Perl5中类似功能和表现。
 
 ## delete
@@ -350,7 +350,7 @@ Perl 6生态系统模块[P5defined](https://modules.perl6.org/dist/P5defined）�
     [https://design.perl6.org/S04.html#The\_for\_statement](https://design.perl6.org/S04.html#The_for_statement)对你可能有些帮助，还有设计文档的
     [https://design.perl6.org/S06.html#%22Pointy\_blocks%22](https://design.perl6.org/S06.html#%22Pointy_blocks%22)， 另外还有[https://en.wikibooks.org/wiki/Perl\_6\_Programming/Blocks\_and\_Closures#Pointy\_Blocks](https://en.wikibooks.org/wiki/Perl_6_Programming/Blocks_and_Closures#Pointy_Blocks)
 
-Perl 6生态系统模块[P5each](https://modules.perl6.org/dist/P5each）提供函数`each`
+Perl 6生态系统模块[P5each](https://modules.perl6.org/dist/P5each)提供函数`each`
 实现Perl5中类似功能和表现。
 
 ## eof
@@ -387,7 +387,7 @@ Perl 6生态系统模块[P5each](https://modules.perl6.org/dist/P5each）提供�
 
     如果你想用`exec`的这些功能，你可以通过`NativeCall`调用 `exec*`系函数。请查看系统的
     `exec`函数使用手册。（或者其他类似的系统调用函数，比如`execl`, `execv`, `execvp`,
-    或者`execvpe`）。（注意，这些函数通常不同的系统之间表现也是不同的）。
+    或者`execvpe`)。（注意，这些函数通常不同的系统之间表现也是不同的）。
 
 ## exists
 
@@ -684,7 +684,7 @@ Perl 6生态系统模块[P5index](https://modules.perl6.org/dist/P5index)
 
 - int EXPR
 
-在Perl6里面它是和Perl5中一样的truncate（截断）函数（也可作为对象方法），你直接使用它作为
+在Perl6里面它是和Perl5中一样的truncate（截断)函数（也可作为对象方法），你直接使用它作为
 Perl5代码的移植版本，但是在Perl6中，你可以对一个数字方便地直接调用`int`方法。
 `3.9.Int; # 3`和`3.9.truncate`等效。
 
@@ -848,7 +848,7 @@ Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
 - mkdir FILENAME
 
 和Perl5一样。但是当给多级目录的参数时候，它会用同样的掩码自动生成不存在的中层目录（和Perl 5中
-File::Path 模块中make_path的功能相似）。
+File::Path 模块中make_path的功能相似)。
 
 - mkdir
 
@@ -962,7 +962,7 @@ Perl 6生态系统模块 [P5pack](https://modules.perl6.org/dist/P5pack)
     S10表明`package`在Perl6中是可用的，但是只适用于代码块，例如:`package Foo { ... }`表示
     后面的代码块是属于package Foo的，当使用`package Foo;`声明格式时有一种特殊情况，当它作为
     文件的第一条语句时表明文件中接下来的代码都是Perl5的代码，但是它的有效性目前尚不清楚。
-    实际上，因为模块和类的声明需要不同的关键字（比如`class`），你基本上不可能会在Perl6中直接
+    实际上，因为模块和类的声明需要不同的关键字（比如`class`)，你基本上不可能会在Perl6中直接
     使用`package`。
 
 ## \_\_PACKAGE\_\_
@@ -979,7 +979,7 @@ Perl 6生态系统模块 [P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
 
 - pipe READHANDLE, WRITEHANDLE
 
-    根据你的需求的不同，进程（或者[Concurrency tutorial](#language-concurrency)）内部数据交互的话
+    根据你的需求的不同，进程（或者[Concurrency tutorial](#language-concurrency))内部数据交互的话
     请浏览L«`Channel`|/type/Channel»。进程之间数据交互用 L«`Proc`|/type/Proc»。 
 
 ## pop
@@ -1096,7 +1096,7 @@ Perl 6生态系统模块 [P5math](https://modules.perl6.org/dist/P5math)
 - read FILEHANDLE, SCALAR, LENGTH, OFFSET
 
     `read`函数在Perl6中是IO::Handle和IO::Socket中实现的，它从关联的句柄或者套接字
-    读取指定数量的字节（而不是字符），关于 Perl5中的偏移目前的文档中还没提到过。
+    读取指定数量的字节（而不是字符)，关于 Perl5中的偏移目前的文档中还没提到过。
 
 ## readdir
 
@@ -1411,7 +1411,7 @@ Perl 6生态系统模块 [P5sleep](https://modules.perl6.org/dist/P5sleep)
 
 - sort SUBNAME LIST
 
-    `sort`在 Perl6中还存在，不过表现有所不同。`$a`和`$b`不再是内置地特殊变量（见 [Special Variables](/language/5to6-perlvar)），
+    `sort`在 Perl6中还存在，不过表现有所不同。`$a`和`$b`不再是内置地特殊变量（见 [Special Variables](/language/5to6-perlvar))，
     还有不在返回正数，负数，或者0，而返回`Order::Less`, `Order::Same`, 或者`Order::More` 对象
     详见[sort](#routine-sort)。最后它也支持作为对象方法调用，例如，`sort(@a)`等价于`@a.sort`。
 
@@ -1471,7 +1471,7 @@ Perl 6生态系统模块 [P5sleep](https://modules.perl6.org/dist/P5sleep)
 |        g      |浮点数，使用%e或者%f表示 |
 |        X      |类似x，但是使用大写字母 |
 |        E      |类似e，但是使用大写E |
-|        G      |类似g，但是使用大写G（如果适用）          |
+|        G      |类似g，但是使用大写G（如果适用)          |
 
     兼容符号:
 
@@ -1494,11 +1494,11 @@ Perl 6生态系统模块 [P5sleep](https://modules.perl6.org/dist/P5sleep)
 
 |  符号         |                解释                    |
 | ------------- |:--------------------------------------:|
-|    h  |  解释为native “short” 类型（通常是int16）| 
+|    h  |  解释为native “short” 类型（通常是int16)| 
 |    l  |  解释为native ”long” 类型（通常是int32或者int64| 
-|    ll |  解释为native“long long” 类型（通常是int64）| 
-|    L  |  解释为native“long long” 类型（通常是int64）| 
-|    q  |  理解为native“quads” 类型（通常是int64或者更大）| 
+|    ll |  解释为native“long long” 类型（通常是int64)| 
+|    L  |  解释为native“long long” 类型（通常是int64)| 
+|    q  |  理解为native“quads” 类型（通常是int64或者更大)| 
 
 ## sqrt
 
@@ -1551,15 +1551,15 @@ Perl 6生态系统模块 [P5study](https://modules.perl6.org/dist/P5study)
 - sub NAME(PROTO) : ATTRS BLOCK
 
     毋庸置疑，例程仍然可用。例程还支持签名，它允许你指定参数，不过，在缺少预定义
-    的情况下（并且只在缺少签名的情况下），`@_`仍然包含当前传递给函数的参数。 
+    的情况下（并且只在缺少签名的情况下)，`@_`仍然包含当前传递给函数的参数。 
     所以，从理论上讲，如果从Perl5移植到Perl6你不用对函数做特殊转变（不过你应该
-    考虑使用签名）。 所有这些详见[functions](#language-functions)。
+    考虑使用签名)。 所有这些详见[functions](#language-functions)。
 
 ## \_\_SUB\_\_
 
 - \_\_SUB\_\_
 
-被`&?ROUTINE`替代，有点不同的是它实际上是 `Sub`（或者`Method`）对象，你需要
+被`&?ROUTINE`替代，有点不同的是它实际上是 `Sub`（或者`Method`)对象，你需要
 通过调用`.name`获得一个字串。
 
 Perl 6生态系统模块 [P5__FILE__](https://modules.perl6.org/dist/P5__FILE__)
@@ -1645,7 +1645,7 @@ Perl 6 对应的scalar是`Proxy`容器，例如：
 这是使得`lval`为一个左值子例程。无论任何值请求，会调用`FETCH`方法。而如果在
 一个赋值语句中使用，则会调用`STORE`方法。
 
-对函数和哈希（对象为`Positional`和（或） `Associative`角色），唯一需要提供的方法
+对函数和哈希（对象为`Positional`和（或) `Associative`角色），唯一需要提供的方法
 使得和Perl 5 `tie`一样功能的。这些说明详细描述在`Subscripts`部分。
 
 Perl 6生态系统模块 [P5tie](https://modules.perl6.org/dist/P5tie)
@@ -1655,7 +1655,7 @@ which exports `tie` / `tied` 实现Perl5中类似功能和表现。
 
 - time
 
-返回从epoch开始的秒数（`Int`对象），和Perl一样。
+返回从epoch开始的秒数（`Int`对象)，和Perl一样。
 
 ## times
 
@@ -1725,7 +1725,7 @@ Perl 6生态系统模块 [P5defined](https://modules.perl6.org/dist/P5defined)
 
 - unlink
 
-    零参数（隐式参数`$_`）版本在Perl6中不再可用。
+    零参数（隐式参数`$_`)版本在Perl6中不再可用。
 
 ## unpack
 
@@ -1774,7 +1774,7 @@ Perl 6生态系统模块 [P5tie](https://modules.perl6.org/dist/P5tie)
 - use VERSION
 
     在Perl5中，脚本的运行可能需要一个最低的Perl运行时本。在Perl6中，可以指定被不同Perl6运行时
-    遵循的规范的版本（比如`6.c`）。
+    遵循的规范的版本（比如`6.c`)。
 
 ## utime
 
@@ -1799,7 +1799,7 @@ Perl 6中不再支持。
 S29中指出，应该使用定义`bit`,`uint2`, `uint4`等类型的buffer或数组来取代vec，
 但是`bit`, `uint2`, `uint4`的支持还未就绪。 `uint8`, `int8`, `uint16`,
 `int16`,`uint32`, `int32`, `uint64`, `int64`以及随系统大小的`uint`和`int`
-已经可用。包括标量，数组和异形数组（aka矩阵）等形式。
+已经可用。包括标量，数组和异形数组（aka矩阵)等形式。
 
 ## wait
 
