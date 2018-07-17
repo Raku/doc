@@ -2,15 +2,15 @@
 
 =TITLE class IO::Socket::Async
 
-=SUBTITLE Asynchronous TCP socket
+=SUBTITLE Asynchronous socket in TCP or UDP
 
     class IO::Socket::Async {}
 
-C<IO::Socket::Async> provides asynchronous TCP sockets, for both the
+C<IO::Socket::Async> provides asynchronous sockets, for both the
 server and the client side.
 
-Here is a simple example of a simple "hello world"
-http server that listens on port 3333:
+Here is a simple example of a simple "hello world" http server that
+listens on port 3333:
 
 =begin code :skip-test<IO>
 react {
@@ -57,7 +57,8 @@ await IO::Socket::Async.connect('127.0.0.1', 3333).then( -> $promise {
 });
 =end code
 
-Alternatively L<IO::Socket::Async> can send and receive UDP messages.
+Alternatively L<IO::Socket::Async> can send and receive
+L<UDP|https://en.wikipedia.org/wiki/User_Datagram_Protocol> messages
 An example server that outputs all the data it receives would be:
 
 =begin code
@@ -75,56 +76,57 @@ react {
 And an associated client might be:
 
 =begin code
-
 my $socket = IO::Socket::Async.udp();
 await $socket.print-to('localhost', 3333, "Hello, Perl 6!");
-
 =end code
 
 =head1 Methods
 
-The L<IO::Socket::Async> cannot be constructed directly, either C<connect>
-or C<listen> (for TCP connections) or C<udp> or C<bind-udp> (for UDP
-data) should be used to create a client or a server respectively.
+The L<IO::Socket::Async> cannot be constructed directly, either
+C<connect> or C<listen> (for TCP connections) or C<udp> or C<bind-udp>
+(for UDP data) should be used to create a client or a server
+respectively.
 
 =head2 method connect
 
     method connect(Str $host, Int $port --> Promise)
 
-Attempts to connect to the TCP server specified by C<$host> and C<$port>,
-returning a L<Promise> that will either be kept with a connected L<IO::Socket::Async> or broken if the connection cannot be made.
+Attempts to connect to the TCP server specified by C<$host> and
+C<$port>, returning a L<Promise> that will either be kept with a
+connected L<IO::Socket::Async> or broken if the connection cannot be
+made.
 
 =head2 method listen
 
     method listen(Str $host, Int $port --> Supply)
 
-Creates a listening socket on the specified C<$host> and C<$port>, returning
-a L<Supply> to which the accepted client L<IO::Socket::Async>s will be
-C<emit>ted. This L<Supply> should be tapped start listening for client
-connections.
+Creates a listening socket on the specified C<$host> and C<$port>,
+returning a L<Supply> to which the accepted client L<IO::Socket::Async>s
+will be C<emit>ted. This L<Supply> should be tapped start listening for
+client connections.
 
-To close the underlying listening socket, the L<Tap> returned by tapping the
-listener should be C<close>d.
+To close the underlying listening socket, the L<Tap> returned by tapping
+the listener should be C<close>d.
 
 For example, when using C<tap>:
 
-    =begin code
-    my $listener = IO::Socket::Async.listen('127.0.0.1', 8080);
-    my $tap = $listener.tap({ ... });
+=begin code
+my $listener = IO::Socket::Async.listen('127.0.0.1', 8080);
+my $tap = $listener.tap({ ... });
 
-    # When you want to close the listener
-    $tap.close;
-    =end code
+# When you want to close the listener
+$tap.close;
+=end code
 
 Or when using C<whenever>:
 
-    =begin code
-    my $listener = IO::Socket::Async.listen('127.0.0.1', 5000);
-    my $big-finish = Promise.new;
-    my $tap = do whenever $listener -> $conn { ... }
-    await $big-finish;
-    $tap.close;
-    =end code
+=begin code
+my $listener = IO::Socket::Async.listen('127.0.0.1', 5000);
+my $big-finish = Promise.new;
+my $tap = do whenever $listener -> $conn { ... }
+await $big-finish;
+$tap.close;
+=end code
 
 =head2 method udp
 
@@ -132,59 +134,60 @@ Or when using C<whenever>:
 
 Returns an initialised C<IO::Socket::Async> client object that is
 configured to send UDP messages using C<print-to> or C<write-to>.  The
-C<:broadcast> adverb will set the C<SO_BROADCAST> option which will allow
-the socket to send packets to a broadcast address.
+C<:broadcast> adverb will set the C<SO_BROADCAST> option which will
+allow the socket to send packets to a broadcast address.
 
 =head2 method bind-udp
 
     method bind-udp(IO::Socket::Async:U: Str() $host, Int() $port, :$broadcast --> IO::Socket::Async)
 
 This returns an initialised C<IO::Socket::Async> server object that is
-configured to receive UDP messages sent to the specified C<$host> and C<$port>
-and is equivalent to C<listen> for a TCP socket.  The C<:broadcast> adverb
-can be specified to allow the receipt of messages sent to the broadcast
-address.
+configured to receive UDP messages sent to the specified C<$host> and
+C<$port> and is equivalent to C<listen> for a TCP socket.  The
+C<:broadcast> adverb can be specified to allow the receipt of messages
+sent to the broadcast address.
 
 =head2 method print
 
     method print(Str $str --> Promise)
 
-Attempt to send C<$str> on the L<IO::Socket::Async> that will
-have been obtained indirectly via C<connect> or C<listen>, returning a
-L<Promise> that will be kept with the number of bytes
-sent or broken if there was an error sending.
+Attempt to send C<$str> on the L<IO::Socket::Async> that will have been
+obtained indirectly via C<connect> or C<listen>, returning a L<Promise>
+that will be kept with the number of bytes sent or broken if there was
+an error sending.
 
 =head2 method print-to
 
     method print-to(IO::Socket::Async:D: Str() $host, Int() $port, Str() $str --> Promise)
 
-This is the equivalent of C<print> for UDP sockets that have been created with
-the C<udp> method, it will try send a UDP message of C<$str> to the specified
-C<$host> and C<$port> returning a L<Promise|/type/Promise> that will be kept
-when the data is successfully sent or broken if it was unable to send the
-data. In order to send to a broadcast address the C<:broadcast> flag must
-have been specified when the socket was created.
+This is the equivalent of C<print> for UDP sockets that have been
+created with the C<udp> method, it will try send a UDP message of
+C<$str> to the specified C<$host> and C<$port> returning a
+L<Promise|/type/Promise> that will be kept when the data is successfully
+sent or broken if it was unable to send the data. In order to send to a
+broadcast address the C<:broadcast> flag must have been specified when
+the socket was created.
 
 =head2 method write
 
     method write(Blob $b --> Promise)
 
-Attempt to send the bytes in C<$b> on the L<IO::Socket::Async> that will
-have been obtained indirectly via C<connect> or C<listen>, returning a
-L<Promise> that will be kept with the number of bytes
-sent or broken if there was an error sending.
+This method will attempt to send the bytes in C<$b> on the
+L<IO::Socket::Async> that will have been obtained indirectly via
+C<connect> or C<listen>, returning a L<Promise> that will be kept with
+the number of bytes sent or broken if there was an error sending.
 
 =head2 method write-to
 
     method write-to(IO::Socket::Async:D: Str() $host, Int() $port, Blob $b --> Promise)
 
-This is the equivalent of C<write> for UDP sockets that have been created
-with the C<udp> method, it will try send a UDP message comprised of
-the bytes in the L<Blob|/type/Blob>  C<$b> to the specified C<$host>
-and C<$port> returning a L<Promise|/type/Promise> that will be kept
-when the data is successfully sent or broken if it was unable to send
-the data. In order to send to a broadcast address the C<:broadcast>
-flag must have been specified when the socket was created.
+This is the equivalent of C<write> for UDP sockets that have been
+created with the C<udp> method. It will try send a UDP message comprised
+of the bytes in the L<Blob|/type/Blob>  C<$b> to the specified C<$host>
+and C<$port> returning a L<Promise|/type/Promise> that will be kept when
+the data is successfully sent or broken if it was unable to send the
+data. In order to send to a broadcast address the C<:broadcast> flag
+must have been specified when the socket was created.
 
 =head2 method Supply
 
@@ -198,7 +201,9 @@ case you can provide your own C<Buf> with the C<:buf> named parameter.
 
 A UDP socket in character mode will treat each packet as a complete
 message and decode it. In the event of a decoding error, the C<Supply>
-will C<quit>. A TCP socket treats the incoming packets as part of a
+will C<quit>.
+
+On the other hand, a TCP socket treats the incoming packets as part of a
 stream, and feeds the incoming bytes into a streaming decoder. It then
 emits whatever characters the decoder considers ready. Since strings
 work at grapheme level in Perl 6, this means that only known complete

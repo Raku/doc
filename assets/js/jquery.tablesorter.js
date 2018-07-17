@@ -1,111 +1,111 @@
 /*
- * 
+ *
  * TableSorter 2.0 - Client-side table sorting with ease!
  * Version 2.0.5b
  * @requires jQuery v1.2.3
- * 
+ *
  * Copyright (c) 2007 Christian Bach
  * Examples and docs at: http://tablesorter.com
  * Dual licensed under the MIT and GPL licenses:
  * http://www.opensource.org/licenses/mit-license.php
  * http://www.gnu.org/licenses/gpl.html
- * 
+ *
  */
 /**
- * 
+ *
  * @description Create a sortable table with multi-column sorting capabilitys
- * 
+ *
  * @example $('table').tablesorter();
  * @desc Create a simple tablesorter interface.
- * 
+ *
  * @example $('table').tablesorter({ sortList:[[0,0],[1,0]] });
  * @desc Create a tablesorter interface and sort on the first and secound column column headers.
- * 
+ *
  * @example $('table').tablesorter({ headers: { 0: { sorter: false}, 1: {sorter: false} } });
- *          
+ *
  * @desc Create a tablesorter interface and disableing the first and second  column headers.
- *      
- * 
+ *
+ *
  * @example $('table').tablesorter({ headers: { 0: {sorter:"integer"}, 1: {sorter:"currency"} } });
- * 
+ *
  * @desc Create a tablesorter interface and set a column parser for the first
  *       and second column.
- * 
- * 
+ *
+ *
  * @param Object
  *            settings An object literal containing key/value pairs to provide
  *            optional settings.
- * 
- * 
+ *
+ *
  * @option String cssHeader (optional) A string of the class name to be appended
  *         to sortable tr elements in the thead of the table. Default value:
  *         "header"
- * 
+ *
  * @option String cssAsc (optional) A string of the class name to be appended to
  *         sortable tr elements in the thead on a ascending sort. Default value:
  *         "headerSortUp"
- * 
+ *
  * @option String cssDesc (optional) A string of the class name to be appended
  *         to sortable tr elements in the thead on a descending sort. Default
  *         value: "headerSortDown"
- * 
+ *
  * @option String sortInitialOrder (optional) A string of the inital sorting
  *         order can be asc or desc. Default value: "asc"
- * 
+ *
  * @option String sortMultisortKey (optional) A string of the multi-column sort
  *         key. Default value: "shiftKey"
- * 
+ *
  * @option String textExtraction (optional) A string of the text-extraction
  *         method to use. For complex html structures inside td cell set this
  *         option to "complex", on large tables the complex option can be slow.
  *         Default value: "simple"
- * 
+ *
  * @option Object headers (optional) An object of instructions for per-column
- *         controls in the format: headers: { 0: { option: setting }, ... }. For 
+ *         controls in the format: headers: { 0: { option: setting }, ... }. For
  *         example, to disable sorting on the first two columns of a table:
  *         headers: { 0: { sorter: false}, 1: {sorter: false} }.
  *         Default value: null.
- * 
- * @option Array sortList (optional) An array of instructions for per-column sorting 
- *         and direction in the format: [[columnIndex, sortDirection], ... ] where 
- *         columnIndex is a zero-based index for your columns left-to-right and 
- *         sortDirection is 0 for Ascending and 1 for Descending. A valid argument 
- *         that sorts ascending first by column 1 and then column 2 looks like: 
+ *
+ * @option Array sortList (optional) An array of instructions for per-column sorting
+ *         and direction in the format: [[columnIndex, sortDirection], ... ] where
+ *         columnIndex is a zero-based index for your columns left-to-right and
+ *         sortDirection is 0 for Ascending and 1 for Descending. A valid argument
+ *         that sorts ascending first by column 1 and then column 2 looks like:
  *         [[0,0],[1,0]]. Default value: null.
- * 
+ *
  * @option Array sortForce (optional) An array containing forced sorting rules.
  *         Use to add an additional forced sort that will be appended to the dynamic
  *         selections by the user. For example, can be used to sort people alphabetically
- *         after some other user-selected sort that results in rows with the same value 
- *         like dates or money due. It can help prevent data from appearing as though it 
+ *         after some other user-selected sort that results in rows with the same value
+ *         like dates or money due. It can help prevent data from appearing as though it
  *         has a random secondary sort. Default value: null.
- * 
+ *
  * @option Boolean sortLocaleCompare (optional) Boolean flag indicating whatever
  *         to use String.localeCampare method or not. Default set to true.
- * 
- * 
+ *
+ *
  * @option Array sortAppend (optional) An array containing forced sorting rules.
  *         This option let's you specify a default sorting rule, which is
  *         appended to user-selected rules. Default value: null
- * 
+ *
  * @option Boolean widthFixed (optional) Boolean flag indicating if tablesorter
  *         should apply fixed widths to the table columns. This is usefull when
  *         using the pager companion plugin. This options requires the dimension
  *         jquery plugin. Default value: false
- * 
+ *
  * @option Boolean cancelSelection (optional) Boolean flag indicating if
  *         tablesorter should cancel selection of the table headers text.
  *         Default value: true
- * 
+ *
  * @option Boolean debug (optional) Boolean flag indicating if tablesorter
  *         should display debuging information usefull for development.
- * 
+ *
  * @type jQuery
- * 
+ *
  * @name tablesorter
- * 
+ *
  * @cat Plugins/Tablesorter
- * 
+ *
  * @author Christian Bach/christian.bach@polyester.se
  */
 
@@ -300,9 +300,9 @@
             };
 
             function getElementText(config, node) {
-            	
+
                 if (!node) return "";
-                
+
 		        var $node = $(node),
 		            data = $node.attr('data-sort-value');
 		        if (data !== undefined) return data;
@@ -359,7 +359,7 @@
                             tableBody[0].appendChild(r[pos][j]);
                         }
 
-                        // 
+                        //
                     }
                 }
 
@@ -393,7 +393,7 @@
                 }
 
                 var meta = ($.metadata) ? true : false;
-                
+
                 var header_index = computeTableHeaderCellIndexes(table);
 
                 var $tableHeaders = $(table.config.selectorHeaders, table).each(function (index) {
@@ -401,8 +401,8 @@
                     this.column = header_index[this.parentNode.rowIndex + "-" + this.cellIndex];
                     // this.column = index;
                     this.order = formatSortingOrder(table.config.sortInitialOrder);
-                    
-					
+
+
 					this.count = this.order;
 
                     if (checkHeaderMetadata(this) || checkHeaderOptions(table, index)) this.sortDisabled = true;
@@ -505,12 +505,12 @@
                 };
                 return false;
             }
-			
+
 			 function checkHeaderOptionsSortingLocked(table, i) {
                 if ((table.config.headers[i]) && (table.config.headers[i].lockedOrder)) return table.config.headers[i].lockedOrder;
                 return false;
             }
-			
+
             function applyWidget(table) {
                 var c = table.config.widgets;
                 var l = c.length;
@@ -588,7 +588,7 @@
             }
 
             /* sorting methods */
-            
+
             var sortWrapper;
 
             function multisort(table, sortList, cache) {
@@ -741,7 +741,7 @@
                             this.order = this.count++ % 2;
 							// always sort on the locked order.
 							if(this.lockedOrder) this.order = this.lockedOrder;
-							
+
 							// user only whants to sort on one
                             // column
                             if (!e[config.sortMultiSortKey]) {
@@ -988,9 +988,9 @@
             if (c.dateFormat == "us") {
                 // reformat the string in ISO format
                 s = s.replace(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/, "$3/$1/$2");
-            }    
+            }
             if (c.dateFormat == "pt") {
-                s = s.replace(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/, "$3/$2/$1");   
+                s = s.replace(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/, "$3/$2/$1");
             } else if (c.dateFormat == "uk") {
                 // reformat the string in ISO format
                 s = s.replace(/(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})/, "$3/$2/$1");

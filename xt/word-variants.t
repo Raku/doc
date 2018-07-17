@@ -13,14 +13,16 @@ Make sure certain words are normalized by checking regular expressions.
 
 my @files = Test-Files.pods;
 
-my %variants = %( filehandle => rx/file [\s+|\-] handle/,
-                  filesystem => rx/file [\s+|\-] system/,
-                  runtime => rx/run [\s+|\-] time/,
-                  shorthand => rx/short [\s+|\-] hand/,
-                  lookahead  => rx/look \- ahead/,
-                  lookbehind => rx/look [\s+|\-] behind/,
-                  smartmatch => rx/smart  [\s+|\-] match/,
-                  zero-width => rx/zero \s+ width/
+my %variants = %( filehandle => 'file [\s+|\-] handle',
+                  filesystem => 'file [\s+|\-] system',
+                  runtime    => 'run [\s+|\-] time',
+                  shorthand  => 'short [\s+|\-] hand',
+                  lookahead  => 'look \- ahead',
+                  lookbehind => 'look [\s+|\-] behind',
+                  smartmatch => 'smart  [\s+|\-] match',
+                  zero-width => 'zero \s+ width<!before \' joiner\'>',
+                  NYI        => 'niy',
+                  metaoperator => 'meta [\s+|\-] operator',
                );
 plan +@files;
 
@@ -30,7 +32,7 @@ for @files.sort -> $file {
     my @bad;
     my $content =  $file.IO.slurp.lines.join(" ");
     for %variants.kv -> $word, $rx {
-        if $content ~~  $rx {
+        if $content ~~ m/:i << <{$rx}> / {
             $ok = False;
             @bad.push: "«$/» found. We prefer ｢$word｣";
         }

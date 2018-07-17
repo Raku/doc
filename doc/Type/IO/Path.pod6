@@ -7,7 +7,7 @@
 =for code
 class IO::Path is Cool does IO { }
 
-The workhorse of IO operations.
+C<IO::Path> is the workhorse of IO operations.
 
 Conceptually, an C<IO::Path> object consists of a volume, a directory, and a
 basename. It supports both purely textual operations, and operations that access
@@ -151,11 +151,9 @@ Defined as:
 
     method child(IO::Path:D: Str() $childname --> IO::Path:D)
 
-Alias for L«C<.add>|/routine/add». B<NOTE:> C<.child> will be switched to
-secure version around 6.e release time, which will C<fail()> with non-child
-paths and is also slower, since it has to do more work. Use
-L«C<.add>|/routine/add» if your code does not need to guarantee the added
-path is in fact a child path.
+Alias for L«C<.add>|/routine/add». B<NOTE:> C<.child> exists largely for
+backwards-compatibility reasons and may become deprecated in future language
+versions. For any new code, please use L«C<.add>|/routine/add»
 
 =head2 method cleanup
 
@@ -480,11 +478,11 @@ for each directory in the path, and any symlinks found are followed.
     my $io = "foo/./bar/..".IO.resolve;      # now "/" (the parent of "/baz")
 
 If C<:$completely>, which defaults to C<False>, is set to a true value, the
-method will L«C<fail>|/routine/fail» with C<X::IO::Resolve>
-if it cannot completely resolve the path,
-otherwise, it will resolve as much as possible, and will merely perform
-L«C<cleanup>|/routine/cleanup» of the rest of the path. The last part of the
-path does B<NOT> have to exist to C<:$completely> resolve the path.
+method will L«C<fail>|/routine/fail» with C<X::IO::Resolve> if it cannot
+completely resolve the path, otherwise, it will resolve as much as possible, and
+will merely perform L«C<cleanup>|/routine/cleanup» of the rest of the path. The
+last part of the path does B<NOT> have to exist to C<:$completely> resolve the
+path.
 
 NOTE: Currently (April 2017) this method doesn't work correctly on all
 platforms, e.g. Windows, since it assumes POSIX semantics.
@@ -837,12 +835,10 @@ Defined as:
 
     multi method chdir(IO::Path:D: Str() $path, :$d = True, :$r, :$w, :$x)
 
-B<DEPRECATION NOTICE:> this method will be deprecated in C<6.d> language
-and removed in C<6.e>. Do
-not use it for new code. Instead, create a new path or use
-L«C<add>|/routine/add» method. For altering current working
-directory see L«C<&chdir>|/routine/chdir» and L«C<&*chdir>|/routine/&*chdir»
-subroutines.
+B<DEPRECATION NOTICE:> this method will be deprecated in C<6.d> language and
+removed in C<6.e>. Do not use it for new code. Instead, create a new path or use
+L«C<add>|/routine/add» method. For altering current working directory see
+L«C<&chdir>|/routine/chdir» and L«C<&*chdir>|/routine/&*chdir» subroutines.
 
 Contrary to the name, the C<.chdir> method does not change any directories,
 but merely concatenates the given C<$path> to the invocant and returns the
@@ -868,6 +864,7 @@ L<fails|/routine/fail> with L<X::IO::Mkdir> if directory cannot be created.
 
 See also L«C<mode>|/routine/mode» for explanation and
 valid values for C<$mode>.
+
 =head2 routine rmdir
 
 Defined as:
@@ -971,6 +968,8 @@ Defined as:
 Coerces L«C<.basename>|/routine/basename» to L<Int>. L<Fails|/routine/fail>
 with C<X::Str::Numeric> if base name is not numerical.
 
+X<|symlink (sub)>
+X<|symlink (method)>
 =head2 routine symlink
 
 Defined as:
@@ -987,6 +986,8 @@ To create a hard link, see L«C<link>|/routine/link».
 B<Note:> on Windows, creation of symbolic links may require escalated
 privileges.
 
+X<|link (sub)>
+X<|link (method)>
 =head2 routine link
 
 Defined as:
@@ -1006,13 +1007,29 @@ Defined as:
     method unlink(IO::Path:D: --> True)
     sub    unlink(*@filenames --> List:D)
 
-Delete all specified ordinary files, links, or symbolic links. See L<rmdir>
-to delete directories.
+Delete all specified ordinary files, links, or symbolic links for which there
+are privileges to do so. See L<rmdir> to delete directories.
 
-The subroutine form returns the names of the files that were successfully
-deleted. The method form returns C<True> on success, or
-L<fails|/routine/fail> with L<X::IO::Unlink> if the operation could not be
-completed.
+The subroutine form returns the names of all the files in the list, excluding
+those for which the filesystem raised some error; since trying to delete a file
+that does not exist does not raise any error at that level, this list will
+include the names of the files in the list that do not exist.
+
+The method form returns C<True> on success, or L<fails|/routine/fail>
+with L<X::IO::Unlink> if the operation could not be completed. If the file to be
+deleted does not exist, the routine treats it as success.
+
+=begin code
+'foo.txt'.IO.open(:w).close;
+'bar'.IO.mkdir;
+say unlink <foo.txt  bar  not-there.txt>; # OUTPUT: «[foo.txt not-there.txt]␤»
+# `bar` is not in output because it failed to delete (it's a directory)
+# `not-there.txt` is present. It never existed, so that's deemed a success.
+
+# Method form `fail`s:
+say .exception.message without 'bar'.IO.unlink;
+# OUTPUT: «Failed to remove the file […] illegal operation on a directory␤»
+=end code
 
 =head2 method IO
 
@@ -1028,8 +1045,8 @@ Defined as:
 
     method SPEC(IO::Path:D: --> IO::Spec)
 
-Returns the L<IO::Spec|/type/IO::Spec> object that was (implicitly) specified at object
-creation time.
+Returns the L<IO::Spec|/type/IO::Spec> object that was (implicitly) specified at
+object creation time.
 
     my $io = IO::Path.new("/bin/bash");
     say $io.SPEC;                            # OUTPUT: «(Unix)␤»
@@ -1042,8 +1059,8 @@ on Operating Systems where these are available:
 
 =head2 method modified
 
-Returns an L«C<Instant>|/type/Instant» object indicating when the file was
-last modified.
+Returns an L«C<Instant>|/type/Instant» object indicating when the content
+of the file was last modified. Compare with L<changed>.
 
 =for code
 say "path/to/file".IO.modified;          # Instant:1424089165
@@ -1062,8 +1079,9 @@ say "path/to/file".IO.accessed.DateTime; # 2015-02-19T13:45:42Z
 
 =head2 method changed
 
-Returns an L«C<Instant>|/type/Instant» object indicating the file or directory
-was last changed.
+Returns an L«C<Instant>|/type/Instant» object indicating the metadata of
+the file or directory was last changed (e.g. permissions, or files
+created/deleted in directory). Compare with L<modified>.
 
 =for code
 say "path/to/file".IO.changed;           # Instant:1424089165
@@ -1074,12 +1092,12 @@ say "path/to/file".IO.changed.DateTime;  # 2015-02-16T12:18:50Z
 =head2 method mode
 
 Return an L<IntStr> object representing the POSIX permissions of a file.  The
-Str part of the result is the octal representation of the file permission, like
-the form accepted by the chmod(1) utility.
+C<Str> part of the result is the octal representation of the file permission,
+like the form accepted by the C<chmod(1)> utility.
 
 =for code
-say ~"path/to/file".IO.mode;        # e.g. '0644'
-say +"path/to/file".IO.mode;        # e.g. 420, where sprintf('%04o', 420) eq '0644'
+say ~"path/to/file".IO.mode;  # e.g. '0644'
+say +"path/to/file".IO.mode;  # e.g. 420, where sprintf('%04o', 420) eq '0644'
 
 The result of this can be used in the other methods that take a mode as an
 argument.

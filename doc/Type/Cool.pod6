@@ -7,13 +7,13 @@
     class Cool is Any { }
 
 C<Cool>, also known as the B<C>onvenient B<OO> B<L>oop, is a base class
-employed by a number of built-in classes that can be meaningfully coerced
-to a string and a number. For example, an L<Array> can be used in mathematical
-operations, where its numerical representation is the number of elements it
-contains. At the same time, it can be concatenated to a string, where its
-stringy representation is all of its elements L<joined|/routine/join> by
-a space. Because L<Array> is L<Cool>, the appropriate coercion happens
-automatically.
+employed by a number of built-in classes that can be meaningfully
+coerced to a string and a number. For example, an L<Array> can be used
+in mathematical operations, where its numerical representation is the
+number of elements it contains. At the same time, it can be concatenated
+to a string, where its stringy representation is all of its elements
+L<joined|/routine/join> by a space. Because L<Array> is L<Cool>, the
+appropriate coercion happens automatically.
 
 Methods in C<Cool> coerce the invocant to a more
 specific type, and then call the same method on that type. For example both
@@ -672,8 +672,8 @@ Defined as:
     method path()
 
 B<DEPRECATED>. I<Existed only in the Rakudo implementation and isn't part of
-any language released. Issues deprecation warnings in 6.d language and will be
-removed  entirely when 6.e language is released.>
+any language released. Will issue deprecation warnings in future language
+versions and eventually will be removed entirely.>
 
 Stringifies the invocant and converts it to L<IO::Path> object.
 Use the L«C<.IO method>|/routine/IO» instead.
@@ -1073,6 +1073,9 @@ Defined as:
     multi method split(Regex:D $delimiter, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
     multi method split(@delimiters, $limit = Inf, :$k, :$v, :$kv, :$p, :$skip-empty)
 
+B<NOTE:> I«the L<comb> routine is a much better choice for many tasks that in other
+languages are handled by the C<split>.»
+
 Coerces the invocant (or in the sub form, the second argument) to
 L<Str|/type/Str>, and splits it into pieces based on delimiters found in the
 string.
@@ -1127,8 +1130,6 @@ For that behavior, use the C<:skip-empty> named argument:
 
     say ("f,,b,c,d".split: /","/             ).perl;  # OUTPUT: «("f", "", "b", "c", "d")␤»
     say ("f,,b,c,d".split: /","/, :skip-empty).perl;  # OUTPUT: «("f", "b", "c", "d")␤»
-
-See also: L<comb>.
 
 =head2 routine lines
 
@@ -1210,7 +1211,7 @@ is found.
 
 Note that because of how a L<List|/type/List> or L<Array|/type/Array> is
 L<coerced|/type/List#method_Str> into a L<Str|/type/Str>, the results may
-sometimes be surprising. See L<traps|/language/traps#Lists_become_strings,_so_beware_.contains>.
+sometimes be surprising. See L<traps|/language/traps#Lists_become_strings,_so_beware_.contains()>.
 
 =head2 routine index
 
@@ -1311,31 +1312,46 @@ method EVAL(*%_)
 =for code
 sub EVAL($code where Cool|Blob, :$lang = 'perl6')
 
-Method form calls subroutine form with invocant as C<$code>, passing along
-named args, if any. Subroutine form coerces L<Cool> C<$code> to L<Str>.
-If C<$code> is a L<Blob>, it'll be processed using the same encoding as
-the C<$lang> compiler would: for C<perl6>, uses the encoding specified
-via C<--encoding> command line argument, or C<utf-8> if none were given;
-for C<Perl5>, processes using same rules as C<perl>.
+The method form calls subroutine form with invocant as C<$code>, passing
+along named args, if any. Subroutine form coerces L<Cool> C<$code> to
+L<Str>. If C<$code> is a L<Blob>, it'll be processed using the same
+encoding as the C<$lang> compiler would: for C<perl6>, uses the encoding
+specified via C<--encoding> command line argument, or C<utf-8> if none
+were given; for C<Perl5>, processes using same rules as C<perl>.
 
-This works as-is with a literal string parameter. More complex input, such as
-a variable or string with embedded code, is illegal by default. This can be
-overridden in any of several ways:
+This works as-is with a literal string parameter. More complex input,
+such as a variable or string with embedded code, is illegal by default.
+This can be overridden in any of several ways:
 
-    use MONKEY-SEE-NO-EVAL;
-    use MONKEY;  # shortcut that turns on all MONKEY pragmas
+    use MONKEY-SEE-NO-EVAL; # Or...
+    use MONKEY;             # shortcut that turns on all MONKEY pragmas
     use Test;
 
     # any of the above allows:
     EVAL "say { 5 + 5 }";   # OUTPUT: «10␤»
+
+In case the C<MONKEY-SEE-NO-EVAL> pragma is not activated, the compiler
+will complain with a C<EVAL is a very dangerous function!!!> exception.
+And it is essentially right, since that will run arbitrary code with the
+same permissions as the program. You should take care of cleaning the
+code that is going to pass through EVAL if you activate the
+C<MONKEY-SEE-NO-EVAL> pragma.
+
+Please note that you can interpolate to create routine names using
+quotation, as can be seen in
+L<this example|/language/quoting#index-entry-%26_(interpolation)>
+or  L<other ways to interpolate to create identifier names|/language/syntax#Identifiers>.
+This only works, however, for already declared functions and other
+objects and is thus safer to use.
 
 Symbols in the current lexical scope are visible to code in an C<EVAL>.
 
     my $answer = 42;
     EVAL 'say $answer;';    # OUTPUT: «42␤»
 
-However, since the set of symbols in a lexical scope is immutable after compile
-time, an EVAL can never introduce symbols into the surrounding scope.
+However, since the set of symbols in a lexical scope is immutable after
+compile time, an EVAL can never introduce symbols into the surrounding
+scope.
 
 =for code :skip-test
 EVAL 'my $lives = 9'; say $lives;   # error, $lives not declared

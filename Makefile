@@ -7,8 +7,8 @@ COLON_Z              := :Z
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
-	bigpage test xtest ctest help run clean-html clean-examples clean-images \
-	clean-search clean test-links extract-examples push \
+	bigpage test xtest ctest help run clean-html clean-images \
+	clean-search clean test-links push \
 	docker-image docker-htmlify docker-test docker-xtest docker-ctest docker-testall docker-run
 
 html: bigpage htmlify
@@ -47,7 +47,7 @@ xtest:
 
 # Content tests
 ctest:
-	prove --exec perl6 -r t/tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec perl6 -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 help:
 	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"
@@ -74,7 +74,7 @@ help:
 
 run:
 	@echo "Starting local server…"
-	morbo -w assets app.pl
+	./app-start
 
 docker-image:
 	docker build -t $(DOCKER_IMAGE_NAME) .
@@ -112,22 +112,18 @@ clean-html:
 		html/type/ \
 		$(NULL)
 
-clean-examples:
-	rm -fr examples/*
-
 clean-images:
 	rm -f html/images/type-graph*
 
 clean-search:
 	rm -f html/js/search.js
 
-clean: clean-html clean-images clean-search clean-examples
+clean: clean-html clean-images clean-search
+
+distclean: clean
 
 test-links: links.txt
 	./util/test-links.sh
-
-extract-examples:
-	./util/extract-examples.p6 --source-path=./doc/ --prefix=./examples/
 
 push: test
 	git pull --rebase && git push

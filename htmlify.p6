@@ -239,15 +239,49 @@ sub MAIN(
 sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     say "Reading doc/$dir ...";
 
-    my @pod-sources =
-        recursive-dir("doc/$dir/")
-        .grep({.path ~~ / '.pod6' $/})
-        .map({
-            .path.subst("doc/$dir/", '')
-                 .subst(rx{\.pod6$},  '')
-                 .subst(:g,    '/',  '::')
-            => $_
-        }).sort(&sorted-by);
+    # What does this array look like?
+    #
+    #   + an array of pairs sorted by some key
+    #   + the sort key defaults to the key below
+    #   + any other sort order has to be processed separately as in 'Language'
+    #     below
+    #
+    #   the sorted pairs (regardless of how they are sorted) must consist of:
+    #     key:   base filename stripped of its ending .pod6
+    #     value: filename relative to the "doc/$dir" directory
+    my @pod-sources;
+
+    if $dir eq 'Language' {
+        # uses a special sort order by :page-order<id> as a %config hash entry
+        # TODO treat the Programs directory the same way
+        @pod-sources = get-pod6-page-order(:$dir);
+    }
+    else {
+        # default sort is by name {%hash{.key} => file basename w/o extension
+        @pod-sources =
+            recursive-dir("doc/$dir/")
+            .grep({.path ~~ / '.pod6' $/})
+            .map({
+                .path.subst("doc/$dir/", '')
+                     .subst(rx{\.pod6$},  '')
+                     .subst(:g,    '/',  '::')
+                 => $_
+            }).sort(&sorted-by);
+     }
+
+    =begin comment
+    # PLEASE LEAVE THIS DEBUG CODE IN UNTIL WE'RE HAPPY
+    # WITH LANGUAGE PAGE SORTING AND DISPLAY
+    if 0 && $dir eq 'Language' {
+    #if 1 && $dir eq 'Programs' {
+        say "\@pod-sources:";
+        for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
+            say "num: $num; key: |$filename|; value : |$file|";
+        }
+        #die "debug exit";
+    }
+    =end comment
+
 
     if $sparse {
         @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
@@ -851,11 +885,12 @@ sub write-index-files() {
         ]}))
     ), 'programs');
 
+    # sort language index by file name to allow author control of order
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
-        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in alphabetical order. Scroll down or search 'tutorial' or 'from' to see all of them."),
-        pod-table($*DR.lookup('language', :by<kind>).sort(*.name).map({[
+        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in mostly alphabetical order."),
+        pod-table($*DR.lookup('language', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
         ]}))
@@ -1013,8 +1048,4 @@ sub pod-path-from-url($url) {
     return $pod-path;
 }
 
-sub warn-user (Str $warn-text) {
-    my $border = '=' x $warn-text.chars;
-    note "\n$border\n$warn-text\n$border\n";
-}
 # vim: expandtab shiftwidth=4 ft=perl6

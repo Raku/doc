@@ -1,8 +1,8 @@
-=begin pod :tag<convert>
+=begin pod :tag<convert> :page-order<A04>
 
 =TITLE Perl 5 to Perl 6 guide - Operators
 
-=SUBTITLE Operators in Perl 5 to Perl 6: equivalencies and variations.
+=SUBTITLE Operators in Perl 5 to Perl 6: equivalencies and variations
 
 =head1 DESCRIPTION
 
@@ -28,7 +28,17 @@ L<Operator Precedence|/language/operators#Operator_Precedence>.
 The things listed in Perl 5's C<perlop> document as unary and list operators in
 this section tend to be things that can also be thought of as functions, such
 as C<print> and C<chdir>. As such, you can find information about them in
-the L<functions|/language/5to6-perlfunc> guide. Parentheses are still used for grouping.
+the L<functions|/language/5to6-perlfunc> guide. Parentheses are still used for
+grouping.  There is one caveat: in Perl 6, it's the C<,> (comma) that creates
+lists, B<not> parentheses.  So:
+
+=begin code
+my @foo = 1,2,3,4,5;   # no parentheses needed
+.say for 1,2,3,4,5;    # also no parentheses
+
+my $scalar = (1);      # *not* a list, as there is no comma
+my $list   = (1,);     # a List in a scalar container
+=end code
 
 =head2 The Arrow Operator
 
@@ -69,17 +79,23 @@ for bitwise integer negation. Assumes two's complement.
 C<+> I<does> have an effect in Perl 6, coercing its argument to the
 Numeric type.
 
-Unary C<\> is no more. If you really want to take a reference to an existing
-named variable, you can use item context, like so: C<$aref = item(@array)>
-You can get a reference to a named subroutine by using the C<&> sigil: C<$sref
-= &foo> Anonymous arrays, hashes, and subs return their references during
-creation I<right away>.
+Unary C<\> is no more. If you really want to take a "reference" to an existing
+named variable, you can use item context, like so: C<$aref = item(@array)>, or
+maybe more familiarly by prefixing with a C<$>: C<$aref = $@array>.  Please
+note that you're not really getting a reference, but a scalar container with
+the referenced object in it.
+
+You can get a "reference" to a named subroutine by using the C<&> sigil:
+C<$sref = &foo>.  Anonymous arrays, hashes, and subs return the underlying
+object during creation I<right away>: C<$sref = sub { }>.
 
 =head2 Binding Operators
 
 C<=~> and C<!~> have been replaced by C<~~> and C<!~~>, respectively. Those of
 you who consider smartmatching broken in Perl 5 will be happy to hear that it
 works much better in Perl 6, as the stronger typing means less guesswork.
+See L<the smartmatch documentation|language/operators#index-entry-smartmatch_operator>
+for a more extensive explanation of how smartmatch works in Perl 6.
 
 =head2 Multiplicative Operators
 
@@ -127,11 +143,12 @@ of its arguments.
 
 C<~~> is the smartmatch operator as in Perl 5, but it's also I<just>
 the match operator in Perl 6, as noted above. For how smartmatching
-works in Perl 6, see L<https://design.perl6.org/S03.html#Smart_matching>.
+works in Perl 6, see L<the smartmatch documentation|language/operators#index-entry-smartmatch_operator>.
 
 =head2 Smartmatch Operator
 
-See the entry on C<~~> directly above.
+See L<the smartmatch documentation|language/operators#index-entry-smartmatch_operator>
+for a more extensive explanation of how smartmatch works in Perl 6.
 
 =head2 Bitwise And
 
@@ -197,12 +214,24 @@ $x = $ok ?? $yes !! $no;  # Perl 6
 Although not fully documented, S03 indicates that the mathematical and
 logical assignment operators should work as you would expect. The one
 noticeable change is that C<.=> calls a mutating method on the object on
-the left, while C<~=> is the string concatenation assignment, as you
-might expect with the changes in C<.> and C<~>. Also, the bitwise
-assignment operators are likely not separated into numeric and string
-versions (C<&=>, etc., vs. C<&.=>, etc.), as that feature is currently
-experimental in Perl 5 itself - although, again, this is not
-specifically documented.
+the left (which can also be a type-object).  This allows for the following
+useful idiom:
+
+=begin code
+class LongClassName {
+    has $.frobnicate;
+}
+my LongClassName $bar .= new( frobnicate => 42 ); # no need to repeat class name
+=end code
+
+This ensures that C<$bar> will only be able to contain a C<LongClassName>
+object, as well not having to repeat (and possibly misspell) the class name.
+
+C<~=> is the string concatenation assignment, as you might expect with the
+changes in C<.> and C<~>. Also, the bitwise assignment operators are likely
+not separated into numeric and string versions (C<&=>, etc., vs. C<&.=>, etc.),
+as that feature is currently experimental in Perl 5 itself - although, again,
+this is not specifically documented.
 
 =head2 Comma Operator
 
@@ -233,11 +262,10 @@ Lower precedence version of C<&&> as in Perl 5.
 
 =head2 Logical or and Exclusive Or
 
-C<or> is the low precedence version of C<||>. The documentation lists an
-C<xor>, but does not actually document it.
+C<or> is the low precedence version of C<||>, and C<xor> is the low precedence
+version of C<^^>.
 
-Additionally, there is a low precedence version of C<//>, called
-C<orelse>.
+Additionally, there is a low precedence version of C<//>, called C<orelse>.
 
 =head2 Quote and Quote-like Operators
 
@@ -257,13 +285,15 @@ get this behavior with single quotes.
 
 C<qq> allows interpolation of variables. However, by default, only
 scalar variables are interpolated. To get other variables to
-interpolate, you need to put square brackets after them. E. g. C<< @a =
-<1 2 3>;say qq/@a[] example@example.com/; >> results in "1 2 3
-example@example.com". Hashes interpolate in a possibly unexpected
-manner: C<< %a = 1 => 2, 3 => 4;say "%a[]"; >> results in a space
+interpolate, you need to put square brackets after them (the so-called
+L<zen-slice|/language/subscripts#index-entry-Zen_slices>) to get them to
+interpolate. E.g. C<< @a = <1 2 3>; say qq/@a[] example@example.com/; >>
+results in "1 2 3 example@example.com". Hashes interpolate in the same
+manner: C<< %a = 1 => 2, 3 => 4;say "%a{}"; >> results in a space
 separating the pairs and tabs separating the key from the value in each
-pair (apparently). You can also interpolate Perl 6 code in strings using
-curly braces. For all the details, see
+pair (because that's the standard stringification of C<Pair>s, and a hash
+acts as list of C<Pair>s when stringified). You can also interpolate Perl 6
+code in strings using curly braces. For all the details, see
 L<Interpolation|/language/quoting#Interpolation%3A_qq>.
 
 C<qw> works as in Perl 5, and can also be rendered as C<< <...> >>. E.
@@ -336,8 +366,9 @@ arguments has been replaced by C<@*ARGS>.
 
 =head2 No-ops
 
-Although it's not specifically documented, C<1 while foo();> appears to
-work in this sense.
+C<1 while foo();> works in the same way as it does in Perl 5, however it
+generates a warning. In Perl 6 the idiom is now written as
+C<Nil while foo();> instead.
 
 =head2 Bitwise String Operators
 

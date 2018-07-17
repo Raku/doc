@@ -1,8 +1,8 @@
-=begin pod :tag<perl6>
+=begin pod :tag<perl6> :page-order<a22>
 
 =TITLE Hashes and maps
 
-=SUBTITLE Working with associative arrays/dictionaries/hashes.
+=SUBTITLE Working with associative arrays/dictionaries/hashes
 
 =head1 The Associative role and associative classes
 
@@ -129,10 +129,53 @@ hash key, while the next element of the list is taken as the corresponding
 value.
 
     my %h = 'a', 'b', c => 'd', 'e', 'f';
-    # same as
+
+Same as
+
     my %h = a => 'b', c => 'd', e => 'f';
-    # or
+
+or
+
     my %h = <a b c d e f>;
+
+or even
+
+    my %h = %( a => 'b', c => 'd', e => 'f')
+
+or
+
+    my $h = { a => 'b', c => 'd', e => 'f'};
+
+Please note that curly braces are used only in the case that we are not
+assigning it to a C<%>-sigilled variable; in case we use it for a C<%>-sigilled
+variable we will get an C<Potential difficulties:␤    Useless use of hash
+composer on right side of hash assignment; did you mean := instead?> error. As
+this error indicates, however, we can use curly braces as long as we use also
+binding:
+
+    my %h := { a => 'b', c => 'd', e => 'f'};
+    say %h; # OUTPUT: «{a => b, c => d, e => f}␤»
+
+Nested hashes can also be defined using the same syntax:
+
+     my %h =  e => f => 'g';
+     say %h<e><f>; # OUTPUT: «g␤»
+
+However, what you are defining here is a key pointing to a L<Pair>, which is
+fine if that is what you want, and if your nested hash has got a single key. But
+C<%h<e>> will point to a C<Pair> which will have these consequences:
+
+=begin code :skip-test<Illustrates an error>
+my %h =  e => f => 'g';
+%h<e><q> = 'k';
+# OUTPUT: «(exit code 1) Pair␤Cannot modify an immutable Str (Nil)␤  in block <unit>»
+=end code
+
+This, however, will effectively define a nested hash:
+
+     m: my %h =  e => { f => 'g'};
+     say %h<e>.^name;  # OUTPUT: «Hash␤»
+     say %h<e><f>;     # OUTPUT: «g␤»
 
 If a L<Pair> is encountered where a value is expected, it is used as a
 hash value:
@@ -147,17 +190,13 @@ occurrence is stored in the hash:
     my %h = a => 1, a => 2;
     say %h<a>;                  # OUTPUT: «2␤»
 
-To assign a hash to a variable which does not have the C<%> sigil, you may use the C<%()> hash
-constructor:
+
+To assign a hash to a variable which does not have the C<%> sigil, you may use
+the C<%()> hash constructor:
 
     my $h = %( a => 1, b => 2 );
     say $h.^name;               # OUTPUT: «Hash␤»
     say $h<a>;                  # OUTPUT: «1␤»
-
-B<NOTE:> Hashes can also be constructed with C<{ }>; however, using the C<%()>
-hash constructor is considered a better practice, as braces are reserved for
-creating L<Block|/type/Block> objects and therefore braces only create Hash
-objects in specific circumstances.
 
 If one or more values reference the topic variable, C<$_>, the right-hand side
 of the assignment will be interpreted as a L<Block|/type/Block>, not a Hash:

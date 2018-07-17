@@ -123,11 +123,11 @@ a simplistic subroutine re-implementation of the C<for> loop.
 
 It would be more idiomatic to use C<while> or C<until>, and a sigilless variable.
 
-    =begin code :preamble<my $iterator = ().iterator; my &do = &say>
-    until IterationEnd =:= (my \pulled = $iterator.pull-one) {
-        do( pulled );
-    }
-    =end code
+=begin code :preamble<my $iterator = ().iterator; my &do = &say>
+until IterationEnd =:= (my \pulled = $iterator.pull-one) {
+    do( pulled );
+}
+=end code
 
 =head2 method push-exactly
 
@@ -146,7 +146,59 @@ C<$count>.
     say (1 .. ∞).iterator.push-exactly(@array, 3); # OUTPUT: «3␤»
     say @array; # OUTPUT: «[1 2 3]␤»
 
-The Iterator role implements this method in terms of C<pull-one>.
+The Iterator role implements this method in terms of C<pull-one>. In general,
+this is a method that is not intended to be called directly from the end user
+who, instead, should implement it in classes that mix the iterator role. For
+instance, this class implements that role:
+
+=begin code
+class DNA does Iterable does Iterator {
+    has $.chain;
+    has Int $!index = 0;
+
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator( ){ self }
+
+    method pull-one( --> Mu){
+      if $!index < $.chain.chars {
+         my $codon = $.chain.comb.rotor(3)[$!index div 3];
+         $!index += 3;
+         return $codon;
+      } else {
+        return IterationEnd;
+      }
+    }
+
+    method push-exactly(Iterator:D: $target, int $count --> Mu) {
+        return IterationEnd if $.chain.elems / 3 < $count;
+        for ^($count) {
+            $target.push: $.chain.comb.rotor(3)[ $_ ];
+        }
+    }
+
+};
+
+my $b := DNA.new("AAGCCT");
+for $b -> $a, $b, $c { say "Never mind" }; # Does not enter the loop
+my $þor := DNA.new("CAGCGGAAGCCT");
+for $þor -> $first, $second {
+    say "Coupled codons: $first, $second";
+    # OUTPUT: «Coupled codons: C A G, C G G␤Coupled codons: A A G, C C T␤»
+}
+=end code
+
+This code, which groups DNA chains in triplets (usually called I<codons>)
+returns those codons when requested in a loop; if too many are requested, like
+in the first case C«for $b -> $a, $b, $c», it simply does not enter the loop
+since C<push-exactly> will return C<IterationEnd> since it is not able to serve
+the request for exactly 3 codons. In the second case, however, it requests
+exactly two codons in each iteration of the loop; C<push-exactly> is being
+called with the number of loop variables as the C<$count> variable.
 
 =head2 method push-at-least
 
@@ -169,7 +221,12 @@ produce more elements to achieve better performance.
     say (1 .. ∞).iterator.push-at-least(@array, 10); # OUTPUT: «10␤»
     say @array; # OUTPUT: «[1 2 3 4 5 6 7 8 9 10]␤»
 
-The Iterator role implements this method in terms of C<pull-one>.
+The Iterator role implements this method in terms of C<pull-one>. In general, it
+is also not intended to be called directly as in the example above. It can be
+implemented, if unhappy with this default implementation, by those using this
+role. See
+L<the documentation for C<push-exactly>|https://docs.perl6.org/type/Iterator#method_push-exactly>
+for an example implementation.
 
 =head2 method push-all
 
@@ -182,7 +239,49 @@ Should produce all elements from the iterator and push them to C<$target>.
     my @array;
     say (1 .. 1000).iterator.push-all(@array); # All 1000 values are pushed
 
-The Iterator role implements this method in terms of C<push-at-least>.
+The Iterator role implements this method in terms of C<push-at-least>. As in the
+case of the other C<push-*> methods, it is mainly intended for developers
+implementing this role. C<push-all> is called when assigning an object with this
+role to an array, for instance, like in this example:
+
+=begin code
+class DNA does Iterable does Iterator {
+    has $.chain;
+    has Int $!index = 0;
+
+    method new ($chain where {
+                       $chain ~~ /^^ <[ACGT]>+ $$ / and
+                       $chain.chars %% 3 } ) {
+        self.bless( :$chain );
+    }
+
+    method iterator( ){ self }
+    method pull-one( --> Mu){
+      if $!index < $.chain.chars {
+         my $codon = $.chain.comb.rotor(3)[$!index div 3];
+         $!index += 3;
+         return $codon;
+      } else {
+        return IterationEnd;
+      }
+    }
+
+    method push-all(Iterator:D: $target) {
+        for $.chain.comb.rotor(3) -> $codon {
+            $target.push: $codon;
+        }
+    }
+
+};
+
+my $b := DNA.new("AAGCCT");
+my @dna-array = $b;
+say @dna-array; # OUTPUT: «[(A A G) (C C T)]␤»
+=end code
+
+The C<push-all> method implemented pushes to the target iterator in lists of
+three aminoacid representations; this is called under the covers when we assign
+C<$b> to C<@dna-array>.
 
 =head2 method push-until-lazy
 

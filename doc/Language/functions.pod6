@@ -1,21 +1,22 @@
-=begin pod :tag<perl6>
+=begin pod :tag<perl6> :page-order<a18>
 
 =TITLE Functions
 
-=SUBTITLE Functions and Functional Programming in Perl 6
+=SUBTITLE Functions and functional programming in Perl 6
 
-Routines are the smallest means of code reuse in Perl 6. They come in several
-forms, most notably L<methods|/type/Method>, which belong in classes and roles
-and are associated with an object; and functions (also called I<subroutines> or
-L<sub|/type/Sub>s, for short), which can be called independently of objects.
+Routines are one of the means Perl 6 has to reuse code. They come in
+several forms, most notably L<methods|/type/Method>, which belong in
+classes and roles and are associated with an object; and functions (also
+called I<subroutines> or L<sub|/type/Sub>s, for short), which can be
+called independently of objects.
 
 Subroutines default to lexical (C<my>) scoping, and calls to them are
 generally resolved at compile time.
 
-Subroutines can have a L<signature|/type/Signature>, also called I<parameter
-list>, which specifies which, if any, arguments the signature expects. It can
-specify (or leave open) both the number and types of arguments, and the
-return value.
+Subroutines can have a L<signature|/type/Signature>, also called
+I<parameter list>, which specifies which, if any, arguments the
+signature expects. It can specify (or leave open) both the number and
+types of arguments, and the return value.
 
 Introspection on subroutines is provided via L<C<Routine>|/type/Routine>.
 
@@ -63,7 +64,7 @@ By default, subroutines are L<lexically scoped|/syntax/my>. That is,
 C<sub foo {...}> is the same as C<my sub foo {...}> and is only
 defined within the current scope.
 
-=begin code :allow<L>
+=begin code
 sub escape($str) {
     # Puts a slash before non-alphanumeric characters
     S:g[<-alpha -digit>] = "\\$/" given $str
@@ -84,7 +85,8 @@ say escape 'foo#bar?'; # OUTPUT: «foo\#bar\?␤»
 say escape 'foo#bar?'; # OUTPUT: «foo\#bar\?␤»
 =end code
 
-Subroutines don't have to be named. If unnamed, they're called I<anonymous> subroutines.
+Subroutines don't have to be named. If unnamed, they're called I<anonymous>
+subroutines.
 
     say sub ($a, $b) { $a ** 2 + $b ** 2 }(3, 4) # OUTPUT: «25␤»
 
@@ -361,9 +363,9 @@ arguments. Consider this basic example:
     =for code :skip-test
     congratulate('being a cool number', 42);         # Proto match error
 
-The proto insists that all C<multi congratulate> conform to the basic signature
-of two strings, optionally followed by further parameters. The C<|> is an
-un-named C<Capture> parameter, and allows a C<multi> to take additional
+The proto insists that all C<multi congratulate> subs conform to the basic
+signature of two strings, optionally followed by further parameters. The C<|> is
+an un-named C<Capture> parameter, and allows a C<multi> to take additional
 arguments. The first two calls succeed, but the third fails (at compile time)
 because C<42> doesn't match C<Str>.
 
@@ -394,7 +396,35 @@ mistake-proto(7, 42);  # OUTPUT: «Int␤» -- not passed on
 =for code :skip-test
 mistake-proto('test'); # fails -- not passed on
 
-=comment only
+=head2 X<only|declarator>
+
+The C<only> keyword preceding C<sub> or C<method> indicates that it will be the
+only function with that name that inhabits a given namespace.
+
+    only sub you () {"Can make all the world seem right"};
+
+This will make other declarations in the same namespace, such as
+
+    sub you ( $can ) { "Make the darkness bright" }
+
+fail with an exception of type C<X::Redeclaration>. C<only> is the default value
+for all subs; in the case above, not declaring the first subroutine as C<only>
+will yield exactly the same error; however, nothing prevents future developers
+from declaring a proto and preceding the names with C<multi>. Using C<only>
+before a routine is a L<defensive programming|https://en.wikipedia.org/wiki/Defensive_programming> feature that
+declares the intention of not having routines with the same name declared in the
+same namespace in the future.
+
+=begin code :lang<text>
+(exit code 1)
+===SORRY!=== Error while compiling /tmp/hDM1N2OAOo
+Redeclaration of routine 'you' (did you mean to declare a multi-sub?)
+at /tmp/hDM1N2OAOo:1
+------> ( $can ) { "Make the darkness bright" }⏏<EOL>
+=end code
+
+Anonymous sub cannot be declared C<only>. C<only sub {}'> will throw an error of
+type, surprisingly, C<X::Anon::Multi>.
 
 =head1 Conventions and Idioms
 
@@ -804,8 +834,9 @@ a 1;        # OUTPUT: «Int 1␤Any 1␤Back in Int with 5␤»
 
 X<|dispatch,callwith>
 
-C<callwith> calls the next matching candidate with arguments provided by users
-and returns that candidate's return value.
+C<callwith> calls the next candidate matching the original signature, that is,
+the next function that could possibly be used with the arguments provided by
+users and returns that candidate's return value.
 
 =begin code
 proto a(|) {*}
@@ -825,7 +856,48 @@ a 1;        # OUTPUT: «Int 1␤Any 2␤Back in Int with 5␤»
 
 Here, C<a 1> calls the most specific C<Int> candidate first, and C<callwith>
 re-dispatches to the less specific C<Any> candidate. Note that although our
-parameter C<$x + 1> is an Int, still we call the next candidate in the chain.
+parameter C<$x + 1> is an C<Int>, still we call the next candidate in the chain.
+
+In this case, for example:
+
+=begin code
+proto how-many(|) {*}
+
+multi how-many( Associative $a ) {
+    say "Associative $a ";
+    my $calling = callwith( 1 => $a );
+    return $calling;
+}
+
+multi how-many( Pair $a ) {
+    say "Pair $a ";
+    return "There is $a "
+
+}
+
+multi how-many( Hash $a ) {
+    say "Hash $a";
+    return "Hashing $a";
+}
+
+my $little-piggie = little => 'piggie';
+say $little-piggie.^name;        # OUTPUT: «Pair␤»
+say &how-many.cando( \( $little-piggie ));
+# OUTPUT: «(sub how-many (Pair $a) { #`(Sub|68970512) ... } sub how-many (Associative $a) { #`(Sub|68970664) ... })␤»
+say how-many( $little-piggie  ); # OUTPUT: «Pair little     piggie␤There is little piggie␤»
+=end code
+
+the only candidates that take the C<Pair> argument supplied by the user are the
+two functions defined first. Although a C<Pair> can be easily coerced to a
+C<Hash>, here is how signatures match:
+
+=for code
+say :( Pair ) ~~ :( Associative ); # OUTPUT: «True␤»
+say :( Pair ) ~~ :( Hash );        # OUTPUT: «False␤»
+
+The arguments provided by us are a C<Pair>. It does not match a C<Hash>, so the
+corresponding function is thus not included in the list of candidates, as can be
+seen by the output of C<&how-many.cando( \( $little-piggie ));>.
 
 =head2 sub nextsame
 
@@ -1099,7 +1171,7 @@ Verbosity on
 
 It's possible to alter how arguments are processed before they're passed
 to C<sub MAIN {}> by setting options in C<%*SUB-MAIN-OPTS> hash.  Due to the
-nature of dynamic variables, one needs to set up its own C<%*SUB-MAIN-OPTS>
+nature of dynamic variables, it is required to set up C<%*SUB-MAIN-OPTS>
 hash and fill it with the appropriate settings.  For instance:
 
     my %*SUB-MAIN-OPTS =
@@ -1114,9 +1186,10 @@ Available options are:
 
 =head3 C<named-anywhere>
 
-By default, named arguments to the program cannot be given after any positional
-arguments are specified. However, if C«%*SUB-MAIN-OPTS<named-anywhere>» is
-set to a truthy value, named arguments can be specified anywhere, even after
+By default, named arguments passed to the program (i.e., C<MAIN>)
+cannot appear after any positional argument.
+However, if C«%*SUB-MAIN-OPTS<named-anywhere>» is
+set to a true value, named arguments can be specified anywhere, even after
 positional parameter. For example, the above program can be called with:
 
 =begin code :lang<shell>
@@ -1125,7 +1198,7 @@ perl6 example.p6 1 --c=2 3 --d=4
 
 =head2 X<Unit-scoped definition of MAIN|declarator,unit (MAIN)>
 
-If the entire script body resides within C<MAIN>, you can use the C<unit>
+If the entire program body resides within C<MAIN>, you can use the C<unit>
 declarator as follows:
 
 =begin code :skip-test<unit>
@@ -1146,11 +1219,11 @@ parameters, the sub C<USAGE> is called. If no such method is found,
 the compiler will output a default generated usage message.
 
     #|(is it the answer)
-    multi MAIN(Int $i){ say $i == 42 ?? 'answer' !! 'dunno' }
+    multi MAIN(Int $i) { say $i == 42 ?? 'answer' !! 'dunno' }
     #|(divide two numbers)
     multi MAIN($a, $b){ say $a/$b }
 
-    sub USAGE(){
+    sub USAGE() {
     print Q:c:to/EOH/;
     Usage: {$*PROGRAM-NAME} [number]
 

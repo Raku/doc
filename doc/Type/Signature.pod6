@@ -53,7 +53,7 @@ closure.
 
     f(-> Int { 'this works too' } );
 
-Smart matching signatures against a List is supported.
+Smartmatching signatures against a List is supported.
 
     my $sig = :(Int $i, Str $s);
     say (10, 'answer') ~~ $sig;
@@ -103,8 +103,8 @@ is bound to.
     say Foo.whoami; # OUTPUT: «Well I'm class Foo, of course!␤»
 
 X<|type constraint (Signature)>
-=head2 Type Constraints
 X<|Constraint>
+=head2 Type constraints
 
 Parameters can optionally have a type constraint (the default is L<C<Any>>).
 These can be used to restrict the allowed input to a function.
@@ -112,16 +112,27 @@ These can be used to restrict the allowed input to a function.
 =for code
 my $sig = :(Int $a, Str $b);
 
-=begin code :skip-test
-sub divisors(Int $n) { $_ if $n %% $_ for 1..$n };
+Type constraints can have any compile-time defined value
+=begin code :skip-test<illustrates error>
+subset Positive-integer of Int where * > 0;
+sub divisors(Positive-integer $n) { $_ if $n %% $_ for 1..$n };
 divisors 2.5;
-# ===SORRY!=== Error while compiling:
-# Calling divisors(Rat) will never work with declared signature (Int $n)
+# ERROR «Type check failed in binding to parameter '$n'; expected Positive-integer but got Rat (2.5) $n)»
+divisors -3;
+# ERROR: «Constraint type check failed in binding to parameter '$n'; expected Positive-integer but got Int (-3)»
 =end code
 
-X<|anonymous arguments (Signature)>
-Anonymous arguments are fine too, if a parameter is only needed for
-its type constraint.
+Please note that in the code above type constraints are enforced at two
+different levels: the first level checks if it belongs to the type in which the
+subset is based, in this case C<Int>. If it fails, a C<Type check> error is
+produced. Once that filter is cleared, the constraint that defined the subset is
+checked, producing a C<I<Constraint> type check> error if it fails.
+
+X<|anonymous arguments (Signature)> Anonymous arguments are fine too, if you
+don't actually need to refer to a parameter by name, for instance to distinguish
+between different signatures in a
+L<multi|/language/functions#index-entry-declarator_multi-Multi-dispatch> or to
+check the signature of a L<Callable>.
 
     my $sig = :($, @, %a);              # two anonymous and a "normal" parameter
     $sig = :(Int, Positional);          # just a type is also fine (two parameters)
@@ -440,9 +451,9 @@ except the C<$var> is a definition for a routine.
 
 =head3 X<Coercion Type|coercion type (signature)>
 
-To accept one type but coerce it automatically to another, use the accepted
-type as an argument to the target type. If the accepted type is C<Any> it can
-be omitted.
+To accept one type but coerce it automatically to another, use the
+accepted type as an argument to the target type. If the accepted type is
+C<Any> it can be omitted.
 
     sub f(Int(Str) $want-int, Str() $want-str) {
         say $want-int.^name ~ ' ' ~ $want-str.^name
@@ -456,10 +467,10 @@ be omitted.
     foo "2016-12-01";
     # OUTPUT: «Date␤2016-12-01␤»
 
-The coercion is performed by calling the method with the name of the type
-to coerce to, if it exists (e.g. C<Foo(Bar)> coercer, would call method C<Foo>).
-The method is assumed to return the correct type—no additional checks on
-the result are currently performed.
+The coercion is performed by calling the method with the name of the
+type to coerce to, if it exists (e.g. C<Foo(Bar)> coercer, would call
+method C<Foo>). The method is assumed to return the correct type—no
+additional checks on the result are currently performed.
 
 Coercion can also be performed on return types:
 
@@ -621,19 +632,19 @@ the function body.
 
 X<|positional argument (Signature)>
 X<|named argument (Signature)>
-=head2 Positional vs. Named
+=head2 Positional vs. Named Arguments
 
-A parameter can be I<positional> or I<named>. All parameters are positional,
-except slurpy hash parameters and parameters marked with a leading colon C<:>.
+An argument can be I<positional> or I<named>. All arguments are positional,
+except slurpy hash and arguments marked with a leading colon C<:>.
 The latter is called a L<colon-pair|/type/Pair>.
 
-    $ = :($a);               # a positional parameter
-    $ = :(:$a);              # a named parameter of name 'a'
-    $ = :(*@a);              # a slurpy positional parameter
-    $ = :(*%h);              # a slurpy named parameter
+    $ = :($a);               # a positional argument
+    $ = :(:$a);              # a named argument of name 'a'
+    $ = :(*@a);              # a slurpy positional argument
+    $ = :(*%h);              # a slurpy named argument
 
 On the caller side, positional arguments are passed in the same order as the
-parameters were declared.
+arguments are declared.
 
     sub pos($x, $y) { "x=$x y=$y" }
     pos(4, 5);                          # OUTPUT: «x=4 y=5»
@@ -647,14 +658,15 @@ as named arguments.
 sub named(:$x, :$y) { "x=$x y=$y" }
 named( y => 5, x => 4);             # OUTPUT: «x=4 y=5»
 
-It is possible to have a different name for a named parameter than the
+It is possible to have a different name for a named argument than the
 variable name:
 
     sub named(:official($private)) { "Official business!" if $private }
     named :official;
 
 X<|aliases (Signature)>
-This syntax can be used to define aliases for parameters:
+=head2 Argument Aliases
+The L<colon-pair|/type/Pair> syntax can be used to provide aliases for arguments:
 
     sub alias-named(:color(:$colour), :type(:class($kind))) {
         say $colour ~ " " ~ $kind
@@ -664,10 +676,10 @@ This syntax can be used to define aliases for parameters:
     alias-named(color => "white", class => "C"); # every alias is independent
 
 The presence of the colon C<:> will decide whether we are creating a new named
-parameter or not. C<:$colour> will not only be the name of the aliased variable,
-but also a new named parameter (used in the second invocation). However,
+argument or not. C<:$colour> will not only be the name of the aliased variable,
+but also a new named argument (used in the second invocation). However,
 C<$kind> will just be the name of the aliased variable, that does not create a
-new named parameter. More uses of aliases can be found in
+new named argument. More uses of aliases can be found in
 L<sub MAIN|/language/functions#sub_MAIN>
 
 A function with named arguments can be called dynamically, dereferencing a
@@ -730,7 +742,7 @@ connect two scopes anyway.
 X<|destructuring arguments (Signature)>
 =head2 Destructuring Parameters
 
-Parameters can be followed by a sub-signature in brackets, which will
+Parameters can be followed by a sub-signature in parentheses, which will
 destructure the argument given. The destructuring of a list is just its
 elements:
 
@@ -763,6 +775,7 @@ However, this unpacking of objects as their attributes is only the default
 behavior. To make an object get destructured differently, change its
 L<C<Capture>|/routine/Capture> method.
 
+X<|sub-signature>
 =head2 Sub-signatures
 
 To match against a compound parameter use a sub-signature following the argument
@@ -795,7 +808,8 @@ indicate that the routine's L<C<multi> definitions|multi> can have any L<type
 constraints|#Type_Constraints>. See L<proto|/language/functions#proto> for an
 example.
 
-If bound to a variable arguments can be forwarded as a whole using the slip operator C<|>.
+If bound to a variable arguments can be forwarded as a whole using the slip
+operator C<|>.
 
     sub a(Int $i, Str $s) { say $i.^name ~ ' ' ~ $s.^name }
     sub b(|c) { say c.^name; a(|c) }

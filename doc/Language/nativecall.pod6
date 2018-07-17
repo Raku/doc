@@ -1,4 +1,4 @@
-=begin pod :tag<perl6>
+=begin pod :tag<perl6> :page-order<a36>
 
 =TITLE Native Calling Interface
 
@@ -17,7 +17,7 @@ The simplest imaginable use of C<NativeCall> would look something like this:
 The first line imports various traits and types. The next line looks like
 a relatively ordinary Perl 6 sub declaration—with a twist. We use the
 "native" trait in order to specify that the sub is actually defined in a
-native library. The platform-specific extension (e.g., '.so' or '.dll'),
+native library. The platform-specific extension (e.g., C<.so> or C<.dll>),
 as well as any customary prefixes (e.g., 'lib') will be added for you.
 
 The first time you call "some_argless_function", the "libsomething" will be
@@ -28,6 +28,8 @@ Of course, most functions take arguments or return values—but everything else
 that you can do is just adding to this simple pattern of declaring a Perl 6 sub,
 naming it after the symbol you want to call and marking it with the "native"
 trait.
+
+You will also need to declare and use native types. Please check L<the native types page|/language/nativetypes> for more information.
 
 =head1 Changing names
 
@@ -270,12 +272,22 @@ my $ints = CArray[int32].allocate($number_of_ints); # instantiates an array with
 my $n = get_n_ints($ints, $number_of_ints);
 =end code
 
+I<Note>: C<allocate> was introduced in Rakudo 2018.05. Before that, you had to
+use this mechanism to extend an array to a number of elements:
+
+=begin code :skip-test
+my $ints = CArray[int32].new;
+my $number_of_ints = 10;
+$ints[$number_of_ints - 1] = 0; # extend the array to 10 items
+=end code
+
+
 The memory management of arrays is important to understand. When you create an
 array yourself, then you can add elements to it as you wish and it will be
 expanded for you as required. However, this may result in it being moved in
 memory (assignments to existing elements will never cause this, however). This
-means you'd best know what you're doing if you twiddle with an array after passing
-it to a C library.
+means you'd best know what you're doing if you twiddle with an array after
+passing it to a C library.
 
 By contrast, when a C library returns an array to you, then the memory can not
 be managed by NativeCall, and it doesn't know where the array ends. Presumably,
@@ -497,17 +509,24 @@ say "foo is {$foo.a_string} and {$foo.an_int32}";
 
 =head1 Typed Pointers
 
-=comment TODO
+You can type your C<Pointer> by passing the type as a parameter. It works with
+the native type but also with C<CArray> and C<CStruct> defined types. NativeCall
+will not implicitly allocate the memory for it even when calling C<new> on them.
+It's mostly useful in the case of a C routine returning a pointer, or if it's a
+pointer embedded in a C<CStruct>.
 
-TBD more
-
-You can type your C<Pointer> by passing the type as a parameter. It works with the native type
-but also with C<CArray> and C<CStruct> defined types. NativeCall will not implicitly allocate the memory for it
-even when calling C<new> on them.
-It's mostly useful in the case of a C routine returning a pointer, or if it's a pointer
-embedded in a C<CStruct>.
+=begin code
+use NativeCall;
+sub strdup(Str $s --> Pointer[Str]) is native {*}
+my Pointer[Str] $p = strdup("Success!");
+say $p.deref;
+=end code
 
 You have to call X<C<.deref>|deref> on C<Pointer>s to access the embedded type.
+In the example above, declaring the type of the pointer avoids typecasting error
+when dereferenced. Please note that the original
+L<C<strdup>|https://en.cppreference.com/w/c/experimental/dynamic/strdup> returns
+a pointer to C<char>; we are using C<Pointer<Str>>.
 
 =begin code :skip-test
 my Pointer[int32] $p; #For a pointer on int32;
@@ -516,7 +535,9 @@ my MyCstruct $mc = $p2.deref;
 say $mc.field1;
 =end code
 
-It's quite common for a native function to return a pointer to an array of elements. Typed pointers can be dereferenced as an array to obtain individual elements.
+It's quite common for a native function to return a pointer to an array of
+elements. Typed pointers can be dereferenced as an array to obtain individual
+elements.
 
 =begin code :skip-test
 my $n = 5;
@@ -544,6 +565,10 @@ for 1 ..^ $n {
     say "$_: delta ($dx, $dy)";
 }
 =end code
+
+Void pointers can also be used by declaring them C<Pointer[void]>. Please
+consult L<the native types documentation|/language/nativetypes#The_void_type>
+for more information on the subject.
 
 =head1 Strings
 
@@ -601,16 +626,30 @@ leaks.
 
 =head2 Buffers and blobs
 
-=comment TODO
+L<Blob>s and L<Buf>s are the Perl 6 way of storing binary data. We can use them
+for interchange of data with native functions and data structures, although not
+directly. We will have to use L<C<nativecast>|/routine/nativecast>.
 
-TBD
+=for code :preamble<use NativeCall;>
+my $blob = Blob.new(0x22, 0x33);
+my $src = nativecast(Pointer, $blob);
+
+This C<$src> can then be used as an argument for any native function that takes
+a Pointer. The opposite, putting values pointed to by a C<Pointer> into a C<Buf>
+or using it to inialize a C<Blob> is not directly supported. You might want to
+use L<C<NativeHelpers::Blob>|https://github.com/salortiz/NativeHelpers-Blob> to
+do this kind of operations.
+
+=for code :skip-test<incomplete code>
+my $esponja = blob-from-pointer( $inter, :2elems, :type(Blob[int8]));
+say $esponja;
 
 =head1 Function arguments
 
-NativeCall also supports native functions that take functions as arguments.  One example
-of this is using function pointers as callbacks in an event-driven system.  When
-binding these functions via NativeCall, one need only provide the equivalent signature
-as a constraint on the code parameter:
+NativeCall also supports native functions that take functions as arguments.  One
+example of this is using function pointers as callbacks in an event-driven
+system.  When binding these functions via NativeCall, one need only provide the
+equivalent signature as a constraint on the code parameter:
 
     use NativeCall;
     # void SetCallback(int (*callback)(const char *))
@@ -622,18 +661,27 @@ to callbacks.
 
 =head1 Library Paths and Names
 
-=comment TODO
+The C<native> trait accepts the library name, the full path, or a subroutine
+returning either of the two. When using the library name, the name is assumed
+to be prepended with "lib" and appended with ".so" (or just appended with
+".dll" on Windows), and will be searched for in the paths in the
+LD_LIBRARY_PATH (PATH on Windows) environment variable.
 
-TBD more
-
-The C<native> trait accepts the library name or the full path.
-
+=begin code :skip-test
     use NativeCall;
     constant LIBMYSQL = 'mysqlclient';
     constant LIBFOO = '/usr/lib/libfoo.so.1';
+    sub LIBBAR {
+        my $path = qx/pkg-config --libs libbar/.chomp;
+        $path ~~ s/\/[[\w+]+ % \/]/\0\/bar/;
+        $path
+    }
     # and later
+
     sub mysql_affected_rows returns int32 is native(LIBMYSQL) {*};
     sub bar is native(LIBFOO) {*}
+    sub baz is native(LIBBAR) {*}
+=end code
 
 You can also put an incomplete path like './foo' and NativeCall will automatically put
 the right extension according to the platform specification.
@@ -932,7 +980,7 @@ node, which depends on the family of the Socket.  So we can add method
 C<address> to the Perl 6 class that interprets the address depending on the
 family.
 
-In order to get a human readable IP address, there is the C funtion C<inet_ntop>
+In order to get a human readable IP address, there is the C function C<inet_ntop>
 which returns a C<char *> given
 a buffer with the C<addrinfo>.
 

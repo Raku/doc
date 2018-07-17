@@ -1,36 +1,33 @@
 FROM rakudo-star:latest
 
-RUN buildDeps=' \
+RUN buildDeps='         \
         build-essential \
-        cpanminus \
-        npm \
-    ' \
+        cpanminus       \
+    '                   \
     runtimeDeps=' \
-        graphviz \
-        make \
-        nodejs \
+        graphviz  \
+        make      \
         ruby-sass \
-    ' \
+    '             \
     testDeps=' \
         aspell \
     ' \
-
+      \
     && set -x \
+              \
     && apt-get update \
     && apt-get --yes --no-install-recommends install $buildDeps $runtimeDeps $testDeps \
     && rm -rf /var/lib/apt/lists/* \
-
-    && cpanm -vn Mojolicious \
+                                   \
+    && cpanm -vn Mojolicious  \
     && zef install Test::META \
+                              \
+    && n=/usr/local/bin/n \
+    && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n > "$n" \
+    && chmod +x "$n"      \
+    && n stable
 
-    && ln -s /usr/bin/nodejs /usr/bin/node \
-    && npm cache clean -f \
-    && npm install -g n \
-    && n stable \
-
-    && apt-get purge --yes --auto-remove $buildDeps
-
-WORKDIR /perl6/doc/
+WORKDIR /perl6/doc
 EXPOSE  3000
 
-CMD bash -c 'make test && make html && ./app-start'
+CMD make test && make html && ./app-start

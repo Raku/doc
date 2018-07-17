@@ -1,13 +1,13 @@
-=begin pod :tag<convert>
+=begin pod :tag<convert> :page-order<A01>
 
-=TITLE Perl 5 to Perl 6 guide - Overview
+=TITLE Perl 5 to Perl 6 guide - In a Nutshell
 
-=SUBTITLE How do I do what I used to do? (Perl 6 in a nutshell.)
+=SUBTITLE How do I do what I used to do? (Perl 6 in a nutshell)
 
-This page attempts to index the changes in syntax and semantics from
-Perl 5 to Perl 6. Whatever worked in Perl 5 and must be written differently
-in Perl 6, should be listed here (whereas many I<new> Perl 6 features and
-idioms won't be).
+This page attempts to provide a fast-path to the changes in syntax and
+semantics from Perl 5 to Perl 6. Whatever worked in Perl 5 and must be written
+differently in Perl 6, should be listed here (whereas many I<new> Perl 6
+features and idioms are not).
 
 Hence this should not be mistaken for a beginner tutorial or a promotional
 overview of Perl 6; it is intended as a technical reference for Perl 6
@@ -52,6 +52,14 @@ say looks_like_number "42";    # 1
 A number of Perl 5 modules have been ported to Perl 6, trying to maintain
 the API of these modules as much as possible, as part of the CPAN Butterfly
 Plan.  These can be found at L<https://modules.perl6.org/t/CPAN5>.
+
+Many Perl 5 built-in functions (about a 100 so far) have been ported to
+Perl 6 with the same semantics.  Think about the C<shift> function in Perl 5
+having magic shifting from C<@_> or C<@ARGV> by default, depending on context.
+These can be found at L<https://modules.perl6.org/t/Perl5> as separately
+loadable modules, and in the
+L<P5built-ins|https://modules.perl6.org/dist/P5built-ins> bundle to get them
+all at once.
 
 =head1 Syntax
 
@@ -443,17 +451,19 @@ so we will have to focus on the intent of the reference operators
 instead of the actual syntax.
 
 =for code :lang<perl5>
-my $aref =     \@aaa  ; # Perl 5
+my $aref = \@aaa  ; # Perl 5
 
-This might be used for passing a reference to a routine, for instance. But in Perl 6, the default behavior is a pass by reference.
+This might be used for passing a reference to a routine, for instance. But in
+Perl 6, the (single) underlying object is passed (which you could consider
+to be a sort of pass by reference).
 
 =begin code
-my @a = 4,8,15;
-(-> @array { @array[0] = 66})(@a);
-say @a; #  OUTPUT: «[66 8 15]␤»
+my @array = 4,8,15;
+{ $_[0] = 66 }(@array);   # run the block with @array aliased to $_
+say @array; #  OUTPUT: «[66 8 15]␤»
 =end code
 
-The declared C<@a> is passed by reference, and its first value modified inside the declared routine.
+The underlying Array object of C<@array> is passed, and its first value modified inside the declared routine.
 
 In Perl 5, the syntax for dereferencing an entire reference is the
 type-sigil and curly braces, with the reference inside the curly braces. In Perl 6, this concept simply does not apply, since the I<reference> metaphor does not really apply.
@@ -529,7 +539,7 @@ my @all_numbers = |@numbers, 400, |@more_numbers;
 
 That way one can concatenate arrays.
 
-Note that one does not need to have any parentheses on the right hand side:
+Note that one does not need to have any parentheses on the right-hand side:
 the List Separator takes care of creating the list, B<not> the parentheses!
 
 =head2 C«<=> cmp» Three-way comparisons
@@ -544,12 +554,12 @@ C«<=>» still forces numeric context.
 C«cmp» in Perl 6 does either C«<=>» or C<leg>, depending on the existing
 type of its arguments.
 
-=head2 C<~~> Smart-match operator
+=head2 C<~~> Smartmatch operator
 
 While the operator has not changed, the rules for what exactly is matched
 depend on the types of both arguments, and those rules are far from
 identical in Perl 5 and Perl 6. See L<~~|/routine/~~> and
-L<S03/Smart matching|https://design.perl6.org/S03.html#Smart_matching>
+L<S03/Smartmatching|https://design.perl6.org/S03.html#Smart_matching>
 
 =head2 C<& | ^> String Bitwise ops
 =head2 C<& | ^> Numeric Bitwise ops
@@ -1642,10 +1652,10 @@ say [ :$foo, :$bar, :@baz ].perl;
 # OUTPUT: «["foo" => 42, "bar" => 44, "baz" => [16, 32, 64, "Hike!"]]␤»
 =end code
 
-There is also a debugging aid for developers called C<dd> (Tiny Data Dumper,
-so Tiny it lost the "t").  This will print the C<.perl> representation plus
-some extra information that could be introspected, of the given variables on
-STDERR:
+There is also a Rakudo-specific debugging aid for developers called C<dd> (Tiny
+Data Dumper, so tiny it lost the "t").  This will print the C<.perl>
+representation plus some extra information that could be introspected, of the
+given variables on STDERR:
 
 =begin code :preamble<no strict;> :ok-test<dd>
 # Perl 6
@@ -1737,22 +1747,6 @@ installation. It only supports a subset of Perl 5 syntax so far.
 
 L<http://fglock.github.io/Perlito/perlito/perlito5.html>
 
-=head2 MAD
-
-Larry Wall's own code for translating Perl 5 to Perl 6 has bit-rotted, and
-is not (currently) viable on recent releases of Perl 5.
-
-MAD (Misc Attribute Definition) is a configuration option when building
-Perl from a source distribution. The C<perl> executable analyses and
-translates your Perl sourcecode into an op-tree, and then executes the
-program by walking the op-tree. Normally, most of the details from the
-analysis are thrown away during this process. When MAD is enabled, the
-C<perl> executable will save those details to an XML file, which can then be
-read and further processed into Perl 6 code by a MAD parser.
-
-Please consult #perl6 to find out the best release of Perl 5 to use for
-your MAD science experiments.
-
 =head2 Perl-ToPerl6
 
 Jeff Goff's Perl::ToPerl6 module for Perl 5 is designed around
@@ -1772,31 +1766,5 @@ some point.
 =item L<http://www.perlfoundation.org/perl6/index.cgi?perl_6_delta_tablet>
 
 =end pod
-
-=begin comments
-
-### Guidelines for contributions:
-
-Headers should contain the text that a Perl 5 user might search for, since
-those headings will be in the Table of Contents generated for the top of
-the document.
-
-We use POD =item instead of =head3 or =head4 for unchanged bits that need
-not appear in the table of contents.
-
-This article does not describe the additions to syntax, nor details of
-possible improvements. For example, C<0 + $string> still works, even though
-we would write it as C<+$string> now. (Blue Tiger will offer a Perl
-Modernization guide, with step-by-step procedures for translation, along
-with details of new idioms and "better ways to do it")
-
-Example code and links to other documents should be favored over long
-explanations of details better found elsewhere.
-
-Finally, if a real user asks a P5->P6 question not answered here, please
-add it to the document, even if we don't have a good answer yet. That will
-be better than losing the information about a real need.
-
-=end comments
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

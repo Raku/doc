@@ -515,6 +515,22 @@ Example:
     say ('hello', 1, 22/7, 42, 'world').classify: { .Str.chars };
     # OUTPUT: «{1 => [1], 2 => [42], 5 => [hello world], 8 => [3.142857]}␤»
 
+It can also take C<:as> as a named parameter, transforming the value before
+classifying it:
+
+    say <Innie MInnie Moe>.classify( { $_.chars }, :as{ lc $_ });
+    # OUTPUT: «{3 => [moe], 5 => [innie], 6 => [minnie]}␤»
+
+It is classifying by number of characters, but the C<:as> block lowercases it
+before doing the transformation. The named parameter C<:into> can also be used
+to classify I<into> a newly defined variable:
+
+    <Innie MInnie Moe>.classify( { $_.chars }, :as{ lc $_ }, :into( my %words{Int} ) );
+    say %words; # OUTPUT: «{3 => [moe], 5 => [innie], 6 => [minnie]}␤»
+
+We are defining C<%words{Int}> on the fly, with keys that are actually integers;
+it gets created with the result of the classification.
+
 =head2 method Bool
 
 Defined as:
@@ -864,7 +880,7 @@ for operators which aren't left-associative:
     (2-3-4).say;                          # OUTPUT: «-5␤»
 
 Since reducing with an infix operator is a common thing to do, the C<[ ]>
-meta-operator provides a syntactic shortcut:
+metaoperator provides a syntactic shortcut:
 
     # The following all do the same thing...
     my @numbers = (1,2,3,4,5);
@@ -930,7 +946,7 @@ for operators which aren't left-associative:
     say produce &[-], (2,3,4);         # OUTPUT: «(2 -1 -5)␤»
     say [\-] (2,3,4);                  # OUTPUT: «(2 -1 -5)␤»
 
-A triangle meta-operator C<[\ ]> provides a syntactic shortcut for
+A triangle metaoperator C<[\ ]> provides a syntactic shortcut for
 producing with an infix operator:
 
     # The following all do the same thing...
@@ -1114,7 +1130,8 @@ to apply to each of the cross product items.
     say cross([1, 2, 3], [4, 5, 6], :with(&infix:<*>)).join(",");
     # OUTPUT: «4,5,6,8,10,12,12,15,18␤»
 
-The C<X> operator can be combined with another operator as a meta-operator to perform a reduction as well:
+The C<X> operator can be combined with another operator as a
+metaoperator to perform a reduction as well:
 
     say ([1, 2, 3] X* [4, 5, 6]).join(",")
     # same output as the previous example
@@ -1170,8 +1187,8 @@ single list of products.
     # 8␤
     # 27␤»
 
-The C<Z> form can also be used to perform reduction by implicitly setting the
-C<with> parameter with a meta-operator :
+The C<Z> form can also be used to perform reduction by implicitly
+setting the C<with> parameter with a metaoperator :
 
     .say for <1 2 3> Z* [1, 2, 3] Z* (1, 2, 3);        # same output
 
@@ -1269,6 +1286,23 @@ Defined as:
 It does nothing, and returns C<Nil>, as the definition clearly shows.
 
     sink [1,2,Failure.new("boo!"),"still here"]; # OUTPUT: «»
+
+=head2 method Set
+
+In general, creates a set which has as members elements of the list.
+
+    say <æ ß þ €>.Set ;# OUTPUT: «set(ß æ þ €)␤»
+
+However, there might be some unexpected changes in case the list includes
+non-scalar data structures. For instance, with L<Pair>s:
+
+    my @ary = (:42a, :33b);
+    say @ary.Set;# OUTPUT: «set(a b)␤»
+
+The set will be composed of the C<key>s of the Pair whose corresponding value
+is not 0, eliminating all the values. Please check the
+L<C<Set> documentation|/type/Set#Creating_Set_objects> for more examples and a
+more thorough explanation.
 
 =head1 Operators
 

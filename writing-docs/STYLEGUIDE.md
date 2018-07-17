@@ -11,6 +11,12 @@ Please follow these rules when writing the text itself:
 * Configure your editor for auto-flowing (or
 hard-wrapping) line length at 72 whenever possible.
 
+When writing new text, try to be consistent with the rest of the
+docs. If it happens that there's no consistency and this style guide
+does not give a recommendation, consult
+[Wikipedia's Manual of Style](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style)
+and see if the issue is covered there. Typically, style decisions that
+work for Wikipedia can be safely used for writing Perl 6 documentation.
 
 ## Structure
 
@@ -20,14 +26,16 @@ Avoid writing a routine's documentation in the form
 
     Like [other method] except [...]
 
-even when they're in the same class, because readers might not read the whole
-class page, but rather navigate to a specific routine (maybe even out of
-context in the /routine/ section of the website) and expect it to tell them how
-it works without being sent on a goose chase around the site.
+even when they're in the same class, because readers might not read
+the whole class page, but rather navigate to a specific routine (maybe
+even out of context in the /routine/ section of the website) and
+expect it to tell them how it works without being sent on a goose
+chase around the site.
 
-In other words, give each routine documentation a self-contained introduction,
-and only link to related/similar routines *below* that introduction, even if
-that means duplicating some half-sentences multiple times.
+In other words, give each routine documentation a self-contained
+introduction, and only link to related/similar routines *below* that
+introduction, even if that means duplicating some half-sentences
+multiple times.
 
 ### Links to docs
 
@@ -39,11 +47,35 @@ Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
-`https://docs.perl6.org/blah/blah`). Other variations of the URL will still
-work, for convenience, but they all simply redirect to the canonical version,
-so it's best to use it from the start.
+`https://docs.perl6.org/blah/blah`). Other variations of the URL will
+still work, for convenience, but they all simply redirect to the
+canonical version, so it's best to use it from the start.
 
 ## Language
+
+### Unambiguous is better than short
+
+When you have to choose between two sentence structures, opt for the
+unambiguous.
+
+```
+my %hash = hash;
+my @array = <1 2 3>
+```
+
+In this case, `this code initializes a hash` is short, but
+ambiguous. Opt for `The first line of this example initializes an
+empty hash`.
+
+Try to avoid abbreviations. For example, “RHS” is short, but
+“right-hand side” is much clearer for beginners.
+
+In general, try to put yourself in the shoes of someone with no
+previous exposition to the language (or computer science
+altogether). Although it might seem obvious to
+you that only the first line can in fact initialize a hash, the
+documentation is targeted at people with no previous exposition to the
+language.
 
 ### 'say' vs 'put'
 
@@ -99,36 +131,28 @@ present 'is').
 While Perl 6 allows all kinds of fancy characters in identifiers,
 stick to easily understandable names:
 
-    my $sub; # GOOD my $ßub; # BAD; Is it a twigil? How do I type
-    this? HELP!
+    my $sub; # GOOD
+    my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
 
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
 
 ### Prefer non-ASCII syntax in examples
 
-    my @infinite-sequence = 1,3...∞ # GOOD my @infinite-sequence =
-    1,3...Inf # OK, but rather not <a b c > ⊖ <c d e> # Good <a b c >
-    (^) <c d e> # OK, but don't do that
+    my @infinite-sequence = 1, 3 … ∞     # GOOD
+    my @infinite-sequence = 1, 3 ... Inf # OK, but rather not
+    <a b c >  ⊖  <c d e> # Good
+    <a b c > (^) <c d e> # OK, but don't do that
 
-All operators have a ASCII equivalent, but they are more verbose and
+All operators have an ASCII equivalent, but they are more verbose and
 do not correspond exactly to the mathematical operator or constant
 they often represent. Please use that syntax whenever possible.
 
-### Prefer the %() form of declaring hashes
+### Try to express intent, rather than just demonstrating the syntax
 
-    my %hash := { this => "is", a => "hash" }; # Correct, but BAD
-    my %hash := %( this => "is", a => "hash" ); # GOOD
-
-Using the second form is more idiomatic and avoids confusion with
-blocks. In fact, you don't need to use `:=` in the second sentence,
-precisely for this reason.
-
-### Try to express intent, rather than simply reflex syntax
-
-    my @l = lazy 0..5; # Correct, but BAD
-    my @too-long-list = lazy 0..100000000  # GOOD
-    my @powers-of-eleven = lazy 1, 11, 121 ... 10**100 # EVEN BETTER
+    my @l = lazy 0..5;                             # Correct, but BAD
+    my @too-long-list = lazy 0..100000000          # GOOD
+    my @powers-of-eleven = lazy 1, 11, 121 … 10¹⁰⁰ # EVEN BETTER
 
 In the first case, the syntax is totally correct. But a list with 5
 elements need not be made lazy. The second is better, because it does
@@ -143,8 +167,8 @@ Style guidelines related to Perl *.
 
 ### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Perl 6, so this
-should not be part of the bulk of the documentation.
+We are not expecting our users to have to know Perl 5 to learn Perl 6,
+so this should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
 
@@ -160,8 +184,9 @@ this one liner:
 
 ## Domain
 
-What should be documented? The primary goal of the programmatic documentation
-is to cover items that are part of the specification (the roast test suite)
+What should be documented? The primary goal of the programmatic
+documentation is to cover items that are part of the specification (the
+roast test suite)
 
 * If something is visible to users of Perl 6 and is in roast: document it.
 * If something is visible to users of Perl 6 and is not in roast:
@@ -173,9 +198,9 @@ is to cover items that are part of the specification (the roast test suite)
   clearly its implementation-specific nature and where possible show
   the first and latest version the documented feature is available.
 
-Future considerations along this line include: documenting things that are rakudo
-specific (like "dd"), and documenting which versions of the spec items are
-available in.
+Future considerations along this line include: documenting things that
+are rakudo specific (like "dd"), and documenting which versions of the
+spec items are available in.
 
 ## Use of HTML
 

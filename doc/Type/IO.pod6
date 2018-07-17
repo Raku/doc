@@ -198,8 +198,8 @@ Defined as:
     multi sub put(Junction:D --> True)
 
 Same as L«C<print>|/type/IO#sub_print», except it uses
-L«C<print-nl>|/routine/print-nl» (which printts a newline, by default) at the
-end. L<Junction> arguments
+L«C<print-nl>|/routine/print-nl» (which prints a L<newline|/language/newline>,
+by default) at the end. L<Junction> arguments
 L<autothread|/language/glossary#index-entry-Autothreading> and the order of
 printed strings is not guaranteed.
 
@@ -214,7 +214,8 @@ Defined as:
     multi sub say(**@args --> True)
 
 Prints the "gist" of given objects. Same as L«C<put>|/type/IO#sub_put», except
-uses L«C<.gist>|/routine/gist» method to obtain string representation of the object.
+uses L«C<.gist>|/routine/gist» method to obtain string representation of the
+object.
 
 B<NOTE:> the L«C<.gist>|/routine/gist» method of some objects, such as
 L<Lists|/type/List#method_gist>, returns only B<partial> information about the
@@ -254,7 +255,9 @@ then L<gets|/routine/get> a line of input from C<$*IN> handle. By default,
 this is equivalent to printing C<$msg> to
 L<STDOUT|https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29>, reading a line from
 L<STDIN|https://en.wikipedia.org/wiki/Standard_streams#Standard_input_.28stdin.29>,
-removing the trailing new line, and returning the resultant string.
+removing the trailing new line, and returning the resultant string. As of
+Rakudo 2018.07, C<prompt> will create L<allomorphs|/language/numerics#Allomorphs>
+for numeric values, equivalent to calling C<val prompt>.
 
 =for code
 my $name = prompt "What's your name? ";
@@ -319,10 +322,6 @@ on the C<$path>, forwarding any of the remaining arguments.
 
 The encoding with which the contents will be written.
 
-=item :bin
-
-Open the file in binary mode.
-
 =item :append
 
 Boolean indicating whether to append to a (potentially) existing file.  If
@@ -355,7 +354,9 @@ spurt 'file-that-already-exists', 'new text', :createonly;
 
     sub run(*@args ($, *@) --> Proc)
 
-Runs an external command without involving a shell and returns a L<Proc> object.
+Runs an external command I<without involving a shell> and returns a
+L<Proc> object. By default, the external command will print to standard
+output and error, and read from standard input.
 
     run 'touch', '>foo.txt'; # Create a file named >foo.txt
 
@@ -379,29 +380,44 @@ Note that C<--> is required for many programs to disambiguate between
 command-line arguments and
 L<filenames that begin with hyphens|http://mywiki.wooledge.org/BashPitfalls#Filenames_with_leading_dashes>.
 
-A sunk L<Proc> object for a process that L<exited|/routine/exitcode> unsuccessfully
-will throw. If you wish to ignore such failures, simply use L<run> in non-sink context:
+A sunk L<Proc> object for a process that L<exited|/routine/exitcode>
+unsuccessfully will throw. If you wish to ignore such failures, simply
+use L<run> in non-sink context:
 
     run 'false';     # SUNK! Will throw
     run('false').so; # OK. Evaluates Proc in Bool context; no sinking
 
-To capture output or error you can use the C<:out> or C<:err> arguments respectively:
+If you want to capture standard output or error instead of having it
+printed directly you can use the C<:out> or C<:err> arguments
+respectively, which will make them available using the
+L<C<Proc.out>|/type/Proc> method:
 
     my $proc = run 'echo', 'Perl 6 is Great!', :out, :err;
     $proc.out.slurp(:close).say; # OUTPUT: «Perl 6 is Great!␤»
     $proc.err.slurp(:close).say; # OUTPUT: «␤»
 
-See L<Proc|/type/Proc> and L<Proc::Async|/type/Proc::Async> for more details.
+You can use these arguments to redirect them to a filehandle, thus
+creating a kind of I<pipe>:
+
+    my $ls-alt-handle = open :w, '/tmp/cur-dir-ls-alt.txt';
+    my $proc = run "ls", "-alt", :out($ls-alt-handle);
+    # (The file will contain the output of the ls -alt command)
+
+
+These argument are quite flexible and admit, for instance, handles to
+redirect them. See L<Proc|/type/Proc> and
+L<Proc::Async|/type/Proc::Async> for more details.
 
 =head2 sub shell
 
     sub shell($cmd --> Proc)
 
-Runs a command through the system shell, which defaults to C<%*ENV<ComSpec> /c> in Windows, C</bin/sh -c> otherwise. All shell meta characters are
-interpreted by the shell, including pipes, redirects, environment variable
-substitutions and so on. Shell escapes are a severe security concern and can
-cause confusion with unusual file names. Use L<run|/type/IO#sub_run> if you
-want to be safe.
+Runs a command through the system shell, which defaults to
+C<%*ENV<ComSpec> /c> in Windows, C</bin/sh -c> otherwise. All shell meta
+characters are interpreted by the shell, including pipes, redirects,
+environment variable substitutions and so on. Shell escapes are a severe
+security concern and can cause confusion with unusual file names. Use
+L<run|/type/IO#sub_run> if you want to be safe.
 
 The return value is of L<type Proc|/type/Proc>.
 

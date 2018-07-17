@@ -1,0 +1,56 @@
+=begin pod :tag<perl6> :page-order<a38>
+
+=TITLE Newline handling in Perl 6
+
+=SUBTITLE How the different newline characters are handled, and how to change the behavior
+
+Different operating systems use different characters, or combinations of them,
+to represent the transition to a new line. Every language has its own set of
+rules to handle this. Perl 6 has the following ones:
+
+=item C<\n> in a string literal means Unicode codepoint 10.
+
+=item The default L<nl-out|/routine/nl-out> that is appended to a string by say
+is also C<\n>.
+
+=item On output, when on Windows, the encoder will by default transform a C<\n>
+into a C<\r\n> when it's going to a file, process, or terminal (it won't do this
+on a socket, however).
+
+=item On input, on any platform, the decoder will by default normalize C<\r\n>
+into C<\n> for input from a file, process, or terminal (again, not socket).
+
+=item These above two points together mean that you can - socket programming
+aside - expect to never see a C<\r\n> inside of your program (this is how things
+work in numerous other languages too).
+
+X<|:$translate-nl>
+=item The L<C<:$translate-nl>|/type/Encoding#method_decoder> named parameter
+exists in various places to control this transformation, for instance, in
+L<C<Proc::Async.new>|/type/Proc::Async#method_new> and
+L<C<Proc::Async.Supply>|/type/Proc::Async#method_Supply>.
+
+=item A C<\n> in the L<regex|/language/regexes> language is logical, and will
+match a C<\r\n>.
+
+X<|:nl-out>
+You can change the default behavior for a particular handle by setting the
+C<:nl-out> attribute when you create that handle.
+
+    my $crlf-out = open(IO::Special.new('<STDOUT>'), :nl-out("\\\n\r"));
+    $*OUT.say: 1;     #OUTPUT: «1␤»
+    $crlf-out.say: 1; #OUTPUT: «1\␤␍»
+
+In this example, where we are replicating standard output to a new handle by
+using L<IO::Special>, we are appending a C<\> to the end of the string, followed
+by a newline C<␤> and a carriage return C<␍>; everything we print to that handle
+will get those characters at the end of the line, as shown.
+
+In regular expressions,
+L<C<\n>|/language/regexes#index-entry-regex_\n-regex_\N-\n_and_\N> is defined in
+terms of the L<Unicode definition of logical newline|http://unicode.org/reports/tr18/#Line_Boundaries>. It will match C<.>
+and also C<\v>, as well as any class that includes whitespace.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -6,17 +6,20 @@
 
 网站 [https://docs.perl6.org/](https://docs.perl6.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
 
-本仓库还提供命令行工具 p6doc 用于阅读文档。
+本仓库还提供命令行工具 p6doc 用于阅读文档（详见下文）。
 
 （如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 Pod）
 
 ## 其他语言版本的 README
 
 * [英文版 README](README.md)
-* [意大利文版 README](README.it.md)
-* [德文版 README](README.de.md)
-* [西班牙文版 README](README.es.md)
+* [荷兰文版 README](README.nl.md)
 * [法文版 README](README.fr.md)
+* [德文版 README](README.de.md)
+* [意大利文版 README](README.it.md)
+* [日文版 README](README.jp.md)
+* [葡萄牙文版 README](README.pt.md)
+* [西班牙文版 README](README.es.md)
 
 ## 安装 p6doc
 
@@ -25,6 +28,8 @@
     $ zef install p6doc
 
 安装可执行文件并添加到执行路径（PATH）中。
+
+**注意**: 由于 Pod6 的解析规则改变，在 2018.06 之前的版本将无法通过测试从而无法安装，你可以选择升级到最新的版本或使用 `zef install --force p6doc` 来解决这个问题。无法通过测试并不影响 p6doc 的使用。
 
 ## 使用 p6doc
 

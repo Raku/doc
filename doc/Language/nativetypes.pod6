@@ -1,18 +1,22 @@
-=begin pod :tag<perl6>
+=begin pod :tag<perl6> :page-order<a37>
 
 =TITLE Perl 6 native types
 
-=SUBTITLE Using the types the compiler and hardware make available to you.
+=SUBTITLE Using the types the compiler and hardware make available to you
 
-Perl 6 offers a set of I<native> types with a fixed, and known, representation
-in memory. This page shows which ones exist and how they can be used. Please
-check also the page on L<native numerics|/language/numerics#Native_Numerics> for
-more information on them.
+Perl 6 offers a set of I<native> types with a fixed, and known,
+representation in memory. This page shows which ones exist and how they
+can be used. Please check also the page on L<native
+numerics|/language/numerics#Native_Numerics> for more information on
+them.
 
 X<|int>X<|uint>X<|num>X<|str>
 =head1 Types with native representation
 
-Some simple types in Perl 6 have a I<native> representation, indicating that they will use the C language representation provided by the compiler, operating system and machine. These are the four native types available:
+Some simple types in Perl 6 have a I<native> representation, indicating
+that they will use the C language representation provided by the
+compiler, operating system and machine. These are the four native types
+available:
 
 =begin table
     int            Equivalent to Int
@@ -22,30 +26,33 @@ Some simple types in Perl 6 have a I<native> representation, indicating that th
 =end table
 
 However, these types do not necessarily have the size that is required by the
-L<NativeCall|/lang/nativecall> interface (e.g., Perl 6's C<int> can be 8 bytes
-but C's C<int> is only 4 bytes). Instead, the types below will have to be used
-instead of the types C<int> or C<num> listed above.
+L<NativeCall|/language/nativecall> interface (e.g., Perl 6's C<int> can be 8
+bytes but C's C<int> is only 4 bytes). Instead, the types below will have to be
+used instead of the types C<int> or C<num> listed above.
 
-In general, these variables will behave in the same way as regular scalar
-variables, in a behavior that is called
-L<I<auto-boxing>|/language/numerics#Auto-Boxing>; however, there are some
-differences, since what you are actually declaring is how they will be
-represented, not their actual type. The first one is that their type will be
-actually their equivalent type, not their native type.
+In general, these variables will behave in the same way as regular
+scalar variables, in a behavior that is called
+L<I<auto-boxing>|/language/numerics#Auto-Boxing>; however, there are
+some differences, since what you are actually declaring is how they will
+be represented, not their actual type. The first one is that their type
+will be actually their equivalent type, not their native type.
 
     my int $intillo = 3;
     say $intillo.^name; # OUTPUT: «Int␤»
 
-This obviously means that they will smartmatch their equivalent, not their
-native type:
+This obviously means that they will smartmatch their equivalent, not
+their native type:
 
     my str $strillo = "tres";
     say $strillo ~~ str; # OUTPUT: «False␤»
     say $strillo ~~ Str; # OUTPUT: «True␤»
 
-They cannot be bound either. Trying to do C<my num $numillo := 3.5> will raise
-the exception C<Cannot bind to natively typed variable '$variable-name'; use
-assignment instead>.
+This is due to the fact that Natives don't know their types because
+they're just values, without any meta-data.
+
+They cannot be bound either. Trying to do C<my num $numillo := 3.5> will
+raise the exception C<Cannot bind to natively typed variable
+'$variable-name'; use assignment instead>.
 
 X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|num32>X<|num64>X<|byte>
 =head1 Types with native representation and size
@@ -53,7 +60,8 @@ X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>X<|num
 What has been mentioned about types with native representation also applies
 here; they will be auto-boxed to Perl 6 types and will not be boundable.
 However, these types, which are listed in the table below, have the
-characteristic of being usable in L<NativeCall> functions.
+characteristic of being usable in
+L<NativeCall|/language/nativecall#Passing_and_Returning_Values> functions.
 
 =begin table
     int8           (int8_t in C, also used for char)
@@ -69,23 +77,64 @@ characteristic of being usable in L<NativeCall> functions.
 =end table
 
 These types have a fixed size representation which is independent of the
-platform, and thus can be used safely for those calls. Nothing prevents us from
-using it in any other environment, if we so wish. In the same way as the types
-above, this size will have to be taken into account when assigning values to
-variables of this type:
+platform, and thus can be used safely for those native calls. Nothing prevents
+us from using them in any other environment, if we so wish. In the same way as
+the types above, this size will have to be taken into account when assigning
+values to variables of this type:
 
     my byte $intillo = 257;
     say $intillo; # OUTPUT: «1␤»
 
-Since C<byte> is able to hold only 8 bits, it will I<wrap over> and assign the result of the original value modulo 256, which is what is shown.
+Since C<byte> is able to hold only 8 bits, it will I<wrap over> and assign the
+result of the original value modulo 256, which is what is shown.
 
-The main difference between types with declared native size and those without is the use of X<is nativesize> in their declaration. For instance, C<int8> is declared in this way:
+The main difference between types with declared native size and those without is
+the use of X<is nativesize> in their declaration. For instance, C<int8> is
+declared in this way:
 
     my native int8 is repr('P6int') is Int is nativesize( 8) { }
 
 Indicating that it will use, besides an integer representation (C<P6int>), a
 native size of only 8 bits. This trait, however, is not intended to be used in
 your programs since it is not part of the Perl 6 specification.
+
+=head1 X<The C<void> type|void (NativeCall)>
+
+The native C<void> type corresponds to the C C<void> type. Although, being a
+valid type, you can use it in expressions:
+
+     use NativeCall;
+     my void $nothing;
+     say $nothing.perl; # OUTPUT: «NativeCall::Types::void␤»
+
+In practice, it is an C<Uninstantiable> type that can rarely be used by itself,
+and in fact it is L<explicitly forbidden in C<return> types|/language/nativecall#Passing_and_Returning_Values>. However, it is
+generally found in typed pointers representing the equivalent to the C<void *>
+pointer in C.
+
+=begin code :preamble<use NativeCall;>
+sub malloc( int32 $size --> Pointer[void] ) is native { * };
+my Pointer[void] $for-malloc = malloc( 32 );
+say $for-malloc.perl;
+=end code
+
+You can also L<nativecast> L<Blob>s to this kind of pointer in case you need to
+work with them in native functions that use the type
+
+=begin code
+use NativeCall;
+my Pointer[void] $native = nativecast(Pointer[void], Blob.new(0x22, 0x33));
+=end code
+
+However, outside that, the functionality it offers is quite limited, since
+pointers to void cannot be dereferenced:
+
+=begin code :skip-test<unhandled type error>
+use NativeCall;
+my Pointer[void] $native = nativecast(Pointer[void], Buf.new(0x22, 0x33));
+say $native.deref; # ERROR OUTPUT: «Internal error: unhandled target type␤»
+=end code
+
 
 =head1 I<Atomic> types
 
@@ -95,6 +144,36 @@ L<some operations|/type/atomicint#Routines> which, together, guarantee this.
 Please check
 L<the atomic operations section on the Numerics page|/language/numerics#Atomic_Operations>
 for more information on this.
+
+=head1 Rakudo specific types
+
+The types described in this section are Rakudo specific, so they are not
+guaranteed to be in other implementations or remain the same in future versions.
+Test code that uses them heavily.
+
+=begin table
+long      (long in C)
+longlong  (longlong in C)
+ulong     (long and unsigned in C)
+ulonglong (longlong and unsigned in C)
+size_t    (size_t and unsigned in C)
+ssize_t   (size_t in C)
+bool      (bool in C)
+=end table
+
+You can use them in the same way they would be used in native C:
+
+=begin code
+use NativeCall;
+
+my $just-an-array = CArray[int32].new( 1, 2, 3, 4, 5 );
+
+loop ( my size_t $i = 0; $i < $just-an-array.elems; $i++ ) {
+    say $just-an-array[$i];
+}
+=end code
+
+Which would print the five elements of the array, as it should be expected.
 
 =end pod
 

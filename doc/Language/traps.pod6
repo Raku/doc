@@ -1,13 +1,13 @@
-=begin pod :tag<index>
+=begin pod :tag<index> :page-order<a62>
 
 =TITLE Traps to avoid
 
 =SUBTITLE Traps to avoid when getting started with Perl 6
 
-When learning a programming language, possibly with the background of being
-familiar with another programming language, there are always some things
-that can surprise you and might cost valuable time in debugging and
-discovery.
+When learning a programming language, possibly with the background of
+being familiar with another programming language, there are always some
+things that can surprise you and might cost valuable time in debugging
+and discovery.
 
 This document aims to show common misconceptions in order to avoid them.
 
@@ -78,11 +78,81 @@ say "Result2 is { $result2.^name }"; # OUTPUT: «Result2 is Any␤»
 
 A L<C<Match> will be C<Nil>|https://docs.perl6.org/language/regexes#Literals> if it finds nothing; however it assigning C<Nil> to C<$result2> above will result in its default value, which is C<Any> as shown.
 
+=head2 Using a block to interpolate anon state vars
+
+The programmer intended for the code to count the number of times the routine
+is called, but the counter is not increasing:
+
+    =begin code
+    sub count-it { say "Count is {$++}" }
+    count-it;
+    count-it;
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 0
+    =end code
+
+When it comes to state variables, the block in which the vars are
+declared gets cloned — and vars get initialized anew—whenever that
+block's block is re-entered. This lets constructs like the one below
+behave appropriately: the state variable inside the loop gets
+initialized anew each time the sub is called:
+
+    =begin code
+    sub count-it {
+        for ^3 {
+            state $count = 0;
+            say "Count is $count";
+            $count++;
+        }
+    }
+
+    count-it;
+    say "…and again…";
+    count-it;
+
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 1
+    # Count is 2
+    # …and again…
+    # Count is 0
+    # Count is 1
+    # Count is 2
+    =end code
+
+The same layout exists in our buggy program. The C<{ }> inside a
+double-quoted string isn't merely an interpolation to execute a piece of
+code. It's actually its own block, which is just as in the example above
+gets cloned each time the sub is entered, re-initializing our state
+variable. To get the right count, we need to get rid of that inner
+block, using a scalar contextualizer to interpolate our piece of code
+instead:
+
+    =begin code
+    sub count-it { say "Count is $($++)" }
+    count-it;
+    count-it;
+
+    # OUTPUT:
+    # Count is 0
+    # Count is 1
+    =end code
+
+Alternatively, you can also use the L<concatenation operator|/routine/~> instead:
+
+    =begin code
+    sub count-it { say "Count is " ~ $++ }
+    =end code
+
 =head1 Blocks
 
 =head2 Beware of empty "blocks"
 
-Brackets are used to declare blocks. However, empty brackets will declare a hash.
+Curly braces are used to declare blocks. However, empty curly braces will
+declare a hash.
 
 =begin code
 $ = {say 42;} # Block
@@ -91,7 +161,11 @@ $ = {…}       # Block
 $ = { }       # Hash
 =end code
 
-That is why, in general, L<the %() form of declaring hashes|https://github.com/perl6/doc/blob/master/writing-docs/STYLEGUIDE.md#prefer-the--form-of-declaring-hashes> is preferred.
+You can use the second form if you effectively want to declare an empty block:
+
+    my &does-nothing = {;};
+    say does-nothing(33);# OUTPUT: «Nil␤»
+
 
 =head1 Objects
 
@@ -317,13 +391,16 @@ for ^5 {
 };
 =end code
 
-With L<item|/routine/item>, the container will be evaluated in item context, its value extracted, and the desired outcome achieved.
+With L<item|/routine/item>, the container will be evaluated in item context, its
+value extracted, and the desired outcome achieved.
 
 =head1 C<Cool> tricks
 
 Perl 6 includes a L<Cool|/type/Cool> class, which provides some of the DWIM
-behaviors we got used to by coercing arguments when necessary.
-However, DWIM is never perfect. Especially with L<List>s, which are C<Cool>, there are many methods that will not do what you probably think they do, including C<contains>, C<starts-with> or C<index>. Please see some examples in the section below.
+behaviors we got used to by coercing arguments when necessary. However, DWIM is
+never perfect. Especially with L<List>s, which are C<Cool>, there are many
+methods that will not do what you probably think they do, including C<contains>,
+C<starts-with> or C<index>. Please see some examples in the section below.
 
 =head2 Strings are not C<List>s, so beware indexing
 
@@ -487,15 +564,16 @@ my $y = ‘foo bar’;
 
 my %h = $x => 42, $y => 99;
 say %h«$x»;   # ← WRONG; assumption that $x has no whitespace
-say %h«$y»;   # ← WRONG; this time you can clearly see how wrong it is
+say %h«$y»;   # ← WRONG; splits ‘foo bar’ by whitespace
 say %h«"$y"»; # ← KINDA OK; it works but there is no good reason to do that
 say %h{$y};   # ← RIGHT; this is what should be used
 
 run «touch $x»;        # ← WRONG; assumption that only one file will be created
-run «touch $y»;        # ← WRONG; this time you can clearly see how wrong it is
-run «touch "$y"»;      # ← WRONG; still an error if $y starts with -
+run «touch $y»;        # ← WRONG; will touch file ‘foo’ and ‘bar’
+run «touch "$y"»;      # ← WRONG; better, but has a different issue if $y starts with -
 run «touch -- "$y"»;   # ← KINDA OK; it works but there is no good enough reason to do that
 run ‘touch’, ‘--’, $y; # ← RIGHT; explicit and *always* correct
+run <touch -->, $y;    # ← RIGHT; < > are OK, this is short and correct
 =end code
 
 Basically, C<«»> quoting is only safe to use if you remember to
@@ -650,14 +728,39 @@ Use the method L<freeze|/type/Pair#method_freeze> to force the removal of the
 C<Scalar> container from the C<Pair>. For more details see the documentation
 about L<Pair|/type/Pair>.
 
+=head1 Sets, bags and mixes
+
+=head2 Sets, bags and mixes do not have a fixed order.
+
+When iterating over this kind of objects, an order is not defined.
+
+=begin code
+my $set = <a b c>.Set;
+.say for $set.list; # OUTPUT: «a => True␤c => True␤b => True␤»
+# OUTPUT: «a => True␤c => True␤b => True␤»
+# OUTPUT: «c => True␤b => True␤a => True␤»
+=end code
+
+Every iteration might (and will) yield a different order, so you cannot trust on
+a particular sequence of the elements of a set. If order does not matter, just
+use them that way. If it does, use C<sort>
+
+    my $set = <a b c>.Set;
+    .say for $set.list.sort;# OUTPUT: «a => True␤b => True␤c => True␤»
+
+In general, sets, bags and mixes are unordered, so you should not depend on them
+having a particular order.
+
 =head1 Operators
 
-Some operators commonly shared among other languages were repurposed in Perl 6 for other, more common, things:
+Some operators commonly shared among other languages were repurposed in Perl 6
+for other, more common, things:
 
 =head2 Junctions
 
-The C<^>, C<|>, and C<&> are I<not> bitwise operators, they create L<Junctions|/type/Junction>. The corresponding
-bitwise operators in Perl 6 are: C<+^>, C<+|>, C<+&> for integers and C<?^>, C<?|>, C<?&> for booleans.
+The C<^>, C<|>, and C<&> are I<not> bitwise operators, they create
+L<Junctions|/type/Junction>. The corresponding bitwise operators in Perl 6 are:
+C<+^>, C<+|>, C<+&> for integers and C<?^>, C<?|>, C<?&> for booleans.
 
 =head2 Exclusive Sequence Operator
 
@@ -677,15 +780,17 @@ not be what you expected.
 
 =head2 String Ranges/Sequences
 
-In some languages, using strings as range end points, considers the entire string when figuring out what the next string
-should be; loosely treating the strings as numbers in a large base. Here's Perl 5 version:
+In some languages, using strings as range end points, considers the entire
+string when figuring out what the next string should be; loosely treating the
+strings as numbers in a large base. Here's Perl 5 version:
 
 =for code :skip-test
 say join ", ", "az".."bc";
 # OUTPUT: «az, ba, bb, bc␤»
 
-Such a range in Perl 6 will produce a different result, where I<each letter> will be ranged to a corresponding letter in the
-end point, producing more complex sequences:
+Such a range in Perl 6 will produce a different result, where I<each letter>
+will be ranged to a corresponding letter in the end point, producing more
+complex sequences:
 
 =for code
 say join ", ", "az".."bc";
@@ -1023,15 +1128,18 @@ foo(1, |%arg);  # okay too
 =end code
 
 That last one may be confusing, but since it uses the C<|> prefix on a
-L<Hash|/type/Hash>, it means "treat this hash as holding named arguments."
+L<Hash|/type/Hash>, which is a special compiler construct indicating you
+want to use I<the contents> of the variable as arguments, which for hashes
+means to treat them as named arguments.
 
 If you really do want to pass them as pairs you should use a L<List|/type/List>
 or L<Capture|/type/Capture> instead:
 
 =for code :skip-test
-my $list = ('b' => 2); # this is a List containing a single Pair
-foo(|$list, :$b); # okay: we passed the pair 'b' => 2 to the first argument
-foo(1, |$list);   # FAIL: Too many positionals passed; expected 1 argument but got 2
+my $list = ('b' => 2),; # this is a List containing a single Pair
+foo(|$list, :$b);       # okay: we passed the pair 'b' => 2 to the first argument
+foo(1, |$list);         # FAIL: Too many positionals passed; expected 1 argument but got 2
+foo(1, |$list.Capture); # OK: .Capture call converts all Pair objects to named args in a Capture
 
 =for code :skip-test
 my $cap = \('b' => 2); # a Capture with a single positional value
@@ -1108,7 +1216,7 @@ sub explicitly-return-ret () {
 
 =head1 Input and Output
 
-=head2 Closing Open File Handles and Pipes
+=head2 Closing Open Filehandles and Pipes
 
 Unlike some other languages, Perl 6 does not use reference counting,
 and so B<the filehandles are NOT closed when they go out of scope>. You
@@ -1657,7 +1765,7 @@ it returns a list with L<Bool> values for each requested
 lookup. Non-empty lists always give C<True> when you L<Bool>ify them,
 so the check always succeeds no matter what keys you give it.
 
-=head2 Using C<[…]> meta-operator with a list of lists
+=head2 Using C<[…]> metaoperator with a list of lists
 
 Every now and then, someone gets the idea that they can use C<[Z]> to
 create the transpose of a list-of-lists:
@@ -1681,6 +1789,62 @@ This happens partly because of the
 L<single argument rule|/language/functions#Slurpy_Conventions>, and
 there are other cases when this kind of a generalization may not work.
 
+
+=head2 Using [~] for concatenating a list of Blobs
+
+The L<C<~> infix operator|/routine/~#(Operators)_infix_~> can be used
+to concatenate L<Str>s I<or> L<Blob>s. However, an empty list will
+I<always> be reduced to an empty C<Str>. This is due to the fact that,
+in the presence of a list with no elements, the
+L<reduction|/language/operators#Reduction_Operators> metaoperator
+returns the
+L<identity element|https://en.wikipedia.org/wiki/Identity_element>
+for the given operator. Identity element for C<~> is an empty string,
+regardless of the kind of elements the list could be populated with.
+
+=for code
+my Blob @chunks;
+say ([~] @chunks).perl; # OUTPUT: «""␤»
+
+
+This might cause a problem if you attempt to use the result while
+assuming that it is a Blob:
+
+=for code :skip-test<Documenting the error>
+my Blob @chunks;
+say ([~] @chunks).decode;
+# OUTPUT: «No such method 'decode' for invocant of type 'Str'. Did you mean 'encode'?␤…»
+
+
+There are many ways to cover that case. You can avoid C<[ ]>
+metaoperator altogether:
+
+=for code
+my @chunks;
+# …
+say Blob.new: |«@chunks; # OUTPUT: «Blob:0x<>␤»
+
+
+Alternatively, you can initialize the array with an empty Blob:
+
+=for code
+my @chunks = Blob.new;
+# …
+say [~] @chunks; # OUTPUT: «Blob:0x<>␤»
+
+
+Or you can utilize L<C<||>|/language/operators#infix || > operator to
+make it use an empty Blob in case the list is empty:
+
+=for code
+my @chunks;
+# …
+say [~] @chunks || Blob.new; # OUTPUT: «Blob:0x<>␤»
+
+
+Please note that a similar issue may arise when reducing lists with
+other operators.
+
 =head1 Maps
 
 =head2 Beware of nesting C<Map>s in sink context.
@@ -1689,27 +1853,38 @@ Maps apply an expression to every element of a L<List> and return a L<Seq>:
 
     say <þor oðin loki>.map: *.codes; # OUTPUT: «(3 4 4)␤»
 
-Maps are often used as a compact substitute for a loop, performing some kind of action in the map code block:
+Maps are often used as a compact substitute for a loop, performing some kind of
+action in the map code block:
 
     <þor oðin loki>.map: *.codes.say; # OUTPUT: «3␤4␤4␤»
 
-The problem might arise when maps are nested and L<in a sink context|/language/contexts#index-entry-sink_context>.
+The problem might arise when maps are nested and L<in a sink
+context|/language/contexts#index-entry-sink_context>.
 
     <foo bar ber>.map: { $^a.comb.map: { $^b.say}}; # OUTPUT: «»
 
-You might expect the innermost map to I<bubble> the result up to the outermost map, but it simply does nothing. Maps return C<Seq>s, and in sink context the innermost map will iterate and discard the produced values, which is why it yields nothing.
+You might expect the innermost map to I<bubble> the result up to the outermost
+map, but it simply does nothing. Maps return C<Seq>s, and in sink context the
+innermost map will iterate and discard the produced values, which is why it
+yields nothing.
 
-Simply using C<say> at the beginning of the sentence will save the result from sink context:
+Simply using C<say> at the beginning of the sentence will save the result from
+sink context:
 
     say <foo bar ber>.map: *.comb.map: *.say ;
     # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤((True True True) (True True True) (True True True))␤»
 
-However, it will not be working as intended; the first C«f␤o␤o␤b␤a␤r␤b␤e␤r␤»
-is the result of the innermost C<say>, but then L<C<say> returns a C<Bool>|/routine/say#(Mu)_method_say>, C<True> in this case. Those C<True>s are what get printed by the outermost C<say>, one for every letter. A much better option would be to C<flat>ten the outermost sequence:
+However, it will not be working as intended; the first C«f␤o␤o␤b␤a␤r␤b␤e␤r␤» is
+the result of the innermost C<say>, but then L<C<say> returns a
+C<Bool>|/routine/say#(Mu)_method_say>, C<True> in this case. Those C<True>s are
+what get printed by the outermost C<say>, one for every letter. A much better
+option would be to C<flat>ten the outermost sequence:
 
-    <foo bar ber>.map({ $^a.comb.map: { $^b.say}}).flat # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤»
+    <foo bar ber>.map({ $^a.comb.map: { $^b.say}}).flat
+    # OUTPUT: «f␤o␤o␤b␤a␤r␤b␤e␤r␤»
 
-Of course, saving C<say> for the result will also produce the intended result, as it will be saving the two nested sequences from void context:
+Of course, saving C<say> for the result will also produce the intended result,
+as it will be saving the two nested sequences from void context:
 
     say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
 
