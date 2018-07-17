@@ -890,7 +890,7 @@ sub write-index-files() {
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
-        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in mostly alphabetical order."),
+        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
         pod-table($*DR.lookup('language', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
