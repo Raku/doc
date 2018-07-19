@@ -401,6 +401,7 @@ sub write-group-page($group-char, $title, $page-order) {
     $fh.print: qq:to/HERE/;
         =begin pod :page-order<{$page-order}>
         =TITLE $title
+        =SUBTITLE ~
         =end pod
         HERE
 
