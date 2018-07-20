@@ -1,10 +1,10 @@
-=begin pod :tag<convert>
+=begin pod :tag<convert> :page-order<A01>
 
 =TITLE 5to6-nutshell
 
 =SUBTITLE Perl5到Perl6初步: 我怎么做我习惯做的?
 
-本文档尝试去索引从 Perl 5到 Perl 6的语法以及语义上的变化。 
+本文档尝试去提供从 Perl 5到 Perl 6的语法以及语义上的变化快速。 
 那些在 Perl 5中正常工作的，在 Perl 6中却要换一种写法的语法
 应该被列出在这里（而许多 Perl 6的I<新>特性以及风格就不会）。
 
@@ -46,6 +46,11 @@ say looks_like_number "42";    # 1
 有很多Perl5 模块已经迁移到了Perl6中了，CPAN Butterfly计划提供了一个API
 来维护这些模块，列表见 L<https://modules.perl6.org/t/CPAN5>
 
+很多Perl 5内建函数（大概100多个），已经按照相同的语法被移植到了Perl 6
+比如Perl 5中的C<shift>函数，基于不同的上下文，默认接受C<@_>或者C<@ARGV>为参数。
+这些内容可以通过 L<https://modules.perl6.org/t/Perl5>下的单个独立模块加载，
+也可以通过L<P5built-ins|https://modules.perl6.org/dist/P5built-ins>打包一次性获取。
+
 =head1 语法
 
 =head2 标识符
@@ -86,8 +91,6 @@ Perl 5在允许空白的使用上有着惊人的灵活性，即使处于严格�
         [$ i]
         ->
         name)."!"if$greeted[$i]<1;
-
-
 
 Perl 6也支持程序员书写自由和代码的创造性，但是权衡语法灵活性和其一致性、确定性、可扩展的grammar，
 支持一次解析以及有用的错误信息，集成如自定义运算符的特性，并且不会导致程序员误用的设计目标，
@@ -374,17 +377,20 @@ I<Key/value-slicing>
 明确的对应，所以我们更关注于引用操作符，而不是实际的语法
 
 =for code :lang<perl5>
- my $aref =     \@aaa  ; # Perl 5
+ my $aref = \@aaa  ; # Perl 5
 
-这可能用来给一个例程传递一个引用，但是在Perl 6 ，默认行为就是传递一个引用
+这可以用来给一个例程传递一个引用，但是在Perl 6中，传递（单个）底层对象
+（你可以将它当做是一种引用）
 
 =begin code
-my @a = 4,8,15;
-(-> @array { @array[0] = 66})(@a);
-say @a; #  OUTPUT: «[66 8 15]␤»
+
+my @array = 4,8,15;
+{ $_[0] = 66 }(@array);   # run the block with @array aliased to $_
+say @array; #  OUTPUT: «[66 8 15]␤»
+
 =end code
 
-数组C<@a>通过引用传递,并且在例程中第一个值被修改。
+底层的数组对象C<@array>被传递，并且它的第一个值在例程内被修改。
 
 在Perl 5 中，解引用的语法是类型符后跟个花括号。Perl 6中，这个语法不再适用，
 解引用操作符没用了。
@@ -1385,7 +1391,7 @@ use Bar :ALL;                # 引入 foo / bar / baz
     # 结果：«["foo" => 42, "bar" => 44, "baz" => [16, 32, 64, "Hike!"]]␤»
 =end code
 
-还有一个给开发者准备的debug辅助函数C<dd>（简化版的数据Dumper），它会打印C<.perl>
+还有一个给开发者准备的Rakudo-specific辅助调试函数C<dd>（简化版的数据Dumper），它会打印C<.perl>
 的内容以及额外底层信息，在标准错误给出变量信息。
 
 =begin code :preamble<no strict;> :ok-test<dd>
@@ -1463,18 +1469,6 @@ L<https://github.com/Util/Blue_Tiger/>
 
 L<http://fglock.github.io/Perlito/perlito/perlito5.html>
 
-=head2 MAD
-
-Larry Wall 自己用来翻译Perl5到Perl6的代码已经太老了，在目前的 Perl5版本
-中已经不可用了。
-
-MAD（Misc Attribute Definition）是一个通过源码构建Perl的时候可用的配置选项，
-`perl`执行程序分析并翻译你的Perl代码到op-tree，通过遍历op-tree执行你的程序。
-通常，这些分析的细节会在处理的时候丢掉，当MAD开启的时候，`perl`执行程序会
-把这些细节保存成XML文件， 然后MAX解析器便可以读取它并进一步处理成 Perl6的代码。
-
-为了进行你的 MAD 实验，请前去 #perl6 频道咨询最适合的Perl5版本。
-
 =head2 Perl-ToPerl6
 
 Jeff Goff的围绕Perl::Critic框架的用于Perl5的模块 Perl::ToPerl6 ，目标是在
@@ -1483,8 +1477,7 @@ Jeff Goff的围绕Perl::Critic框架的用于Perl5的模块 Perl::ToPerl6 ，目
 你可以从CPAN上面获取最新的版本，或者follow发布在GitHub 的工程，在线转换器
 可能在某一天会可用。
 
-=head1 翻译知识的其他来源
-
+=head1 Other sources of translation knowledge
 =item L<https://perlgeek.de/en/article/5-to-6>
 =item L<https://github.com/Util/Blue_Tiger/>
 =item L<https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/>
@@ -1492,29 +1485,4 @@ Jeff Goff的围绕Perl::Critic框架的用于Perl5的模块 Perl::ToPerl6 ，目
 
 =end pod
 
-=begin comments
-
-### Guidelines for contributions:
-
-Headers should contain the text that a Perl 5 user might search for, since
-those headings will be in the Table of Contents generated for the top of
-the document.
-
-We use POD =item instead of =head3 or =head4 for unchanged bits that need
-not appear in the table of contents.
-
-This article does not describe the additions to syntax, nor details of
-possible improvements. For example, C<0 + $string> still works, even though
-we would write it as C<+$string> now. (Blue Tiger will offer a Perl
-Modernization guide, with step-by-step procedures for translation, along
-with details of new idioms and "better ways to do it")
-
-Example code and links to other documents should be favored over long
-explanations of details better found elsewhere.
-
-Finally, if a real user asks a P5->P6 question not answered here, please
-add it to the document, even if we don't have a good answer yet. That will
-be better than losing the information about a real need.
-
-=end comments
-+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -26,10 +26,18 @@ implementing Perl 6.c“。
 
 ## Perl v6.d 大概什么时候发布?
 
-很有希望在几个月来发布. 详细细节可以访问L<https://github.com/perl6/6.d-prep>
+目前还没有确切的日期，尽管[2018 Diwali Day](https://en.wikipedia.org/wiki/Diwali)
+看起来是发布同名版本C<Diwali>的相当不错的候选日子。（Diwali Day印度排灯节 2018年为11月07）
 
-实际上通过使用C<use v6.d.PREVIEW>我们已经在6.c的编译支持了很多6.d的新特性
-L<pragma|https://docs.perl6.org/language/pragmas>。
+绝大部分的`6.d`特性已经实现，并且在Rakudo编译版本中无需特殊的pragmas就可以使用，
+并不会和6.c的specification冲突。
+
+最小集的特性和行为，可以通过`use v6.d.PREVIEW`pragma自动加载。剩下的大概3100
+新的提交的语言特性行为还需要确定。
+ 
+[perl6book.com](https://perl6book.com) 给出了一些Perl 6 纸质出版图书和电子书可供参考。
+
+在参考第三方文档的时候注意下发布时间，2015年Perl 6正式发布之前的文档可能有些内容已经太旧了。
 
 ## perl6开始之旅,我应该安装什么?
 
@@ -85,6 +93,27 @@ rakudo，从中选择自己喜欢的版本。
 是的，就本文档p6doc，目前在Perl 6生态系统。和Rakudo Star绑定发布，如果你需要通过月度发布
 你需要用zef来安装。
 
+## 我怎么找到有关Perl 6的书籍？
+
+下面是一些Perl 6图书列表，请忽略排列顺序：
+
+-  [Perl&nbsp;6 at a Glance](https://deeptext.media/perl6-at-a-glance/), by Andrew Shitov
+
+-  [Think Perl&nbsp;6: How to Think Like a Computer Scientist](http://greenteapress.com/wp/think-perl-6/), by Laurent Rosenfeld.
+
+-  [Perl&nbsp;6 Fundamentals](https://www.apress.com/us/book/9781484228982), by Moritz Lenz
+
+-  [Parsing with Perl 6 Regexes and Grammars](https://smile.amazon.com/dp/1484232275/), by Moritz Lenz
+
+-  [Learning Perl&nbsp;6](https://www.learningperl6.com/), by Brian D. Foy (In July 2018, this is in a very advanced publication s\
+tage)
+
+-  [Metagenomics](https://www.gitbook.com/book/kyclark/metagenomics/details), by Ken Youens-Clark
+
+-  [Learning to program with Perl&nbsp;6: First Steps](https://www.amazon.com/gp/product/B07221XCVL), by JJ Merelo
+
+-  [Perl&nbsp;6 Deep Dive](https://www.packtpub.com/application-development/perl-6-deep-dive"), by Andrew Shitov
+
 ## Perl6 specification是什么?
 
 Perl6 specification是指perl6 官方的测试套件.我们称它为[roast](https://github.com/perl6/roast)，
@@ -113,7 +142,10 @@ Roast的主分支对应最新的开发版本，它仍未划入任何的specifica
 ## Perl6有没有CPAN?
 
 有，和Per5的[CPAN](http://cpan.org/)一样,CPAN已经完全支持Perl6。唯一的区别是用[PAUSE](http://pause.perl.org/)
-升级模块时候，你必须选择`Perl 6`为目标目录。[`App::Mi6`工具](https://modules.perl6.org/l/App::Mi6)
+升级模块时候，你必须选择`Perl 6`为目标目录。并且上传的Perl 6 模块需要通过
+[modules.perl6.org](https://modules.perl6.org/)浏览，而不是[MetaCPAN](https://metacpan.org/)
+
+[`App::Mi6`工具](https://modules.perl6.org/l/App::Mi6)
 模块可用于，简化这个更新流程。最新版本的[`zef`模块安装](https://github.com/ugexe/zef)
 自动的检查CPAN上最新版本的模块，以及[GitHub-based ecosystem](https://github.com/perl6/ecosystem/)。
 
@@ -586,8 +618,8 @@ perl6实现了通常其他程序中没有的许多伟大的想法。虽然有几
 - 利用react/whenever/supply关键字方便构建交互，开发事件驱动的应用.
 - 尽可能惰性求值,需要时时候才即时出值。例如，懒列表，甚至无限懒列表，比如斐波纳契序列或所有素数。
 - 原生数据类型，更快，更底层地处理。
-- 非常简单基于NativeCall的对外C/C++的接口。
-- Inline::Perl5和Inline::Python接口非常便捷链接Perl5(CPAN)/Python模块。
+- 非常简单地基于[NativeCall](/language/nativecall)的外部C/C++接口。
+- 易用地Perl5(CPAN)和Python模块：[Inline::Perl5](https://modules.perl6.org/dist/Inline::Perl5:cpan:NINE)和[Inline::Python](https://modules.perl6.org/dist/Inline::Python)的调用接口。
 - 可同时安装和加载模块的多个版本。
 - 便捷的跟新/升级策略，简化系统管理。
 - 利用Rats（有理数）简单实现精度无损的数值计算（比如1/3，而不是用浮点数来近似估算）。

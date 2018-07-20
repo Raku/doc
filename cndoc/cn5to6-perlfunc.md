@@ -365,7 +365,8 @@ Perl 6生态系统模块[P5each](https://modules.perl6.org/dist/P5each)提供函
 - eval EXPR
 - eval EXPR
 
-    被[EVAL](#routine-eval)代替。注意`EVAL` 不做任何[异常处理](#language-exceptions)!
+最相近的替代语法是[EVAL](../doc/routine/EVAL)函数。然而这个函数不允许显性指定pragma。
+注意`EVAL`不做任何[异常处理](../doc/language/exceptions)!
 
 ## evalbytes
 

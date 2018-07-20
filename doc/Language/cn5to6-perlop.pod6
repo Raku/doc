@@ -1,4 +1,4 @@
-=begin pod :tag<convert>
+=begin pod :tag<convert> :page-order<A04>
 
 =TITLE 5to6-perlop
 
@@ -25,7 +25,16 @@ L<Operator Precedence|/language/operators#Operator_Precedence>。
 
 在Perl5运算符文档中列出的一元或者列表运算符我们一般认为是函数，比如 C<print> 
 和C<chdir>。诸如此类函数都在L<5to6-perlfunc.pod6|/language/5to6-perlfunc>，
-还有圆括号依然用于分组。
+还有括号依然用于分组。需要注意的是，在Perl 6中，C<,>(逗号)用来生成列表，
+不是括号，比如：
+
+=begin code
+my @foo = 1,2,3,4,5;   # 没有括号
+.say for 1,2,3,4,5;    # 也没有
+
+my $scalar = (1);      # *不是*列表，没有逗号
+my $list   = (1,);     # 一个scalar容器中的一个列表
+=end code
 
 =head2 箭头运算符
 
@@ -57,8 +66,11 @@ C<pred>实现 C<-->的功能。直接使用C<++>， C<-->操作内置数值类�
 C<+>在Perl6中会对操作数有影响，它会强制转换它的参数为数值类型。
 
 一元运算符C<\>已去除，如果你实在想引用一个已经存在的命名变量，你可以使用item上下文，
-例如C<$aref = item(@array)>，你可以通过使用C<&>sigil得到一个命名子例程的引用：C<$sref
-= &foo>。 匿名数组、哈希以及子例程在创建时就会返回它们的引用。
+例如C<$aref = item(@array)>。或者你可能更熟悉通过C<$>的前缀：C<$aref = $@array>。
+注意，你实际上并未获得引用，而是一个具有一个应用对象的scalar容器。
+
+你可以通过使用C<&>sigil得到一个命名子例程的“引用”：C<$sref
+= &foo>。 匿名数组、哈希以及子例程在创建时就会立即返回一个底层对象：C<$sref = sub { }>
 
 =head2 绑定运算符
 
@@ -104,11 +116,12 @@ C<leg>运算符。
 C<cmp> 现在根据参数类型的不同可以做C<< <=> >>或者C<leg>的操作（兼容两种类型）。
 
 C<~~>是Perl5中的智能匹配运算符，和上面提到一样，Perl6是正则匹配操作符了。 对于
-Perl6中智能匹配运算符的细节，请参考L<https://design.perl6.org/S03.html#Smart_matching>。
+Perl6中智能匹配运算符的细节，请参考L<smartmatch文档|language/operators#index-entry-smartmatch_operator>。
 
 =head2 智能匹配运算符
 
-直接参考上面的C<~~>。
+参考L<smartmatch文档|language/operators#index-entry-smartmatch_operator>
+对其工作原理做深入了解。
 
 =head2 位与
 
@@ -163,7 +176,20 @@ C<?:>被了C<?? !!>代替，例如Perl5中的代码C<$x= $ok ? $y : $z;>在 Perl
 =head2 赋值运算符
 
 虽然还没有完全文档化，S03指出数值以及逻辑赋值运算符表现都会符合预期。 一个明显的
-变化是C<.=>会调用等号左边对象的变异的方法。而C<~=>是字符连接赋值。和你预期地C<.>
+变化是C<.=>会调用等号左边（它也是一个类型对象）的变异的方法。下面技巧也可用：
+
+=begin code
+
+class LongClassName {
+    has $.frobnicate;
+}
+my LongClassName $bar .= new( frobnicate => 42 ); # 无需重复类名
+
+=end code
+
+这可以确保 C<$bar>将只包含一个C<LongClassName>对象，也无需重复类名。
+
+C<~=>是字符连接赋值。和你预期地C<.>
 和C<~>变化想同。还有，按位赋值运算符貌似不再区分数值以及字符串版本(C<&=>, etc., 
 vs. C<&.=>, etc.)，虽然这些特性在Perl5中依然是实验性的，而且这些还没有确切的文档。
 
@@ -190,7 +216,7 @@ vs. C<&.=>, etc.)，虽然这些特性在Perl5中依然是实验性的，而且�
 
 =head2 逻辑或以及异或
 
-C<or>是运算符C<||>的低优先级版本。文档中列出了C<xor>，没有详细文档。
+C<or>是运算符C<||>的低优先级版本，C<xor>是运算符C<^^>的低优先级版本。
 
 另外，还有运算符C<//>低优先级版本C<orelse>。
 
@@ -209,11 +235,20 @@ not a closing curly brace → \}, but this is → }> 将返回
 单引号与它行为一致。
 
 C<qq>允许变量的内插，然而，默认情况下只有标量会被内插替换。对使用其它类型
-的变量，需要在其后加上方括号。例如：C<< @a =<1 2 3>;say qq/@a[] example@example.com/; >> 
-结果是 "1 2 3 example@example.com"。对于哈希，内插结果是意料之外的方式：
-C<< %a = 1 => 2, 3 => 4;say "%a[]"; >>。 结果将会以空格分隔键值对，tab分隔
-每个键值对的键和值（显式地）。 当然，你依然可以用花括号在字符串中内插
-Perl6代码。 相关细节，请浏览L<Interpolation|/language/quoting#Interpolation%3A_qq>。
+的变量，需要在其后加上方括号（叫做L<zen-slice|/language/subscripts#index-entry-Zen_slices>）
+才能内插。例如：
+
+C<< @a =<1 2 3>;say qq/@a[] example@example.com/; >> 
+结果是 "1 2 3 example@example.com"。
+
+对于哈希，内插结果是意料之外的方式：
+
+C<< %a = 1 => 2, 3 => 4;say "%a[]"; >>。
+
+ 结果将会以空格分隔键值对，tab分隔
+每个键值对的键和值（因为这是C<Pair>的标准的字符串，C<Pair>字串化为一个列表）。
+当然，你依然可以用花括号在字符串中内插Perl6代码。 
+相关细节，请浏览L<Interpolation|/language/quoting#Interpolation%3A_qq>。
 
 C<qw>跟Perl5中一样，它还可以用C<< <...> >>形式表示，例如C<qw/a b c/>和
 C<< <a b c> >>相同。
@@ -233,7 +268,7 @@ C<.trans>的对象是pairs列表：例如 C<< $x.trans(['a'..'c'] => ['A'..'C'],
 ['D'..'Q'], ['r'..'z'] => ['R'..'Z']); >>。 关于C<.trans>详细信息，请参考
 L<https://design.perl6.org/S05.html#Transliteration>。等价的C<y///>已被删除。
 
-Perl6中的heredoc有些差异，你必须用C<:to>作为你的引用运算符，例如C<q:to/END/;>
+Perl6中的heredoc有些差异，你必须用C<:to>作为你的引用运算符，例如C<q:to/EN D/;>
 将会开始一段以"END"为结尾的heredoc。同样地，根据你使用的引用运算符C<Q>，C<q>和
 C<qq>，heredoc表现相对应的引用效果。
 
@@ -275,7 +310,8 @@ my $x = $fh.slurp;
 
 =head2 空操作
 
-尽管文档中没有特别提及，但是C<1 while foo();> 可以正常工作。
+C<1 while foo();> 和Perl 5中表现一样，但是会打印一个告警，在Perl 6中正确写法是：
+C<Nil while foo();>
 
 =head2 按位字符串运算符
 

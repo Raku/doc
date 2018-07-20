@@ -120,7 +120,23 @@ Perl6开始支持真正的switch语句，由`given`语句提出，用`when`和 `
 
 ## Goto语句
 
-`goto`大概还以Perl5中类似，然而，截止目前，还未实现。相关信息，请浏览
+`goto`目前还未实现。标签功能已经实现，可以作为`next`, `last`和`redo`的
+跳转目标：
+
+```
+FOO:                         # 标签用分号结尾，和Perl 5一样
+for ^10 {
+    say "outer for before";
+    for ^10 {
+        say "inner for";
+        last FOO;
+    }
+    say "outer for after";   # 由于"last"改行不会执行
+}
+# outer for before
+# inner for
+```
+goto相关信息，请浏览
 [https://design.perl6.org/S04.html#The\_goto\_statement](https://design.perl6.org/S04.html#The_goto_statement)。
 
 ## 占位语句

@@ -245,13 +245,24 @@ Perl 6中也类似。
 
     sub foo(*@args) { say "I got #{@args.elems} args!" }   # Perl 6
 
-你可能想扩展一个数组为一个参数集。Perl 6也支持通过`*`这样操作。
+上面Per 6版本的在slurp参数给@args时有些许不同，如果存在多级嵌套会自动展开，
+只保留最内一级：
+
+```
+sub foo(*@args) { say @args.perl }
+foo([1, [2, 3], 4], 5, [6, 7]);   # [1, [2, 3], 4, 5, 6, 7]
+```
+```
+sub foo(**@args) { say @args.perl }
+foo([1, [2, 3], 4], 5, [6, 7]);  # [[1, [2, 3], 4], 5, [6, 7]]
+```
+你可能想扩展一个数组为一个参数集。Perl 6是通过[Slip](/type/Slip) C<|>。
 
     args = %w(a b c)         # Ruby
     foo(*args)
 
     my @args = <a b c>       # Perl 6
-    foo(*@args)
+    foo(|@args);
 
 Perl 6支持更先进的方式传递和处理参数。详细请浏览[Signatures](#language-functions-signatures)
 和[Captures](#type-capture)。
@@ -265,7 +276,7 @@ Perl 6支持更先进的方式传递和处理参数。详细请浏览[Signatures
     $.foo    # 实例变量操作符
     $*foo    # 动态范围变量
     $^foo    # 块中一个位置参数（占位）
-    $:foo    # 一个命名参数
+    $:foo    # 代码快中一个命名参数 (占位符)参数
     $=foo    # POD（文档）变量
     $?FILE   # 当前源文件名。? twigil表示一个编译时值
     $~foo    # 子语言解析器r, 不常用

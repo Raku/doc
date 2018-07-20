@@ -23,8 +23,17 @@ Perl6中运算符的优先级和Perl5有很大的差异，所以此处不在细�
 
 在Perl5运算符文档中列出的一元或者列表运算符我们一般认为是函数，比如 `print` 
 和`chdir`。诸如此类函数都在[functions](language/5to6-perlfunc)指导，
-还有圆括号依然用于分组。
+还有括号依然用于分组。需要注意的是，在Perl 6中，`,`(逗号)用来生成列表，
+不是括号，比如：
+```
+=begin code
+my @foo = 1,2,3,4,5;   # 没有括号
+.say for 1,2,3,4,5;    # 也没有
 
+my $scalar = (1);      # *不是*列表，没有逗号
+my $list   = (1,);     # 一个scalar容器中的一个列表
+=end code
+```
 ## 箭头运算符
 
 由于Perl6引用出镜机会不多，所以用对其解引用场合也非常有限。而更普通存在的
@@ -55,8 +64,11 @@ Perl5中的`$arrayref->[7]`被`$arrayref.[7]`取代，同理，`$user->name`
 `+`在Perl6中会对操作数有影响，它会强制转换它的参数为数值类型。
 
 一元运算符`\`已去除，如果你实在想引用一个已经存在的命名变量，你可以使用item上下文，
-例如`$aref = item(@array)`，你可以通过使用`&`sigil得到一个命名子例程的引用：`$sref
-&#x3d; &foo`。 匿名数组、哈希以及子例程在创建时就会返回它们的引用。
+例如`$aref = item(@array)`。或者你可能更熟悉通过`$`的前缀：`$aref = $@array`。
+注意，你实际上并未获得引用，而是一个具有一个应用对象的scalar容器。
+
+你可以通过使用`&` sigil得到一个命名子例程的“引用”：`$sref= &foo`。 
+匿名数组、哈希以及子例程在创建时就会立即返回一个底层对象：`$sref = sub { }`
 
 ## 绑定运算符
 
@@ -102,11 +114,11 @@ C« << »和C« >> »被`+<`和`+>`取代。
 `cmp` 现在根据参数类型的不同可以做`<=>`或者`leg`的操作（兼容两种类型）。
 
 `~~`是Perl5中的智能匹配运算符，和上面提到一样，Perl6是正则匹配操作符了。 对于
-Perl6中智能匹配运算符的细节，请参考[https://design.perl6.org/S03.html#Smart\_matching](https://design.perl6.org/S03.html#Smart_matching)。
+Perl6中智能匹配运算符的细节，请参考[smartmatch文档](../doc/language/operators#index-entry-smartmatch_operator)。
 
 ## 智能匹配运算符
 
-直接参考上面的`~~`。
+请参考[smartmatch文档](../doc/language/operators#index-entry-smartmatch_operator)对其工作原理做深入了解。
 
 ## 位与
 
@@ -160,9 +172,19 @@ Perl6中还是//，若第一个操作数已经定义则将其作为返回值，�
 ## 赋值运算符
 
 虽然还没有完全文档化，S03指出数值以及逻辑赋值运算符表现都会符合预期。 一个明显的
-变化是`.=`会调用等号左边对象的变异的方法。而`~=`是字符连接赋值。和你预期地`.`
-和`~`变化想同。还有，按位赋值运算符貌似不再区分数值以及字符串版本(`&=`, etc., 
-vs. `&.=`, etc.)，虽然这些特性在Perl5中依然是实验性的，而且这些还没有确切的文档。
+变化是`.=`会调用等号左边（它也是一个类型对象）的变异的方法。下面技巧也可用：
+
+```
+class LongClassName {
+    has $.frobnicate;
+}
+my LongClassName $bar .= new( frobnicate => 42 ); # 无需重复类名
+```
+这可以确保`$bar`将只包含一个`LongClassName`对象，也无需重复类名。
+
+`~=`是字符连接赋值。和你预期地`.`和`~`变化想同。还有，按位赋值运算符
+貌似不再区分数值以及字符串版本(`&=`, etc., vs. `&.=`, etc.)，
+虽然这些特性在Perl5中依然是实验性的，而且这些还没有确切的文档。
 
 ## 逗号运算符
 
@@ -187,8 +209,7 @@ vs. `&.=`, etc.)，虽然这些特性在Perl5中依然是实验性的，而且�
 
 ## 逻辑或以及异或
 
-`or`是运算符`||`的低优先级版本。文档中列出了`xor`，没有详细文档。
-
+`or`是运算符`||`的低优先级版本。`xor`是运算符`^^`的低优先级版本
 另外，还有运算符`//`低优先级版本`orelse`。
 
 ## 引用以及引用类运算符
@@ -206,11 +227,19 @@ not a closing curly brace → \}, but this is → }` 将返回
 单引号与它行为一致。
 
 `qq`允许变量的内插，然而，默认情况下只有标量会被内插替换。对使用其它类型
-的变量，需要在其后加上方括号。例如：`@a =<1 2 3>;say qq/@a[] example@example.com/;` 
-结果是 "1 2 3 example@example.com"。对于哈希，内插结果是意料之外的方式：
+的变量，需要在其后加上方括号的变量，需要在其后加上方括号（叫做[zen-slice](../doc/language/subscripts#index-entry-Zen_slices)）
+才能内插。例如：
+
+    `@a =<1 2 3>;say qq/@a[] example@example.com/;` 
+
+结果是 "1 2 3 example@example.com"。
+
+对于哈希，内插结果是意料之外的方式：
 `%a = 1 => 2, 3 => 4;say "%a[]";`。 结果将会以空格分隔键值对，tab分隔
-每个键值对的键和值（显式地）。 当然，你依然可以用花括号在字符串中内插
-Perl6代码。 相关细节，请浏览[Interpolation](#language-quoting-interpolation-3a_qq)。
+每个键值对的键和值（因为这是C<Pair>的标准的字符串，C<Pair>字串化为一个列表）。
+ 当然，你依然可以用花括号在字符串中内插Perl6代码。 
+
+相关细节，请浏览[Interpolation](#language-quoting-interpolation-3a_qq)。
 
 `qw`跟Perl5中一样，它还可以用`<...>`形式表示，例如`qw/a b c/`和
 `<a b c>`相同。
@@ -262,7 +291,8 @@ Perl6中的heredoc有些差异，你必须用`:to`作为你的引用运算符，
 
 ## 空操作
 
-尽管文档中没有特别提及，但是`1 while foo();` 可以正常工作。
+`1 while foo();`和Perl 5中表现一样，但是会打印一个告警，在Perl 6中正确写法是：
+`Nil while foo();`
 
 ## 按位字符串运算符
 
