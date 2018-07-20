@@ -1,6 +1,6 @@
 # p6doc -- Perl6的'perldoc'
 
-该文档的html版本链接为： https://docs.perl6.org/(英文版).
+该文档的html版本链接为： https://docs.perl6.org/ (英文版).
 
 (如果你通过 github浏览本仓库, 显示可能会部分不协调的,因为使用Perl 6 Pod格式, github用的 Perl 5 POD).
 
