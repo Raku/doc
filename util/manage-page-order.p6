@@ -1,6 +1,10 @@
 #!/usr/bin/env perl6
 
-# pod6 directory of interest for auto-gen handling:
+# NOTE: This file is called by the Makefile (or Sakefile) from the
+#       top level of the doc repo and all files are referenced
+#       relative to it.
+
+# pod6 source directory of interest for auto-gen handling:
 my $lang-dir = 'doc/Language';
 # pod6 source d#irectory
 my $fromdir = $lang-dir;
@@ -8,9 +12,10 @@ my $cfil    = '00-POD6-CONTROL'; # base filename
 my $cloc    = "$lang-dir/$cfil";
 
 # location for placing the generated files
-# htmlify.p6 must use this location for building:
-my $tgt-dir = '0-html-source';
-my $todir = "$lang-dir/$tgt-dir";
+# htmlify.p6 AND pod2bigpage (see Makefile) must use this location for building:
+my $build-dir = 'build';
+my $tgt-dir   = 'Language';
+my $todir     = "$build-dir/$tgt-dir";
 
 constant $TITLE    = '=TITLE';
 constant $SUBTITLE = '=SUBTITLE';
@@ -48,20 +53,89 @@ given $mode {
     }
 }
 
-sub do-update() {
+sub do-update () {
     say "DEBUG: in sub {&?ROUTINE.name}" if $debug eq 'r';
+
+    # FIRST
+    # write the auto-generated pod6 files used for the Language page
+    write-Language-files();
+
+    # THEN
+    # copy all under the doc dir to the build dir
+    # NOTE this assumes the sort order is alpha by file name
+    # NOTE we exclude the Language dir
+    copy-dir-tree(:fromdir('doc'), :todir('build'), :exclude('Language'));
+}
+
+=begin comment
+sub copy-other-dirs-and-files(*@doc-subdirs) {
+    # The arguments are subdir names under 'doc' and
+    # the complete subdir trees are to be copied as
+    # subdir trees under 'build'.
+
+    for @doc-subdirs -> $sdir {
+        say "DEBUG: working subdir tree '$sdir'" if $debug;
+
+        # recursively copy tree to another tree
+        my $fromdir  = "doc/$sdir"; # complete path
+        my $todir    = "build/$sdir";
+        copy-dir-tree(:$fromdir, :$todir, :$exclude);
+    }
+}
+=end comment
+
+sub copy-dir-tree(:$fromdir, :$todir, :$exclude) {
+    # recursively copy tree to another tree
+    return if !$fromdir.IO.d;
+
+    say "DEBUG: \$fromdir: '$fromdir', \$exclude: '$exclude'" if $debug;
+    # skip some dirs, e.g., Language
+    return if $fromdir ~~ /$exclude/;
+
+    # create the target dir if need be
+    mkdir $todir if !$todir.IO.d;
+    # need a file to save the dir for git
+    my $tf = "$todir/000-README";
+    if !$tf.IO.f {
+        spurt $tf, 'This file is required to save the directory under git.';
+    }
+
+    # copy all files first, then recurse into directories we find
+    say "DEBUG: copy trees from '$fromdir' to '$todir'" if $debug;
+    my @sdirs;
+    for (dir $fromdir) -> $f {
+        my $fb = $f.IO.basename;
+        if $f.IO.d {
+            say "  DEBUG: pushing dir '$fb' for later handling'" if $debug;
+            push @sdirs, $fb;
+            next;
+        }
+        # must be a file
+        next if $f !~~ /'.pod6'$/;
+        say "  DEBUG: copying file '$f' to dir '$todir'" if $debug;
+        # for current rakudo we must copy to a file, not its dir
+        copy $f, "$todir/$fb";
+    }
+    for @sdirs -> $d {
+        say "    DEBUG: handling pushed dir '$d'..." if $debug;
+        say "       copying from dir '$fromdir/$d' to '$todir/$d..." if $debug;
+        copy-dir-tree :fromdir("$fromdir/$d"), :todir("$todir/$d"), :$exclude;
+    }
+}
+
+sub write-Language-files() {
     # the $todir must exist or be created
     mkdir $todir if !$todir.IO.d;
 
-    my %data;
+    my %data; # note data do NOT have page order, that is determined from the control file
     get-pod6-src-data(:$fromdir, :%data);
 
     # read the control file and generate the pod6 files accordingly
     die "FATAL: Control file '$cloc' not found." if !$cloc.IO.f;
 
     # need some indices
-    my @a = 'A' .. 'Z'; # for the group pages
-    my @n = '001' .. '999';
+    my @a = 'A' .. 'Z';     # for the group pages
+    my @n = '001' .. '999'; # page order for all files
 
     for $cloc.IO.lines -> $line is copy {
         $line = strip-comment $line;
@@ -76,7 +150,6 @@ sub do-update() {
             # straight numerical order for all pages, including group separator pages
             my $page-order = shift @n;
 
-            #my $title = "{$group-char}.";
             my $title = ~$0.words.join(' ');
             # the group page is written to the todir
             write-group-page $group-char, $title, $page-order;
@@ -90,28 +163,34 @@ sub do-update() {
             next if !$idx.defined;
 
             my $n = $FILE.chars;
-            my $fname = substr $line, $idx+$n;
-            $fname .= trim;
-            $fname ~= '.pod6';
+            my $key-fname = substr $line, $idx+$n;
+            $key-fname .= trim;
+            my $fname = $key-fname ~ '.pod6';
 
             # source filename
             my $from = "$fromdir/$fname";
-            say "DEBUG: from '$from'" if $debug;
-            # target filename
-            my $to = "$todir/$fname";
-            say "DEBUG: to '$to'" if $debug;
 
+            say "DEBUG: from '$from'" if $debug;
+
+            # straight numerical order for all pages, including group separator pages
+            my $page-order = shift @n;
+
+            # target filename
+            # NOTE the target filename must have the page-order as prefix to its filename
+            my $to = "$todir/{$page-order}-{$fname}";
+            say "DEBUG: to '$to'" if $debug;
             my $fh = open $to, :w;
             for $from.IO.lines -> $line is copy {
                 if $line ~~ /^ \h* '=begin' \h* pod / {
-                    my $page-order = shift @n;
-
                     # check any existing :page-order entry
                     if $line ~~ / ':page-order<' (.*) '>' / {
                         EXIT(":page-order entry not allowed in source files ('$from')");
                     }
                     else {
-                        $fh.say: "$line :page-order<{$page-order}>";
+                        #$fh.say: "$line :page-order<{$page-order}>";
+                        $fh.say: "# THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
+                        $fh.say: $line;
+                        #$fh.say: "=comment THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
                     }
                     next;
                 }
@@ -126,7 +205,8 @@ sub do-update() {
 }
 
 sub do-control() {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug;
+    # write or refresh the Language control file
+    # TODO make more general for multiple dirs
 
     my %data;
     get-pod6-src-data(:$fromdir, :%data);
@@ -143,7 +223,7 @@ sub do-control() {
 }
 
 sub refresh-control-file(%data) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug;
+    # TODO finish this sub
     # read the current file, update the title
 }
 
@@ -193,7 +273,6 @@ sub write-orig-control-file(%data) {
         # desired order.
         #
         # DO NOT REMOVE OR MODIFY THE FILE NAME AT THE END OF EACH LINE
-
         HERE
 
     for %p.keys.sort ->$o {
@@ -216,21 +295,20 @@ sub write-orig-control-file(%data) {
 }
 
 sub strip-pod6-filename($fname is copy) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug;
     $fname .= basename;
     $fname ~~ s/'.pod6'$//;
     return $fname;
 }
 
 sub get-pod6-src-data(:fromdir($fdir), :%data) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug eq 'r';
     # caller: do-control
     # data are used to generate a new control file
+    #   AND the auto-generated target files
     die "FATAL: no such directory '$fdir'" if !$fdir.IO.d;
 
     # hash key: stripped-filename
-    #   subkey: page-order
     #   subkey: title
+    #   subkey: subtitle [NOT used by the control file]
 
     my $n = 0;
     for (dir $fdir) -> $f {
@@ -243,10 +321,10 @@ sub get-pod6-src-data(:fromdir($fdir), :%data) {
         # we use the name for indexing and reference
         my $fname = strip-pod6-filename $f;
 
-        # collect the title, ensure first line is =begin pod,
+        # collect the title, ensure first data line is =begin pod,
         # ensure last line is =end pod
 
-        my ($title, $order, $subtitle) = ('', '', '');
+        my ($title, $subtitle) = ('', '');
         my $begin = 0;
         my $first = 1;
         my $last  = 0;
@@ -268,12 +346,11 @@ sub get-pod6-src-data(:fromdir($fdir), :%data) {
             next if $line !~~ /\S/;
 
             if $line ~~ /^ \h* '=begin' \h+ pod/ {
-                # this should be the first data line
+                # this should be the first line
                 die "FATAL: =begin pod is NOT the first data line"
                     if !$first;
                 $first = 0;
                 $begin = 1;
-                $order = extract-page-order :begin-pod-line($line);
             }
             elsif $line ~~ /^ \h* $TITLE / {
                 $title = extract-abbrev-block-line $line, :type($TITLE);
@@ -306,15 +383,14 @@ sub get-pod6-src-data(:fromdir($fdir), :%data) {
 
         # data collected, put in hash
         # hash key: stripped-filename
-        #   subkey: page-order
         #   subkey: title
+        #   subkey: subtitle
         %data{$fname}<title>      = $title;
-        %data{$fname}<page-order> = $order;
+        %data{$fname}<subtitle>   = $subtitle;
     }
 }
 
 sub strip-comment($line is copy) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug;
     my $idx = rindex $line, '#';
     if $idx.defined {
         $line = substr $line, 0, $idx;
@@ -332,7 +408,6 @@ sub extract-page-order(:begin-pod-line($line)) {
 }
 
 sub extract-abbrev-block-line($line is copy, :$type) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug;
     $line = strip-comment $line;
     die "FATAL: Empty '$type' abbreviated block first line"
         if $line !~~ /\S/;
@@ -384,7 +459,6 @@ sub help {
 }
 
 sub is-done(*@args) {
-    say "DEBUG: in sub {&?ROUTINE.name}" if $debug eq 'r';
     # return False unless all @args elements are true
     for @args -> $v {
         return False if !$v;
@@ -393,13 +467,13 @@ sub is-done(*@args) {
 }
 
 sub write-group-page($group-char, $title, $page-order) {
-    my $fname = $todir ~ "/00-Group{$group-char}.pod6";
+    my $fname = $todir ~ "/{$page-order}-Group{$group-char}.pod6";
     my $fh = open $fname, :w;
 
-    # x2588 big solid block <== using this char to make the separator
-    # x2501 solid thick horizontal line
+    # note no SUBTITLE
     $fh.print: qq:to/HERE/;
-        =begin pod :page-order<{$page-order}>
+        # THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST
+        =begin pod
         =TITLE $title
         =SUBTITLE ~
         =end pod

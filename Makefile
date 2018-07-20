@@ -9,15 +9,16 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-images \
 	clean-search clean test-links push \
+        gen-pod6-source clean-build \
 	docker-image docker-htmlify docker-test docker-xtest docker-ctest docker-testall docker-run
 
-html: bigpage htmlify
+html: gen-pod6-source bigpage htmlify
 
-htmlify: init-highlights assets gen-pod6-source
+htmlify: init-highlights assets
 	perl6 htmlify.p6
 
 gen-pod6-source:
-	perl6 manage-page-order.p6 update
+	perl6 util/manage-page-order.p6 update
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
@@ -38,7 +39,7 @@ webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
 bigpage:
-	pod2onepage --html -v --source-path=./doc --exclude=404.pod6 > html/perl6.html
+	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
 # Common tests that are run by travis with every commit
 test:
@@ -74,6 +75,8 @@ help:
 	@echo "docker-ctest:        run the test suite, content tests only (in container)"
 	@echo "docker-testall:      run all tests (in container)"
 	@echo "docker-run:          run the development webserver (in container)"
+
+start: run
 
 run:
 	@echo "Starting local server…"
@@ -120,6 +123,9 @@ clean-images:
 
 clean-search:
 	rm -f html/js/search.js
+
+clean-build:
+	find build -name "*.pod6" -exec rm -f {} \;
 
 clean: clean-html clean-images clean-search
 
