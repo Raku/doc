@@ -195,9 +195,9 @@ sub MAIN(
     my %h = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph), :$parallel);
 
-    process-pod-dir 'Programs', :$sparse, :$parallel;
-    process-pod-dir 'Language', :$sparse, :$parallel;
-    process-pod-dir 'Type', :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
+    process-pod-dir :topdir('build'), :dir('Programs'), :$sparse, :$parallel;
+    process-pod-dir :topdir('build'), :dir('Language'), :$sparse, :$parallel;
+    process-pod-dir :topdir('build'), :dir('Type'), :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks unless $no-highlight;
 
@@ -236,8 +236,9 @@ sub MAIN(
     spurt('links.txt', $url-log.URLS.sort.unique.join("\n"));
 }
 
-sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
-    say "Reading doc/$dir ...";
+sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
+    #say "Reading doc/$dir ...";
+    say "Reading $topdir/$dir ...";
 
     # What does this array look like?
     #
@@ -251,34 +252,27 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
     #     value: filename relative to the "doc/$dir" directory
     my @pod-sources;
 
-    if $dir eq 'Language' {
-        # uses a special sort order by :page-order<id> as a %config hash entry
-        # TODO treat the Programs directory the same way
-        @pod-sources = get-pod6-page-order(:$dir);
-    }
-    else {
-        # default sort is by name {%hash{.key} => file basename w/o extension
-        @pod-sources =
-            recursive-dir("doc/$dir/")
-            .grep({.path ~~ / '.pod6' $/})
-            .map({
-                .path.subst("doc/$dir/", '')
-                     .subst(rx{\.pod6$},  '')
-                     .subst(:g,    '/',  '::')
-                 => $_
+    # default sort is by name {%hash{.key} => file basename w/o extension
+    @pod-sources =
+    recursive-dir("$topdir/$dir/")
+        .grep({.path ~~ / '.pod6' $/})
+        .map({
+               .path.subst("$topdir/$dir/", '')
+               .subst(rx{\.pod6$},  '')
+               .subst(:g,    '/',  '::')
+               => $_
             }).sort(&sorted-by);
-     }
 
     =begin comment
     # PLEASE LEAVE THIS DEBUG CODE IN UNTIL WE'RE HAPPY
     # WITH LANGUAGE PAGE SORTING AND DISPLAY
-    if 0 && $dir eq 'Language' {
+    #if 1 && $dir eq 'Language' {
     #if 1 && $dir eq 'Programs' {
         say "\@pod-sources:";
         for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
             say "num: $num; key: |$filename|; value : |$file|";
         }
-        #die "debug exit";
+        die "debug exit";
     }
     =end comment
 
@@ -287,7 +281,7 @@ sub process-pod-dir($dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
         @pod-sources = @pod-sources[^(@pod-sources / $sparse).ceiling];
     }
 
-    say "Processing $dir Pod files ...";
+    say "Processing $topdir/$dir Pod files ...";
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
@@ -889,7 +883,7 @@ sub write-index-files() {
     say 'Writing html/language.html ...';
     spurt 'html/language.html', p2h(pod-with-title(
         'Perl 6 Language Documentation',
-        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language, in mostly alphabetical order."),
+        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
         pod-table($*DR.lookup('language', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
