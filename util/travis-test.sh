@@ -14,6 +14,7 @@ case "${BUILDENV}" in
       ZEF_BUILD="$HEAD_BUILD/share/perl6/site/bin"
       export PATH="$PATH:$ZEF_BUILD"
       P6_DOC_TEST_VERBOSE=1 make test
+      make clean-build
       make gen-pod6-source
       perl6 htmlify.p6 --no-highlight
     ;;
