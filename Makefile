@@ -14,7 +14,7 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 
 html: gen-pod6-source bigpage htmlify
 
-htmlify: init-highlights assets
+htmlify: gen-pod6-source init-highlights assets
 	perl6 htmlify.p6
 
 gen-pod6-source:
@@ -38,7 +38,7 @@ assets:
 webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
-bigpage:
+bigpage: gen-pod6-source
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
 # Common tests that are run by travis with every commit
@@ -127,9 +127,13 @@ clean-search:
 clean-build:
 	find build -name "*.pod6" -exec rm -f {} \;
 
-clean: clean-html clean-images clean-search
+remove-build:
+	rm -rf build
 
-distclean: clean
+clean: clean-html clean-images clean-search clean-build
+
+distclean: clean remove-build
+
 
 test-links: links.txt
 	./util/test-links.sh
