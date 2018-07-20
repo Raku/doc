@@ -19,5 +19,6 @@ case "${BUILDENV}" in
       git clone https://github.com/ugexe/zef.git && cd zef && perl6 -Ilib bin/zef install . && cd ..
       export PATH="$PATH:$ZEF_BUILD"
       zef --/tap-harness --depsonly install .
+      mkdir build
     ;;
 esac
