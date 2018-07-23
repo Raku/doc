@@ -15,11 +15,11 @@ lo considera invece come Pod per Perl 5 ).
 
 ## README in altri linguaggi
 
-* [README in Cinese](README.zh.md)
-* [README in Inglese](README.md)
-* [README in Spagnolo](README.es.md)
-* [README in Tedesco](README.de.md)
-* [README in Francese](README.fr.md)
+* [README in Cinese](../zh/README.zh.md)
+* [README in Inglese](../../../README.md)
+* [README in Spagnolo](../es/README.es.md)
+* [README in Tedesco](../de/README.de.md)
+* [README in Francese](../fr/README.fr.md)
 
 ## Installare p6doc
 

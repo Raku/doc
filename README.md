@@ -15,14 +15,14 @@ files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 
 ## README in other languages
 
-* [README in Chinese](resources/README.zh.md)
-* [README in Dutch](resources/README.nl.md)
-* [README in French](resources/README.fr.md)
-* [README in German](resources/README.de.md)
-* [README in Italian](resources/README.it.md)
-* [README in Japanese](resources/README.jp.md)
-* [README in Portuguese](resources/README.pt.md)
-* [README in Spanish](resources/README.es.md)
+* [README in Chinese](resources/i18n/zh/README.zh.md)
+* [README in Dutch](resources/i18n/nl/README.nl.md)
+* [README in French](resources/i18n/fr/README.fr.md)
+* [README in German](resources/i18n/de/README.de.md)
+* [README in Italian](resources/i18n/it/README.it.md)
+* [README in Japanese](resources/i18n/jp/README.jp.md)
+* [README in Portuguese](resources/i18n/pt/README.pt.md)
+* [README in Spanish](resources/i18n/es/README.es.md)
 
 ## Install p6doc
 
