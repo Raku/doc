@@ -455,7 +455,7 @@ sub find-references(:$pod!, :$url, :$origin) {
         $index-name-attr = qq[index-entry{@indices ?? '-' !! ''}{@indices.join('-')}{$index-text ?? '-' !! ''}$index-text].subst('_', '__', :g).subst(' ', '_', :g).subst('%', '%25', :g).subst('#', '%23', :g);
 
        register-reference(:$pod, :$origin, url => $url ~ '#' ~ $index-name-attr);
-}
+    }
     elsif $pod.?contents {
         for $pod.contents -> $sub-pod {
             find-references(:pod($sub-pod), :$url, :$origin) if $sub-pod ~~ Pod::Block;
