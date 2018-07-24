@@ -1,5 +1,7 @@
 #!/bin/bash
 
+# Script for the "test" phase of Travis CI.
+
 set -x
 set -e
 
