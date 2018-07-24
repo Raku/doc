@@ -1,6 +1,6 @@
 ### A new (or existing) pod6 document currently must adhere to the following conventions:
 
-1. it must be valid Perl 6 pod
+1. it must be valid Perl 6 pod
 2. the first non-comment or non-empty line must be:
 
         =begin pod # optionally followed by :key<value> %config pairs
@@ -22,7 +22,7 @@
 ```
 # this is a valid, non-pod comment
 =begin pod :my-link<foo> # another comment
-=TITLE Working with Perl 6 pod
+=TITLE Working with Perl 6 pod
 =SUBTITLE Alice in Wonderland
 # ... more vald pod and text
 =comment a pod comment # a valid comment
@@ -35,7 +35,7 @@
 ```
 =comment a pod comment # this is not a valid comment in this position
 =begin pod :my-link<foo> # another comment
-=TITLE Working with Perl 6 pod
+=TITLE Working with Perl 6 pod
 =SUBTITLE Alice in Wonderland
 # ... more vald pod and text
 =end pod
