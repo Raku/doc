@@ -14,14 +14,14 @@ mas o GitHub assume que são Perl 5 Pod.)
 
 ## README em outras línguas
 
-* [README em alemão](README.de.md)
-* [README em chinês](README.zh.md)
-* [README em italiano](README.it.md)
-* [README em inglês](README.md)
-* [README em francês](README.fr.md)
-* [README em espanhol](README.es.md)
-* [README em japonês](README.jp.md)
-* [README em neerlandês](README.nl.md)
+* [README em alemão](../de/README.de.md)
+* [README em chinês](../zh/README.zh.md)
+* [README em italiano](../it/README.it.md)
+* [README em inglês](../../../README.md)
+* [README em francês](../fr/README.fr.md)
+* [README em espanhol](../es/README.es.md)
+* [README em japonês](../jp/README.jp.md)
+* [README em neerlandês](../nl/README.nl.md)
 
 ## Instalar p6doc
 

@@ -14,12 +14,12 @@ Une commande est également disponible pour le terminal: "p6doc".
 
 ## README dans d'autres langues
 
-* [README en allemand](README.de.md)
-* [README en anglais](README.md)
-* [README en chinois](README.zh.md)
-* [README en espagnol](README.es.md)
-* [README en italien](README.it.md)
-* [README en japonais](README.jp.md)
+* [README en allemand](../de/README.de.md)
+* [README en anglais](../../../README.md)
+* [README en chinois](../zh/README.zh.md)
+* [README en espagnol](../es/README.es.md)
+* [README en italien](../it/README.it.md)
+* [README en japonais](../jp/README.jp.md)
 
 ## Installez p6doc
 
@@ -144,4 +144,3 @@ Ce repository contient également du code créé par des tiers que peuvent être
 * Exemples de StackOverflow [Licence MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Tableau trieur plugin de https://github.com/christianbach/tablesorter ;
   [Licence MIT](http://creativecommons.org/licenses/MIT)
-
