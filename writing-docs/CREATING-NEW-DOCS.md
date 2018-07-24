@@ -24,7 +24,7 @@
 =begin pod :my-link<foo> # another comment
 =TITLE Working with Perl 6 pod
 =SUBTITLE Alice in Wonderland
-# ... more vald pod and text
+# ... more valid pod and text
 =comment a pod comment # a valid comment
 =end pod
 # vi or emacs info
@@ -37,7 +37,7 @@
 =begin pod :my-link<foo> # another comment
 =TITLE Working with Perl 6 pod
 =SUBTITLE Alice in Wonderland
-# ... more vald pod and text
+# ... more valid pod and text
 =end pod
 # vi or emacs info
 ```
