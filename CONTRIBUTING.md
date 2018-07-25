@@ -5,11 +5,11 @@ Your patches to perl6/doc are very welcome.
 This document describes how to get started and helps to provide documentation
 that adheres to the common style and formatting guidelines.
 
-Your contributions will be credited in Rakudo release announcement. Your name from
+Your contributions here will be credited in the next Rakudo release announcement. Your name from
 the commit log will be used. If you'd like to be credited under a different name,
-please add it to the
-[CREDITS](https://github.com/rakudo/rakudo/blob/master/CREDITS)
-file.
+please add it to the local 
+[CREDITS](CREDITS)
+file (or ask someone to do it for you until you have commit privileges).
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](https://perl6.org/community/irc).
