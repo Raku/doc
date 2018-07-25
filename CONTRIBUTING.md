@@ -7,8 +7,9 @@ that adheres to the common style and formatting guidelines.
 
 Your contributions will be credited in Rakudo release announcement. Your name from
 the commit log will be used. If you'd like to be credited under a different name,
-please add it to
-[CREDITS file](https://github.com/rakudo/rakudo/blob/master/CREDITS).
+please add it to the
+[CREDITS](https://github.com/rakudo/rakudo/blob/master/CREDITS)
+file.
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](https://perl6.org/community/irc).
