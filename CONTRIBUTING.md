@@ -278,6 +278,11 @@ start the development webserver (`./app-start`).
 
 ### Build and view the documentation
 
+The **Makefile** has a lot of targets to help with building and testing the doc website
+and its presented documentation.  Use this command to see them:
+
+    $ make help
+    
 To actually build the documentation all you now need to do is run:
 
     $ make html
@@ -285,7 +290,7 @@ To actually build the documentation all you now need to do is run:
 This takes a while, but be patient!
 
 After the build has completed, you can start the web application which will
-render the HTML documention:
+render the HTML documention on a web server on your build host:
 
     $ make run
 
