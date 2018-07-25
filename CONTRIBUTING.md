@@ -17,7 +17,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Writing code examples](#writing-code-examples)
-- [Adding a new document](#adding-a-new-document)
+- [Adding a new Language document](#adding-a-new-language-document)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
