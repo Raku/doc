@@ -5,7 +5,7 @@ Your patches to perl6/doc are very welcome.
 This document describes how to get started and helps to provide documentation
 that adheres to the common style and formatting guidelines.
 
-Your contributions will be credited in Rakudo release announcement. You name from
+Your contributions will be credited in Rakudo release announcement. Your name from
 the commit log will be used. If you'd like to be credited under a different name,
 please add it to
 [CREDITS file](https://github.com/rakudo/rakudo/blob/master/CREDITS).
@@ -49,11 +49,11 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 ## Documenting versions
 
-* If you are adding a recently introduced feature, please indicate in a note which version was it introduced in.
+* If you are adding a recently introduced feature, please indicate in a note which version it was introduced in.
 * If you change an example to use the new feature, leave the old
-  example if it's still working, at least while it's not obsolete, for people who has not
+  example if it's still working, at least while it's not obsolete, for people who have not
   upgraded yet, clarifying in the text around it the versions it will
-  run.
+  run with.
 
 ## Writing Code Examples
 
@@ -151,7 +151,7 @@ the page to activate debug mode. The state of debug mode will be remembered by
 `window.sessionStorage` and will not survive a browser restart or opening the
 docs in a new tab.
 
-### Invisible index anchors
+q### Invisible index anchors
 
 You can create index entries and invisible anchors with `X<|thing,category>`.
 To make them visible activate debug mode.
@@ -262,19 +262,14 @@ start the development webserver (`./app-start`).
 
 ### Build and view the documentation
 
-To actually build the documentation all you now need to do is run
-`htmlify.p6`:
+To actually build the documentation all you now need to do is run:
 
-    $ perl6 htmlify.p6
+    $ make html
 
 This takes a while, but be patient!
 
 After the build has completed, you can start the web application which will
-render the HTML documentation
-
-    $ perl app.pl daemon   # note!  Perl 5 *not* Perl 6 here
-
-or
+render the HTML documention:
 
     $ make run
 
