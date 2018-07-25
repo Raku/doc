@@ -17,6 +17,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Writing code examples](#writing-code-examples)
+- [Adding a new document](#adding-a-new-document)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
@@ -60,6 +61,16 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 See [EXAMPLES.md](writing-docs/EXAMPLES.md) for detailed information on the options
 available when writing code examples in the documentation.
+
+## Adding a new Language document
+
+We suggest you discuss proposing a new Language document on the #perl6 channel before
+you proceed further. After you get consensus on a title, subtitle, section, and
+filename, you can add the document by following these steps:
+
++ create a **filename.pod6** file in the **doc/Language** directory and
+  ensure it adheres to the conventions in
+  [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md)
 
 ## Documenting types
 
