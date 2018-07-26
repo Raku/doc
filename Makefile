@@ -19,7 +19,7 @@ html: gen-pod6-source bigpage htmlify
 htmlify: gen-pod6-source init-highlights assets
 	perl6 htmlify.p6
 
-gen-pod6-source: $(LANG_POD6_SOURCE)
+gen-pod6-source: $(LANG_POD6_SOURCE) doc/Language/00-POD6-CONTROL
 	perl6 util/manage-page-order.p6 update
 
 init-highlights:
