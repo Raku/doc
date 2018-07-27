@@ -7,7 +7,7 @@ that adheres to the common style and formatting guidelines.
 
 Your contributions here will be credited in the next Rakudo release announcement. Your name from
 the commit log will be used. If you'd like to be credited under a different name,
-please add it to the local 
+please add it to the local
 [CREDITS](CREDITS)
 file (or ask someone to do it for you until you have commit privileges).
 
@@ -71,7 +71,7 @@ filename, you can add the document by following these steps:
 + create a **filename.pod6** file in the **doc/Language** directory and
   ensure it adheres to the conventions in
   [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md)
-  
+
 + create an entry for your new document in the Language directory's
   [00-POD6-CONTROL](doc/Language/00-POD6-CONTROL) file following
   the instructions there
@@ -282,7 +282,7 @@ The **Makefile** has a lot of targets to help with building and testing the doc 
 and its presented documentation.  Use this command to see them:
 
     $ make help
-    
+
 To actually build the documentation all you now need to do is run:
 
     $ make html
