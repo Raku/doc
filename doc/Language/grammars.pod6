@@ -288,7 +288,7 @@ the number for the currently parsed C<digit> digits.
     say Digifier.parse('255 435 777', actions => Devanagari.new).made;
     # OUTPUT: «(२५५ ४३५ ७७७)␤»
 
-=head2 Methods in Grammar
+=head2 Methods in grammars
 
 It's fine to use methods instead of rules or tokens in a grammar, as long
 as they return a L<Cursor|/type/Cursor>:
@@ -312,7 +312,7 @@ provided by parse methods:
     # OUTPUT: «12␤»
     =end code
 
-=head2 Dynamic Variables in Grammars
+=head2 Dynamic variables in grammars
 
 Variables can be defined in tokens by prefixing the lines of code defining them
 with C<:>. Arbitrary code can be embedded anywhere in a token by surrounding it
@@ -358,6 +358,56 @@ matches with the correct guard:
     say GrammarAdvice.subparse("use regexes for significant whitespace by default")
     # OUTPUT: #<failed match>
     =end code
+
+=head2 Attributes in grammars
+
+Attributes may be defined in grammars. However, they can only be accessed by
+methods. Attempting to use them from within a token will throw an exception
+because tokens are methods of L<Cursor|/type/Cursor>, not of the grammar
+itself. Note that mutating an attribute from within a method called in a token
+will I<only modify the attribute for that token's own match object>! Grammar
+attributes can be accessed in the match returned after parsing if made public:
+
+    grammar HTTPRequest {
+        has Bool $.invalid;
+
+        token TOP {
+            <type> <path> 'HTTP/1.1' \r\n
+            [<field> \r\n]+
+            \r\n
+            $<body>=.*
+        }
+
+        token type {
+            | GET | POST | OPTIONS | HEAD | PUT | DELETE | TRACE | CONNECT
+            | \S+ <.error>
+        }
+
+        token path {
+            | '/' [[\w+]+ % \/] [\.\w+]?
+            | '*'
+            | \S+ <.error>
+        }
+
+        token field {
+            | $<name>=\w+ : $<value>=<-[\r\n]>*
+            | <-[\r\n]>+ <.error>
+        }
+
+        method error(--> ::?CLASS:D) {
+            $!invalid = True;
+            self;
+        }
+    }
+
+    my $header = "MEOWS / HTTP/1.1\r\nHost: docs.perl6.org\r\nsup lol\r\n\r\n";.
+    my $/ = HTTPRequest.parse($header);
+    say $<type>.invalid;
+    # OUTPUT: True
+    say $<path>.invalid;
+    # OUTPUT: (Bool)
+    say $<field>».invalid;
+    # OUTPUT: [(Bool) True]
 
 =head1 X<Action Objects|Actions>
 
