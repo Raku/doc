@@ -23,6 +23,7 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   zero-width => 'zero \s+ width<!before \' joiner\'>',
                   NYI        => 'niy',
                   metaoperator => 'meta [\s+|\-] operator',
+                  semicolon => 'semi [\s+|\-] colon',
                );
 plan +@files;
 
