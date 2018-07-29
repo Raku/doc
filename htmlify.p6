@@ -242,16 +242,15 @@ sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel)
     #say "Reading doc/$dir ...";
     say "Reading $topdir/$dir ...";
 
-    # What does this array look like?
+    # What does the following array look like?
     #
-    #   + an array of pairs sorted by some key
-    #   + the sort key defaults to the key below
+    #   + an array of sorted pairs
+    #   + the sort key defaults to the base filename  stripped of '.pod6'
     #   + any other sort order has to be processed separately as in 'Language'
-    #     below
     #
     #   the sorted pairs (regardless of how they are sorted) must consist of:
     #     key:   base filename stripped of its ending .pod6
-    #     value: filename relative to the "doc/$dir" directory
+    #     value: filename relative to the "$topdir/$dir" directory
     my @pod-sources;
 
     # default sort is by name {%hash{.key} => file basename w/o extension
