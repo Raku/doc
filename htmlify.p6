@@ -75,7 +75,8 @@ my %*POD2HTML-CALLBACKS;
 my %p5to6-functions;
 
 # TODO: Generate menulist automatically
-my @menu =
+my @menu; # for use by future menu autogen 
+@menu =
     ('language',''          ) => (),
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines'  ) => <sub method term operator>,
