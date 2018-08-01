@@ -1,0 +1,152 @@
+=begin pod
+=TITLE role Enumeration
+=SUBTITLE Working with the role behind the enum type
+
+    role Enumeration
+
+This is the role implemented by the enum-pairs in the L<C<enum> type|/language/typesystem#enum>. In general, it is used to create constant sets,
+the elements of which become also constant symbols in the current namespace and
+to establish a relationship between the symbols belonging to the same set. In
+general, you will find c<Enumeration> in L<enum> types:
+
+    enum norse-gods <Þor Oðin Loki>;
+    my $one-of-them = norse-gods.pick;
+    say $one-of-them ~~ Enumeration; # OUTPUT: «True␤»
+
+but nothing prevents you from using it in your own programs if you want to
+restrict somehow the relationship between the key and the value:
+
+=begin code
+class DNA does Enumeration {
+    my %pairings = %( A => "T",
+                      T => "A",
+                      C => "G",
+                      G => "C" );
+
+    method new( $base-pair where "A" | "C" | "G" | "T" )  {
+        self.bless( key => $base-pair,
+                    value => %pairings{$base-pair});
+    }
+
+    multi method gist(::?CLASS:D:) {
+        return "$!key → $!value";
+    }
+
+}
+
+enum Chain ();
+constant length = 16;
+for <A C G T>.roll( length ) -> $letter {
+    my DNA $base = DNA.new( $letter );
+    Chain.HOW.add_enum_value( Chain, $base );
+}
+
+for ^length {
+    my $base = Chain.pick;
+    say "{$base.key} and {$base.value}";
+}
+=end code
+
+In this code, C<DNA> consumes the C<Enumeration> role, which is from this point
+of view a pair of key and value; we can use the generated C<DNA> objects to
+compose an C<enum> type from which elements can be picked one by one, with the
+output shown below.
+
+=begin code :lang<text>
+T and A
+C and G
+T and A
+# and so on...
+=end code
+
+
+=head1 methods
+
+These are the methods included in this role:
+
+=head2 key, value
+
+These are C<Enumeration> properties.
+
+    enum Norse-gods <Þor Oðin Freija>;
+    say Freija.key; # OUTPUT: «Freija␤»
+    say Oðin.value; # OUTPUT: «1␤»
+
+The C<value> is assigned automatically by the C<enum> type starting at 0.
+C<Oðin> gets 1 since it is the second in the C<enum>.
+
+=head2 enums
+
+Defined as:
+    method enums()
+
+Returns the list of C<Enumeration>s for the enum type this particular
+C<Enumeration> is in. Works both on the enum type and any key.
+
+    enum Mass ( mg => 1/1000, g => 1/1, kg => 1000/1 );
+    say g.enums; # OUTPUT: «{g => 1, kg => 1000, mg => 0.001}␤»
+
+=head2 kv
+
+Defined as:
+
+    multi method kv(::?CLASS:D:)
+
+Returns a list with key and value of the enum-pair.
+
+=for code :preamble<<enum Mass<g> >>
+say g.kv; # OUTPUT: «(g 1)␤»
+
+=head2 pair
+
+Defined as:
+
+    method pair(::?CLASS:D:)
+
+Returns it as a C<Pair>.
+
+=for code :preamble<<enum Mass<g> >>
+say g.pair; # OUTPUT: «g => 1␤»
+
+=head2 pick, roll
+
+Defined as:
+
+    multi method pick(::?CLASS:U:)
+    multi method pick(::?CLASS:U: \n)
+    multi method pick(::?CLASS:D: *@pos)
+    multi method roll(::?CLASS:U:)
+    multi method roll(::?CLASS:U: \n)
+    multi method roll(::?CLASS:D: *@pos)
+
+They work on the defined class, with C<pick> eliminating the element selected,
+and roll without.
+
+=for code :preamble<enum Norse-gods <Þor Oðin Freija>;>
+say Norse-gods.roll() for ^3;# OUTPUT: «Freija␤Freija␤Oðin␤»
+say Norse-gods.pick() for ^3;# OUTPUT: «Þor␤Freija␤Oðin␤»
+
+
+=head2 pred, succ
+
+Defined as:
+
+    pred(::?CLASS:D:)
+
+=for code :preamble<enum Norse-gods <Þor Oðin Freija>;>
+say Freija.pred;# OUTPUT: «Oðin␤»
+say Oðin.succ;  # OUTPUT: «Freija␤»
+
+=head2 C<===>
+
+Defined as
+
+    multi infix:<===> (Enumeration:D \a, Enumeration:D \b)
+
+Equality of C<Enumeration> symbols:
+
+=for code :preamble< enum Norse-gods <Þor Oðin Freija>;>
+say Norse-gods.pick() === Freija for ^3; # OUTPUT: «False␤False␤True␤»
+
+
+=end pod
