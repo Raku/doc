@@ -608,7 +608,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :categories<operator>,
                     ;
                 }
-                when 'sub'|'method'|'term'|'routine'|'trait' {
+                when 'sub'|'method'|'term'|'routine'|'trait'|'submethod' {
                     %attr = :kind<routine>,
                             :categories($subkinds),
                     ;
