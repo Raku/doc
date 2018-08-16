@@ -4,6 +4,15 @@
 #       top level of the doc repo and all files are referenced
 #       relative to it.
 
+=begin overview
+
+Manage page order in the generated documents,
+so that documents appear just the way we want them. Uses source files
+   and POD metadata to generate new files,
+which are the ones actually used as source for the stuff. 
+
+=end overview
+
 # pod6 source directory of interest for auto-gen handling:
 my $lang-dir = 'doc/Language';
 # pod6 source d#irectory
