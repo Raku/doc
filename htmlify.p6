@@ -80,7 +80,7 @@ my @menu; # for use by future menu autogen
 @menu =
     ('language',''          ) => (),
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
-    ('routine', 'Routines'  ) => <sub method term operator>,
+    ('routine', 'Routines'  ) => <sub method term operator trait submethod>,
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
@@ -912,7 +912,7 @@ sub write-index-files() {
 
     write-main-index :kind<routine> :&summary;
 
-    for <sub method term operator> -> $category {
+    for <sub method term operator submethod> -> $category {
         write-sub-index :kind<routine> :$category :&summary;
     }
 }
