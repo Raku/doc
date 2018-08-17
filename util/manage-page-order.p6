@@ -8,8 +8,8 @@
 
 Manage page order in the generated documents,
 so that documents appear just the way we want them. Uses source files
-   and POD metadata to generate new files,
-which are the ones actually used as source for the stuff. 
+and POD metadata to generate new files,
+which are the ones actually used as source for the stuff.
 
 =end overview
 
