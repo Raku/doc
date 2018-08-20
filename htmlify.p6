@@ -918,7 +918,7 @@ sub write-index-files() {
 }
 
 sub write-main-index(:$kind, :&summary = {Nil}) {
-    say "Writing html/$kind.html ...";
+    say "Writing main index html/$kind.html ...";
     spurt "html/$kind.html", p2h(pod-with-title(
         "Perl 6 {$kind.tc}s",
         pod-block(
@@ -943,7 +943,7 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
 
 # XXX: Only handles normal routines, not types nor operators
 sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
-    say "Writing html/$kind-$category.html ...";
+    say "Writing sub-index  html/$kind-$category.html ...";
     my $this-category = $category.tc eq "Exceptions" ?? "Exception" !! $category.tc;
     spurt "html/$kind-$category.html", p2h(pod-with-title(
         "Perl 6 {$this-category} {$kind.tc}s",
