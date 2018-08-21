@@ -1205,7 +1205,7 @@ Replaces one or many characters with one or many characters. Ranges are
 supported, both for keys and values. Regexes work as keys. In case a list of
 keys and values is used, substrings can be replaced as well. When called with
 C<:complement> anything but the matched value or range is replaced with a
-single value. With C<:delete> the matched characters are without corresponding
+single value; with C<:delete> the matched characters without corresponding
 replacement are removed. Combining C<:complement> and C<:delete> will remove
 anything but the matched values, I<unless replacement characters have been
 specified>, in which case, C<:delete> would be ignored. The adverb C<:squash>
@@ -1228,6 +1228,28 @@ Example:
     "a123b123c".trans('23' => '', :delete);                       # RESULT: «a1b1c»
     "aaa1123bb123c".trans('a'..'z' => 'A'..'Z', :squash);         # RESULT: «A1123B123C»
     "aaa1123bb123c".trans('a'..'z' => 'x', :complement, :squash); # RESULT: «aaaxbbxc»
+
+Please note that the behavior of the two versions of the multi method is
+slightly different. The first form will transpose only one character if the
+origin is also one character:
+
+=begin code
+say "abcd".trans( "a" => "zz" );  # OUTPUT: «zbcd␤»
+say "abcd".trans( "ab" => "yz" ); # OUTPUT: «yzcd␤»
+=end code
+
+In the second case, behavior is as expected, since the origin is more than one
+char long. However, if the C<Pair> in the multi method does not have a C<Str> as
+an origin or target, it is handled to the second multi method, and behavior
+changes:
+
+    m: say "abcd".trans: ["a"] => ["zz"]; # OUTPUT: «zzbcd␤»
+
+In this case, neither origin nor target in the C<Pair> are C<Str>; the method
+with the C<Pair> signature then calls the second, making this call above
+equivalent to C<"abcd".trans: ["a"] => ["zz"],> (with the comma behind, making
+it a C<Positional>, instead of a C<Pair>), resulting in the behavior shown as
+output.
 
 =head2 method indent
 
