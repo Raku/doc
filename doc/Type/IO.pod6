@@ -4,9 +4,9 @@
 
 =SUBTITLE Input/output related routines
 
-The role provides no methods, but exists so that C<IO()> coercers, which coerce
-to L<IO::Path>, correctly type-check the resultant value. The role is done
-by L<IO::Path> and L<IO::Special>.
+The role provides no methods, but exists so that C<IO()> coercers, which
+coerce to L<IO::Path>, correctly type-check the resultant value. The
+role is done by L<IO::Path> and L<IO::Special>.
 
 =head1 Routines
 
@@ -21,8 +21,10 @@ valid values for C<$mode>. Returns the L<IO::Path> object pointing to
 the newly created directory on success;
 L<fails|/routine/fail> with L<X::IO::Mkdir> if directory cannot be created.
 
-Also creates parent directories, as needed (similar to *nix utility C<mkdir> with C<-p> option); that is, C<mkdir "foo/bar/ber/meow"> will create C<foo>, C<foo/bar>, and C<foo/bar/ber>
-directories if they do not exist, as well as C<foo/bar/ber/meow>.
+Also creates parent directories, as needed (similar to *nix utility
+C<mkdir> with C<-p> option); that is, C<mkdir "foo/bar/ber/meow"> will
+create C<foo>, C<foo/bar>, and C<foo/bar/ber> directories if they do not
+exist, as well as C<foo/bar/ber/meow>.
 
 =head2 sub chdir
 
@@ -130,13 +132,13 @@ current directory (see L«C<&*chdir>|/routine/&*chdir»). The C<$*CWD>
 outside of the C<&code> is not affected, even if C<&code> explicitly assigns
 a new value to C<$*CWD>.
 
-Returns the return value of C<&code> on success. On failure to successfully
-change C<$*CWD>, returns L«C<Failure>|/type/Failure». B<WARNING:> keep in
-mind that lazily evaluated things might end up NOT having the C<$*CWD> set
-by C<indir> in their dynamic scope by the time they're actually evaluated.
-Either ensure the generators have their C<$*CWD> set or
-L<eagerly evaluate|/routine/eager> them before returning the results from
-C<indir>:
+Returns the return value of C<&code> on success. On failure to
+successfully change C<$*CWD>, returns L«C<Failure>|/type/Failure».
+B<WARNING:> keep in mind that lazily evaluated things might end up NOT
+having the C<$*CWD> set by C<indir> in their dynamic scope by the time
+they're actually evaluated. Either ensure the generators have their
+C<$*CWD> set or L<eagerly evaluate|/routine/eager> them before returning
+the results from C<indir>:
 
     say indir("/tmp", {
         gather { take ".".IO }
@@ -213,14 +215,15 @@ Defined as:
 
     multi sub say(**@args --> True)
 
-Prints the "gist" of given objects. Same as L«C<put>|/type/IO#sub_put», except
-uses L«C<.gist>|/routine/gist» method to obtain string representation of the
-object.
+Prints the "gist" of given objects. Same as L«C<put>|/type/IO#sub_put»,
+except uses L«C<.gist>|/routine/gist» method to obtain string
+representation of the object.
 
 B<NOTE:> the L«C<.gist>|/routine/gist» method of some objects, such as
-L<Lists|/type/List#method_gist>, returns only B<partial> information about the
-object (hence the "gist"). If you mean to print textual information,
-you most likely want to use L«C<put>|/type/IO#sub_put» instead.
+L<Lists|/type/List#method_gist>, returns only B<partial> information
+about the object (hence the "gist"). If you mean to print textual
+information, you most likely want to use L«C<put>|/type/IO#sub_put»
+instead.
 
     say Range;        # OUTPUT: «(Range)␤»
     say class Foo {}; # OUTPUT: «(Foo)␤»
@@ -349,64 +352,6 @@ say slurp 'file-that-already-exists';                    # OUTPUT: «some text n
 spurt 'file-that-already-exists', 'new text', :createonly;
 # OUTPUT: «Failed to open file /home/camelia/file-that-already-exists: file already exists …»
 =end code
-
-=head2 sub run
-
-    sub run(*@args ($, *@) --> Proc)
-
-Runs an external command I<without involving a shell> and returns a
-L<Proc> object. By default, the external command will print to standard
-output and error, and read from standard input.
-
-    run 'touch', '>foo.txt'; # Create a file named >foo.txt
-
-    run <<rm >foo.txt>>; # Another way to use run, using word quoting for the
-                         # arguments
-
-If you want to pass some variables you can still use C«< >», but try
-to avoid using C<« »> as it will do word splitting if you forget to
-quote variables:
-
-    my $file = ‘--my arbitrary filename’;
-    run ‘touch’, ‘--’, $file;  # RIGHT
-    run <touch -->, $file;     # RIGHT
-
-    run «touch -- "$file"»;    # RIGHT but WRONG if you forget quotes
-    run «touch -- $file»;      # WRONG; touches ‘--my’, ‘arbitrary’ and ‘filename’
-    run ‘touch’, $file;        # WRONG; error from `touch`
-    run «touch "$file"»;       # WRONG; error from `touch`
-
-Note that C<--> is required for many programs to disambiguate between
-command-line arguments and
-L<filenames that begin with hyphens|https://mywiki.wooledge.org/BashPitfalls#Filenames_with_leading_dashes>.
-
-A sunk L<Proc> object for a process that L<exited|/routine/exitcode>
-unsuccessfully will throw. If you wish to ignore such failures, simply
-use L<run> in non-sink context:
-
-    run 'false';     # SUNK! Will throw
-    run('false').so; # OK. Evaluates Proc in Bool context; no sinking
-
-If you want to capture standard output or error instead of having it
-printed directly you can use the C<:out> or C<:err> arguments
-respectively, which will make them available using the
-L<C<Proc.out>|/type/Proc> method:
-
-    my $proc = run 'echo', 'Perl 6 is Great!', :out, :err;
-    $proc.out.slurp(:close).say; # OUTPUT: «Perl 6 is Great!␤»
-    $proc.err.slurp(:close).say; # OUTPUT: «␤»
-
-You can use these arguments to redirect them to a filehandle, thus
-creating a kind of I<pipe>:
-
-    my $ls-alt-handle = open :w, '/tmp/cur-dir-ls-alt.txt';
-    my $proc = run "ls", "-alt", :out($ls-alt-handle);
-    # (The file will contain the output of the ls -alt command)
-
-
-These argument are quite flexible and admit, for instance, handles to
-redirect them. See L<Proc|/type/Proc> and
-L<Proc::Async|/type/Proc::Async> for more details.
 
 =head2 sub shell
 
