@@ -15,9 +15,9 @@ my $proc = run 'echo', 'Hallo world', :out;
 my $captured-output = $proc.out.slurp: :close;
 say "Output was $captured-output.perl()";       # OUTPUT: «Output was "Hallo world\n"␤»
 
-Piping several commands is easy too. To achieve the equivalent of the pipe
-C<echo "Hello, world" | cat -n> in Perl 6, and capture the output from the
-second command, you can do
+Piping several commands is easy too. To achieve the equivalent of the
+pipe C<echo "Hello, world" | cat -n> in Perl 6, and capture the output
+from the second command, you can do
 
 =for code
 my $p1 = run 'echo', 'Hello, world', :out;
@@ -63,19 +63,7 @@ method new(Proc:U:
         Str:D :$enc = 'UTF-8',
         Str:D :$nl = "\n",
     --> Proc:D)
-sub run(
-        *@args ($, *@),
-        :$in = '-',
-        :$out = '-',
-        :$err = '-',
-        Bool :$bin = False,
-        Bool :$chomp = True,
-        Bool :$merge = False,
-        Str:D :$enc = 'UTF-8',
-        Str:D :$nl = "\n",
-        :$cwd = $*CWD,
-        Hash() :$env = %*ENV
-    --> Proc:D)
+
 sub shell(
         $cmd,
         :$in = '-',
@@ -105,7 +93,7 @@ handle is used for the stream.
 
 Please bear in mind that the process streams reside in process variables, not in
 the dynamic variables that make them available to our programs. Thus, modifying
-L<the dynamic filehandle variables (such as C<$*OUT>)|/language/variables#Special_Filehandles:_STDIN,_STDOUT_and_STDERR>
+L<the dynamic filehandle variables (such as C<$*OUT>)|/language/variables#Special_filehandles:_STDIN,_STDOUT_and_STDERR>
 inside the host process will have no effect in the spawned process, unlike
 C<$*CWD> and C<$*ENV>, whose changes will be actually reflected in it.
 
@@ -137,22 +125,94 @@ $*OUT.put: "3. everything should be back to normal";
 # 2. temp redefine standard output before this message
 =end code
 
-This program shows that the program spawned with C<shell> is not using the
-temporary C<$*OUT> value defined in the host process (redirected to
+This program shows that the program spawned with C<shell> is not using
+the temporary C<$*OUT> value defined in the host process (redirected to
 C</tmp/out.txt>), but the initial C<STDOUT> defined in the process.
 
 C<$bin> controls whether the streams are handled as binary (i.e.
-L<Blob|/type/Blob> object) or text (i.e. L<Str|/type/Str> objects). If C<$bin>
-is False, C<$enc> holds the character encoding to encode strings sent to the
-input stream and decode binary data from the output and error streams.
+L<Blob|/type/Blob> object) or text (i.e. L<Str|/type/Str> objects). If
+C<$bin> is False, C<$enc> holds the character encoding to encode strings
+sent to the input stream and decode binary data from the output and
+error streams.
 
-With C<$chomp> set to C<True>, newlines are stripped from the output and err
-streams when reading with C<lines> or C<get>. C<$nl> controls what your idea
-of a newline is.
+With C<$chomp> set to C<True>, newlines are stripped from the output and
+err streams when reading with C<lines> or C<get>. C<$nl> controls what
+your idea of a newline is.
 
 If C<$merge> is set to True, the standard output and error stream end up
 merged in C<$proc.out>.
 
+=head2 sub run
+
+Defined as:
+    sub run(
+        *@args ($, *@),
+        :$in = '-',
+        :$out = '-',
+        :$err = '-',
+        Bool :$bin = False,
+        Bool :$chomp = True,
+        Bool :$merge = False,
+        Str:D :$enc = 'UTF-8',
+        Str:D :$nl = "\n",
+        :$cwd = $*CWD,
+        Hash() :$env = %*ENV
+    --> Proc:D)
+
+Runs an external command I<without involving a shell> and returns a
+L<Proc> object. By default, the external command will print to standard
+output and error, and read from standard input.
+
+    run 'touch', '>foo.txt'; # Create a file named >foo.txt
+
+    run <<rm >foo.txt>>; # Another way to use run, using word quoting for the
+                         # arguments
+
+If you want to pass some variables you can still use C«< >», but try
+to avoid using C<« »> as it will do word splitting if you forget to
+quote variables:
+
+    my $file = ‘--my arbitrary filename’;
+    run ‘touch’, ‘--’, $file;  # RIGHT
+    run <touch -->, $file;     # RIGHT
+
+    run «touch -- "$file"»;    # RIGHT but WRONG if you forget quotes
+    run «touch -- $file»;      # WRONG; touches ‘--my’, ‘arbitrary’ and ‘filename’
+    run ‘touch’, $file;        # WRONG; error from `touch`
+    run «touch "$file"»;       # WRONG; error from `touch`
+
+Note that C<--> is required for many programs to disambiguate between
+command-line arguments and
+L<filenames that begin with hyphens|https://mywiki.wooledge.org/BashPitfalls#Filenames_with_leading_dashes>.
+
+A sunk L<Proc> object for a process that L<exited|/routine/exitcode>
+unsuccessfully will throw. If you wish to ignore such failures, simply
+use L<run> in non-sink context:
+
+    run 'false';     # SUNK! Will throw
+    run('false').so; # OK. Evaluates Proc in Bool context; no sinking
+
+If you want to capture standard output or error instead of having it
+printed directly you can use the C<:out> or C<:err> arguments
+respectively, which will make them available using the
+L<C<Proc.out>|/type/Proc> method:
+
+    my $proc = run 'echo', 'Perl 6 is Great!', :out, :err;
+    $proc.out.slurp(:close).say; # OUTPUT: «Perl 6 is Great!␤»
+    $proc.err.slurp(:close).say; # OUTPUT: «␤»
+
+You can use these arguments to redirect them to a filehandle, thus
+creating a kind of I<pipe>:
+
+    my $ls-alt-handle = open :w, '/tmp/cur-dir-ls-alt.txt';
+    my $proc = run "ls", "-alt", :out($ls-alt-handle);
+    # (The file will contain the output of the ls -alt command)
+
+These argument are quite flexible and admit, for instance, handles to
+redirect them. See L<Proc|/type/Proc> and
+L<Proc::Async|/type/Proc::Async> for more details.
+
+See also L<C<new>|/type/Proc#method_new> for more examples.
 
 =head2 method sink
 
