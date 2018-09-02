@@ -118,8 +118,13 @@ list in order and stopping after the last element:
 
 =head2 X<Single Argument Rule>
 
-It is the rule by which the set of parameters passed to an iterator such as C<for> is treated as a single argument, instead of several arguments; that is
-C<some-iterator( a, b, c, ...)> will always be treated as C<some-iterator( list-or-array(a, b, c))> and never as C<(some-iterator(a))(b)...>, that is, iterative application of the iterator to the first argument, then the result to the next argument, and so on. In this example
+It is the rule by which the set of parameters passed to an iterator such
+as C<for> is treated as a single argument, instead of several arguments;
+that is C<some-iterator( a, b, c, ...)> will always be treated as
+C<some-iterator( list-or-array(a, b, c))> and never as
+C<(some-iterator(a))(b)...>, that is, iterative application of the
+iterator to the first argument, then the result to the next argument,
+and so on. In this example
 
 =begin code
 my @list = [ (1, 2, 3),
@@ -148,7 +153,13 @@ for @list -> @element {
 #1
 =end code
 
-Since what C<for> receives is a single argument, it will be treated as a list of elements to iterate over. The rule of thumb is that L<if there's a comma, anything preceding it is an element|https://perl6advent.wordpress.com/2015/12/14/day-15-2015-the-year-of-the-great-list-refactor/> and the list thus created becomes the I<single element>. That happens in the case of the two arrays separated by a comma which are the third in the C<Array> we are iterating. In general, quoting the article linked above, the single argument rule I<... makes for behave as the programmer would expect>.
+Since what C<for> receives is a single argument, it will be treated as a
+list of elements to iterate over. The rule of thumb is that
+L<if there's a comma, anything preceding it is an element|https://perl6advent.wordpress.com/2015/12/14/day-15-2015-the-year-of-the-great-list-refactor/>
+and the list thus created becomes the I<single element>. That happens in
+the case of the two arrays separated by a comma which are the third in
+the C<Array> we are iterating. In general, quoting the article linked
+above, the single argument rule I<... makes for behavior as the programmer would expect>.
 
 =head1 Testing for elements
 
@@ -174,30 +185,33 @@ L<first|/routine/first#(List)_routine_first>.
 
 =head2 Sequences
 
-Not all lists are born full of elements.  Some only create as many elements
-as they are asked for.  These are called sequences, which are of type L<Seq|/type/Seq>.
-As it so happens, loops return C<Seq>s.
+Not all lists are born full of elements.  Some only create as many
+elements as they are asked for.  These are called sequences, which are
+of type L<Seq|/type/Seq>. As it so happens, loops return C<Seq>s.
 
     (loop { 42.say })[2]  # OUTPUT: «42␤42␤42␤»
 
-So, it is fine to have infinite lists in Perl 6, just so long as you never
-ask them for all their elements.  In some cases, you may want to avoid
-asking them how long they are too – Perl 6 will try to return C<Inf> if
-it knows a sequence is infinite, but it cannot always know.
+So, it is fine to have infinite lists in Perl 6, just so long as you
+never ask them for all their elements.  In some cases, you may want to
+avoid asking them how long they are too – Perl 6 will try to return
+C<Inf> if it knows a sequence is infinite, but it cannot always know.
 
-These lists can be built using the L<...|/operators#infix_...> operator, which builds lazy lists using a variety of generating expressions.
+These lists can be built using the L<...|/operators#infix_...> operator,
+which builds lazy lists using a variety of generating expressions.
 
-Although the C<Seq> class does provide some positional subscripting, it does
-not provide the full interface of C<Positional>, so an C<@>-sigiled variable
-may B<not> be bound to a C<Seq>, and trying to do so will yield an error.
+Although the C<Seq> class does provide some positional subscripting, it
+does not provide the full interface of C<Positional>, so an C<@>-sigiled
+variable may B<not> be bound to a C<Seq>, and trying to do so will yield
+an error.
 
     my @s := <a b c>.Seq; CATCH { default { say .^name, ' ', .Str } }
     # OUTPUT «X::TypeCheck::Binding Type check failed in binding; expected Positional but got Seq ($(("a", "b","c").Seq))␤»
 
-This is because the C<Seq> does not keep values around after you have used them.
-This is useful behavior if you have a very long sequence, as you may want to
-throw values away after using them, so that your program does not fill up memory.
-For example, when processing a file of a million lines:
+This is because the C<Seq> does not keep values around after you have
+used them. This is useful behavior if you have a very long sequence, as
+you may want to throw values away after using them, so that your program
+does not fill up memory. For example, when processing a file of a
+million lines:
 
     =begin code :preamble<sub do-something-with($x){ }>
     for 'filename'.IO.lines -> $line {
@@ -205,14 +219,14 @@ For example, when processing a file of a million lines:
     }
     =end code
 
-You can be confident that the entire content of the file will not stay around
-in memory, unless you are explicitly storing the lines somewhere.
+You can be confident that the entire content of the file will not stay
+around in memory, unless you are explicitly storing the lines somewhere.
 
 On the other hand, you may want to keep old values around in some cases.
-It is possible to hide a C<Seq> inside a C<List>, which will still be lazy,
-but will remember old values. This is done by calling the C<.list> method.
-Since this C<List> fully supports C<Positional>, you may bind it directly
-to an C<@>-sigiled variable.
+It is possible to hide a C<Seq> inside a C<List>, which will still be
+lazy, but will remember old values. This is done by calling the C<.list>
+method. Since this C<List> fully supports C<Positional>, you may bind it
+directly to an C<@>-sigiled variable.
 
     my @s := (loop { 42.say }).list;
     @s[2]; # says 42 three times
@@ -223,7 +237,31 @@ You may also use the C<.cache> method instead of C<.list>, depending on
 how you want the references handled.  See the L<page on
 C<Seq>|/type/Seq> for details.
 
-=comment TODO document .iterator
+=head2 Using C<.iterator>
+
+All lists mix in the L<Iterator> role, and as such have an C<.iterator>
+method they can use for a finer control over a list. We can use it like
+this, for instance:
+
+=begin code
+my @multiples-of-five = 0,5,10 … 500;
+my $odd-iterator = @multiples-of-five.iterator;
+my $odd;
+repeat {
+    $odd-iterator.skip-one;
+    $odd = $odd-iterator.pull-one;
+    say "→ $odd";
+} until $odd.Str eq IterationEnd.Str;
+=end code
+
+Instead of using the iterator implicitly as we do in C<for> loops, we
+explicitly assign it to the C<$odd-iterator> variable to work over the
+odd elements of the sequence only. That way, we can skip even elements
+using C<.skip-one>. We do have to test explicitly for termination, which
+we do in the C<until> expression. When there's nothing left to iterate,
+C<$odd> will have the value C<IterationEnd>. Please check the
+L<documentation on C<Iterator>s|/type/Iterator> for the methods and
+functions that are available.
 
 =head2 Slips
 
