@@ -13,17 +13,18 @@ sequence. Users usually don't have to care about iterators, their usage
 is hidden behind iteration APIs such as C<for @list { }>, L<map>,
 L<grep>, L<head>, L<tail>, L<skip> and list indexing with C<.[$idx]>.
 
-The main API is the C<pull-one> method, which either returns the next value,
-or the sentinel value C<IterationEnd> if no more elements are available. Each
-class implementing C<Iterator> B<must> provide a C<pull-one> method. All other
-non-optional Iterator API methods are implemented in terms of C<pull-one>, but
-can also be overridden by consuming classes for performance or other reasons.
-There are also optional Iterator API methods that will only be called if they
-are implemented by the consuming class: these are B<not> implemented by the
+The main API is the C<pull-one> method, which either returns the next
+value, or the sentinel value C<IterationEnd> if no more elements are
+available. Each class implementing C<Iterator> B<must> provide a
+C<pull-one> method. All other non-optional Iterator API methods are
+implemented in terms of C<pull-one>, but can also be overridden by
+consuming classes for performance or other reasons. There are also
+optional Iterator API methods that will only be called if they are
+implemented by the consuming class: these are B<not> implemented by the
 Iterator role.
 
-=head1 IterationEnd
 X<|IterationEnd>
+=head1 IterationEnd
 
 Iterators only allow one iteration over the entire sequence. It's
 forbidden to make attempts to fetch more data, once C<IterationEnd> has
@@ -58,9 +59,38 @@ for @a -> $a, $b {
 # OUTPUT: «[1 3]␤[5 8]␤»
 =end code
 
-The only valid use of the sentinel value C<IterationEnd> in a program
-is identity comparison (using C<=:=>) with the result of a method in the
-iterator API. Any other behavior is undefined and implementation dependent.
+The only valid use of the sentinel value C<IterationEnd> in a program is
+identity comparison (using C<=:=>) with the result of a method in the
+iterator API. Any other behavior is undefined and implementation
+dependent.
+
+Please bear in mind that C<IterationEnd> is a constant, so if you are
+going to compare it against the value of a variable, this variable will
+have to be bound, not assigned. Comparing directly to the output of
+C<pull-one> will work.
+
+=begin code
+my $it = (1,2).iterator;
+$it.pull-one for ^2;
+say $it.pull-one =:= IterationEnd; # OUTPUT: «True␤»
+=end code
+
+However, if we use a variable we and we assign it, the result will be
+incorrect:
+
+=begin code
+my $it = (1,2).iterator;
+$it.pull-one for ^2;
+my $is-it-the-end = $it.pull-one;
+say $is-it-the-end =:= IterationEnd; # OUTPUT: «False␤»
+=end code
+
+So we'll have to bind the variable to make it work:
+
+=begin code :preamble<my $it>
+my $is-it-the-end := $it.pull-one;
+say $is-it-the-end =:= IterationEnd; # OUTPUT: «True␤»
+=end code
 
 =head1 Methods
 
