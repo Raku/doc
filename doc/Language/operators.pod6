@@ -114,7 +114,7 @@ L<#prefix ...> etc. stub operators.
 
 
 Defining custom operators is covered in
-L<Defining operators functions|/language/functions#Defining_Operators>.
+L<Defining operators functions|/language/functions#Defining_operators>.
 
 =head1 Metaoperators
 
@@ -749,18 +749,18 @@ method call.
 =end code
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
-X<|postfix call>
 
+X<|postfix call>
 =head2 postfix C«.:<prefix>»
 
-A prefix can be called like a method using colonpair notation. For example:
+An operator in prefix form can still be called like a method, that is, using the
+C<.> postfix notation, by preceding it by a colon. For example:
 
     my $a = 1;
     say ++$a;       # OUTPUT: «2␤»
     say $a.:<++>;   # OUTPUT: «3␤»
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
-X<|prefix call>
 
 =head2 postfix C«.::»
 
@@ -877,6 +877,17 @@ If the right-hand side is a non-negative integer and the left-hand side
 is an arbitrary precision type (L<Int>, L<FatRat>), then the calculation
 is carried out without loss of precision.
 
+Unicode superscripts will behave in exactly the same way.
+
+    sub squared( Int $num ) { $num² };
+    say squared($_) for ^5; OUTPUT: «0␤1␤4␤9␤16␤»
+
+It also works for sequences of several Unicode superscript numbers
+
+    sub twentytwoed( Int $num ) { $num²² };
+    say twentytwoed($_) for ^5; # OUTPUT: «0␤1␤4194304␤31381059609␤17592186044416␤»
+
+
 =head1 Symbolic unary precedence
 
 =head2 prefix C«?»
@@ -931,31 +942,27 @@ L<Hash> into an argument list.
     sub slurpee( |args ){
         say args.perl
     };
-    slurpee( <a b c d>, { e => 3}, 'e' => 'f' => 33 )
+    slurpee( <a b c d>, { e => 3 }, 'e' => 'f' => 33 )
     # OUTPUT: «\(("a", "b", "c", "d"), {:e(3)}, :e(:f(33)))␤»
 
-Please see the L<C<Signature> page, specially the section on Captures|/type/Signature#Capture_Parameters>
+Please see the L<C<Signature> page, specially the section on Captures|/type/Signature#Capture_parameters>
 for more information on the subject.
 
 Outside of argument lists, it returns a L<Slip|/type/Slip>, which makes
 it flatten into the outer list. Inside L<argument
-list|/language/list#Argument_List_(Capture)_Context>
+list|/language/list#Argument_list_(Capture)_context>
 L<C<Positional>s|/type/Positional> are turned into positional arguments
 and L<C<Associative>s|/type/Associative> are turned into named
 arguments.
-
-=head2 prefix C«||»
-
-TODO
 
 =head2 prefix C«+^»
 
     multi sub prefix:<+^>(Any --> Int:D)
 
 X<Integer bitwise negation operator>.
-
-Coerces the argument to L<Int> and does a bitwise negation on the result,
-assuming L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>.
+Coerces the argument to L<Int> and does a bitwise negation on the
+result, assuming
+L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>.
 
 =head2 prefix C«~^»
 
@@ -1377,26 +1384,28 @@ the C<temp> was undone, you'd get the original value, not the C<temp> one:
 
     sub prefix:<let>(Mu $a is rw)
 
-Restores the previous value if the block exits unsuccessfully. A
-successful exit means the block returned a defined value or a list.
+Refers to a variable in an outer scope whose value will be restored if the block
+exits unsuccessfully, implying that the block returned a defined object.
 
-    my $answer = 42;
+=begin code
+my $name = "Jane Doe";
 
-    {
-        let $answer = 84;
-        die if not Bool.pick;
-        CATCH {
-            default { say "it's been reset :(" }
-        }
-        say "we made it 84 sticks!";
+{
+    let $name = prompt("Say your name ");
+    die if !$name;
+    CATCH {
+        default { say "No name entered" }
     }
+    say "We have $name";
+}
 
-    say $answer;
+say "We got $name";
+=end code
 
-In the above case, if the C<Bool.pick> returns true, the answer will
-stay as 84 because the block returns a defined value (C<say> returns
-true). Otherwise the C<die> statement will cause the block to exit
-unsuccessfully, resetting the answer to 42.
+This code provides a default name for C<$name>. If the user exits from the
+prompt or simply does not provide a valid input for C<$name>; C<let> will
+restore the default value provided at the top. If user input is valid, it will
+keep that.
 
 =comment this is duplicated in variables.pod
 
@@ -1434,16 +1443,29 @@ the operator will create a role for you automatically. The role will contain
 a single method named the same as C<$obj.^name> and that returns C<$obj>:
 
     =begin code
-    say 42 but 'forty two'; # OUTPUT: «forty two␤»
+    my $forty-two = 42 but 'forty two';
+    say $forty-two+33;    # OUTPUT: «75␤»
+    say $forty-two.^name; # OUTPUT: «Int+{<anon|1>}␤»
+    say $forty-two.Str;   # OUTPUT: «forty two␤»
+    =end code
 
+Calling C<^name> shows that the variable is an C<Int> with an anonymous object
+mixed in. However, that object is of type C<Str>, so the variable, through the
+mixin, is endowed with a method with that name, which is what we use in the last
+sentence.
+
+We can also mixin classes, even created on the fly.
+
+    =begin code
     my $s = 12 but class Warbles { method hi { 'hello' } }.new;
     say $s.Warbles.hi;    # OUTPUT: «hello␤»
     say $s + 42;          # OUTPUT: «54␤»
     =end code
 
-If methods of the same name are present already, the last mixed in role takes
-precedence. A list of methods can be provided in parentheses separated by
-comma. In this case conflicts will be reported at runtime.
+To access the mixed-in class, as above, we use the class name as is shown in the
+second sentence. If methods of the same name are present already, the last mixed
+in role takes precedence. A list of methods can be provided in parentheses
+separated by comma. In this case conflicts will be reported at runtime.
 
 =head2 infix C«cmp»
 
@@ -2157,7 +2179,7 @@ For the non-sed version, see L<C<^ff^>|/routine/^ff^>.
 
 This operator cannot be overloaded, as it's handled specially by the compiler.
 
-=head1 Item Assignment precedence
+=head1 Item assignment precedence
 
 =head2 X<infix C«=»|item =>
 
@@ -2336,13 +2358,13 @@ This allows you to write
 To generate all Fibonacci numbers up to but excluding 100.
 
 The C<...> operators consider the initial values as "generated elements" as
-well, so the are also checked against the endpoint:
+well, so they are also checked against the endpoint:
 
     my $end = 4;
     say 1, 2, 4, 8, 16 ... $end;
     # OUTPUT: «(1 2 4)␤»
 
-=head1 List Prefix precedence
+=head1 List prefix precedence
 
 =head2 X<infix C«=»|list =>
 

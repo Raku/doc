@@ -52,10 +52,11 @@ sub gen_assets {
     app->plugin(AssetPack => { pipes => [qw/Sass JavaScript Combine/]});
 
     app->asset->process(
-        'app.css' => qw{
-            /sass/style.scss
-        },
-    );
+                        'app.css' => qw{
+                                         /sass/style.scss
+                                     },
+                       );
+
     app->asset->process(
         'app.js' => qw{
             /js/jquery-3.1.1.min.js
@@ -74,7 +75,9 @@ sub gen_assets {
         join "\n", @{app->asset->processed('app.js')->map(sub {$_->content})}
     );
     move $temp_css, 'html/css/app.css'
-        or app->log->warn("Copying CSS failed: $!");
+      or app->log->warn("Copying CSS failed: $!");
+
+    mkdir "html/js" unless -d "html/js";
     move $temp_js,  'html/js/app.js'
         or app->log->warn("Copying JS failed: $!");
     app->log->info('...done');

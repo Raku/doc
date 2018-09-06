@@ -5,6 +5,8 @@ DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
 COLON_Z              := :Z
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
+# dependencies for a new doc/Language build:
+LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-images \
@@ -14,10 +16,10 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 
 html: gen-pod6-source bigpage htmlify
 
-htmlify: init-highlights assets
+htmlify: gen-pod6-source init-highlights assets
 	perl6 htmlify.p6
 
-gen-pod6-source:
+gen-pod6-source: $(LANG_POD6_SOURCE) doc/Language/00-POD6-CONTROL
 	perl6 util/manage-page-order.p6 update
 
 init-highlights:
@@ -38,7 +40,7 @@ assets:
 webdev-build:
 	perl6 htmlify.p6 --no-highlight --sparse=200
 
-bigpage:
+bigpage: gen-pod6-source
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
 # Common tests that are run by travis with every commit
@@ -86,25 +88,25 @@ docker-image:
 	docker build -t $(DOCKER_IMAGE_NAME) .
 
 docker-htmlify: docker-image docker-test
-	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make html'
 
 docker-test: docker-image
-	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make test'
 
 docker-xtest: docker-image
-	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make xtest'
 
 docker-ctest: docker-image
-	docker run --rm -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make ctest'
 
 docker-testall: docker-test docker-xtest docker-ctest
 
 docker-run: docker-image
-	docker run --rm -p $(DOCKER_HOST_PORT):3000 -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) \
+	docker run --rm -it -p $(DOCKER_HOST_PORT):3000 -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) \
 		$(DOCKER_IMAGE_NAME) /bin/bash -c './app-start' &
 
 clean-html:
@@ -127,9 +129,13 @@ clean-search:
 clean-build:
 	find build -name "*.pod6" -exec rm -f {} \;
 
-clean: clean-html clean-images clean-search
+remove-build:
+	rm -rf build
 
-distclean: clean
+clean: clean-html clean-images clean-search clean-build
+
+distclean: clean remove-build
+
 
 test-links: links.txt
 	./util/test-links.sh

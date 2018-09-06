@@ -13,11 +13,11 @@ worden weergegeven omdat ze zijn opgemaakt in Perl 6 Pod, terwijl GitHub ze int
 
 ## README in andere talen
 
-* [README in het Chinees](README.zh.md)
-* [README in het Duits](README.de.md)
-* [README in het Italiaans](README.it.md)
-* [README in het Spaans](README.es.md)
-* [README in het Frans](README.fr.md)
+* [README in het Chinees](../zh/README.zh.md)
+* [README in het Duits](../de/README.de.md)
+* [README in het Italiaans](../it/README.it.md)
+* [README in het Spaans](../es/README.es.md)
+* [README in het Frans](../fr/README.fr.md)
 
 ## Het installeren van p6doc
 

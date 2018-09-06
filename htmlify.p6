@@ -1,4 +1,5 @@
 #!/usr/bin/env perl6
+
 use v6;
 
 =begin overview
@@ -36,6 +37,7 @@ use Perl6::TypeGraph::Viz;
 use Pod::Convenience;
 use Pod::Htmlify;
 use OO::Monitors;
+
 # Don't include backslash in Win or forwardslash on Unix because they are used
 # as directory separators. These are handled in lib/Pod/Htmlify.pm6
 my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
@@ -45,8 +47,8 @@ my \badchars = $*DISTRO.is-win ?? badchars-ntfs !! badchars-unix;
     my monitor PathChecker {
         has %!seen-paths;
         method check($path) {
-            note "$path got badchar" if $path.contains(any(badchars));
-            note "$path got empty filename" if $path.split('/')[*-1] eq '.html';
+            note "$path has badchar" if $path.contains(any(badchars));
+            note "$path has empty filename" if $path.split('/')[*-1] eq '.html';
             note "duplicated path $path" if %!seen-paths{$path}:exists;
             %!seen-paths{$path}++;
         }
@@ -74,10 +76,11 @@ my %*POD2HTML-CALLBACKS;
 my %p5to6-functions;
 
 # TODO: Generate menulist automatically
-my @menu =
+my @menu; # for use by future menu autogen
+@menu =
     ('language',''          ) => (),
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
-    ('routine', 'Routines'  ) => <sub method term operator>,
+    ('routine', 'Routines'  ) => <sub method term operator trait submethod>,
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
@@ -240,16 +243,15 @@ sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel)
     #say "Reading doc/$dir ...";
     say "Reading $topdir/$dir ...";
 
-    # What does this array look like?
+    # What does the following array look like?
     #
-    #   + an array of pairs sorted by some key
-    #   + the sort key defaults to the key below
+    #   + an array of sorted pairs
+    #   + the sort key defaults to the base filename  stripped of '.pod6'
     #   + any other sort order has to be processed separately as in 'Language'
-    #     below
     #
     #   the sorted pairs (regardless of how they are sorted) must consist of:
     #     key:   base filename stripped of its ending .pod6
-    #     value: filename relative to the "doc/$dir" directory
+    #     value: filename relative to the "$topdir/$dir" directory
     my @pod-sources;
 
     # default sort is by name {%hash{.key} => file basename w/o extension
@@ -455,7 +457,7 @@ sub find-references(:$pod!, :$url, :$origin) {
         $index-name-attr = qq[index-entry{@indices ?? '-' !! ''}{@indices.join('-')}{$index-text ?? '-' !! ''}$index-text].subst('_', '__', :g).subst(' ', '_', :g).subst('%', '%25', :g).subst('#', '%23', :g);
 
        register-reference(:$pod, :$origin, url => $url ~ '#' ~ $index-name-attr);
-}
+    }
     elsif $pod.?contents {
         for $pod.contents -> $sub-pod {
             find-references(:pod($sub-pod), :$url, :$origin) if $sub-pod ~~ Pod::Block;
@@ -606,7 +608,7 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :categories<operator>,
                     ;
                 }
-                when 'sub'|'method'|'term'|'routine'|'trait' {
+                when 'sub'|'method'|'term'|'routine'|'trait'|'submethod' {
                     %attr = :kind<routine>,
                             :categories($subkinds),
                     ;
@@ -910,13 +912,13 @@ sub write-index-files() {
 
     write-main-index :kind<routine> :&summary;
 
-    for <sub method term operator> -> $category {
+    for <sub method term operator submethod> -> $category {
         write-sub-index :kind<routine> :$category :&summary;
     }
 }
 
 sub write-main-index(:$kind, :&summary = {Nil}) {
-    say "Writing html/$kind.html ...";
+    say "Writing main index html/$kind.html ...";
     spurt "html/$kind.html", p2h(pod-with-title(
         "Perl 6 {$kind.tc}s",
         pod-block(
@@ -941,7 +943,7 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
 
 # XXX: Only handles normal routines, not types nor operators
 sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
-    say "Writing html/$kind-$category.html ...";
+    say "Writing sub-index  html/$kind-$category.html ...";
     my $this-category = $category.tc eq "Exceptions" ?? "Exception" !! $category.tc;
     spurt "html/$kind-$category.html", p2h(pod-with-title(
         "Perl 6 {$this-category} {$kind.tc}s",

@@ -11,7 +11,7 @@ For example, Perl 6 is parsed and executed using a Perl 6-style grammar.
 
 An example that's more practical to the common Perl 6 user is the
 L<JSON::Tiny module|https://github.com/moritz/json>, which can deserialize
-any valid JSON file, however the deserializing code is written in less than
+any valid JSON file; however, the deserializing code is written in less than
 100 lines of simple, extensible code.
 
 If you didn't like grammar in school, don't let that scare you off grammars.
@@ -83,27 +83,27 @@ into effect for the Regex:
     say so 'once upon a time' ~~ &space-y;     # OUTPUT: «True␤»
     =end code
 
-=head1 X<Creating Grammars>
-=SUBTITLE Group of named regexes that form a formal grammar
+=head1 X<Creating grammars>
 
 L<Grammar|/type/Grammar> is the superclass that classes automatically get when
 they are declared with the C<grammar> keyword instead of C<class>. Grammars
 should only be used to parse text; if you wish to extract complex data, you can
 add actions within the grammar, or an
-L<action object|/language/grammars#Action_Objects> is recommended to be used in
-conjunction with the grammar.
+L<action object|/language/grammars#Action_objects> is recommended to be used in
+conjunction with the grammar. If action objects are not used, C<.parse> returns a L<Match> object and sets, by default, the
+L<default match object C<$/>|/syntax/$$SOLIDUS>, to the same value.
 
 
 =head2 X«Proto regexes| :sym<>; proto regex; declarator,grammar»
 
-L<Grammar|/type/Grammar>s are composed of rules, tokens and regexes;
-they are actually methods, since grammars are classes. These methods
-can share a name and functionality in common, and thus can use L<proto|/syntax/proto>.
+L<Grammar|/type/Grammar>s are composed of rules, tokens and regexes; these are
+actually methods, since grammars are classes. These methods can share a name and
+functionality in common, and thus can use L<proto|/syntax/proto>.
 
-For instance, if you have a lot of alternations, it may become difficult to produce
-readable code or subclass your grammar. In the Actions class below, the
-ternary in C<method TOP> is less than ideal and it becomes even worse the more
-operations we add:
+For instance, if you have a lot of alternations, it may become difficult to
+produce readable code or subclass your grammar. In the C<Actions> class below,
+the ternary in C<method TOP> is less than ideal and it becomes even worse the
+more operations we add:
 
     grammar Calculator {
         token TOP { [ <add> | <sub> ] }
@@ -151,10 +151,10 @@ defining a rule prototype with C<proto rule calc-op>. Each of our previous
 alternations have been replaced by a new C<rule calc-op> definition and the
 name of the alternation is attached with C«:sym<>» adverb.
 
-In the actions class, we now got rid of the ternary operator and simply take
-the C<.made> value from the C«$<calc-op>» match object. And the actions for
-individual alternations now follow the same naming pattern as in the grammar:
-C«method calc-op:sym<add>» and C«method calc-op:sym<sub>».
+In the class that declares actions, we now got rid of the ternary operator and
+simply take the C<.made> value from the C«$<calc-op>» match object. And the
+actions for individual alternations now follow the same naming pattern as in the
+grammar: C«method calc-op:sym<add>» and C«method calc-op:sym<sub>».
 
 The real beauty of this method can be seen when you subclass that grammar
 and actions class. Let's say we want to add a multiplication feature to the
@@ -177,7 +177,7 @@ calculator:
 All we had to add are additional rule and action to the C<calc-op> group and
 the thing works—all thanks to proto regexes.
 
-=head2 Special Tokens
+=head2 Special tokens
 
 
 =head3 X<C<TOP>|TOP>
@@ -201,9 +201,9 @@ methods.
 
 =head3 X<C<ws>|ws>
 
-When C<rule> instead of C<token> is used, any whitespace after an atom is
-turned into a non-capturing call to C<ws>, written as C«<.ws>» where C<.> means
-non-capturing. That is to say:
+When C<rule> instead of C<token> is used, any whitespace after terms and closing
+parenthesis/brackets is turned into a non-capturing call to C<ws>,
+written as C«<.ws>» where C<.> means non-capturing. That is to say:
 
     rule entry { <key> '=' <value> }
 
@@ -211,8 +211,8 @@ Is the same as:
 
     token entry { <key> <.ws> '=' <.ws> <value> <.ws> }
 
-The default C<ws> matches one or more whitespace characters (C<\s>) or a
-word boundary (C«<|w>»):
+The default C<ws> matches zero or more whitespace characters, as long as that
+point is not within a word (in code form, that's C«regex ws { <!ww> \s* }»):
 
     # First <.ws> matches word boundary at the start of the line
     # and second <.ws> matches the whitespace between 'b' and 'c'
@@ -239,8 +239,8 @@ You can also redefine the default C<ws> token:
 
 =head3 X«C<sym>|<sym>»
 
-The C«<sym>» token can be used inside proto regexes to match the string value of the C<:sym>
-adverb for that particular regex:
+The C«<sym>» token can be used inside proto regexes to match the string value of
+the C<:sym> adverb for that particular regex:
 
     grammar Foo {
         token TOP { <letter>+ }
@@ -254,10 +254,11 @@ adverb for that particular regex:
         method TOP($/) { make $<letter>.grep(*.<sym>).join }
     }).made.say; # OUTPUT: «Perl␤»
 
-This comes in handy when you're already differentiating the proto regexes with the strings
-you're going to match, as using C«<sym>» token prevents repetition of those strings.
+This comes in handy when you're already differentiating the proto regexes with
+the strings you're going to match, as using C«<sym>» token prevents repetition
+of those strings.
 
-=head3 X«Always Succeed Assertion| <?>»
+=head3 X«"Always succeed" assertion|<?>»
 
 The C«<?>» is the I<always succeed> assertion. When used as a grammar
 token, it can be used to trigger an Action class method. In the following
@@ -288,7 +289,7 @@ the number for the currently parsed C<digit> digits.
     say Digifier.parse('255 435 777', actions => Devanagari.new).made;
     # OUTPUT: «(२५५ ४३५ ७७७)␤»
 
-=head2 Methods in Grammar
+=head2 Methods in grammars
 
 It's fine to use methods instead of rules or tokens in a grammar, as long
 as they return a L<Cursor|/type/Cursor>:
@@ -312,7 +313,7 @@ provided by parse methods:
     # OUTPUT: «12␤»
     =end code
 
-=head2 Dynamic Variables in Grammars
+=head2 Dynamic variables in grammars
 
 Variables can be defined in tokens by prefixing the lines of code defining them
 with C<:>. Arbitrary code can be embedded anywhere in a token by surrounding it
@@ -359,7 +360,60 @@ matches with the correct guard:
     # OUTPUT: #<failed match>
     =end code
 
-=head1 X<Action Objects|Actions>
+=head2 Attributes in grammars
+
+Attributes may be defined in grammars. However, they can only be accessed by
+methods. Attempting to use them from within a token will throw an exception
+because tokens are methods of L<Cursor|/type/Cursor>, not of the grammar
+itself. Note that mutating an attribute from within a method called in a token
+will I<only modify the attribute for that token's own match object>! Grammar
+attributes can be accessed in the match returned after parsing if made public:
+
+=begin code
+    grammar HTTPRequest {
+        has Bool $.invalid;
+
+        token TOP {
+            <type> <path> 'HTTP/1.1' \r\n
+            [<field> \r\n]+
+            \r\n
+            $<body>=.*
+        }
+
+        token type {
+            | GET | POST | OPTIONS | HEAD | PUT | DELETE | TRACE | CONNECT
+            | \S+ <.error>
+        }
+
+        token path {
+            | '/' [[\w+]+ % \/] [\.\w+]?
+            | '*'
+            | \S+ <.error>
+        }
+
+        token field {
+            | $<name>=\w+ : $<value>=<-[\r\n]>*
+            | <-[\r\n]>+ <.error>
+        }
+
+        method error(--> ::?CLASS:D) {
+            $!invalid = True;
+            self;
+        }
+    }
+
+    my $header = "MEOWS / HTTP/1.1\r\nHost: docs.perl6.org\r\nsup lol\r\n\r\n";
+    my $/ = HTTPRequest.parse($header);
+    say $<type>.invalid;
+    # OUTPUT: True
+    say $<path>.invalid;
+    # OUTPUT: (Bool)
+    say $<field>».invalid;
+    # OUTPUT: [(Bool) True]
+=end code
+
+X<|Actions>
+=head1 Action objects
 
 A successful grammar match gives you a parse tree of L<Match|/type/Match>
 objects, and the deeper that match tree gets, and the more branches in the

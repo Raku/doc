@@ -118,17 +118,38 @@ string, and C<NaN> for non-numeric characters.
     multi sub    chars(str   $x --> int)
     multi method chars(Str:D:   --> Int:D)
 
-Returns the number of characters in the string in graphemes. On the JVM, this
-currently erroneously returns the number of codepoints instead.
+Returns the number of characters in the string in graphemes. On the JVM,
+this currently erroneously returns the number of codepoints instead.
 
 =head2 method encode
 
-    multi method encode(Str:D: $encoding, $nf --> Blob)
+    multi method encode(Str:D $encoding = 'utf8', :$replacement, Bool() :$translate-nl = False, :$strict)
 
-Returns a L<Blob> which represents the original string in the given encoding
-and normal form. The actual return type is as specific as possible, so
-C<$str.encode('UTF-8')> returns a C<utf8> object,
-C<$str.encode('ISO-8859-1')> a C<buf8>.
+Returns a L<Blob> which represents the original string in the given
+encoding and normal form. The actual return type is as specific as
+possible, so C<$str.encode('UTF-8')> returns a C<utf8> object,
+C<$str.encode('ISO-8859-1')> a C<buf8>. If C<:translate-nl> is set to
+C<True>, it will translate newlines from C<\n> to C<\n\r>, but only in
+Windows. C<$replacement> indicates how characters are going to be
+replaced in the case they are not available in the current encoding,
+while C<$strict> indicates whether unmapped codepoints will still
+decode; for instance, codepoint 129 which does not exist in
+C<windows-1252>.
+
+    my $str = "Þor is mighty";
+    say $str.encode("ascii", :replacement( 'Th') ).decode("ascii");
+    # OUTPUT: «Thor is mighty␤»
+
+In this case, any unknown character is going to be substituted by C<Th>. We know
+in advance that the character that is not known in the C<ascii> encoding is
+C<Þ>, so we substitute it by its latin equivalent, C<Th>. In the absence of any
+replacement set of characters, C<:replacement> is understood as a C<Bool>:
+
+=for code :preamble<my $str = "Þor is mighty";>
+say $str.encode("ascii", :replacement).decode("ascii"); # OUTPUT: «?or is mighty␤»
+
+If C<:replacement> is not set or assigned a value, the error C<Error encoding
+ASCII string: could not encode codepoint 222> will be issued.
 
 =head2 routine index
 
@@ -322,10 +343,8 @@ See also: L«:16<FF> syntax for number literals|/syntax/Number%20literals»
     sub    parse-names(Str:D $names  --> Str:D)
     method parse-names(Str:D $names: --> Str:D)
 
-B<DEPRECATED>. Existed only in pre-release proposal version of 6.d language and
-was eventually renamed to L<uniparse>. In Rakudo implementation,
-issues deprecation warnings in 6.d language and will be removed entirely when
-6.e language is released.
+B<DEPRECATED>. Use L<uniparse> instead. Existed in Rakudo implementation as a proof of viability
+implementation before being renamed and will be removed when 6.e language is released.
 
 =head2 routine uniparse
 
@@ -347,8 +366,8 @@ convert those:
     say "\c[1337]"; # OUTPUT: «Թ␤»
     say '1337'.chr; # OUTPUT: «Թ␤»
 
-I<Note:> before being standardized in 2017.12, this routine was known under
-its working name of L<parse-names>, which will be removed in 6.e language.
+I<Note:> before being standardized in 2017.12, this routine was known
+under its working name of L<parse-names>. This denomination will be removed in the 6.e version.
 
 =head2 routine split
 
@@ -801,21 +820,19 @@ uses C<$a> for the width, C<$b> for the precision, and C<$c> as the value to
 format; while:
 
 =for code :skip-test
-  NYI sprintf '<%*1$.*s>', $a, $b;
+NYI sprintf '<%*1$.*s>', $a, $b;
 
 would use C<$a> for the width and precision and C<$b> as the value to format.
 
 Here are some more examples; be aware that when using an explicit
 index, the C<$> may need escaping:
 
-=for code :skip-test
- sprintf "%2\$d %d\n",      12, 34;     # RESULT: «34 12␤␤»
- sprintf "%2\$d %d %d\n",   12, 34;     # RESULT: «34 12 34␤␤»
- sprintf "%3\$d %d %d\n",   12, 34, 56; # RESULT: «56 12 34␤␤»
- NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # " 34 12\n"
- NYI sprintf "%*1\$.*f\n",       4,  5, 10; # "5.0000\n"
-
-=comment TODO: document effects of locale
+=for code :skip-test<a part is not yet implemented>
+sprintf "%2\$d %d\n",      12, 34;     # RESULT: «34 12␤␤»
+sprintf "%2\$d %d %d\n",   12, 34;     # RESULT: «34 12 34␤␤»
+sprintf "%3\$d %d %d\n",   12, 34, 56; # RESULT: «56 12 34␤␤»
+NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # " 34 12\n"
+NYI sprintf "%*1\$.*f\n",       4,  5, 10; # "5.0000\n"
 
 Other examples:
 
@@ -1042,12 +1059,13 @@ Also using a different value or an incorrect starting index won't match:
 
 =head2 method substr-rw
 
-    method substr-rw($from, $length?)
+    method substr-rw($from, $length = *)
 
 A version of C<substr> that returns a L<Proxy|/type/Proxy> functioning as a
 writable reference to a part of a string variable. Its first argument, C<$from>
 specifies the index in the string from which a substitution should occur, and
 its last argument, C<$length> specifies how many characters are to be replaced.
+If not specified, C<$length> defaults to the length of the string.
 
 For example, in its method form, if one wants to take the string C<"abc">
 and replace the second character (at index 1) with the letter C<"z">, then
@@ -1185,7 +1203,7 @@ Replaces one or many characters with one or many characters. Ranges are
 supported, both for keys and values. Regexes work as keys. In case a list of
 keys and values is used, substrings can be replaced as well. When called with
 C<:complement> anything but the matched value or range is replaced with a
-single value. With C<:delete> the matched characters are without corresponding
+single value; with C<:delete> the matched characters without corresponding
 replacement are removed. Combining C<:complement> and C<:delete> will remove
 anything but the matched values, I<unless replacement characters have been
 specified>, in which case, C<:delete> would be ignored. The adverb C<:squash>
@@ -1208,6 +1226,28 @@ Example:
     "a123b123c".trans('23' => '', :delete);                       # RESULT: «a1b1c»
     "aaa1123bb123c".trans('a'..'z' => 'A'..'Z', :squash);         # RESULT: «A1123B123C»
     "aaa1123bb123c".trans('a'..'z' => 'x', :complement, :squash); # RESULT: «aaaxbbxc»
+
+Please note that the behavior of the two versions of the multi method is
+slightly different. The first form will transpose only one character if the
+origin is also one character:
+
+=begin code
+say "abcd".trans( "a" => "zz" );  # OUTPUT: «zbcd␤»
+say "abcd".trans( "ba" => "yz" ); # OUTPUT: «zycd␤»
+=end code
+
+In the second case, behavior is as expected, since the origin is more than one
+char long. However, if the C<Pair> in the multi method does not have a C<Str> as
+an origin or target, it is handled to the second multi method, and behavior
+changes:
+
+    say "abcd".trans: ["a"] => ["zz"]; # OUTPUT: «zzbcd␤»
+
+In this case, neither origin nor target in the C<Pair> are C<Str>; the method
+with the C<Pair> signature then calls the second, making this call above
+equivalent to C«"abcd".trans: ["a"] => ["zz"], » (with the comma behind, making
+it a C<Positional>, instead of a C<Pair>), resulting in the behavior shown as
+output.
 
 =head2 method indent
 
@@ -1246,27 +1286,27 @@ See also L<trim-trailing> and L<trim-leading>
 
     method trim-trailing(Str:D: --> Str)
 
-Remove the whitespace characters from the end of a string. See also L<trim>.
+Removes the whitespace characters from the end of a string. See also L<trim>.
 
 =head2 method trim-leading
 
     method trim-leading(Str:D: --> Str)
 
-Remove the whitespace characters from the beginning of a string. See also L<trim>.
+Removes the whitespace characters from the beginning of a string. See also L<trim>.
 
 =head2 method NFC
 
     method NFC(Str:D: --> NFC:D)
 
-Returns a codepoint string in L<NFC|/type/NFC> format (Unicode Normalization
-Form C / Composed).
+Returns a codepoint string in L<NFC|/type/NFC> format (Unicode
+Normalization Form C / Composed).
 
 =head2 method NFD
 
     method NFD(Str:D: --> NFD:D)
 
-Returns a codepoint string in L<NFD|/type/NFD> format (Unicode Normalization
-Form D / Decomposed).
+Returns a codepoint string in L<NFD|/type/NFD> format (Unicode
+Normalization Form D / Decomposed).
 
 =head2 method NFKC
 

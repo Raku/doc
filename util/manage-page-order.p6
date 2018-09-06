@@ -4,6 +4,15 @@
 #       top level of the doc repo and all files are referenced
 #       relative to it.
 
+=begin overview
+
+Manage page order in the generated documents,
+so that documents appear just the way we want them. Uses source files
+and POD metadata to generate new files,
+which are the ones actually used as source for the stuff.
+
+=end overview
+
 # pod6 source directory of interest for auto-gen handling:
 my $lang-dir = 'doc/Language';
 # pod6 source d#irectory
@@ -58,31 +67,21 @@ sub do-update () {
 
     # FIRST
     # write the auto-generated pod6 files used for the Language page
+    =begin comment
+    # visit later
     write-Language-files();
+    =end comment
 
     # THEN
     # copy all under the doc dir to the build dir
     # NOTE this assumes the sort order is alpha by file name
     # NOTE we exclude the Language dir
+    =begin comment
+    # visit later
     copy-dir-tree(:fromdir('doc'), :todir('build'), :exclude('Language'));
+    =end comment
+    copy-dir-tree :fromdir('doc'), :todir('build');
 }
-
-=begin comment
-sub copy-other-dirs-and-files(*@doc-subdirs) {
-    # The arguments are subdir names under 'doc' and
-    # the complete subdir trees are to be copied as
-    # subdir trees under 'build'.
-
-    for @doc-subdirs -> $sdir {
-        say "DEBUG: working subdir tree '$sdir'" if $debug;
-
-        # recursively copy tree to another tree
-        my $fromdir  = "doc/$sdir"; # complete path
-        my $todir    = "build/$sdir";
-        copy-dir-tree(:$fromdir, :$todir, :$exclude);
-    }
-}
-=end comment
 
 sub copy-dir-tree(:$fromdir, :$todir, :$exclude) {
     # recursively copy tree to another tree
@@ -90,7 +89,7 @@ sub copy-dir-tree(:$fromdir, :$todir, :$exclude) {
 
     say "DEBUG: \$fromdir: '$fromdir', \$exclude: '$exclude'" if $debug;
     # skip some dirs, e.g., Language
-    return if $fromdir ~~ /$exclude/;
+    return if $exclude && $fromdir ~~ /$exclude/;
 
     # create the target dir if need be
     mkdir $todir if !$todir.IO.d;

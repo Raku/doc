@@ -5,10 +5,11 @@ Your patches to perl6/doc are very welcome.
 This document describes how to get started and helps to provide documentation
 that adheres to the common style and formatting guidelines.
 
-Your contributions will be credited in Rakudo release announcement. You name from
+Your contributions here will be credited in the next Rakudo release announcement. Your name from
 the commit log will be used. If you'd like to be credited under a different name,
-please add it to
-[CREDITS file](https://github.com/rakudo/rakudo/blob/master/CREDITS).
+please add it to the local
+[CREDITS](CREDITS)
+file (or ask someone to do it for you until you have commit privileges).
 
 If you have any questions regarding contributing to this project, please ask
 in the [#perl6 IRC channel](https://perl6.org/community/irc).
@@ -16,6 +17,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Writing code examples](#writing-code-examples)
+- [Adding a new Language document](#adding-a-new-language-document)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
 - [Debug mode](#debug-mode)
@@ -49,16 +51,30 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 ## Documenting versions
 
-* If you are adding a recently introduced feature, please indicate in a note which version was it introduced in.
+* If you are adding a recently introduced feature, please indicate in a note which version it was introduced in.
 * If you change an example to use the new feature, leave the old
-  example if it's still working, at least while it's not obsolete, for people who has not
+  example if it's still working, at least while it's not obsolete, for people who have not
   upgraded yet, clarifying in the text around it the versions it will
-  run.
+  run with.
 
 ## Writing Code Examples
 
 See [EXAMPLES.md](writing-docs/EXAMPLES.md) for detailed information on the options
 available when writing code examples in the documentation.
+
+## Adding a new Language document
+
+We suggest you discuss proposing a new Language document on the #perl6 channel before
+you proceed further. After you get consensus on a title, subtitle, section, and
+filename, you can add the document by following these steps:
+
++ create a **filename.pod6** file in the **doc/Language** directory and
+  ensure it adheres to the conventions in
+  [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md)
+
++ create an entry for your new document in the Language directory's
+  [00-POD6-CONTROL](doc/Language/00-POD6-CONTROL) file following
+  the instructions there
 
 ## Documenting types
 
@@ -151,7 +167,7 @@ the page to activate debug mode. The state of debug mode will be remembered by
 `window.sessionStorage` and will not survive a browser restart or opening the
 docs in a new tab.
 
-### Invisible index anchors
+q### Invisible index anchors
 
 You can create index entries and invisible anchors with `X<|thing,category>`.
 To make them visible activate debug mode.
@@ -262,19 +278,19 @@ start the development webserver (`./app-start`).
 
 ### Build and view the documentation
 
-To actually build the documentation all you now need to do is run
-`htmlify.p6`:
+The **Makefile** has a lot of targets to help with building and testing the doc website
+and its presented documentation.  Use this command to see them:
 
-    $ perl6 htmlify.p6
+    $ make help
+
+To actually build the documentation all you now need to do is run:
+
+    $ make html
 
 This takes a while, but be patient!
 
 After the build has completed, you can start the web application which will
-render the HTML documentation
-
-    $ perl app.pl daemon   # note!  Perl 5 *not* Perl 6 here
-
-or
+render the HTML documention on a web server on your build host:
 
     $ make run
 

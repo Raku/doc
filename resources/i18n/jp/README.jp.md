@@ -12,12 +12,12 @@
 
 ## 外国語のREADME
 
-* [README in Chinese](README.zh.md)
-* [README in Italian](README.it.md)
-* [README in English](README.md)
-* [README in German](README.de.md)
-* [README in Spanish](README.es.md)
-* [README in French](README.fr.md)
+* [README in Chinese](../zh/README.zh.md)
+* [README in Italian](../it/README.it.md)
+* [README in English](../../../README.md)
+* [README in German](../de/README.de.md)
+* [README in Spanish](../es/README.es.md)
+* [README in French](../fr/README.fr.md)
 
 ## p6docの使用
 

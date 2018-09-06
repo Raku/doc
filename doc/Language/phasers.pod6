@@ -4,26 +4,31 @@
 
 =SUBTITLE Program execution phases and corresponding phaser blocks
 
-The lifetime (execution timeline) of a program is broken up into phases. A
-I<phaser> is a block of code called during a specific execution phase.
+The lifetime (execution timeline) of a program is broken up into phases.
+A I<phaser> is a block of code called during a specific execution phase.
 
 =head1 Phasers
 
 A phaser block is just a trait of the closure containing it, and is
-automatically called at the appropriate moment. These auto-called blocks are
-known as I<phasers>, since they generally mark the transition from one phase of
-computing to another. For instance, a C<CHECK> block is called at the end of
-compiling a compilation unit. Other kinds of phasers can be installed as well;
-these are automatically called at various times as appropriate, and some of
-them respond to various control exceptions and exit values. For instance, some phasers might be called if the exit from a block is successful or not, with I<success> in this case defined by returning with a defined value or list without any C<Failure> or exception in the process.
+automatically called at the appropriate moment. These auto-called blocks
+are known as I<phasers>, since they generally mark the transition from
+one phase of computing to another. For instance, a C<CHECK> block is
+called at the end of compiling a compilation unit. Other kinds of
+phasers can be installed as well; these are automatically called at
+various times as appropriate, and some of them respond to various
+control exceptions and exit values. For instance, some phasers might be
+called if the exit from a block is successful or not, with I<success> in
+this case defined by returning with a defined value or list without any
+C<Failure> or exception in the process.
 
 Here is a summary:
 
 =begin code :skip-test
-  BEGIN {...} #  * at compile time, ASAP, only ever runs once
-  CHECK {...} #  * at compile time, ALAP, only ever runs once
-   INIT {...} #  * at runtime, ASAP, only ever runs once
-    END {...} #  at runtime, ALAP, only ever runs once
+  BEGIN {...} #  * at compile time, as soon as possible, only ever runs once
+  CHECK {...} #  * at compile time, as late as possible, only ever runs once
+   INIT {...} #  * at runtime, as soon as possible, only ever runs once
+    END {...} #  at runtime, as late as possible, only ever runs once
+    DOC [BEGIN|CHECK|INIT] {...} # only in documentation mode
 
   ENTER {...} #  * at every block entry time, repeats on loop blocks.
   LEAVE {...} #  at every block exit time (even stack unwinds from exceptions)
@@ -43,30 +48,31 @@ CONTROL {...} #  catch control exceptions, before LEAVE
    LAST {...} #  supply tapped by whenever-block is done, runs very last
    QUIT {...} #  catch async exceptions within a whenever-block, runs very last
 
-COMPOSE {...} #  when a role is composed into a class
+COMPOSE {...} #  when a role is composed into a class (Not yet implemented)
   CLOSE {...} #  appears in a supply block, called when the supply is closed
 =end code
 
-Phasers marked with a C<*> have a runtime value, and if evaluated earlier than
-their surrounding expression, they simply save their result for use in the
-expression later when the rest of the expression is evaluated:
+Phasers marked with a C<*> have a runtime value, and if evaluated
+earlier than their surrounding expression, they simply save their result
+for use in the expression later when the rest of the expression is
+evaluated:
 
     my $compiletime = BEGIN { now };
     our $random = ENTER { rand };
 
-As with other statement prefixes, these value-producing constructs may be
-placed in front of either a block or a statement:
+As with other statement prefixes, these value-producing constructs may
+be placed in front of either a block or a statement:
 
     my $compiletime = BEGIN now;
     our $random = ENTER rand;
 
-Most of these phasers will take either a block or a function reference. The
-statement form can be particularly useful to expose a lexically scoped
-declaration to the surrounding lexical scope without "trapping" it inside a
-block.
+Most of these phasers will take either a block or a function reference.
+The statement form can be particularly useful to expose a lexically
+scoped declaration to the surrounding lexical scope without "trapping"
+it inside a block.
 
-These declare the same variables with the same scope as the preceding example,
-but run the statements as a whole at the indicated time:
+These declare the same variables with the same scope as the preceding
+example, but run the statements as a whole at the indicated time:
 
     BEGIN my $compiletime = now;
     ENTER our $random = rand;
@@ -93,8 +99,9 @@ handlers are supposed to reduce uncertainty, not increase it.)
 
 X<|Phasers, will trait>
 Some of these phasers also have corresponding traits that can be set on
-variables; they use C<will> followed by the name of the phaser in lowercase. These have the advantage of passing the variable in question into
-the closure as its topic:
+variables; they use C<will> followed by the name of the phaser in lowercase.
+These have the advantage of passing the variable in question into the closure as
+its topic:
 
     our $h will enter { .rememberit() } will undo { .forgetit() };
 
@@ -116,19 +123,19 @@ tiebreaking principle is that initializing phasers execute in order declared,
 while finalizing phasers execute in the opposite order, because setup and
 teardown usually want to happen in the opposite order from each other.
 
-=head2 Execution Order
+=head2 Execution order
 
-Compilation Begins
-
-=for code :skip-test
-      BEGIN {...} #  at compile time, ASAP, only ever runs once
-      CHECK {...} #  at compile time, ALAP, only ever runs once
-    COMPOSE {...} #  when a role is composed into a class
-
-Execution Begins
+Compilation begins
 
 =for code :skip-test
-       INIT {...} #  at runtime, ASAP, only ever runs once
+      BEGIN {...} #  at compile time, As soon as possible, only ever runs once
+      CHECK {...} #  at compile time, As late as possible, only ever runs once
+    COMPOSE {...} #  when a role is composed into a class (Not yet implemented)
+
+Execution begins
+
+=for code :skip-test
+       INIT {...} #  at runtime, as soon as possible, only ever runs once
 
 Before block execution begins
 
@@ -180,17 +187,33 @@ Program terminating
 =for code :skip-test
         END {...} #  at runtime, ALAP, only ever runs once
 
-=head1 Program Execution Phasers
+=head1 Program execution phasers
 
 =head2 X<BEGIN|Phasers, BEGIN>
 
-Runs at compile time, as soon as possible, only runs once.
+Runs at compile time, as soon as the code in the phaser has compiled,
+only runs once.
 
-Can have a return value that is provided even in later phases.
+The return value is available for use in later phases:
+
+    say "About to print 3 things";
+    for ^3 {
+        say ^10 .pick ~ '-' ~ BEGIN { say  "Generating BEGIN value"; ^10 .pick }
+    }
+    # OUTPUT:
+    # Generating BEGIN value
+    # About to print 3 things
+    # 3-3
+    # 4-3
+    # 6-3
+
+The C<^10 .pick> in the phaser is generated only once and is then re-used by the loop
+during runtime. Note how the L<say> in the C<BEGIN> block is executed before
+the L<say> that is above the loop.
 
 =head2 X<CHECK|Phasers, CHECK>
 
-Runs at compile time, As late as possible, only runs once.
+Runs at compile time, as late as possible, only runs once.
 
 Can have a return value that is provided even in later phases.
 
@@ -200,10 +223,9 @@ travel back in time. You need a wormhole for that.
 
 =head2 X<INIT|Phasers, INIT>
 
-Runs after compilation during main execution, as soon as possible, only runs
-once.
-
-Can have a return value that is provided even in later phases.
+Runs after compilation during main execution, as soon as possible, only
+runs once. It can have a return value that is provided even in later
+phases.
 
 When phasers are in different modules, the C<INIT> and C<END> phasers are
 treated as if declared at C<use> time in the using module. (It is erroneous to
@@ -230,7 +252,7 @@ phasers are only installed the first time they're noticed.)
 
 Appears in a supply block. Called when the supply is closed.
 
-=head1 Block Phasers
+=head1 Block phasers
 
 Execution in the context of a block has its own phases.
 
@@ -344,7 +366,7 @@ The exceptions thrown by failing C<PRE> and C<POST> phasers cannot be caught by
 a C<CATCH> in the same block, which implies that C<POST> phaser are not run if
 a C<PRE> phaser fails.
 
-=head1 Loop Phasers
+=head1 Loop phasers
 
 C<FIRST>, C<NEXT>, and C<LAST> are meaningful only within the lexical scope of
 a loop, and may occur only at the top level of such a loop block.
@@ -369,7 +391,7 @@ evaluation of C<NEXT> phasers.
 Runs when loop is aborted (either through C<last>, or C<return>, or because you
 got to the bottom of the loop and are done), after LEAVE.
 
-=head1 Exception Handling Phasers
+=head1 Exception handling phasers
 
 =head2 X<CATCH|Phasers, CATCH>
 
@@ -394,18 +416,14 @@ C<warn>, C<proceed> and C<succeed>.
     # Don't take my stuff
     # 0
 
-=begin comment
 
-# NYI
-# =head1 Object Phasers
-#
-# =head2 X<COMPOSE|Phasers, COMPOSE>
-#
-# Runs when a role is composed into a class.
+=head1 Object phasers
 
-=end comment
+=head2 X<COMPOSE|Phasers, COMPOSE> (Not yet implemented)
 
-=head1 Asynchronous Phasers
+Runs when a role is composed into a class.
+
+=head1 Asynchronous phasers
 
 =head2 X<LAST|Asynchronous Phasers, LAST>
 
@@ -429,8 +447,9 @@ with C<tap>.
 
 =head2 X<DOC|Asynchronous Phasers, DOC>
 
-The phasers C<BEGIN>, C<CHECK> and C<INIT> are run only in documentation mode when
-prefixed with the C<DOC> keyword. The compiler is in documentation when run with C<--doc>.
+The phasers C<BEGIN>, C<CHECK> and C<INIT> are run only in documentation mode
+when prefixed with the C<DOC> keyword. The compiler is in documentation when run
+with C<--doc>.
 
   DOC INIT { say 'init'  }  # prints 'init' at initialization time when in documentation mode.
 
