@@ -90,8 +90,8 @@ rakudo，从中选择自己喜欢的版本。
 
 =head2 Perl 6有perldoc不?
 
-是的，就本文档p6doc，目前在Perl 6生态系统。和Rakudo Star绑定发布，如果你需要通过月度发布
-你需要用zef来安装。
+是的，就是本文档`p6doc`，目前在Perl 6生态系统。和`Rakudo Star`绑定发布，如果你需要通过月度发布
+你可以通过`zef`来安装。
 
 ## 我怎么找到有关Perl 6的书籍？
 
@@ -209,7 +209,7 @@ Perl6不支持循环依赖的原因之一是一次解析特性。当我们是使
 典型地是使用`say`例程，对"gist" 对象的dump使用`gist`方法。更多细节可以通过
 `perl`方法，这通常会返回 [`EVAL`](/routine/EVAL)样式的代码表示。
 
-如果使用是[rakudo implementation](http://rakudo.org)，你可以使用其特有的
+如果使用是[rakudo implementation](https://rakudo.org)，你可以使用其特有的
 [non-standard `dd` routine](/programs/01-debugging#Dumper_function_dd)例程来dump
 他的输出与`.perl`类似，包含更多多的信息。例如:
 
@@ -395,8 +395,10 @@ perl6中，许多基本类型的值都是不可改变的，但是存放他们的
 你可以用`@( ... )` 或者 用表达式的`.list`方法，强制展开，或者用`$( ... )`为item上下文
 或者通过表达式的C<.item>方法调用。
 
-## 为什么要用sigil? 不能没有他们么?
 
+更多信息请浏览[`Perl 6: Sigils,变量,和容器`文章](https://perl6advent.wordpress.com/2017/12/02/)
+
+## 为什么要用sigil? 不能没有他们么?
 
 有几个原因:
 
@@ -564,7 +566,21 @@ NQP是以下各部分构成 (1) NQP代码, (2) 底层虚拟机使用的各种语
 
 ## perl6是Lisp嘛?
 
-    不是说是，也不能说完全不是 (not (not Nil))
+  不能说是，也不能说完全不是 (not (not Nil))
+
+## 我怎么编译我的脚本为单独的可执行文件
+
+可以使用诸如[`App::InstallerMaker::WiX`](https://modules.perl6.org/dist/App::InstallerMaker::WiX)
+的工具。它可以让你创建你脚本的编译安装包。截止目前还不支持生成单独的执行程序。
+
+更多信息可以参考github上的讨论：
+`https://github.com/MoarVM/MoarVM/issues/875`
+
+# Perl 6 发行版
+
+## 下个版本的 Rakudo Star何时发布?
+
+Rakudo Star发版一般来说按季度发布，发布公告在[rakudo.org](https://rakudo.org/posts)
 
 # Meta问题和文化
 
@@ -698,7 +714,7 @@ perl6实现了通常其他程序中没有的许多伟大的想法。虽然有几
 
     1;
 
-    #  一个脚本运行在perl5 （with perl -Mbigint)和perl6下
+   #  你可能希望多性能对比，他可以运行在perl5（with perl -Mbigint)和perl6下
 
     my ($prev, $current) = (1, 0);
 
@@ -706,5 +722,4 @@ perl6实现了通常其他程序中没有的许多伟大的想法。虽然有几
         ($prev, $current) = ($current, $prev + $current);
     }
     print $current;
-    =end code
 

@@ -1,7 +1,7 @@
 
-# perl5到perl6指导 概括
+# perl5到perl6指南 
 
-# 我怎么做我习惯做的(Perl5到Perl6初步)?
+# Perl5到Perl6初步: 我怎么能像Perl 5一样的开发?
 
 本文档尝试去提供从 Perl 5到 Perl 6的语法以及语义上的变化快速指引。
 那些在 Perl 5中正常工作的，在 Perl 6中却要换一种写法的语法
@@ -50,6 +50,8 @@ say looks_like_number "42";    # 1
 也可以通过L<P5built-ins|https://modules.perl6.org/dist/P5built-ins>打包一次性获取。
 
 # 语法
+
+两种语言（Perl 5和Perl 6）有有些不同，让我们从标识符开始介绍。
 
 ## 标识符
 
@@ -141,8 +143,10 @@ my @books = $xml
    .findnodes("/library/book");
 ```
 
-不过，你可以使用[unspace](https://design.perl6.org/S02.html#Unspaces)在Perl6
-的不允许使用空白的代码处增加空白：
+不过，你只能使用[unspace](https://design.perl6.org/S02.html#Unspaces)增加空格
+默认Perl 6代码不允许使用空白：
+
+更多信息请参考L<Perl6文档Lexical_conventions|https://docs.perl6.org/language/syntax#Lexical_conventions>。
 
         # Perl 5
         my @books = $xml->parse_file($file)          # 注释
@@ -385,9 +389,9 @@ say @array; #  OUTPUT: «[66 8 15]␤»
 
 # 操作符
 
-更多运算符细节请参见[S03/Operators](https://design.perl6.org/S03.html#Overview)
+更多运算符细节请参见[操作符文档](/language/operators)
 
-为变化的操作符:
+未变化的操作符:
 
 - `+` 数值加法
 - `-` 数值减法
@@ -429,8 +433,7 @@ C«cmp» 在 Perl 6中同时具备C«<=>»和`leg`功能,具体取决于类型�
 ## `~~` 智能匹配
 
 运算符本身没有改变，实际匹配的内容规则依赖于参数的类型，不过 Perl6中的这些
-规则跟Perl5有很大不同。请参考:L<~~|/routine/~~>和
-[S03/Smart matching](https://design.perl6.org/S03.html#Smart_matching)
+规则跟Perl5有很大不同。请参考:L<~~|/routine/~~>和[smartmatch操作符](/language/operators#index-entry-smartmatch_operator)
 
 ### 注释
 
@@ -566,6 +569,8 @@ Perl5中相同。
 这实际上是一个简单的内插表达式。
 
 # 复合语句
+
+包括条件语句和循环语句:
 
 ## 条件语句
 
@@ -799,7 +804,7 @@ for @array -> $first, $second {
     $line ~~ s/abc/123/;          # Perl 6
 
 同样的，新的`.match`方法以及`.subst`方法可以被使用。 注意`.subst`是不可变操作，参见
-[S05/Substitution](https://design.perl6.org/S05.html#Substitution).
+`/routine/subst`
 
 ## 捕捉变量以0开始, 而不是1
 
@@ -925,7 +930,7 @@ else {
 `Int`现在是无限精度的，是 `Rat`类型的分子（分母最大可以是`2**64`，出于性能考虑之后会
 自动转换为`Num`类型）。 如果你想使用无限精度分母的`Rat`那么`FatRat`显然是最适合的。
 
-### 
+### `constant`
 
 `constant`在Perl6用来变量声明，这类似与`my`，不过变量会锁定保持第一次初始化的值不变
 （在编译时期求值）。
@@ -987,12 +992,11 @@ say Animal.^mro;    # .^ 表示对对象调用一个原子方法。
 
 # 命令行标记
 
-查看
-[S19/commandline](https://design.perl6.org/S19.html#Command_Line_Elements)
+查看[Rakudo命令行参数](https://github.com/rakudo/rakudo/wiki/Running-rakudo-from-the-command-line)
 
-为变化的:
+未变化的:
 
-\-c -e -h -I -n -p -S -T -v -V
+-c -e -h -I -n -p -v -V
 
 ### `-a`
 
@@ -1043,8 +1047,11 @@ say Animal.^mro;    # .^ 表示对对象调用一个原子方法。
 
 - `-P` `-u` `-U` `-W` `-X`
 
-    已移出，详情请看[S19#Removed Syntactic
+    已移除，详情请看[S19#Removed Syntactic
     Features](https://design.perl6.org/S19.html#Removed_Syntactic_Features).
+- `-S`,`-T`
+
+已被删除，有多种方法用来代替，详见 L<Reddit的讨论|https://www.reddit.com/r/perl6/comments/718z4o/taint_mode_for_perl_6/>
 
 - `-w`
 
@@ -1403,15 +1410,15 @@ dd $foo, $bar, @baz;
 
 ## Perl-ToPerl6
 
-Jeff Goff的围绕Perl::Critic框架的用于Perl5的模块 Perl::ToPerl6 ，目标是在
-最小的修改前提下 将Perl5的代码转换成可编译的 Perl 6代码，代码的转换器是可配置
-和插件化的，你可以通过它创建自己 的转换器，根据你的需求自定义存在的转换器。
-你可以从CPAN上面获取最新的版本，或者follow发布在GitHub 的工程，在线转换器
-可能在某一天会可用。
+Jeff Goff的用于Perl5的模块的[Perl::ToPerl6](https://metacpan.org/release/JGOFF/Perl-ToPerl6-0.03)模块
+围绕`Perl::Critic`框架 ，目标是在最小的修改前提下 将Perl5的代码转换成可编译的
+Perl 6代码，代码的转换器是可配置和插件化的，你可以通过它创建自己的转换器，
+根据你的需求自定义存在的转换器。你可以从CPAN上面获取最新的版本，
+或者follow发布在GitHub 的工程，在线转换器可能在某一天会可用。
 
 # 翻译知识的其他来源
 
 - [https://perlgeek.de/en/article/5-to-6](https://perlgeek.de/en/article/5-to-6)
 - [https://github.com/Util/Blue\_Tiger/](https://github.com/Util/Blue_Tiger/)
 - [https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/](https://perl6advent.wordpress.com/2011/12/23/day-23-idiomatic-perl-6/)
-- [http://www.perlfoundation.org/perl6/index.cgi?perl\_6\_delta\_tablet](http://www.perlfoundation.org/perl6/index.cgi?perl_6_delta_tablet)
+- (https://docs.perl6.org/language/5to6-overview)
