@@ -16,6 +16,8 @@
 
 [感谢araraloren的翻译](https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F)
 
+[从Perl5到Perl6概述](cndoc/cn5to6-overview.md)
+
 [从Perl5到Perl6初步](cndoc/cn5to6-nutshell.md)
 
 [从Perl5到Perl6指南——语法](cndoc/cn5to6-perlsyn.md)
