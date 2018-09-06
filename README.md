@@ -1,157 +1,171 @@
-# p6doc -- Perl6的'perldoc'
+# Official Documentation of Perl 6
 
-该文档的html版本链接为： https://docs.perl6.org/ (英文版).
+[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-(如果你通过 github浏览本仓库, 显示可能会部分不协调的,因为使用Perl 6 Pod格式, github用的 Perl 5 POD).
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
 
-最近发现一个很好的[Perl6 博客-深入浅出系列]( https://perl6.online/contents/)，其内容短小精悍，有意将其中文化：
+An HTML version of this documentation can be found at [https://docs.perl6.org/](https://docs.perl6.org/).
+This is currently the recommended way to consume the documentation.
 
-故建了一个仓库，欢迎有志之士加入一起翻译，可以作为Perl6doc翻译的练手
+There is also a command line tool called `p6doc`, which you can use to
+browse the documentation once it's installed (see below).
 
-(https://github.com/bollwarm/Perl6_Inside_OUT)
+(If you are browsing this repository via GitHub, it will not display most
+files correctly, because this is Perl 6 Pod, and GitHub assumes Perl 5 Pod).
 
-## 文档中文化进度
+## README in other languages
 
-[Perl6常见问题](cndoc/cnfaq.md) 
+* [README in Chinese](README.zh.md)
+* [README in Dutch](README.nl.md)
+* [README in French](README.fr.md)
+* [README in German](README.de.md)
+* [README in Italian](README.it.md)
+* [README in Japanese](README.jp.md)
+* [README in Portuguese](README.pt.md)
+* [README in Spanish](README.es.md)
 
-[感谢araraloren的翻译](https://github.com/araraloren/perl6-documents-zh/blob/master/language/5to6-nutshell.adoc#%E6%AD%A3%E5%88%99%E8%A1%A8%E8%BE%BE%E5%BC%8F)
+## Install p6doc
 
-[从Perl5到Perl6初步](cndoc/cn5to6-nutshell.md)
-
-[从Perl5到Perl6指南——语法](cndoc/cn5to6-perlsyn.md)
-
-[从Perl5到Perl6指南——函数](cndoc/cn5to6-perlfunc.md)
-
-[从Perl5到Perl6指南——变量](cndoc/cn5to6-perlvar.md)
-
-[从Perl5到Perl6指南——操作符](cndoc/cn5to6-perlop.md)
-
-[从Ruby到Perl6初步](cndoc/cnrb-nutshell.md)
-
-## 安装
-
-
-本模块可以用过 Perl6 模块生态体系安装，命令为：
+This module is available via the Perl 6 module ecosystem. Use:
 
     $ zef install p6doc
 
-通过以上命令安装二进制版本，并且确保安装了正确的执行路径下
+to install the binaries and make it available in your binaries
+execution path.
 
-下载安装正常后, 运行
+**Note**: Please note that, due to changes in the parsing of Pod6, this will fail in versions older than 2018.06. Please upgrade to that version, or install using `--force`.
 
-    p6doc-index build
+## Use p6doc
 
-创建索引。
-
-## 使用
-
-通过Rakudo安装目录`perl6`可以运行
+With a Rakudo `perl6` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
-查看类Str的文档，或者通过
+to see the documentation for class `Str`, or:
 
     $ ./bin/p6doc Str.split
 
-查看类Str的方法split的文档。你可以跳过./bin部分，如果你通过panda或者zef安装了此模块的话
-你也可执行
-   
- p6doc -f slurp
-
-来浏览标准函数的文档的，根据你硬盘的速度和Rakudo版本，这个命令可能要慢一点
+to see the documentation for method `split` in class `Str`. You can
+skip the `./bin` part if you have installed it via
+`zef`. You can also do:
 
     $ p6doc -f slurp
 
-## 生成HTML文档
+to browse the documentation of standard functions. Depending on your
+disk speed and Rakudo version, it might take a while.
 
+-------
 
-在你的项目目录通过以下命令安装依赖包
+## Building the HTML documentation
+
+Install dependencies by running the following in the checkout directory:
 
     $ zef --deps-only install .
 
-    panda installdeps .       # panda
-    zef --depsonly install .  # zef
-
-如果你用的是[`rakudobrew`](https://github.com/tadzik/rakudobrew), 你也可以通过执行下面的命令能够
-升级各个模块。
+If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
+following, to update the shims for installed executables:
 
     $ rakudobrew rehash
 
-同时你也必须安装graphviz依赖,用来生成各种图形，在Debian系统你可以通过以下命令安装
+In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
+on Debian you can do by running:
 
     $ sudo apt-get install graphviz
 
-通过以下命令生成文档的web页面：
+To build the documentation web pages, simply run:
 
     $ make html
 
-页面生成以后，你就可以在本地浏览。你通过以下命名启动app.pl的程序（Mojo程序）
+Please note that you will need to have [nodejs](https://nodejs.org)
+installed to produce HTML content with the above command, in particular
+a `node` executable should be in your `PATH`. Besides, you will need
+to have `g++` installed in order to build some of the dependencies
+that are installed with nodejs. nodejs is needed only to apply
+highlighting to the included code; if you do not want that, simply
+write
+
+    $ make html-nohighlight
+
+After the pages have been generated, you can view them on your local
+computer by starting the included `app.pl` program:
 
     $ make run
 
-这样你就可以通过浏览器输入网址[http://localhost:3000](http://localhost:3000)浏览文档
+You can then view the examples documentation by pointing your web browser at
+[http://localhost:3000](http://localhost:3000).
 
-注意：你必须安装了 [Mojolicious](https://metacpan.org/pod/Mojolicious)
-你还的需要[nodejs](https://nodejs.org)来实现高亮。
+You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
+installed and you will need [nodejs](https://nodejs.org) to perform
+highlighting. There are also some additional modules you might need;
+install them all using:
 
-## 给予帮助!
+    $ cpanm --installdeps .
 
-Perl6工程 并非一个小项目，项目文档需要投入大量的人力精力，我们感谢你给予任何的帮助。
-您可以通过各种方式帮助我们:
+---------
 
- * 给类，角色，方法或者操作符等补充缺失的文档
- * 给已有的文档补充使用实例
- * 校对所有文档
- * 通过github提交问题报告缺失的文档
- * 通过本仓库的 `git grep TODO` ，找出TODO项并将其文档化
- * 将本项目国际化（翻译成各国语言）
+## Help Wanted!
 
-[项目问题](https://github.com/perl6/doc/issues) 项目问题页面列出了当前的问题和已知缺失的文档
-和 [CONTRIBUTING](CONTRIBUTING.md) 简要说明如何开始提供文档。
+Perl 6 is not a small language, and documenting it takes a lot of effort.
+Any help is appreciated.
 
-## 答疑解惑:
+Here are some ways to help us:
 
-**Q:** 为什么本文当没有嵌入到Perl6语言中?<br>
-**A:** 有几个原因:
+ * Add missing documentation for classes, roles, methods or operators.
+ * Add usage examples to existing documentation.
+ * Proofread and correct the documentation.
+ * Tell us about missing documentation by opening issues on Github.
+ * Do a `git grep TODO` in this repository, and replace the TODO items by
+   actual documentation.
 
-  1. 本文档的意在独立于给定版本，不与任何给定的perl6版本挂钩。 
-  2. POD的解析和嵌如工程还不是很稳定，为了避免对运行时造成影响。
-  3. 独立于perl6的Github仓库可以让更多的人参与编辑做出贡献。
+[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
+documentation parts that are known to be missing
+and [the CONTRIBUTING document](CONTRIBUTING.md)
+explains briefly how to get started contributing documentation.
 
-**Q:** 我需要从superclasses或者roles中引入方法不<br>
-**A:** 不需要. HTML版本已经引入了所有的superclasses和roles方法,我们可以通过`p6doc`脚本学习之。
+--------
 
-**Q:** 项目的许可协议是?<br>
-**A:** 所有的代码和文档都基于the Artistic License 2.0 发行，查看[LICENSE](LICENSE)全文。
+## Some notes:
 
+**Q:** Why aren't you embedding the docs in the CORE sources?<br>
+**A:** Several reasons:
 
-## 版本
+  1. This documentation is intended to be universal with
+     respect to a given version of the specification,
+     and not necessarily tied to any specific Perl 6
+     implementation.
+  2. Implementations' handling of embedded Pod is still
+     a bit uneven; this avoids potential runtime impacts.
+  3. A separate repo in the perl6 Github account invites
+     more potential contributors and editors.
 
-> I want p6doc and doc.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 feature, be it from the
+**Q:** Should I include methods from superclasses or roles?<br>
+**A:** No. The HTML version already includes methods from superclasses and
+       roles, and the `p6doc` script will be taught about those as well.
+
+--------
+
+## Vision
+
 > I want p6doc and docs.perl6.org to become the No. 1 resource to consult
 > when you want to know something about a Perl 6 feature, be it from the
+> language, or built-in types and routines. I want it to be useful to every
 > Perl 6 programmer.
 >
 >    -- moritz
 
+--------
 
-> 我希望p6doc和doc.perl6.org成为人们了解perl6特性的首要资源，不管是语言，内建类型和例程。我希望
-> 对每位perl6程序员和需要了解perl6的人都给予最大的帮助
-                                                         -- moritz
+# ENV VARS
 
-## 想要的格式:
-
- *  Perl6实现通过在源代码中嵌入`P<...>`，作为相应的p6doc入口，这将使诸如 `&say.WHY`的文档条目成动态获取！
-而，而不需要在 `CORE.setting`资源中复制这些文档或者将其编码到二进制文件中。
-    
-     例如:
-
-        # In Rakudo's src/core/IO.pm:
+- `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
+Helpful when debugging failing test suite.
+- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
 
 # LICENSE
 
-See [LICENSE](LICENSE) file for the details of the license of the code in this repository.
+The code in this repository is available under the Artistic License 2.0
+as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
+text.
 
 This repository also contains code authored by third parties that may be licensed under a different license. Such
 files indicate the copyright and license terms at the top of the file. Currently these include:
@@ -161,3 +175,6 @@ files indicate the copyright and license terms at the top of the file. Currently
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
 * Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Table sorter plugin from https://github.com/christianbach/tablesorter ;
+  [MIT License](http://creativecommons.org/licenses/MIT)
+
