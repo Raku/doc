@@ -393,9 +393,110 @@ say ++$foo; # 0
 
 =head1 The networking API
 
-=comment TODO
+=head2 Net
 
-# TBD
+In Perl 6, there are two APIs for dealing with networking: C<IO::Socket::INET>
+(for synchronous networking), and  C<IO::Socket::Async> (for asynchronous
+networking).
+
+C<IO::Socket::INET> currently only supports TCP connections. Its API resembles
+that of C's socket API. If you're familiar with that, then it won't take long
+to understand how to use it. For example, here's an echo server that closes the
+connection after receiving its first message:
+
+=begin code
+my IO::Socket::INET $server .= new:
+    :localhost<localhost>,
+    :localport<8000>,
+    :listen;
+
+my IO::Socket::INET $client .= new: :host<localhost>, :port<8000>;
+$client.print: 'ayy lmao';
+
+my IO::Socket::INET $conn = $server.accept;
+my Str $msg               = $conn.recv;
+say $msg; # RESULT: ayy lmao
+$conn.print($msg);
+
+say $client.recv; # RESULT: ayy lmao
+$conn.close;
+$client.close;
+$server.close;
+=end code
+
+By default, C<IO::Socket::INET> connections are IPv4 only. To use IPv6 instead,
+pass C<:family(PF_INET6)> when constructing a server or a client.
+
+In contrast, C<IO::Socket::Async> supports both IPv4 and IPv6 without the need
+to specify which family you wish to use. It also supports UDP sockets. Here's
+how you would write the same echo server as above asynchronously (note that
+C<Supply.tap> is multithreaded; if this is undesirable, use C<Supply.act>
+instead:
+
+=begin code
+my $supply = IO::Socket::Async.listen('localhost', 8000)
+my $server = $supply.tap(-> $conn {
+    $conn.Supply.tap(-> $data {
+        say $data; # RESULT: ayy lmao
+        await $conn.print: $data;
+        $conn.close;
+    })
+});
+
+my $client = await IO::Socket::Async.connect('localhost', 8000);
+$client.Supply.tap(-> $data {
+    say $data; # RESULT: ayy lmao
+    $client.close;
+    $server.close;
+});
+
+await $client.print: 'ayy lmao';
+=end code
+
+The equivalent code in Node.js looks like this:
+
+=begin code :lang<javascript>
+const net = require('net');
+
+const server = net.createServer(conn => {
+    conn.setEncoding('utf8');
+    conn.on('data', data => {
+        console.log(data); # RESULT: ayy lmao
+        conn.write(data);
+        conn.end();
+    });
+}).listen(8000, 'localhost');
+
+const client = net.createConnection(8000, 'localhost', () => {
+    client.setEncoding('utf8');
+    client.on('data', data => {
+        console.log(data); # RESULT: ayy lmao
+        client.end();
+        server.close();
+    });
+    client.write("ayy lmao");
+});
+=end code
+
+=head2 HTTP/HTTPS
+
+Perl 6 doesn't natively support HTTP/HTTPS. However, CPAN packages such as
+L<Cro|https://cro.services/> help fill the gap.
+
+=head2 DNS
+
+Perl 6 does not currently support the majority of the features that Node.js's DNS
+module implements. C<IO::Socket::INET> and C<IO::Socket::Async> can resolve
+hostnames, but features like resolving DNS records and reverse IP lookups are
+not implemented yet. There are some modules that are a work in progress,
+such as L<Net::DNS::BIND::Manage|https://github.com/tbrowder/Net-DNS-BIND-Manage-Perl6/>,
+that aim to improve DNS support.
+
+=head2 Punycode
+
+Punycode support is available through the L<Net::LibIDN|https://github.com/Kaiepi/p6-Net-LibIDN>,
+L<Net::LibIDN2|https://github.com/Kaiepi/p6-Net-LibIDN2>, and
+L<IDNA::Punycode|https://github.com/FROGGS/p6-IDNA-Punycode> modules on CPAN.
 
 =head1 The filesystem API
 
