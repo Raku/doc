@@ -239,10 +239,12 @@ leaves C<$!x> uninitialized, because the custom C<BUILD> doesn't
 initialize it.
 
 B<Note:> Consider using L<TWEAK|/language/objects#index-entry-TWEAK>
-instead. L<Rakudo|/language/glossary#Rakudo> supports L<TWEAK|/language/objects#index-entry-TWEAK> method
-since release 2016.11.
+instead. L<Rakudo|/language/glossary#Rakudo> supports
+L<TWEAK|/language/objects#index-entry-TWEAK> method since release
+2016.11.
 
-One possible remedy is to explicitly initialize the attribute in C<BUILD>:
+One possible remedy is to explicitly initialize the attribute in
+C<BUILD>:
 
 =for code :skip-test
 submethod BUILD(:$x) {
@@ -257,8 +259,8 @@ submethod BUILD(:$!x) {
     $!y = 18;
 }
 
-Another, more general approach is to leave C<BUILD> alone, and hook into the
-C<BUILDALL> mechanism instead:
+Another, more general approach is to leave C<BUILD> alone, and hook into
+the C<BUILDALL> mechanism instead:
 
 =begin code
 use v6.c;
@@ -275,11 +277,12 @@ class A {
 say A.new(x => 42).x;       # OUTPUT: «42␤»
 =end code
 
-Remember that C<BUILDALL> is a method, not a submethod. That's because by
-default, there is only one such method per class hierarchy, whereas C<BUILD>
-is explicitly called per class. That is the reason why, in order to properly initialize
-parent objects, it is required to use C<callsame> inside C<BUILDALL>, but not inside C<BUILD>
-(for more on the subject see L<object creation|/language/objects#Object_construction>).
+Remember that C<BUILDALL> is a method, not a submethod. That's because
+by default, there is only one such method per class hierarchy, whereas
+C<BUILD> is explicitly called per class. That is the reason why, in
+order to properly initialize parent objects, it is required to use
+C<callsame> inside C<BUILDALL>, but not inside C<BUILD> (for more on the
+subject see L<object creation|/language/objects#Object_construction>).
 
 =head1 Whitespace
 
@@ -819,9 +822,9 @@ say join ", ", ("az", *.succ ... "bc");
 
 =head2 Topicalizing operators
 
-The smartmatch operator C<~~> and C<andthen> set the topic C<$_> to their
-left-hand-side. In conjunction with implicit method calls on the topic this can
-lead to surprising results.
+The smartmatch operator C<~~> and C<andthen> set the topic C<$_> to
+their left-hand-side. In conjunction with implicit method calls on the
+topic this can lead to surprising results.
 
 =for code
 my &method = { note $_; $_ };
@@ -843,9 +846,9 @@ say .&method ~~ 'topic';
 
 =head2 Fat arrow and constants
 
-The fat arrow operator C«=>» will turn words on its left-hand side to C<Str>
-without checking the scope for constants or C<\>-sigiled variables. Use
-explicit scoping to get what you mean.
+The fat arrow operator C«=>» will turn words on its left-hand side to
+C<Str> without checking the scope for constants or C<\>-sigiled
+variables. Use explicit scoping to get what you mean.
 
 =for code
 constant V = 'x';
@@ -1195,7 +1198,7 @@ say @b.elems # OUTPUT: «999999␤»
 
 =head2 Phasers and implicit return
 
-=begin code
+=begin code :skip-test<Issues a warning>
 sub returns-ret () {
     CATCH {
         default {}
@@ -1211,7 +1214,8 @@ sub doesn't-return-ret () {
 }
 
 say returns-ret;        # OUTPUT: «ret»
-say doesn't-return-ret; # BAD: outputs «Nil» and a warning «Useless use of constant string "ret" in sink context (line 13)»
+say doesn't-return-ret;
+# BAD: outputs «Nil» and a warning «Useless use of constant string "ret" in sink context (line 13)»
 =end code
 
 Code for C<returns-ret> and C<doesn't-return-ret> might look exactly the same, since in principle it does not matter where the L<C<CATCH>|https://docs.perl6.org/language/phasers#index-entry-Phasers__CATCH-CATCH> block goes. However, a block is an object and the last object in a C<sub> will be returned, so the C<doesn't-return-ret> will return C<Nil>, and, besides, since "ret" will be now in sink context, it will issue a warning. In case you want to place phasers last for conventional reasons, use the explicit form of C<return>.
@@ -1477,7 +1481,13 @@ can be shortened to just
 =for code
 for 1..8 { say $^a + $^b; }
 
-The trouble arises when a person wants to use more complex names for the variables, instead of just one letter. The C<^> twigil is able to have the positional variables be out of order and named whatever you want, but assigns values based on the variable's Unicode ordering. In the above example, we can have C<$^a> and C<$^b> switch places, and those variables will keep their positional values. This is because the Unicode character 'a' comes before the character 'b'. For example:
+The trouble arises when a person wants to use more complex names for the
+variables, instead of just one letter. The C<^> twigil is able to have
+the positional variables be out of order and named whatever you want,
+but assigns values based on the variable's Unicode ordering. In the
+above example, we can have C<$^a> and C<$^b> switch places, and those
+variables will keep their positional values. This is because the Unicode
+character 'a' comes before the character 'b'. For example:
 
 =for code
 # In order
@@ -1865,8 +1875,8 @@ Maps apply an expression to every element of a L<List> and return a L<Seq>:
 
     say <þor oðin loki>.map: *.codes; # OUTPUT: «(3 4 4)␤»
 
-Maps are often used as a compact substitute for a loop, performing some kind of
-action in the map code block:
+Maps are often used as a compact substitute for a loop, performing some
+kind of action in the map code block:
 
     <þor oðin loki>.map: *.codes.say; # OUTPUT: «3␤4␤4␤»
 
@@ -1900,6 +1910,38 @@ as it will be saving the two nested sequences from void context:
 
     say <foo bar ber>.map: { $^þ.comb }; # OUTPUT: « ((f o o) (b a r) (b e r))»
 
+=head1 Smartmatching
+
+The
+L<smartmatch operator|language/operators#index-entry-smartmatch_operator>
+shortcuts to the right hand side I<accepting> the left hand side. This
+may cause some confusion.
+
+=head2 Smartmach and C<WhateverCode>
+
+Using C<WhateverCode> in the left hand side of a smartmatch does not
+work as expected, or at all:
+
+=begin code :skip-test<Illustrates error>
+my @a = <1 2 3>;
+say @a.grep( *.Int ~~ 2 );
+# OUTPUT: «Cannot use Bool as Matcher with '.grep'.  Did you mean to
+# use $_ inside a block?␤␤␤»
+=end code
+
+The error message does not make a lot of sense. It does, however, if you
+put it in terms of the C<ACCEPTS> method: that code is equivalent to
+C<2.ACCEPTS( *.Int )>, but C<*.Int> cannot be
+L<coerced to C<Numeric>|/routine/ACCEPTS#(Numeric)_method_ACCEPTS>,
+being as it is a C<Block>.
+
+Solution: don't use C<WhateverCode> in the left hand side of a
+smartmatch:
+
+=begin code
+my @a = <1 2 3>;
+say @a.grep( 2 ~~ *.Int ); # OUTPUT: «(2)␤»
+=end code
 
 =end pod
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
