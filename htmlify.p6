@@ -195,12 +195,12 @@ sub MAIN(
 
     say 'Reading type graph ...';
     $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
-    my %h = $type-graph.sorted.kv.flat.reverse;
+    my %sorted-type-graph = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph), :$parallel);
 
     process-pod-dir :topdir('build'), :dir('Programs'), :$sparse, :$parallel;
     process-pod-dir :topdir('build'), :dir('Language'), :$sparse, :$parallel;
-    process-pod-dir :topdir('build'), :dir('Type'), :sorted-by{ %h{.key} // -1 }, :$sparse, :$parallel;
+    process-pod-dir :topdir('build'), :dir('Type'), :sorted-by{ %sorted-type-graph{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks unless $no-highlight;
 
