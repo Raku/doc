@@ -38,6 +38,8 @@ use Pod::Convenience;
 use Pod::Htmlify;
 use OO::Monitors;
 
+constant routine-subs = <sub method term operator trait submethod>;
+
 # Don't include backslash in Win or forwardslash on Unix because they are used
 # as directory separators. These are handled in lib/Pod/Htmlify.pm6
 my \badchars-ntfs = Qw[ / ? < > : * | " ¥ ];
@@ -80,7 +82,7 @@ my @menu; # for use by future menu autogen
 @menu =
     ('language',''          ) => (),
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
-    ('routine', 'Routines'  ) => <sub method term operator trait submethod>,
+    ('routine', 'Routines'  ) => routine-subs,
     ('programs', ''         ) => (),
     ('examples', 'Examples' ) => (),
     ('webchat', 'Chat with us') => (),
@@ -912,7 +914,7 @@ sub write-index-files() {
 
     write-main-index :kind<routine> :&summary;
 
-    for <sub method term operator submethod> -> $category {
+    for routine-subs -> $category {
         write-sub-index :kind<routine> :$category :&summary;
     }
 }
