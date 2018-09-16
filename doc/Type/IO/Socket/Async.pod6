@@ -57,7 +57,7 @@ await IO::Socket::Async.connect('127.0.0.1', 3333).then( -> $promise {
 });
 =end code
 
-Alternatively L<IO::Socket::Async> can send and receive
+L<IO::Socket::Async> can send and receive
 L<UDP|https://en.wikipedia.org/wiki/User_Datagram_Protocol> messages
 An example server that outputs all the data it receives would be:
 
@@ -79,6 +79,46 @@ And an associated client might be:
 my $socket = IO::Socket::Async.udp();
 await $socket.print-to('localhost', 3333, "Hello, Perl 6!");
 =end code
+
+The L<C<CATCH> phaser|/language/phasers#CATCH> can be included to deal
+specifically with problems that might occur in this kind of sockets, such as a
+port being already taken:
+
+=begin code
+react {
+    whenever IO::Socket::Async.listen('0.0.0.0', 3000) -> $conn {
+        whenever $conn.Supply.lines -> $line {
+            $conn.print: qq:heredoc/END/;
+                HTTP/1.1 200 OK
+                Content-Type: text/html; charset=UTF-8
+                Content-Encoding: UTF-8
+
+                <html>
+                <body>
+                    <h1>Hello World!</h1>
+                    <p>{ $line }</p>
+                </body>
+                </html>
+                END
+            $conn.close;
+        }
+        QUIT {
+            default {
+                say .^name, '→ ', .Str;
+                say "handled in line $?LINE";
+            }
+        }
+    }
+
+}
+# Will print this, if address 3000 is already in use:
+# X::AdHoc→ address already in use
+# handled in 23
+=end code
+
+Main difference with using other phasers such as C<CATCH> is that this kind of
+exception will be caught within the C<whenever> block and will put exiting the
+program, or not, under your control.
 
 =head1 Methods
 
