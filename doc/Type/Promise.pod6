@@ -68,6 +68,41 @@ this method:
     my $p1 = Promise.start({ ;#`( do something here ) });
     my $p2 = start { ;#`( do something here ) };
 
+As of 6.d language, C<start> statement prefix used in L<sink> context will
+automatically attach an exceptions handler. If an exception occurs in the given
+code, it will be printed and the program will then exit, like if it were
+thrown without any C<start> statement prefixes involved.
+
+    =begin code
+    use v6.c;
+    start { die }; sleep ⅓; say "hello"; # OUTPUT: «hello␤»
+    =end code
+
+    =begin code
+    use v6.d.PREVIEW;
+    start { die }; sleep ⅓; say "hello";
+    # OUTPUT: Died
+    # in block  at -e line 1
+    =end code
+
+If you wish to avoid this behaviour, use C<start> in non-sink context or
+catch the exception yourself:
+
+    =begin code
+    # Don't sink it:
+    my $ = start { die }; sleep ⅓; say "hello"; # OUTPUT: «hello␤»
+
+    # Catch yourself:
+    start { die; CATCH { default { say "caught" } } };
+    sleep ⅓;
+    say "hello";
+    # OUTPUT: «caught␤hello␤»
+    =end code
+
+This behaviour exists only syntaxically and not as part of method L<sink>
+on L<Promise> object, thus sinking a L<Promise> object or having a C<start>
+block as return value of a routine won't trigger this behaviour.
+
 =head2 method in
 
     method in(Promise:U: $seconds, :$scheduler = $*SCHEDULER --> Promise:D)
