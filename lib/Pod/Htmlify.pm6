@@ -82,10 +82,7 @@ sub rewrite-url($s) is export {
     if !$r.contains('#') && !$r.ends-with('.html') && ( $r.match: / '/.' / ) {
         $r ~= '.html';
     }
-    # If it ends with a space
-    if !$r.contains(' ') && !$r.ends-with('.html') {
-        $r ~= '.html';
-    }
+
     return %cache{$s} = $r;
 }
 
