@@ -381,10 +381,9 @@ multi write-type-source($doc) {
                   <code>\qq[$podname]</code></figcaption>
                 \qq[&svg-for-file("html/images/type-graph-$podname.svg")]
                 <p class="fallback">
-                  Stand-alone image:
                   <a rel="alternate"
                     href="/images/type-graph-\qq[&uri_escape($podname)].svg"
-                    type="image/svg+xml">vector</a>
+                    type="image/svg+xml">Expand above chart</a>
                 </p>
               </figure>
               CONTENTS_END
