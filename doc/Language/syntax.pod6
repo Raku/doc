@@ -268,52 +268,73 @@ is-prime?             # Question mark is not alphanumeric
 x²                    # Superscript 2 has Unicode general category No
 =end code
 
-In the C<x²> example above, the Unicode superscript numeral C<²> is not, and
-cannot be, a part of an ordinary identifier. Still, it may form part of a valid
-expression as an operator. The expression C<$x²>, for instance, produces the
-square of variable C<$x>. This should be somewhat surprising at this point,
-since operators are L<Subs|/type/Sub>, and, as mentioned above, Subs are named using
-identifiers. So how does the superscript numeral get accepted as (part of) an
-identifier? The key to this riddle lies in the concept of I<extended
+In the C<x²> example above, since the Unicode superscript numeral C<²> is not
+alphanumeric, it cannot be a part of an ordinary identifier. Still, it may form
+part of a valid expression as an operator. The expression C<$x²>, for instance,
+produces the square of variable C<$x>. This should be somewhat surprising at this
+point, since operators are L<Subs|/type/Sub>, and, as mentioned above, Subs are
+named using identifiers. So how does the superscript numeral get accepted as
+(part of) an identifier? The key to this riddle lies in the concept of I<extended
 identifiers>, which is elaborated upon in the next section.
 
 =head3 Extended identifiers
 
-It is often convenient to have names that contain arbitrary characters.
-Use cases include situations where a set of entities shares a common "short"
-name, but still needs for each of its elements to be identifiable individually.
-For example, you might use a module whose short name is C<ThatModule>, but the
-complete long name of a module includes its version, naming authority, and
-perhaps even its source language. Similarly, sets of operators work together in
-various syntactic categories with names like C<prefix>, C<infix>, C<postfix>,
-etc. The (long) names of these operators, however, often contain characters that
-are excluded from ordinary identifiers.
-
-For all such uses, you can append one or more
-L<adverbial pairs|/language/syntax#Adverbial_pairs_(colon_pairs)> to an ordinary
-identifier to create a so-called I<extended identifier>. When appended
-to an identifier (that is, in postfix position), the adverbial pair syntax
-generates unique variants of that identifier.
-
-The generic form of an adverbial pair or "colon pair" is C<:key<value>> :
-it starts with a single colon C<:>, followed by an ordinary identifier C<key>,
-in turn followed by some quoting bracketing construct, such as C«< >», C<« »> or
-C<[' ']>, which quotes one or more arbitrary characters C<value>:
+It is often convenient to have names that contain characters that are not allowed
+in ordinary identifiers. Use cases include situations where a set of entities shares
+a common "short" name, but still needs for each of its elements to be identifiable
+individually. For example, you might use a module whose short name is C<Dog>, while
+its long name includes its naming authority and version:
 
 =begin code :skip-test
-# exemplary extended identifiers:
-infix:<+>                           # The official long name of the operator in $a + $b
-postfix:<²>                         # The official long name of the operator in $x²
-WOW:That's<<🆒>>
-ThatModule:auth<Somebody>:ver<2.7.18>
+Dog:auth<Somebody>:ver<1.0>         # Long module names including author and version
+Dog:auth<Somebody>:ver<2.0>
+
+------------------------------------
+
+use Dog:auth<Somebody>:ver<2.0>;    # Selection of second module causes its full name
+                                    # to be aliased to the short name for the rest of
+                                    # the lexical scope, allowing a declaration like
+my Dog $spot .= new("woof");        # this.
 =end code
 
-The C<key> I<or> the quoted C<value> is optional. Colon pairs with a null key
-C<key> are normally used for naming operators, as in the first two examples
-above. Starting with Perl 6 language version 6.d, colon pairs with C<sym> as
-the C<key> (e.g. C«:sym<foo>») are reserved for possible future use.
+Similarly, sets of operators work together in various syntactic categories with names
+like C<prefix>, C<infix>, C<postfix>, etc. The long, official names of these operators,
+however, often contain characters that are excluded from ordinary identifiers:
 
-In an extended identifier, the adverb is considered an integral part of the name,
+    infix:<+>                       # the official name of the operator in $a + $b
+    infix:<*>                       # the official name of the operator in $a * $b
+    infix:«<=»                      # the official name of the operator in $a <= $b
+
+For all such uses, you can append one or more subscript-like adverbial forms or "colon
+pairs" to an ordinary identifier to create a so-called I<extended identifier>. When
+appended to an identifier (that is, in postfix position), the adverbial syntax
+generates unique variants of that identifier.
+
+The generic colon pair notation acceptable in identifiers is C<:key<value>> : it starts
+with a single colon C<:>, followed by an ordinary identifier C<key>, in turn followed
+by some quoting bracketing construct, such as C«< >», C<« »> or C<[' ']>, which quotes
+one or more arbitrary characters C<value>:
+
+=begin code :skip-test
+# exemplary valid extended identifiers:
+postfix:<²>                         # The official long name of the operator in $x²
+WOW:That'sAwesome
+WOW:That's<<🆒>>
+party:sweet<16>
+
+# exemplary invalid extended identifiers:
+party:16<sweet>                     # 16 is not an ordinary identifier
+party:16sweet
+party:!a                            # ...and neither is !a
+party:$a                            # ...or $a
+=end code
+N<As the examples illustrate, the C<key> I<or> the quoted C<value> is optional.
+Colon pairs with a null key are normally used for naming operators, as
+in the first two examples above. Starting with Perl 6 language version 6.d, colon
+pairs with C<sym> as the C<key> (e.g. C«:sym<foo>») are reserved for possible
+future use.>
+
+In an extended identifier, the colon pair is considered an integral part of the name,
 so C<infix:<+>> and C<infix:<->> are two different operators. The bracketing
 characters used, however, do not count as part of the name; only the quoted data
 matters. So these are all the same name:
@@ -346,7 +367,7 @@ effectively name the same module:
     use ThatModule:auth<Somebody>:ver<2.7.18.28.18>
     use ThatModule:ver<2.7.18.28.18>:auth<Somebody>
 
-Furthermore, the adverbial pair syntax in extended identifiers supports
+Furthermore, the adverbial form in extended identifiers supports
 compile-time interpolation, which mandates the use of
 L<constants|/language/terms#Constants> for the interpolation values:
 
@@ -371,7 +392,7 @@ names.
 A compound identifier is an identifier that is composed of two or more
 ordinary and/or extended identifiers that are separated from one another by a
 double colon C<::>. Note that the C<::> is referred to as a I<double colon>,
-and not as a I<colon pair>. The latter term refers to the adverbial pair syntax
+and not as a I<colon pair>. The latter term refers to the adverbial syntax
 C<:key<value>> that may be used to create a Pair, or, as described above, to
 create an extended identifier.
 
