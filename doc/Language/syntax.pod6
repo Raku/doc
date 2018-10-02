@@ -225,13 +225,12 @@ say 'code again';
 
 Identifiers are grammatical building blocks that may be used to give a name
 to entities/objects such as constants, variables (e.g. Scalars) and routines
-(e.g. Subs and Methods). In a variable name, an identifier is normally preceded
-by a sigil; i.e. the sigil is not part of the identifier, only of the variable
-name.
+(e.g. Subs and Methods). In a L<variable name|/language/variables>, any sigil
+(and twigil) precedes the identifier and does not form a part thereof.
 
-    constant c = 299792458;         # Identifier "c" names an Int
-    my $a = 123;                    # Identifier "a" in the name "$a" of a Scalar
-    sub hello { say "Hello!" };     # Identifier "hello" names a Sub
+    constant c = 299792458;         # identifier "c" names an Int
+    my $a = 123;                    # identifier "a" in the name "$a" of a Scalar
+    sub hello { say "Hello!" };     # identifier "hello" names a Sub
 
 Identifiers come in different forms: ordinary identifiers, extended
 identifiers, and compound identifiers.
@@ -239,20 +238,21 @@ identifiers, and compound identifiers.
 =head3 Ordinary identifiers
 
 An ordinary identifier is composed of a leading alphabetic character
-that may be followed by one or more alphanumeric characters. It may also
+which may be followed by one or more alphanumeric characters. It may also
 contain isolated, embedded apostrophes C<'> and/or hyphens C<->, provided
 that the next character is each time alphabetic.
 
 The definitions of "alphabetic" and "alphanumeric" include appropriate Unicode
 characters. Which characters are "appropriate" depends on the implementation.
 In the Rakudo/MoarVM Perl 6 implementation alphabetic characters include
-Unicode characters in the character category I<Letter>, and the underscore
-C<_>. Alphanumeric characters additionally include Unicode characters in the
-general category I<Number, Decimal Digit> (Nd).
+characters with the Unicode General Category value I<Letter> (L), and the
+underscore C<_>. Alphanumeric characters additionally include characters with
+the Unicode General Category value I<Number, Decimal Digit> (Nd).
 
 =begin code :skip-test
 # valid ordinary identifiers:
 x
+_snake_oil
 something-longer
 with-numbers1234
 don't-do-that
@@ -265,17 +265,8 @@ piece_of_π
 42                    # Identifier does not start with alphabetic character
 with-numbers1234-5    # Embedded hyphen not followed by alphabetic character
 is-prime?             # Question mark is not alphanumeric
-x²                    # Superscript 2 has Unicode general category No
+x²                    # Superscript 2 is not alphanumeric (in the sense explained above)
 =end code
-
-In the C<x²> example above, since the Unicode superscript numeral C<²> is not
-alphanumeric, it cannot be a part of an ordinary identifier. Still, it may form
-part of a valid expression as an operator. The expression C<$x²>, for instance,
-produces the square of variable C<$x>. This should be somewhat surprising at this
-point, since operators are L<Subs|/type/Sub>, and, as mentioned above, Subs are
-named using identifiers. So how does the superscript numeral get accepted as
-(part of) an identifier? The key to this riddle lies in the concept of I<extended
-identifiers>, which is elaborated upon in the next section.
 
 =head3 Extended identifiers
 
@@ -298,26 +289,26 @@ my Dog $spot .= new("woof");        # this.
 =end code
 
 Similarly, sets of operators work together in various syntactic categories with names
-like C<prefix>, C<infix>, C<postfix>, etc. The long, official names of these operators,
-however, often contain characters that are excluded from ordinary identifiers:
+like C<prefix>, C<infix>, C<postfix>, etc. The long, official names of these operators
+often contain characters that are excluded from ordinary identifiers:
 
     infix:<+>                       # the official name of the operator in $a + $b
     infix:<*>                       # the official name of the operator in $a * $b
     infix:«<=»                      # the official name of the operator in $a <= $b
 
-For all such uses, you can append one or more subscript-like adverbial forms or "colon
-pairs" to an ordinary identifier to create a so-called I<extended identifier>. When
-appended to an identifier (that is, in postfix position), the adverbial syntax
-generates unique variants of that identifier.
+For all such uses, you can append one or more "colon pairs" to an ordinary identifier
+to create a so-called I<extended identifier>. When appended to an identifier (that is,
+in postfix position), the colon pair generates unique variants of that identifier.
 
-The generic colon pair notation acceptable in identifiers is C<:key<value>> : it starts
-with a single colon C<:>, followed by an ordinary identifier C<key>, in turn followed
-by some quoting bracketing construct, such as C«< >», C<« »> or C<[' ']>, which quotes
-one or more arbitrary characters C<value>:
+The generic colon pair syntax acceptable in identifiers is C<:key<value>>, wherein
+C<key> I<or> C<value> is optional. A colon pair thus starts with a single colon C<:>,
+followed by an ordinary identifier C<key> and/or a quoting bracketing construct
+such as C«< >», C<« »> or C<[' ']> which quotes one or more arbitrary characters
+C<value>:
 
 =begin code :skip-test
 # exemplary valid extended identifiers:
-postfix:<²>                         # The official long name of the operator in $x²
+postfix:<²>                         # the official long name of the operator in $x²
 WOW:That'sAwesome
 WOW:That's<<🆒>>
 party:sweet<16>
@@ -326,13 +317,10 @@ party:sweet<16>
 party:16<sweet>                     # 16 is not an ordinary identifier
 party:16sweet
 party:!a                            # ...and neither is !a
-party:$a                            # ...or $a
+party:$a                            # ...nor $a
 =end code
-N<As the examples illustrate, the C<key> I<or> the quoted C<value> is optional.
-Colon pairs with a null key are normally used for naming operators, as
-in the first two examples above. Starting with Perl 6 language version 6.d, colon
-pairs with C<sym> as the C<key> (e.g. C«:sym<foo>») are reserved for possible
-future use.>
+N<Starting with Perl 6 language version 6.d, colon pairs with C<sym> as the
+C<key> (e.g. C«:sym<foo>») are reserved for possible future use.>
 
 In an extended identifier, the colon pair is considered an integral part of the name,
 so C<infix:<+>> and C<infix:<->> are two different operators. The bracketing
@@ -384,19 +372,15 @@ names.
     constant $what = 'are';
     my @we:<are>= <the champions>;
     say @we:«$what»;                # OUTPUT: «[the champions]␤»
-    say @we:[$what];                # OUTPUT: «[the champions]␤»
     say @we:<$what>;                # Compilation error: Variable '@we:<$what>' is not declared
 
 =head3 Compound identifiers
 
 A compound identifier is an identifier that is composed of two or more
 ordinary and/or extended identifiers that are separated from one another by a
-double colon C<::>. Note that the C<::> is referred to as a I<double colon>,
-and not as a I<colon pair>. The latter term refers to the adverbial syntax
-C<:key<value>> that may be used to create a Pair, or, as described above, to
-create an extended identifier.
+double colon C<::>.
 
-The double colon C<::> is also known as the I<namespace separator> or the
+The double colon C<::> is known as the I<namespace separator> or the
 I<package delimiter>, which clarifies its semantic function in a name: to force
 the preceding portion of the name to be considered a
 L<package|/language/packages>/namespace through which the subsequent portion of
