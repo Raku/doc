@@ -223,109 +223,212 @@ say 'code again';
 
 =head2 X<Identifiers|identifier,identifiers>
 
-Identifiers are grammatical building blocks that occur in several kind
-of statements, giving a name to objects, data structures and blocks of
-code. These names must start with an alphabetic character (or an
-underscore), followed by zero or more word characters (alphabetic,
-underscore or number). You can also embed dashes C<-> or single quotes
-C<'> in the middle, but not two in a row, and only if followed
-immediately by an alphabetic character.
+Identifiers are grammatical building blocks that may be used to give a name
+to entities/objects such as constants, variables (e.g. Scalars) and routines
+(e.g. Subs and Methods). In a L<variable name|/language/variables>, any sigil
+(and twigil) precedes the identifier and does not form a part thereof.
 
-=begin code :skip-test
-# valid identifiers:
+    constant c = 299792458;         # identifier "c" names an Int
+    my $a = 123;                    # identifier "a" in the name "$a" of a Scalar
+    sub hello { say "Hello!" };     # identifier "hello" names a Sub
+
+Identifiers come in different forms: ordinary identifiers, extended
+identifiers, and compound identifiers.
+
+=head3 Ordinary identifiers
+
+An ordinary identifier is composed of a leading alphabetic character
+which may be followed by one or more alphanumeric characters. It may also
+contain isolated, embedded apostrophes C<'> and/or hyphens C<->, provided
+that the next character is each time alphabetic.
+
+The definitions of "alphabetic" and "alphanumeric" include appropriate Unicode
+characters. Which characters are "appropriate" depends on the implementation.
+In the Rakudo/MoarVM Perl 6 implementation alphabetic characters include
+characters with the Unicode General Category value I<Letter> (L), and the
+underscore C<_>. Alphanumeric characters additionally include characters with
+the Unicode General Category value I<Number, Decimal Digit> (Nd).
+
+=begin code
+# valid ordinary identifiers:
 x
+_snake_oil
 something-longer
 with-numbers1234
-don't
-fish-food
-π
+don't-do-that
+piece_of_π
+駱駝道                 # "Rakuda-dō", Japanese for "Way of the camel"
 =end code
 
-=begin code :skip-test
-# not valid identifiers:
-with-numbers1234-5
-42
-is-prime?
-fish--food
+=begin code
+# invalid ordinary identifiers:
+42                    # identifier does not start with alphabetic character
+with-numbers1234-5    # embedded hyphen not followed by alphabetic character
+is-prime?             # question mark is not alphanumeric
+x²                    # superscript 2 is not alphanumeric (in the sense explained above)
 =end code
 
-You use identifiers to name of constants, types (including classes and
-modules) and routines (subs and methods); they also appear in variable
-names usually proceeded by a sigil; see L<variables|/language/variables>
-for more details.
+=head3 Extended identifiers
 
-Namespaces are provided by L<packages|/language/packages>. By separating
-identifiers with double colons, the right most name is inserted into
-existing or automatically created packages.
+It is often convenient to have names that contain characters that are not allowed
+in ordinary identifiers. Use cases include situations where a set of entities shares
+a common "short" name, but still needs for each of its elements to be identifiable
+individually. For example, you might use a module whose short name is C<Dog>, while
+its long name includes its naming authority and version:
 
-    my Int $Foo::Bar::buzz = 42;
-    say $Foo::Bar::buzz; # OUTPUT: «42␤»
+=begin code
+Dog:auth<Somebody>:ver<1.0>         # long module names including author and version
+Dog:auth<Somebody>:ver<2.0>
 
-Identifiers can contain colon pairs. The entire colon pair becomes part
-of the name of the identifier.
+------------------------------------
+
+use Dog:auth<Somebody>:ver<2.0>;    # Selection of second module causes its full name
+                                    # to be aliased to the short name for the rest of
+                                    # the lexical scope, allowing a declaration like
+my Dog $spot .= new("woof");        # this.
+=end code
+
+Similarly, sets of operators work together in various syntactic categories with names
+like C<prefix>, C<infix>, C<postfix>, etc. The long, official names of these operators
+often contain characters that are excluded from ordinary identifiers:
+
+=begin code
+    infix:<+>                       # the official name of the operator in $a + $b
+    infix:<*>                       # the official name of the operator in $a * $b
+    infix:«<=»                      # the official name of the operator in $a <= $b
+=end code
+
+For all such uses, you can append one or more "colon pairs" to an ordinary identifier
+to create a so-called I<extended identifier>. When appended to an identifier (that is,
+in postfix position), the colon pair generates unique variants of that identifier.
+
+The generic colon pair syntax acceptable in identifiers is C<:key<value>>, wherein
+C<key> I<or> C<value> is optional. A colon pair thus starts with a single colon C<:>,
+followed by an ordinary identifier C<key> and/or a quoting bracketing construct
+such as C«< >», C<« »> or C<[' ']> which quotes one or more arbitrary characters
+C<value>:
+
+=begin code
+# exemplary valid extended identifiers:
+postfix:<²>                         # the official long name of the operator in $x²
+WOW:That'sAwesome
+WOW:That's<<🆒>>
+party:sweet<16>
+
+# exemplary invalid extended identifiers:
+party:16<sweet>                     # 16 is not an ordinary identifier
+party:16sweet
+party:!a                            # ...and neither is !a
+party:$a                            # ...nor $a
+=end code
+N<Starting with Perl 6 language version 6.d, colon pairs with C<sym> as the
+C<key> (e.g. C«:sym<foo>») are reserved for possible future use.>
+
+In an extended identifier, the colon pair is considered an integral part of the name,
+so C<infix:<+>> and C<infix:<->> are two different operators. The bracketing
+characters used, however, do not count as part of the name; only the quoted data
+matters. So these are all the same name:
+
+=begin code
+    infix:<+>
+    infix:<<+>>
+    infix:«+»
+    infix:['+']
+    infix:('+')
+=end code
+
+Similarly, all of this works:
+
+=begin code
+    my $foo:bar<baz> = 'quux';
+    say $foo:bar«baz»;                                  # OUTPUT: «quux␤»
+    my $take-me:<home> = 'When the glory has no end';
+    say $take-me:['home'];                              # OUTPUT: «When the glory has no end␤»
+    my $foo:bar<2> = 5;
+    say $foo:bar(1+1);                                  # OUTPUT: «5␤»
+=end code
+
+Where an extended identifier comprises two or more colon pairs, their order
+is generally significant:
+
+=begin code
+    my $a:b<c>:d<e> = 100;
+    my $a:d<e>:b<c> = 200;
+    say $a:b<c>:d<e>;               # OUTPUT: «100␤», NOT: «200␤»
+=end code
+
+An exception to this rule is I<module versioning>; so these identifiers
+effectively name the same module:
+
+=begin code
+    use ThatModule:auth<Somebody>:ver<2.7.18.28.18>
+    use ThatModule:ver<2.7.18.28.18>:auth<Somebody>
+=end code
+
+Furthermore, colon pairs in extended identifiers support
+compile-time interpolation; this requires the use of
+L<constants|/language/terms#Constants> for the interpolation values:
+
+=begin code
+    constant $c = 42;               # Constant binds to Int; $-sigil enables interpolation
+    my $a:foo<42> = "answer";
+    say $a:foo«$c»;                 # OUTPUT: «answer␤»
+=end code
+
+Although quoting bracketing constructs are generally interchangeable
+in the context of identifiers, they are not identical. In particular,
+angle brackets C«< >» (which mimic single quote interpolation
+characteristics) cannot be used for the interpolation of constant
+names.
+
+=begin code
+    constant $what = 'are';
+    my @we:<are>= <the champions>;
+    say @we:«$what»;                # OUTPUT: «[the champions]␤»
+    say @we:<$what>;                # Compilation error: Variable '@we:<$what>' is not declared
+=end code
+
+=head3 Compound identifiers
+
+A compound identifier is an identifier that is composed of two or more
+ordinary and/or extended identifiers that are separated from one another by a
+double colon C<::>.
+
+The double colon C<::> is known as the I<namespace separator> or the
+I<package delimiter>, which clarifies its semantic function in a name: to force
+the preceding portion of the name to be considered a
+L<package|/language/packages>/namespace through which the subsequent portion of
+the name is to be located:
+
+    module MyModule {               # declare a module package
+        our $var = "Hello";         # declare package-scoped variable
+    }
+    say $MyModule::var              # OUTPUT: «Hello␤»
+
+In the example above, C<MyModule::var> is a compound identifier, composed
+of the package name identifier C<MyModule> and the identifier part of the
+variable name C<var>. Altogether C<$MyModule::var> is often referred
+to as a L<package-qualified name|/language/packages#Package-qualified_names>.
+
+Separating identifiers with double colons causes the rightmost name to be
+inserted into existing (see above example) I<or automatically created>
+packages:
 
     my $foo::bar = 1;
-    say MY::.keys;
-    # OUTPUT: «($=pod !UNIT_MARKER EXPORT $_ $! ::?PACKAGE
-    #          GLOBALish $¢ $=finish $/ $foo:bar $foo:bar<2>
-    #          $?PACKAGE)␤»
-    say OUR::.key; # OUTPUT: «foo␤»
+    say OUR::.keys;                 # OUTPUT: «(foo)␤»
+    say foo.HOW                     # OUTPUT: «Perl6::Metamodel::PackageHOW.new␤»
 
-The last sentence shows how the C<foo> package has been created
-automatically, as a deposit for variables in that namespace.
+The last lines shows how the C<foo> package was created automatically, as a
+deposit for variables in that namespace.
 
-Identifiers can also contain single colons, and in that case they can
-add I<symbols> within angle brackets. This is a mechanism that supports
-interpolation; which is also supported by colonpairs if the interpolated
-variable is inserted in parentheses. Please note that resolution of
-names often happens at compile time, so interpolation values must be
-known at compile time.
+The double colon syntax enables runtime
+L<interpolation|/language/packages#Interpolating_into_names> of a string into a
+package or variable name using C<::($expr)> where you'd ordinarily put a package
+or variable name:
 
-    my $foo:bar<2> = 2;
-    constant $c = 42;
-    my $a:foo<42> = "answer";
-    say $a:foo«$c»;    # OUTPUT: «answer␤»
-    my $buz = "qux";
+    my $buz = "quux";
     my $bur::quux = 7;
-    say $bur::($buz);  # OUTPUT: «7␤»
-
-The first statement is an example of I<X<extended identifiers>>. Extended
-identifiers are used extensively in the definition of the language, for
-instance, to define L<terms|language/syntax#Term_term:%3C%3E>. They include a
-colon C<:> in their name, and might include a bracketing-quoting construct such
-as C<«»>, C«<>» or C<['']>. These bracketing constructs are interchangeable. For
-instance
-
-    my $foo:bar<baz> = 'quux';
-    say $foo:bar«baz»; # OUTPUT: «quux␤»
-    my $take-me:<home> = 'When the glory has no end';
-    say $take-me:['home'];# OUTPUT: «When the glory has no end␤»
-
-This extended syntax is used, for intance, for module versions and
-authors in the shape:
-C«HTTP::UserAgent:ver<1.1.16>:auth<github:sergot>».
-
-Colonpairs with empty key (e.g. C«:<foo>») aer reserved in subroutine
-names, as they're used to introduce
-L<a new custom operator|/language/functions#Defining_operators> into
-a particular category. Starting with 6.d language, colonpairs with
-C<sym> key (e.g. C«:sym<foo>») are reserved for possible future use.
-
-There are slight differences between the three constructs: C«<>» cannot be used
-for interpolation of constant names.
-
-    constant $what= 'are';
-    my @we:<are>= <the champions>;
-    say @we:«$what»; # «[the champions]␤»
-
-This example, similar to the one used above, shows how constants can be
-interpolated into a variable name. Only constants can be used for this;
-using C«@we:<$what>» instead would yield an error; using C«@we:[$what]»,
-however, would be no problem.
-
-Unicode superscript numerals are exponents and not part of an
-identifier; e.g. C<$x²> does the square of variable C<$x>.  Subscript
-numerals are TBD.
+    say $bur::($buz);               # OUTPUT: «7␤»
 
 =head2 Term term:<>
 
