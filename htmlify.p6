@@ -315,6 +315,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
     my $name = $filename;
     my Bool $section = ($pod.config<class>:exists and $pod.config<class> eq 'section-start');
+    my Str $link = $pod.config<link> // $filename;
     my $first = $pod.contents[0];
     if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
         $name = $pod.contents[0].contents[0].contents[0];
@@ -355,7 +356,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         :$kind,
         :$name,
         :$pod,
-        :url("/$kind/$filename"),
+        :url("/$kind/$link"),
         :$summary,
         :$pod-is-complete,
         :subkinds($kind),
@@ -900,7 +901,7 @@ sub write-index-files($manage) {
 
     # sort language index by file name to allow author control of order
     say 'Writing html/language.html ...';
-    if $manage { 
+    if $manage {
         my @p-chunks;
         my @end;
         for $*DR.lookup('language', :by<kind>).list {

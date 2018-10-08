@@ -188,7 +188,7 @@ sub write-Language-files() {
                     else {
                         #$fh.say: "$line :page-order<{$page-order}>";
                         $fh.say: "# THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
-                        $fh.say: $line;
+                        $fh.say: $line ~ " :link<$key-fname>";
                         #$fh.say: "=comment THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
                     }
                     next;
@@ -450,6 +450,7 @@ sub help {
         -n      - create  (for mode 'control')
         -h      - extended help
         -d      - debug
+        -m    - manage (include the categories)
 
     Note: The modes are selected by entering either the first letter
           of the mode name or its complete name.
