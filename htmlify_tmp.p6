@@ -178,7 +178,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Int  :$parallel = 1,
-    Bool :$manage = False,
+    Bool :$control = False
 ) {
     if !$no-highlight {
         if ! $coffee-exe.IO.f {
@@ -216,22 +216,19 @@ sub MAIN(
         spurt "html{$doc.url}.html",
             p2h($doc.pod, 'programs', pod-path => $pod-path);
     }
-
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
         spurt "html{$doc.url}.html",
             p2h($doc.pod, 'language', pod-path => $pod-path);
     }
-
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
     }
 
-
     write-disambiguation-files if $disambiguation;
     write-search-file          if $search-file;
-    write-index-files($manage);
+    write-index-files($control);
 
     for (set(<routine syntax>) (&) set($*DR.get-kinds)).keys -> $kind {
         write-kind $kind;
@@ -243,7 +240,6 @@ sub MAIN(
     }
 
     spurt('links.txt', $url-log.URLS.sort.unique.join("\n"));
-
 }
 
 sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
@@ -314,17 +310,7 @@ sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel)
 sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
     my $name = $filename;
-    my Bool $section = ($pod.config<class>:exists and $pod.config<class> eq 'section-start');
     my $first = $pod.contents[0];
-    if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
-        $name = $pod.contents[0].contents[0].contents[0];
-        if $kind eq "type" {
-            $name = $name.split(/\s+/)[*-1];
-        }
-    }
-    else {
-        note "$filename does not have a =TITLE";
-    }
     if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
         $name = $pod.contents[0].contents[0].contents[0];
         if $kind eq "type" {
@@ -359,7 +345,6 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         :$summary,
         :$pod-is-complete,
         :subkinds($kind),
-        :$section,
         |%type-info,
     );
 
@@ -878,7 +863,7 @@ sub write-disambiguation-files() {
     say '';
 }
 
-sub write-index-files($manage) {
+sub write-index-files($control) {
     say 'Writing html/index.html and html/404.html...';
     spurt 'html/index.html',
         p2h(extract-pod('doc/HomePage.pod6'),
@@ -898,33 +883,54 @@ sub write-index-files($manage) {
         ]}))
     ), 'programs');
 
-    # sort language index by file name to allow author control of order
     say 'Writing html/language.html ...';
-    if $manage { 
-        my @p-chunks;
-        my @end;
-        for $*DR.lookup('language', :by<kind>).list {
-            if .section {
-                @p-chunks.push( pod-table(@end.map({[
-                    pod-link(.name, .url),
-                    .summary
-                ]})) ) if +@end;
-                @p-chunks.push: pod-heading( .name, :level(2) );
-                @end = ();
-            } else {
-                @end.push: $_;
+    if $control and 'Language/00-POD6-CONTROL'.IO ~~ :f {
+        # sort according to control file
+        my %processed =  $*DR.lookup('language', :by<kind>).map( {
+            .name => (:url( .url), :summary( .summary), :used(False) )
+        } );
+        my  @sections;
+        my @body;
+        for 'Languages/00-POD6-CONTROL'.IO.lines {
+            next if /^ \s* '#' /;
+            if / ^ \s* $<title>=( .+ ) \s* $ / {
+                my @rows;
+                @body := @rows;
+                @sections.push: ( :title(~$<title>), :body(@rows)).hash;
+            }
+            if / ^ \s* $<title>=(.+) 'FILE:' \s* $<file>=( \S+ ) / {
+                with %processed{~$<file>} {
+                    @body.push: ( :title(~$<title>), :url( %processed{~$<file>}<url>), :summary( %processed{~$<file>}<summary>));
+                    %processed{~$<file>}<used> = True;
+                }
+                else {
+                    @body.push: ( :title("Missing"), :url( ''), :summary( "File $<file> requested in CONTROL block, but missing in pod"));
+                    %processed{~$<file>}<used> = True;
+                }
             }
         }
-        @p-chunks.push( pod-table(@end.map({[
-            pod-link(.name, .url),
-            .summary
-            ]})) ) if +@end;
+        # make sure all files in documents registry are used
+        my @uncategorised;
+        for %processed.kv -> $k, %v {
+            next if %v<used>;
+            @uncategorised.push: ( $k => %v);
+        }
+        if +@uncategorised {
+            @sections.push: (:title('Pages Not in a Category'), :body(@uncategorised) );
+        }
         spurt 'html/language.html', p2h(pod-with-title(
             'Perl 6 Language Documentation',
-            pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
-            @p-chunks
-        ), 'language');
+            @sections.map( {
+                pod-block( .title ,
+                    .body.map( {
+                        pod-table( [ pod-link(.name, .url), .summary ] )
+                    })
+                )
+            }),
+            'language')
+        );
     } else {
+        # sort language index by file name to allow author control of order
         spurt 'html/language.html', p2h(pod-with-title(
             'Perl 6 Language Documentation',
             pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
@@ -934,7 +940,6 @@ sub write-index-files($manage) {
             ]}))
         ), 'language');
     }
-
     my &summary;
     &summary = {
         .[0].subkinds[0] ne 'role' ?? .[0].summary !!
