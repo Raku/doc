@@ -7,7 +7,7 @@
 This page attempts to provide a fast-path to the changes in syntax and
 semantics from Perl 5 to Perl 6. Whatever worked in Perl 5 and must be
 written differently in Perl 6, should be listed here (whereas many
-I<new> Perl 6 features and idioms are not).
+I<new> Perl 6 features and idioms need not).
 
 Hence this should not be mistaken for a beginner tutorial or a
 promotional overview of Perl 6; it is intended as a technical reference
@@ -284,12 +284,13 @@ first $coderef, @values, :k;
 =end item
 
 =begin item
-C<&foo;> I<and> C<goto &foo;> I<for re-using the caller's argument list /
-replacing the caller in the call stack>. Perl 6 can use either L<C<callsame>|/language/functions#index-entry-dispatch_callsame> for re-dispatching or L<C<nextsame>|/language/functions#index-entry-dispatch_nextsame> and L<C<nextwith>|/language/functions#index-entry-dispatch_nextwith>, which have no exact equivalent in Perl 5.
-
-=begin comment
-    # TODO: Suggest .nextsame and .nextwith once they've been implemented in Rakudo.
-=end comment
+C<&foo;> I<and> C<goto &foo;> I<for re-using the caller's argument
+list / replacing the caller in the call stack>. Perl 6 can use either
+L<C<callsame>|/language/functions#index-entry-dispatch_callsame> for
+re-dispatching or
+L<C<nextsame>|/language/functions#index-entry-dispatch_nextsame> and
+L<C<nextwith>|/language/functions#index-entry-dispatch_nextwith>, which have no
+exact equivalent in Perl 5.
 
 =for code :lang<perl5>
 sub foo { say "before"; &bar;     say "after" } # Perl 5
@@ -320,8 +321,8 @@ foo(3); # /language/functions#index-entry-dispatch_callsame
 In Perl 5, the C<*> sigil referred to the GLOB structure that Perl uses to
 store non-lexical variables, filehandles, subs, and formats.
 
-(This should not be confused with the Perl 5 built-in C<glob()> function,
-which reads filenames from a directory).
+N<This should not be confused with the Perl 5 built-in C<glob()> function,
+which reads filenames from a directory.>
 
 You are most likely to encounter a GLOB in code written on a early Perl
 version that does not support lexical filehandles, when a filehandle needed
@@ -1126,6 +1127,43 @@ As with Perl 5, comments work as usual in regexes.
 
     / word #`(match lexical "word") /
 
+=head1 BEGIN, UNITCHECK, CHECK, INIT and END
+
+Except for C<UNITCHECK>, all of these special blocks exist in Perl 6 as well.
+In Perl 6, these are called L<Phasers|/language/phasers>.   But there are some
+differences!
+
+=head2 UNITCHECK becomes CHECK
+
+There is currently B<no> direct equivalent of C<CHECK> blocks in Perl 6.
+The C<CHECK> phaser in Perl 6 has the same semantics as the C<UNITCHECK>
+block in Perl 5: it gets run whenever the compilation unit in which it
+occurs, has finished parsing.  This is considered a much saner semantic
+than the current semantics of C<CHECK> blocks in Perl 5.  But for
+compatibility reasons, it was impossible to change the semantics of C<CHECK>
+blocks in Perl 5, so a C<UNITCHECK> block was introduced in 5.10.  So it
+was decided that the Perl 6 C<CHECK> phaser would follow the saner Perl 5
+C<UNITCHECK> semantics.
+
+=head2 No block necessary
+
+In Perl 5, these special blocks B<must> have curly braces, which implies a
+separate scope.  In Perl 6 this is not necessary, allowing these special
+blocks to share their scope with the surrounding lexical scope.
+
+=for code :lang<perl5>
+my $foo;             # Perl 5
+BEGIN { $foo = 42 }
+=for code
+BEGIN my $foo = 42;  # Perl 6
+
+=head2 Changed semantics with regards to precompilation
+
+If you put C<BEGIN> and C<CHECK> phasers in a module that is being
+precompiled, then these phasers will B<only> be executed during precompilation
+and B<not> when a precompiled module is being loaded.  So when porting module
+code from Perl 5, you may need to change C<BEGIN> and C<CHECK> blocks to
+C<INIT> blocks to ensure that they're run when loading that module.
 
 =head1 Pragmas
 
@@ -1218,7 +1256,8 @@ tau, pi, e, i; # built-in constants in Perl 6
 
 =head3 C<encoding>
 
-TODO Allows you to write your script in non-ascii or non-utf8.
+Allows you to write your script in non-ascii or non-utf8. Perl 6 uses, for the
+time being, only utf8 for its scripts.
 
 =head3 C<integer>
 
@@ -1233,9 +1272,9 @@ say $foo * $bar;    # uses native integer multiplication
 
 =head3 C<lib>
 
-Manipulate where modules are looked up at compile time.  The underlying logic
-is B<very> different from Perl 5, but in most cases, C<use lib> in Perl 6
-works the same as in Perl 5.
+Manipulate where modules are looked up at compile time.  The underlying logic is
+B<very> different from Perl 5, but in the case you are using a equivalent
+syntax, C<use lib> in Perl 6 works the same as in Perl 5.
 
 =head3 C<mro>
 
@@ -1332,7 +1371,8 @@ This is now the default behavior.
 
 =item C<-S>, C<-T>.
 
-This has been eliminated. Several ways to L<replicate "taint" mode are discussed in Reddit|https://www.reddit.com/r/perl6/comments/718z4o/taint_mode_for_perl_6/>.
+This has been eliminated. Several ways to
+L<replicate "taint" mode are discussed in Reddit|https://www.reddit.com/r/perl6/comments/718z4o/taint_mode_for_perl_6/>.
 
 =head1 File-related operations
 
@@ -1370,7 +1410,7 @@ the C<lines> method on the result of C<slurp> instead:
 
     my @lines = "test-file".IO.slurp.lines;  # also auto-chomps
 
-=head2 Trapping the standard output of executables.
+=head2 Capturing the standard output of executables.
 
 Whereas in Perl 5 you would do:
 
@@ -1489,7 +1529,7 @@ C<is export> role on the relevant subs and I<all> subs with this role are
 then exported.  Hence, the following module C<Bar> exports the subs C<foo>
 and C<bar> but not C<baz>:
 
-=begin code :skip-test
+=begin code :skip-test<unit>
 unit module Bar;
 
 sub foo($a) is export { say "foo $a" }
