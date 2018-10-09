@@ -58,7 +58,7 @@ given $mode {
             do-update()
         } else {
             copy-dir-tree :fromdir('doc'), :todir('build')
-        };
+        }
     }
     default {
         EXIT("\$mode '$mode' is unknown");
@@ -450,7 +450,7 @@ sub help {
         -n      - create  (for mode 'control')
         -h      - extended help
         -d      - debug
-        -m    - manage (include the categories)
+        -m      - manage (include the categories)
 
     Note: The modes are selected by entering either the first letter
           of the mode name or its complete name.
