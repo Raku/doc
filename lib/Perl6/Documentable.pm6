@@ -1,7 +1,7 @@
 use URI::Escape;
 class Perl6::Documentable {
     has Str $.kind;        # type, language doc, routine, module
-    has Str $.section;     # for Language doc list breakdown by sections
+    has Bool $.section;     # for Language doc list breakdown by sections
     has Str @.subkinds;    # class/role/enum, sub/method, prefix/infix/...
     has Str @.categories;  # basic type, exception, operator...
 
