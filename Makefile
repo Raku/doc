@@ -7,7 +7,7 @@ COLON_Z              := :Z
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 # dependencies for a new doc/Language build:
 LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
-# set to True if the language index page is to be managed
+# Managing of the language index page
 USE_CATEGORIES := False
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
