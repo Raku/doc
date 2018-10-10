@@ -364,12 +364,12 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         |%type-info,
     );
 
-    find-definitions :$pod, :$origin, :url("/$kind/$filename");
-    find-references  :$pod, :$origin, :url("/$kind/$filename");
+    find-definitions :$pod, :$origin, :url("/$kind/$link");
+    find-references  :$pod, :$origin, :url("/$kind/$link");
 
     # Special handling for 5to6-perlfunc
-    if $filename eq '5to6-perlfunc' {
-      find-p5to6-functions(:$pod, :$origin, :url("/$kind/$filename"));
+    if $link.contains('5to6-perlfunc') {
+      find-p5to6-functions(:$pod, :$origin, :url("/$kind/$link"));
     }
 }
 
