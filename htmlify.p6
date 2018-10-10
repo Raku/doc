@@ -196,7 +196,7 @@ sub MAIN(
 
     my $*DR = Perl6::Documentable::Registry.new;
 
-#    say 'Reading type graph ...';
+    say 'Reading type graph ...';
     $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
     my %sorted-type-graph = $type-graph.sorted.kv.flat.reverse;
     write-type-graph-images(:force($typegraph), :$parallel);
@@ -229,7 +229,7 @@ sub MAIN(
     }
 
 
-#    write-disambiguation-files if $disambiguation;
+    write-disambiguation-files if $disambiguation;
     write-search-file          if $search-file;
     write-index-files($manage);
 
