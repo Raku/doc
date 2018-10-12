@@ -178,6 +178,7 @@ sub MAIN(
     Bool :$search-file = True,
     Bool :$no-highlight = False,
     Int  :$parallel = 1,
+    Bool :$manage = False,
 ) {
     if !$no-highlight {
         if ! $coffee-exe.IO.f {
@@ -215,19 +216,22 @@ sub MAIN(
         spurt "html{$doc.url}.html",
             p2h($doc.pod, 'programs', pod-path => $pod-path);
     }
+
     for $*DR.lookup("language", :by<kind>).list -> $doc {
         say "Writing language document for {$doc.name} ...";
         my $pod-path = pod-path-from-url($doc.url);
         spurt "html{$doc.url}.html",
             p2h($doc.pod, 'language', pod-path => $pod-path);
     }
+
     for $*DR.lookup("type", :by<kind>).list {
         write-type-source $_;
     }
 
+
     write-disambiguation-files if $disambiguation;
     write-search-file          if $search-file;
-    write-index-files;
+    write-index-files($manage);
 
     for (set(<routine syntax>) (&) set($*DR.get-kinds)).keys -> $kind {
         write-kind $kind;
@@ -239,6 +243,7 @@ sub MAIN(
     }
 
     spurt('links.txt', $url-log.URLS.sort.unique.join("\n"));
+
 }
 
 sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel) {
@@ -309,7 +314,18 @@ sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel)
 sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     my $summary = '';
     my $name = $filename;
+    my Bool $section = ($pod.config<class>:exists and $pod.config<class> eq 'section-start');
+    my Str $link = $pod.config<link> // $filename;
     my $first = $pod.contents[0];
+    if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
+        $name = $pod.contents[0].contents[0].contents[0];
+        if $kind eq "type" {
+            $name = $name.split(/\s+/)[*-1];
+        }
+    }
+    else {
+        note "$filename does not have a =TITLE";
+    }
     if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
         $name = $pod.contents[0].contents[0].contents[0];
         if $kind eq "type" {
@@ -340,19 +356,20 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
         :$kind,
         :$name,
         :$pod,
-        :url("/$kind/$filename"),
+        :url("/$kind/$link"),
         :$summary,
         :$pod-is-complete,
         :subkinds($kind),
+        :$section,
         |%type-info,
     );
 
-    find-definitions :$pod, :$origin, :url("/$kind/$filename");
-    find-references  :$pod, :$origin, :url("/$kind/$filename");
+    find-definitions :$pod, :$origin, :url("/$kind/$link");
+    find-references  :$pod, :$origin, :url("/$kind/$link");
 
     # Special handling for 5to6-perlfunc
-    if $filename eq '5to6-perlfunc' {
-      find-p5to6-functions(:$pod, :$origin, :url("/$kind/$filename"));
+    if $link.contains('5to6-perlfunc') {
+      find-p5to6-functions(:$pod, :$origin, :url("/$kind/$link"));
     }
 }
 
@@ -862,7 +879,7 @@ sub write-disambiguation-files() {
     say '';
 }
 
-sub write-index-files() {
+sub write-index-files($manage) {
     say 'Writing html/index.html and html/404.html...';
     spurt 'html/index.html',
         p2h(extract-pod('doc/HomePage.pod6'),
@@ -884,14 +901,40 @@ sub write-index-files() {
 
     # sort language index by file name to allow author control of order
     say 'Writing html/language.html ...';
-    spurt 'html/language.html', p2h(pod-with-title(
-        'Perl 6 Language Documentation',
-        pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
-        pod-table($*DR.lookup('language', :by<kind>).map({[
+    if $manage {
+        my @p-chunks;
+        my @end;
+        for $*DR.lookup('language', :by<kind>).list {
+            if .section {
+                @p-chunks.push( pod-table(@end.map({[
+                    pod-link(.name, .url),
+                    .summary
+                ]})) ) if +@end;
+                @p-chunks.push: pod-heading( .name, :level(2) );
+                @end = ();
+            } else {
+                @end.push: $_;
+            }
+        }
+        @p-chunks.push( pod-table(@end.map({[
             pod-link(.name, .url),
             .summary
-        ]}))
-    ), 'language');
+            ]})) ) if +@end;
+        spurt 'html/language.html', p2h(pod-with-title(
+            'Perl 6 Language Documentation',
+            pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
+            @p-chunks
+        ), 'language');
+    } else {
+        spurt 'html/language.html', p2h(pod-with-title(
+            'Perl 6 Language Documentation',
+            pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
+            pod-table($*DR.lookup('language', :by<kind>).map({[
+                pod-link(.name, .url),
+                .summary
+            ]}))
+        ), 'language');
+    }
 
     my &summary;
     &summary = {

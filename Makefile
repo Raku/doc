@@ -7,6 +7,8 @@ COLON_Z              := :Z
 SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
 # dependencies for a new doc/Language build:
 LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
+# Managing of the language index page
+USE_CATEGORIES := False
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-images \
@@ -17,10 +19,10 @@ LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
 html: gen-pod6-source bigpage htmlify
 
 htmlify: gen-pod6-source init-highlights assets
-	perl6 htmlify.p6
+	perl6 htmlify.p6 --manage=$(USE_CATEGORIES)
 
 gen-pod6-source: $(LANG_POD6_SOURCE) doc/Language/00-POD6-CONTROL
-	perl6 util/manage-page-order.p6 update
+	perl6 util/manage-page-order.p6 update --manage=$(USE_CATEGORIES)
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \

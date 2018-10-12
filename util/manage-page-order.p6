@@ -30,13 +30,14 @@ constant $TITLE    = '=TITLE';
 constant $SUBTITLE = '=SUBTITLE';
 constant $NBSPACE  = "\x[A0]";
 
-my $usage = "Usage: $*PROGRAM-NAME update | control [--debug --help]";
+my $usage = "Usage: $*PROGRAM-NAME update [--manage ] | control [--debug --help]";
 sub USAGE { say $usage }
 my %*SUB-MAIN-OPTS = named-anywhere => 1;
 unit sub MAIN(
     $mode = '',
     Bool :d(:$debug)   = False,
     Bool :h(:$help)    = False,
+    Bool :m(:$manage) = False,
     # special options for control:
     Bool :r(:$refresh) = False,
     Bool :n(:$new)     = False,
@@ -51,11 +52,13 @@ given $mode {
         do-control();
     }
     when /^u/ {
-        =begin comment
         EXIT("Options 'refresh' and 'new' are not used with 'update'.")
             if ($new || $refresh);
-        =end comment
-        do-update();
+        if $manage {
+            do-update()
+        } else {
+            copy-dir-tree :fromdir('doc'), :todir('build')
+        }
     }
     default {
         EXIT("\$mode '$mode' is unknown");
@@ -67,23 +70,20 @@ sub do-update () {
 
     # FIRST
     # write the auto-generated pod6 files used for the Language page
-    =begin comment
+
     # visit later
     write-Language-files();
-    =end comment
 
     # THEN
     # copy all under the doc dir to the build dir
     # NOTE this assumes the sort order is alpha by file name
     # NOTE we exclude the Language dir
-    =begin comment
     # visit later
     copy-dir-tree(:fromdir('doc'), :todir('build'), :exclude('Language'));
-    =end comment
-    copy-dir-tree :fromdir('doc'), :todir('build');
+    #copy-dir-tree :fromdir('doc'), :todir('build');
 }
 
-sub copy-dir-tree(:$fromdir, :$todir, :$exclude) {
+sub copy-dir-tree(:$fromdir, :$todir, :$exclude = '' ) {
     # recursively copy tree to another tree
     return if !$fromdir.IO.d;
 
@@ -142,7 +142,7 @@ sub write-Language-files() {
         next if $line !~~ /\S/;
 
         # line may be a group line or a pod6 data line
-        if $line ~~ /:i ^ \h* 'group:' (.*) / {
+        if $line ~~ /:i ^ \h* 'section:' (.*) / {
             # a new group
             my $group-char = shift @a;
 
@@ -188,7 +188,7 @@ sub write-Language-files() {
                     else {
                         #$fh.say: "$line :page-order<{$page-order}>";
                         $fh.say: "# THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
-                        $fh.say: $line;
+                        $fh.say: $line ~ " :link<$key-fname>";
                         #$fh.say: "=comment THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
                     }
                     next;
@@ -450,6 +450,7 @@ sub help {
         -n      - create  (for mode 'control')
         -h      - extended help
         -d      - debug
+        -m      - manage (include the categories)
 
     Note: The modes are selected by entering either the first letter
           of the mode name or its complete name.
@@ -472,7 +473,7 @@ sub write-group-page($group-char, $title, $page-order) {
     # note no SUBTITLE
     $fh.print: qq:to/HERE/;
         # THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST
-        =begin pod
+        =begin pod :class<section-start>
         =TITLE $title
         =SUBTITLE ~
         =end pod
