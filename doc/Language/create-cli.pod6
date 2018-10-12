@@ -24,7 +24,7 @@ This means that your MAIN subroutine may be a C<multi sub>, each candidate
 of which responsible for some part of processing the given command line
 arguments.
 
-=item creating / showing USAGE information calling MAIN failed
+=item creating / showing USAGE information if calling MAIN failed
 
 If multi dispatch failed, then the user of the script should be informed as
 well as possible as to why it failed.  By default, this is done by inspecting
@@ -278,6 +278,89 @@ C<$*USAGE> variable. It will be generated based on available C<sub MAIN>
 candidates and their parameters. As shown before, you can specify an
 additional extended description for each candidate using a 
 C<#|(...)> Pod block to set L«C<WHY>|/routine/WHY».
+
+=head1 Intercepting CLI argument parsing (2018.10, v6.d and later)
+
+You can replace / augment the default way of argument parsing by supplying a
+C<ARGS-TO-CAPTURE> subroutine yourself, or by importing one from any of
+the L<Getopt|https://modules.perl6.org/search/?q=getopt> modules available
+in the ecosystem.
+
+X<|ARGS-TO-CAPTURE>
+=head2 ARGS-TO-CAPTURE (2018.10, v6.d and later)
+
+The C<ARGS-TO-CAPTURE> subroutine should accept two parameters: a Callable
+representing the C<MAIN> unit to be executed (so it can be introspected if
+necessary) and an array with the arguments from the command line.  It
+should return a L<Capture|/type/Capture> object that should be used to
+dispatch the C<MAIN> unit.  A B<very> contrived example that will create
+a C<Capture> dependin on some keyword that was entered (which can be handy
+during testing of a command line interface of a script):
+
+    sub ARGS-TO-CAPTURE(&main, @args --> Capture) {
+        # if we only specified "frobnicate" as an argument
+        @args == 1 && @args[0] eq 'frobnicate'
+          # then dispatch as MAIN("foo","bar",verbose => 2)
+          ?? Capture.new( list => <foo bar>, hash => { verbose => 2 } )
+          # otherwise, use default processing of args
+          !! &*ARGS-TO-CAPTURE(&main, @args)
+    }
+
+Note that the dynamic variable L<&*ARGS-TO-CAPTURE> is available to perform
+the default command line arguments to C<Capture> processing, so you don't
+have to reinvent the whole wheel if you don't want to.
+
+X<|&*ARGS-TO-CAPTURE>
+=head2 &*ARGS-TO-CAPTURE (2018.10, v6.d and later)
+
+A dynamic variable available inside any custom C<ARGS-TO-CAPTURE> subroutine
+that can be used to perform the default argument parsing.  Takes the same
+parameters as are expected of the custom C<ARGS-TO-CAPTURE> subroutine.
+
+=head1 Intercepting usage message generation (2018.10, v6.d and later)
+
+You can replace / augment the default way of usage message generation
+(after a failed dispatch to MAIN) by supplying a C<GENERATE-USAGE> subroutine
+yourself, or by importing one from any of the
+L<Getopt|https://modules.perl6.org/search/?q=getopt> modules available in the
+ecosystem.
+
+X<|GENERATE-USAGE>
+=head2 GENERATE-USAGE (2018.10, v6.d and later)
+
+The C<GENERATE-USAGE> subroutine should accept a Callable representing the
+C<MAIN> subroutine that didn't get executed because the dispatch failed.
+This can be used for introspection.  All the other parameters are the
+parameters that were set up to be sent to C<MAIN>.  It should return the
+string of the usage information you want to be shown to the user.  An example
+that will just recreate the C<Capture> that was created from processing the
+arguments:
+
+    sub GENERATE-USAGE(&main, |capture) {
+        capture<foo>:exists
+          ?? "You're not allowed to specify a --foo"
+          !! &*GENERATE-USAGE(&main, |capture)
+    }
+
+You can also use multi subroutine to create the same effect:
+
+    multi sub GENERATE-USAGE(&main, :$foo!) {
+        "You're not allowed to specify a --foo"
+    }
+    multi sub GENERATE-USAGE(&main, |capture) {
+        &*GENERATE-USAGE(&main, |capture)
+    }
+
+Note that the dynamic variable L<&*GENERATE-USAGE> is available to perform
+the default usage message generation, so you don't have to reinvent the
+whole wheel if you don't want to.
+
+X<|&*GENERATE-USAGE>
+=head2 &*GENERATE-USAGE (2018.10, v6.d and later)
+
+A dynamic variable available inside any custom C<GENERATE-USAGE> subroutine
+that can be used to perform the default usage message creation.  Takes the
+same parameters as are expected of the custom C<GENERATE-USAGE> subroutine.
 
 =end pod
 
