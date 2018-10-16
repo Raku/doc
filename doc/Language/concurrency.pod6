@@ -308,17 +308,44 @@ following code outputs 0 .. 5 :
 
 X<C<whenever>|whenever>
 
-The X<C<whenever>|whenever> keyword can be used to manage one or more supplies. It can be used
-in a supply block, a react block and works with Channels, Promises, Supplies 
+The X<C<whenever>|whenever> keyword can be used in supply blocks or in react blocks. It introduces a block of code that will be run when prompted by an asynchronous event that it specifies - that could be a L<Supply>, a L<Channel>, a L<Promise> or an L<Iterable>.
 
-Whenever automatically supplies a tap to a supply.
+In this example we are watching two supplies.
 
+     my $bread-supplier = Supplier.new;
 
+     my $vegetable-supplier = Supplier.new;
+
+     my $supply = supply {
+
+            whenever $bread-supplier.Supply {
+
+                emit("We've got bread: " ~ $_);
+
+            };
+
+            whenever $vegetable-supplier.Supply {
+
+                emit("We've got a vegetable: " ~ $_);
+
+            };
+
+        }
+
+    $supply.tap( -> $v { say "$v" });
+
+    $vegetable-supplier.emit("Radish");   # OUTPUT: «We've got a vegetable: Radish␤»
+
+    $bread-supplier.emit("Thick sliced"); # OUTPUT: «We've got bread: Thick sliced␤»
+
+    $vegetable-supplier.emit("Lettuce");  # OUTPUT: «We've got a vegetable: Lettuce␤»
 
 
 =head3 X<C<react>|react>
 
-This could also be written using the C<react> keyword:
+The C<react> keyword introduces a block of code containing one or more 'whenever' keywords to watch asynchronous events. The main difference between a supply block and a react block is that the code in a react block runs where it appears in the code flow, whereas a supply block has to be tapped before it does anything.
+
+Another difference is that a supply block can be used without the 'whenever' keyword, but a react block requires at least one 'whenever' to be of any real use.
 
     react {
         whenever Supply.interval(2) -> $v {
