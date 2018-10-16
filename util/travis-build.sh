@@ -18,6 +18,7 @@ case "${BUILDENV}" in
       ZEF_BUILD="$HEAD_BUILD/share/perl6/site/bin"
       git clone https://github.com/ugexe/zef.git && cd zef && perl6 -Ilib bin/zef install . && cd ..
       export PATH="$PATH:$ZEF_BUILD"
+      zef --/tap-harness  install IO::Socket::SSL # Needs to be installed in advance
       zef --/tap-harness --depsonly install .
       mkdir build
     ;;
