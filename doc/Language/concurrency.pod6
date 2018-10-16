@@ -306,6 +306,20 @@ following code outputs 0 .. 5 :
     $supply.tap(-> $v { say $v });
     sleep 10;
 
+A second argument can be supplied to C<interval> which specifies a delay
+in seconds before the first event is fired. Each tap of a supply created
+by C<interval> has its own sequence starting from 0, as illustrated by
+the following:
+
+    my $supply = Supply.interval(2);
+    $supply.tap(-> $v { say "First $v" });
+    sleep 6;
+    $supply.tap(-> $v { say "Second $v"});
+    sleep 10;
+
+A live C<Supply> that keeps values until first tapped can be created with
+L<Supplier::Preserving|/type/Supplier::Preserving>.
+
 =head3 X<C<whenever>|whenever>
 
 The X<C<whenever>|whenever> keyword can be used in supply blocks or in react blocks. It introduces a block of code that will be run when prompted by an asynchronous event that it specifies - that could be a L<Supply>, a L<Channel>, a L<Promise> or an L<Iterable>.
@@ -314,6 +328,7 @@ In this example we are watching two supplies.
 
      my $bread-supplier = Supplier.new;
      my $vegetable-supplier = Supplier.new;
+     
      my $supply = supply {
             whenever $bread-supplier.Supply {
                 emit("We've got bread: " ~ $_);
@@ -322,7 +337,9 @@ In this example we are watching two supplies.
                 emit("We've got a vegetable: " ~ $_);
             };
         }
+	
      $supply.tap( -> $v { say "$v" });
+     
      $vegetable-supplier.emit("Radish");   # OUTPUT: «We've got a vegetable: Radish␤»
      $bread-supplier.emit("Thick sliced"); # OUTPUT: «We've got bread: Thick sliced␤»
      $vegetable-supplier.emit("Lettuce");  # OUTPUT: «We've got a vegetable: Lettuce␤»
@@ -345,17 +362,6 @@ Here the C<whenever> keyword uses L«C<.act>|/type/Supply#method_act»
 to create a tap on the L<Supply> from the provided block. The C<react>
 block is exited when C<done()> is called in one of the taps. Using C<last> to exit the block would produce an error indicating that it's not really a loop construct.
 
-A second argument can be supplied to C<interval> which specifies a delay
-in seconds before the first event is fired. Each tap of a supply created
-by C<interval> has its own sequence starting from 0, as illustrated by
-the following:
-
-    my $supply = Supply.interval(2);
-    $supply.tap(-> $v { say "First $v" });
-    sleep 6;
-    $supply.tap(-> $v { say "Second $v"});
-    sleep 10;
-
 An C<on-demand> L<Supply> can also be created from a list of values that
 will be emitted in turn, thus the first C<on-demand> example could be
 written as:
@@ -366,8 +372,7 @@ written as:
         }
     }
 
-A live C<Supply> that keeps values until first tapped can be created with
-L<Supplier::Preserving|/type/Supplier::Preserving>.
+=head3 Transforming supplies
 
 An existing supply object can be filtered or transformed, using the methods
 C<grep> and C<map> respectively, to create a new supply in a manner like
@@ -399,6 +404,8 @@ to the C<map> is emitted:
          $supplier.emit($_);
      }
 
+=head3 Ending a supply
+
 If you need to have an action that runs when the supply finishes, you can do so
 by setting the C<done> and C<quit> options in the call to C<tap>:
 
@@ -414,6 +421,8 @@ The C<quit> block works very similar to a C<CATCH>. If the exception is marked
 as seen by a C<when> or C<default> block, the exception is caught and handled.
 Otherwise, the exception continues to up the call tree (i.e., the same behavior
 as when C<quit> is not set).
+
+=head3 Phasers in a supply or react block
 
 If you are using the C<react> or C<supply> block syntax with C<whenever>, you
 can add phasers within your C<whenever> blocks to handle the C<done> and C<quit>
