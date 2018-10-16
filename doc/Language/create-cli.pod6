@@ -1,0 +1,392 @@
+=begin pod :tag<perl6>
+
+=TITLE Command Line Interface
+
+=SUBTITLE Creating your own CLI in Perl 6
+
+X<|command line arguments>
+=head1 Command Line Interface - an overview
+
+The default command line interface of Perl 6 scripts consists of three parts:
+
+=item parsing the command line parameters into a L<capture|/type/Capture>
+
+This looks at the values in L<@*ARGS|/language/variables#index-entry-@*ARGS>,
+interprets these according to some policy, and creates a C<Capture> object
+out of that.  An alternative way of parsing may be provided by the developer
+or installed using a module.
+
+=item calling a provided MAIN subroutine using that capture
+
+Standard L<multi dispatch|/language/functions#index-entry-declarator_multi-Multi-dispatch>
+is used to call the MAIN subroutine with the generated C<Capture> object.
+This means that your MAIN subroutine may be a C<multi sub>, each candidate
+of which is responsible for some part of processing the given command line
+arguments.
+
+=item creating / showing USAGE information if calling MAIN failed
+
+If multi dispatch failed, then the user of the script should be informed as
+well as possible as to why it failed.  By default, this is done by inspecting
+the signature of each MAIN candidate sub, and any associated pod information.
+The result is then shown to the user on STDERR (or on STDOUT if C<--help>
+was specified).  An alternative way of generating the usage information may
+be provided by the developer or installed using a module.
+
+X<|MAIN>
+=head2 sub MAIN
+
+The sub with the special name C<MAIN> will be executed after all relevant entry
+phasers (C<BEGIN>, C<CHECK>, C<INIT>, C<PRE>, C<ENTER>) have been run and
+the mainline of the script has been executed.  No error will occur if there
+is no MAIN sub: your script will then just have to do the work, such as
+argument parsing, in the mainline of the script.
+
+Any normal exit from the MAIN sub will result in an exit code of C<0>,
+indicating success.  Any return value of the MAIN sub will be ignored.
+If an exception is thrown that is not handled inside the MAIN sub, then the
+exit code will be C<1>.  If the dispatch to MAIN failed, a usage message
+will be displayed on STDERR and the exit code will be C<2>.
+
+The command line parameters are present in the C<@*ARGS> dynamic variable
+and may be altered in the mainline of the script before the C<MAIN> unit is
+called.
+
+The signature of (the candidates of the multi) sub MAIN determines which
+candidate will actually be called using the standard
+L<multi dispatch|/language/glossary#index-entry-Multi-Dispatch> semantics.
+
+A simple example:
+
+    # inside file 'hello.p6'
+    sub MAIN($name) {
+        say "Hello $name, how are you?"
+    }
+
+If you call that script without any parameters:
+
+=begin code :lang<shell>
+$ perl6 hello.p6
+Usage:
+  hello.p6 <name>
+=end code
+
+However, if you give a default value for the parameter, running the script
+either with or without specifying a name will always work:
+
+    # inside file 'hello.p6'
+    sub MAIN($name = 'bashful') {
+        say "Hello $name, how are you?"
+    }
+
+=begin code :lang<shell>
+$ perl6 hello.p6
+Hello bashful, how are you?
+=end code
+
+=begin code :lang<shell>
+$ perl6 hello.p6 Liz
+Hello Liz, how are you?
+=end code
+
+Another way to do this is to make sub MAIN a C<multi sub>:
+
+    # inside file 'hello.p6'
+    multi sub MAIN()      { say "Hello bashful, how are you?" }
+    multi sub MAIN($name) { say "Hello $name, how are you?"   }
+
+Which would give the same output as the examples above.  Whether you should
+use either method to achieve the desired goal is entirely up to you.
+
+A more complicated example using a single positional and  multiple
+named parameters:
+
+=for code :method<False>
+    # inside "frobnicate.p6"
+    sub MAIN(
+      Str   $file where *.IO.f = 'file.dat',
+      Int  :$length = 24,
+      Bool :$verbose
+    ) {
+        say $length if $length.defined;
+        say $file   if $file.defined;
+        say 'Verbosity ', ($verbose ?? 'on' !! 'off');
+    }
+
+With C<file.dat> present, this will work this way:
+=begin code :lang<shell>
+$ perl6 frobnicate.p6
+24
+file.dat
+Verbosity off
+=end code
+
+Or this way with C<--verbose>:
+
+=begin code :lang<shell>
+$ perl6 frobnicate.p6 -v
+24
+file.dat
+Verbosity on
+=end code
+
+If the file C<file.dat> is not present, or you've specified another filename
+that doesn't exist, you would get the standard usage message created from
+introspection of the C<MAIN> sub::
+
+=begin code :lang<shell>
+$ perl6 frobnicate.p6 doesntexist.dat
+Usage:
+  frobnicate.p6 [--length=<Int>] [--verbose] [<file>]
+=end code
+
+Although you don't have to do anything in your code to do this, it may still
+be regarded as a bit terse.  But there's an easy way to make that usage
+message better by providing hints using pod features:
+
+=for code :method<False>
+    # inside "frobnicate.p6"
+    sub MAIN(
+      Str   $file where *.IO.f = 'file.dat',  #= an existing file to frobnicate
+      Int  :$length = 24,                     #= length needed for frobnication
+      Bool :$verbose,                         #= required verbosity
+    ) {
+        say $length if $length.defined;
+        say $file   if $file.defined;
+        say 'Verbosity ', ($verbose ?? 'on' !! 'off');
+    }
+
+Which would improve the usage message like this:
+
+=begin code :lang<shell>
+$ perl6 frobnicate.p6 doesntexist.dat
+Usage:
+  frobnicate.p6 [--length=<Int>] [--verbose] [<file>]
+
+    [<file>]          an existing file to frobnicate
+    --length=<Int>    length needed for frobnication
+    --verbose         required verbosity
+=end code
+
+X<|%*SUB-MAIN-OPTS>
+=head3 %*SUB-MAIN-OPTS
+
+It's possible to alter how arguments are processed before they're passed
+to C<sub MAIN {}> by setting options in the C<%*SUB-MAIN-OPTS> hash.  Due to
+the nature of dynamic variables, it is required to set up the
+C<%*SUB-MAIN-OPTS> hash and fill it with the appropriate settings.
+For instance:
+
+    my %*SUB-MAIN-OPTS =
+      :named-anywhere,    # allow named variables at any location
+      # other possible future options / custom options
+    ;
+    sub MAIN ($a, $b, :$c, :$d) {
+        say "Accepted!"
+    }
+
+Available options are:
+
+X<|named-anywhere>
+=head4 named-anywhere
+
+By default, named arguments passed to the program (i.e., C<MAIN>)
+cannot appear after any positional argument.  However, if
+C«%*SUB-MAIN-OPTS<named-anywhere>» is set to a true value, named arguments
+can be specified anywhere, even after positional parameter. For example,
+the above program can be called with:
+
+=begin code :lang<shell>
+$ perl6 example.p6 1 --c=2 3 --d=4
+=end code
+
+X<|hidden-from-USAGE>
+=head3 is hidden-from-USAGE
+
+Sometimes you want to exclude a MAIN candidate from being shown in any
+automatically generated USAGE message.  This can be achieved by adding
+a C<hidden-from-USAGE> trait to the specfication of the MAIN candidate
+you do not want to show.  Expanding on an earlier example:
+
+    # inside file 'hello.p6'
+    multi sub MAIN() is hidden-from-USAGE {
+        say "Hello bashful, how are you?"
+    }
+    multi sub MAIN($name) {  #= the name by which you would like to be called
+        say "Hello $name, how are you?"
+    }
+
+So, if you would call this script with just a named variable, you would get
+the following usage:
+
+=begin code :lang<shell>
+$ perl6 hello.p6 --verbose
+Usage:
+  hello.p6 <name> -- the name by which you would like to be called
+=end code
+
+Without the C<hidden-from-USAGE> trait on the first candidate, it would have
+looked like this:
+
+=begin code :lang<shell>
+$ perl6 hello.p6 --verbose
+Usage:
+  hello.p6
+  hello.p6 <name> -- the name by which you would like to be called
+=end code
+
+Which, although technically correct, doesn't read as well.
+
+X<|declarator,unit (MAIN)>
+=head2 Unit-scoped definition of MAIN
+
+If the entire program body resides within C<MAIN>, you can use the C<unit>
+declarator as follows (adapting an earlier example):
+
+=begin code :skip-test<unit>
+unit sub MAIN(
+  Str   $file where *.IO.f = 'file.dat',
+  Int  :$length = 24,
+  Bool :$verbose,
+);  # <- note semicolon here
+
+say $length if $length.defined;
+say $file   if $file.defined;
+say 'Verbosity ', ($verbose ?? 'on' !! 'off');
+# rest of script is part of MAIN
+=end code
+
+Note that this is only appropriate if you can get by with just a single
+(only) sub MAIN.
+
+X<|USAGE>X<|$*USAGE>
+=head2 sub USAGE
+
+If no multi candidate of C<MAIN> is found for the given command line
+parameters, the sub C<USAGE> is called. If no such method is found,
+the compiler will output a default generated usage message.
+
+    #|(is it the answer)
+    multi MAIN(Int $i) { say $i == 42 ?? 'answer' !! 'dunno' }
+    #|(divide two numbers)
+    multi MAIN($a, $b){ say $a/$b }
+
+    sub USAGE() {
+        print Q:c:to/EOH/;
+        Usage: {$*PROGRAM-NAME} [number]
+
+        Prints the answer or 'dunno'.
+    EOH
+    }
+
+The default usage message is available inside C<sub USAGE> via the read-only
+C<$*USAGE> variable. It will be generated based on available C<sub MAIN>
+candidates and their parameters. As shown before, you can specify an
+additional extended description for each candidate using a
+C<#|(...)> Pod block to set L«C<WHY>|/routine/WHY».
+
+=head1 Intercepting CLI argument parsing (2018.10, v6.d and later)
+
+You can replace or augment the default way of argument parsing by supplying a
+C<ARGS-TO-CAPTURE> subroutine yourself, or by importing one from any of
+the L<Getopt|https://modules.perl6.org/search/?q=getopt> modules available
+in the ecosystem.
+
+X<|ARGS-TO-CAPTURE>
+=head2 sub ARGS-TO-CAPTURE
+
+The C<ARGS-TO-CAPTURE> subroutine should accept two parameters: a Callable
+representing the C<MAIN> unit to be executed (so it can be introspected if
+necessary) and an array with the arguments from the command line.  It
+should return a L<Capture|/type/Capture> object that should be used to
+dispatch the C<MAIN> unit.  A B<very> contrived example that will create
+a C<Capture> depending on some keyword that was entered (which can be handy
+during testing of a command line interface of a script):
+
+    sub ARGS-TO-CAPTURE(&main, @args --> Capture) {
+        # if we only specified "frobnicate" as an argument
+        @args == 1 && @args[0] eq 'frobnicate'
+          # then dispatch as MAIN("foo","bar",verbose => 2)
+          ?? Capture.new( list => <foo bar>, hash => { verbose => 2 } )
+          # otherwise, use default processing of args
+          !! &*ARGS-TO-CAPTURE(&main, @args)
+    }
+
+Note that the dynamic variable L<&*ARGS-TO-CAPTURE> is available to perform
+the default command line arguments to C<Capture> processing so you don't
+have to reinvent the whole wheel if you don't want to.
+
+X<|&*ARGS-TO-CAPTURE>
+=head2 &*ARGS-TO-CAPTURE
+
+A dynamic variable available inside any custom C<ARGS-TO-CAPTURE> subroutine
+that can be used to perform the default argument parsing.  Takes the same
+parameters as are expected of the custom C<ARGS-TO-CAPTURE> subroutine.
+
+=head1 Intercepting usage message generation (2018.10, v6.d and later)
+
+You can replace or augment the default way of usage message generation
+(after a failed dispatch to MAIN) by supplying a C<GENERATE-USAGE> subroutine
+yourself, or by importing one from any of the
+L<Getopt|https://modules.perl6.org/search/?q=getopt> modules available in the
+ecosystem.
+
+X<|GENERATE-USAGE>
+=head2 sub GENERATE-USAGE
+
+The C<GENERATE-USAGE> subroutine should accept a Callable representing the
+C<MAIN> subroutine that didn't get executed because the dispatch failed.
+This can be used for introspection.  All the other parameters are the
+parameters that were set up to be sent to C<MAIN>.  It should return the
+string of the usage information you want to be shown to the user.  An example
+that will just recreate the C<Capture> that was created from processing the
+arguments:
+
+    sub GENERATE-USAGE(&main, |capture) {
+        capture<foo>:exists
+          ?? "You're not allowed to specify a --foo"
+          !! &*GENERATE-USAGE(&main, |capture)
+    }
+
+You can also use multi subroutine to create the same effect:
+
+    multi sub GENERATE-USAGE(&main, :$foo!) {
+        "You're not allowed to specify a --foo"
+    }
+    multi sub GENERATE-USAGE(&main, |capture) {
+        &*GENERATE-USAGE(&main, |capture)
+    }
+
+Note that the dynamic variable L<&*GENERATE-USAGE> is available to perform
+the default usage message generation so you don't have to reinvent the
+whole wheel if you don't want to.
+
+X<|&*GENERATE-USAGE>
+=head2 &*GENERATE-USAGE
+
+A dynamic variable available inside any custom C<GENERATE-USAGE> subroutine
+that can be used to perform the default usage message creation.  Takes the
+same parameters as are expected of the custom C<GENERATE-USAGE> subroutine.
+
+=head1 Intercepting MAIN calling (before 2018.10, v6.e)
+
+An older interface enabled one to intercept the calling to C<MAIN> completely.
+This depended on the existence of a C<MAIN_HELPER> subroutine that would be
+called if a C<MAIN> subroutine was found in the mainline of a program.
+
+This interface was never documented.  However, any programs using this
+undocumented interface will continue to function until C<v6.e>.  From v6.d
+onward, the use of the undocumented API will cause a DEPRECATED message.
+
+Ecosystem modules can provide both the new and the old interface for
+compatibility with older versions of Perl 6: if a newer Perl 6 recognizes
+the new (documented) interface, it will use that.  If there is no new
+interface subroutine available, but the old C<MAIN_HELPER> interface is,
+then it will use the old interface.
+
+If a module developer decides to only offer a module for C<v6.d> or higher,
+then the support for the old interface can be removed from the module.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
