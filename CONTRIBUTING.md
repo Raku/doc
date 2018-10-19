@@ -94,27 +94,28 @@ with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
-    =TITLE role MyFunnyRole
+```perl6
+=TITLE role MyFunnyRole
 
-    =SUBTITLE Sentence or half-sentence about what it does
+=SUBTITLE Sentence or half-sentence about what it does
 
-        role MyFunnyRole does OtherRole is SuperClass { ... }
+    role MyFunnyRole does OtherRole is SuperClass { ... }
 
-    Longer description here about what this type is, and
-    how you can use it.
+Longer description here about what this type is, and
+how you can use it.
 
-        # usage example goes here
+    # usage example goes here
 
-    =head1 Methods
+=head1 Methods
 
-    =head2 method do-it
+=head2 method do-it
 
-        method do-it(Int $how-often --> Nil:D)
+    method do-it(Int $how-often --> Nil:D)
 
-    Method description here
+Method description here
 
-        MyFunnyRole.do-it(2);   # OUTPUT: «example output␤»
-
+    MyFunnyRole.do-it(2);   # OUTPUT: «example output␤»
+```
 
 When documenting a pair of a sub and a method with the same functionality, the
 heading should be `=head2 routine do-it`, and the next thing should be two or
@@ -125,12 +126,14 @@ comment `Z<>`.
 
 When providing a code example result or output, use this style:
 
-    # For the result of an expression.
-    1 + 2;     # RESULT: «3»
-    # For the output.
-    say 1 + 3; # OUTPUT: «3␤»
-    # For the explanatory comment
-    do-work;   # We call do-work sub
+```perl6
+# For the result of an expression.
+1 + 2;     # RESULT: «3»
+# For the output.
+say 1 + 3; # OUTPUT: «3␤»
+# For the explanatory comment
+do-work;   # We call do-work sub
+```
 
 ## Running tests
 
