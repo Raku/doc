@@ -418,9 +418,9 @@ using C<self>, not the shortcut.
 Note that if the relevant methods C<bless>, C<CREATE> of L<Mu>
 are not overloaded, C<self> will point to the type object in those methods.
 
-On the other hand, C<BUILDALL> and the submethods C<BUILD> and C<TWEAK> are
-called on instances, in different stages of initialization. In the latter two
-submethods, submethods of the same name from subclasses have not yet run, so
+On the other hand, the submethods C<BUILD> and C<TWEAK> are
+called on instances, in different stages of initialization. Submethods of the
+same name from subclasses have not yet run, so
 you should not rely on potentially virtual method calls inside these methods.
 
 =head2 Private methods
@@ -524,7 +524,7 @@ declared type:
     =end code
 
 X<|new (method)>
-=head2 X<Object construction|BUILDALL (method)>
+=head2 Object construction
 
 Objects are generally created through method calls, either on the type
 object or on another object of the same type.
@@ -544,8 +544,8 @@ L<arguments|/language/functions#Arguments> and uses them to initialize public at
     # OUTPUT: «y: 2␤»
 
 C<Mu.new> calls method L<bless> on its invocant, passing all the named
-L<arguments|/language/functions#Arguments>. C<bless> creates the new object and then calls method C<BUILDALL>
-on it. C<BUILDALL> walks all subclasses in reverse method resolution order
+L<arguments|/language/functions#Arguments>. C<bless> creates the new object,
+and then walks all subclasses in reverse method resolution order
 (i.e. from L<Mu> to most derived classes) and in each class checks for the
 existence of a method named C<BUILD>. If the method exists, the method is
 called with all the named arguments from the C<new> method. If not, the public
@@ -558,10 +558,11 @@ After the C<BUILD> methods have been called, methods named C<TWEAK> are
 called, if they exist, again with all the named arguments that were passed
 to C<new>.  See an example of its use below.
 
-Due to the default behavior of C<BUILDALL> and C<BUILD>
-submethods, named arguments to the constructor C<new> derived from C<Mu> can
+Due to the default behavior of C<BUILD> annd C<TWEAK> submethods, named
+arguments to the constructor C<new> derived from C<Mu> can
 correspond directly to public attributes of any of the classes in the method
-resolution order, or to any named parameter of any C<BUILD> submethod.
+resolution order, or to any named parameter of any C<BUILD> or C<TWEAK>
+submethod.
 
 This object construction scheme has several implications for customized
 constructors. First, custom C<BUILD> methods should always be submethods,
@@ -620,24 +621,6 @@ Another thing to note is that the name C<new> is not special in Perl 6. It is
 merely a common convention, one that is followed quite thoroughly in L<most Perl 6
 classes|/routine/new>. You can call C<bless> from any method at all, or use
 C<CREATE> to fiddle around with low-level workings.
-
-Another pattern of hooking into object construction is by writing your own
-C<BUILDALL> method. To make sure that initialization of superclasses works fine,
-you need to C<callsame> to invoke the parent classes C<BUILDALL>.
-
-    =begin code
-    class MyClass {
-        method BUILDALL(|) {
-            # initial things here
-
-            callsame;   # call the parent classes (or default) BUILDALL
-
-            # you can do final checks here.
-
-            self # return the fully built object
-        }
-    }
-    =end code
 
 The C<TWEAK> submethod allows you to check things or modify attributes after
 object construction:
