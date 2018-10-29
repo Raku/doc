@@ -89,6 +89,14 @@ example in the code.
         $x = frob();
     =end code
 
+### Complicated Examples
+
+Some examples are too complicated to be run using our EVAL trick.
+Tag these with `:solo`, and they will be run as a separate standalone
+script. This is slower, so only use it on those examples that require
+it. Anything using `unit` or `export` is a good candidate. Note that
+using this tag means the code is not wrapped as it is for the EVAL path.
+
 ### Failures
 
 Some examples fail with compile time exceptions and would interrupt the test
