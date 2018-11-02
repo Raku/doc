@@ -1,0 +1,204 @@
+=begin pod :tag<perl6>
+
+=TITLE Regexes: Best Practices and gotchas
+
+=SUBTITLE Some tips on regexes and grammars
+
+To help with robust regexes and grammars, here are some best practices
+for code layout and readability, what to actually match, and avoiding common
+pitfalls.
+
+=head1 Code layout
+
+Without the C<:sigspace> adverb, whitespace is not significant in Perl 6
+regexes. Use that to your own advantage and insert whitespace where it
+increases readability. Also, insert comments where necessary.
+
+Compare the very compact
+
+    my regex float { <[+-]>?\d*'.'\d+[e<[+-]>?\d+]? }
+
+to the more readable
+
+    my regex float {
+         <[+-]>?        # optional sign
+         \d*            # leading digits, optional
+         '.'
+         \d+
+         [              # optional exponent
+            e <[+-]>?  \d+
+         ]?
+    }
+
+As a rule of thumb, use whitespace around atoms and inside groups; put
+quantifiers directly after the atom; and vertically align opening and closing
+square brackets and parentheses.
+
+When you use a list of alternations inside parentheses or square brackets, align
+the vertical bars:
+
+    my regex example {
+        <preamble>
+        [
+        || <choice_1>
+        || <choice_2>
+        || <choice_3>
+        ]+
+        <postamble>
+    }
+
+=head1 Keep it small
+
+Regexes are often more compact than regular code. Because they do so much with
+so little, keep regexes short.
+
+When you can name a part of a regex, it's usually best to
+put it into a separate, named regex.
+
+For example, you could take the float regex from earlier:
+
+    my regex float {
+         <[+-]>?        # optional sign
+         \d*            # leading digits, optional
+         '.'
+         \d+
+         [              # optional exponent
+            e <[+-]>?  \d+
+         ]?
+    }
+
+And decompose it into parts:
+
+    my token sign { <[+-]> }
+    my token decimal { \d+ }
+    my token exponent { 'e' <sign>? <decimal> }
+    my regex float {
+        <sign>?
+        <decimal>?
+        '.'
+        <decimal>
+        <exponent>?
+    }
+
+That helps, especially when the regex becomes more complicated. For example,
+you might want to make the decimal point optional in the presence of an exponent.
+
+    my regex float {
+        <sign>?
+        [
+        || <decimal>?  '.' <decimal> <exponent>?
+        || <decimal> <exponent>
+        ]
+    }
+
+=head1 What to match
+
+Often the input data format has no clear-cut specification, or the
+specification is not known to the programmer. Then, it's good to be liberal
+in what you expect, but only so long as there are no possible ambiguities.
+
+For example, in C<ini> files:
+
+    =begin code :skip-test
+    [section]
+    key=value
+    =end code
+
+What can be inside the section header? Allowing only a word might be too
+restrictive. Somebody might write C<[two words]>, or use dashes, etc.
+Instead of asking what's allowed on the inside, it might be worth asking
+instead: I<what's not allowed?>
+
+Clearly, closing square brackets are not allowed, because C<[a]b]> would be
+ambiguous. By the same argument, opening square brackets should be forbidden.
+This leaves us with
+
+    token header { '[' <-[ \[\] ]>+ ']' }
+
+which is fine if you are only processing one line. But if you're processing
+a whole file, suddenly the regex parses
+
+    =begin code :lang<text>
+    [with a
+    newline in between]
+    =end code
+
+which might not be a good idea.  A compromise would be
+
+    token header { '[' <-[ \[\] \n ]>+ ']' }
+
+and then, in the post-processing, strip leading and trailing spaces and tabs
+from the section header.
+
+=head1 Matching whitespace
+
+The C<:sigspace> adverb (or using the C<rule> declarator instead of C<token>
+or C<regex>) is very handy for implicitly parsing whitespace that can appear
+in many places.
+
+Going back to the example of parsing C<ini> files, we have
+
+    my regex kvpair { \s* <key=identifier> '=' <value=identifier> \n+ }
+
+which is probably not as liberal as we want it to be, since the user might
+put spaces around the equals sign. So, then we may try this:
+
+    my regex kvpair { \s* <key=identifier> \s* '=' \s* <value=identifier> \n+ }
+
+But that's looking unwieldy, so we try something else:
+
+    my rule kvpair { <key=identifier> '=' <value=identifier> \n+ }
+
+But wait! The implicit whitespace matching after the value uses up all
+whitespace, including newline characters, so the C<\n+> doesn't have
+anything left to match (and C<rule> also disables backtracking, so no luck
+there).
+
+Therefore, it's important to redefine your definition of implicit whitespace
+to whitespace that is not significant in the input format.
+
+This works by redefining the token C<ws>; however, it only works for
+L<grammars|/language/grammars>:
+
+    grammar IniFormat {
+        token ws { <!ww> \h* }
+        rule header { \s* '[' (\w+) ']' \n+ }
+        token identifier  { \w+ }
+        rule kvpair { \s* <key=identifier> '=' <value=identifier> \n+ }
+        token section {
+            <header>
+            <kvpair>*
+        }
+
+        token TOP {
+            <section>*
+        }
+    }
+
+    my $contents = q:to/EOI/;
+        [passwords]
+            jack = password1
+            joy = muchmoresecure123
+        [quotas]
+            jack = 123
+            joy = 42
+    EOI
+    say so IniFormat.parse($contents);
+
+Besides putting all regexes into a grammar and turning them into tokens
+(because they don't need to backtrack anyway), the interesting new bit is
+
+        token ws { <!ww> \h* }
+
+which gets called for implicit whitespace parsing. It matches when it's not
+between two word characters (C<< <!ww> >>, negated "within word" assertion),
+and zero or more horizontal space characters. The limitation to horizontal
+whitespace is important, because newlines (which are vertical whitespace)
+delimit records and shouldn't be matched implicitly.
+
+Still, there's some whitespace-related trouble lurking. The regex C<\n+>
+won't match a string like C<"\n \n">, because there's a blank between the
+two newlines. To allow such input strings, replace C<\n+> with C<\n\s*>.
+
+=end pod
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
