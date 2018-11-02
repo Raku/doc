@@ -17,11 +17,13 @@ or a L<Whatever>-star C<*>. The latter is used to indicate that any version
 part is acceptable in another version that is compared to the current one.
 
     say v1.0.1 ~~ v1.*;     # OUTPUT: «True␤»
+    say v1.0.1 ~~ v1.*.1;   # OUTPUT: «True␤»
 
-Version literals can only contain numeric and L<Whatever> parts. They start
-with a lower-case C<v>, and are followed by at least one part. Multiple parts
-are separate with a dot C<.>. A trailing C<+> indicates that higher versions
-are OK in comparisons:
+Version literals can then contain, in its first part, C<v> and a number, and can
+be followed by alphanumeric and L<Whatever> parts, and can have a C<+> as a
+suffix. They start with a lower-case C<v>, and are followed by at least one
+part. Multiple parts are separate with a dot C<.>. A trailing C<+> indicates
+that higher versions are OK in comparisons:
 
     say v1.2 ~~ v1.0;       # OUTPUT: «False␤»
     say v1.2 ~~ v1.0+;      # OUTPUT: «True␤»
@@ -30,7 +32,20 @@ In comparisons, early parts take precedence over later parts.
 
     say v1.2 cmp v2.1;      # OUTPUT: «Less␤»
 
-Please note that method calls, including pseudo methods like C<WHAT> require
+The C<+> suffix is always taken into account in comparisons:
+
+    say v1.0.1+ <=> v1.0.1; # OUTPUT: «More␤»
+
+And C<*> (C<Whatever>) is too, and considered always C<Less> than whatever digit
+is in the corresponding part:
+
+    say v1.* <=> v1.0;      # OUTPUT: «Less␤»
+    say v1.* <= v1.0;       # OUTPUT: «True␤»
+    say v1.*+ <= v1.0;      # OUTPUT: «True␤»
+
+That happens even if the literal includes the C<+> suffix.
+
+Please note that method calls, including pseudo methods like C<WHAT>, require
 version literals to be enclosed with parentheses.
 
 =head1 Methods
@@ -39,7 +54,7 @@ version literals to be enclosed with parentheses.
 
     method new(Str:D $s)
 
-Creates a Version from a string C<$s>.  The string is combed
+Creates a C<Version> from a string C<$s>.  The string is combed
 for the numeric, alphabetic, and wildcard components of the version object.
 Any characters other than alphanumerics and asterisks are assumed
 to be equivalent to a dot.  A dot is also assumed between any adjacent
@@ -49,12 +64,15 @@ numeric and alphabetic characters.
 
     method parts(Version:D: --> List:D)
 
-Returns the list of parts that make up this Version object
+Returns the list of parts that make up this C<Version> object
 
     my $v1 = v1.0.1;
     my $v2 = v1.0.1+;
     say $v1.parts;                                    # OUTPUT: «(1 0 1)␤»
     say $v2.parts;                                    # OUTPUT: «(1 0 1)␤»
+
+The C<+> suffix is not a part of the object, but is taken into account in
+comparisons.
 
 =head2 method plus
 
