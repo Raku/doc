@@ -50,7 +50,9 @@ my @examples;
 
 my $counts = BagHash.new;
 for @files -> $file {
-    for extract-pod($file.IO).contents -> $chunk {
+    my @chunks = extract-pod($file.IO).contents;
+    while @chunks {
+        my $chunk = @chunks.pop;
         if $chunk ~~ Pod::Block::Code  {
             if $chunk.config<lang> && $chunk.config<lang> ne 'perl6' {
                 next; # Only testing Perl 6 snippets.
@@ -69,6 +71,10 @@ for @files -> $file {
                 'method',    $chunk.config<method> // "",
                 'solo',      $chunk.config<solo> // "",
             );
+        } else {
+            if $chunk.^can('contents') {
+                @chunks.push(|$chunk.contents)
+            }
         }
     }
 }
