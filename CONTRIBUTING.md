@@ -63,17 +63,18 @@ available when writing code examples in the documentation.
 
 ## Adding a new Language document
 
-We suggest you discuss proposing a new Language document on the #perl6 channel
+We suggest you discuss proposing a new Language document on the #perl6
+channel and/or the [issues for this repository](https://github.com/perl6/doc/issues)
 before you proceed further. After you get consensus on a title, subtitle,
 section, and filename, you can add the document by following these steps:
 
 + create a **filename.pod6** file in the **doc/Language** directory and
   ensure it adheres to the conventions in
-  [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md)
+  [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md).
 
 + create an entry for your new document in the Language directory's
   [00-POD6-CONTROL](doc/Language/00-POD6-CONTROL) file following
-  the instructions there
+  the instructions there.
 
 ## Documenting types
 
