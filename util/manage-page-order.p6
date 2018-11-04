@@ -167,7 +167,7 @@ sub write-Language-files() {
             $key-fname .= trim;
             my $fname = $key-fname ~ '.pod6';
             %actually-generated{$key-fname} = True;
-            
+
             # source filename
             my $from = "$fromdir/$fname";
 
