@@ -4,14 +4,15 @@
 
 =SUBTITLE A short tutorial on how to declare operators and create new ones.
 
-Operators are declared by C<sub>
-followed by C<prefix>, C<infix>, C<postfix>, C<circumfix>, or C<postcircumfix>;
+Operators are declared by using the C<sub> keyword followed by
+C<prefix>, C<infix>, C<postfix>, C<circumfix>, or C<postcircumfix>;
 then a colon and the operator name in a quote construct. For (post-)circumfix
 operators separate the two parts by white space.
 
     sub hello {
         say "Hello, world!";
     }
+
     say &hello.^name;   # OUTPUT: «Sub␤»
     hello;              # OUTPUT: «Hello, world!␤»
 
@@ -19,16 +20,47 @@ operators separate the two parts by white space.
     say $s.^name;       # OUTPUT: «Sub␤»
     say $s(2, 5);       # OUTPUT: «7␤»
 
-    sub postfix:<♥>($a){ say „I love $a!“ }
-    42♥;
-    # OUTPUT: «I love 42!␤»
-    sub postcircumfix:<⸨ ⸩>(Positional $a, Whatever){ say $a[0], '…', $a[*-1] }
-    [1,2,3,4]⸨*⸩;
-    # OUTPUT: «1…4␤»
+    # Alternatively we could create a more
+    # general operator to sum n numbers
+    sub prefix:<Σ>( *@number-list ) {
+        [+] @number-list
+    }
+
+    say Σ (13, 16, 1); # OUTPUT: «30␤»
+
+    sub infix:<:=:>( $a is rw, $b is rw ) {
+        ($a, $b) = ($b, $a)
+    }
+
+    my ($num, $letter) = ('A', 3);
+    say $num;          # OUTPUT: «A␤»
+    say $letter;       # OUTPUT: «3␤»
+
+    # Swap two variables' values
+    $num :=: $letter;
+
+    say $num;          # OUTPUT: «3␤»
+    say $letter;       # OUTPUT: «A␤»
+
+    sub postfix:<!>( Int $num where * >= 0 ) { [*] 1..$num }
+    say 0!;            # OUTPUT: «1␤»
+    say 5!;            # OUTPUT: «120␤»
+
+    sub postfix:<♥>( $a ) { say „I love $a!“ }
+    42♥;               # OUTPUT: «I love 42!␤»
+
+    sub postcircumfix:<⸨ ⸩>( Positional $a, Whatever ) {
+        say $a[0], '…', $a[*-1]
+    }
+
+    [1,2,3,4]⸨*⸩;      # OUTPUT: «1…4␤»
+
     constant term:<♥> = "♥"; # We don't want to quote "love", do we?
-    sub circumfix:<α ω>($a){ say „$a is the beginning and the end.“ };
-    α♥ω;
-    # OUTPUT: «♥ is the beginning and the end.␤»
+    sub circumfix:<α ω>( $a ) {
+        say „$a is the beginning and the end.“
+    };
+
+    α♥ω;               # OUTPUT: «♥ is the beginning and the end.␤»
 
 =end pod
 
