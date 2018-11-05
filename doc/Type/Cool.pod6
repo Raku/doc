@@ -1251,14 +1251,31 @@ Please see L<C<Str.words>|/type/Str#routine_words> for more examples.
 
 Defined as:
 
-    multi sub comb(Regex $matcher, Str(Cool) $input, $limit = * --> Seq)
-    multi method comb(Regex $matcher, $limit = * --> Seq)
+    multi sub comb(Regex $matcher, Cool $input, $limit = *)
+    multi sub comb(Str $matcher, Cool $input, $limit = *)
+    multi sub comb(Int:D $size, Cool $input, $limit = *)
+    multi method comb(|c)
 
-Returns all (or if supplied, at most C<$limit>) matches of the invocant
-(method form) or the second argument (sub form) against the
-L<Regex|/type/Regex> as a list of strings.
+Returns a list of all (or if supplied, at most C<$limit>) matches of the
+invocant (method form) or the second argument (sub form) against the
+L<Regex|/type/Regex>, string or defined number.
 
     say "6 or 12".comb(/\d+/).join(", ");           # OUTPUT: «6, 12␤»
+    say comb(/\d <[1..9]> /,(11..30)).join("--");
+    # OUTPUT:
+    # «11--12--13--14--15--16--17--18--19--21--22--23--24--25--26--27--28--29␤»
+
+The second statement exemplifies the first form of C<comb>, with a C<Regex> that
+excludes multiples of ten, and a C<Range> (which is C<Cool>) as C<$input>.
+C<comb> stringifies the C<Range> before applying C<.comb> on the resulting
+string. Check L<C<Str.comb>|/type/Str#routine_comb> for its effect on different
+kind of input strings. When the first argument is an integer, it indicates the
+(maximum) size of the chunks the input is going to be divided in
+
+    say comb(3,[3,33,333,3333]).join("*");# OUTPUT: «3 3*3 3*33 *333*3␤»
+
+In this case the input is a list, which after transformation to C<Str> (which
+includes the spaces) is divided in chunks of size 3.
 
 =head2 method contains
 
@@ -1288,16 +1305,15 @@ their components for obvious reasons.
 
 Defined as:
 
-    multi sub    index(Str(Cool) $s, Str:D $needle, Int(Cool) $startpos = 0 --> Int)
-    multi method index(Str(Cool) $needle, Int(Cool) $startpos = 0 --> Int)
+    multi sub index(Cool $s, Cool $needle, Cool $pos = 0)
+    method    index(Cool:D: |c)
 
-Coerces the first two arguments (in method form, also counting the
-invocant) to L<Str|/type/Str>, and searches for C<$needle> in the string
-starting from C<$startpos>. It returns the offset into the string where
-C<$needle> was found, and an undefined value if it was not found.
+Coerces the first two arguments (in method form, also counting the invocant) to
+a L<Str|/type/Str>, and searches for C<$needle> in the string C<$s> starting
+from C<$startpos>. It returns the offset into the string where C<$needle> was
+found, and an undefined value if it was not found.
 
-See L<the documentation in type Str|/type/Str#routine_index> for
-examples.
+See L<the documentation in type Str|/type/Str#routine_index> for examples.
 
 =head2 routine rindex
 
@@ -1451,7 +1467,7 @@ However, since the set of symbols in a lexical scope is immutable after
 compile time, an EVAL can never introduce symbols into the surrounding
 scope.
 
-=for code :skip-test
+=for code :skip-test<compile time error>
 EVAL 'my $lives = 9'; say $lives;   # error, $lives not declared
 
 Furthermore, the C<EVAL> is evaluated in the current package:
