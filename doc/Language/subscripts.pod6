@@ -898,23 +898,54 @@ sense, so don't feel compelled to implement it. If you don't, users will
 get an appropriate error message when they try to bind to a positional slot
 of an object of this type.
 
-=head2 method STORE
+=head3 method STORE
 
 =comment When modifying this section, please also adapt the STORE
          section in Associative accordingly as they are very similar.
 
     method STORE (::?CLASS:D: \values, :$initialize)
 
-This method should only be supplied if you want to support the:
+This method should only be supplied if you want to support this syntax:
 
 =for code :preamble<role Foo {}>
-    my @a is Foo = 1,2,3;
+my @a is Foo = 1,2,3;
 
-syntax for binding your implementation of the C<Positional> role.
+Which is used for binding your implementation of the C<Positional> role.
 
-Should accept the values to (re-)initialize the object with.  The optional
-named parameter will contain a C<True> value when the method is called on
-the object for the first time.  Should return the invocant.
+C<STORE> should accept the values to (re-)initialize the object with.  The
+optional named parameter will contain a C<True> value when the method is called
+on the object for the first time. It should return the invocant.
+
+=begin code
+class DNA {
+    has $.chain is rw;
+
+    method STORE ($chain where {
+                         $chain ~~ /^^ <[ACGT]>+ $$ / and
+                         $chain.chars %% 3
+                     }, :$initialize --> DNA) {
+        if $initialize {
+            self= DNA.new( chain => $chain )
+        } else {
+            self.chain = $chain;
+            self
+        }
+    }
+
+    method Str(::?CLASS:D:) { return $.chain.comb.rotor(3) }
+};
+
+my @string is DNA = 'GAATCC';
+say @string.Str;    # OUTPUT: «((G A A) (T C C))␤»
+@string = 'ACGTCG';
+say @string.Str;    # OUTPUT: «((A C G) (T C G))␤»
+=end code
+
+This code takes into account the value of C<$initialize>, which is set to
+C<True> only if we are assigning a value to a variable declared using the C<is>
+syntax for the first time. The C<STORE> method should set the C<self> variable
+an return it in all cases, including when the variable has already been
+initialized.
 
 =head2 Methods to implement for associative subscripting
 
