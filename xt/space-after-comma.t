@@ -55,7 +55,7 @@ sub test-it(Str $output, Str $file) {
         }
     }
     my $error = $file;
-    ok $ok, "$error: $msg";
+    ok $ok, $error ~ ($msg ?? ": $msg" !! "");
 }
 
 for @files -> $file {
