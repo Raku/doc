@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Insure any text that isn't a code example has a space after each comma.
+Ensure any text that isn't a code example has a space after each comma.
 
 =end overview
 
