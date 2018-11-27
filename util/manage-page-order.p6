@@ -136,6 +136,7 @@ sub write-Language-files() {
     my @a = 'A' .. 'Z';     # for the group pages
     my @n = '001' .. '999'; # page order for all files
 
+    my %actually-generated;
     for $cloc.IO.lines -> $line is copy {
         $line = strip-comment $line;
         say "DEBUG cloc line: '$line'" if $debug;
@@ -165,6 +166,7 @@ sub write-Language-files() {
             my $key-fname = substr $line, $idx+$n;
             $key-fname .= trim;
             my $fname = $key-fname ~ '.pod6';
+            %actually-generated{$key-fname} = True;
 
             # source filename
             my $from = "$fromdir/$fname";
@@ -198,6 +200,8 @@ sub write-Language-files() {
             $fh.close;
         }
     }
+    my $not-generated = %data.keys (-) %actually-generated.keys;
+    say "These files → $not-generated\nhave not been generated" if $not-generated;
 
     say "Normal end.";
     say "See new target files in dir '$todir'";

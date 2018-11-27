@@ -68,21 +68,24 @@ this method:
     my $p1 = Promise.start({ ;#`( do something here ) });
     my $p2 = start { ;#`( do something here ) };
 
-As of 6.d language, C<start> statement prefix used in L<sink> context will
-automatically attach an exceptions handler. If an exception occurs in the given
-code, it will be printed and the program will then exit, like if it were
-thrown without any C<start> statement prefixes involved.
+As of the 6.d version of the language, C<start> statement prefix used in
+L<sink> context will automatically attach an exceptions handler. If an
+exception occurs in the given code, it will be printed and the program
+will then exit, like if it were thrown without any C<start> statement
+prefixes involved.
 
-    =begin code
+    =begin code :solo
     use v6.c;
     start { die }; sleep ⅓; say "hello"; # OUTPUT: «hello␤»
     =end code
 
-    =begin code
-    use v6.d.PREVIEW;
+    =begin code :solo
+    use v6.d;
     start { die }; sleep ⅓; say "hello";
-    # OUTPUT: Died
-    # in block  at -e line 1
+    # OUTPUT:
+    # Unhandled exception in code scheduled on thread 4
+    # Died
+    #     in block  at -e line 1
     =end code
 
 If you wish to avoid this behaviour, use C<start> in non-sink context or
@@ -99,9 +102,10 @@ catch the exception yourself:
     # OUTPUT: «caught␤hello␤»
     =end code
 
-This behaviour exists only syntaxically and not as part of method L<sink>
-on L<Promise> object, thus sinking a L<Promise> object or having a C<start>
-block as return value of a routine won't trigger this behaviour.
+This behaviour exists only syntaxically, by using an alternate C<.sink> method
+for L<Promise> objects created by C<start> blocks in sink context, thus simply
+sinking a L<Promise> object that was created by other means won't trigger this
+behaviour.
 
 =head2 method in
 
@@ -148,11 +152,10 @@ a L<react and whenever block|/language/concurrency#index-entry-react-react>.
 
 =head2 method kept
 
-    multi method kept(Promise:U: --> Promise:D)
-    multi method kept(Promise:U: \result --> Promise:D)
+    multi method kept(Promise:U: \result = True --> Promise:D)
 
 Returns a new promise that is already kept, either with the given value,
-or with the default value True.
+or with the default value C<True>.
 
 =head2 method broken
 
@@ -160,7 +163,7 @@ or with the default value True.
     multi method broken(Promise:U: \exception --> Promise:D)
 
 Returns a new promise that is already broken, either with the given value,
-or with the default value "Died".
+or with the default value C«X::AdHoc.new(payload => "Died")»
 
 =head2 method allof
 
@@ -222,8 +225,7 @@ creates a chained promise.
 
 =head2 method keep
 
-    multi method keep(Promise:D:)
-    multi method keep(Promise:D: \result)
+    multi method keep(Promise:D: \result = True)
 
 Keeps a promise, optionally setting the result. If no result is passed, the
 result will be C<True>.
@@ -242,8 +244,7 @@ taken. See method C<vow> for more information.
 
 =head2 method break
 
-    multi method break(Promise:D:)
-    multi method break(Promise:D: \cause)
+    multi method break(Promise:D: \cause = False)
 
 Breaks a promise, optionally setting the cause. If no cause is passed, the
 cause will be C<False>.
@@ -284,7 +285,7 @@ C<Planned>.
 
 Returns the current state of the promise: C<Kept>, C<Broken> or C<Planned>:
 
-=for code :skip-test
+=for code :skip-test<compile time error>
 say "promise got Kept" if $promise.status ~~ Kept;
 
 =head2 method scheduler

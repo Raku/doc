@@ -277,7 +277,7 @@ variable holding a code object as an argument:
 first_index { $_ > 5 } @values;
 &first_index($coderef, @values); # (disabling the prototype that parses a
                                      # literal block as the first argument)
-=for code
+=for code :preamble<my @values; my $coderef>
 # Perl 6:
 first { $_ > 5 }, @values, :k;   # the :k makes first return an index
 first $coderef, @values, :k;
@@ -294,7 +294,8 @@ exact equivalent in Perl 5.
 
 =for code :lang<perl5>
 sub foo { say "before"; &bar;     say "after" } # Perl 5
-=for code
+
+=for code :preamble<sub bar() {...}>
 sub foo { say "before"; bar(|@_); say "after" } # Perl 6 - have to be explicit
 
 
@@ -1410,6 +1411,22 @@ the C<lines> method on the result of C<slurp> instead:
 
     my @lines = "test-file".IO.slurp.lines;  # also auto-chomps
 
+Also, be aware that $! is not really relevant for file IO operation failures in
+Perl 6. An IO operation that fails will return a failure instead of throwing an
+exception. If you want to return the failure message, it is in the failure
+itself, not in $!. To do similar IO error checking and reporting as in Perl 5:
+
+    my $fh = open('./bad/path/to/file', :w) or die $fh;
+
+Note: $fh instead of $!. Or, you can set $_ to the failure and die with $_:
+
+    my $fh = open('./bad/path/to/file', :w) orelse .die;
+
+Any operation that tries to use the failure will cause the program to fault and
+terminate. Even just a call to the C<.self> method is sufficient.
+
+    my $fh = open('./bad/path/to/file', :w).self;
+
 =head2 Capturing the standard output of executables.
 
 Whereas in Perl 5 you would do:
@@ -1529,7 +1546,7 @@ C<is export> role on the relevant subs and I<all> subs with this role are
 then exported.  Hence, the following module C<Bar> exports the subs C<foo>
 and C<bar> but not C<baz>:
 
-=begin code :skip-test<unit>
+=begin code :solo
 unit module Bar;
 
 sub foo($a) is export { say "foo $a" }
@@ -1553,12 +1570,10 @@ selectively import functions? For this one needs to define an C<EXPORT>
 sub inside the module which specifies the functions to be exported and
 remove the C<module Bar> statement.
 
-The module C<Bar> now is merely a file called C<Bar.pm> with the
+The module C<Bar> now is merely a file called C<Bar.pm6> with the
 following contents:
 
 =begin code :preamble<no strict;>
-use v6.c;
-
 sub EXPORT(*@import-list) {
     my %exportable-subs =
         '&foo' => &foo,
@@ -1630,7 +1645,7 @@ When you specify C<is export> in a sub declaration, you are in fact adding
 this subroutine to the C<:DEFAULT> export group.  But you can add a subroutine
 to another group, or to multiple groups:
 
-=for code :skip-test
+=for code :solo
 unit module Bar;
 sub foo() is export { }                   # added by default to :DEFAULT
 sub bar() is export(:FNORBL) { }          # added to the FNORBL export group

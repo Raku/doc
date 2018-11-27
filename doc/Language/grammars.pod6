@@ -204,8 +204,8 @@ A different token can be chosen to be matched first using the C<:rule> named
 argument to C<.parse>, C<.subparse>, or C<.parsefile>. These are all C<Grammar>
 methods.
 
-
-=head3 X<C<ws>|ws>
+X<|ws>
+=head3 C<ws>
 
 When C<rule> instead of C<token> is used, any whitespace after terms and closing
 parenthesis/brackets is turned into a non-capturing call to C<ws>,
@@ -264,7 +264,8 @@ This comes in handy when you're already differentiating the proto regexes with
 the strings you're going to match, as using C«<sym>» token prevents repetition
 of those strings.
 
-=head3 X«"Always succeed" assertion|<?>»
+X«|<?>»
+=head3 "Always succeed" assertion
 
 The C«<?>» is the I<always succeed> assertion. When used as a grammar
 token, it can be used to trigger an Action class method. In the following
@@ -273,9 +274,9 @@ succeed assertion.
 
 In the action class, we use calls to the C<succ> method to do set up (in this
 case, we prepare a new element in C<@!numbers>). In the C<digit> method,
-we convert an Arabic digit into a Devanagari digit and add it to the last
-element of C<@!numbers>. Thanks to C<succ>, the last element will always be
-the number for the currently parsed C<digit> digits.
+we use the Arabic digit as an index into a list of Devanagari digits and add
+it to the last element of C<@!numbers>. Thanks to C<succ>, the last element
+will always be the number for the currently parsed C<digit> digits.
 
     grammar Digifier {
         rule TOP {
@@ -287,7 +288,7 @@ the number for the currently parsed C<digit> digits.
 
     class Devanagari {
         has @!numbers;
-        method digit ($/) { @!numbers[*-1] ~= $/.ord.&[+](2358).chr }
+        method digit ($/) { @!numbers.tail ~= <०  १  २  ३  ४  ५  ६  ७  ८  ९>[$/] }
         method succ  ($)  { @!numbers.push: ''     }
         method TOP   ($/) { make @!numbers[^(*-1)] }
     }
@@ -416,6 +417,65 @@ attributes can be accessed in the match returned after parsing if made public:
     # OUTPUT: (Bool)
     say $<field>».invalid;
     # OUTPUT: [(Bool) True]
+=end code
+
+=head2 Passing arguments into grammars
+
+To pass arguments into a grammar, you can use the named argument of C<:args> on any of the parsing methods of grammar. The arguments passed should be in a C<list>.
+
+=begin code
+    grammar demonstrate-arguments {
+        rule TOP ($word) {
+        "I like" $word
+        }
+    }
+
+    # Notice the comma after "sweets" when passed to :args to coerce it to a list
+    say demonstrate-arguments.parse("I like sweets", :args(("sweets",))); # OUTPUT: «｢I like sweets｣␤»
+=end code
+
+Once the arguments are passed in, they can be used in a call to a named regex inside the grammar.
+
+=begin code
+    grammar demonstrate-arguments-again {
+        rule TOP ($word) {
+        <phrase-stem><added-word($word)>
+        }
+
+        rule phrase-stem {
+           "I like"
+        }
+
+        rule added-word($passed-word) {
+           $passed-word
+        }
+     }
+
+     say demonstrate-arguments-again.parse("I like vegetables", :args(("vegetables",)));
+     # OUTPUT: ｢I like vegetables｣␤»
+     # OUTPUT:  «phrase-stem => ｢I like ｣␤»
+     # OUTPUT:  «added-word => ｢vegetables｣␤»
+=end code
+
+Alternatively, you can initialise dynamic variables and use any arguments that way within the grammar.
+
+=begin code
+     grammar demonstrate-arguments-dynamic {
+         rule TOP ($*word, $*extra) {
+            <phrase-stem><added-words>
+         }
+         rule phrase-stem {
+            "I like"
+         }
+         rule added-words {
+            $*word $*extra
+         }
+      }
+
+     say demonstrate-arguments-dynamic.parse("I like everything else", :args(("everything", "else")));
+     # OUTPUT: «｢I like everything else｣␤»
+     # OUTPUT:  «phrase-stem => ｢I like ｣␤»
+     # OUTPUT:  «added-words => ｢everything else｣␤»
 =end code
 
 X<|Actions>

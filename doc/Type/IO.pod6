@@ -70,8 +70,8 @@ Use L«C<indir>|/routine/indir» instead.
 
 Defined as:
 
-=for code :skip-test
-PROCESS:<&chdir> = sub (IO() $path --> IO::Path:D)
+=for code
+PROCESS::<&chdir> = sub (IO() $path --> IO::Path:D) { }
 
 Changes value of C<$*CWD> variable to the provided C<$path> and sets
 the process's current directory to the value of
@@ -250,31 +250,38 @@ note 1..*;  # STDERR OUTPUT: «1..Inf␤»
 
 =head2 sub prompt
 
-    multi prompt()
-    multi prompt($msg)
+    multi sub prompt()
+    multi sub prompt($msg)
 
-L<Prints|/routine/print> C<$msg> to C<$*OUT> handle, if C<$msg> was provided,
-then L<gets|/routine/get> a line of input from C<$*IN> handle. By default,
-this is equivalent to printing C<$msg> to
-L<STDOUT|https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29>, reading a line from
+L<Prints|/routine/print> C<$msg> to C<$*OUT> handle if C<$msg> was provided,
+then L<gets|/routine/get> a line of input from C<$*IN> handle. By default, this
+is equivalent to printing C<$msg> to
+L<STDOUT|https://en.wikipedia.org/wiki/Standard_streams#Standard_output_.28stdout.29>,
+reading a line from
 L<STDIN|https://en.wikipedia.org/wiki/Standard_streams#Standard_input_.28stdin.29>,
-removing the trailing new line, and returning the resultant string. As of
-Rakudo 2018.08, C<prompt> will create L<allomorphs|/language/numerics#Allomorphs>
-for numeric values, equivalent to calling C<val prompt>.
+removing the trailing new line, and returning the resultant string. As of Rakudo
+2018.08, C<prompt> will create L<allomorphs|/language/numerics#Allomorphs> for
+numeric values, equivalent to calling C<val prompt>.
 
 =for code
 my $name = prompt "What's your name? ";
 say "Hi, $name! Nice to meet you!";
+my $age = prompt("Say your age (number)");
+my Int $years = $age;
+my Str $age-badge = $age;
+
+In the code above, C<$age> will be duck-typed to the allomorph L<IntStr> if it's
+entered corectly as a number.
 
 =head2 sub open
 
     multi sub open(IO() $path, |args --> IO::Handle:D)
 
 Creates L<a handle|/type/IO::Handle> with the given C<$path>, and calls
-L«C<IO::Handle.open>|/type/IO::Handle», passing any of the remaining arguments
-to it. Note that L<IO::Path> type provides numerous methods for reading and
-writing from files, so in many common cases you do not need to C<open> files
-or deal with L<IO::Handle> type directly.
+L«C<IO::Handle.open>|/type/IO::Handle#method_open», passing any of the
+remaining arguments to it. Note that L<IO::Path> type provides numerous
+methods for reading and writing from files, so in many common cases you
+do not need to C<open> files or deal with L<IO::Handle> type directly.
 
 =begin code
 my $fh = open :w, '/tmp/some-file.txt';
@@ -292,11 +299,19 @@ $fh.close;
 
 =head2 sub slurp
 
-Slurps the contents of the entire file into a C<Str> (or C<Buf> if C<:bin>).
-Accepts C<:bin> and C<:enc> optional named parameters, with the same meaning
-as L<open()|/routine/open>.  The routine will C<fail> if the file does not
-exist, or is a directory. Without any arguments, sub C<slurp> operates on
-C<$*ARGFILES>, which defaults to C<$*IN> in the absence of any filenames.
+Defined as:
+
+    multi sub slurp(IO::Handle:D $fh = $*ARGFILES, |c)
+    multi sub slurp(IO() $path, |c)
+
+Slurps the contents of the entire file into a C<Str> (or C<Buf> if
+C<:bin>). Accepts C<:bin> and C<:enc> optional named parameters, with
+the same meaning as L<open()|/routine/open>; possible encodings are the
+same as in all the other C<IO> methods and are listed in
+L<C<encoding>|/type/IO::Handle#method_encoding> routine.  The routine
+will C<fail> if the file does not exist, or is a directory. Without any
+arguments, sub C<slurp> operates on C<$*ARGFILES>, which defaults to
+C<$*IN> in the absence of any filenames.
 
 =begin code :skip-test
 # read entire file as (Unicode) Str

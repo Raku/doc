@@ -343,7 +343,7 @@ all values that have keys in both hashes.
 
 Hyper operators can take user-defined operators as their operator argument.
 
-    sub pretty-file-site (Int $size --> Str) {
+    sub pretty-file-size (Int $size --> Str) {
         # rounding version of infix:</>(Int, Int)
         sub infix:<r/>(Int \i1, Int \i2) {
             round(i1 / i2, 0.1)
@@ -362,7 +362,7 @@ Hyper operators can take user-defined operators as their operator argument.
 
     for 60, 50, 40, 30, 20, 10 -> $test {
         my &a = { (2 ** $test) * (1/4, 1/2, 1, 10, 100).pick * (1..10).pick };
-        print pretty-file-site(a.Int) xx 2, ' ';
+        print pretty-file-size(a.Int) xx 2, ' ';
     }
 
     # OUTPUT: «10 EB 4 EB 2 PB 5 PB 0.5 PB 4 TB 300 GB 4.5 GB 50 MB 200 MB 9 KB 0.6 MB␤»
@@ -423,7 +423,7 @@ quickly.
 
     1..3 X~ <a b> # RESULT: «<1a, 1b, 2a, 2b, 3a, 3b>␤»
 
-=head1 Zip operators
+=head1 Zip metaoperator
 X<|Z (zip metaoperator)>
 
 The zip metaoperator (which is not the same thing as L<Z|#infix_Z>) will
@@ -439,7 +439,8 @@ element of C<*> will repeat its 2nd last element indefinitely.
     my @l = <a b c d> Z~ ':' xx *;  # RESULT: «<a: b: c: d:>»
        @l = <a b c d> Z~ 1, 2, *;   # RESULT: «<a1 b2 c2 d2>»
 
-If an infix operator is not given, C<,> (comma operator) will be used by default:
+If an infix operator is not given, the C<,> (comma operator) will be used by
+default:
 
     my @l = 1 Z 2;  # RESULT: «[(1 2)]»
 
@@ -465,10 +466,9 @@ compiler understand you.
 
 =head2 term C«< >»
 
-The X<quote-words|qw;quote-words> construct breaks up the contents on whitespace and returns
-a L<List|/type/List> of the words. If a word
-looks like a number literal or a C<Pair> literal, it's converted to the
-appropriate number.
+The X<quote-words|qw;quote-words> construct breaks up the contents on whitespace
+and returns a L<List|/type/List> of the words. If a word looks like a number
+literal or a C<Pair> literal, it's converted to the appropriate number.
 
     say <a b c>[1];   # OUTPUT: «b␤»
 
@@ -492,12 +492,14 @@ being interpreted as a named argument.
 
 L<Block> or L<Hash> constructor.X<|block constructor;hash constructor>
 
-If the content is empty, or contains a single list that starts with a L<Pair> literal or
-C<%>-sigiled variable, and the L«C<$_> variable|/syntax/$_» or placeholder parameters are
-not used, the constructor returns a L<Hash>. Otherwise it constructs a L<Block>.
+If the content is empty, or contains a single list that starts with a L<Pair>
+literal or C<%>-sigiled variable, and the L«C<$_> variable|/syntax/$_» or
+placeholder parameters are not used, the constructor returns a L<Hash>.
+Otherwise it constructs a L<Block>.
 
 To force construction of a L<Block>, follow the opening brace with a semicolon.
-To always ensure you end up with a L<Hash>, you can use C<%( )> coercer or L<hash> routine instead:
+To always ensure you end up with a L<Hash>, you can use C<%( )> coercer or
+L<hash> routine instead:
 
     {}.^name.say;        # OUTPUT: «Hash␤»
     {;}.^name.say;       # OUTPUT: «Block␤»
@@ -576,23 +578,26 @@ in custom types.
 
 =head2 postcircumfix C«<>»
 
-Decontainerization operator, which extracts the value from a container and makes it independent of the container type.
+Decontainerization operator, which extracts the value from a container and makes
+it independent of the container type.
 
 =begin code
 use JSON::Tiny;
 
 my $config = from-json('{ "files": 3, "path": "/home/perl6/perl6.pod6" }');
-say $config.perl;            # OUTPUT: «${:files(3), :path("/home/perl6/perl6.pod6")}»
+say $config.perl;      # OUTPUT: «${:files(3), :path("/home/perl6/perl6.pod6")}»
 my %config-hash = $config<>;
-say %config-hash.perl;       # OUTPUT: «{:files(3), :path("/home/perl6/perl6.pod6")}»
+say %config-hash.perl; # OUTPUT: «{:files(3), :path("/home/perl6/perl6.pod6")}»
 =end code
 
-It's a C<Hash> in both cases, and it can be used like that; however, in the first case it was in item context, and in the second case it has been extracted to its proper context.
+It's a C<Hash> in both cases, and it can be used like that; however, in the
+first case it was in item context, and in the second case it has been extracted
+to its proper context.
 
 =head2 postcircumfix C«< >»
 
-Shortcut for L<C<postcircumfix { }>|/routine/{ }#(Operators)_postcircumfix_{_}> that quotes
-its argument using the same rules as the L«quote-words operator|
+Shortcut for L<C<postcircumfix { }>|/routine/{ }#(Operators)_postcircumfix_{_}>
+that quotes its argument using the same rules as the L«quote-words operator|
 /routine/< >#circumfix_<_>» of the same name.
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
@@ -721,15 +726,19 @@ X<Hyper method call operator>. Will call a method on all elements of a C<List> o
     say @a».&foo;                     # So we can pretend to have a method call with a sub that got a good first positional argument.
     say @a».&{ .ord};                 # Blocks have an implicit positional arguments that lands in $_. The latter can be omitted for method calls.
 
-Hyper method calls may appear to be the same as doing a L<map> call, however along with being a hint to the compiler
-that it can parallelize the call, the behaviour is also affected by L<nodality of the method|https://docs.perl6.org/routine/is%20nodal>
-being invoked, depending on which either L<nodemap> or L<deepmap> semantics are used to perform the call.
+Hyper method calls may appear to be the same as doing a L<map> call, however
+along with being a hint to the compiler that it can parallelize the call, the
+behaviour is also affected by
+L<nodality of the method|https://docs.perl6.org/routine/is%20nodal>
+being invoked, depending on
+which either L<nodemap> or L<deepmap> semantics are used to perform the call.
 
-The nodality is checked by looking up whether the L<Callable> provides C<nodal> method.
-If the hyper is applied to a method, that L<Callable> is that method name, looked up on L<List> type;
-if the hyper is applied to a routine (e.g. C<».&foo>), that routine functions as that L<Callable>. If the
-L<Callable> is determined to provide C<nodal> method, L<nodemap> semantics are used to perform the hyper call,
-otherwise L<duckmap> semantics are used.
+The nodality is checked by looking up whether the L<Callable> provides C<nodal>
+method. If the hyper is applied to a method, that L<Callable> is that method
+name, looked up on L<List> type; if the hyper is applied to a routine (e.g.
+C<».&foo>), that routine functions as that L<Callable>. If the L<Callable> is
+determined to provide C<nodal> method, L<nodemap> semantics are used to perform
+the hyper call, otherwise L<duckmap> semantics are used.
 
 Take care to avoid a
 L<common mistake|/language/traps#Using_»_and_map_interchangeably> of expecting
@@ -797,6 +806,15 @@ class or role, even after it has been redefined in the child class.
         method baz { "nope" }
     }
     say Foo.Bar::baz;       # OUTPUT: «42␤»
+
+=head2 postfix C<,=>
+
+Creates an object that concatenates, in a class-dependent way, the contents of
+the variable on the left hand side and the expression on the right hand side:
+
+    my %a = :11a, :22b;
+    %a ,= :33x;
+    say %a # OUTPUT: «{a => 11, b => 22, x => 33}␤»
 
 =head1 Autoincrement precedence
 
@@ -1750,7 +1768,7 @@ Mnemonic: I<less or equal>
     multi sub infix:<before>(Str:D,     Str:D)
     multi sub infix:<before>(Version:D, Version:D)
 
-Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
+Generic ordering, uses the same semantics as L<cmp|/routine/cmp>.
 Returns C<True> if the first argument is smaller than the second.
 
 =head2 infix C«after»
@@ -1760,7 +1778,7 @@ Returns C<True> if the first argument is smaller than the second.
     multi sub infix:<after>(Str:D,     Str:D)
     multi sub infix:<after>(Version:D, Version:D)
 
-Generic ordering, uses the same semantics as L<cmp|#infix cmp>.
+Generic ordering, uses the same semantics as L<cmp|/routine/cmp>.
 Returns C<True> if the first argument is larger than the second.
 
 =head2 infix C«eqv»
@@ -1961,7 +1979,7 @@ any arguments after a 2nd true result.
 
     say 0 ^^ 42;                             # OUTPUT: «42␤»
     say '' ^^ 0;                             # OUTPUT: «0␤»
-    say 0 ^^ 42 ^^ 1 ^^ die "never called";  # OUTPUT: «␤»
+    say 0 ^^ 42 ^^ 1 ^^ die "never called";  # OUTPUT: «Nil␤»
 
 Note that the semantics of this operator may not be what you assume: infix C«^^»
 flips to the first true value it finds and then flips to Nil I<forever> after the
@@ -2271,8 +2289,28 @@ and returns the result.
 
     sub infix:<,>(*@a --> List:D) is assoc<list>
 
-Constructs a L<List> from its arguments. Also used syntactically as the
-separator of arguments in calls.
+Constructs a higher-order L<Cool> from its arguments.
+
+    my @list = :god('Þor'), ['is',"mighty"];
+    say @list;      # OUTPUT: «[god => Þor [is mighty]]␤»
+    my %hash = :god('Þor'), :is("mighty");
+    say %hash.perl; # OUTPUT: «{:god("Þor"), :is("mighty")}␤»
+    my %a = :11a, :22b;
+    say %(%a, :33x);  # OUTPUT: «{a => 11, b => 22, x => 33}␤»
+
+In the first case it returns a L<List>, in the second case, since the arguments
+are L<Pair>s, it builds a L<Hash>.
+
+It can also be used for constructing variables from other variables, collating
+elements of different types, in this case a L<Hash> and a L<Pair>:
+
+=begin code :preamble<my %hash>
+my %features = %hash, :wields("hammer");
+say %features;  # OUTPUT: «{god => Þor, is => mighty, wields => hammer}␤»
+=end code
+
+The comma is slso used syntactically as the separator of arguments in calls.
+
 
 =head2 infix C«:»
 
@@ -2586,7 +2624,7 @@ good-things() notandthen 'boo'.say;
 
 =head2 infix C«or»
 
-Same as L<infix C<||>|#infix || >, except with looser precedence.
+Same as L<infix C<||>|/routine/||>, except with looser precedence.
 
 Returns the first argument that evaluates to C<True> in boolean context, or
 otherwise the last argument, it short-circuits. Please note that C<or> is easy
@@ -2626,7 +2664,7 @@ and L<Failure> never is:
 
 =head2 infix C«xor»
 
-Same as L<infix C<^^>|#infix ^^>, except with looser precedence.
+Same as L<infix C<^^>|/routine/$CIRCUMFLEX_ACCENT$CIRCUMFLEX_ACCENT>, except with looser precedence.
 
 Returns the operand that evaluates to C<True> in boolean context, if and
 only if the other operand evaluates to C<False> in boolean context. If
@@ -2814,7 +2852,7 @@ For instance, union of an empty list will return an empty set:
 This only applies to operators where empty or 0 is always a valid operand. For
 instance, applying it to division will yield an exception.
 
-=for code :skip-test<Illustrates exception>
+=for code
 say [%] ();# OUTPUT: «(exit code 1) No zero-arg meaning for infix:<%>␤
 
 =end pod
