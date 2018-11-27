@@ -41,6 +41,7 @@ sub test-it(Str $output, Str $file) {
         $line ~~ s:g/ '($var,)' //;
         $line ~~ s:g/ '(3,)' //;
         $line ~~ s:g/ << 'thing,category' >> //;
+        $line ~~ s:g/ 'postfix ,=' //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
             $msg ~= "Must have space after comma on line `$line`\n";
