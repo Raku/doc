@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Enforce B<curly braces> and B<square brackets>.
+Enforce B<curly braces> and B<square> or B<angle> B<brackets>.
 
 =end overview
 
@@ -27,7 +27,7 @@ sub test-it(Str $output, Str $file) {
         $ok = False;
     }
 
-    if $output ~~ /:i <!after square> ' brackets' / {
+    if $output ~~ /:i <!after square> <!after angle> ' brackets' / {
         $msg ~= "Found 'brackets' without 'square' "; 
         $ok = False;
     }
