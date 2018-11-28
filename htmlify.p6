@@ -971,7 +971,7 @@ sub write-main-index(:$kind, :&summary = {Nil}) {
             "Use the above menu to narrow it down topically."
         ),
         pod-table(
-            :headers[<Name  Declarator  Source>],
+            :headers[<Name  Type  Description>],
             [
                 $*DR.lookup($kind, :by<kind>)\
                 .categorize(*.name).sort(*.key)>>.value
