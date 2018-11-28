@@ -22,12 +22,14 @@ sub test-it(Str $output, Str $file) {
 
     my $msg;
 
-    if $output ~~ /:i <!after curly> ' braces' / {
+    my $line = $output.subst(/\s+/, ' ', :g); # canonicalize whitespace
+
+    if $line ~~ /:i <!after curly> ' ' 'braces' / {
         $msg ~= "Found 'braces' without 'curly'. ";
         $ok = False;
     }
 
-    if $output ~~ /:i <!after square> <!after angle> ' ' ('bracket' [s|ed]?) / {
+    if $line ~~ /:i <!after square><!after angle> ' ' ('bracket' [s|ed]?) / {
         $msg ~= "Found '{~$0}' without 'square' or 'angle'.";
         $ok = False;
     }
