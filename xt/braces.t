@@ -23,15 +23,15 @@ sub test-it(Str $output, Str $file) {
     my $msg;
 
     if $output ~~ /:i <!after curly> ' braces' / {
-        $msg ~= "Found 'braces' without 'curly'. "; 
+        $msg ~= "Found 'braces' without 'curly'. ";
         $ok = False;
     }
 
-    if $output ~~ /:i <!after square> <!after angle> ' brackets' / {
-        $msg ~= "Found 'brackets' without 'square' "; 
+    if $output ~~ /:i <!after square> <!after angle> ' ' ('bracket' [s|ed]?) / {
+        $msg ~= "Found '{~$0}' without 'square' or 'angle'.";
         $ok = False;
     }
- 
+
     ok $ok, $file ~ ($msg ?? ": $msg" !! "");
 }
 
