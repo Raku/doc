@@ -27,9 +27,9 @@ for @files -> $file {
             # proper names, macros, acronyms, and other exceptions
             $title ~~ s:g/ <|w> (
                 I
-                | Perl 6 | Pod 6 | P6
+                | Perl 6 | Pod 6 | P6 | C3
                 | AST | EVAL | PRE | POST | CLI | MOP
-                | TITLE | SUBTITLE
+                | TITLE | SUBTITLE | "MONKEY-TYPING"
                 | API | TCP | UDP | FAQ
                 | Javascript | Node | Haskell | Python | Ruby | C
                 | "Input/Output" | "I/O"
@@ -43,10 +43,10 @@ for @files -> $file {
                 | Whatever
                 | ( <:Lu><:L>+ "::" )+ <:Lu><:L>+
                 # these seem fishy?
-                | Socket | Integer
+                | Socket
             ) <|w> //;
             $title ~~ s:g/ <|w> <[ C ]> \< .*? \> //;
-            # ignore known classes like "Real" which are capitalized
+            # ignore known classes like "Real" and "Date" which are capitalized
             my @words = $title ~~ m:g/ <|w> ( <:Lu> \S+ ) /;
             for @words -> $word {
                 # if it exists, skip it
@@ -55,10 +55,12 @@ for @files -> $file {
                     $title ~~ s:g/ << $word >> //;
                 }
             }
-            # sentence case: all lowercase, titlecase for first character
-            if $title !~~ $title.lc.tc {
+            # sentence case: all lowercase, titlecase for first
+            # character except for cases where the first word is a
+            # uncapitalized name of a program
+            if $title !~~ $title.lc.tc and $title !~~ /^ p6doc / {
                 @lines.push($line-no);
-                @examples.push($title);
+                @examples.push($line);
             }
         }
     }
