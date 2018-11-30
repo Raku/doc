@@ -19,12 +19,32 @@ for @files -> $file {
     my $line-no = 0;
     for $file.IO.lines -> $line {
         $line-no++;
-        if $line.starts-with("=TITLE") or $line.starts-with("=SUBTITLE") {
+        if $line.starts-with("=TITLE ") or $line.starts-with("=SUBTITLE ") {
             # ignore first word like "=TITLE"
             my $title = $line.substr($line.index(' ') + 1);
             # ignore "class X::TypeCheck" and the like
-            $title ~~ s:g/^ ( class | role | module ) \s+ \S+//;
-            $title ~~ s:g/ <|w> ( Perl 6 | AST | EVAL | PRE | POST | Whatever ) //;
+            $title ~~ s:g/^ ( class | role | module |enum ) \s+ \S+//;
+            # proper names, macros, acronyms, and other exceptions
+            $title ~~ s:g/ <|w> (
+                I
+                | Perl 6 | Pod 6 | P6
+                | AST | EVAL | PRE | POST | CLI | MOP
+                | TITLE | SUBTITLE
+                | API | TCP | UDP | FAQ
+                | Javascript | Node | Haskell | Python | Ruby | C
+                | "Input/Output" | "I/O"
+                | "Alice in Wonderland"
+                | "Virtual Machine"
+                | "Binary Large OBject"
+                | Unicode | ASCII
+                | "Normal Form " ( "C" | "D" | "KC" | "KD" )
+                | POSIX | QNX | Windows | Cygwin | Win32
+                # class names
+                | Whatever
+                | ( <:Lu><:L>+ "::" )+ <:Lu><:L>+
+                # these seem fishy?
+                | Socket | Integer
+            ) <|w> //;
             $title ~~ s:g/ <|w> <[ C ]> \< .*? \> //;
             # ignore known classes like "Real" which are capitalized
             my @words = $title ~~ m:g/ <|w> ( <:Lu> \S+ ) /;
