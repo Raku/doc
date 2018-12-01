@@ -65,7 +65,7 @@ for @files -> $file {
         }
     }
     if @lines {
-        flunk "$file has inconsisten capitalised headings on lines: {@lines}\n"
+        flunk "$file has inconsistent capitalised headings on lines: {@lines}\n"
         ~ @examples.join("\n");
     } else {
         pass "$file capitalises headings consistently ";
