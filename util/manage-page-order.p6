@@ -181,6 +181,7 @@ sub write-Language-files() {
             my $to = "$todir/{$page-order}-{$fname}";
             say "DEBUG: to '$to'" if $debug;
             my $fh = open $to, :w;
+	    my $line-no = 1;
             for $from.IO.lines -> $line is copy {
                 if $line ~~ /^ \h* '=begin' \h* pod / {
                     # check any existing :page-order entry
@@ -189,12 +190,17 @@ sub write-Language-files() {
                     }
                     else {
                         #$fh.say: "$line :page-order<{$page-order}>";
-                        $fh.say: "# THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
-                        $fh.say: $line ~ " :link<$key-fname>";
-                        #$fh.say: "=comment THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
+			if $line-no < 5 {
+                            $fh.say: "# THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
+                            $fh.say: $line ~ " :link<$key-fname>";
+                            #$fh.say: "=comment THIS FILE IS AUTO-GENERATED--ALL EDITS WILL BE LOST";
+			} else {
+			    $fh.say: $line;
+			}
                     }
                     next;
                 }
+		$line-no++;
                 $fh.say: $line;
             }
             $fh.close;
