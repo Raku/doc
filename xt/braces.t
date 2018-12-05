@@ -29,7 +29,7 @@ sub test-it(Str $output, Str $file) {
         $ok = False;
     }
 
-    if $line ~~ /:i <!after square><!after angle> ' ' ('bracket' [s|ed]?) >> / {
+    if $line ~~ /:i <!after square><!after angle><!after lenticular> ' ' ('bracket' [s|ed]?) >> / {
         $msg ~= "Found '{~$0}' without 'square' or 'angle'.";
         $ok = False;
     }
