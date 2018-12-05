@@ -173,7 +173,7 @@ You can also use a different delimiter:
     say $str; # OUTPUT: «fox den␤»
 
 Non-paired characters can simply replace the original slashes. Paired
-characters, like braces, are used only on the match portion, with the
+characters, like curly braces, are used only on the match portion, with the
 substitution given by assignment (of anything: a string, a routine call, etc.).
 
 =head2 X«C<S///> non-destructive substitution»
@@ -1821,6 +1821,29 @@ implement an appropriate infix C<eqv> operator:
     }
     multi infix:<eqv>(A $l, A $r) { $l.a eqv $r.a }
     say A.new(a => 5) eqv A.new(a => 5);            # OUTPUT: «True␤»
+
+
+Note that C<eqv> does not work recursively on every kind of container type,
+e.g. C<Set>:
+
+    my class A {
+        has $.a;
+    }
+    say Set(A.new(a => 5)) eqv Set(A.new(a => 5));  # OUTPUT: «False␤»
+
+Even though the contents of the two sets are C<eqv>, the sets are not.
+The reason is that C<eqv> delegates the equality check to the C<Set> object
+which relies on element-wise C«===» comparison. Turning the class C<A>
+into a L<value type|/type/ValueObjAt> by giving it a C<WHICH> method
+produces the expected behavior:
+
+    my class A {
+        has $.a;
+        method WHICH {
+            ValueObjAt.new: "A|$!a.WHICH()"
+        }
+    }
+    say Set(A.new(a => 5)) eqv Set(A.new(a => 5));  # OUTPUT: «True␤»
 
 =head2 infix C«===»
 

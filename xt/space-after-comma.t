@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Insure any text that isn't a code example has a space after each comma.
+Ensure any text that isn't a code example has a space after each comma.
 
 =end overview
 
@@ -41,6 +41,7 @@ sub test-it(Str $output, Str $file) {
         $line ~~ s:g/ '($var,)' //;
         $line ~~ s:g/ '(3,)' //;
         $line ~~ s:g/ << 'thing,category' >> //;
+        $line ~~ s:g/ 'postfix ,=' //;
 
         if $line ~~ / ',' [ <!before ' '> & <!before $> ] / {
             $msg ~= "Must have space after comma on line `$line`\n";
@@ -55,7 +56,7 @@ sub test-it(Str $output, Str $file) {
         }
     }
     my $error = $file;
-    ok $ok, "$error: $msg";
+    ok $ok, $error ~ ($msg ?? ": $msg" !! "");
 }
 
 for @files -> $file {

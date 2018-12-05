@@ -49,7 +49,7 @@ cases that is the explicit point of the test, so you can allow it with ok-test:
 ### Allow dd
 
 `dd` is a rakudo specific routine that isn't part of the specification; examples
-shouldn't use it unless they are explicitly trying to show how dd works.
+shouldn't use it unless they are explicitly trying to show how it works.
 You can allow it with ok-test:
 
     =begin code :ok-test<dd>
