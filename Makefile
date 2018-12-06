@@ -9,6 +9,7 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
 # Managing of the language index page
 USE_CATEGORIES := True
+DISAMBIGUATE := False
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
 	bigpage test xtest ctest help run clean-html clean-images \
@@ -19,7 +20,7 @@ USE_CATEGORIES := True
 html: gen-pod6-source bigpage htmlify
 
 htmlify: gen-pod6-source init-highlights assets
-	perl6 htmlify.p6 --manage=$(USE_CATEGORIES)
+	perl6 htmlify.p6 --manage=$(USE_CATEGORIES) --disambiguation=$(DISAMBIGUATE)
 
 gen-pod6-source: $(LANG_POD6_SOURCE) doc/Language/00-POD6-CONTROL
 	perl6 util/manage-page-order.p6 update --manage=$(USE_CATEGORIES)
@@ -31,16 +32,16 @@ init-highlights:
 	fi; cd highlights; npm install .
 
 html-nohighlight:
-	perl6 htmlify.p6 --no-highlight
+	perl6 htmlify.p6 --no-highlight  --disambiguation=$(DISAMBIGUATE)
 
 sparse:
-	perl6 htmlify.p6 --no-highlight --sparse=10
+	perl6 htmlify.p6 --no-highlight --sparse=10  --disambiguation=$(DISAMBIGUATE)
 
 assets:
 	./app.pl assets
 
 webdev-build:
-	perl6 htmlify.p6 --no-highlight --sparse=200
+	perl6 htmlify.p6 --no-highlight --sparse=200  --disambiguation=$(DISAMBIGUATE)
 
 bigpage: gen-pod6-source
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
