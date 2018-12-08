@@ -235,6 +235,8 @@ You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
 downloading the latest Rakudo Star release from
 [rakudo.org/downloads/star/](http://rakudo.org/downloads/star/).
 
+> For best results, you will need to install one of the latest versions, > 2018.11 if possible. It's not guaranteed to work with other versions, and in any case the produced documentation will not look the same.
+
 #### Zef
 
 [Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
