@@ -71,6 +71,9 @@ To build the documentation web pages, simply run:
 
     $ make html
 
+> For best results, we recommend that you use the latest released versions, specially any one after 2018.11.
+
+
 Please note that you will need to have [nodejs](https://nodejs.org)
 installed to produce HTML content with the above command, in particular
 a `node` executable should be in your `PATH`. Besides, you will need

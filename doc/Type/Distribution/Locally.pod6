@@ -1,0 +1,29 @@
+=begin pod
+
+=TITLE class Distribution::Locally
+
+=SUBTITLE Distribution::Locally
+
+    role Distribution::Locally does Distribution { }
+
+Provides read access to specific files pointed at by a distributions meta data,
+providing the L<Distribution#method_content> method for L<Distribution::Path>
+and L<Distribution::Hash>.
+
+=head1 Methods
+
+=head2 method prefix
+
+A prefix path to be used in conjuncture with the paths found in the meta data.
+
+=head2 method content
+
+Provides L<Distribution#method_content>
+
+Returns an C<IO::Handle> to the file represented by C<$name-path>. C<$name-path> is a relative
+path as it would be found in the meta data such as C<lib/Foo.pm6> or C<resources/foo.txt>, and
+these paths will be prefixed with L<Distribution#method_prefix>.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
