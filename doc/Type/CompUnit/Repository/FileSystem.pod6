@@ -1,0 +1,89 @@
+=begin pod
+
+=TITLE class CompUnit::Repository::FileSystem
+
+=SUBTITLE CompUnit::Repository::FileSystem
+
+    class CompUnit::Repository::FileSystem
+        does CompUnit::Repository::Locally
+        does CompUnit::Repository
+        { }
+
+A L<CompUnit::Repository> implementation backed by the filesystem typically used
+in development situations. This is what is used by C<-I .> / C<-I lib> (which are
+actually C<-I file#.> and C<-I file#lib>) or C<use lib "."> / C<use lib "lib">.
+Unlike L<CompUnit::Repository::Installation>, this represents a single distribution.
+
+=head1 Methods
+
+=head2 method candidates
+
+    multi method candidates(Str:D $name, :$auth, :$ver, :$api)
+    multi method candidates(CompUnit::DependencySpecification $spec)
+
+Return all distributions that contain a module matching the specificed C<$name>, C<auth>,
+C<ver>, and C<api>.
+
+    # assuming one is cloned into the zef git repository...
+    my $repo = CompUnit::Repository::FileSystem.new(prefix => $*CWD);
+    my $dist = $repo.candidates("Zef").head;
+    say "Zef version: " ~ $dist.meta<version>;
+
+=head2 method files
+
+    multi method files(Str:D $name, :$auth, :$ver, :$api)
+    multi method files(CompUnit::DependencySpecification $spec)
+
+Return all distributions that match the specified C<auth> C<ver> and C<api>, and
+contains a non-module file matching the specified C<$name>.
+
+    # assuming one is cloned into the zef git repository...
+    my $repo = CompUnit::Repository::FileSystem.new(prefix => $*CWD);
+    say $repo.files('bin/zef', :ver<419.0+>).head.<name>              // "Nada"; # OUTPUT: «Nada␤»
+    say $repo.files('resources/config.txt', :ver<419.0+>).head.<name> // "Nada"; # OUTPUT: «Nada␤»
+
+    say $repo.files('bin/zef', :ver<0.4.0+>).head.<name>;                        # OUTPUT: «zef␤»
+    say $repo.files('resources/config.txt', :ver<0.4.0+>).head.<name>;           # OUTPUT: «zef␤»
+
+=head2 method resolve
+
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D)
+
+Returns a L<CompUnit> mapped to the highest version distribution matching C<$spec> from
+the first repository in the repository chain that contains any version of a distribution
+matching C<$spec>.
+
+=head2 method need
+
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
+        --> CompUnit:D)
+
+
+Loads and returns a L<CompUnit> which is mapped to the highest version distribution
+matching C<$spec> from the first repository in the repository chain that contains
+any version of a distribution matching C<$spec>.
+
+=head2 method load
+
+    method load(IO::Path:D $file --> CompUnit:D)
+
+Load the C<$file> and return a L<CompUnit> object representing it.
+
+=head2 method loaded
+
+    method loaded(--> Iterable:D)
+
+Returns all L<CompUnit>s this repository has loaded.
+
+=head2 method short-id
+
+    method short-id()
+
+Returns the repo short-id, which for this repository is C<file>.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

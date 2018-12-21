@@ -1,0 +1,119 @@
+=begin pod
+
+=TITLE class CompUnit::Repository::Installation
+
+=SUBTITLE CompUnit::Repository::Installation
+
+    class CompUnit::Repository::Installation
+        does CompUnit::Repository::Locally
+        does CompUnit::Repository::Installable
+        { }
+
+A L<CompUnit::Repository> implementation backed by the filesystem, but uses an internal
+storage format to:
+
+=item Handle case sensitivity issues on filesystems that may conflict as a C<CompUnit::Repository::FileSystem>.
+=item Handle allowable filename issues (e.g. unicode) on filesystems that don't support them.
+=item Allow multiple distributions, possibly with the same name, to be installed in a single repository.
+=item Enable faster module loading.
+
+Because of the internal storage format the usual way to add a distribution is not by copying
+files but by calling L<CompUnit::Repository::Installation#method_install>.
+
+=head1 Methods
+
+=head2 method install
+
+    method install(Distribution $distribution, Bool :$force)
+
+Copies modules into a special location so that they can be loaded afterwards.
+
+C<:$force> will allow installing over an existing distribution that has the same C<name>,
+C<auth>, C<api>, and C<ver>. Otherwise such a situation will result in L<Failure>.
+
+    my $inst-repo = CompUnit::RepositoryRegistry.repository-for-name("site");
+    my $dist = Distribution::Path.new(...);
+    $inst-repo.install($dist);
+
+=head2 method uninstall
+
+    method uninstall(Distribution $distribution)
+
+Removes the C<$distribution> from the repository. C<$distribution> should be obtained from
+the repository it is being removed from:
+
+    my $inst-repo = CompUnit::RepositoryRegistry.repository-for-name("site");
+    my $dist = $inst-repo.candidates("Acme::Unused").head;
+    $inst-repo.uninstall($dist);
+
+=head2 method candidates
+
+    multi method candidates(Str:D $name, :$auth, :$ver, :$api)
+    multi method candidates(CompUnit::DependencySpecification $spec)
+
+Return all distributions that contain a module matching the specificed C<$name>, C<auth>,
+C<ver>, and C<api>.
+
+    my $inst-repo-path = CompUnit::RepositoryRegistry.repository-for-name("perl").prefix;
+    my $inst-repo = CompUnit::Repository::Installation.new(prefix => $inst-repo-path);
+    my $dist = $inst-repo.candidates("Test").head;
+    say "Test version: " ~ $dist.meta<ver>; # OUTPUT: «6.d␤»
+
+=head2 method files
+
+    multi method files(Str:D $name, :$auth, :$ver, :$api)
+    multi method files(CompUnit::DependencySpecification $spec)
+
+Return all distributions that match the specified C<auth> C<ver> and C<api>, and
+contains a non-module file matching the specified C<$name>.
+
+    # assuming Zef is installed to the default location...
+    my $repo = CompUnit::RepositoryRegistry.repository-for-name("site");
+
+    say $repo.files('bin/zef', :ver<419.0+>).head.<name>              // "Nada"; # OUTPUT: «Nada␤»
+    say $repo.files('resources/config.txt', :ver<419.0+>).head.<name> // "Nada"; # OUTPUT: «Nada␤»
+
+    say $repo.files('bin/zef', :ver<0.4.0+>).head.<name>;                        # OUTPUT: «zef␤»
+    say $repo.files('resources/config.txt', :ver<0.4.0+>).head.<name>;           # OUTPUT: «zef␤»
+
+=head2 method resolve
+
+    method resolve(CompUnit::DependencySpecification $spec --> CompUnit:D)
+
+Returns a L<CompUnit> mapped to the highest version distribution matching C<$spec> from
+the first repository in the repository chain that contains any version of a distribution
+matching C<$spec>.
+
+=head2 method need
+
+    method need(
+        CompUnit::DependencySpecification $spec,
+        CompUnit::PrecompilationRepository $precomp = self.precomp-repository(),
+        CompUnit::PrecompilationStore :@precomp-stores = self!precomp-stores(),
+        --> CompUnit:D)
+
+Loads and returns a L<CompUnit> which is mapped to the highest version distribution
+matching C<$spec> from the first repository in the repository chain that contains
+any version of a distribution matching C<$spec>.
+
+=head2 method load
+
+    method load(IO::Path:D $file --> CompUnit:D)
+
+Load the C<$file> and return a L<CompUnit> object representing it.
+
+=head2 method loaded
+
+    method loaded(--> Iterable:D)
+
+Returns all L<CompUnit>s this repository has loaded.
+
+=head2 method short-id
+
+    method short-id()
+
+Returns the repo short-id, which for this repository is C<inst>.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
