@@ -25,10 +25,12 @@ This module is available via the Perl 6 module ecosystem. Use:
 
     $ zef install p6doc
 
-to install the binaries and make it available in your binaries
+to install the "binaries" and make them available in your binaries
 execution path.
 
-**Note**: Please note that, due to changes in the parsing of Pod6, this will fail in versions older than 2018.06. Please upgrade to that version, or install using `--force`.
+**Note**: Please note that, due to changes in the parsing of Pod6,
+this will fail in versions of Perl 6 older than 2018.06. Please upgrade to that
+version, or install using `--force`. 
 
 ## Use p6doc
 
@@ -46,14 +48,18 @@ skip the `./bin` part if you have installed it via
 
     $ p6doc -f slurp
 
-to browse the documentation of standard functions. Depending on your
+to browse the documentation of standard functions (which, in this
+particular case, will actually return multiple matches, which you can
+check individually). Depending on your
 disk speed and Rakudo version, it might take a while.
 
 -------
 
 ## Building the HTML documentation
 
-Install dependencies by running the following in the checkout directory:
+You might want to have a copy of the documentation and run the web
+site locally yourself. In that case, install dependencies by running
+the following in the checkout directory: 
 
     $ zef --deps-only install .
 
