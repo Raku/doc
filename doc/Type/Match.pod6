@@ -13,17 +13,20 @@ in the original string, and a payload referred to as I<AST> (abstract syntax
 tree), which can be used to build data structures from complex regexes and
 grammars.
 
-The last match is also stored in the X<C<$¢>> C<Match> object:
+The last match is also stored in the X<C<$¢>> C<Match> object, which is
+lexically scoped to the regex, that is, only available from within the regular
+expression, as shown here:
 
     my $c;
     'abc' ~~ /.$${ $c = $¢ }/;
     say $c; # OUTPUT: «｢c｣␤»
 
 In this case, we are running the code among curly braces when the match occurs,
-in this case the last letter in the string; C<$c> gets the value of the cursor
-C<$¢>, which contains the C<Match>. This C<$¢> offers a way of capturing the
-Match inside a regular expression; if you are not going to use it inside that
-you can simply use L<C<$/>|/syntax/$$SOLIDUS>
+in this case the last letter in the string (actually, the last, indicated by the
+double C<$>, character); C<$c> gets the value of the cursor C<$¢>, which
+contains the C<Match>; when used with C<say>, the C<Match> is stringified by
+calling C<.Str> on it. This C<$¢> offers a way of capturing the Match inside a
+regular expression; outside, you need to use L<C<$/>|/syntax/$$SOLIDUS>
 
     my $c; 'camelia' ~~ /<[ l m ]> {$c = $¢}/;
     say $c; # OUTPUT: «｢m｣␤»
@@ -38,8 +41,10 @@ version, you could use C<$/> which, inside the regex, has the same value:
 The main difference between C<$/> and C<$¢> is scope: the latter only has a
 value inside the regex:
 
-    '123' ~~ / (\d) { say $/; say $¢; } \d+ /; # OUTPUT: «｢1｣␤ 0 => ｢1｣␤｢1｣␤ 0 => ｢1｣␤»
-    say "¢ → ", $¢, "/ is $/"; ; # OUTPUT: «¢ → Nil/ is 123␤»
+=begin code
+'123' ~~ / (\d) { say $/; say $¢; } \d+ /; # OUTPUT: «｢1｣␤ 0 => ｢1｣␤｢1｣␤ 0 => ｢1｣␤»
+say "¢ → ", $¢, "/ is $/"; ; # OUTPUT: «¢ → Nil/ is 123␤»
+=end code
 
 Submatches are also C<Match> objects (or lists of C<Match> objects,
 if the corresponding regex was quantified), so each match object
@@ -67,8 +72,8 @@ Returns the payload that was set with L<#method make>.
 
     method actions(Match:D: --> Mu)
 
-Returns the actions object (if any was set; else L<Mu|/type/Mu>) that the grammar used
-from which this Match object was created.
+Returns the actions object (if any was set; else L<Mu|/type/Mu>) that the
+grammar used from which this Match object was created.
 
 =head2 method ast
 
