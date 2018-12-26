@@ -20,8 +20,6 @@ later.)
 =comment The following should be a table but formatting in tables is
 not yet rendered properly.
 
-=item X<B<cache>|cache> [TBD]
-
 =item X<B<pack>|pack> [TBD]
 
 =head2 X<B<macros>|macros>
@@ -69,7 +67,81 @@ macro is-mighty( $who ) {
 say is-mighty "Freija";# OUTPUT: «Freija is mighty!␤»
 =end code
 
+Since macro expansion happens at parse time, care must be taken when using
+external variables in them:
+
+=begin code :skip-test<need use experimental>
+use experimental :macros;
+my $called;
+macro called() {
+    $called++;
+    quasi { "Called" }
+};
+say called() ~ " $called times";
+say called() ~ " $called times"; # OUTPUT: «Called 2 times␤Called 2 times␤»
+=end code
+
+Since macros are expanded at parse time, C<$called> will be the result when run
+time starts, which is already C<2>, as printed. Initializing C<$called> with 0,
+however, will make this print C<Called 0 times> since that initialization is run
+I<after> the parse phase, when the macros are expanded.
+
+Macros are terribly useful when complicated, computed initializations need to be
+done. However, they are still in the I<experimental> nursery for a good reason.
+Although the features shown above are not very likely to change, anything, even
+their very presence, might change at any one time depending in necessities, so
+it would be best to keep them away from production code. Meanwhile, taking a
+look at
+L<this article by Masak|https://perl6advent.wordpress.com/2012/12/23/day-23-macros/>
+as well as
+L<C<007>|https://github.com/masak/007>, a new macro language, which might show
+the shape of things to come.
+
+=head2 X<B<cached>|:cached>
+
+The following pragma:
+
+    use experimental :cached;
+
+turns on the C<is cached> trait, which stores the result of a routine call,
+returning the same value if called with the same arguments.
+
+It can be used when heavy calculations are involved, as in this sample that uses
+L<amicable numbers|https://perl6advent.wordpress.com/2018/12/25/calling-numbers-names/#more-7528>,
+taken from the 2018 Advent Calendar:
+
+=begin code :skip-test<Uses experimental>
+use experimental :cached;
+
+sub aliquot-parts( $number ) is cached {
+    (^$number).grep: $number %% *;
+}
+
+sub infix:<amic>( $m, $n ) {
+    $m == aliquot-parts($n).sum &&
+    $n == aliquot-parts($m).sum;
+}
+
+# Taken from https://en.wikipedia.org/wiki/Amicable_numbers
+my @numbers = [2620, 2924, 5020, 5564, 6232, 6368, 66928, 66992];
+
+say "Aliquot parts of $_ are ", aliquot-parts $_ for @numbers;
+
+for @numbers X @numbers -> @pair {
+    say "@pair[0] and @pair[1] are ",
+        @pair[0] amic @pair[1]??" "!!"not ", "amicable";
+}
+=end code
+
+This code caches the computation of the I<aliquot parts>, so that when the
+C<amic> operator is called, it's only computed once; as a matter of fact, the
+first loop which prints these aliquot parts will be the only one that actually
+perform the computation.
+
+See also
+L<the description of the trait|https://docs.perl6.org/routine/is%20cached> for additional information and examples.
 
 =end pod
+
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
