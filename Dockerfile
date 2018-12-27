@@ -28,6 +28,9 @@ RUN buildDeps='         \
     && n stable
 
 WORKDIR /perl6/doc
+COPY . .
+RUN make test && make html
+
 EXPOSE  3000
 
-CMD make test && make html && ./app-start
+CMD ./app-start

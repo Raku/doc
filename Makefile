@@ -30,7 +30,7 @@ init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
 	if [ -d "$$ATOMDIR" ]; then (cd "$$ATOMDIR" && git pull); \
 	else git clone https://github.com/perl6/atom-language-perl6 "$$ATOMDIR"; \
-	fi; cd highlights; npm install .
+	fi; cd highlights; npm install .; npm rebuild
 
 html-nohighlight:
 	perl6 htmlify.p6 --no-highlight  --disambiguation=$(DISAMBIGUATE)
