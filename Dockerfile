@@ -33,4 +33,4 @@ RUN make test && make html
 
 EXPOSE  3000
 
-CMD ./app-start
+CMD ["morbo", "-w", "assets/sass", "-w", "assets/js", "-w", "html/js/search.js", "-l", "http://*:3000", "app.pl"]
