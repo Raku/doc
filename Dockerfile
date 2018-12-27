@@ -31,6 +31,6 @@ WORKDIR /perl6/doc
 COPY . .
 RUN make test && make html
 
-EXPOSE  3000
+EXPOSE 3000
 
-CMD ["morbo", "-w", "assets/sass", "-w", "assets/js", "-w", "html/js/search.js", "-l", "http://*:3000", "app.pl"]
+CMD ["morbo", "-w", "assets/sass", "-w", "assets/js", "-w", "html/js/search.js", "-l", "http://0.0.0.0:3000", "app.pl"]
