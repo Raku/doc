@@ -14,7 +14,6 @@ RUN buildDeps='         \
     ' \
       \
     && set -x \
-    && mkdir /tmp && chmod 777 /tmp \
     && apt-get update \
     && apt-get --yes --no-install-recommends install $buildDeps $runtimeDeps $testDeps \
     && rm -rf /var/lib/apt/lists/* \
