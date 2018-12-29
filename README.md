@@ -12,7 +12,7 @@ browse the documentation once it's installed (see below).
 
 This documentation is also published as
 the
-[`jjmerelo/perl6-doc`](https://cloud.docker.com/repository/docker/jjmerelo/perl6-doc/) Docker
+[`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc) Docker
 container. It includes a copy of the web publised in port 3000, so you
 can run it with:
 
