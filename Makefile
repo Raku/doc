@@ -9,7 +9,7 @@ SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COL
 LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
 # Managing of the language index page
 USE_CATEGORIES := True
-# Value of disambiguation flage in htmlify
+# Value of disambiguation flag in htmlify
 DISAMBIGUATE := True
 
 .PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
