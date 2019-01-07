@@ -13,12 +13,12 @@ method cache-file(Str $file --> Str) {
     if $in-time > $out-time {
        mkdir $output-io.dirname;
        my $outfile = $output-io.open(:w);
+       LEAVE $outfile.close;
        $outfile.lock;
        my $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
        $job.stdout.tap(-> $buf {$outfile.print: $buf});
 
        await $job.start;
-       $outfile.close;
     }
     $outfile
 }
