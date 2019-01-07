@@ -1,0 +1,825 @@
+=begin pod :tag<perl6>
+
+=TITLE Perl 6 pod
+
+=SUBTITLE An easy-to-use markup language for documenting Perl modules and programs
+
+Perl 6 pod is an easy-to-use markup language. Pod can be used for
+writing language documentation, for documenting programs and modules, as
+well as for other types of document composition.
+
+Every Pod document has to begin with C<=begin pod> and end with C<=end pod>.
+Everything between these two delimiters will be processed and used to generate
+documentation.
+
+=begin code
+=begin pod
+
+A very simple Perl 6 Pod document
+
+=end pod
+=end code
+
+=head1 Block structure
+
+A Pod document may consist of multiple Pod blocks. There are four ways to define
+a block: delimited, paragraph, abbreviated, and declarator; the first three
+yield the same result but the fourth differs. You can use whichever form is most
+convenient for your particular documentation task.
+
+=head2 Delimited blocks
+
+Delimited blocks are bounded by C<=begin> and C<=end> markers, both of
+which are followed by a valid Perl 6 identifier, which is the
+C<typename> of the block. Typenames that are entirely lowercase (for
+example: C<=begin head1>) or entirely uppercase (for example: C<=begin
+SYNOPSIS>) are reserved.
+
+=begin code
+=begin head1
+Top Level Heading
+=end head1
+=end code
+
+=head3 Configuration information
+
+After the typename, the rest of the C<=begin> marker line is treated as
+configuration information for the block. This information is used in
+different ways by different types of blocks, but is always specified using
+Perl6-ish option pairs. That is, any of:
+
+=begin table
+ Value is...       Specify with...           Or with...           Or with...
+ ===============   ===================       ==============       ===========
+ List              :key[$e1, $e2, ...]       :key($e1, $e2, ...)  :key<$e1 $e2 ...>
+ Hash              :key{$k1=>$v1, $k2=>$v2}
+ Boolean (true)    :key                      :key(True)           :key[True]
+ Boolean (false)   :!key                     :key(False)          :key[False]
+ String            :key<str>                 :key('str')          :key("str")
+ Int               :key(42)                  :key[42]
+ Number            :key(2.3)                 :key[2.3]
+=end table
+
+Where '$e1, $e2, ...' are list elements of type String, Int, Number, or
+Boolean.  Lists may have mixed element types. Note that one-element
+lists are converted to the type of their element (String, Int, Number, or
+Boolean). Also note that "bigints" can be used if required.
+
+For hashes, '$k1, $k2, ...' are keys of type Str and '$v1, $v2, ...'
+are values of type String, Int, Number, or Boolean.
+
+Strings are delimited by single or double quotes.  Whitespace is not significant
+outside of strings. Hash keys need not be quote-delimited unless they contain
+significant whitespace. Strings entered inside angle brackets become lists when
+whitespace is used inside the brackets.
+
+All option keys and values must, of course, be constants since Pod is a
+specification language, not a programming language. Specifically, option
+values cannot be closures. See Synopsis 2 for details of the various
+Perl 6 pair notations.
+
+The configuration section may be extended over subsequent lines by
+starting those lines with an C<=> in the first (virtual) column followed
+by a whitespace character. N<This feature is not yet completely implemented.
+All configuration information currently must be provided on the same
+line as the C<=begin> marker line or C<=for name> for paragraph blocks.>
+
+=head2 Paragraph blocks
+
+Paragraph blocks begin by a C<=for> marker and end by
+the next Pod directive or the first blank line.
+The C<=for> marker is followed by the C<typename> of the block
+plus, optionally, any configuration data as in the delimited
+blocks described above.
+
+=begin code
+=for head1
+Top Level Heading
+=end code
+
+=head2 Abbreviated blocks
+
+Abbreviated blocks begin by an C<'='> sign, which is followed immediately by the
+C<typename> of the block. All following data are part of the contents of the
+block, thus configuration data B<cannot> be specified for an I<abbreviated>
+block. The block ends at the next Pod directive or the first blank line.
+
+=begin code
+=head1 Top level heading
+=end code
+
+X<|declarator blocks,#|>X<|declarator blocks,#=>
+=head2 Declarator blocks
+
+Declarator blocks differ from the others by not having a specific type,
+instead they are attached to some source code.
+
+Declarator blocks are introduced by a special comment: either C<#|> or C<#=>,
+which must be immediately followed by either a space or an opening bracket.
+If followed by a space, the block is terminated by the end of line;
+if followed by one or more opening brackets, the block is terminated by the matching
+sequence of closing brackets.
+
+Blocks starting with C<#|> are attached to the code after them,
+and blocks starting with C<#=> are attached to the code before them.
+
+Since declarator blocks are attached to source code, they can be used to
+document classes, roles, subroutines and in general any statement or block.
+
+The C<WHY> method can be used on these classes, roles, subroutines etc. to
+return the attached Pod value.
+
+=begin code :skip-test
+#| Base class for magicians
+class Magician {
+  has Int $.level;
+  has Str @.spells;
+}
+
+#| Fight mechanics
+sub duel(Magician $a, Magician $b) {
+}
+#= Magicians only, no mortals.
+
+say Magician.WHY; # OUTPUT: «Base class for magicians␤»
+say &duel.WHY.leading; # OUTPUT: «Fight mechanics␤»
+say &duel.WHY.trailing; # OUTPUT: «Magicians only, no mortals.␤»
+=end code
+
+These declarations can extend multiple blocks:
+
+=begin code
+#|( This is an example of stringification:
+    * Numbers turn into strings
+    * Regexes operate on said strings
+    * C<with> topicalizes and places result into $_
+)
+sub search-in-seq( Int $end, Int $number ) {
+    with (^$end).grep( /^$number/ ) {
+        .say for $_<>;
+    }
+}
+#=« Uses
+    * topic
+    * decont operator
+»
+=end code
+
+By using a matched pair of parenthesis constructs such as C<()> or C<«»> the
+comments can extend multiple lines. This format, however, will not translate to
+a multi-line display by C<perl6 -doc>.
+
+=head1 Block types
+
+Pod offers a wide range of standard block types.
+
+=head2 Headings
+
+Headings can be defined using C<=headN>,
+where N is greater than zero (e.g., C<=head1>, C<=head2>, …).
+
+=begin code
+=head1 A top level heading
+
+=head2 A second level heading
+
+=head3 A third level heading
+=end code
+
+=head2 Ordinary paragraphs
+
+An ordinary paragraph consists of text that is to be formatted into a document
+at the current level of nesting, with whitespace squeezed, lines filled, and any
+special inline mark-up applied.
+
+Ordinary paragraphs consist of one or more consecutive lines of text,
+each of which starts with a non-whitespace character.
+The paragraph is terminated by the first blank line or block directive.
+
+For example:
+
+=begin code :skip-test
+=head1 This is a heading block
+
+This is an ordinary paragraph.
+Its text  will   be     squeezed     and
+short lines filled. It is terminated by
+the first blank line.
+
+This is another ordinary paragraph.
+Its     text    will  also be squeezed and
+short lines filled. It is terminated by
+the trailing directive on the next line.
+
+=head2 This is another heading block
+
+This is yet another ordinary paragraph,
+at the first virtual column set by the
+previous directive
+=end code
+
+Ordinary paragraphs do not require an explicit marker or delimiters.
+
+Alternatively, there is also an explicit C<=para> marker that can be used to explicitly mark a paragraph.
+
+=begin code
+=para
+This is an ordinary paragraph.
+Its text  will   be     squeezed     and
+short lines filled.
+=end code
+
+In addition, the longer C<=begin para> and C<=end para> form can be used.
+
+For example:
+
+=begin code
+
+=begin para
+This is an ordinary paragraph.
+Its text  will   be     squeezed     and
+short lines filled.
+
+This is still part of the same paragraph,
+which continues until an...
+=end para
+=end code
+
+As demonstrated by the previous example, within a delimited C<=begin para> and C<=end para> block, any blank lines are preserved.
+
+=head2 Code blocks
+
+Code blocks are used to specify  source code, which should be rendered without re-justification,
+without whitespace-squeezing, and without recognizing any inline formatting codes.
+Typically these blocks are used to show examples of code, mark-up,
+or other textual specifications, and are rendered using a fixed-width font.
+
+A code block may be implicitly specified as one or more lines of text,
+each of which starts with a whitespace character.
+The implicit code block is then terminated by a blank line.
+
+For example:
+
+=begin code :skip-test
+This ordinary paragraph introduces a code block:
+
+    my $name = 'John Doe';
+    say $name;
+=end code
+
+Code blocks can also be explicitly defined by enclosing them in C<=begin code> and C<=end code>
+
+=begin code
+    =begin code
+    my $name = 'John Doe';
+    say $name;
+    =end code
+=end code
+
+
+=head2 I/O blocks
+
+Pod provides blocks for specifying the input and output of programs.
+
+The C<=input> block is used to specify pre-formatted keyboard input,
+which should be rendered without re-justification or squeezing of whitespace.
+
+The C<=output> block is used to specify pre-formatted terminal or file output,
+which should also be rendered without re-justification or whitespace-squeezing.
+
+=head2 Lists
+
+=head3 Unordered lists
+
+Lists in Pod are specified as a series of C<=item> blocks.
+
+For example:
+
+=begin code :skip-test
+The three suspects are:
+
+=item  Happy
+=item  Sleepy
+=item  Grumpy
+=end code
+
+The three suspects are:
+
+=item  Happy
+=item  Sleepy
+=item  Grumpy
+
+=head3 Definition lists
+
+Lists that define terms or commands use C<=defn>, equivalent to the C<DL> lists in HTML
+
+=begin code
+=defn Happy
+When you're not blue.
+
+=defn Blue
+When you're not happy.
+=end code
+
+will be rendered as
+
+=defn Happy
+When you're not blue.
+
+=defn Blue
+When you're not happy.
+
+=head3 Multi-level lists
+
+Lists may be multi-level, with items at each level specified using the C<=item1>, C<=item2>, C<=item3>, etc. blocks.
+
+Note that C<=item> is just an abbreviation for C<=item1>.
+
+For example:
+
+=begin code
+=item1  Animal
+=item2     Vertebrate
+=item2     Invertebrate
+
+=item1  Phase
+=item2     Solid
+=item2     Liquid
+=item2     Gas
+=end code
+
+=item1  Animal
+=item2     Vertebrate
+=item2     Invertebrate
+
+=item1  Phase
+=item2     Solid
+=item2     Liquid
+=item2     Gas
+
+=head3 Multi-paragraph lists
+
+Using the delimited form of the C<=item> block (C<=begin item> and C<=end item>),
+we can specify items that contain multiple paragraphs.
+
+For example:
+
+=begin code :skip-test
+Let's consider two common proverbs:
+
+=begin item
+I<The rain in Spain falls mainly on the plain.>
+
+This is a common myth and an unconscionable slur on the Spanish
+people, the majority of whom are extremely attractive.
+=end item
+
+=begin item
+I<The early bird gets the worm.>
+
+In deciding whether to become an early riser, it is worth
+considering whether you would actually enjoy annelids
+for breakfast.
+=end item
+
+As you can see, folk wisdom is often of dubious value.
+=end code
+
+Let's consider two common proverbs:
+
+=begin item
+I<The rain in Spain falls mainly on the plain.>
+
+This is a common myth and an unconscionable slur on the Spanish
+people, the majority of whom are extremely attractive.
+=end item
+
+=begin item
+I<The early bird gets the worm.>
+
+In deciding whether to become an early riser, it is worth
+considering whether you would actually enjoy annelids
+for breakfast.
+=end item
+
+As you can see, folk wisdom is often of dubious value.
+
+=head2 Tables
+
+Check out this page for documentation related to L<Tables|/language/tables>
+Z<Eventually copy everything from tables.pod6 and put it here>
+
+=head2 Pod comments
+
+Pod comments are comments that Pod renderers ignore.
+
+Comments are useful for meta-documentation (documenting the documentation). Single-line comments use the C<comment> keyword:
+
+=begin code
+=comment Add more here about the algorithm
+=end code
+
+For multi-line comments use a delimited C<comment> block:
+
+=begin code
+=begin comment
+This comment is
+multi-line.
+=end comment
+=end code
+
+=head2 Semantic blocks
+
+All uppercase block typenames are reserved for specifying standard documentation,
+publishing, source components, or meta-information.
+
+=begin code
+=NAME
+=AUTHOR
+=VERSION
+=TITLE
+=SUBTITLE
+=end code
+
+=head1 Formatting codes
+
+Formatting codes provide a way to add inline mark-up to a piece of text.
+
+All Pod formatting codes consist of a single capital letter followed immediately by a set of single or double
+angle brackets; Unicode double angle brackets may be used.
+
+Formatting codes may nest other formatting codes.
+
+The following codes are available: B<B>, B<C>, B<E>, B<I>, B<K>, B<L>, B<N>, B<P>,
+B<R>, B<T>, B<U>, B<V>, B<X>, and B<Z>.
+
+=head2 Bold
+
+To format a text in bold enclose it in C<B< >>
+=for code :skip-test
+Perl 6 is B<awesome>
+
+Perl 6 is B<awesome>
+
+=head2 Italic
+
+To format a text in italic enclose it in C<I< >>
+=for code :skip-test
+Perl 6 is I<awesome>
+
+Perl 6 is I<awesome>
+
+=head2 Underlined
+
+To underline a text enclose it in C<U< >>
+=for code :skip-test
+Perl 6 is U<awesome>
+
+Z<If used will bust Pod::To::BigPage>
+
+=head2 Code
+
+To flag text as Code and treat it verbatim enclose it in C<C< >>
+=for code :skip-test
+C<my $var = 1; say $var;>
+
+C<my $var = 1; say $var;>
+
+=head2 Links
+
+To create a link enclose it in C<L< >>
+
+A vertical bar (optional) separates label and target.
+
+The target location can be an URL (first example) or a local POD document (second example).
+Local file names are relative to the base of the project, not the current document.
+
+=for code :skip-test
+Perl 6 homepage L<https://perl6.org>
+L<Perl 6 homepage|https://perl6.org>
+
+Perl 6 homepage L<https://perl6.org>
+
+L<Perl 6 homepage|https://perl6.org>
+
+=for code :skip-test
+Structure L</language/about#Structure>
+L<Structure|/language/about#Structure>
+
+Structure L</language/about#Structure>
+
+L<Structure|/language/about#Structure>
+
+To create a link to a section in the same document:
+=for code :skip-test
+Comments L<#Comments>
+L<Comments|#Comments>
+
+Comments L<#Comments>
+
+L<Comments|#Comments>
+
+=head2 Placement links
+
+This code is not implemented in C<Pod::To::HTML>, but is partially implemented in C<Pod::To::BigPage>.
+
+A second kind of linkE<mdash>the C<P<>> or B<placement link>E<mdash>works
+in the opposite direction. Instead of directing focus out to another
+document, it allows you to assimilate the contents of another document
+into your own.
+
+In other words, the C<P<>> formatting code takes a URI and (where possible)
+inserts the contents of the corresponding document inline in place of the
+code itself.
+
+C<P<>> codes are handy for breaking out standard elements of
+your documentation set into reusable components that can then be
+incorporated directly into multiple documents. For example:
+=begin code
+=COPYRIGHT
+P<file:/shared/docs/std_copyright.pod>
+
+=DISCLAIMER
+P<http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt>
+=end code
+might produce:
+
+=begin nested
+B<Copyright>
+
+This document is copyright (c) MegaGigaTeraPetaCorp, 2006. All rights reserved.
+
+B<Disclaimer>
+
+ABSOLUTELY NO WARRANTY IS IMPLIED. NOT EVEN OF ANY KIND. WE HAVE SOLD
+YOU THIS SOFTWARE WITH NO HINT OF A SUGGESTION THAT IT IS EITHER USEFUL
+OR USABLE. AS FOR GUARANTEES OF CORRECTNESS...DON'T MAKE US LAUGH! AT
+SOME TIME IN THE FUTURE WE MIGHT DEIGN TO SELL YOU UPGRADES THAT PURPORT
+TO ADDRESS SOME OF THE APPLICATION'S MANY DEFICIENCIES, BUT NO PROMISES
+THERE EITHER. WE HAVE MORE LAWYERS ON STAFF THAN YOU HAVE TOTAL
+EMPLOYEES, SO DON'T EVEN *THINK* ABOUT SUING US. HAVE A NICE DAY.
+=end nested
+
+If a renderer cannot find or access the external data source for a
+placement link, it must issue a warning and render the URI directly in
+some form, possibly as an outwards link. For example:
+
+=begin nested
+B<Copyright>
+
+See: L<std_copyright.pod|file:/shared/docs/std_copyright.pod>
+
+B<Disclaimer>
+
+See: L<http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt>
+=end nested
+
+You can use any of the following URI forms (see L<#Links>) in a
+placement link.
+
+=head2 Comments
+
+A comment is text that is never rendered.
+
+To create a comment enclose it in C<Z< >>
+=for code :skip-test
+Perl 6 is awesome Z<Of course it is!>
+
+Perl 6 is awesome Z<Of course it is!>
+
+=head2 Notes
+
+Notes are rendered as footnotes.
+
+To create a note enclose it in C<N< >>
+=for code :skip-test
+Perl 6 is multi-paradigmatic N<Supporting Procedural, Object Oriented, and Functional programming>
+
+Z<Perl 6 is multi-paradigmatic N<Supporting Procedural, Object Oriented, and Functional programming> >
+
+=head2 Keyboard input
+
+To flag text as keyboard input enclose it in C<K< >>
+=for code :skip-test
+Enter your name K<John Doe>
+
+Z<If used will bust Pod::To::BigPage>
+
+=head2 Replaceable
+
+The C<R<>> formatting code specifies that the contained text is a
+B<replaceable item>, a placeholder, or a metasyntactic variable. It is
+used to indicate a component of a syntax or specification that should
+eventually be replaced by an actual value. For example:
+
+The basic C<ln> command is: C<ln> R<source_file> R<target_file>
+
+or:
+
+=begin code
+    Then enter your details at the prompt:
+
+    =for input
+        Name: R<your surname>
+        ID: R<your employee number>
+        Pass: R<your 36-letter password>
+=end code
+
+=head2 Terminal output
+
+To flag text as terminal output enclose it in C<T< >>
+=for code :skip-test
+Hello T<John Doe>
+
+Z<If used will bust Pod::To::BigPage>
+
+=head2 Unicode
+
+To include Unicode code points or HTML5 character references in a Pod document, enclose them in  C<E< >>
+
+C<E< >> can enclose a number, that number is treated as the decimal Unicode value for the desired code point.
+It can also enclose explicit binary, octal, decimal, or hexadecimal numbers using the Perl 6 notations for explicitly based numbers.
+
+=begin code :skip-test
+Perl 6 makes considerable use of the E<171> and E<187> characters.
+
+Perl 6 makes considerable use of the E<laquo> and E<raquo> characters.
+
+Perl 6 makes considerable use of the E<0b10101011> and E<0b10111011> characters.
+
+Perl 6 makes considerable use of the E<0o253> and E<0o273> characters.
+
+Perl 6 makes considerable use of the E<0d171> and E<0d187> characters.
+
+Perl 6 makes considerable use of the E<0xAB> and E<0xBB> characters.
+=end code
+
+Perl 6 makes considerable use of the « and » characters.
+
+=head2 Verbatim text
+
+This code is not implemented by C<Pod::To::HTML>, but is implemented in C<Pod::To::BigPage>.
+
+The C<V<>> formatting code treats its entire contents as being B<verbatim>,
+disregarding every apparent formatting code within it. For example:
+
+    The B<V< V<> >> formatting code disarms other codes
+    such as V< I<>, C<>, B<>, and M<> >.
+
+Note, however that the C<V<>> code only changes the way its
+contents are parsed, I<not> the way they are rendered. That is, the
+contents are still wrapped and formatted like plain text, and the
+effects of any formatting codes surrounding the C<V<>> code
+are still applied to its contents. For example the previous example
+is rendered:
+
+=nested
+The B<V< V<> >> formatting code disarms other codes
+such as V< I<>, C<>, B<>, and M<> >.
+
+=head2 Indexing terms
+
+Anything enclosed in an C<X<>> code is an B<index entry>. The contents
+of the code are both formatted into the document and used as the
+(case-insensitive) index entry:
+
+=begin code :allow<B>
+    An B<X<array>> is an ordered list of scalars indexed by number,
+    starting with 0. A B<X<hash>> is an unordered collection of scalar
+    values indexed by their associated string key.
+=end code
+
+You can specify an index entry in which the indexed text and the index
+entry are different, by separating the two with a vertical bar:
+
+=begin code :allow<B>
+    An B<X<array|arrays>> is an ordered list of scalars indexed by number,
+    starting with 0. A B<X<hash|hashes>> is an unordered collection of
+    scalar values indexed by their associated string key.
+=end code
+
+In the two-part form, the index entry comes after the bar and is
+case-sensitive.
+
+You can specify hierarchical index entries by separating indexing levels
+with commas:
+
+=begin code :allow<B>
+    An X<array|B<arrays, definition of>> is an ordered list of scalars
+    indexed by number, starting with 0. A X<hash|B<hashes, definition of>>
+    is an unordered collection of scalar values indexed by their
+    associated string key.
+=end code
+
+You can specify two or more entries for a single indexed text, by separating
+the entries with semicolons:
+
+=begin code :allow<B>
+    A X<hash|B<hashes, definition of; associative arrays>>
+    is an unordered collection of scalar values indexed by their
+    associated string key.
+=end code
+
+The indexed text can be empty, creating a "zero-width" index entry:
+
+=begin code :allow<B>
+    B<X<|puns, deliberate>>This is called the "Orcish Manoeuvre"
+    because you "OR" the "cache".
+=end code
+
+=head1 Rendering Pod
+
+=head2 HTML
+
+In order to generate HTML from Pod, you need the L<Pod::To::HTML module|https://github.com/perl6/Pod-To-HTML>.
+
+If it is not already installed, install it by running the following command:
+C<zef install Pod::To::HTML>
+
+Using the terminal run the following command:
+=begin code :lang<shell>
+perl6 --doc=HTML input.pod6 > output.html
+=end code
+
+=head2 Markdown
+
+In order to generate Markdown from Pod, you need the L<Pod::To::Markdown module|https://github.com/softmoth/perl6-pod-to-markdown>.
+
+If it is not already installed, install it by running the following command:
+C<zef install Pod::To::Markdown>
+
+Using the terminal run the following command:
+=begin code :lang<shell>
+perl6 --doc=Markdown input.pod6 > output.md
+=end code
+
+=head2 Text
+
+In order to generate Text from Pod, you can use the default
+C<Pod::To::Text> module.
+
+Using the terminal, run the following command:
+=begin code :lang<shell>
+perl6 --doc=Text input.pod6 > output.txt
+=end code
+
+You can omit the C<=Text> portion:
+
+=begin code :lang<shell>
+perl6 --doc input.pod6 > output.txt
+=end code
+
+You can even embed Pod directly in your program and add the
+traditional Unix command line "--man" option to your program with a
+multi MAIN subroutine like this:
+
+=begin code
+multi MAIN(Bool :$man)
+{
+    run $*EXECUTABLE, '--doc', $*PROGRAM;
+}
+=end code
+
+Now C<myprogram --man> will output your Pod rendered as a man page.
+
+=head1 Accessing Pod
+
+In order to access Pod documentation from within a Perl 6 program
+it is required to use the special C<=> twigil, as documented
+in the L<variables section|/language/variables#The_=_twigil>.
+
+The C<=> twigil provides the introspection over the Pod structure,
+providing a L<Pod::Block> tree root from which it is possible
+to access the whole structure of the Pod document.
+
+As an example, the following piece of code introspects
+its own Pod documentation:
+
+=begin code
+=begin pod
+
+=head1 This is an head1 title
+
+This is a paragraph.
+
+=head2 Subsection
+
+Here some text for the subsection.
+
+=end pod
+
+for $=pod -> $pod-item {
+    for $pod-item.contents -> $pod-block {
+      $pod-block.perl.say;
+    }
+}
+=end code
+
+producing the following output:
+
+=for code
+Pod::Heading.new(level => 1, config => {}, contents => [Pod::Block::Para.new(config => {}, contents => ["This is an head1 title"])]);
+Pod::Block::Para.new(config => {}, contents => ["This is a paragraph."]);
+Pod::Heading.new(level => 2, config => {}, contents => [Pod::Block::Para.new(config => {}, contents => ["Subsection"])]);
+Pod::Block::Para.new(config => {}, contents => ["Here some text for the subsection."]);
+=end pod
