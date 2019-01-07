@@ -18,6 +18,7 @@ method cache-file(Str $file --> Str) {
        $job.stdout.tap(-> $buf {$outfile.print: $buf});
 
        await $job.start;
+       $outfile.close;
     }
     $outfile
 }
