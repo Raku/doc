@@ -731,13 +731,13 @@ along with being a hint to the compiler that it can parallelize the call, the
 behaviour is also affected by
 L<nodality of the method|/routine/is%20nodal>
 being invoked, depending on
-which either L<nodemap|/type/nodemap> or L<deepmap|/type/deepmap> semantics are used to perform the call.
+which either L<nodemap|/routine/nodemap> or L<deepmap|/routine/deepmap> semantics are used to perform the call.
 
 The nodality is checked by looking up whether the L<Callable|/type/Callable> provides C<nodal>
 method. If the hyper is applied to a method, that L<Callable|/type/Callable> is that method
 name, looked up on L<List|/type/List> type; if the hyper is applied to a routine (e.g.
 C<».&foo>), that routine functions as that L<Callable|/type/Callable>. If the L<Callable|/type/Callable> is
-determined to provide C<nodal> method, L<nodemap|/type/nodemap> semantics are used to perform
+determined to provide C<nodal> method, L<nodemap|/routine/nodemap> semantics are used to perform
 the hyper call, otherwise L<duckmap|/type/duckmap> semantics are used.
 
 Take care to avoid a
@@ -2347,14 +2347,15 @@ my %features = %hash, :wields("hammer");
 say %features;  # OUTPUT: «{god => Þor, is => mighty, wields => hammer}␤»
 =end code
 
-The comma is slso used syntactically as the separator of arguments in calls.
+The comma is also used syntactically as the separator of arguments in
+calls.
 
 
 =head2 infix C«:»
 
-Used as an argument separator just like infix C<,> and marks the argument to
-its left as the invocant. That turns what would otherwise be a function call
-into a method call.
+Used as an argument separator just like infix C<,> and marks the
+argument to its left as the invocant. That turns what would otherwise be
+a function call into a method call.
 
     substr('abc': 1);       # same as 'abc'.substr(1)
 
@@ -2386,13 +2387,13 @@ list:
     say 100, 200 Z+ 42, 23;             # OUTPUT: «(142 223)␤»
     say 1..3 Z~ <a b c> Z~ 'x' xx 3;    # OUTPUT: «(1ax 2bx 3cx)␤»
 
+X<|cross product operator>
 =head2 infix C«X»
 
     sub infix:<X>(**@lists --> List:D)
 
-Creates a cross product from all the lists, order so that the rightmost
-elements vary most rapidly:X<|cross product operator>
-
+Creates a cross product from all the lists, ordered so that the
+rightmost elements vary most rapidly:
     1..3 X <a b c> X 9
     # produces ((1 a 9) (1 b 9) (1 c 9)
     #           (2 a 9) (2 b 9) (2 c 9)
@@ -2410,41 +2411,49 @@ X<|...,operators>X<|...^,operators>X<|…,operators>X<|…^,operators>X<|lazy li
     multi sub infix:<...>(**@) is assoc<list>
     multi sub infix:<...^>(**@) is assoc<list>
 
-The X<sequence operator>, which can be written either C<...> or as C<…> (with variants C<...^> and C<…^>) will produce generic sequences on demand.
+The X<sequence operator>, which can be written either as C<...> or as
+C<…> (with variants C<...^> and C<…^>) will produce (possibly lazy)
+generic sequences on demand.
 
-The left-hand side will always include initial elements; it may
+The left-hand side will always include the initial elements; it may
 include a generator too. The right-hand side will have an endpoint,
-which can be C<Inf> or C<*> for "infinite" lists (whose elements are
-only produced on demand), an expression which will end the sequence
-when C<True>, or other elements such as L<Junctions|/type/Junctions>.
+which can be C<Inf> or C<*> for "infinite" lists (that is, I<lazy> lists
+whose elements are only produced on demand), an expression which will
+end the sequence when C<True>, or other elements such as
+L<Junctions|/type/Junctions>.
 
 The sequence operator invokes the generator with as many arguments as
 necessary. The arguments are taken from the initial elements and the
-already generated elements. The default generator is C<*.>L<succ|/type/succ> or
-C<*.>L<pred|/type/pred>, depending on how the end points compare:
+already generated elements. The default generator is
+C<*.>L<succ|/type/succ> or C<*.>L<pred|/type/pred>, depending on how the
+end points compare:
 
     say 1 ... 4;        # OUTPUT: «(1 2 3 4)␤»
     say 4 ... 1;        # OUTPUT: «(4 3 2 1)␤»
     say 'a' ... 'e';    # OUTPUT: «(a b c d e)␤»
     say 'e' ... 'a';    # OUTPUT: «(e d c b a)␤»
 
-An endpoint of C<*> (L<Whatever|/type/Whatever>), C<Inf> or C<∞>  generates on demand an infinite sequence,
-with a default generator of *.succ
+An endpoint of C<*> (L<Whatever|/type/Whatever>), C<Inf> or C<∞>
+generates on demand an infinite sequence, with a default generator of
+C<*.succ>
 
     say (1 ... *)[^5];  # OUTPUT: «(1 2 3 4 5)␤»
 
-Custom generators need to be the last element of the list before the '...' operator.
-This one takes two arguments, and generates the Fibonacci numbers
+Custom generators need to be the last element of the list before the
+'...' operator. This one takes two arguments, and generates the
+eight first Fibonacci numbers
 
-    say (1, 1, -> $a, $b { $a + $b } ... *)[^8];    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
-    # same but shorter
-    say (1, 1, * + * ... *)[^8];                    # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
+=for code
+say (1, 1, -> $a, $b { $a + $b } ... *)[^8]; # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
+# same but shorter
+say (1, 1, * + * ... *)[^8];                 # OUTPUT: «(1 1 2 3 5 8 13 21)␤»
 
 Of course the generator can also take only one argument.
 
-    say 5, { $_ * 2 } ... 40;                       # OUTPUT: «5 10 20 40␤»
+    say 5, { $_ * 2 } ... 40;                # OUTPUT: «5 10 20 40␤»
 
-There must be at least as many initial elements as arguments to the generator.
+There must be at least as many initial elements as arguments to the
+generator.
 
 Without a generator and with more than one initial element and all initial
 elements numeric, the sequence operator tries to deduce the generator. It
@@ -2462,7 +2471,7 @@ This allows you to write
 
     say 1, 1, * + * ...^ *>= 100;
 
-To generate all Fibonacci numbers up to but excluding 100.
+to generate all Fibonacci numbers up to but excluding 100.
 
 The C<...> operators consider the initial values as "generated elements" as
 well, so they are also checked against the endpoint:
@@ -2474,18 +2483,20 @@ well, so they are also checked against the endpoint:
 =head1 List prefix precedence
 
 X<|list =>
+X<List assignment operator>.
 =head2 infix C«=»
 
-X<List assignment operator>. Its exact semantics are left to the container type
-on the left-hand side. See L<Array|/type/Array> and L<Hash|/type/Hash> for common cases.
+In this context, it acts as the list assignment operator. Its exact
+semantics are left to the container type on the left-hand side. See
+L<Array|/type/Array> and L<Hash|/type/Hash> for common cases.
 
-The distinction between item assignment and list assignment is determined by
-the parser depending on the syntax of the left-hand side.
+The distinction between item assignment and list assignment is
+determined by the parser depending on the syntax of the left-hand side.
 
 =head2 infix C«:=»
 
-X<Binding operator>. Whereas C<$x = $y> puts the value in C<$y> into C<$x>, C<$x :=
-$y> makes C<$x> and C<$y> the same thing.
+X<Binding operator>. Whereas C<$x = $y> puts the value in C<$y> into
+C<$x>, C<$x := $y> makes C<$x> and C<$y> the same thing.
 
     my $a = 42;
     my $b = $a;
@@ -2504,10 +2515,11 @@ different.
 This will output 43, since C<$b> and C<$a> both represented the same
 object.
 
-If type constrains on variables or containers are present a type check will be
-performed at runtime. On failure C<X::TypeCheck::BindingType> will be thrown.
+If type constrains on variables or containers are present a type check
+will be performed at runtime. On failure C<X::TypeCheck::BindingType>
+will be thrown.
 
-Please note that C<:=> is a compile time construct. As such it can not
+Please note that C<:=> is a compile time operator. As such it can not
 be referred to at runtime and thus can't be used as an argument to
 metaoperators.
 
@@ -2516,40 +2528,37 @@ metaoperators.
 X<Read-only binding operator>, not yet implemented in Rakudo.
 See L<C<infix :=>|:=>.
 
+X<|stub operator>
 =head2 listop C«...»
 
-X<|stub operator>
-The I<yada, yada, yada> operator or I<stub> operator. If it's the only
-statement in a routine or type, it marks that routine or type as a stub
-(which is significant in the context of pre-declaring types and composing
-roles).
+Called the I<yada, yada, yada> operator or I<stub> operator, if it's the
+only statement in a routine or type, it marks that routine or type as a
+stub (which is significant in the context of pre-declaring types and
+composing roles).
 
-If the C<...> statement is executed, it calls L<fail|/routine/fail>, with the default
-message C<stub code executed>.
-
-=head2 listop C«!!!»
+If the C<...> statement is executed, it calls L<fail|/routine/fail>,
+with the default message C<Stub code executed>.
 
 X<Fatal stub operator>.
+=head2 listop C«!!!»
 
-If it's the only
-statement in a routine or type, it marks that routine or type as a stub
-(which is significant in the context of pre-declaring types and composing
-roles).
+If it's the only statement in a routine or type, it marks that routine
+or type as a stub (which is significant in the context of pre-declaring
+types and composing roles).
 
-If the C<!!!> statement is executed, it calls L<die|/routine/die>, with the default
-message C<stub code executed>.
+If the C<!!!> statement is executed, it calls L<die|/routine/die>, with
+the default message C<Stub code executed>.
 
-=head2 listop C«???»
 
 X<Admonitory stub operator>.
+=head2 listop C«???»
 
-If it's the only
-statement in a routine or type, it marks that routine or type as a stub
-(which is significant in the context of pre-declaring types and composing
-roles).
+If it's the only statement in a routine or type, it marks that routine
+or type as a stub (which is significant in the context of pre-declaring
+types and composing roles).
 
-If the C<???> statement is executed, it calls L<warn|/routine/warn>, with the default
-message C<stub code executed>.
+If the C<???> statement is executed, it calls L<warn|/routine/warn>,
+with the default message C<Stub code executed>.
 
 =head2 Reduction operators
 
@@ -2561,7 +2570,8 @@ that reduces using that operation.
     my @a = (5, 6);
     say [*] @a;           # 5 * 6 = 30
 
-Reduction operators have the same associativity as the operators they are based on.
+Reduction operators have the same associativity as the operators they
+are based on.
 
     say [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
     say [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
@@ -2573,19 +2583,20 @@ Reduction operators have the same associativity as the operators they are based 
 Same as L<infix &&|/language/operators#infix_%26%26>, except with looser
 precedence.
 
-Short-circuits so that it returns the first operand that evaluates to C<False>, otherwise
-returns the last operand. Note that C<and> is easy
+Short-circuits so that it returns the first operand that evaluates to
+C<False>, otherwise returns the last operand. Note that C<and> is easy
 to misuse. See L<traps|/language/traps#Loose_boolean_operators>.
 
 =head2 infix C«andthen» X<|andthen>
 
-The C<andthen> operator returns L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering
-the first L<undefined|/routine/defined> argument, otherwise the last argument.
-Last argument
-is returned as-is, without being checked for definedness at all.
-Short-circuits. The result of the left side is bound to C<$_> for the
-right side, or passed as arguments if the right side is a
-L«C<Callable>|/type/Callable», whose L<count|/type/count> must be C<0> or C<1>.
+The C<andthen> operator returns
+L«C<Empty>|/type/Slip#index-entry-Empty-Empty» upon encountering the
+first L<undefined|/routine/defined> argument, otherwise the last
+argument. Last argument is returned as-is, without being checked for
+definedness at all. Short-circuits. The result of the left side is bound
+to C<$_> for the right side, or passed as arguments if the right side is
+a L«C<Callable>|/type/Callable», whose L<count|/type/count> must be C<0>
+or C<1>.
 
 A handy use of this operator is to alias a routine's return value to C<$_> and
 to do additional manipulation with it, such as printing or returning it to
@@ -2626,12 +2637,12 @@ Short-circuits. The result of the left side is bound to C<$_> for the
 right side, or passed as arguments if the right side is a
 L«C<Callable>|/type/Callable», whose L<count|/type/count> must be C<0> or C<1>.
 
-At first glance, L<notandthen|/type/notandthen> might appear to be the same thing as the L<orelse|/type/orelse>
-operator. The difference is subtle: L<notandthen|/type/notandthen> returns
+At first glance, L<notandthen|/routine/notandthen> might appear to be the same thing as the L<orelse|/routine/orelse>
+operator. The difference is subtle: L<notandthen|/routine/notandthen> returns
 L«C<Empty>|/type/Slip#index-entry-Empty-Empty» when it encounters a
-L<defined|/type/defined> item (that isn't the last item), whereas L<orelse|/type/orelse> returns that
-item. In other words, L<notandthen|/type/notandthen> is a means to act when items aren't
-defined, whereas L<orelse|/type/orelse> is a means to obtain the first defined item:
+L<defined|/type/defined> item (that isn't the last item), whereas L<orelse|/routine/orelse> returns that
+item. In other words, L<notandthen|/routine/notandthen> is a means to act when items aren't
+defined, whereas L<orelse|/routine/orelse> is a means to obtain the first defined item:
 
 =begin code
 sub all-sensors-down     { [notandthen] |@_, True             }
