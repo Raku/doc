@@ -2,7 +2,6 @@
 
 use v6.*;
 use Test;
-use YAMLish;
 
 my SetHash $tested .= new;
 
