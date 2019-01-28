@@ -6,19 +6,23 @@
 
     class Whatever { }
 
-C<Whatever> is a class whose objects don't really do much; it gets
-its semantics from other routines that accept C<Whatever>-objects as markers
-to do something special. The C<*> literal in term position creates a
-C<Whatever> object.
+C<Whatever> is a class whose objects don't have any explicit meaning; it
+gets its semantics from other routines that accept C<Whatever>-objects
+as markers to do something special. Using the C<*> literal as an operand
+creates a C<Whatever> object.
 
-Much of C<*>'s charm comes from I<Whatever-currying>. When C<*> is used in term
-position in combination with most operators, the compiler will transform the
-expression into a closure of type L<WhateverCode|/type/WhateverCode>.
+Much of C<*>'s charm comes from I<Whatever-currying>. When C<*> is used
+in term position, that is, as an operand, in combination with most
+operators, the compiler will transform the expression into a closure of
+type L<WhateverCode|/type/WhateverCode>, which is actually a
+L<C<Block>|/type/Block> that can be used wherever C<Callables> are
+accepted.
 
     my $c = * + 2;          # same as   -> $x { $x + 2 };
     say $c(4);              # OUTPUT: «6␤»
 
-Multiple C<*> in one expression generate closures with as many arguments:
+Multiple C<*> in one expression generate closures with as many
+arguments:
 
     my $c = * + *;          # same as   -> $x, $y { $x + $y }
 
@@ -28,11 +32,12 @@ Using C<*> in complex expressions will also generate closures:
 
 Calling a method on C<*> also creates a closure:
 
-    <a b c>.map: *.uc;      # same as    <a b c>.map: -> $char { $char.uc }
+=for code
+<a b c>.map: *.uc;      # same as    <a b c>.map: -> $char { $char.uc }
 
-As mentioned  before, not all operators and syntactic constructs curry C<*> (or
-C<Whatever>-stars) to C<WhateverCode>. In the following cases, C<*> will remain
-a C<Whatever> object.
+As mentioned  before, not all operators and syntactic constructs curry
+C<*> (or C<Whatever>-stars) to C<WhateverCode>. In the following cases,
+C<*> will remain a C<Whatever> object.
 
 =begin table
 
@@ -64,17 +69,20 @@ and
     say @a[0..*];           # OUTPUT: «(1 2 3 4)␤»
     say @a[0..*-2];         # OUTPUT: «(1 2 3)␤»
 
-Because I<Whatever-currying> is a purely syntactic compiler transform, you will
-get no runtime currying of stored C<Whatever>-stars into C<WhateverCode>s.
+Because I<Whatever-currying> is a purely syntactic compiler transform,
+you will get no runtime currying of stored C<Whatever>-stars into
+C<WhateverCode>s.
 
-    my $x = *;
-    $x + 2;   # Not a closure, dies because it can't coerce $x to Numeric
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::Multi::NoMatch: Cannot resolve caller Numeric(Whatever: ); none of these signatures match:␤
-    # (Mu:U \v: *%_)»
+=for code
+my $x = *;
+$x + 2;   # Not a closure, dies because it can't coerce $x to Numeric
+CATCH { default { put .^name, ': ', .Str } };
+# OUTPUT: «X::Multi::NoMatch: Cannot resolve caller Numeric(Whatever: ); none of these signatures match:␤
+# (Mu:U \v: *%_)»
 
 The use cases for stored C<Whatever>-stars involve those curry-exception
-cases mentioned above. For example, if you want an infinite series by default.
+cases mentioned above. For example, if you want an infinite series by
+default.
 
 =for code :preamble<sub potential-upper-limit {}; sub known-lower-limit {};>
 my $max    = potential-upper-limit() // *;
