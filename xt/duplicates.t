@@ -17,7 +17,7 @@ Allow a few well known duplicates, like 'long long'
 
 =end overview
 
-my $safe-dupes = Set.new(<method long default that>); # Allow these dupes
+my $safe-dupes = Set.new(<method long default that yada>); # Allow these dupes
 
 my @files = Test-Files.documents \
     .grep({$_ ne "doc/HomePage.pod6"}) \  # mostly HTML
