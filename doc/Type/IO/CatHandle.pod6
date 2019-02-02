@@ -11,9 +11,9 @@ Thic class has been available in Rakudo since version 2017.06.
 The C<IO::CatHandle> class provides a means to create an L<IO::Handle> that
 seamlessly gathers input from multiple L<IO::Handle> and L<IO::Pipe> sources.
 
-All of the L<IO::Handle>'s methods are implemented, and while attempt
-to use write methods will (currently) throw, an L<IO::CatHandle> is usable
-anywhere a read-only L<IO::Handle> can be used.
+All of the L<IO::Handle>'s methods are implemented, and while attempt to use
+write methods will (currently) throw and exception, an L<IO::CatHandle> is
+usable anywhere a read-only L<IO::Handle> can be used.
 
 =head1 Methods
 
@@ -21,36 +21,47 @@ anywhere a read-only L<IO::Handle> can be used.
 
 Defined as:
 
-    method new(*@handles, :&on-switch, :$chomp = True, :$nl-in = ["\n", "\r\n"], Str :$encoding, Bool :$bin)
+    method new(*@handles, :&on-switch, :$chomp = True,
+               :$nl-in = ["\n", "\r\n"], Str :$encoding, Bool :$bin)
 
 Creates a new L<IO::CatHandle> object.
 
-The C<@handles> positional argument
-indicates a source of handles for the C<IO::CatHandle> to read from and
-can a mixed collection of L<Cool|/type/Cool>, L<IO::Path>, and L<IO::Handle> (including
-L<IO::Pipe>) objects. As input from L<IO::CatHandle> is processed (so operations
-won't happen during C<.new> call, but only when C<@handles>' data is needed),
-it will walk through C<@handles> list, processing each argument as follows:
-the L<Cool|/type/Cool> objects will be coerced to L<IO::Path>; L<IO::Path> objects will be
-opened for reading using the L<IO::CatHandle>'s (invocant's) attributes for
-L«C<open>|/routine/open» calls; un-opened L<IO::Handle> objects will be opened
-in the same fashion as L<IO::Path> objects; and already opened
-L<IO::Handle> objects will have all of their attributes set to the attributes
-of the invocant L<IO::CatHandle>. In short, all the C<@handles> end up
-as L<IO::Handle> objects opened in the same mode and with the same attributes
-as the invocant L<IO::CatHandle>.
+The C<@handles> positional argument indicates a source of handles for the
+C<IO::CatHandle> to read from and can deal with a mixed collection of
+L<Cool|/type/Cool>, L<IO::Path>, and L<IO::Handle> (including L<IO::Pipe>)
+objects. As input from L<IO::CatHandle> is processed (so operations won't happen
+during C<.new> call, but only when C<@handles>' data is needed), it will walk
+through the C<@handles> list, processing each argument as follows:
+
+=item the
+L<Cool|/type/Cool> objects will be coerced to L<IO::Path>;
+
+=item L<IO::Path> objects
+will be opened for reading using the L<IO::CatHandle>'s (invocant's) attributes
+for L«C<open>|/routine/open» calls;
+
+=item un-opened L<IO::Handle> objects will be
+opened in the same fashion as L<IO::Path> objects;
+
+=item and already opened
+L<IO::Handle> objects will have all of their attributes set to the attributes of
+the invocant L<IO::CatHandle>.
+
+In short, all the C<@handles> end up as
+L<IO::Handle> objects opened in the same mode and with the same attributes as
+the invocant L<IO::CatHandle>.
 
 See L«C<.on-switch> method|/type/IO::CatHandle#method_on-switch» for details
 on the C<:&on-switch> named argument, which by default is not set.
 
-The L«C<:$encoding>|/type/IO::CatHandle#method_encoding» specifies the
-handle's encoding and accepts the same values as
-L«C<IO::Handle.encoding>|/type/IO::Handle#method_encoding». Set
-C<:$bin> named argument to C<True> if you wish the handle to be in binary mode.
-Attempting to specify both defined C<:$encoding> and C<True> C<:$bin> is
-a fatal error resulting in C<X::IO::BinaryAndEncoding> exception thrown.
-If C<:$encoding> is not set and nor C<:$bin> is not set to a true value,
-the handle will default to C<utf8> encoding.
+The L«C<:$encoding>|/type/IO::CatHandle#method_encoding» named argument
+specifies the handle's encoding and accepts the same values as
+L«C<IO::Handle.encoding>|/type/IO::Handle#method_encoding». Set C<:$bin> named
+argument to C<True> if you wish the handle to be in binary mode. Attempting to
+specify both a defined C<:$encoding> and a C<True> C<:$bin> is a fatal error
+resulting in C<X::IO::BinaryAndEncoding> exception thrown. If neither
+C<:$encoding> is set nor C<:$bin> set to a true value, the handle will default
+to C<utf8> encoding.
 
 The C<:$chomp> and C<:$nl-in> arguments have the same meaning as in
 L<IO::Handle|/type/IO::Handle> and take and default to the same values.
@@ -83,11 +94,11 @@ Defined as:
 
     method nl-in(IO::CatHandle:D:) is rw
 
-Sets the invocant's C<$.nl-in> attribute to the assigned value, which
-can be a L<Str|/type/Str> or a L<List|/type/List> of L<Str|/type/Str>, where each L<Str|/type/Str> object
-represents the end-of-line string. All source handles, including the active one
-will use the provided C<$.nl-in> value. Note that source handle boundary
-is always counted as a new line break.
+Sets the invocant's C<$.nl-in> attribute to the assigned value, which can be a
+L<Str|/type/Str> or a L<List|/type/List> of L<Str|/type/Str>, where each
+L<Str|/type/Str> object represents the end-of-line string. All source handles,
+including the active one will use the provided C<$.nl-in> value. Note that
+source handle boundary is always counted as a new line break.
 
 =begin code
 (my $f1 = 'foo'.IO).spurt: "A\nB\nC";
@@ -266,8 +277,8 @@ It I<is> acceptable to call this method multiple times and C<.handles.head> is a
 valid idiom for obtaining the currently-active handle. If, between
 L<reification|/language/glossary#index-entry-Reify> of the elements of the
 returned L<Seq|/type/Seq> the handles get switched by some other means, the next
-element produced by the L<Seq|/type/Seq> would be the next handle of the invocant, not
-the handle that would've been produced if no switching occurred:
+element produced by the L<Seq|/type/Seq> would be the next handle of the
+invocant, not the handle that would've been produced if no switching occurred:
 
     (my $file1 := 'file1'.IO).spurt: "1a\n1b\n1c";
     (my $file2 := 'file2'.IO).spurt: "2a\n2b\n2c";
