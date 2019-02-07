@@ -60,7 +60,7 @@ sub test-it($promises, $file) {
 for @files -> $file {
     my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
 
-    my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {print "^" gsub(/[\\:]/,"",$0)}', $input-file);
+    my $fixer = Proc::Async.new('awk', 'BEGIN {print "!"} {gsub("\\\\","",$0); print "^" $0}', $input-file);
     my $proc = Proc::Async.new(<aspell -a -l en_US --ignore-case --extra-dicts=./xt/aspell.pws>);
     $proc.bind-stdin: $fixer.stdout: :bin;
     %output{$file}="";
