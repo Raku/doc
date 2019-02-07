@@ -72,7 +72,7 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
         CATCH { default { say "problematic type «$type-name»" } }
         take ($type-name, $path, ::($type-name).^methods(:local).grep({
             my $name = .name;
-            # Some buildins like NQPRoutine don't support the introspection we need.
+            # Some builtins like NQPRoutine don't support the introspection we need.
             # We solve this the British way, complain and carry on.
             CATCH { default { say "problematic method $name in «$type-name»" unless $name eq '<anon>'; False } }
             (.package ~~ ::($type-name))

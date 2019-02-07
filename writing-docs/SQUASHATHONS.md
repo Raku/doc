@@ -13,7 +13,7 @@ you follow these rules when participating in it.
    assignee in the issue.
 4. Start by solving one of the
    [good first issues](https://github.com/perl6/doc/issues?q=is%3Aissue+is%3Aopen+label%3A%22good+first+issue%22)
-   or the ones labeles
+   or the ones labeled
    [`hacktoberfest`](https://github.com/perl6/doc/issues?q=is%3Aissue+is%3Aopen+label%3AHacktoberfest). Leave
    other ones till the end of the day (so that others can start with
    something easy too). If you are already experienced, don't be

@@ -13,7 +13,7 @@ browse the documentation once it's installed (see below).
 This documentation is also published as
 the
 [`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc) Docker
-container. It includes a copy of the web publised in port 3000, so you
+container. It includes a copy of the web published on port 3000, so you
 can run it with:
 
     docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
