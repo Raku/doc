@@ -1,6 +1,9 @@
 # Contributing
 
-Your patches to perl6/doc are very welcome.
+Your patches to `perl6/doc` are very welcome, and if you want to
+help,
+[please read this guide](https://dev.to/jj/squashing-perl-6-documentation-bugs-one-at-a-time-4ojn) as
+well as the detailed instructions below.
 
 This document describes how to get started and helps to provide documentation
 that adheres to the common style and formatting guidelines.
