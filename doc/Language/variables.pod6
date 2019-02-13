@@ -641,8 +641,7 @@ Therefore, the subroutine
 will continue to increment C<$l> and append it to C<@x> each time it is
 called. So it will output:
 
-=begin code :skip-test
-
+=for code :lang<text>
 [A]
 [A B]
 [A B C]
@@ -650,15 +649,32 @@ called. So it will output:
 [A B C D E]
 [A B C D E F]
 
-=end code
+Since they have a lexical scope, they are tied to the block they are
+declared.
 
-This works per "clone" of the containing code object, as in this example:
+=for code
+sub foo () {
+  for 0..1 {
+    state $foo = 1;
+    say $foo++;
+  }
+};
+foo;  # OUTPUT: «1␤2␤»
+foo;  # OUTPUT: «1␤2␤»
 
-    ({ state $i = 1; $i++.say; } xx 3).map: {$_(), $_()}; # says 1 then 2 thrice
+In this case, a new state variable is created every time the block that
+runs the for loop is entered, which is why the state variable is reset
+in every call to C<foo>.
 
-Note that this is B<not> a thread-safe construct when the same clone of the same
-block is run by multiple threads.  Also remember that methods only have one
-clone per class, not per object.
+This works per "clone" of the containing code object, as in this
+example:
+
+=for code
+({ state $i = 1; $i++.say; } xx 3).map: {$_(), $_()}; # says 1 then 2 thrice
+
+Note that this is B<not> a thread-safe construct when the same clone of
+the same block is run by multiple threads.  Also remember that methods
+only have one clone per class, not per object.
 
 As with C<my>, a declaration of multiple C<state> variables must be placed
 in parentheses which can be omitted for a single variable.
