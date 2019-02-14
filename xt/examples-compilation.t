@@ -33,7 +33,7 @@ Perl 6 level one.
 
 Note: Because of our use of EVAL, avoid concurrency.
 
-=end overview
+=end SYNOPSIS
 
 my @files = Test-Files.pods;
 
