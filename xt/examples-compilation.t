@@ -16,15 +16,15 @@ use lib 'lib';
 use Pod::Convenience;
 use Test-Files;
 
-=begin overview
+=begin SYNOPSIS
 
 Test all of the code samples in the document files. Wrap snippets
-in enough boilerplate that we are just compiling and not executing
+in enough boilerplate so that we are just compiling and not executing
 wherever possible. Allow some magic for method declarations to
 avoid requiring a body.
 
-Skip any bits marked :skip-test unless the environment variable
-P6_DOC_TEST_FUDGE is set to a true value.
+Skip any bits marked C<:skip-test> unless the environment variable
+C<P6_DOC_TEST_FUDGE> is set to a true value.
 
 Note: This test generates a lot of noisy output to stderr; we
 do hide $*ERR, but some of these are emitted from parts of
