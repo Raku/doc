@@ -37,9 +37,32 @@ In the two classes, the default constructor is being used. This
 constructor will use named parameters in its invocation: C«Point.new(x =>
 0, y => 0)».
 
-You can also provide your own construction and C<BUILD> implementation.  The
-following, more elaborate example shows how a dependency handler might look in
-Perl 6.  It showcases custom constructors, private and public attributes,
+You can also provide your own construction and C<BUILD> implementation. You need to do it in the case there are private attributes, like below:
+
+=begin code
+class Hero { #taken from https://medium.freecodecamp.org/a-short-overview-of-object-oriented-software-design-c7aa0a622c83
+    has @!inventory;
+    has Str $.name;
+    submethod BUILD( :$name, :@inventory ) {
+        $!name = $name;
+        @!inventory = @inventory
+    }
+
+    method act {
+        return @!inventory.pick;
+    }
+}
+my $hero = Hero.new(:name('Þor'),
+                    :inventory(['Mjölnir','Chariot','Bilskirnir']));
+say $hero.act;
+=end code
+
+In this case, we I<encapsulate> the private attribute C<@!inventory>; but
+private instance variables cannot be set by the default constructor, which is
+why we add a C<BUILD> submethod that takes care of that.
+
+The following, more elaborate example, shows how a dependency handler might look
+in Perl 6.  It showcases custom constructors, private and public attributes,
 L<Submethod|/type/Submethod>s, methods, and various aspects of signatures. It's
 not a lot of code, and yet the result is interesting and useful.
 
@@ -84,12 +107,12 @@ my $eat =
 $eat.perform();
 =end code
 
-In this case, C<BUILD> is needed since we have overridden the default
-new. C<bless> is eventually invoking it with
-the two named arguments that correspond to the two properties without a
-default value. With its signature, C<BUILD> converts the two positionals
-to the two attributes, C<&!callback> and C<@!dependencies>, and returns
-the object (or turns it in to the next phase, C<TWEAK>, if available).
+In this case, C<BUILD> is needed since we have overridden the default new.
+C<bless> is eventually invoking it with the two named arguments that correspond
+to the two properties without a default value. With its signature, C<BUILD>
+converts the two positionals to the two attributes, C<&!callback> and
+C<@!dependencies>, and returns the object (or turns it in to the next phase,
+C<TWEAK>, if available).
 
 Declaring C<new> as a C<method> and not a C<multi method> prevents us
 from using the default constructor; this implicit constructor uses the
