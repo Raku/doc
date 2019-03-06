@@ -99,16 +99,18 @@ Defined as:
 Close the C<Channel>, normally.  This makes subsequent C<send> calls die with
 L<X::Channel::SendOnClosed>.  Subsequent calls of C<.receive> may still drain
 any remaining items that were previously sent, but if the queue is empty, will
-throw an L<X::Channel::ReceiveOnClosed> exception.  A C<Seq> produced by an
-C<@()> or by the C<.list> method will not terminate until this has been done.
-A L<whenever|/language/concurrency#index-entry-whenever>-block will also
+throw an L<X::Channel::ReceiveOnClosed> exception.  Since you can produce a
+C<Seq> from a Channel by contextualizing to array with C<@()> or by calling the
+C<.list> method, these methods will not terminate until the channel has been
+closed. A L<whenever|/language/concurrency#index-entry-whenever>-block will also
 terminate properly on a closed channel.
 
-    my $c = Channel.new;
-    $c.close;
-    $c.send(1);
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::Channel::SendOnClosed: Cannot send a message on a closed channel␤»
+=for code
+my $c = Channel.new;
+$c.close;
+$c.send(1);
+CATCH { default { put .^name, ': ', .Str } };
+# OUTPUT: «X::Channel::SendOnClosed: Cannot send a message on a closed channel␤»
 
 Please note that any exception thrown may prevent C<.close> from being called,
 this may hang the receiving thread. Use a L<LEAVE|/language/phasers#LEAVE>
@@ -120,9 +122,9 @@ Defined as:
 
     method list(Channel:D: --> List:D)
 
-Returns a list based on the C<Seq> which will iterate items in the queue and remove each item
-from it as it iterates. This can only terminate once the C<close> method
-has been called.
+Returns a list based on the C<Seq> which will iterate items in the queue and
+remove each item from it as it iterates. This can only terminate once the
+C<close> method has been called.
 
     my $c = Channel.new; $c.send(1); $c.send(2);
     $c.close;
