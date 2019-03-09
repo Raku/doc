@@ -10,7 +10,8 @@
 Instances of C<IO::Handle> encapsulate an I<handle> to manipulate input/output
 resources. Usually there is no need to create directly an C<IO::Handle>
 instance, since it will be done by other roles and methods. For instance, an
-L<IO::Path> object provides an L<open|/routine/open> method that returns an C<IO::Handle>:
+L<IO::Path> object provides an L<open|/routine/open> method that returns an
+C<IO::Handle>:
 
     my $fh = '/tmp/log.txt'.IO.open;
     say $fh.^name; # OUTPUT: IO::Handle
@@ -39,13 +40,13 @@ method open(IO::Handle:D:
 Opens the handle in one of the modes. L<Fails|/routine/fail> with appropriate
 exception if the open fails.
 
-See description of individual methods for the accepted values and behavior
-of L«C<:$chomp>|/type/IO::Handle#method_chomp»,
+See description of individual methods for the accepted values and behavior of
+L«C<:$chomp>|/type/IO::Handle#method_chomp»,
 L«C<:$nl-in>|/type/IO::Handle#method_nl-in»,
 L«C<:$nl-out>|/type/IO::Handle#method_nl-out», and
 L«C<:$enc>|/type/IO::Handle#method_encoding». The values for parameters default
-to the invocant's attributes and if any of them are provided, the attributes will
-be updated to the new values. Specify C<:$bin> set to C<True> instead of
+to the invocant's attributes and if any of them are provided, the attributes
+will be updated to the new values. Specify C<:$bin> set to C<True> instead of
 C<:$enc> to indicate the handle should be opened in binary mode. Specifying
 undefined value as C<:$enc> is equivalent to not specifying C<:$enc> at all.
 Specifying both a defined encoding as C<:$enc> and C<:$bin> set to true will
@@ -504,10 +505,11 @@ Defined as:
     multi method print(**@text --> True)
     multi method print(Junction:D --> True)
 
-Writes the given C<@text> to the handle, coercing any non-L<Str|/type/Str> objects
-to L<Str|/type/Str> by calling L«C<.Str>|/routine/Str» method on them. L<Junction|/type/Junction> arguments
-L<autothread|/language/glossary#index-entry-Autothreading> and the order of printed strings
-is not guaranteed. See L<write|/routine/write> to write bytes.
+Writes the given C<@text> to the handle, coercing any non-L<Str|/type/Str>
+objects to L<Str|/type/Str> by calling L«C<.Str>|/routine/Str» method on them.
+L<Junction|/type/Junction> arguments
+L<autothread|/language/glossary#index-entry-Autothreading> and the order of
+printed strings is not guaranteed. See L<write|/routine/write> to write bytes.
 
 Attempting to call this method when the handle is
 L<in binary mode|/type/IO::Handle#method_encoding> will result in
@@ -871,9 +873,9 @@ Defined as:
 
     method native-descriptor()
 
-This returns a value that the operating system would understand as a "file descriptor" and
-is suitable for passing to a native function that requires a file descriptor as an
-argument such as C<fcntl> or C<ioctl>.
+This returns a value that the operating system would understand as a "file
+descriptor" and is suitable for passing to a native function that requires a
+file descriptor as an argument such as C<fcntl> or C<ioctl>.
 
 =head2 method nl-in
 
@@ -882,11 +884,10 @@ Defined as:
     method nl-in(--> Str:D) is rw
 
 One of the attributes that can be set via C<.new> or L<open|/routine/open>.
-Defaults to C<["\x0A", "\r\n"]>.
-Takes either a L<Str|/type/Str> or L<Array|/type/Array> of C<Str> specifying input line ending(s) for
-this handle. If C<.chomp> attribute is set to C<True>, will strip these endings
-in routines that C<chomp>, such as L«C<get>|/routine/get» and
-L«C<lines>|/routine/lines».
+Defaults to C<["\x0A", "\r\n"]>. Takes either a L<Str|/type/Str> or
+L<Array|/type/Array> of C<Str> specifying input line ending(s) for this handle.
+If C<.chomp> attribute is set to C<True>, will strip these endings in routines
+that C<chomp>, such as L«C<get>|/routine/get» and L«C<lines>|/routine/lines».
 
 =begin code
 with 'test'.IO {
@@ -999,8 +1000,43 @@ Defined as:
 
     method WRITE(IO::Handle:D: Blob:D \data --> Bool:D)
 
-Called whenever a write operation is performed on the handle. Always receives the data as a
-L<Blob|/type/Blob>, even if a textual writing method has been called.
+Called whenever a write operation is performed on the handle. Always receives
+the data as a L<Blob|/type/Blob>, even if a textual writing method has been
+called.
+
+=begin code
+class IO::Store is IO::Handle {
+    has @.lines = [];
+
+    submethod TWEAK {
+        self.encoding: 'utf8'; # set up encoder/decoder
+    }
+
+    method WRITE(IO::Handle:D: Blob:D \data --> Bool:D) {
+        @!lines.push: data.decode();
+        True;
+    }
+
+    method gist() {
+        return @!lines.join("\n" );
+    }
+}
+my $store = IO::Store.new();
+my $output = $PROCESS::OUT;
+$PROCESS::OUT = $store;
+.say for <one two three>;
+$PROCESS::OUT = $output;
+say $store.lines(); # OUTPUT «[one␤ two␤ three␤]»
+=end code
+
+In this example we are creating a simple C<WRITE> redirection which stores
+anything written to the filehandle to an array. Se need to save the standard
+output first, which we do in C<$output>, and then everything that is C<print>ed
+or said (through C<say>) gets stored in the defined C<IO::Store> class. Two
+things shoule be taken into account in this class. By default, C<IO::Handle>s
+are in binary mode, so we need to C<TWEAK> the objects if we want them to work
+with text. Second, a C<WRITE> operation should return C<True> if successful. It
+will fail if it does not.
 
 =head2 method READ
 
@@ -1008,19 +1044,21 @@ Defined as:
 
     method READ(IO::Handle:D: Int:D \bytes --> Buf:D)
 
-Called whenever a read operation is performed on the handle. Receives the number of bytes
-requested to read. Returns a L<Buf|/type/Buf> with those bytes which can be used to either fill the
-decoder buffer or returned from reading methods directly. The result is allowed to have fewer than
-the requested number of bytes, including no bytes at all.
+Called whenever a read operation is performed on the handle. Receives the number
+of bytes requested to read. Returns a L<Buf|/type/Buf> with those bytes which
+can be used to either fill the decoder buffer or returned from reading methods
+directly. The result is allowed to have fewer than the requested number of
+bytes, including no bytes at all.
 
 If you provide your own C<.READ>, you very likely need to provide your own
 L<C«.EOF»|/routine/EOF> as well, for all the features to behave correctly.
 
-The compiler may call L<C«.EOF»|/routine/EOF> method any number of times during a read operation to
-ascertain whether a call to C<.READ> should be made. More bytes than necessary to satisfy a read
-operation may be requested from C<.READ>, in which case the extra data may be buffered by
-the L<IO::Handle> or the decoder it's using, to fulfill any subsequent reading operations, without
-necessarily having to make another C<.READ> call.
+The compiler may call L<C«.EOF»|/routine/EOF> method any number of times during
+a read operation to ascertain whether a call to C<.READ> should be made. More
+bytes than necessary to satisfy a read operation may be requested from C<.READ>,
+in which case the extra data may be buffered by the L<IO::Handle> or the decoder
+it's using, to fulfill any subsequent reading operations, without necessarily
+having to make another C<.READ> call.
 
 =head2 method EOF
 
