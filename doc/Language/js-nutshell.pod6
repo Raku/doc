@@ -337,7 +337,7 @@ multi sub infix:<||=>($a, $b) is equiv(&infix:<+=>) { $a || $b }
 
 my $foo = 0;
 $foo ||= 1;
-say $foo; # 1
+say $foo; # OUTPUT: 1
 =end code
 
 Operators can be defined as C<prefix>, C<infix>, or C<postfix>. The
@@ -356,28 +356,264 @@ us to override any native operator we want:
 multi sub prefix:<++>($a) is default { $a - 1 }
 
 my $foo = 1;
-say ++$foo; # 0
+say ++$foo; # OUTPUT: 0
 =end code
 
-=head2 Conditionals
-
-=comment TODO
-
-# TBD
-
 =head2 Control flow
+
+=head3 if/else
+
+You should be familiar with how C<if>/C<else> looks in JavaScript:
+
+=begin code :lang<javascript>
+let diceRoll = Math.ceil(Math.random() * 6) + Math.ceil(Math.random() * 6);
+if (diceRoll === 2) {
+    console.log('Snake eyes!');
+} else if (diceRoll === 16) {
+    console.log('Boxcars!');
+} else {
+    console.log(`Rolled ${diceRoll}.`);
+}
+=end code
+
+In Perl 6, C<if>/C<else> works largely the same, with a few key differences.
+One, parentheses are not required. Two, C<else if> is written as C<elsif>.
+Three, the if clause may be written I<after> a statement:
+
+=begin code
+my Int $dice-roll = ceiling rand * 12 + ceiling rand * 12;
+if $dice-roll == 2 {
+    say 'Snake eyes!';
+} elsif $dice-roll == 16 {
+    say 'Boxcars!';
+} else {
+    say "Rolled $dice-roll.";
+}
+=end code
+
+Alternatively, though less efficient, this could be written to use C<if> after
+statements:
+
+=begin code
+my Int $dice-roll = ceiling rand * 12 + ceiling rand * 12;
+say 'Snake eyes!'        if $dice-roll == 2;
+say 'Boxcars!'           if $dice-roll == 16;
+say "Rolled $dice-roll." if $dice-roll !~~ 2 | 16;
+=end code
+
+Perl 6 also has C<when>, which is like C<if>, but if the condition given is
+true, no code past the C<when> block within the block it's in is executed:
+
+=begin code
+{
+    when True {
+        say 'In when block!'; # OUTPUT: In when block!
+    }
+    say 'This will never be output!';
+}
+=end code
+
+Additionally, Perl 6 has C<with>, C<orwith>, and C<without>, which are like
+C<if>, C<else if>, and C<else> respectively, but instead of checking whether
+their condition is true, they check if it's defined.
+
+=head3 switch
+
+Switch statements are a way of checking for equality between a given value and
+a list of values and run some code if one matches. C<case> statements define
+each value to compare to. C<default>, if included, acts as a fallback for when
+the given value matches no cases. After matching a case, C<break> is typically
+used to prevent the code from the cases that follow the one matched from being
+executed, though rarely this is intentionally omitted.
+
+=begin code :lang<javascript>
+const ranklist = [2, 3, 4, 5, 6, 7, 8, 9, 'Jack', 'Queen', 'King', 'Ace'];
+const ranks    = Array.from(Array(3), () => ranklist[Math.floor(Math.random() * ranks.length)]);
+let   score    = 0;
+
+for (let rank of ranks) {
+    switch (rank) {
+        case 'Jack':
+        case 'Queen':
+        case 'King':
+            score += 10;
+            break;
+        case 'Ace';
+            score += (score <= 11) ? 10 : 1;
+            break;
+        default:
+            score += rank;
+            break;
+    }
+}
+=end code
+
+In Perl 6, C<given> can be used like switch statements. There is no equivalent
+to C<break> since C<when> blocks are most commonly used like C<case>
+statements. One major difference between C<switch> and C<given> is that a value
+passed to a C<switch> statement will only match cases that are exactly equal to
+the value; C<given> values are smart matched (C<~~>) against the C<when> values.
+
+=begin code
+my     @ranklist = [2, 3, 4, 5, 6, 7, 8, 9, 'Jack', 'Queen', 'King', 'Ace'];
+my     @ranks    = @ranklist.pick: 3;
+my Int $score    = 0;
+
+for @ranks -> $rank {
+    # The when blocks implicitly return the last statement they contain.
+    $score += do given $rank {
+        when 'Jack' | 'Queen' | 'King' { 10 }
+        when 'Ace' { $score <= 11 ?? 10 !! 1 }
+        default { $_ }
+    };
+}
+=end code
+
+If there are multiple C<when> blocks that match the value passed to C<given>
+and you wish to run more than one of them, use C<proceed>. C<succeed> may be
+used to exit both the C<when> block it's in and the given block, preventing any
+following statements from being executed:
+
+=begin code
+given Int {
+    when Int     { say 'Int is Int';     proceed }
+    when Numeric { say 'Int is Numeric'; proceed }
+    when Any     { say 'Int is Any';     succeed }
+    when Mu      { say 'Int is Mu'               } # Won't output
+}
+
+# OUTPUT:
+# Int is Int
+# Int is Numeric
+# Int is Any
+=end code
+
+=head3 for, while, and do/while
+
+There are three different types of for loops in JavaScript:
+
+=begin code :lang<javascript>
+// C-style for loops
+const letters = {};
+for (let ord = 0x61; ord <= 0x7A; ord++) {
+    let letter = String.fromCharCode(ord);
+    letters[letter] = letter.toUpperCase();
+}
+
+// for..in loops (typically used on objects)
+for (let letter in letters) {
+    console.log(letters[letter]);
+    # OUTPUT:
+    # A
+    # B
+    # C
+    # etc.
+}
+
+// for..of loops (typically used on arrays, maps, and sets)
+for (let letter of Object.values(letters)) {
+    console.log(letter);
+    # OUTPUT:
+    # A
+    # B
+    # C
+    # etc.
+}
+=end code
+
+Perl 6 C<for> loops most closely resemble C<for..of> loops, since they work on
+anything as long as it's iterable. C-style loops are possible to write using
+C<loop>, but this is discouraged since they're better written as C<for> loops
+using ranges. Like C<if> statements, C<for> may follow a statement, with the
+current iteration being accessible using the C<$_> variable (known as "it").
+Methods on C<$_> may be called without specifying the variable:
+
+=begin code
+my Str %letters{Str};
+%letters{$_} = .uc for 'a'..'z';
+.say for %letters.values;
+# OUTPUT:
+# A
+# B
+# C
+# etc.
+=end code
+
+C<while> loops work identically between JavaScript and Perl 6. Perl 6 also has
+C<until> loops, where instead of iterating until the given condition is false,
+they iterate until the condition is true.
+
+C<do/while> loops are known as C<repeat/while> loops in Perl 6. Likewise with
+C<while>, C<repeat/until> loops also exist and loop until the given condition
+is false.
+
+To write infinite loops in Perl 6, use C<loop> rather than C<for> or C<while>.
+
+In JavaScript, C<continue> is used to skip to the next iteration in a loop, and
+C<break> is used to exit a loop early:
+
+=begin code :lang<javascript>
+let primes = new Set();
+let i      = 2;
+
+do {
+    let isPrime = true;
+    for (let prime of primes) {
+        if (i % prime == 0) {
+            isPrime = false;
+            break;
+        }
+    }
+    if (!isPrime) continue;
+    primes.add(i);
+} while (++i < 20);
+
+console.log(primes); # OUTPUT: Set { 2, 3, 5, 7, 11, 13, 17, 19 }
+=end code
+
+In Perl 6, these are known as C<next> and C<last> respectively. There is also
+C<redo>, which repeats the current iteration without evaluating the loop's
+condition again.
+
+C<next>/C<redo>/C<last> statements may be followed by a label defined before an
+outer loop to make the statement work on the loop the label refers to, rather
+than the loop the statement is in:
+
+=begin code
+my %primes is SetHash;
+my Int $i = 2;
+
+OUTSIDE:
+repeat {
+    next OUTSIDE if $i %% $_ for %primes.keys;
+    %primes{$i}++;
+} while ++$i < 20;
+
+say %primes; # OUTPUT: SetHash(11 13 17 19 2 3 5 7)
+=end code
+
+=head3 do
+
+C<do> is not currently a feature in JavaScript, however a proposal has been made
+to L<add it to ECMAScript|https://github.com/tc39/proposal-do-expressions>.
+C<do> expressions evaluate a block and return the result:
+
+=begin code
+constant VERSION        = v2.0.0;
+constant VERSION_NUMBER = do {
+    my @digits = VERSION.Str.comb(/\d+/);
+    :16(sprintf "%02x%02x%04x", |@digits)
+};
+say VERSION_NUMBER; # OUTPUT: 33554432
+=end code
+
+=head2 Types
 
 =comment TODO
 
 # TBD
 
 =head2 Functions
-
-=comment TODO
-
-# TBD
-
-=head2 Types
 
 =comment TODO
 
