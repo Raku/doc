@@ -1060,16 +1060,63 @@ in which case the extra data may be buffered by the L<IO::Handle> or the decoder
 it's using, to fulfill any subsequent reading operations, without necessarily
 having to make another C<.READ> call.
 
+=begin code
+class IO::Store is IO::Handle {
+    has @.lines = [];
+
+    submethod TWEAK {
+      self.encoding: 'utf8'; # set up encoder/decoder
+    }
+
+    method WRITE(IO::Handle:D: Blob:D \data --> Bool:D) {
+      @!lines.push: data;
+      True;
+    }
+
+    method whole() {
+      my Buf $everything = Buf.new();
+      for @!lines -> $b {
+        $everything ~= $b;
+      }
+      return $everything;
+    }
+
+    method READ(IO::Handle:D: Int:D \bytes --> Buf:D) {
+      my Buf $everything := self.whole();
+      return $everything;
+    }
+
+    method EOF {
+      my $everything = self.whole();
+      !$everything;
+    }
+}
+
+my $store := IO::Store.new();
+
+$store.print( $_ ) for <one two three>;
+say $store.read(3).decode; # OUTPUT «one␤»
+say $store.read(3).decode; # OUTPUT «two␤»
+=end code
+
+In this case, we have programmed the two C<READ> and C<EOF> methods, as well as
+C<WRITE>, which stores every line in an element in an array. The C<read> method
+actually calls C<READ>, returning 3 bytes, which correspond to the three
+characters in the first two elements. Please note that it's the C<IO::Handle>
+base class the one that is taking care of cursor, since C<READ> just provides a
+handle into the whole content of the object.
+
 =head2 method EOF
 
 Defined as:
 
     method EOF(IO::Handle:D: --> Bool:D)
 
-Indicates whether "end of file" has been reached for the B<data source> of the handle; i.e. no more
-data can be obtained by calling L<C«.READ»|/routine/READ> method. Note that this is B<not> the
-same as L<eof|/routine/eof> method, which will return C<True> only if C<.EOF> returns C<True> B<and all
-the decoder buffers>, if any were used by the handle, are also empty.
+Indicates whether "end of file" has been reached for the B<data source> of the
+handle; i.e. no more data can be obtained by calling L<C«.READ»|/routine/READ>
+method. Note that this is B<not> the same as L<eof|/routine/eof> method, which
+will return C<True> only if C<.EOF> returns C<True> B<and all the decoder
+buffers>, if any were used by the handle, are also empty.
 
 =head1 Related roles and classes
 
