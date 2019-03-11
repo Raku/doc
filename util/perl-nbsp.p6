@@ -35,7 +35,7 @@ multi sub replace-spaces(IO::Path $file) {
 
         my Str $out-line = $in-line.clone;
         if $split {
-            $out-line ~~ s/ ^ \x[0020]? <?before 6 | 5> /\x[00A0]/;
+            $out-line ~~ s/ ^ \x[0020]? ( 6 | 5 ) /\x[00A0]$0/;
             $split = False;
         } else {
             $out-line ~~ s/ 'Perl' [ \x[0020]+ | \x[00A0] ]? $ /Perl/;
