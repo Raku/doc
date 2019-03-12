@@ -1,0 +1,67 @@
+#!/usr/bin/env perl6
+
+# Remove words in xt/*.pws that are no longer needed
+# * Bug fixes in the spell checker have removed the need
+#   to check certain words.
+# * Edits to the docs themselves no longer use some words.
+
+# Trust but verify: make sure you rerun the entire spell check
+# after letting this program update the .pws files
+
+use File::Temp;
+
+use lib 'lib';
+use Test-Files;
+use Pod::Cache;
+
+my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
+
+@files = @files.map({
+    $_.ends-with('.pod6') ?? Pod::Cache.cache-file($_) !! $_;
+});
+
+my %killed;
+
+sub erase-word($file, @words, $word="") {
+    my ($tmp_fname, $tmp_io) = tempfile;
+    for @words -> $i {
+        next if $i eq $word;
+        next if %killed{$i}:exists;
+        $tmp_io.say($i);
+    }
+    $tmp_io.close;
+    run('mv', $tmp_fname, $file);
+}
+
+for <xt/words.pws xt/code.pws> -> $dict {
+    my @words = $dict.IO.lines;
+    for @words -> $word {
+        note "Testing $dict / $word ";
+        my $keep = True;
+
+        my $proc = Proc::Async.new( 'grep', '-li', $word, |@files);
+        my $output = "";
+        $proc.stdout.tap(-> $buf { $output ~= $buf });
+        my $promise = await $proc.start;
+
+        if +$promise.status {
+            say "Can't find $dict/$word anywhere, kill it.";
+            $keep = False;
+        } else {
+            # Remove the one word we're testing from the file.
+            erase-word($dict, @words, $word);
+            my @raw-files = $output.lines.map({ $_.subst('.pod-cache/', '') });
+            my $proc = run( 'xt/aspell.t', |@raw-files );
+            if $proc.exitcode == 0 {
+                say "aspell test passed";
+                $keep = False;
+            } else {
+                say "aspell test failed, keep it";
+            }
+        }
+        %killed{$word} = True unless $keep;
+    }
+    erase-word($dict, @words);
+}
+
+dd %killed;
