@@ -25,7 +25,7 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   metaoperator => 'meta [\s+|\-] operator',
                   semicolon => 'semi [\s+|\-] colon',
                   metadata  => 'meta [\s+|\+] data',
-                  sigiled => 'sigiled',
+                  sigiled => 'sigilled',
                );
 # zero-width in particular has several unicode documentation variants we allow
 
