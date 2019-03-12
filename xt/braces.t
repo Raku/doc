@@ -22,7 +22,8 @@ sub test-it(Str $output, Str $file) {
 
     my $msg;
 
-    my $line = $output.subst(/\s+/, ' ', :g); # canonicalize whitespace
+    my $line = $output.subst(/\s+/, ' ', :g)                         # canonicalize whitespace
+                      .subst('Opening bracket is required for', ''); # rakudo/rakudo#2672
 
     if $line ~~ /:i <!after curly> ' ' 'braces' >> / {
         $msg ~= "Found 'braces' without 'curly'. ";
