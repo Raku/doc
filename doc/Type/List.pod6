@@ -24,31 +24,49 @@ information. The difference is that iteration generally treats a
 list (or any other list-like object, like a L<Seq|/type/Seq> or an L<Array|/type/Array>)
 inside a scalar as a single element, as long as it's part of another .
 
+    my $s = (1, 2, 3);
+    for $s { }      # one iteration
+    for $s.list { } # three iterations
+
+    my $t = [1, 2, 3];
+    for $t { }      # one iteration
+    for $t.list { } # three iterations
+
     my @a = 1, 2, 3;
     for @a { }      # three iterations
-
-    my $s = @a;
-    for $s { }      # one iteration
     for @a.item { } # one iteration
-    for $s.list { } # three iterations
+
+C<.item> can often be written as C<$( ... )>, and on an array variable
+even as C<$@a>.
 
 Lists generally don't interpolate (flatten) into other lists, except
 when they are not itemized or they are the single argument to an
 operation such as C<append>:
 
-    my @a = 1, 2, 3;
-    my @nested = @a, @a;         # two elements
-    my @flat = flat @a, @a;      # six elements, with explicit flat
-    my @b = 'a', 'b';
-    @b.append: @a;               # @b now has 5 elements, because @a
-                                 # is the sole argument to append
-    my @c = 'a', 'b';
-    @c.append: $@a;              # @b now has 3 elements, because of the
-                                 # itemization with $
-    say @c.elems;
+    my $a = (1, 2, 3);
+    my $nested = ($a, $a);  # two elements
 
-C<.item> can often be written as C<$( ... )>, and on an array variable
-even as C<$@a>.
+    my $flat = $nested.map({ .Slip });  # six elements, with explicit Slip
+
+    my @b = <a b>;
+    @b.append: $a.list;     # The array variable @b has 5 elements, because
+                            # the list $a is the sole argument to append
+
+    say @b.elems;           # OUTPUT: «5␤»
+
+    my @c = <a b>;
+    @c.append: $a.list, 7;  # The array variable @c has 4 elements, because
+                            # the list $a wasn't the only argument and thus
+                            # wasn't flatten by the append operation
+
+    say @c.elems;           # OUTPUT: «4␤»
+
+    my @d = <a b>;
+    @d.append: $a;          # The array variable @d has 3 elements, because
+                            # $a is an itemized list and as far as append is
+                            # concerned a single element
+
+    say @d.elems;           # OUTPUT: «3␤»
 
 The same flattening behavior applies all objects that do the
 L<Iterable|/type/Iterable> role, notable L<hashes|/type/Hash>:
