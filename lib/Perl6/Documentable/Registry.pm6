@@ -3,6 +3,16 @@ use OO::Monitors;
 use Perl6::Documentable;
 
 monitor Perl6::Documentable::Registry {
+    # Perl6::Documentable::Registry collects pieces of Perl 6 documentation
+    # in the form of Perl6::Documentable objects, and enables
+    # lookups of these pieces of documentation.
+    #
+    # The general usage pattern is:
+    # * create an instance with .new();
+    # * add lots of documentation sections with `add-new`
+    # * call .compose
+    # * query the registry with .lookup, .get-kinds and .grouped-by
+
     has @.documentables;
     has Bool $.composed = False;
     has %!cache;
