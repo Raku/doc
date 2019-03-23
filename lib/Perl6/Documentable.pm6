@@ -1,5 +1,10 @@
 use URI::Escape;
 class Perl6::Documentable {
+    # Perl6::Documentable Represents a piece of Perl 6 that is documented.
+    # It contains meta data about what is documented
+    # (for example (kind => 'type', subkinds => ['class'], name => 'Code')
+    # and in $.pod a reference to the actual documentation.
+
     has Str $.kind;        # type, language doc, routine, module
     has Bool $.section;     # for Language doc list breakdown by sections
     has Str @.subkinds;    # class/role/enum, sub/method, prefix/infix/...
