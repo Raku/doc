@@ -24,10 +24,10 @@ mean "module" as a set of source files in a namespace.
 
 =head2 Looking for and installing modules.
 
-L<C<zef>|https://github.com/ugexe/zef> is the application used for
-installing modules in Perl 6. Modules are listed in
-L<the Perl 6 ecosystem|https://modules.perl6.org> and can be searched there or from
-the command line using C<zef search>
+L<C<zef>|https://github.com/ugexe/zef> is the application used for installing
+modules in Perl 6. Modules are listed in
+L<the Perl 6 ecosystem|https://modules.perl6.org> and can be searched there or
+from the command line using C<zef search>:
 
 =for code :lang<shell>
 zef search WWW
@@ -48,12 +48,11 @@ the module is newer than the one installed>
 Module distributions (in the I<set of related source files> sense) in Perl 6
 have the same structure as any distribution in the Perl family of languages:
 there is a main project directory containing a C<README> and a C<LICENSE> file,
-a C<lib> directory for the source files, which may be individually
-referred to as modules and/or may themselves define modules with the C<module>
-keyword
-N<As L<synopsis S11|https://design.perl6.org/S11.html#Units> says: Confusing? Yes it is.>
-, a C<t> directory for tests, and possibly a C<bin>
-directory for executable programs and scripts.
+a C<lib> directory for the source files, which may be individually referred to
+as modules and/or may themselves define modules with the C<module> keyword N<As
+L<synopsis S11|https://design.perl6.org/S11.html#Units> says: Confusing? Yes it
+is.> , a C<t> directory for tests, and possibly a C<bin> directory for
+executable programs and scripts.
 
 Source files generally use the C<.pm6> extension, and scripts or
 executables use the C<.p6>. Test files use the C<.t> extension. Files which
@@ -121,7 +120,8 @@ L<need|/language/modules#need> MyModule;
 import MyModule;
 =end code
 
-See also L<Selective Importing|/language/modules#Exporting_and_selective_importing>
+See also
+L<selective importing|/language/modules#Exporting_and_selective_importing>
 to restrict what you import.
 
 =head2 X<C<require>>
@@ -196,57 +196,18 @@ your module, it should not affect other code. That's why e.g. subroutine
 definitions are lexically (C<my>) scoped by default. If you want others
 to see them, you need to explicitly make them our scoped or export them.
 
-Classes are exported by default on the assumption that loading a module
-will not be of much use when you cannot access the classes it contains.
-This works as advertised with a small but important caveat: those
-classes are not only visible in the computation unit that loads the
-module, but globally. This means that as soon as some code loads a
-module, those classes are immediately visible everywhere.
+Classes are exported by default on the assumption that loading a module will not
+be of much use when you cannot access the classes it contains. Loaded classes
+are thus registered only in the scope which loaded them in the first place
+N<This change was introduced in late 2016. If you are using versions older than
+this, behavior will be different>. This means that we will have to C<use> a
+class in every scope in which we actually employ it.
 
-For example, given a module C<Foo>:
-
-=for code :skip-test
-unit class Foo;
+=for code :skip-test<Dummy, undefined classes>
+use Foo;           # Foo has "use Bar" somewhere.
 use Bar;
-
-And your own program:
-
-=for code :skip-test
-use Foo;
-my $foo = Foo.new; # works as expected
-my $bar = Bar.new; # huh!? Where is Bar coming from?
-
-This doesn't sound so bad (it at least saves you some typing), except
-for that it makes another feature of Perl 6 impossible to have: the
-ability to load multiple versions of a module at the same time in
-different parts of your program:
-
-=for code :skip-test
-{
-    use Baz:ver(v1);
-    my $old-baz = Baz.new;
-}
-{
-    use Baz:ver(v2);
-    my $shiny-new-baz = Baz.new;
-}
-
-This will explode as on loading Baz:ver(v2), Rakudo will complain about "Baz"
-already being defined.
-
-To fix this, we no longer register loaded classes globally but only in the scope
-which loaded them in the first place. Coming back to our first example, we would
-need to explicitly load Bar in the main program:
-
-=for code :skip-test
-use Foo;
-use Bar;
-my $foo = Foo.new; # still works of course
-my $bar = Bar.new; # now it's clear where Bar is coming from
-
-So if you suddenly get an "Undeclared name: Bar" error message after upgrading
-to a newer Perl 6 compiler, you will most probably just need to add a: "use
-Bar;" to your code.
+my $foo = Foo.new;
+my $bar = Bar.new;
 
 =head2 Exporting and selective importing
 
