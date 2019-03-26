@@ -16,7 +16,11 @@ Ensure any test file, including author tests, have clean syntax and POD
 my $max-jobs = %*ENV<TEST_THREADS> // 2;
 
 my @files-t = Test-Files.files.grep({$_.ends-with: '.t'});
-plan +@files-t;
+if @files-t {
+    plan +@files-t;
+} else {
+    plan :skip-all<No test files specified>
+}
 
 my %data;
 test-files( @files-t );
