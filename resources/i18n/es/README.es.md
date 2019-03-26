@@ -5,7 +5,7 @@
 [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
 
 Una versión HTML de esta documentación puede ser encontrada en [https://docs.perl6.org/](https://docs.perl6.org/).
-Ésta es la documentación recomendada.
+Esta es la documentación recomendada.
 
 También hay disponible un comando para la terminal: "p6doc".
 
