@@ -33,6 +33,8 @@ junctions, you use the string that represents the type followed by any object,
 or else call L<C<.all>|/routine/all>, L<C<.none>|/routine/none> or
 L<C<.one>|/routine/one> on the object.
 
+    say so 3 == (1..30).one;# OUTPUT: «True␤»
+
 Autothreading happens when a junction is bound to a parameter of a code object
 that doesn't accept values of type C<Junction>. Instead of producing an error,
 the signature binding is repeated for each value of the junction.
@@ -50,10 +52,10 @@ C<False|True>. The C<if> conditional evaluates the junction in boolean
 context, which collapses it to C<True>. So the code prints C<yes\n>.
 
 The type of a C<Junction> does I<not> affect the number of items in the
-resultant C<Junction> after autothreading. For example, using a L<one|/routine/one>
-C<Junction> during L<Hash|/type/Hash> key lookup, still results in a C<Junction>
-with several items. It is only in boolean context would the type of the
-C<Junction> come into play:
+resultant C<Junction> after autothreading. For example, using a
+L<one|/routine/one> C<Junction> during L<Hash|/type/Hash> key lookup, still
+results in a C<Junction> with several items. It is only in boolean context would
+the type of the C<Junction> come into play:
 
     my %h = :42foo, :70bar;
     say    %h{one <foo meow>}:exists; # OUTPUT: «one(True, False)␤»
@@ -143,32 +145,33 @@ are concerned:
     my $j = +any "not a number", "42", "2.1";
     (gather $j».take).grep(Numeric).say; # OUTPUT: «(42 2.1)␤»
 
-Above, we've used prefix C<+> operator on a L<Junction|/type/Junction> to coerce the strings
-inside of it to L<Numeric|/type/Numeric>. Since the operator returns a L<Failure|/type/Failure> when
-L<Str|/type/Str> that doesn't contain a number gets coerced to C<Numeric>, one of the
-elements in the C<Junction> is a C<Failure>, but same C<Failure> rules as normal
-apply and the C<Failure> doesn't explode just because it's in a C<Junction>, and
-we can L«C<.grep>|/routine/grep» it out. The exception I<will> be thrown,
-if you try to use the C<Failure> as a value—just like were this C<Failure> on
-its own and not part of the C<Junction>:
+Above, we've used prefix C<+> operator on a L<Junction|/type/Junction> to coerce
+the strings inside of it to L<Numeric|/type/Numeric>. Since the operator returns
+a L<Failure|/type/Failure> when L<Str|/type/Str> that doesn't contain a number
+gets coerced to C<Numeric>, one of the elements in the C<Junction> is a
+C<Failure>, but same C<Failure> rules as normal apply and the C<Failure> doesn't
+explode just because it's in a C<Junction>, and we can L«C<.grep>|/routine/grep»
+it out. The exception I<will> be thrown, if you try to use the C<Failure> as a
+value—just like were this C<Failure> on its own and not part of the C<Junction>:
 
     my $j = +any "not a number", "42", "2.1";
     try say $j == 42;
     $! and say "Got exception: $!.^name()"; # OUTPUT: «Got exception: X::Str::Numeric␤»
 
 Note that if an exception gets thrown when I<any> of the values in a
-L<Junction|/type/Junction> get computed, it will be thrown just as if the problematic value
-were computed on its own and not with a C<Junction>; you can't just compute the
-values that work while ignoring exceptions:
+L<Junction|/type/Junction> get computed, it will be thrown just as if the
+problematic value were computed on its own and not with a C<Junction>; you can't
+just compute the values that work while ignoring exceptions:
 
     sub calc ($_) { die when 13 }
     my $j = any 1..42;
     say try calc $j; # OUTPUT: «Nil␤»
 
-Only one value above causes an exception, but the result of the
-L«C<try> block|/language/exceptions#index-entry-try_blocks-try» is still a L<Nil|/type/Nil>.
-A possible way around it is to cheat and evaluate the values of the C<Junction>
-individually and then re-create the C<Junction> from the result:
+Only one value above causes an exception, but the result of the L«C<try>
+block|/language/exceptions#index-entry-try_blocks-try» is still a
+L<Nil|/type/Nil>. A possible way around it is to cheat and evaluate the values
+of the C<Junction> individually and then re-create the C<Junction> from the
+result:
 
     sub calc ($_) { die when 13 }
     my $j = any 1..42;
@@ -198,9 +201,10 @@ Defined as:
 
     multi method Str(Junction:D:)
 
-Autothreads the C<.Str> method over its elements and returns results as a L<Junction|/type/Junction>. Output
-methods that use C<.Str> method (L<print|/routine/print> and L<put|/routine/put>) are special-cased to autothread junctions,
-despite being able to accept a L<Mu|/type/Mu> type.
+Autothreads the C<.Str> method over its elements and returns results as a
+L<Junction|/type/Junction>. Output methods that use C<.Str> method
+(L<print|/routine/print> and L<put|/routine/put>) are special-cased to
+autothread junctions, despite being able to accept a L<Mu|/type/Mu> type.
 
 =head2 method gist
 
