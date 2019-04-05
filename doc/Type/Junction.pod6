@@ -36,9 +36,12 @@ the object.
     say so 3 == (1..30).one;         # OUTPUT: «True␤»
     say so ("a" ^ "b" ^ "c") eq "a"; # OUTPUT: «True␤»
 
-Autothreading happens when a junction is bound to a parameter of a code object
-that doesn't accept values of type C<Junction>. Instead of producing an error,
-the signature binding is repeated for each value of the junction.
+Junctions are very special objects. They fall outside the C<Any> hierarchy,
+being only, as any other object, subclasses of Mu. That enables a feature for
+most methods: autothreading. Autothreading happens when a junction is bound to a
+parameter of a code object that doesn't accept values of type C<Junction>.
+Instead of producing an error, the signature binding is repeated for each value
+of the junction.
 
 Example:
 
@@ -67,6 +70,21 @@ the type of the C<Junction> come into play:
 Note that the compiler is allowed, but not required, to parallelize
 autothreading (and Junction behavior in general), so it is usually an
 error to autothread junctions over code with side effects.
+
+Autothreading implies that the function that's autothreaded will also return a
+Junction of the values that it would usually return.
+
+    (1..3).head( 2|3 ).say; # OUTPUT: «any((1 2), (1 2 3))␤»
+
+Since L<C<.head>|/routine/head> returns a list, the autothreaded version returns
+a C<Junction> of lists.
+
+    (1..3).contains( 2&3 ).say; # OUTPUT: «all(True, True)␤»
+
+Likewise, L<C<.contains>|/routine/contains> returns a Boolean; thus, the
+autothreaded version returns a C<Junction> of Booleans. In general, all methods
+and routines that take an argument of type C<T> and return type C<TT>, will also
+accept junctions of C<T>, returning junctions of C<TT>.
 
 Implementations are allowed to short-circuit Junctions. For example one or more
 routine calls (C<a()>, C<b()>, or C<c()>) in the code below might not get
