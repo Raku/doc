@@ -39,7 +39,7 @@ start with Node.js again:
 =begin code :lang<javascript>
 let name = 'Joe';
 console.log('What\'s up,' + name + '?');
-console.log(`What's up, {name}?`);
+console.log(`What's up, ${name}?`);
 console.log("What's up, ", name, "?");
 =end code
 
@@ -65,11 +65,13 @@ between the two languages in greater detail.
 Variables in Node.js can be defined like this;
 
 =begin code :lang<javascript>
-var foo = 1;    // Lexically scoped with functions and modules
-let foo = 1;    // Lexically scoped with blocks
+var   foo = 1;  // Lexically scoped with functions and modules
+let   foo = 1;  // Lexically scoped with blocks
 const foo = 1;  // Lexically scoped with blocks; constant
 
-global.foo = 1; // Dynamically scoped; global
+// No equivalent to Perl 6 dynamic variables exists.
+
+global.foo = 1; // Globally scoped
 foo = 1;        // Ditto, but implicit; forbidden in strict mode
 =end code
 
@@ -78,26 +80,31 @@ there is no variable hoisting in Perl 6; variables are defined and assigned
 at the line they're on, not defined at the top of its scope and later assigned
 at that line.
 
-This is how the equivalent types of variables are defined in Perl 6:
+In addition to regular variables, in Perl 6 there are what is known as dynamic
+variables. Dynamic variables are looked up using the caller's scope, rather
+than the outer scope. This is what the equivalent variable declarations look
+like in Perl 6:
 
 =begin code
-my $foo = 1;      # Lexically scoped with blocks
-our $foo = 1;     # Lexically scoped with blocks and modules
-constant foo = 1; # Lexically scoped with blocks and modules; constant
+my           $foo = 1; # Lexically scoped
+our          $foo = 1; # Package scoped
+my  constant  foo = 1; # Lexically scoped; constant
+    constant  foo = 1; # Package scoped; constant
 
-my $*foo = 1;       # Dynamically scoped with blocks
-OUR::<$foo> = 1;    # Dynamically scoped with blocks and modules
-GLOBAL::<$foo> = 1; # Dynamically scoped; global
+my  $*foo = 1; # Dynamic variable; lexically scoped
+our $*foo = 1; # Dynamic variable; package scoped
+
+GLOBAL::<$foo> := 1; # Globally scoped
 =end code
 
 Use C<my> where you'd use C<let>, C<our> for variables you'd define in the
 outermost scope needed, and C<constant> where you'd uses C<const>.
 
-Dynamically scoped variables are not referred to in the same way as lexically
-scoped ones like they are in Node.js. User-defined ones use either a C<$*>,
-C<@*>, C<%*>, or C<&*> twigil. Refer to the documentation on
+You may have noticed the C<$> and C<$*> symbols placed before variable names.
+These are known as sigils and twigils respectively, and define what container
+the variable has. Refer to the documentation on
 L<variables|/language/variables> for more information on sigils, twigils, and
-variable containers.
+containers.
 
 Variables in Node.js can override others from outer scopes with the same name
 (though linters will usually complain about it depending on how they're
@@ -110,8 +117,8 @@ function logDupe() {
     console.log(foo);
 }
 
-logDupe(2);       // 2
-console.log(foo); // 1
+logDupe(2);       // OUTPUT: 2
+console.log(foo); // OUTPUT: 1
 =end code
 
 Perl 6 also allows this:
@@ -123,8 +130,8 @@ sub log-dupe {
     say $foo;
 }
 
-log-dupe; # 2
-say $foo; # 1
+log-dupe; # OUTPUT: 2
+say $foo; # OUTPUT: 1
 =end code
 
 =head2 Operators
@@ -144,11 +151,11 @@ my %map;            # This is a hash, roughly equivalent to a JS object or map
 my %unbound = %map;
 my %bound := %map;
 %map<foo> = 'bar';
-say %unbound;       # {}
-say %bound;         # {foo => bar}
+say %unbound;       # OUTPUT: {}
+say %bound;         # OUTPUT: {foo => bar}
 
 %bound := %unbound;
-say %bound;         # {}
+say %bound;         # OUTPUT: {}
 =end code
 
 =head3 Equality
@@ -161,18 +168,18 @@ operands are different types, they are both cast to their primitives before
 being compared, meaning these will return true:
 
 =begin code :lang<javascript>
-console.log(1 == 1);   // true
-console.log('1' == 1); // true
-console.log([] == 0);  // true
+console.log(1 == 1);   // OUTPUT: true
+console.log('1' == 1); // OUTPUT: true
+console.log([] == 0);  // OUTPUT: true
 =end code
 
 Similarly, in Perl 6, both operands are cast to Numeric before comparison if
 they don't share the same type:
 
 =begin code
-say 1 == 1;       # True
-say '1' == 1;     # True
-say [1,2,3] == 3; # True, since the array has three elements
+say 1 == 1;       # OUTPUT: True
+say '1' == 1;     # OUTPUT: True
+say [1,2,3] == 3; # OUTPUT: True, since the array has three elements
 =end code
 
 The inverse of C<==> is C<!=>.
@@ -181,8 +188,8 @@ Perl 6 has another operator similar to C<==>: C<eq>. Instead of casting operand
 to Numeric if they're different types, C<eq> will cast them to strings:
 
 =begin code
-say '1' eq '1'; # True
-say 1 eq '1';   # True
+say '1' eq '1'; # OUTPUT: True
+say 1 eq '1';   # OUTPUT: True
 =end code
 
 The inverse of C<eq> is C<ne> or C<!eq>.
@@ -192,26 +199,26 @@ the same value. When comparing objects, this will I<only> return true if they
 are the exact same object:
 
 =begin code :lang<javascript>
-console.log(1 === 1);   // true
-console.log('1' === 1); // false
-console.log({} === {}); // false
+console.log(1 === 1);   // OUTPUT: true
+console.log('1' === 1); // OUTPUT: false
+console.log({} === {}); // OUTPUT: false
 
 let obj = {};
 let obj2 = obj;
-console.log(obj === obj2); // true;
+console.log(obj === obj2); // OUTPUT: true;
 =end code
 
 In Perl 6, the operator behaves the same, with one exception: two objects that
 have the same value, but different containers, will return false:
 
 =begin code
-say 1 === 1; # True
-say '1' === 1; # True
-say {} === {};  # False
+say 1 === 1;                    # OUTPUT: True
+say 'ayy lmao' === 'ayy lmao';  # OUTPUT: True
+say {} === {};                  # OUTPUT: False
 
 my \hash = {};
 my %hash = hash;
-say hash === %hash; # False
+say hash === %hash; # OUTPUT: False
 =end code
 
 In the last case it's the same object, but containers are different, which is
@@ -225,11 +232,11 @@ be used to check for deep equality, which you would normally need to use a
 library for in Node.js:
 
 =begin code
-say {a => 1} eqv {a => 1}; # True;
+say {a => 1} eqv {a => 1}; # OUTPUT: True
 
 my \hash = {};
 my %hash := hash;
-say hash eqv %hash; # True
+say hash eqv %hash; # OUTPUT: True
 =end code
 
 In the case you need to check if two variables have the same container and
@@ -238,7 +245,7 @@ value, use the C<=:=> operator.
 =begin code
 my @arr = [1,2,3];
 my @arr2 := @arr;   # Bound variables keep the container of the other variable
-say @arr =:= @arr2; # True
+say @arr =:= @arr2; # OUTPUT: True
 =end code
 
 =head3 Smartmatching
@@ -249,14 +256,14 @@ uses: it can be used like C<instanceof> in Node.js, to match a regex, and to
 check if a value is a key in a hash, bag, set, or map:
 
 =begin code
-say 'foo' ~~ Str; # True
+say 'ayy lmao' ~~ Str; # OUTPUT: True
 
 my %hash = a => 1;
-say 'a' ~~ %hash; # True
+say 'a' ~~ %hash; # OUTPUT: True
 
 my $str = 'abc';
 $str ~~ s/abc/def/; # Mutates $str, like foo.replace('abc', 'def')
-say $str;           # def
+say $str;           # OUTPUT: def
 =end code
 
 While we are talking about C<instanceof>, the equivalent to the C<constructor>
@@ -278,26 +285,26 @@ operators, are cast to their primitives before following through with the
 operation, making this possible:
 
 =begin code :lang<javascript>
-console.log(1 + 2);   // 3
-console.log([] + {}); // [object Object]
-console.log({} + []); // 0
+console.log(1 + 2);   // OUTPUT: 3
+console.log([] + {}); // OUTPUT: [object Object]
+console.log({} + []); // OUTPUT: 0
 =end code
 
 In Perl 6, again, they are converted to a Numeric type, as before:
 
 =begin code
-say 1 + 2;        # 3
-say [] + {};      # 0
-say {} + [1,2,3]; # 3
+say 1 + 2;        # OUTPUT: 3
+say [] + {};      # OUTPUT: 0
+say {} + [1,2,3]; # OUTPUT: 3
 =end code
 
 In addition, Perl 6 has C<div> and C<%%>. C<div> behaves like C<int> division in
 C, while C<%%> checks if one number is cleanly divisible by another or not:
 
 =begin code
-say 4 div 3; # 1
-say 4 %% 3;  # False
-say 6 %% 3;  # True
+say 4 div 3; # OUTPUT: 1
+say 4 %% 3;  # OUTPUT: False
+say 6 %% 3;  # OUTPUT: True
 =end code
 
 =head3 Bitwise
@@ -306,26 +313,26 @@ Node.js has C<&>, C<|>, C<^>, C<~>, C«<<», C«>>», C«>>>», and C<~> for bit
 operators:
 
 =begin code :lang<javascript>
-console.log(1 << 1);  // 2
-console.log(1 >> 1);  // 0
-console.log(1 >>> 1); // 0
-console.log(1 & 1);   // 1
-console.log(0 | 1);   // 1
-console.log(1 ^ 1);   // 0
-console.log(~1);      // -2
+console.log(1 << 1);  // OUTPUT: 2
+console.log(1 >> 1);  // OUTPUT: 0
+console.log(1 >>> 1); // OUTPUT: 0
+console.log(1 & 1);   // OUTPUT: 1
+console.log(0 | 1);   // OUTPUT: 1
+console.log(1 ^ 1);   // OUTPUT: 0
+console.log(~1);      // OUTPUT: -2
 =end code
 
 In Perl 6, there is no equivalent to C«>>>». All bitwise operators are
 prefixed with C<+>, however two's complement uses C<+^> instead of C<~>:
 
 =begin code
-say 1 +< 1; # 2
-say 1 +> 1; # 0
+say 1 +< 1; # OUTPUT: 2
+say 1 +> 1; # OUTPUT: 0
             # No equivalent for >>>
-say 1 +& 1; # 1
-say 0 +| 1; # 1
-say 1 +^ 1; # 0
-say +^1;    # -2
+say 1 +& 1; # OUTPUT: 1
+say 0 +| 1; # OUTPUT: 1
+say 1 +^ 1; # OUTPUT: 0
+say +^1;    # OUTPUT: -2
 =end code
 
 =head3 Custom operators and operator overloading
@@ -401,7 +408,7 @@ statements:
 my Int $dice-roll = ceiling rand * 12 + ceiling rand * 12;
 say 'Snake eyes!'        if $dice-roll == 2;
 say 'Boxcars!'           if $dice-roll == 16;
-say "Rolled $dice-roll." if $dice-roll !~~ 2 | 16;
+say "Rolled $dice-roll." if $dice-roll != 2 && $dice-roll != 16;
 =end code
 
 Perl 6 also has C<when>, which is like C<if>, but if the condition given is
@@ -465,9 +472,9 @@ my Int $score    = 0;
 for @ranks -> $rank {
     # The when blocks implicitly return the last statement they contain.
     $score += do given $rank {
-        when 'Jack' | 'Queen' | 'King' { 10 }
-        when 'Ace' { $score <= 11 ?? 10 !! 1 }
-        default { $_ }
+        when 'Jack' | 'Queen' | 'King' { 10                      }
+        when 'Ace'                     { $score <= 11 ?? 10 !! 1 }
+        default                        { $_                      }
     };
 }
 =end code
@@ -506,22 +513,22 @@ for (let ord = 0x61; ord <= 0x7A; ord++) {
 // for..in loops (typically used on objects)
 for (let letter in letters) {
     console.log(letters[letter]);
-    # OUTPUT:
-    # A
-    # B
-    # C
-    # etc.
 }
+# OUTPUT:
+# A
+# B
+# C
+# etc.
 
 // for..of loops (typically used on arrays, maps, and sets)
 for (let letter of Object.values(letters)) {
     console.log(letter);
-    # OUTPUT:
-    # A
-    # B
-    # C
-    # etc.
 }
+# OUTPUT:
+# A
+# B
+# C
+# etc.
 =end code
 
 Perl 6 C<for> loops most closely resemble C<for..of> loops, since they work on
@@ -742,7 +749,8 @@ a hash. In Perl 6, L<Mu|/type/Mu> is a superclass of all types, though usually
 you want to use L<Any|/type/Any> instead, which is a subclass of C<Mu> but also
 a superclass of nearly every type, with L<Junction|/type/Junction> being an
 exception. When using C<Object> as a hash, L<Hash|/type/Hash> is what you want
-to use.
+to use. One key difference between C<Object> and C<Hash> is that C<Object>
+preserves the order of its keys; C<Hash> does not by default.
 
 There are three types equivalent to C<Array>. L<Array|/type/Array> is most
 similar to C<Array>, since it acts as a mutable array. L<List|/type/List> is
