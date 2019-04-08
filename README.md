@@ -123,6 +123,10 @@ install them all using:
 
     $ cpanm --installdeps .
 
+If you have `pandoc` installed, you can also generate an ePub with
+
+    $ make epub
+
 ---------
 
 ## Help Wanted!

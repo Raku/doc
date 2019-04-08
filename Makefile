@@ -47,6 +47,9 @@ webdev-build:
 bigpage: gen-pod6-source
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
+epub: bigpage
+	pandoc html/perl6.html -o perl6.epub
+
 # Common tests that are run by travis with every commit
 test:
 	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
