@@ -59,16 +59,23 @@ C<hyper> and C<race> use (maybe simultaneous) threads to run different
 iterations in a loop:
 
 =for code
-my $main-thread = $*THREAD.id;
-    my $saw-another-thread = False;
-    race for ^10000 {
-        $saw-another-thread = True if $*THREAD.id != $main-thread;
-    }
-ok $saw-another-thread, 'A race for loop runs the body over threads';
+my @a = hyper for ^100_000 { .is-prime }
 
-Unless you can come up with a real use case it's probably better that you try
-and reduce your problem to a single data structure and use them in L<method
-form|/routine/hyper>.
+This code is around 3x faster than the bare for. But there are a couple of
+caveats here:
+
+=item The operation inside the loop should take enough time to make threading
+make sense.
+
+=item There should be no read or write access to the same data structure inside
+the loop. Let the loop produce a result, and assign it.
+
+=item If there's I/O operation inside the loop, there might be some contention
+so please avoid it.
+
+Main difference between C<hyper> and C<race> is the ordering of results. Use
+C<hyper> if you need the loop results to be produced in order, C<race> if you
+don't care.
 
 =end pod
 
