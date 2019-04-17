@@ -1,14 +1,22 @@
 # Perl 6 官方文档
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
-
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
 
 网站 [https://docs.perl6.org/](https://docs.perl6.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
 
 本仓库还提供命令行工具 p6doc 用于阅读文档（详见下文）。
 
-（如果你通过 GitHub 浏览本仓库，那么大部分文件都不能正确显示，这是因为 GitHub 把 Perl 6 Pod 识别成 Perl 5 Pod）
+## Docker 镜像
+
+官方文档的 Docker 镜像地址为 [`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc)。这个镜像包含了一份 Web 版本的文档，对应的端口为 3000。你可以这样运行这个镜像：
+
+    docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
+    
+或者，如果你想发布到其他端口：
+
+    docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
+    
+现在，可以通过浏览器访问 http://localhost:3000 （或者 31415 端口，取决于你使用了哪一个命令）。
 
 ## 其他语言版本的 README
 
@@ -66,6 +74,8 @@
 一切就绪，运行下面的命令构建 Web 页面
 
     $ make html
+    
+> 为了生成最准确的结果，我们推荐使用最新的发行版。准确的说，比 2018.11 更新的任何版本。
 
 请注意，为了通过上面的命令生成 HTML 文本，必须安装 [nodejs](https://nodejs.org)，特别地，可执行的 `node` 命令路径被添加到 `PATH` 里。
 
@@ -78,6 +88,10 @@
 为了正确显示代码高亮，需要安装 [Mojolicious](https://metacpan.org/pod/Mojolicious)和 [nodejs](https://nodejs.org)。安装 Mojolicious 时可能需要安装一些附加的依赖模块，通过下面的命令安装它们
 
     $ cpanm --installdeps .
+    
+如果你已经安装了 `pandoc`，那么你可以通过以下命令生成一个 epub 版本的文档
+
+    $ make epub
 
 ---------
 
