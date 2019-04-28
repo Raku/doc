@@ -644,8 +644,9 @@ sub find-definitions(:$pod, :$origin, :$min-level = -1, :$url) {
                             :$summary,
                     ;
                 }
-                when 'variable'|'twigil'|'declarator'|'quote' {
+                when 'constant'|'variable'|'twigil'|'declarator'|'quote' {
                     # TODO: More types of syntactic features
+                    #                    say "Subkinds: $subkinds";
                     %attr = :kind<syntax>,
                             :categories($subkinds),
                     ;
