@@ -50,16 +50,25 @@ Submatches are also C<Match> objects (or lists of C<Match> objects,
 if the corresponding regex was quantified), so each match object
 can be seen as the root of a tree of match objects.
 
+A C<Match> object can also hold the result of a match in progress
+(while the grammar engine is running), in which case the C<pos> method
+returns the current position. This view on C<Match> objects is only visible
+if you call code from within a regex.
+
 =head1 Methods
 
 =head2 method pos
 
     method pos()
 
-Returns the current position as a string index into C<Match.target>.
+Returns the current position as a string index into C<Match.target> for a regex match
+in progress:
 
-    my $a = "þor" ~~ /o/;
-    say $a.pos;           # OUTPUT: «2␤»
+    my $a = 'abcdef';
+    $a ~~ /b. {say $/.pos }../; say $/.pos;     # OUTPUT: «3␤»
+
+You should not use this method on finished Match, as the output can be implementation
+specific.
 
 =head2 method target
 
@@ -80,7 +89,14 @@ Clones the C<Match> object.
 
 =head2 method orig
 
-Returns the original string that the regex was matched against.
+Returns the original input to the regex engine, which is usually a string,
+but doesn't need to be (could be anything that can be coerced to a string):
+
+    42 ~~ /.+/;
+    say $/.orig;            # OUTPUT: «42»
+    say $/.orig.^name;      # OUTPUT: «Int»
+
+See L<#method target> for a close equivalent that always returns a string.
 
 =head2 method from
 
