@@ -53,6 +53,10 @@ argument of C<is default> will set the default item value or hash value.
 
 =head2 X<Trait is required|trait,is required (Attribute)>
 
+Defined as:
+
+    multi sub trait_mod:<is> (Attribute $attr, :$required!)
+
 The trait C<is required> will mark the attribute as to be filled with a value
 when the object is instantiated. Failing to do so will result in a runtime
 error.
@@ -76,6 +80,10 @@ CATCH{ default { say .^name, ': ', .Str } }
 # OUTPUT: «X::Attribute::Required: The attribute '$!a' is required because it is a good idea,␤but you did not provide a value for it.␤»
 =end code
 
+C<is required> doesn't just affect the default constructor, it checks for the
+attribute at a lower level, so it will work for custom constructors written
+using L<bless|/routine/bless>.
+
 =head2 X<trait is DEPRECATED|trait,is DEPRECATED (Attribute)>
 
     multi sub trait_mod:<is>(Attribute:D $r, :$DEPRECATED!)
@@ -96,6 +104,26 @@ STDERR:
     # Method foo (from C) seen at:
     # script.p6, line 5
     # Please use 'bar' instead.
+
+=head2 X<trait is rw|trait,is rw (Attribute)>
+
+Defined as:
+
+    multi sub trait_mod:<is> (Attribute:D $attr, :$rw!)
+
+Marks an attribute as read/write as opposed to the default C<readonly>.  The
+default accessor for the attribute will return a writable value.
+
+   class Boo {
+      has $.bar is rw;
+      has $.baz;
+   };
+
+   my $boo = Boo.new;
+   $boo.bar = 42; # works
+   $boo.baz = 42;
+   CATCH { default { put .^name, ': ', .Str } };
+   # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Any␤»
 
 =head1 Methods
 
@@ -219,50 +247,6 @@ Binds the value C<new_val> to this attribute of object C<$obj>.
 
 Note that this method violates encapsulation of the object, and should be
 used with care.  Here be dragons.
-
-=head1 Traits
-
-=head2 trait is required
-
-    multi sub trait_mod:<is> (Attribute $attr, :$required!)
-
-Marks an attribute as being required.  If a value is not provided
-during object construction, an exception is thrown.
-
-    class Foo {
-       has $.bar is required;
-       has $.baz;
-    };
-
-    Foo.new(bar => 42); # works
-    Foo.new(baz => 42);
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::Attribute::Required: The attribute '$!bar' is required, but you did not provide a value for it.␤»
-
-C<is required> doesn't just affect the default constructor, it checks for the
-attribute at a lower level, so it will work for custom constructors written
-using L<bless|/routine/bless>.
-
-
-=head2 trait is rw
-
-Defined as:
-
-    multi sub trait_mod:<is> (Attribute:D $attr, :$rw!)
-
-Marks an attribute as read/write as opposed to the default C<readonly>.  The
-default accessor for the attribute will return a writable value.
-
-   class Boo {
-      has $.bar is rw;
-      has $.baz;
-   };
-
-   my $boo = Boo.new;
-   $boo.bar = 42; # works
-   $boo.baz = 42;
-   CATCH { default { put .^name, ': ', .Str } };
-   # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Any␤»
 
 =head2 method gist
 
