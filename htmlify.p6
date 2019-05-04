@@ -204,6 +204,7 @@ sub MAIN(
     process-pod-dir :topdir('build'), :dir('Programs'), :$sparse, :$parallel;
     process-pod-dir :topdir('build'), :dir('Language'), :$sparse, :$parallel;
     process-pod-dir :topdir('build'), :dir('Type'), :sorted-by{ %sorted-type-graph{.key} // -1 }, :$sparse, :$parallel;
+    process-pod-dir :topdir('build'), :dir('Native'), :sorted-by{ %sorted-type-graph{.key} // -1 }, :$sparse, :$parallel;
 
     highlight-code-blocks unless $no-highlight;
 
@@ -293,6 +294,7 @@ sub process-pod-dir(:$topdir, :$dir, :&sorted-by = &[cmp], :$sparse, :$parallel)
     say "Processing $topdir/$dir Pod files ...";
     my $total = +@pod-sources;
     my $kind  = $dir.lc;
+    $kind = 'type' if $kind eq 'native';
     for @pod-sources.kv -> $num, (:key($filename), :value($file)) {
         FIRST my @pod-files;
 
