@@ -109,7 +109,12 @@ for @examples -> $eg {
 
         for $eg<contents>.lines -> $line {
             $code ~= $line;
-            if $line.trim.starts-with(any(<multi method proto only sub>)) && !$line.trim.ends-with(any('}',',')) && $eg<method> eq "" {
+            # Heuristically add an empty block after things like C<method foo ($x)>
+            # to make it compilable. We do *not* do this in particular if
+            # the signature is split into multiple lines: i.e. the declaration
+            # ends in '(' or ','.
+            if $line.trim.starts-with(any(<multi method proto only sub>))
+             && !$line.trim.ends-with(any(« } , ( »)) && $eg<method> eq "" {
                $code ~= " \{}";
             }
             if $eg<method> eq "" || $eg<method> eq "False" {
