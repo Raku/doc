@@ -108,9 +108,18 @@ for @examples -> $eg {
         $code ~= $eg<preamble> ~ ";\n";
 
         for $eg<contents>.lines -> $line {
+            state $in-signature;
+
             $code ~= $line;
-            if $line.trim.starts-with(any(<multi method proto only sub>)) && !$line.trim.ends-with(any('}',',')) && $eg<method> eq "" {
+            # Heuristically add an empty block after things like C<method foo ($x)>
+            # to make it compilable. Be careful with multiline signatures:
+            # '(' and ',' at the end of a line indicate a continued sig.
+            # We wait until none of them is encountered before adding '{}'.
+            $in-signature ?|= $line.trim.starts-with(any(<multi method proto only sub>))
+                           && $eg<method> eq "";
+            if $in-signature && !$line.trim.ends-with(any(« } , ( »)) {
                $code ~= " \{}";
+               $in-signature = False;
             }
             if $eg<method> eq "" || $eg<method> eq "False" {
                 $code ~= "\n";
