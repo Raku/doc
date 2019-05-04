@@ -11,6 +11,8 @@ so that documents appear just the way we want them. Uses source files
 and POD metadata to generate new files,
 which are the ones actually used as source for the stuff.
 
+If you don't run this on a clean directory, there could be repeated entries in the generated file. Make sure to "make clean" before this, or look for warnings about duplicated entries.
+
 =end overview
 
 # pod6 source directory of interest for auto-gen handling:
