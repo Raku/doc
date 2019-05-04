@@ -101,7 +101,8 @@ for @examples -> $eg {
 
     my $code;
     if $eg<solo> {
-        $code = $eg<contents>;
+        $code = $eg<preamble> ~ ";\n" if $eg<preamble>;
+        $code ~= $eg<contents>;
     } else {
         $code = 'no worries; ';
         $code ~= "if False \{\nclass :: \{\n";
