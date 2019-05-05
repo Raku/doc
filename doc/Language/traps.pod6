@@ -233,7 +233,7 @@ method is automatically generated.
 
 Thus the correct way to write the method C<double> is
 
-=for code :skip-test
+=for code :preamble<has ($.x, $.y)>
 method double {
     $!x *= 2;
     $!y *= 2;
@@ -271,7 +271,7 @@ L<TWEAK|/language/objects#index-entry-TWEAK> method since release
 One possible remedy is to explicitly initialize the attribute in
 C<BUILD>:
 
-=for code :skip-test
+=for code :preamble<has ($.x, $.y)>
 submethod BUILD(:$x) {
     $!y = 18;
     $!x := $x;
@@ -279,7 +279,7 @@ submethod BUILD(:$x) {
 
 which can be shortened to:
 
-=for code :skip-test
+=for code :preamble<has ($.x, $.y)>
 submethod BUILD(:$!x) {
     $!y = 18;
 }
@@ -318,7 +318,7 @@ The common areas you should watch out for are:
 
 =head3 Block vs. Hash slice ambiguity
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 # WRONG; trying to hash-slice a Bool:
 while ($++ > 5){ .say }
 
@@ -332,7 +332,7 @@ while $++ > 5 { .say }
 
 =head3 Reduction vs. Array constructor ambiguity
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 # WRONG; ambiguity with `[<]` meta op:
 my @a = [[<foo>],];
 
@@ -345,7 +345,7 @@ my @a = [[<foo bar ber>],];
 =end code
 
 =head3 Less than vs. Word quoting/Associative indexing
-=for code :skip-test
+=for code :skip-test<illustrates error>
 # WRONG; trying to index 3 associatively:
 say 3<5>4
 
@@ -573,7 +573,7 @@ The problem here is that [1, 2, 3] is not an C<Array[Int]>, it is a plain
 old Array that just happens to have Ints in it.  To get it to work,
 the argument must also be an C<Array[Int]>.
 
-=for code :skip-test
+=for code :preamble<sub bar (Int @a) { 42.say }>
 my Int @b = 1, 2, 3;
 bar(@b);                    # OUTPUT: «42␤»
 bar(Array[Int].new(1, 2, 3));
@@ -619,12 +619,14 @@ Some problems that might arise when dealing with L<strings|/type/Str>.
 
 Interpolation in string literals can be too clever for your own good.
 
-=for code :skip-test
-"$foo<html></html>" # Perl 6 understands that as:
+=for code :preamble<my $foo>
+# "HTML tags" interpreted as associative indexing:
+"$foo<html></html>" eq
 "$foo{'html'}{'/html'}"
 
-=for code :skip-test
-"$foo(" ~ @args ~ ")" # Perl 6 understands that as:
+=for code :preamble<my $foo = { $^x }>
+# Parentheses interpreted as call with argument:
+"$foo(" ~ @args ~ ")" eq
 "$foo(' ~ @args ~ ')"
 
 You can avoid those problems using non-interpolating single quotes and switching
@@ -1103,7 +1105,7 @@ say (-1).abs; # OUTPUT: «1␤»
 
 Subroutine and method calls can be made using one of two forms:
 
-=for code :skip-test
+=for code :skip-test<illustrates pattern>
 foo(...); # function call form, where ... represent the required arguments
 foo ...;  # list op form, where ... represent the required arguments
 
@@ -1119,7 +1121,7 @@ sub bar($a) { say "one arg: $a" }
 
 Then execute each with and without a space after the name:
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 foo();    # okay: no arg
 foo ();   # FAIL: Too many positionals passed; expected 0 arguments but got 1
 bar($a);  # okay: one arg: 1
@@ -1132,7 +1134,7 @@ sub foo($a, $b) { say "two args: $a, $b" }
 
 Execute it with and without the space after the name:
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 foo($a, $b);  # okay: two args: 1, 2
 foo ($a, $b); # FAIL: Too few positionals passed; expected 2 arguments but got 1
 
@@ -1164,7 +1166,7 @@ What happened? That second argument is not a named parameter argument, but a
 L<Pair|/type/Pair> passed as a positional argument. If you want a named
 parameter it has to look like a name to Perl:
 
-=begin code :skip-test
+=begin code :preamble<sub foo ($a, *%arg) {}>
 foo(1, b => 2); # okay
 foo(1, :b(2));  # okay
 foo(1, :b<it>); # okay
@@ -1186,13 +1188,13 @@ means to treat them as named arguments.
 If you really do want to pass them as pairs you should use a L<List|/type/List>
 or L<Capture|/type/Capture> instead:
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 my $list = ('b' => 2),; # this is a List containing a single Pair
 foo(|$list, :$b);       # okay: we passed the pair 'b' => 2 to the first argument
 foo(1, |$list);         # FAIL: Too many positionals passed; expected 1 argument but got 2
 foo(1, |$list.Capture); # OK: .Capture call converts all Pair objects to named args in a Capture
 
-=for code :skip-test
+=for code :skip-test<illustrates error>
 my $cap = \('b' => 2); # a Capture with a single positional value
 foo(|$cap, :$b); # okay: we passed the pair 'b' => 2 to the first argument
 foo(1, |$cap);   # FAIL: Too many positionals passed; expected 1 argument but got 2
@@ -1407,7 +1409,7 @@ loop {
 
 And the output it may produce:
 
-=begin code :skip-test
+=begin code :lang<text>
 0
 1
 2
@@ -1424,7 +1426,7 @@ Resolving this is easy because C<.print> returns a promise that you
 can await on. The solution is even more beautiful if you are
 working in a L<react|/language/concurrency#index-entry-react> block:
 
-=begin code :skip-test
+=begin code :skip-test<incomplete code>
 whenever $proc.print: “one\ntwo\nthree\nfour” {
     $proc.close-stdin;
 }
@@ -1446,7 +1448,7 @@ react {
 
 The output is clearly not just 1 line:
 
-=begin code :skip-test
+=begin code :lang<text>
 A
 A's
 AMD
@@ -1665,7 +1667,7 @@ die ‘Dying because of unhandled exception’ if rand < ½; # ② ｢die｣ is 
 =end code
 
 There are three possible results:
-=begin code :skip-test
+=begin code :lang<text>
 ①
 Opened some resource
 
