@@ -86,6 +86,7 @@ X<|infix operator>
 X<|postfix operator>
 X<|circumfix operator>
 X<|postcircumfix operator>
+X<|method operators>
 
 Operators can occur in several positions relative to a term:
 
@@ -96,13 +97,12 @@ Operators can occur in several positions relative to a term:
     term\+\+        | postfix
     (term)          | circumfix
     term1[term2]    | postcircumfix
-
+    .+(term)        | method
 =end table
 
-Each operator is also available as a subroutine.
-The name of the routine is formed from
-the operator category, followed by a colon, then a list quote construct with the
-symbol(s) that make up the operator:
+Each operator (except method operators) is also available as a subroutine. The
+name of the routine is formed from the operator category, followed by a colon,
+then a list quote construct with the symbol(s) that make up the operator:
 
     infix:<+>(1, 2);                # same as 1 + 2
     circumfix:«[ ]»(<a b c>);       # same as [<a b c>]
@@ -129,10 +129,9 @@ explained, next.
 
 =head1 Substitution operators
 
-Each substitution operator comes into two main forms: a lowercase one (e.g., C<s///>) that
-performs I<in-place> (i.e., I<destructive> behavior;
-and an uppercase form (e.g., C<S///>) that provides a I<non-destructive>
-behavior.
+Each substitution operator comes into two main forms: a lowercase one (e.g.,
+C<s///>) that performs I<in-place> (i.e., I<destructive> behavior; and an
+uppercase form (e.g., C<S///>) that provides a I<non-destructive> behavior.
 
 =head2 X«C<s///> in-place substitution»
 
@@ -643,14 +642,14 @@ subroutine call.
 If you want your objects to respond to the call operator,
 implement a C<method CALL-ME>.
 
-=head2 postfix C«.»
+=head2 methodop C«.»
 
 The operator for calling one method, C<$invocant.method>.X<|method call>
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
-X«|postfix .&»
-=head2 postfix C«.&»
+X«|methodop .&»
+=head2 methodop C«.&»
 
 The operator to call a subroutine (with at least one positional argument), such
 as a method. The invocant will be bound to the first positional argument.
@@ -664,15 +663,15 @@ Technically, not a real operator; it's syntax special-cased in the compiler.
     42.&(-> $invocant { "The arg has a value of $invocant" });
     # OUTPUT: «The arg has a value of 42␤»
 
-=head2 postfix C«.=»
+=head2 methodop C«.=»
 
 A X<mutating method call>. C<$invocant.=method> desugars to
 C<$invocant = $invocant.method>, similar to L<C<=>>.
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
-X«|postfix .^»
-=head2 postfix C«.^»
+X«|methodop .^»
+=head2 methodop C«.^»
 
 A X<meta-method call>. C<$invocant.^method> calls C<method> on C<$invocant>'s
 metaclass. It desugars to C<$invocant.HOW.method($invocant, ...)>. See
@@ -680,23 +679,24 @@ L<the meta-object protocol documentation|/language/mop> for more information.
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
-X«|postfix .?»
-=head2 postfix C«.?»
+X«|methodop .?»
+=head2 methodop C«.?»
 
 X<Safe call operator>. C<$invocant.?method> calls method C<method> on
-C<$invocant> if it has a method of such name. Otherwise it returns L<Nil|/type/Nil>.
+C<$invocant> if it has a method of such name. Otherwise it returns
+L<Nil|/type/Nil>.
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
-X«|postfix .+»
-=head2 postfix C«.+»
+X«|methodop .+»
+=head2 methodop C«.+»
 
-C<$foo.+meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
-Those methods might be multis, in which case the matching candidate
-would be called.
+C<$foo.+meth> walks the MRO and calls all the methods called C<meth> and
+submethods called C<meth> if the type is the same as type of C<$foo>. Those
+methods might be multis, in which case the matching candidate would be called.
 
-After that, a L<List|/type/List> of the results are returned. If no such method was found,
-it throws a L<X::Method::NotFound> exception.
+After that, a L<List|/type/List> of the results are returned. If no such method
+was found, it throws a L<X::Method::NotFound> exception.
 
     class A {
       method foo { say "from A"; }
@@ -712,43 +712,52 @@ it throws a L<X::Method::NotFound> exception.
 
     say C.+foo; # OUTPUT: «from C␤from B␤from A␤(True True True)␤»
 
-X«|postfix .*»
-=head2 postfix C«.*»
+X«|methodop .*»
+=head2 methodop C«.*»
 
-C<$foo.*meth> walks the MRO and calls all the methods called C<meth> and submethods called C<meth> if the type is the same as type of C<$foo>.
-Those methods might be multis, in which case the matching candidate
-would be called.
+C<$foo.*meth> walks the MRO and calls all the methods called C<meth> and
+submethods called C<meth> if the type is the same as type of C<$foo>. Those
+methods might be multis, in which case the matching candidate would be called.
 
-After that, a L<List|/type/List> of the results are returned. If no such method was found,
-an empty L<List|/type/List> is returned.
+After that, a L<List|/type/List> of the results are returned. If no such method
+was found, an empty L<List|/type/List> is returned.
 
 Technically, postfix C<.+> calls C<.*> at first. Read postfix C<.+> section to
 see examples.
 
-X<|postfix ».>X«|postfix >>.»
-=head2 postfix C<».> / postfix C«>>.»
+X<|methodop ».>X«|methodop >>.»
+=head2 methodop C<».> / methodop C«>>.»
 
-X<Hyper method call operator>. Will call a method on all elements of a C<List> out of order and return the list of return values in order.
+This is the X<hyper method call operator>. Will call a method on all elements of
+a C<List> out of order and return the list of return values in order.
 
-    my @a = <a b c>;
-    my @b = @a».ord;                  # OUTPUT: «[97, 98, 99]␤»
-    sub foo(Str:D $c){ $c.ord * 2 };  # The first parameter of a method is the invocant.
-    say @a».&foo;                     # So we can pretend to have a method call with a sub that got a good first positional argument.
-    say @a».&{ .ord};                 # Blocks have an implicit positional arguments that lands in $_. The latter can be omitted for method calls.
+=for code
+my @a = <a b c>;
+my @b = @a».ord;                  # OUTPUT: «[97, 98, 99]␤»
+# The first parameter of a method is the invocant.
+sub foo(Str:D $c){ $c.ord * 2 };
+# So we can pretend to have a method call with a sub that got a good
+# first positional argument.
+say @a».&foo;
+# Blocks have an implicit positional arguments that lands in $_. The latter can
+# be omitted for method calls.
+say @a».&{ .ord};
 
-Hyper method calls may appear to be the same as doing a L<map|/routine/map> call, however
-along with being a hint to the compiler that it can parallelize the call, the
-behavior is also affected by
-L<nodality of the method|/routine/is%20nodal>
-being invoked, depending on
-which either L<nodemap|/routine/nodemap> or L<deepmap|/routine/deepmap> semantics are used to perform the call.
+Hyper method calls may appear to be the same as doing a L<map|/routine/map>
+call, however along with being a hint to the compiler that it can parallelize
+the call, the behavior is also affected by L<nodality of the
+method|/routine/is%20nodal> being invoked, depending on which either
+L<nodemap|/routine/nodemap> or L<deepmap|/routine/deepmap> semantics are used to
+perform the call.
 
-The nodality is checked by looking up whether the L<Callable|/type/Callable> provides C<nodal>
-method. If the hyper is applied to a method, that L<Callable|/type/Callable> is that method
-name, looked up on L<List|/type/List> type; if the hyper is applied to a routine (e.g.
-C<».&foo>), that routine functions as that L<Callable|/type/Callable>. If the L<Callable|/type/Callable> is
-determined to provide C<nodal> method, L<nodemap|/routine/nodemap> semantics are used to perform
-the hyper call, otherwise L<duckmap|/routine/duckmap> semantics are used.
+The nodality is checked by looking up whether the L<Callable|/type/Callable>
+provides C<nodal> method. If the hyper is applied to a method, that
+L<Callable|/type/Callable> is that method name, looked up on L<List|/type/List>
+type; if the hyper is applied to a routine (e.g. C<».&foo>), that routine
+functions as that L<Callable|/type/Callable>. If the L<Callable|/type/Callable>
+is determined to provide C<nodal> method, L<nodemap|/routine/nodemap> semantics
+are used to perform the hyper call, otherwise L<duckmap|/routine/duckmap>
+semantics are used.
 
 Take care to avoid a
 L<common mistake|/language/traps#Using_»_and_map_interchangeably> of expecting
@@ -759,8 +768,8 @@ guaranteed to produce the output in order:
     @a».say;  # WRONG! Could produce a␤b␤c␤ or c␤b␤a␤ or any other order
     =end code
 
-=head2 postfix C<.postfix> / C<.postcircumfix>
 X<|.( )>X<|.[ ]>X<|.{ }>
+=head2 methodop C<.postfix> / C<.postcircumfix>
 
 In most cases, a dot may be placed before a postfix or postcircumfix:
 
@@ -793,18 +802,19 @@ method call.
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
 X<|postfix call>
-=head2 postfix C«.:<prefix>»
+=head2 methodop C«.:<prefix>»
 
 An operator in prefix form can still be called like a method, that is, using the
-C<.> postfix notation, by preceding it by a colon. For example:
+C<.> methodop notation, by preceding it by a colon. For example:
 
     my $a = 1;
     say ++$a;       # OUTPUT: «2␤»
     say $a.:<++>;   # OUTPUT: «3␤»
 
-Technically, not a real operator; it's syntax special-cased in the compiler.
+Technically, not a real operator; it's syntax special-cased in the compiler,
+that is why it's classified as a I<methodop>.
 
-=head2 postfix C«.::»
+=head2 methodop C«.::»
 
 A X<class-qualified method call>, used to call a method as defined in a parent
 class or role, even after it has been redefined in the child class.
@@ -832,14 +842,15 @@ the variable on the left hand side and the expression on the right hand side:
 
     multi sub prefix:<++>($x is rw) is assoc<non>
 
-Increments its argument by one and returns the updated value.X<|prefix increment operator>
+This is the X<|prefix increment operator>. Increments its argument by one and
+returns the updated value.
 
     my $x = 3;
     say ++$x;   # OUTPUT: «4␤»
     say $x;     # OUTPUT: «4␤»
 
-It works by calling the L<succ|/routine/succ> method (for I<successor>) on its argument,
-which gives custom types the freedom to implement their own increment
+It works by calling the L<succ|/routine/succ> method (for I<successor>) on its
+argument, which gives custom types the freedom to implement their own increment
 semantics.
 
 X<|prefix decrement operator>
