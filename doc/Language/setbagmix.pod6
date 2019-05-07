@@ -50,7 +50,10 @@ and L<MixHash|/type/MixHash> if you want to add or remove elements after the
 container has been constructed.
 
 The six collection classes C<Set>, C<SetHash>, C<Bag>, C<BagHash>, C<Mix>,
-C<MixHash>, all share similar semantics.
+C<MixHash>, all share similar semantics.  C<Set> and C<SetHash> implement
+the L<Setty|/type/Setty> role, C<Bag> and C<BagHash> implement the
+L<Baggy|/type/Baggy> role, C<Mix> and C<MixHash> implement the
+L<Mixy|/type/Mixy> role (which implements the C<Baggy> role).
 
 For one thing, as far as they are concerned, identical objects refer to the
 same element – where identity is determined using the L<WHICH|/routine/WHICH>
@@ -73,14 +76,17 @@ associated weights are the 'values':
 =head1 Operators with Set semantics
 
 There are several infix operators devoted to performing common operations
-using Set semantics.  This does B<not> mean that the parameters of these
-operators must always be C<QuantHash>.  It just means that the logic that
-is applied to the operators, follows the logic of
+using C<QuantHash> semantics.  Since that is a mouthful, these operators
+are usually referred to as "set operators".
+
+This does B<not> mean that the parameters of these operators must always be
+C<Set>, or even a more generix C<QuantHash>.  It just means that the logic
+that is applied to the operators, follows the logic of
 L<Set Theory|https://en.wikipedia.org/wiki/Set_theory>.
 
 These infixes can be written using the Unicode character that represents the
-function (like L<∈|/routine/∈>, or L<∪|/routine/∪>), or with an equivalent
-ASCII version like L<(elem)|/routine/(elem)> or L<(^)|/routine/⊖>.
+function (like C<∈> or C<∪>), or with an equivalent ASCII version (likei
+C<(elem)> or <(|)>.
 
 So explicitly using C<Set> (or C<Bag> or C<Mix>) objects with these infixes
 is unnecessary.  All set operators work with all possible arguments.  If
@@ -91,368 +97,124 @@ However, if a C<Bag> or C<Mix> is one of the parameters to these set operators,
 then the semantics will be upgraded to that type (where C<Mix> supersedes
 C<Bag> if both types happen to be used).
 
-=head2 Operators that return C<Bool>
+=head2 Set operators that return C<Bool>
 
-Operators below are all precedence "Chaining infix".
+=head3 infix (elem), infix ∈
 
-=head3 infix (elem)
-
-    multi sub infix:<(elem)>($a, Any $b --> Bool)
-    multi sub infix:<(elem)>($a, Set $b --> Bool)
-
-X<Membership operator>.
-
-Returns C<True> if C<$a> is an B<element> of C<$b>.
-
-    say 2 (elem) (1, 2, 3).Set;              # OUTPUT: «True␤»
-    say 4 (elem) (1, 2, 3).Set;              # OUTPUT: «False␤»
-
-=head3 infix ∈
-
-    multi sub infix:<∈>($a, $b --> Bool)
-
-Alternate membership operator.
-
-Equivalent to L«(elem)|/routine/(elem)», at codepoint U+2208 (ELEMENT OF).
+Returns C<True> if C<$a> is an B<element> of C<$b>, else False.
+L<More information|operators#infix_(elem),_infix_∈>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Element_(mathematics)#Notation_and_terminology>.
 
 =head3 infix ∉
 
-    multi sub infix:<∉>($a, $b --> Bool)
+Returns C<True> if C<$a> is B<not> an element of C<$b>, else False.
+L<More information|operators#infix_∉>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Element_(mathematics)#Notation_and_terminology>.
 
-X<Non-membership operator>.
+=head3 infix (cont), infix ∋
 
-Equivalent to C<!(elem)>, i.e., returns C<True> if C<$a> is not an element
-of C<$b>, at codepoint U+2209 (NOT AN ELEMENT OF).
-
-    say 2 !(elem) (1, 2, 3).Set;             # OUTPUT: «False␤»
-    say 4 !(elem) (1, 2, 3).Set;             # OUTPUT: «True␤»
-
-=head3 infix (cont)
-
-    multi sub infix:<(cont)>(Any $a, $b --> Bool)
-    multi sub infix:<(cont)>(Set $a, $b --> Bool)
-
-X<Contains operator>.
-
-Returns C<True> if C<$a> B<contains> C<$b> as an element.
-
-    say (1, 2, 3).Set (cont) 2;              # OUTPUT: «True␤»
-    say (1, 2, 3).Set (cont) 4;              # OUTPUT: «False␤»
-
-=head3 infix ∋
-
-    multi sub infix:<∋>($a, $b --> Bool)
-
-Alternate contains operator.
-
-Equivalent to L«(cont)|/routine/(cont)», at codepoint U+220B (C<CONTAINS AS
-MEMBER>).
+Returns C<True> if C<$a> B<contains> C<$b> as an element, else False.
+L<More information|operators#infix_(cont),_infix_∋>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Element_(mathematics)#Notation_and_terminology>.
 
 =head3 infix ∌
 
-    multi sub infix:<∌>($a, $b --> Bool)
+Returns C<True> if C<$a> does B<not> contain C<$b>, else False.
+L<More information|operators#infix_∌>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Element_(mathematics)#Notation_and_terminology>.
 
-X<Does not contain operator>.
+=head3 infix (<=), infix ⊆
 
-Equivalent to C<!(cont)>, i.e., returns C<True> if C<$a> does not contain
-C<$b>, at codepoint U+220C (DOES NOT CONTAIN AS MEMBER).
-
-    say (1, 2, 3).Set !(cont) 2;             # OUTPUT: «False␤»
-    say (1, 2, 3).Set !(cont) 4;             # OUTPUT: «True␤»
-
-=head3 infix (<=)
-
-    multi sub infix:<<(<=)>>(Any $a, Any $b --> Bool)
-    multi sub infix:<<(<=)>>(Setty $a, Setty $b --> Bool)
-
-X<Subset of or equal to operator>.
-
-Returns C<True> if C<$a> is a B<subset> or is equal to C<$b>, i.e., if all
-the elements of C<$a> are elements of C<$b> and C<$a> is a smaller or equal
-sized set than C<$b>.
-
-    say (1, 2, 3).Set (<=) (3, 2, 1).Set;    # OUTPUT: «True␤»
-    say (1, 3).Set (<=) (2, 1).Set;          # OUTPUT: «False␤»
-    say ∅ (<=) (3, 2, 1).Set;                # OUTPUT: «True␤»
-
-=head3 infix ⊆
-
-    multi sub infix:<⊆>($a, $b --> Bool)
-
-Alternate subset of or equal to operator; equivalent to L«(<=)», at codepoint
-U+2286 (C<SUBSET OF OR EQUAL TO>).
+Returns C<True> if C<$a> is a B<subset> or is equal to C<$b>, else False.
+L<More information|operators#infix_(<=),_infix_⊆>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
 =head3 infix ⊈
 
-    multi sub infix:<⊈>($a, $b --> Bool)
+Returns C<True> if C<$a> is B<not> a B<subset> nor equal to C<$b>, else False.
+L<More information|operators#infix_⊈>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
-X<Neither subset of nor equal to operator>.
+=head3 infix (<), infix ⊂
 
-Equivalent to C«!(<=)», at codepoint U+2288 (NEITHER A SUBSET OF NOR EQUAL TO).
-
-    say (1, 2, 3).Set !(<=) (3, 2, 1).Set;   # OUTPUT: «False␤»
-    say (1, 3).Set ⊈ (2, 1).Set;             # OUTPUT: «True␤»
-
-=head3 infix (<)
-
-    multi sub infix:<<(<)>>(Any $a, Any $b --> Bool)
-    multi sub infix:<<(<)>>(Setty $a, Setty $b --> Bool)
-
-X<Subset of operator>.
-
-Returns C<True> if C<$a> is a B<strict subset> of C<$b>, i.e., that all the
-elements of C<$a> are elements of C<$b> but C<$a> is a smaller set than
-C<$b>.
-
-    say (1, 2, 3).Set (<) (3, 2, 1).Set;     # OUTPUT: «False␤»
-    say (1, 3).Set (<) (3, 2, 1).Set;        # OUTPUT: «True␤»
-    say ∅ (<) (3, 2, 1).Set;                 # OUTPUT: «True␤»
-
-=head3 infix ⊂
-
-    multi sub infix:<⊂>($a, $b --> Bool)
-
-Alternate subset of operator.
-
-Equivalent to L«(<)», at codepoint U+2282 (SUBSET OF).
+Returns C<True> if C<$a> is a B<strict subset> of C<$b>, else False.
+L<More information|operators#infix_(<),_infix_⊂>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
 =head3 infix ⊄
 
-    multi sub infix:<⊄>($a, $b --> Bool)
+Returns C<True> if C<$a> is B<not> a B<strict subset> of C<$b>, else False.
+L<More information|operators#infix_⊄>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
-X<Not a subset of operator>.
+=head3 infix (>=), infix ⊇
 
-Equivalent to C«!(<)», at codepoint U+2284 (NOT A SUBSET OF).
-
-    say (1, 2, 3).Set !(<) (3, 2, 1).Set;    # OUTPUT: «True␤»
-    say (1, 3).Set ⊄ (3, 2, 1).Set;          # OUTPUT: «False␤»
-
-=head3 infix (>=)
-
-    multi sub infix:<<(>=)>>(Any $a, Any $b --> Bool)
-    multi sub infix:<<(>=)>>(Setty $a, Setty $b --> Bool)
-
-X<Superset of or equal to operator>.
-
-Like L«(<=)» with reversed arguments. Returns C<True> if C<$a> is a
-B<superset> of or equal to C<$b>.
-
-    say (1, 2, 3).Set (>=) (3, 2, 1).Set;    # OUTPUT: «True␤»
-    say (1, 3).Set (>=) (3, 2, 1).Set;       # OUTPUT: «False␤»
-    say ∅ (>=) (3, 2, 1).Set;                # OUTPUT: «False␤»
-
-=head3 infix ⊇
-
-    multi sub infix:<⊇>($a, $b --> Bool)
-
-Alternate superset of or equal to operator.
-
-Equivalent to L«(>=)», at codepoint U+2287 (SUPERSET OF OR EQUAL TO).
+Returns C<True> if C<$a> is a B<superset> of or equal to C<$b>, else False.
+L«More information|operators#infix_(>=),_infix_⊇»,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
 =head3 infix ⊉
 
-    multi sub infix:<⊉>($a, $b --> Bool)
+Returns C<True> if C<$a> is B<not> a B<superset> nor equal to C<$b>, else False.
+L<More information|operators#infix_⊉>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
-X<Neither a superset of nor equal to operator>.
+=head3 infix (>), infix ⊃
 
-Equivalent to C«!(>=)», at codepoint U+2289 (NEITHER A SUPERSET OF
-NOR EQUAL TO).
-
-    say (1, 2, 3).Set !(>=) (3, 2, 1).Set;   # OUTPUT: «False␤»
-    say (1, 3).Set ⊉ (3, 2, 1).Set;          # OUTPUT: «True␤»
-
-=head3 infix (>)
-
-    multi sub infix:<<(>)>>(Any $a, Any $b --> Bool)
-    multi sub infix:<<(>)>>(Setty $a, Setty $b --> Bool)
-
-X<Superset of operator>.
-
-Like L«(<)» with reversed arguments. Returns C<True> if C<$a> is a
-B<strict superset> of C<$b>.
-
-    say (1, 2, 3, 4).Set (>) (3, 2, 1).Set;  # OUTPUT: «True␤»
-    say (1, 3).Set (>) (3, 2, 1).Set;        # OUTPUT: «False␤»
-    say ∅ (>) (3, 2, 1).Set;                 # OUTPUT: «False␤»
-
-=head3 infix ⊃
-
-    multi sub infix:<⊃>($a, $b --> Bool)
-
-Alternate superset of operator.
-
-Equivalent to L«(>)», at codepoint U+2283 (SUPERSET OF).
+Returns C<True> if C<$a> is a B<strict superset> of C<$b>, else False.
+L«More information|operators#infix_(>),_infix_⊃»,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
 =head3 infix ⊅
 
-    multi sub infix:<⊅>($a, $b --> Bool)
+Returns C<True> if C<$a> is B<not> a B<strict superset> of C<$b>, else False.
+L<More information|operators#infix_⊅>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Subset#Definitions>.
 
-X<Not a superset of operator>.
+=head2 Set operators that return a C<QuantHash>
 
-Equivalent to C«!(>)», at codepoint U+2285 (NOT A SUPERSET OF).
+=head3 infix (|), infix ∪
 
-    say (1, 2, 3, 4).Set !(>) (3, 2, 1).Set; # OUTPUT: «False␤»
-    say (1, 3).Set ⊅ (3, 2, 1).Set;          # OUTPUT: «True␤»
+Returns the B<union> of all its arguments.
+L<More information|operators#infix_(|),_infix_∪>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Union_(set_theory)>.
 
-=head2 Operators that return C<Set> or C<Bag>
+=head3 infix (&), infix ∩
 
-=head3 infix (|)
+Returns the B<intersection> of all of its arguments.
+L<More information|operators#infix_(&),_infix_∩>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Intersection_(set_theory)>.
 
-    multi sub infix:<(|)>(**@p)
+=head3 infix (-), infix ∖
 
+Returns the B<set difference> of all its arguments.
+L<More information|operators#infix_(-),_infix_∖>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Complement_(set_theory)#Relative_complement>.
 
-X<Union operator>. It is of precedence "Junctive Or".
+=head3 infix (^), infix ⊖
 
-Returns the B<union> of all its arguments. Generally, this creates a new
-C<Set> that contains all the elements its arguments contain.
+Returns the B<symmetric set difference> of all its arguments.
+L<More information|operators#infix_(^),_infix_⊖>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Symmetric_difference>.
 
-    <a a b c d> (|) <h g f e d c> (|) <i j> === set <a b c d e f g h i j>
+=head2 Set operators that return a C<Baggy>
 
-If any of its arguments are C<Baggy>, it creates a new C<Bag> that contains
-all the elements of the arguments, each weighed by the highest weight that
-appeared for that element.
+=head3 infix (.), infix ⊍
 
-    bag(<a a b c a>) (|) bag(<a a b c c>) === bag(<a a a b c c>)
+Returns the Baggy B<multiplication> of its arguments.
+L<More information|operators#infix_(.),_infix_⊍>.
 
-=head3 infix ∪
+=head3 infix (+), infix ⊎
 
-    multi sub infix:<∪>(|p)
+Returns the Baggy B<addition> of its arguments.
+L<More information|operators#infix_(+),_infix_⊎>.
 
-Alternate union operator. It is of precedence "Junctive or".
+=head2 Terms related to set operators
 
-Equivalent to L«(V<|>)», at codepoint U+222A (UNION).
+=head3 term ∅
 
-=head3 infix (&)
-
-    multi sub infix:<(&)>(**@p)
-
-X<Intersection operator>. It is of precedence "Junctive and".
-
-Returns the B<intersection> of all of its arguments. Generally, this creates
-a new C<Set> that contains only the elements common to all of the arguments.
-
-    =begin code
-    <a b c> (&) <b c d> === set <b c>; # OUTPUT: «True␤»
-    <a b c d> (&) <b c d e> (&) <c d e f> === set <c d>; # OUTPUT: «True␤»
-    =end code
-
-If any of the arguments are C<Baggy>, the result is a new C<Bag> containing
-the common elements, each weighted by the largest I<common> weight (which
-is the minimum of the weights of that element over all arguments).
-
-    =begin code
-    bag(<a a b c a>) (&) bag(<a a b c c>) === bag(<a a b c>)
-    =end code
-
-=head3 infix ∩
-
-    multi sub infix:<∩>(|p)
-
-Alternate intersection operator. It is of precedence "Junctive and".
-
-Equivalent to L«(&)», at codepoint U+2229 (INTERSECTION).
-
-=head3 infix (-)
-
-    multi sub infix:<(-)>(**@p)
-
-
-X<Set difference operator>. It is of precedence "Junctive or".
-
-Returns the B<set difference> of all its arguments. Generally, this returns
-the C<Set> made up of all the elements the first argument has but the rest
-don't, i.e., of all the elements of the first argument, minus the elements
-from the other arguments.
-
-If the first argument is C<Baggy>, this returns a C<Bag> that contains each
-element of the first argument with its weight subtracted by the weight of
-that element in each of the other arguments.
-
-    =begin code
-    bag(<a a b c a d>) (-) bag(<a a b c c>) === bag(<a d>); # OUTPUT: «True␤»
-    bag(<a a a a c d d d>) (-) bag(<a b d a>) (-) bag(<d c>) === bag(<a a d>); # OUTPUT: «True␤»
-    =end code
-
-=head3 infix ∖
-
-    multi sub infix:<<"\x2216">>(|p)
-
-Alternate set difference operator. It is of precedence "Junctive or".
-
-Equivalent to L«(-)».
-
-=head3 infix (^)
-
-    multi sub infix:<(^)>(Any $a, Any $b --> Setty)
-    multi sub infix:<(^)>(Set $a, Set $b --> Setty)
-
-
-X<Symmetric set difference operator>. It is of precedence "Junctive or".
-
-Returns the B<symmetric set difference> of all its arguments, i.e., a C<Set>
-made up of all the elements that C<$a> has but C<$b> doesn't and all the
-elements C<$b> has but C<$a> doesn't. Equivalent to C<($a ∖ $b) ∪ ($b ∖
-$a)>.
-
-=head3 infix ⊖
-
-    multi sub infix:<⊖>($a, $b --> Setty)
-
-Alternate symmetric set difference operator. It is of precedence "Junctive or".
-
-Equivalent to L«(^)», at codepoint U+2296 (CIRCLED MINUS).
-
-=head3 infix (.)
-
-    multi sub infix:<(.)>(**@p)
-
-X<Baggy multiplication operator>. It is of precedence "Junctive and".
-
-Returns the Baggy B<multiplication> of its arguments, i.e., a C<Bag> that
-contains each element of the arguments with the weights of the element
-across the arguments multiplied together to get the new weight.
-
-    =begin code
-    <a b c> (.) <a b c d> === bag <a b c>; # OUTPUT: «True␤»
-                                           # Since 1 * 0 == 0, in the case of 'd'
-    bag(<a a b c a d>) (.) bag(<a a b c c>) === ("a"=>6,"c"=>2,"b"=>1).Bag; # OUTPUT: «True␤»
-    =end code
-
-=head3 infix ⊍
-
-    multi sub infix:<⊍>(|p)
-
-Alternate baggy multiplication operator. It is of precedence "Junctive and".
-
-Equivalent to L«infix (.)|(.)», at codepoint U+228D (MULTISET MULTIPLICATION).
-
-=head3 infix (+)
-
-    multi sub infix:<(+)>(**@p)
-
-X<Baggy addition operator>. It is of precedence "Junctive or".
-
-Returns the Baggy B<addition> of its arguments, i.e., a C<Bag> that contains
-each element of the arguments with the weights of the element across the
-arguments added together to get the new weight.
-
-=begin code
-bag(<a a b c a d>) (+) bag(<a a b c c>) === ("a"=>5,"c"=>3,"b"=>2,"d"=>1).Bag
-=end code
-
-=head3 infix ⊎
-
-    multi sub infix:<⊎>(|p)
-
-Alternate baggy addition operator. It is of precedence "Junctive or".
-
-Equivalent to L«(+)», at codepoint U+228E (MULTISET UNION).
-
-=head2 term ∅
-
-X<|∅>
-
-Equivalent to set(), aka the X<empty set>, at codepoint U+2205 (EMPTY SET).
+The empty set.  L<More information|terms#term_∅>,
+L<Wikipedia definition|https://en.wikipedia.org/wiki/Empty_set>.
 
 =end pod
 
