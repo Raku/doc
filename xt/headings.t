@@ -41,6 +41,8 @@ for @files -> $file {
                 | POSIX | QNX | Windows | Cygwin | Win32
                 # class names
                 | Whatever
+                | Scheduler
+                | NaN
                 | ( <:Lu><:L>+ "::" )+ <:Lu><:L>+
                 # these seem fishy?
                 | Socket
