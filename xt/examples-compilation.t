@@ -31,7 +31,7 @@ do hide $*ERR, but some of these are emitted from parts of
 the compiler that only know about the low level handle, not the
 Perl 6 level one.
 
-Note: Because of our use of EVAL, avoid concurrency.
+I<Note>: Because of our use of C<EVAL>, avoid concurrency.
 
 =end SYNOPSIS
 
