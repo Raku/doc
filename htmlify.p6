@@ -84,7 +84,6 @@ my @menu; # for use by future menu autogen
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines'  ) => routine-subs,
     ('programs', ''         ) => (),
-    ('https://examples.perl6.org', 'Examples' ) => (),
     ('https://webchat.freenode.net/?channels=#perl6', 'Chat with us') => (),
 ;
 
