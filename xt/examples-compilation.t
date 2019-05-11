@@ -46,10 +46,9 @@ sub walk($arg) {
 }
 
 # Extract all the examples from the given files
-my @examples;
 
-my $counts = BagHash.new;
 for @files -> $file {
+    my $counts = 0;
     my @chunks = extract-pod($file.IO).contents;
     while @chunks {
         my $chunk = @chunks.pop;
@@ -61,16 +60,16 @@ for @files -> $file {
             if $chunk.config<skip-test> {
                 %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
             }
-            @examples.push: %(
+            check-chunk( %(
                 'contents',  $chunk.contents.map({walk $_}).join,
                 'file',      $file,
-                'count',     ++$counts{$file},
+                'count',     ++$counts,
                 'todo',      $todo,
                 'ok-test',   $chunk.config<ok-test> // "",
                 'preamble',  $chunk.config<preamble> // "",
                 'method',    $chunk.config<method> // "",
                 'solo',      $chunk.config<solo> // "",
-            );
+            ) );
         } else {
             if $chunk.^can('contents') {
                 @chunks.push(|$chunk.contents)
@@ -79,10 +78,9 @@ for @files -> $file {
     }
 }
 
-my $proc;
-plan +@examples;
+done-testing;
 
-for @examples -> $eg {
+sub check-chunk( $eg ) {
     use MONKEY-SEE-NO-EVAL;
 
     # #1355 - don't like .WHAT in examples
