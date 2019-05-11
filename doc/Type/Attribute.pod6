@@ -13,26 +13,6 @@ meta level.
 Normal usage of attributes does not require the user to use this class
 explicitly.
 
-The usual way to obtain an object of type C<Attribute> is by introspection:
-
-    class Useless {
-        has @!things;
-    }
-    my $a = Useless.^attributes(:local)[0];
-    say $a.perl;            # OUTPUT: «Attribute.new␤»
-    say $a.name;            # OUTPUT: «@!things␤»
-    say $a.package;         # OUTPUT: «(Useless)␤»
-    say $a.has_accessor;    # OUTPUT: «False␤»
-
-Modifying a private attribute from the outside is usually not possible, but
-since Attribute is at the level of the meta class, all is fair game
-
-=begin code :preamble<class Useless { has @!things }; my $a>
-my $instance = Useless.new;
-$a.set_value($instance, [1, 2, 3]);
-say $a.get_value($instance);        # OUTPUT: «[1 2 3]␤»
-=end code
-
 =head1 Traits
 
 X<|is default (Attribute)>
@@ -127,6 +107,20 @@ default accessor for the attribute will return a writable value.
 
 =head1 Methods
 
+The usual way to obtain an object of type C<Attribute> is by introspection:
+
+    class Useless {
+        has @!things;
+    }
+    my $a = Useless.^attributes(:local)[0];
+    say $a.perl;            # OUTPUT: «Attribute.new␤»
+    say $a.name;            # OUTPUT: «@!things␤»
+    say $a.package;         # OUTPUT: «(Useless)␤»
+    say $a.has_accessor;    # OUTPUT: «False␤»
+
+Modifying a private attribute from the outside is usually not possible, but
+since Attribute is at the level of the meta class, all is fair game.
+
 =head2 method name
 
 Defined as:
@@ -173,6 +167,23 @@ Returns C<True> if the attribute has a public accessor method.
     say $private.has_accessor; # OUTPUT: «False␤»
     say $public.has_accessor;  # OUTPUT: «True␤»
 
+=head2 method rw
+
+Defined as:
+
+    method rw(Attribute:D: --> Bool:D)
+
+Returns C<True> for attributes that have the "is rw" trait applied to them.
+
+    class Library {
+        has $.address; # Read-only value
+        has @.new-books is rw;
+    }
+    my $addr = Library.^attributes(:local)[0];
+    my $new-books = Library.^attributes(:local)[1];
+    say $addr.rw;      # OUTPUT: «False␤»
+    say $new-books.rw; # OUTPUT: «True␤»
+
 =head2 method readonly
 
 Defined as:
@@ -190,6 +201,25 @@ attributes marked as C<is rw>.
     my $new-books = Library.^attributes(:local)[1];
     say $addr.readonly;      # OUTPUT: «True␤»
     say $new-books.readonly; # OUTPUT: «False␤»
+
+=head2 method required
+
+Defined as:
+
+    method required(Attribute:D: --> Any:D)
+
+Returns C<1> for attributes that have the "is required" trait applied, or C<Mu>
+if the attribute did not have that trait applied.  If the "is required" trait
+is applied with a string, then that string will be returned instead of C<1>.
+
+    class Library {
+        has $.address is required;
+        has @.new-books is required("we always need more books");
+    }
+    my $addr = Library.^attributes(:local)[0];
+    my $new-books = Library.^attributes(:local)[1];
+    say $addr.required;      # OUTPUT: «1␤»
+    say $new-books.readonly; # OUTPUT: «"we always need more books"␤»
 
 =head2 method type
 
@@ -269,6 +299,32 @@ say Hero.^attributes(:local)[0]; # OUTPUT: «Positional @!inventory»
 
 Since say implicitly calls C<.gist>, that is what produces the output here.
 
+=head1 Optional introspection
+
+=head2 DEPRECATED
+
+If an attribute is marked as C<DEPRECATED>, then calling the C<DEPRECATED>
+method is possible and will return C<"something else"> (if no specific reason
+was specified) or the string that was specified with the C<DEPRECATED> trait.
+
+If an attribute is B<not> marked as DEPRECATED, one cannot B<not> call the
+C<DEPRECATED> method.  Therefore, the C<.?method> syntax should be used.
+
+    class Hangout {
+        has $.table;
+        has $.bar is DEPRECATED("the patio");
+    }
+    my $attr-table = Hangout.^attributes(:local)[0];
+    my $attr-bar = Hangout.^attributes(:local)[1];
+    with $attr-table.?DEPRECATED -> $text {     # does not trigger
+        say "Table is deprecated with '$text'";
+        # OUTPUT:
+    }
+    with $attr-table.?DEPRECATED -> $text {
+        say "Bar is deprecated with '$text'";i
+        # OUTPUT: «Bar is deprecated with 'the patio'"␤»
+    }
+    
 =end pod
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
