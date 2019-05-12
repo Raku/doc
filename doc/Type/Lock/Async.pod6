@@ -2,23 +2,38 @@
 
 =TITLE class Lock::Async
 
-=SUBTITLE Low-level non-blocking non-re-entrant mutual exclusion lock
+=SUBTITLE A non-blocking, non-re-entrant, mutual exclusion lock
 
     class Lock::Async {}
 
-An asynchronous lock provides a non-blocking non-re-entrant mechanism for
-mutual exclusion. The lock method returns a Promise, which will already be
-kept if nothing was holding the lock already, so execution can proceed
-immediately. For performance reasons, in this case it returns a singleton
-Promise instance. Otherwise, a Promise in planned state will be returned,
-and kept once the lock has been unlocked by its current holder. The lock
-and unlock do not need to take place on the same thread; that's why it's not
+A C<Lock::Async> instance provides a mutual exclusion mechanism: when the
+lock is held, any other code wishing to C<lock> must wait until the holder
+calls C<unlock>.
+
+Unlike L<Lock|/type/Lock>, which provides a traditional OS-backed mutual
+exclusion mechanism, C<Lock::Async> works with the high-level concurrency
+features of Perl 6. The C<lock> method returns a C<Promise>, which will
+be kept when the lock is available. This C<Promise> can be used with
+non-blocking C<await>. This means that a thread from the thread pool need
+not be consumed while waiting for the C<Async::Lock> to be available,
+and the code trying to obtain the lock will be resumed once it is available.
+
+The result is that it's quite possible to have many thousands of outstanding
+C<Lock::Async> lock requests, but just a small number of threads in the
+pool. Attemtping that with a traditional L<Lock|/type/Lock> would not go so
+well!
+
+There is no requirement that a C<Lock::Async> is locked and unlocked by the
+same physical thread, meaning it is possible to do a non-blocking C<await>
+while holding the lock. The flip side of this is C<Lock::Async> is not
 re-entrant.
 
-High-level Perl 6 code should avoid the direct usage of locks, because they
-are not composable. Instead, high-level constructs such as
-L<Channel|/type/Channel> and L<Supply|/type/Supply> should be used
-whenever possible.
+While C<Lock::Async> works in terms of higher-level Perl 6 concurrency
+mechanisms, it should be considered a building block. Indeed, it lies at
+the heart of the C<Supply> concurrency model. Prefer to structure programs
+so that they communicate results rather than mutate shared data structures,
+using mechanisms like L<Promise|/type/Promise>, L<Channel|/type/Channel>
+and L<Supply|/type/Supply>.
 
 =head1 Methods
 
@@ -28,7 +43,9 @@ Defined as:
 
     method protect(Lock::Async:D: &code)
 
-Runs C<&code> and makes sure it is only run in one thread at once.
+Calls C<lock>, does an C<await> to wait for the lock to be available,
+and reliably calls C<unlock> afterwards, even if the code throws an
+exception.
 
 Note that the L<Lock::Async> itself needs to be created outside the portion
 of the code that gets threaded and it needs to protect. In the first
@@ -68,11 +85,16 @@ Defined as:
 
     method lock(Lock::Async:D: --> Promise:D)
 
-Acquires the lock, does B<not> wait to acquire the lock.  Returns a Promise
-that will be kept whenever the lock is acquired.
+Returns a L<Promise|/type/Promise> that will be kept when the lock is
+available. In the case that the lock is already available, an already
+kept C<Promise> will be returned. Use C<await> to wait for the lock to
+be available in a non-blocking manner.
 
     my $l = Lock::Async.new;
-    $l.lock;
+    await $l.lock;
+
+Prefer to use L<protect|/type/Lock/Async#method_protect> instead of
+explicit calls to C<lock> and C<unlock>.
 
 =head2 method unlock
 
@@ -80,12 +102,27 @@ Defined as:
 
     method unlock(Lock::Async:D: --> Nil)
 
-Releases the lock, blocking until all Promised of all holders of the lock have
-been kept.
+Releases the lock. If there are any oustanding C<lock> C<Promise>s,
+the one at the head of the queue will then be kept, and potentially
+code scheduled on the thread pool (so the cost of calling C<unlock>
+is limited to the work needed to schedule another piece of code that
+wants to obtain the lock, but not to execute that code).
 
     my $l = Lock::Async.new;
-    $l.lock;
+    await $l.lock;
     $l.unlock;
+
+Prefer to use L<protect|/type/Lock/Async#method_protect> instead of
+explicit calls to C<lock> and C<unlock>. However, it wishing to use
+the methods separately, it is wise to use a C<LEAVE> block to ensure
+that C<unlock> is reliably called. Failing to C<unlock> will mean that
+nobody can ever C<lock> this particular C<Lock::Async> instance again.
+
+    my $l = Lock::Async.new;
+    {
+        await $l.lock;
+        LEAVE $l.unlock;
+    }
 
 =end pod
 

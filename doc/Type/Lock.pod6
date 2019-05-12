@@ -2,13 +2,16 @@
 
 =TITLE class Lock
 
-=SUBTITLE Low-level thread locking primitive
+=SUBTITLE A low-level, re-entrant, mutual exclusion lock
 
     class Lock {}
 
-A Lock is a low-level constructor for ensuring that only one thread
-works with a certain object at a given time, or runs a piece of code
-(called the I<critical section>).
+A C<Lock> is a low-level concurrency control construct. It provides
+mutual exclusion, meaning that only one thread may hold the lock at a
+time. Once the lock is unlocked, another thread may then lock it.
+
+A C<Lock> is typically used to protect access to one or more pieces
+of state. For example, in this program:
 
     my $x = 0;
     my $l = Lock.new;
@@ -19,13 +22,45 @@ works with a certain object at a given time, or runs a piece of code
     }
     say $x;         # OUTPUT: «10␤»
 
-Locks are re-entrant, that is, a thread that holds the lock can lock it
-again without blocking.
+The C<Lock> is used to protect operations on C<$x>. An increment is
+not an atomic opreation; without the lock, it would be possible for
+two threads to both read the number 5 and then both store back the
+number 6, thus losing an update. With the use of the C<Lock>, only
+one thread may be running the increment at a time.
 
-High-level Perl 6 code should avoid the direct usage of locks, because
-they are not composable. Instead, high-level constructs such as
-L<Promise|/type/Promise>, L<Channel|/type/Channel> and L<Supply|/type/Supply> should
-be used whenever possible.
+A C<Lock> is re-entrant, meaning that a thread that holds the lock can
+lock it again without blocking. That thread must unlock the same number
+of times before the lock can be obtaiend by another thread (it works by
+keeping a recursion count).
+
+It's important to understand that there is no direct connection between
+a C<Lock> and any particular piece of data; it is up to the programmer
+to ensure that the C<Lock> is held during all operations that involve the
+data in question. The C<OO::Monitors> module, while not a complete solution
+to this problem, does provide a way to avoid dealing with the lock explicitly
+and encourage a more structured approach.
+
+The C<Lock> class is backed by operating-system provided constructs, and
+so a thread that is waiting to acquire a lock is, from the point of view
+of the operating system, blocked.
+
+Code using high-level Perl 6 concurrency constructs should avoid using
+C<Lock>. Waiting to acquire a C<Lock> blocks a real C<Thread>, meaning
+that the thread pool (used by numerous higher-level Perl 6 concurrency
+mechanisms) cannot use that thread in the meantime for anything else.
+
+Any C<await> performed while a C<Lock> is held will behave in a blocking
+manner; the standard non-blocking behavior of C<await> relies on the
+code following the `await` resuming on a different C<Thread> from the
+pool, which is incompatible with the requirement that a C<Lock> be
+unlocked by the same thread that locked it. See L<Lock::Async|/type/Lock/Async>
+for an alternative mechanism that does not have this shortcoming.
+
+By their nature, C<Lock>s are not composable, and it is possible to
+end up with hangs should circular dependencies on locks occur. Prefer
+to structure concurrent programs such that they communicate results
+rather than modify shared data structures, using mechanisms like
+L<Promise|/type/Promise>, L<Channel|/type/Channel> and L<Supply|/type/Supply>.
 
 =head1 Methods
 
@@ -35,13 +70,15 @@ Defined as:
 
     method protect(Lock:D: &code)
 
-Runs C<&code> and makes sure it is only run in one thread at once.
+Obtains the lock, runs C<&code>, and releases the lock afterwards. Care
+is taken to make sure the lock is released even if the code is left through
+an exception.
 
 Note that the L<Lock|/type/Lock> itself needs to be created outside the portion
 of the code that gets threaded and it needs to protect. In the first
 example below, L<Lock|/type/Lock> is first created and assigned to C<$lock>,
 which is then used I<inside> the L<Promises|/type/Promise> to protect
-the sensitive code. In the second example, a mistake is made, the
+the sensitive code. In the second example, a mistake is made: the
 C<Lock> is created right inside the L<Promise|/type/Promise>, so the code ends up
 with a bunch of separate locks, created in a bunch of threads, and
 thus they don't actually protect the code we want to protect.
@@ -79,22 +116,15 @@ Acquires the lock. If it is currently not available, waits for it.
     my $l = Lock.new;
     $l.lock;
 
-This construct provides a low-level, OS-backed lock (on most platforms,
-it is a pthreads mutex, for example). The lock is reentrant, meaning
-that if you acquire it while already holding it then it just bumps a
-recursion count. Trying to acquire the lock when something else is
-holding it will really block a thread. If you block a thread pool thread
-with this construct, it won't be able to work on anything else in the
-meantime. Further, an await while holding a lock will not function in a
-non-blocking manner (as a threadpool await normally would in 6.d).
+Since a C<Lock> is implemented using OS-provided facilities, a thread
+waiting for the lock will not be scheduled until the lock is available
+for it. Since C<Lock> is re-entrant, if the current thread already holds
+the lock, calling C<lock> will simply bump a recursion count.
 
-For that reason, it's better to use
-L<C<protect>|/type/Lock#method_protect> instead of an explicit
-lock/unlock. That makes sure that the lock is always released. If you
-forget to unlock then you'll "lose" the lock and nothing will ever be
-able to acquire it again, probably resulting in the program deadlocking.
-If you really want to do the unlock yourself, the safest way is in a
-C<LEAVE> phaser.
+While it's easy enough to use the C<lock> method, it's more difficult to
+correctly use L<C<unlock>|/type/Lock#method_unlock>. Instead, prefer to
+use the L<C<protect>|/type/Lock#method_protect> method instead, which
+takes care of making sure the C<lock>/C<unlock> calls always both occur.
 
 =head2 method unlock
 
@@ -108,8 +138,17 @@ Releases the lock.
     $l.lock;
     $l.unlock;
 
-Please see the description of L<C<.lock>|/type/Lock#method_lock> above.
+It is important to make sure the C<Lock> is always released, even if
+an exception is thrown. The safest way to ensure this is to use the
+L<C<protect>|/type/Lock#method_protect> method, instead of explicitly
+calling C<lock> and C<unlock>. Failing that, use a C<LEAVE> phaser.
 
+
+    my $l = Lock.new;
+    {
+        $l.lock;
+        LEAVE $l.unlock;
+    }
 
 =head2 method condition
 
