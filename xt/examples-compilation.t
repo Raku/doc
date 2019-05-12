@@ -133,22 +133,23 @@ sub check-chunk( $eg ) {
     my $has-error;
     {
         # Does the test require its own file?
-        if $eg<solo> {
+#        if $eg<solo> {
             my ($tmp_fname, $tmp_io) = tempfile;
             $tmp_io.spurt: $code, :close;
             my $proc = Proc::Async.new($*EXECUTABLE, '-c', $tmp_fname);
             $proc.stdout.tap: {;};
             $proc.stderr.tap: {;};
             $has-error = ! await $proc.start;
-        } else {
-            temp $*OUT = open :w, $*SPEC.devnull;
-            temp $*ERR = open :w, $*SPEC.devnull;
-            try EVAL $code;
-            $has-error = $!;
-            close $*OUT;
-            close $*ERR;
-        }
+        # } else {
+        #     temp $*OUT = open :w, $*SPEC.devnull;
+        #     temp $*ERR = open :w, $*SPEC.devnull;
+        #     try EVAL $code;
+        #     $has-error = $!;
+        #     close $*OUT;
+        #     close $*ERR;
+        # }
     }
+
     todo(1) if $eg<todo>;
     if $has-error {
         diag $eg<contents>;
