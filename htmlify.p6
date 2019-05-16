@@ -84,8 +84,7 @@ my @menu; # for use by future menu autogen
     ('type', 'Types'        ) => <basic composite domain-specific exceptions>,
     ('routine', 'Routines'  ) => routine-subs,
     ('programs', ''         ) => (),
-    ('examples', 'Examples' ) => (),
-    ('webchat', 'Chat with us') => (),
+    ('https://webchat.freenode.net/?channels=#perl6', 'Chat with us') => (),
 ;
 
 my $head = slurp 'template/head.html';
@@ -97,7 +96,7 @@ sub header-html($current-selection, $pod-path) {
         q[<div class="menu-items dark-green"><a class='menu-item darker-green' href='https://perl6.org'><strong>Perl&nbsp;6 homepage</strong></a> ],
         @menu>>.key.map(-> ($dir, $name) {qq[
             <a class="menu-item {$dir eq $current-selection ?? "selected darker-green" !! ""}"
-                href="/$dir.html">
+                href="{ $dir ~~ /https/ ?? $dir !! "/$dir.html" }">
                 { $name || $dir.wordcase }
             </a>
         ]}), #"

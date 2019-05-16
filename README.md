@@ -8,6 +8,10 @@ This is currently the recommended way to consume the documentation.
 There is also a command line tool called `p6doc`, which you can use to
 browse the documentation once it's installed (see below).
 
+This documentation is updated frequently to a GitHub mirror
+https://perl6docs.github.io but that might be out of sync with the
+official one.
+
 ## Docker container
 
 This documentation is also published as

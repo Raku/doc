@@ -210,7 +210,7 @@ members of Structures like, e.g., structs and unions.
 Example of invoking a function pointer "$fptr" returned by a function "f", using a
 signature defining the desired function parameters and return value:
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 sub f() returns Pointer is native('mylib') { * }
 
 my $fptr    = f();
@@ -231,7 +231,7 @@ a much more primitive CArray type, which you must use if working with C arrays.
 
 Here is an example of passing a C array.
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 sub RenderBarChart(Str, int32, CArray[Str], CArray[num64]) is native("chart") { * }
 my @titles := CArray[Str].new;
 @titles[0]  = 'Me';
@@ -268,7 +268,7 @@ elements that are going to be populated before passing it to the native
 subroutine, otherwise the C function may stomp all over Perl's memory
 leading to possibly unpredictable behavior:
 
-=begin code :skip-test
+=begin code :preamble<use NativeCall; sub get_n_ints($, $) {}>
 my $number_of_ints = 10;
 my $ints = CArray[int32].allocate($number_of_ints); # instantiates an array with 10 elements
 my $n = get_n_ints($ints, $number_of_ints);
@@ -277,7 +277,7 @@ my $n = get_n_ints($ints, $number_of_ints);
 I<Note>: C<allocate> was introduced in Rakudo 2018.05. Before that, you had to
 use this mechanism to extend an array to a number of elements:
 
-=begin code :skip-test
+=begin code :preamble<use NativeCall>
 my $ints = CArray[int32].new;
 my $number_of_ints = 10;
 $ints[$number_of_ints - 1] = 0; # extend the array to 10 items
@@ -381,7 +381,7 @@ NativeCall currently doesn't put object members in containers, so assigning new 
 to them (with =) doesn't work. Instead, you have to bind new values to the private
 members:
 
-=begin code :skip-test
+=begin code :skip-test<continued example>
 class MyStruct is repr('CStruct') {
     has CArray[num64] $!arr;
     has Str $!str;
@@ -415,7 +415,8 @@ class MyUnion is repr('CUnion') {
     has int64 $.flags64;
 }
 
-say nativesizeof(MyUnion.new);  # 8, ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
+say nativesizeof(MyUnion.new);  # OUTPUT: «8␤»
+                                # ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
 =end code
 
 =head2 Embedding CStructs and CUnions
@@ -425,20 +426,22 @@ surrounding CStruct and CUnion. To say the former we use C<has>
 as usual, and to do the latter we use the C<HAS> declarator
 instead:
 
-=begin code :skip-test
+=begin code :skip-test<continued example>
 class MyStruct is repr('CStruct') {
     has Point $.point;  # referenced
     has int32 $.flags;
 }
 
-say nativesizeof(MyStruct.new);  # 16, ie. sizeof(struct Point *) + sizeof(int32_t)
+say nativesizeof(MyStruct.new);  # OUTPUT: «16␤»
+                                 # ie. sizeof(struct Point *) + sizeof(int32_t)
 
 class MyStruct2 is repr('CStruct') {
     HAS Point $.point;  # embedded
     has int32 $.flags;
 }
 
-say nativesizeof(MyStruct2.new);  # 24, ie. sizeof(struct Point) + sizeof(int32_t)
+say nativesizeof(MyStruct2.new);  # OUTPUT: «24␤»
+                                  # ie. sizeof(struct Point) + sizeof(int32_t)
 =end code
 
 =head2 Notes on memory management
@@ -451,7 +454,7 @@ function.
 
 =head3 In your Perl 6 code...
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 
 class AStringAndAnInt is repr("CStruct") {
   has Str $.a_string;
@@ -530,7 +533,7 @@ when dereferenced. Please note that the original
 L<C<strdup>|https://en.cppreference.com/w/c/experimental/dynamic/strdup> returns
 a pointer to C<char>; we are using C<Pointer<Str>>.
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 my Pointer[int32] $p; #For a pointer on int32;
 my Pointer[MyCstruct] $p2 = some_c_routine();
 my MyCstruct $mc = $p2.deref;
@@ -541,7 +544,7 @@ It's quite common for a native function to return a pointer to an array of
 elements. Typed pointers can be dereferenced as an array to obtain individual
 elements.
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 my $n = 5;
 # returns a pointer to an array of length $n
 my Pointer[Point] $plot = some_other_c_routine($n);
@@ -555,7 +558,7 @@ for 1 .. $n -> $i {
 
 Pointers can also be updated to reference successive elements in the array:
 
-=begin code :skip-test
+=begin code :skip-test<continued example>
 my Pointer[Point] $elem = $plot;
 # show differences between successive points
 for 1 ..^ $n {
@@ -578,7 +581,7 @@ for more information on the subject.
 
 Let's say there is some C code that caches strings passed, like so:
 
-=begin code :skip-test :lang<C>
+=begin code :lang<C>
 #include <stdlib.h>
 
 static char *__VERSION;
@@ -601,7 +604,7 @@ set_version(char *version)
 If you were to write bindings for C<get_version> and C<set_version>, they would
 initially look like this, but will not work as intended:
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 sub get_version(--> Str)     is native('./version') { * }
 sub set_version(Str --> Str) is native('./version') { * }
 
@@ -615,7 +618,7 @@ the string passed on the first call after the garbage collector had already
 done so. If the garbage collector shouldn't free a string passed to a native
 function, use C<explicitly-manage> with it:
 
-=begin code :skip-test
+=begin code :skip-test<external dependency>
 say set_version(explicitly-manage('1.0.0')); # 1.0.0
 say get_version;                             # 1.0.0
 say set_version(explicitly-manage('1.0.1')); # 1.0.1
@@ -655,11 +658,11 @@ equivalent signature as L<a constraint on the code parameter|/type/Signature#Con
 
     use NativeCall;
     # void SetCallback(int (*callback)(const char *))
-    my sub SetCallback(&callback:(Str --> int32)) is native('mylib') { * }
+    my sub SetCallback(&callback (Str --> int32)) is native('mylib') { * }
 
 Note: the native code is responsible for memory management of values passed to
-Perl 6 callbacks this way. In other words, NativeCall will not free() strings passed
-to callbacks.
+Perl 6 callbacks this way. In other words, NativeCall will not free() strings
+passed to callbacks.
 
 =head1 Library paths and names
 
@@ -669,7 +672,7 @@ to be prepended with "lib" and appended with ".so" (or just appended with
 ".dll" on Windows), and will be searched for in the paths in the
 LD_LIBRARY_PATH (PATH on Windows) environment variable.
 
-=begin code :skip-test<don't have library>
+=begin code :skip-test<external dependency>
 use NativeCall;
 constant LIBMYSQL = 'mysqlclient';
 constant LIBFOO = '/usr/lib/libfoo.so.1';
@@ -699,13 +702,16 @@ keep the value it acquires when the module gets precompiled.
 
 =head2 ABI/API version
 
-If you write C<native('foo')> NativeCall will search libfoo.so under Unix like system (libfoo.dynlib on OS X, foo.dll on win32).
-In most modern system it will require you or the user of your module to install
-the development package because it's recommended to always provide an API/ABI version to a
-shared library, so libfoo.so ends often being a symbolic link provided only by a development package.
+If you write C<native('foo')> NativeCall will search libfoo.so under Unix like
+system (libfoo.dynlib on OS X, foo.dll on win32). In most modern system it will
+require you or the user of your module to install the development package
+because it's recommended to always provide an API/ABI version to a shared
+library, so libfoo.so ends often being a symbolic link provided only by a
+development package.
 
-To avoid that, the C<native> trait allows you to specify the API/ABI version. It can be a full
-version or just a part of it. (Try to stick to Major version, some BSD code does not care for Minor.)
+To avoid that, the C<native> trait allows you to specify the API/ABI version. It
+can be a full version or just a part of it. (Try to stick to Major version, some
+BSD code does not care for Minor.)
 
     use NativeCall;
     sub foo1 is native('foo', v1) {*} # Will try to load libfoo.so.1
@@ -756,7 +762,7 @@ Though of course C<$*HOME> is a much easier way :-)
 Variables exported by a library – also named "global" or "extern"
 variables – can be accessed using C<cglobal>.  For example:
 
-=for code :skip-test
+=for code :preamble<use NativeCall>
 my $var := cglobal('libc.so.6', 'errno', int32)
 
 This code binds to C<$var> a new L<Proxy|/type/Proxy> object that

@@ -48,6 +48,19 @@ Use C<∞> or C<*> (Whatever) to indicate an end point to be open-ended.
 for 1..* { .say };       # start from 1, continue until stopped
 for 1..∞ { .say };       # the same
 
+Beware that a L<WhateverCode|/type/WhateverCode> end point, instead of a plain
+Whatever, will go through the range operator and create another WhateverCode
+which returns a Range:
+
+=for code :ok-test<WHAT>
+# A Whatever produces the 1..Inf range
+say (1..*).^name;        # OUTPUT: «Range␤»
+say (1..*);              # OUTPUT: «1..Inf␤»
+# Upper end point is now a WhateverCode
+say (1..*+20).^name;     # OUTPUT: «{ ... }␤»
+say (1..*+20).WHAT;      # OUTPUT: «(WhateverCode)␤»
+say (1..*+20).(22);      # OUTPUT: «1..42␤»
+
 Ranges implement L<Positional|/type/Positional> interface, so its elements can
 be accessed using an index. In a case when the index given is bigger than the
 Range object's size, L<Nil|/type/Nil> object will be returned. The access works
@@ -325,9 +338,10 @@ Returns a L<Seq|/type/Seq> where all elements that the C<Range> represents have
 been reversed. Note that reversing an infinite C<Range> won't produce any
 meaningful results.
 
-    say (1^..5).reverse;                            # OUTPUT: «(5 4 3 2)␤»
-    say ('a'..'d').reverse;                         # OUTPUT: «(d c b a)␤»
-    say (1..∞).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
+=for code
+say (1^..5).reverse;                            # OUTPUT: «(5 4 3 2)␤»
+say ('a'..'d').reverse;                         # OUTPUT: «(d c b a)␤»
+say (1..∞).reverse;                             # OUTPUT: «(Inf Inf Inf ...)␤»
 
 =head2 method Capture
 
@@ -352,6 +366,126 @@ Returns a pseudo-random value belonging to the range.
 
     say (1^..5).rand;                              # OUTPUT: «1.02405550417031␤»
     say (0.1..0.3).rand;                           # OUTPUT: «0.2130353370062␤»
+
+=head2 method EXISTS-POS
+
+Defined as
+
+    multi method EXISTS-POS(Range:D: int \pos)
+    multi method EXISTS-POS(Range:D: Int \pos)
+
+Returns C<True> if C<pos> is greater or equal than zero and lower than
+C<self.elems>. Returns C<False> otherwise.
+
+    say (6..10).EXISTS-POS(2); # OUTPUT: «True␤»
+    say (6..10).EXISTS-POS(7); # OUTPUT: «False␤»
+
+=head2 method AT-POS
+
+Defined as
+
+    multi method AT-POS(Range:D: int \pos)
+    multi method AT-POS(Range:D: int:D \pos)
+
+Checks if the L<Int|/type/Int> position exists and in that case returns the
+element in that position.
+
+    say (1..4).AT-POS(2) # OUTPUT: «3␤»
+
+=head2 method perl
+
+Defined as
+
+    multi method perl(Range:D:)
+
+Returns an implementation-specific string that produces an
+L<equivalent|/routine/eqv> object when given to L<EVAL|/routine/EVAL>.
+
+    say (1..2).perl # OUTPUT: «1..2␤»
+
+=head2 method fmt
+
+Defined as
+
+    method fmt(|c)
+
+Returns a string where C<min> and C<max> in the L<Range|/type/Range> have been
+formatted according to C<|c>.
+
+For more information about formats strings, see L<sprintf|/routine/sprintf>.
+
+    say (1..2).fmt("Element: %d", ",") # OUTPUT: «Element: 1,Element: 2␤»
+
+=head2 method WHICH
+
+Defined as
+
+    multi method WHICH (Range:D:)
+
+This returns a string that identifies the object. The string is composed by the
+type of the instance (C<Range>) and the C<min> and C<max> attributes:
+
+    say (1..2).WHICH # OUTPUT: «Range|1..2␤»
+
+=head2 sub infix:<+>
+
+    multi sub infix:<+>(Range:D \r, Real:D \v)
+    multi sub infix:<+>(Real:D \v, Range:D \r)
+
+Takes an L<C<Real>|/type/Real> and adds that number to both
+boundaries of the L<Range|/type/Range> object. Be careful with
+the use of parenthesis.
+
+    say (1..2) + 2; # OUTPUT: «3..4␤»
+    say 1..2 + 2;   # OUTPUT: «1..4␤»
+
+=head2 sub infix:<->
+
+    multi sub infix:<->(Range:D \r, Real:D \v)
+
+Takes an L<C<Real>|/type/Real> and subtract that number to both
+boundaries of the L<Range|/type/Range> object. Be careful with
+the use of parenthesis.
+
+    say (1..2) - 1; # OUTPUT: «0..1␤»
+    say 1..2 - 1;   # OUTPUT: «1..1␤»
+
+=head2 sub infix:<*>
+
+    multi sub infix:<*>(Range:D \r, Real:D \v)
+    multi sub infix:<*>(Real:D \v, Range:D \r)
+
+Takes an L<C<Real>|/type/Real> and multiply both boundaries
+of the L<Range|/type/Range> object by that number.
+
+    say (1..2) * 2; # OUTPUT: «2..4␤»
+
+=head2 sub infix:</>
+
+    multi sub infix:</>(Range:D \r, Real:D \v)
+
+Takes an L<Real|/type/Real> and divide both boundaries
+of the L<Range|/type/Range> object by that number.
+
+    say (2..4) / 2; # OUTPUT: «1..2␤»
+
+=head2 sub infix:<cmp>
+
+    multi sub infix:<cmp>(Range:D \a, Range:D \b --> Order:D)
+    multi sub infix:<cmp>(Num(Real) \a, Range:D \b --> Order:D)
+    multi sub infix:<cmp>(Range:D \a, Num(Real) \b --> Order:D)
+    multi sub infix:<cmp>(Positional \a, Range:D \b --> Order:D)
+    multi sub infix:<cmp>(Range:D \a, Positional \b --> Order:D)
+
+Compares two L<Range|/type/Range> objects. If you use a L<C<Real>|/type/Real>,
+it will be compared to the L<Range|/type/Range> C<b..b>. If you use a
+L<Positional>|/type/Positional>.
+
+    say (1..2) cmp (1..2); # OUTPUT: «Same␤»
+    say (1..2) cmp (1..3); # OUTPUT: «Less␤»
+    say (1..4) cmp (1..3); # OUTPUT: «More␤»
+    say (1..2) cmp 3;      # OUTPUT: «Less␤»
+    say (1..2) cmp [1,2];  # OUTPUT: «Same␤»
 
 =end pod
 

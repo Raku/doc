@@ -34,12 +34,12 @@ simplify assignment by flattening by default.
 
 =begin table
 
-    Sigil   Type constraint              Default type  Assignment  Examples
-    =====   ===============              ============  ==========  ========
-    $       Mu (no type constraint)      Any           item        Int, Str, Array, Hash
-    @       Positional                   Array         list        List, Array, Range, Buf
-    %       Associative                  Hash          list        Hash, Map, Pair
-    &       Callable                     Callable      item        Sub, Method, Block, Routine
+Sigil   Type constraint              Default type  Assignment  Examples
+=====   ===============              ============  ==========  ========
+$       Mu (no type constraint)      Any           item        Int, Str, Array, Hash
+@       Positional                   Array         list        List, Array, Range, Buf
+%       Associative                  Hash          list        Hash, Map, Pair
+&       Callable                     Callable      item        Sub, Method, Block, Routine
 
 =end table
 
@@ -56,7 +56,8 @@ declaration of the variable.  Assuming we have a C<FailHash> class:
     class FailHash is Hash {
         has Bool $!final = False;
         multi method AT-KEY ( ::?CLASS:D: Str:D \key ){
-            fail X::OutOfRange.new(:what("Hash key"), :got(key), :range(self.keys)) if $!final && !self.EXISTS-KEY(key);
+            fail X::OutOfRange.new(:what("Hash key"), :got(key),
+              :range(self.keys)) if $!final && !self.EXISTS-KEY(key);
             callsame  # still not final, so do normal action from Hash
         }
 
@@ -94,8 +95,8 @@ Item assignment places the value from the right-hand side into the variable
 
 List assignment leaves the choice of what to do to the variable on the left.
 
-For example, L<Array|/type/Array> variables (C<@> sigil) empty themselves on list
-assignment and then put all the values from the right-hand side into
+For example, L<Array|/type/Array> variables (C<@> sigil) empty themselves on
+list assignment and then put all the values from the right-hand side into
 themselves.
 
 The type of assignment (item or list) is decided by the first context
@@ -167,7 +168,7 @@ L<containers|/language/containers>. This means C<degrees> and C<θ>, above,
 actually directly represent C<Num>s. To illustrate, try assigning to one after
 you've defined it:
 
-=begin code :skip-test
+=begin code :skip-test<dies deliberately>
 θ = 3; # Dies with the error "Cannot modify an immutable Num"
 =end code
 
@@ -370,7 +371,7 @@ understood in the correct order, to avoid surprise on behalf of the reader.
 Normal blocks and subroutines may also make use of placeholder variables but
 only if they do not have an explicit parameter list.
 
-=begin code :skip-test
+=begin code :skip-test<illustrates error>
 sub say-it    { say $^a; } # valid
 sub say-it()  { say $^a; } # invalid
               { say $^a; } # valid
@@ -483,7 +484,7 @@ predefined variables:
 Declaring a variable with C<my> gives it lexical scope. This means it only
 exists within the current block. For example:
 
-=begin code :skip-test
+=begin code :skip-test<illustrates error>
 {
     my $foo = "bar";
     say $foo; # OUTPUT: «"bar"␤»
@@ -526,7 +527,7 @@ If a variable has been redefined, any code that referenced the outer
 variable will continue to reference the outer variable. So here,
 C<&outer-location> still prints the outer C<$location>:
 
-=begin code :skip-test
+=begin code :skip-test<continued example>
 sub new-location {
     my $location = "nowhere";
     outer-location;
@@ -720,14 +721,14 @@ as an anonymous state variable without an explicit C<state> declaration.
 Furthermore, state variables can be used outside of subroutines. You
 could, for example, use C<$> in a one-liner to number the lines in a file.
 
-=begin code :skip-test
+=begin code :lang<shell>
 perl6 -ne 'say ++$ ~ " $_"' example.txt
 =end code
 
 Each reference to C<$> within a lexical scope is in effect a separate
 variable.
 
-=begin code :skip-test
+=begin code :lang<shell>
 perl6 -e '{ say ++$; say $++  } for ^5'
 # OUTPUT: «1␤0␤2␤1␤3␤2␤4␤3␤5␤4␤»
 =end code
@@ -799,7 +800,8 @@ array.
 
 =head3 The C<%> variable
 
-In addition, there's an L<Associative|/type/Associative> anonymous state variable C<%>.
+In addition, there's an L<Associative|/type/Associative> anonymous state
+variable C<%>.
 
     sub foo($x) {
         say (%).push($x => $x);
@@ -929,10 +931,12 @@ are bound to, which goes between the declarator and the variable name. The
 default type constraint is L<Mu|/type/Mu>. You can also use the trait
 L<of|/type/Variable#trait_of> to set a type constraint.
 
+=for code :skip-test<compilation error>
     my Int $x = 42;
     $x = 'a string';
     CATCH { default { put .^name, ': ', .Str } }
-    # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to $x; expected Int but got Str ("a string")␤»
+    # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to $x;
+    expected Int but got Str ("a string")␤»
 
 If a scalar variable has a type constraint but no initial value, it's
 initialized with the type object of the default value of the container it's
@@ -961,11 +965,12 @@ re-applied by assigning C<Nil> to it:
 
 =head2 Default defined variables pragma
 
-To force all variables to have a L<definiteness|/language/mop#index-entry-syntax_DEFINITE-DEFINITE>
-constraint, use the pragma C<use variables :D>. The pragma is lexically scoped and can be
+To force all variables to have a
+L<definiteness|/language/mop#index-entry-syntax_DEFINITE-DEFINITE> constraint,
+use the pragma C<use variables :D>. The pragma is lexically scoped and can be
 switched off with C<use variables :_>.
 
-=begin code :skip-test
+=begin code :skip-test<compile-time error>
 use variables :D;
 my Int $i;
 # OUTPUT: «===SORRY!=== Error while compiling <tmp>␤Variable definition of type Int:D (implicit :D by pragma) requires an initializer ...
@@ -1054,7 +1059,7 @@ match and so usually contains objects of type L<Match|/type/Match>.
 The C<Grammar.parse> method also sets the caller's C<$/> to the resulting
 L<Match|/type/Match> object.  For the following code:
 
-=begin code :skip-test
+=begin code :skip-test<needs ecosystem>
 use XML::Grammar; # zef install XML
 XML::Grammar.parse("<p>some text</p>");
 say $/;
@@ -1267,7 +1272,7 @@ for examples and more context.
 
 =head4 C<@*ARGS>
 
-C<@*ARGS> contains the arguments from the command line.
+C<@*ARGS> is an array of C<Str> containing the arguments from the command line.
 
 X<|&*ARGS-TO-CAPTURE>
 =head4 C<&*ARGS-TO-CAPTURE>
@@ -1329,8 +1334,8 @@ in your program.
 X<|$*TZ>
 =head4 C<$*TZ>
 
-C<$*TZ> contains the system's local time zone offset, as the number of B<seconds>
-from GMT.
+C<$*TZ> contains the system's local time zone offset, as the number of
+B<seconds> from GMT.
 
 X<|$*CWD>
 =head4 C<$*CWD>
@@ -1515,13 +1520,14 @@ C<1e-15>.
 X<|$*THREAD>
 =head4 C<$*THREAD>
 
-Contains a L<Thread|/type/Thread> object representing the currently executing thread.
+Contains a L<Thread|/type/Thread> object representing the currently executing
+thread.
 
 X<|$*SCHEDULER>
 =head4 C<$*SCHEDULER>
 
-This is a L<ThreadPoolScheduler|/type/ThreadPoolScheduler> object representing the current default
-scheduler.
+This is a L<ThreadPoolScheduler|/type/ThreadPoolScheduler> object representing
+the current default scheduler.
 
 By default this imposes a maximum of 64 threads on the methods C<.hyper>,
 C<.race> and other thread-pool classes that use that scheduler such as

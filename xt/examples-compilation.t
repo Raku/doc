@@ -31,7 +31,7 @@ do hide $*ERR, but some of these are emitted from parts of
 the compiler that only know about the low level handle, not the
 Perl 6 level one.
 
-Note: Because of our use of EVAL, avoid concurrency.
+I<Note>: Because of our use of C<EVAL>, avoid concurrency.
 
 =end SYNOPSIS
 
@@ -46,10 +46,9 @@ sub walk($arg) {
 }
 
 # Extract all the examples from the given files
-my @examples;
 
-my $counts = BagHash.new;
 for @files -> $file {
+    my $counts = 0;
     my @chunks = extract-pod($file.IO).contents;
     while @chunks {
         my $chunk = @chunks.pop;
@@ -61,16 +60,16 @@ for @files -> $file {
             if $chunk.config<skip-test> {
                 %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
             }
-            @examples.push: %(
+            check-chunk( %(
                 'contents',  $chunk.contents.map({walk $_}).join,
                 'file',      $file,
-                'count',     ++$counts{$file},
+                'count',     ++$counts,
                 'todo',      $todo,
                 'ok-test',   $chunk.config<ok-test> // "",
                 'preamble',  $chunk.config<preamble> // "",
                 'method',    $chunk.config<method> // "",
                 'solo',      $chunk.config<solo> // "",
-            );
+            ) );
         } else {
             if $chunk.^can('contents') {
                 @chunks.push(|$chunk.contents)
@@ -79,10 +78,9 @@ for @files -> $file {
     }
 }
 
-my $proc;
-plan +@examples;
+done-testing;
 
-for @examples -> $eg {
+sub check-chunk( $eg ) {
     use MONKEY-SEE-NO-EVAL;
 
     # #1355 - don't like .WHAT in examples
@@ -135,22 +133,23 @@ for @examples -> $eg {
     my $has-error;
     {
         # Does the test require its own file?
-        if $eg<solo> {
+#        if $eg<solo> {
             my ($tmp_fname, $tmp_io) = tempfile;
             $tmp_io.spurt: $code, :close;
             my $proc = Proc::Async.new($*EXECUTABLE, '-c', $tmp_fname);
             $proc.stdout.tap: {;};
             $proc.stderr.tap: {;};
             $has-error = ! await $proc.start;
-        } else {
-            temp $*OUT = open :w, $*SPEC.devnull;
-            temp $*ERR = open :w, $*SPEC.devnull;
-            try EVAL $code;
-            $has-error = $!;
-            close $*OUT;
-            close $*ERR;
-        }
+        # } else {
+        #     temp $*OUT = open :w, $*SPEC.devnull;
+        #     temp $*ERR = open :w, $*SPEC.devnull;
+        #     try EVAL $code;
+        #     $has-error = $!;
+        #     close $*OUT;
+        #     close $*ERR;
+        # }
     }
+
     todo(1) if $eg<todo>;
     if $has-error {
         diag $eg<contents>;
