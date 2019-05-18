@@ -53,18 +53,17 @@ sub test-example ($eg) {
         next;
     }
 
-    # Wrap each snippet in a block so it compiles but isn't run on EVAL
-    # Further wrap in an anonymous class (so bare method works)
-    # Add in empty routine bodies if needed
+    # Wrap snippets in an anonymous class (so bare method works)
+    # and add in empty blocks if needed.
 
     my $code;
     if $eg<solo> {
-        $code = $eg<preamble> ~ ";\n" if $eg<preamble>;
+        $code  = $eg<preamble> ~ ";\n" if $eg<preamble>;
         $code ~= $eg<contents>;
     }
     else {
-        $code = 'no worries; ';
-        $code ~= "if False \{\nclass :: \{\n";
+        $code  = 'no worries; ';
+        $code ~= "class :: \{\n";
         $code ~= $eg<preamble> ~ ";\n";
 
         for $eg<contents>.lines -> $line {
@@ -75,18 +74,18 @@ sub test-example ($eg) {
             # to make it compilable. Be careful with multiline signatures:
             # '(' and ',' at the end of a line indicate a continued sig.
             # We wait until none of them is encountered before adding '{}'.
+            # Cases that are not covered by the heuristic and which contain
+            # nothing but a method declaration can use :method instead.
             $in-signature ?|= $line.trim.starts-with(any(<multi method proto only sub>))
-                           && $eg<method> eq "";
+                           && not $eg<method>;
             if $in-signature && !$line.trim.ends-with(any(« } , ( »)) {
                $code ~= " \{}";
                $in-signature = False;
             }
-            if $eg<method> eq "" || $eg<method> eq "False" {
-                $code ~= "\n";
-            }
+            NEXT $code ~= "\n";
+            LAST $code ~= "\{}\n" if $eg<method>;
         }
-        $code ~= "\{}\n" if $eg<method> eq "True";
-        $code ~= "\n}}";
+        $code ~= "}";
     }
 
     my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
@@ -145,8 +144,8 @@ sub code-blocks (IO() $file) {
                 'todo',      $todo,
                 'ok-test',   $chunk.config<ok-test> // "",
                 'preamble',  $chunk.config<preamble> // "",
-                'method',    $chunk.config<method> // "",
-                'solo',      $chunk.config<solo> // "",
+                'method',    $chunk.config<method>:v,
+                'solo',      $chunk.config<solo>:v,
             );
         }
         else {
