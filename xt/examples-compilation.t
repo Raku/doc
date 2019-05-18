@@ -31,8 +31,6 @@ do hide $*ERR, but some of these are emitted from parts of
 the compiler that only know about the low level handle, not the
 Perl 6 level one.
 
-I<Note>: Because of our use of C<EVAL>, avoid concurrency.
-
 =end SYNOPSIS
 
 my @files = Test-Files.pods;
@@ -46,7 +44,6 @@ sub walk($arg) {
 }
 
 # Extract all the examples from the given files
-
 for @files -> $file {
     my $counts = 0;
     my @chunks = extract-pod($file.IO).contents;
@@ -81,7 +78,6 @@ for @files -> $file {
 done-testing;
 
 sub check-chunk( $eg ) {
-    use MONKEY-SEE-NO-EVAL;
 
     # #1355 - don't like .WHAT in examples
     if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
