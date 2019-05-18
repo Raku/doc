@@ -141,14 +141,13 @@ sub check-chunk( $eg ) {
             $proc.stderr.tap: {;};
             $has-error = ! await $proc.start;
         } else {
- #           temp $*OUT = open :w, $*SPEC.devnull;
- #           temp $*ERR = open :w, $*SPEC.devnull;
+            temp $*OUT = open :w, $*SPEC.devnull;
+            temp $*ERR = open :w, $*SPEC.devnull;
             use nqp;
             my $*LINEPOSCACHE;
-            nqp::getcomp('perl6').parse($code);
             $has-error = not try { nqp::getcomp('perl6').parse($code) };
-#            close $*OUT;
-#            close $*ERR;
+            close $*OUT;
+            close $*ERR;
 
         }
     }
