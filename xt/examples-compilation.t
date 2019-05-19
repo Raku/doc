@@ -33,52 +33,16 @@ Perl 6 level one.
 
 =end SYNOPSIS
 
-my @files = Test-Files.pods;
+plan +my @files = Test-Files.pods;
 
-sub walk($arg) {
-    given $arg {
-        when Pod::FormattingCode { walk $arg.contents }
-        when Str   { $arg }
-        when Array { $arg.map({walk $_}).join }
-    }
-}
-
-# Extract all the examples from the given files
 for @files -> $file {
-    my $counts = 0;
-    my @chunks = extract-pod($file.IO).contents;
-    while @chunks {
-        my $chunk = @chunks.pop;
-        if $chunk ~~ Pod::Block::Code  {
-            if $chunk.config<lang> && $chunk.config<lang> ne 'perl6' {
-                next; # Only testing Perl 6 snippets.
-            }
-            my $todo = False;
-            if $chunk.config<skip-test> {
-                %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
-            }
-            check-chunk( %(
-                'contents',  $chunk.contents.map({walk $_}).join,
-                'file',      $file,
-                'count',     ++$counts,
-                'todo',      $todo,
-                'ok-test',   $chunk.config<ok-test> // "",
-                'preamble',  $chunk.config<preamble> // "",
-                'method',    $chunk.config<method> // "",
-                'solo',      $chunk.config<solo> // "",
-            ) );
-        } else {
-            if $chunk.^can('contents') {
-                @chunks.push(|$chunk.contents)
-            }
-        }
+    subtest $file => {
+        plan +my @examples = code-blocks($file);
+        test-example $_ for @examples;
     }
 }
 
-done-testing;
-
-sub check-chunk( $eg ) {
-
+sub test-example ($eg) {
     # #1355 - don't like .WHAT in examples
     if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .WHAT: try .^name instead';
@@ -89,17 +53,17 @@ sub check-chunk( $eg ) {
         next;
     }
 
-    # Wrap each snippet in a block so it compiles but isn't run on EVAL
-    # Further wrap in an anonymous class (so bare method works)
-    # Add in empty routine bodies if needed
+    # Wrap snippets in an anonymous class (so bare method works)
+    # and add in empty blocks if needed.
 
     my $code;
     if $eg<solo> {
-        $code = $eg<preamble> ~ ";\n" if $eg<preamble>;
+        $code  = $eg<preamble> ~ ";\n" if $eg<preamble>;
         $code ~= $eg<contents>;
-    } else {
-        $code = 'no worries; ';
-        $code ~= "if False \{\nclass :: \{\n";
+    }
+    else {
+        $code  = 'no worries; ';
+        $code ~= "class :: \{\n";
         $code ~= $eg<preamble> ~ ";\n";
 
         for $eg<contents>.lines -> $line {
@@ -110,18 +74,18 @@ sub check-chunk( $eg ) {
             # to make it compilable. Be careful with multiline signatures:
             # '(' and ',' at the end of a line indicate a continued sig.
             # We wait until none of them is encountered before adding '{}'.
+            # Cases that are not covered by the heuristic and which contain
+            # nothing but a method declaration can use :method instead.
             $in-signature ?|= $line.trim.starts-with(any(<multi method proto only sub>))
-                           && $eg<method> eq "";
+                           && not $eg<method>;
             if $in-signature && !$line.trim.ends-with(any(« } , ( »)) {
                $code ~= " \{}";
                $in-signature = False;
             }
-            if $eg<method> eq "" || $eg<method> eq "False" {
-                $code ~= "\n";
-            }
+            NEXT $code ~= "\n";
+            LAST $code ~= "\{}\n" if $eg<method>;
         }
-        $code ~= "\{}\n" if $eg<method> eq "True";
-        $code ~= "\n}}";
+        $code ~= "}";
     }
 
     my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
@@ -136,7 +100,8 @@ sub check-chunk( $eg ) {
             $proc.stdout.tap: {;};
             $proc.stderr.tap: {;};
             $has-error = ! await $proc.start;
-        } else {
+        }
+        else {
             temp $*OUT = open :w, $*SPEC.devnull;
             temp $*ERR = open :w, $*SPEC.devnull;
             use nqp;
@@ -153,11 +118,52 @@ sub check-chunk( $eg ) {
         diag $eg<contents>;
         diag $has-error;
         flunk $msg;
-    } else {
+    }
+    else {
         pass $msg;
     }
 }
 
-sub starts-with( Str $chunk ) {
+sub code-blocks (IO() $file) {
+    my $count;
+    my @chunks = extract-pod($file).contents;
+    gather while @chunks {
+        my $chunk = @chunks.pop;
+        if $chunk ~~ Pod::Block::Code  {
+            # Only testing Perl 6 snippets.
+            next unless $chunk.config<lang>:v eq '' | 'perl6';
+
+            my $todo = False;
+            if $chunk.config<skip-test> {
+                %*ENV<P6_DOC_TEST_FUDGE> ?? ($todo = True) !! next;
+            }
+            take %(
+                'contents',  $chunk.contents.map({walk $_}).join,
+                'file',      $file,
+                'count',     ++$count,
+                'todo',      $todo,
+                'ok-test',   $chunk.config<ok-test> // "",
+                'preamble',  $chunk.config<preamble> // "",
+                'method',    $chunk.config<method>:v,
+                'solo',      $chunk.config<solo>:v,
+            );
+        }
+        else {
+            if $chunk.^can('contents') {
+                @chunks.push(|$chunk.contents)
+            }
+        }
+    }
+}
+
+sub walk ($arg) {
+    given $arg {
+        when Pod::FormattingCode { walk $arg.contents }
+        when Str   { $arg }
+        when Array { $arg.map({walk $_}).join }
+    }
+}
+
+sub starts-with (Str $chunk) {
     ($chunk.lines)[0].substr(0,10).trim
 }
