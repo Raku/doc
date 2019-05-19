@@ -32,7 +32,7 @@ init-highlights:
 	else git clone https://github.com/perl6/atom-language-perl6 "$$ATOMDIR"; \
 	fi; cd highlights; npm install .; npm rebuild
 
-html-nohighlight:
+html-nohighlight: gen-pod6-source
 	perl6 htmlify.p6 --no-highlight  --disambiguation=$(DISAMBIGUATE)
 
 sparse:
