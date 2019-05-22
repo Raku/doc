@@ -7,6 +7,111 @@
 These routines are defined in different files together with a class, but are not
 actually attached to any particular class or role.
 
+=head2 routine EVAL
+
+Defined as:
+
+=begin code :method
+method EVAL(*%_)
+=end code
+=begin code :method
+proto sub EVAL($code is copy where Blob|Cool|Callable, Str() :$lang = 'perl6',
+                PseudoStash :$context, *%n)
+=end code
+=begin code :method
+multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' },
+                PseudoStash :$context)
+=end code
+
+If it is invoked as a method, it calls the subroutine form with
+invocant as the first argument, C<$code>, passing along named args, if any; this
+coerces L<Cool|/type/Cool> C<$code> to L<Str|/type/Str>. If C<$code> is a
+L<Blob|/type/Blob>, it'll be processed using the same encoding as the C<$lang>
+compiler would: for C<perl6> C<$lang>, uses C<utf-8>; for C<Perl5>, processes
+using the same rules as C<perl>.
+
+This works as-is with a literal string parameter. More complex input,
+such as a variable or string with embedded code, is illegal by default.
+This can be overridden in any of several ways:
+
+    use MONKEY-SEE-NO-EVAL; # Or...
+    use MONKEY;             # shortcut that turns on all MONKEY pragmas
+    use Test;
+
+    # any of the above allows:
+    EVAL "say { 5 + 5 }";   # OUTPUT: «10␤»
+
+In case the C<MONKEY-SEE-NO-EVAL> pragma is not activated, the compiler will
+complain with a C<EVAL is a very dangerous function!!!> exception. And it is
+essentially right, since that will run arbitrary code with the same permissions
+as the program. You should take care of cleaning the code that is going to pass
+through EVAL if you activate the C<MONKEY-SEE-NO-EVAL> pragma.
+
+Please note that you can interpolate to create routine names using
+quotation, as can be seen in
+L<this example|/language/quoting#index-entry-%26_(interpolation)>
+or
+L<other ways to interpolate to create identifier names|/language/syntax#Identifiers>.
+This only works, however, for already declared functions and other
+objects and is thus safer to use.
+
+Symbols in the current lexical scope are visible to code in an C<EVAL>.
+
+    my $answer = 42;
+    EVAL 'say $answer;';    # OUTPUT: «42␤»
+
+However, since the set of symbols in a lexical scope is immutable after
+compile time, an C<EVAL> can never introduce symbols into the surrounding
+scope.
+
+=for code :skip-test<compile time error>
+EVAL 'my $lives = 9'; say $lives;   # error, $lives not declared
+
+Furthermore, the C<EVAL> is evaluated in the current package:
+
+    module M {
+        EVAL 'our $answer = 42'
+    }
+    say $M::answer;         # OUTPUT: «42␤»
+
+And also in the current language, meaning any added syntax is available:
+
+    sub infix:<mean>(*@a) is assoc<list> {
+        @a.sum / @a.elems
+    }
+    EVAL 'say 2 mean 6 mean 4';     # OUTPUT: «4␤»
+
+An C<EVAL> statement evaluates to the result of the last statement:
+
+=begin code
+sub infix:<mean>(*@a) is assoc<list> {
+    @a.sum / @a.elems
+}
+say EVAL 'say 1; 2 mean 6 mean 4';         # OUTPUT: «1␤4␤»
+=end code
+
+C<EVAL> is also a gateway for executing code in other languages:
+
+=for code
+EVAL "use v5.20; say 'Hello from perl5!'", :lang<Perl5>;
+
+You need to have L<C<Inline::Perl5>|https://github.com/niner/Inline-Perl5> for
+this to work correctly.
+
+=head2 sub EVALFILE
+
+Defined as:
+
+    sub EVALFILE($filename where Blob|Cool, :$lang = 'perl6')
+
+Slurps the specified file and evaluates it. Behaves the same way as
+C<EVAL> with regard to L<Blob|/type/Blob> decoding, scoping, and the C<$lang>
+parameter. Evaluates to the value produced by the final statement in the
+file.
+
+=for code
+EVALFILE "foo.p6";
+
 =head2 sub mkdir
 
 Defined as:
