@@ -943,10 +943,6 @@ on that list or C<Iterable>:
 
 Defined as:
 
-    multi method unique()
-    multi method unique( :&as!, :&with! )
-    multi method unique( :&as! )
-    multi method unique( :&with! )
     multi sub unique(+values, |c)
 
 Returns a sequence of B<unique> values from the invocant/argument list, such
@@ -986,6 +982,60 @@ B<Note:> since C<:with> L<Callable|/type/Callable> has to be tried with all the
 items in the list, this makes C<unique> follow a path with much higher
 algorithmic complexity. You should try to use the C<:as> argument instead,
 whenever possible.
+
+=head2 routine repeated
+
+Defined as:
+
+    multi sub    repeated(+values, |c)
+
+This returns a sequence of B<repeated> values from the invocant/argument list.
+It takes the same parameters as L<C<unique>>, but instead of passing through any
+elements when they're first seen, they're only passed through as soon as they're
+seen for the second time (or more).
+
+Examples:
+
+    say <a a b b b c c>.repeated;                   # OUTPUT: «(a b b c)␤»
+    say <a b b c c b a>.repeated;                   # OUTPUT: «(b c b a)␤»
+    say <a A B b c b C>.repeated(:as(&lc));         # OUTPUT: «(A b b C)␤»
+
+    my @list = %(a => 42), %(b => 13), %(a => 42);
+    say @list.repeated(:with(&[eqv]))               # OUTPUT: «({a => 42})␤»
+
+As in the case of L<C<unique>|/type/Any#method_unique> the associative argument
+C<:as> takes a Callable that normalizes the element before comparison, and
+C<:with> takes a the equality comparison function that is going to be used.
+
+=head2 routine squish
+
+Defined as:
+
+    sub          squish( +values, |c)
+
+Returns a sequence of values from the invocant/argument list where runs of one
+or more values are replaced with only the first instance. Like L<C<unique>>,
+C<squish> uses the semantics of the L<===> operator to decide whether two
+objects are the same. Unlike L<C<unique>>, this function only removes adjacent
+duplicates; identical values further apart are still kept. The order of the
+original list is preserved even as duplicates are removed.
+
+Examples:
+
+    say <a a b b b c c>.squish; # OUTPUT: «(a b c)␤»
+    say <a b b c c b a>.squish; # OUTPUT: «(a b c b a)␤»
+
+The optional C<:as> parameter, just like with L<C<unique>>, allows values to be
+temporarily transformed before comparison.
+
+The optional C<:with> parameter is used to set an appropriate comparison
+operator:
+
+    say [42, "42"].squish;                      # OUTPUT: «(42 42)␤»
+    # Note that the second item in the result is still Str
+    say [42, "42"].squish(with => &infix:<eq>); # OUTPUT: «(42)␤»
+    # The resulting item is Int
+
 
 =end pod
 
