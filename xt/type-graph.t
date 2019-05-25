@@ -10,7 +10,7 @@ my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';
-    next if $type.packagetype eq 'role';
+    next if $type.packagetype eq 'role'|'module';
     next if $type.name eq 'Failure';
     try {
         my $got = ~$type.mro;
