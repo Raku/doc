@@ -325,28 +325,31 @@ I<there>. That is not necessarily the case: in many cases, for efficiency
 reasons or simply because it is not possible, the elements contained in a data
 structure only jump into existence when they are actually needed. This
 computation of items as they are needed is called
-L<reification|/language/glossary#Reify>.
+L<reification|/language/glossary#Reify> or vivification.
 
-    # A list containing infinite number of un-reified Fibonacci numbers:
-    my @fibonacci = 1, 1, * + * … ∞;
+=begin code
+# A list containing infinite number of un-reified Fibonacci numbers:
+my @fibonacci = 1, 1, * + * … ∞;
 
-    # We reify 10 of them, looking up the first 10 of them with array index:
-    say @fibonacci[^10]; # OUTPUT: «(1 1 2 3 5 8 13 21 34 55)␤»
+# We reify 10 of them, looking up the first 10 of them with array index:
+say @fibonacci[^10]; # OUTPUT: «(1 1 2 3 5 8 13 21 34 55)␤»
 
-    # We reify 5 more: 10 we already reified on previous line, and we need to
-    # reify 5 more to get the 15th element at index 14. Even though we need only
-    # the 15th element, the original Seq still has to reify all previous elements:
-    say @fibonacci[14]; # OUTPUT: «987␤»
+# We reify 5 more: 10 we already reified on previous line, and we need to
+# reify 5 more to get the 15th element at index 14. Even though we need only
+# the 15th element, the original Seq still has to reify all previous elements:
+say @fibonacci[14]; # OUTPUT: «987␤»
+=end code
 
 Above we were reifying a L<Seq|/type/Seq> we created with the L<sequence
 operator|/language/operators#index-entry-%E2%80%A6_operators>, but other data
-structures use the concept as well. For example, an un-reified L<Range|/type/Range> is just
-the two end points. In some languages, calculating the sum of a huge range is a
-lengthy and memory-consuming process, but Perl 6 calculates it instantly:
+structures use the concept as well. For example, an un-reified
+L<Range|/type/Range> is just the two end points. In some languages, calculating
+the sum of a huge range is a lengthy and memory-consuming process, but Perl 6
+calculates it instantly:
 
     say sum 1 .. 9_999_999_999_999; # OUTPUT: «49999999999995000000000000␤»
 
-Why? Because the sum can be calculated I<without> reifying the Range; that is,
+Why? Because the sum can be calculated I<without> vivifying the Range; that is,
 without figuring out all the elements it contains. This is why this feature
 exists. You can even make your own things reify-on-demand, using
 L«C<gather> and C<take>|/syntax/gather%20take»:
@@ -373,30 +376,30 @@ L«C<gather> and C<take>|/syntax/gather%20take»:
     # (1 2)
 
 Following the output above, you can see the print statements I<inside> the
-C<gather> got executed only when we reified the individual elements while looking
-up an element. Also note that the elements got reified just once. When we printed
-the same elements again on the last line of the example, the messages inside
-C<gather> was no longer printed. This is because the construct used
+C<gather> got executed only when we reified the individual elements while
+looking up an element. Also note that the elements got reified just once. When
+we printed the same elements again on the last line of the example, the messages
+inside C<gather> was no longer printed. This is because the construct used
 already-reified elements from the L<Seq|/type/Seq>'s cache.
 
-Note that above we assigned the C<gather> to a L<Scalar|/type/Scalar> container (the C<$>
-sigil), not the L<Positional|/type/Positional> one (the C<@> sigil). The reason is that the
-C<@>-sigiled variables are I<mostly eager>. What this means is they
-I<reify the stuff assigned to them> right away I<most of the time>. The only
-time they don't do it is when the items are known to be
+Note that above we assigned the C<gather> to a L<Scalar|/type/Scalar> container
+(the C<$> sigil), not the L<Positional|/type/Positional> one (the C<@> sigil).
+The reason is that the C<@>-sigiled variables are I<mostly eager>. What this
+means is they I<reify the stuff assigned to them> right away I<most of the
+time>. The only time they don't do it is when the items are known to be
 L«C<is-lazy>|/routine/is-lazy», like our sequence generated with infinity as the
 end point. Were we to assign the C<gather> to a C<@>-variable, the C<say>
 statements inside of it would've been printed right away.
 
-Another way to fully-reify a list, is by calling L«C<.elems>|/routine/elems» on
-it. This is the reason why checking whether a list contains any items is best
+Another way to vivify the list fully is by calling L«C<.elems>|/routine/elems»
+on it. This is the reason why checking whether a list contains any items is best
 done by using C<.Bool> method (or just using C<if @array { … }>), since you
 don't need to reify I<all> the elements to find out if there are C<any> of them.
 
 There are times where you I<do> want to fully-reify a list before doing
 something. For example, the L«C<IO::Handle.lines>|/type/IO::Handle#method_lines»
-returns a L<Seq|/type/Seq>. The following code contains a bug; keeping reification in
-mind, try to spot it:
+returns a L<Seq|/type/Seq>. The following code contains a bug; keeping
+reification in mind, try to spot it:
 
 =for code
 my $fh = "/tmp/bar".IO.open;
@@ -405,17 +408,17 @@ close $fh;
 say $lines[0];
 
 We open a L<filehandle|/type/IO::Handle>, then assign return of
-L«C<.lines>|/type/IO::Handle#method_lines» to a L<Scalar|/type/Scalar> variable, so the
-returned L<Seq|/type/Seq> does not get reified right away. We then
+L«C<.lines>|/type/IO::Handle#method_lines» to a L<Scalar|/type/Scalar> variable,
+so the returned L<Seq|/type/Seq> does not get reified right away. We then
 L«C<close>|/routine/close» the filehandle, and try to print an element from
 C<$lines>.
 
-The bug in the code is by the time we reify the C<$lines> L<Seq|/type/Seq> on the last
-line, we've I<already closed> the filehandle. When the C<Seq's> iterator tries
-to generate the item we've requested, it results in the error about attempting
-to read from a closed handle. So, to fix the bug we can either assign to
-a C<@>-sigiled variable or call L«C<.elems>|/routine/elems» on C<$lines> before
-closing the handle:
+The bug in the code is by the time we reify the C<$lines> L<Seq|/type/Seq> on
+the last line, we've I<already closed> the filehandle. When the C<Seq's>
+iterator tries to generate the item we've requested, it results in the error
+about attempting to read from a closed handle. So, to fix the bug we can either
+assign to a C<@>-sigiled variable or call L«C<.elems>|/routine/elems» on
+C<$lines> before closing the handle:
 
 =for code
 my $fh = "/tmp/bar".IO.open;
