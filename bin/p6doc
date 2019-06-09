@@ -52,8 +52,8 @@ sub locate-module(Str $modulename) {
     return $m;
 }
 
-sub show-docs(Str $path, :$section, :$no-pager, :$package is copy) {
-
+sub show-docs(Str $path, :$section, :$no-pager, :$format is copy, :$package is copy) {
+    $format ||= 'Text';
     my $pager;
     $pager = %*ENV<PAGER> // ($*DISTRO.is-win ?? 'more' !! 'less -r') unless $no-pager;
     if not open($path).lines.grep( /^'=' | '#|' | '#='/ ) {
@@ -66,14 +66,11 @@ sub show-docs(Str $path, :$section, :$no-pager, :$package is copy) {
         my $i = findbin() ~ '../lib';
         $doc-command-str ~= " -I$i --doc=SectionFilter"
     } else {
-        $doc-command-str ~= " --doc"
+        $doc-command-str ~= " --doc='$format'"
     }
     $doc-command-str ~= " $path ";
     if $package.DEFINITE {
-        my $cs = ";";
-        $cs = "&" if $*DISTRO.is-win;
         $package ~~ s/"Type::"//;
-        $doc-command-str = "echo \"In {$package}\"$cs" ~ $doc-command-str;
     }
     $doc-command-str ~= " | $pager" if $pager;
     say "launching '$doc-command-str'" if DEBUG;
@@ -110,6 +107,11 @@ sub USAGE() {
     say "          $PROGRAM-NAME -n Str";
 }
 
+multi sub MAIN($docee, Str :$format) {
+    return MAIN($docee, :f, :n(True), :$format) if defined $docee.index('.');
+    show-docs(locate-module($docee), :no-pager(True), :$format, :package($docee));
+}
+
 multi sub MAIN($docee, Bool :$n) {
     return MAIN($docee, :f, :$n) if defined $docee.index('.');
     show-docs(locate-module($docee), :no-pager($n), :package($docee));
@@ -127,7 +129,7 @@ multi sub MAIN(Bool :$l!) {
     .say for @modules.unique.sort;
 }
 
-multi sub MAIN($docee, Bool :$f!, Bool :$n) {
+multi sub MAIN($docee, Bool :$f!, Bool :$n, Str :$format) {
     my ($package, $method) = $docee.split('.');
     if ! $method {
         my %hits;
@@ -143,10 +145,10 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
         ($package, $method) = $final-docee.split('.');
 
         my $m = locate-module($package);
-        show-docs($m, :section($method), :no-pager($n), :$package);
+        show-docs($m, :section($method), :no-pager($n), :$format, :$package);
     } else {
         my $m = locate-module($package);
-        show-docs($m, :section($method), :no-pager($n), :$package);
+        show-docs($m, :section($method), :no-pager($n), :$format, :$package);
     }
 }
 
