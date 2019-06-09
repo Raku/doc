@@ -15,7 +15,7 @@ exclusion mechanism, C<Lock::Async> works with the high-level concurrency
 features of Perl 6. The C<lock> method returns a C<Promise>, which will
 be kept when the lock is available. This C<Promise> can be used with
 non-blocking C<await>. This means that a thread from the thread pool need
-not be consumed while waiting for the C<Async::Lock> to be available,
+not be consumed while waiting for the C<Lock::Async> to be available,
 and the code trying to obtain the lock will be resumed once it is available.
 
 The result is that it's quite possible to have many thousands of outstanding
@@ -36,48 +36,6 @@ using mechanisms like L<Promise|/type/Promise>, L<Channel|/type/Channel>
 and L<Supply|/type/Supply>.
 
 =head1 Methods
-
-=head2 method protect
-
-Defined as:
-
-    method protect(Lock::Async:D: &code)
-
-Calls C<lock>, does an C<await> to wait for the lock to be available,
-and reliably calls C<unlock> afterwards, even if the code throws an
-exception.
-
-Note that the L<Lock::Async> itself needs to be created outside the portion
-of the code that gets threaded and it needs to protect. In the first
-example below, L<Lock::Async> is first created and assigned to C<$lock>,
-which is then used I<inside> the L<Promises|/type/Promise> to protect
-the sensitive code. In the second example, a mistake is made, the
-C<Lock::Async> is created right inside the L<Promise|/type/Promise>, so the code ends up
-with a bunch of separate locks, created in a bunch of threads, and
-thus they don't actually protect the code we want to protect.
-
-    # Right: $lock is instantiated outside the portion of the
-    # code that will get threaded and be in need of protection
-    my $lock = Lock::Async.new;
-    await ^20 .map: {
-        start {
-            $lock.protect: {
-                print "Foo";
-                sleep rand;
-                say "Bar";
-            }
-        }
-    }
-
-    # !!! WRONG !!! Lock::Async is instantiated inside threaded area!
-    await ^20 .map: {
-        start {
-            my $lock = Lock::Async.new;
-            $lock.protect: {
-                print "Foo"; sleep rand; say "Bar";
-            }
-        }
-    }
 
 =head2 method lock
 
@@ -123,6 +81,126 @@ nobody can ever C<lock> this particular C<Lock::Async> instance again.
         await $l.lock;
         LEAVE $l.unlock;
     }
+
+=head2 method protect
+
+Defined as:
+
+    method protect(Lock::Async:D: &code)
+
+Calls C<lock>, does an C<await> to wait for the lock to be available,
+and reliably calls C<unlock> afterwards, even if the code throws an
+exception.
+
+Note that the L<Lock::Async> itself needs to be created outside the portion
+of the code that gets threaded and it needs to protect. In the first
+example below, L<Lock::Async> is first created and assigned to C<$lock>,
+which is then used I<inside> the L<Promises|/type/Promise> to protect
+the sensitive code. In the second example, a mistake is made, the
+C<Lock::Async> is created right inside the L<Promise|/type/Promise>, so the code ends up
+with a bunch of separate locks, created in a bunch of threads, and
+thus they don't actually protect the code we want to protect.
+
+    # Right: $lock is instantiated outside the portion of the
+    # code that will get threaded and be in need of protection
+    my $lock = Lock::Async.new;
+    await ^20 .map: {
+        start {
+            $lock.protect: {
+                print "Foo";
+                sleep rand;
+                say "Bar";
+            }
+        }
+    }
+
+    # !!! WRONG !!! Lock::Async is instantiated inside threaded area!
+    await ^20 .map: {
+        start {
+            my $lock = Lock::Async.new;
+            $lock.protect: {
+                print "Foo"; sleep rand; say "Bar";
+            }
+        }
+    }
+
+=head2 method protect-or-queue-on-recursion
+
+Defined as:
+
+    method protect-or-queue-on-recursion(Lock::Async:D: &code)
+
+When calling L<protect|/type/Lock/Async#method_protect> on a C<Lock::Async>
+instance that is already locked, the method is forced to block until the lock
+gets unlocked. C<protect-or-queue-on-recursion> avoids this issue by either
+behaving the same as L<protect|/type/Lock/Async#method_protect> if the lock is
+unlocked or the lock was locked by something outside the caller chain,
+returning C<Nil>, or queueing the call to C<&code> and returning a C<Promise>
+if the lock had already been locked at another point in the caller chain.
+
+    my Lock::Async $lock .= new;
+    my Int         $count = 0;
+
+    # The lock is unlocked, so the code runs instantly.
+    $lock.protect-or-queue-on-recursion({
+        $count++
+    });
+
+    # Here, we have caller recursion. The outer call only returns a Promise
+    # because the inner one does. If we try to await the inner call's Promise
+    # from the outer call, the two calls will block forever since the inner
+    # caller's Promise return value is just the outer's with a then block.
+    $lock.protect-or-queue-on-recursion({
+        $lock.protect-or-queue-on-recursion({
+            $count++
+        }).then({
+            $count++
+        })
+    });
+
+    # Here, the lock is locked, but not by anything else on the caller chain.
+    # This behaves just like calling protect would in this scenario.
+    for 0..^2 {
+        $lock.protect-or-queue-on-recursion({
+            $count++;
+        });
+    }
+
+    say $count; # OUTPUT: 5
+
+=head2 method with-lock-hidden-from-recursion-check
+
+Defined as:
+
+    method with-lock-hidden-from-recursion-check(&code)
+
+Temporarily resets the Lock::Async recursion list so that it no longer includes
+the lock this method is called on and runs the given C<&code> immediately if
+the call to the method occurred in a caller chain where
+L<protect-or-queue-on-recursion|/type/Lock/Async/#method_protect-or-queue-on-recursion>
+has already been called and the lock has been placed on the recursion list.
+
+    my Lock::Async $lock .= new;
+    my Int         $count = 0;
+
+    $lock.protect-or-queue-on-recursion({
+        my Int $count = 0;
+
+        # Runs instantly.
+        $lock.with-lock-hidden-from-recursion-check({
+            $count++;
+        });
+
+        # Runs after the outer caller's protect-or-queue-on-recursion call has
+        # finished running.
+        $lock.protect-or-queue-on-recursion({
+            $count++;
+        }).then({
+            say $count; # OUTPUT: 2
+        });
+
+        say $count; # OUTPUT: 1
+    });
 
 =end pod
 
