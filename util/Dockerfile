@@ -14,13 +14,12 @@ RUN buildDeps='         \
     ' \
       \
     && set -x \
-              \
     && apt-get update \
     && apt-get --yes --no-install-recommends install $buildDeps $runtimeDeps $testDeps \
     && rm -rf /var/lib/apt/lists/* \
                                    \
     && cpanm -vn Mojolicious  \
-    && zef install zef && zef update && zef install Test::META Perl6::TypeGraph\
+    && zef install zef && zef update && zef install Test::META Perl6::TypeGraph \
                               \
     && n=/usr/local/bin/n \
     && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n > "$n" \
