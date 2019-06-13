@@ -20,7 +20,7 @@ RUN buildDeps='         \
     && rm -rf /var/lib/apt/lists/* \
                                    \
     && cpanm -vn Mojolicious  \
-    && zef install Test::META \
+    && zef install zef && zef update && zef install Test::META Perl6::TypeGraph\
                               \
     && n=/usr/local/bin/n \
     && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n > "$n" \

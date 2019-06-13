@@ -26,7 +26,7 @@ RUN buildDeps='         \
 
 WORKDIR /perl6/doc
 COPY . .
-RUN zef install --deps-only .
+RUN zef install zef && zef update && zef install --deps-only .
 
 RUN make test && make html
 
