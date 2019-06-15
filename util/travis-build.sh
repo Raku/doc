@@ -10,7 +10,7 @@ case "${BUILDENV}" in
     whateverable)
       sudo -E apt-add-repository -y "ppa:ubuntu-toolchain-r/test"
       sudo -E apt-get -yq update &>> ~/apt-get-update.log
-      sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install graphviz g++-4.8 ruby-sass
+      sudo -E apt-get -yq --no-install-suggests --no-install-recommends --force-yes install graphviz g++-4.8 ruby-sass libc6-dev
       wget https://whateverable.6lang.org/HEAD.tar.gz
       tar -xv --absolute-names -f HEAD.tar.gz
       HEAD_BUILD=$(echo /tmp/whateverable/rakudo-moar/*)
