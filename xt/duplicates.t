@@ -40,9 +40,11 @@ sub test-it(Str $output, Str $file) {
         }
         next unless $line.chars;
 
-        my @words = |$last-word, $line.words.grep: *.chars;
+        my @words = flat $last-word, $line.words;
+        @words .= grep(*.chars);
 
-        if $line.ends-with('.') {
+        # End of a sentence resets word check, as do short lines (typically headings)
+        if $line.ends-with('.') or @words.elems <= 2 {
             $last-word = '';
         } elsif @words {
             $last-word = @words[*-1];
