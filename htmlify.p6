@@ -327,15 +327,7 @@ sub process-pod-source(:$kind, :$pod, :$filename, :$pod-is-complete) {
     else {
         note "$filename does not have a =TITLE";
     }
-    if $first ~~ Pod::Block::Named && $first.name eq "TITLE" {
-        $name = $pod.contents[0].contents[0].contents[0];
-        if $kind eq "type" {
-            $name = $name.split(/\s+/)[*-1];
-        }
-    }
-    else {
-        note "$filename does not have a =TITLE";
-    }
+
     if $pod.contents[1] ~~ {$_ ~~ Pod::Block::Named and .name eq "SUBTITLE"} {
         $summary = $pod.contents[1].contents[0].contents[0];
     }
