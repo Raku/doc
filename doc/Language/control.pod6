@@ -357,10 +357,10 @@ unless 0 { "0 is false".say }  ; # says "0 is false"
     my $c = 0; say (1, (unless 0 { $c += 42; 2; }), 3, $c); # says "(1 2 3 42)"
     my $d = 0; say (1, (unless 1 { $d += 42; 2; }), 3, $d); # says "(1 3 0)"
 
-=head2 X<with|control flow, with>, X<orwith|control flow, orwith>, X<without|control flow, without>
+=head2 X<C<with>|control flow, with>, X<C<orwith>|control flow, orwith>, X<C<without>|control flow, without>
 
-The C<with> statement is like C<if> but tests for definedness rather than
-truth.  In addition, it topicalizes on the condition, much like C<given>:
+The C<with> statement is like C<if>, but tests for definedness rather than
+truth, and it topicalizes on the condition, much like C<given>:
 
     with "abc".index("a") { .say }      # prints 0
 
@@ -389,6 +389,45 @@ There are also C<with> and C<without> statement modifiers:
     my $answer = (Any, True).roll;
     say 42 with $answer;
     warn "undefined answer" without $answer;
+
+As with the other chainable constructs, an C<else> completing a
+C<with/if>..C<orwith/else> chain will itself topicalize to the value
+of the prior (failed) condition's topic (either the topic of C<with>
+or the final C<orwith> or C<elsif>).
+
+In the case of an C<else> following a C<with> or C<orwith>,
+topicalizing a value guaranteed to be undefined may seem useless. But
+it makes for a useful idiom when used in conjunction with operations
+that may fail, because L<Failure|/type/Failure> values are always
+undefined:
+
+=begin code
+sub may_fail( --> Numeric:D ) {
+  my $value = (^10).pick || fail "Zero is unacceptable";
+  fail "Odd is also not okay" if $value % 2;
+  return $value;
+}
+
+with may_fail() -> $value { # defined, so didn't fail
+  say "I know $value isn't zero or odd."
+} else { # undefined, so failed, and the Failure is the topic
+  say "Uh-oh: {.exception.message}."
+}
+=end code
+
+Note that while topicalizing a L<Failure|/type/Failure> marks it
+L<C<handled>|/type/Failure#method_handled>—so you can use the
+C<with>/C<else> to proceed safely with execution—it doesn't make the
+I<Failure value itself> safe. Even within the C<else> clause, if you
+try to use the value directly, it will result in your C<else> clause
+itself failing (or, in Rakudo, "promoting" the Failure into a thrown
+exception).
+
+But as seen above, you I<can> use the methods of a handled Failure
+object the C<else> topicalizes, such as
+L<C<exception>|/type/Failure#method_exception>, if you wish to provide
+diagnostics or interrogate the underlying
+L<Exception|/type/Exception>.
 
 =head1 X<when|control flow, when>
 
