@@ -40,7 +40,8 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 
 ## General principles
 
-* Please use the present tense, and [active voice](https://en.wikipedia.org/wiki/Active_voice).
+* Please use the present tense unless writing about history or upcoming events or planned features
+* Prefer [active voice](https://en.wikipedia.org/wiki/Active_voice) to the [passive voice](https://en.wikipedia.org/Passive_voice#In_English) with "by": "this is used by crafty programmers" → "crafty programmers use this"
 * Link to external resources (like Wikipedia) for topics that are not
   directly related to Perl 6 (like the math that our routines implement).
 * Duplicate small pieces of information rather than rely on linking.
