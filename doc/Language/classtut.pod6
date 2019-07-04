@@ -294,35 +294,48 @@ L<the C<is rw> trait on classes|/language/typesystem#trait_is_rw> for examples
 on how this works on the whole class.
 
 X<|class variables>
-A class declaration can also include I<class variables>, which are variables
-that are shared by all instances, and can be used for things like counting the
-number of instantiations or any other shared state. Class variables use the same
-syntax as the rest of the attributes, but are declared as C<my> or C<our>,
-depending on the scope; the second type of variables will be used across the
-class hierarchy.
+A class declaration can also include I<class variables>,
+which are variables whose value is shared by all instances, and can be used for
+things like counting the number of instantiations or any other shared state.
+Class variables use the same syntax as the rest of the attributes, but are
+declared as C<my> or C<our>, depending on the scope; C<our> variables will be
+shared by subclasses, since they have package scope.
 
 =begin code
 class Str-with-ID is Str {
-    my $.counter = 0;
+    my $counter = 0;
+    our $hierarchy-counter = 0;
     has Str $.string;
     has Int $.ID;
 
-    method new( Str $string ) {
-        self.bless( :$string, ID => $.counter++ )
+    method TWEAK() {
+        $!ID = $counter++;
+        $hierarchy-counter++;
     }
+
 }
 
-say Str-with-ID.new('First').ID;  # OUTPUT: «0»
-say Str-with-ID.new('Second').ID; # OUTPUT: «1»
+class Str-with-ID-and-tag is Str-with-ID {
+    has Str $.tag;
+}
+
+say Str-with-ID.new(string => 'First').ID;  # OUTPUT: «0␤»
+say Str-with-ID.new(string => 'Second').ID; # OUTPUT: «1␤»
+say Str-with-ID-and-tag.new( string => 'Third', tag => 'Ordinal' ).ID;
+# OUTPUT: «2␤»
+say $Str-with-ID::hierarchy-counter;       # OUTPUT: «4␤»
 =end code
 
 In this case, using C<new> might be the easiest way to initialize the C<$.ID>
 field and increment the value of the counter at the same time. C<new>, through
 C<bless>, will invoke the default C<BUILD>, assigning the values to their
 properties correctly. You can obtain the same effect using C<TWEAK>, which is
-considered a more I<p6y> way. Please check L<the section on submethods|/language/classtut#index-entry-OOP>
-for an alternative example on how
-to do this.
+considered a more I<p6y> way. Please check L<the section on
+submethods|/language/classtut#index-entry-OOP> for an alternative example on how
+to do this. Since C<TWEAK> is called in every object instantiation, it's
+incremented twice when creating objects of class C<Str-with-ID-and-tag>; this is
+a I<class hierarchy> variable that is shared by all subclasses of
+C<Str-with-ID>.
 
 =head1 Static fields?
 
