@@ -3,7 +3,7 @@ name: Something is incorrect
 about: A code sample, signature or definition, heading or title, some prose, or formatting
   is wrong
 title: ''
-labels: bug
+labels: docs
 assignees: ''
 
 ---
