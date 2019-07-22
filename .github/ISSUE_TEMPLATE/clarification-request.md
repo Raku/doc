@@ -53,11 +53,9 @@ assignees: ''
   example program so it doesn't introduce two unrelated concepts at
   once."
 
-  If you don't know how to fix the issue (this _is_ a documentation
-  site and we expect it to be used by people who are not expert!),
-  please don't worry about exact fixes. However, even a vague
-  description of what would help will help us help you to help
-  everyone!
+  If you don't know how to fix the issue, please don't worry about
+  exact fixes. However, even a vague description of what would help
+  will help us help you to help everyone!
 
   On the other hand, if you feel you know _exactly_ how to fix the
   issue, feel free to submit a pull request if you're comfortable

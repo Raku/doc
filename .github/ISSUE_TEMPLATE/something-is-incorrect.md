@@ -51,12 +51,11 @@ assignees: ''
     solve the problem, such as "Rephrase the description" or "Use an
     example program that actually runs".
 
-    If you don't know how to fix the issue (this _is_ a documentation
-    site and we expect it to be used by people who are not expert!)
-    please don't worry about exact fixes. However, if you can't even
-    think of what you'd like to see instead (e.g., "working code", "a
-    correct return type"), you may be using the wrong issue type and
-    should consider a different one.
+    If you don't know how to fix the issue, please don't worry about
+    exact fixes. However, if you can't even think of what you'd like
+    to see instead (e.g., "working code", "a correct return type"),
+    you may be using the wrong issue type and should consider a
+    different one.
 
     On the other hand, if you know _exactly_ how to fix the issue
     (such as fixing a routine signature), feel free to submit a pull
