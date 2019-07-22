@@ -53,9 +53,6 @@ assignees: ''
   example program so it doesn't introduce two unrelated concepts at
   once."
 
-  Please note we do not have the ability to add diagrams at present
-  aside from the type graphs.
-
   If you don't know how to fix the issue (this _is_ a documentation
   site and we expect it to be used by people who are not expert!),
   please don't worry about exact fixes. However, even a vague

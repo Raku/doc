@@ -41,9 +41,6 @@ assignees: ''
   new code example is what is called for, or new text, or both, or a
   new tutorial, say so.
 
-  Please note we do not have the ability to add diagrams at present
-  aside from the type graphs.
-
   If you don't know how to fix the issue (this _is_ a documentation
   site and we expect it to be used by people who are not expert!),
   please don't worry about exact fixes. However, even a vague
