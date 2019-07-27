@@ -16,7 +16,7 @@ matching those patterns to actual text.
 Perl 6 has special syntax for literal regexes:
 
     m/abc/;         # a regex that is immediately matched against $_
-    rx/abc/;        # a Regex object; allow adverbs to be used before regex
+    rx/abc/;        # a Regex object; 'rx' may be followed by regex adverbs
     /abc/;          # a Regex object; shorthand version of 'rx/ /' operator
 
 For the first two examples, delimiters other than the slash can be used:
@@ -24,12 +24,14 @@ For the first two examples, delimiters other than the slash can be used:
     m{abc};
     rx[abc];
 
-Note that neither the colon nor round parentheses can be delimiters; the colon
-is forbidden because it clashes with adverbs, such as C<rx:i/abc/>
-(case insensitive regexes), and round parentheses indicate a function call
-instead.
+Note that neither the colon C<:> nor parentheses C<()> can be delimiters. The
+colon is forbidden because it clashes with adverbs, such as in C<rx:i/abc/>
+(case insensitive regex). Parentheses are used to indicate a subroutine call;
+e.g. in C<rx()> the L<call operator|/language/operators#postcircumfix_(_)>
+C<()> invokes the subroutine C<rx>.
 
-Example of difference between C<m/ /> and C</ /> operators:
+Here's an example that illustrates the difference between the C<m/ /> and C</ />
+operators:
 
     my $match;
     $_ = "abc";
@@ -39,25 +41,25 @@ Example of difference between C<m/ /> and C</ /> operators:
 Whitespace in literal regexes is generally ignored (except with the C<:s> or,
 completely, C<:sigspace> adverb).
 
-Comments work within a regular expression:
+Comments are allowed within a regular expression:
 
     / word #`(match lexical "word") /
 
 as long as the syntax for
 L<embedded comments|/language/syntax#Multi-line_/_embedded_comments>, with a
-backtick following the hash sign and enclosing delimiters, is used.
+backtick and enclosing delimiters following the hash sign, is used.
 
 =head1 Literals
 
-The simplest case for a regex is a match against a string literal:
+The simplest use case for a regex is a match against a string literal:
 
     if 'properly' ~~ / perl / {
         say "'properly' contains 'perl'";
     }
 
-Alphanumeric characters and the underscore C<_> are matched literally. All
-other characters must either be escaped with a backslash (for example, C<\:>
-to match a colon), or be within quotes:
+Alphanumeric characters, including the underscore C<_> which is considered
+alphabetic, are matched literally. All other characters must either be escaped
+with a backslash (for example, C<\:> to match a colon), or be within quotes:
 
     / 'two words' /;     # matches 'two words' including the blank
     / "a:b"       /;     # matches 'a:b' including the colon
@@ -74,9 +76,10 @@ matches the regex:
         say $/.to;          # OUTPUT: «22␤»
     };
 
+
 Match results are always stored in the C<$/> variable and are also returned from
 the match. They are both of type L<Match|/type/Match> if the match was
-successful; otherwise it is L<Nil|/type/Nil>.
+successful; otherwise both are of type L<Nil|/type/Nil>.
 
 
 =head1 X<Wildcards|regex, .>
@@ -90,25 +93,24 @@ So, these all match:
     'perl' ~~ / pe.l /;     # the . matches the r
     'speller' ~~ / pe.l/;   # the . matches the first l
 
-This doesn't match:
+while this doesn't match:
 
     'perl' ~~ /. per /;
 
 because there's no character to match before C<per> in the target string.
 
-Note that C<.> now does match B<any> single character, that is, it matches
-C<\n>. So the text below match:
+Notably C<.> also matches the newline character C<\n>:
 
     my $text = qq:to/END/
       Although I am a
       multi-line text,
-      now can be matched
+      I can be matched
       with /.*/.
       END
       ;
 
     say $text ~~ / .* /;
-    # OUTPUT «｢Although I am a␤multi-line text,␤now can be matched␤with /.*/␤｣»
+    # OUTPUT «｢Although I am a␤multi-line text,␤I can be matched␤with /.*/.␤｣»
 
 =head1 Character classes
 
@@ -119,14 +121,18 @@ written with an upper-case letter, C<\W>.
 
 =head3 X<C<\n> and C<\N>|regex,\n;regex,\N>
 
-C<\n> matches a single, logical newline character. C<\N> matches a single
-character that's not a logical newline.
+C<\n> matches a logical newline. C<\N> matches a single character that's not a
+logical newline.
 
-What is considered as a single newline character is defined via the compile time
-variable L«C<$?NL>|/language/variables#index-entry-$?NL», and the
-L<newline pragma|/language/pragmas>; therefore, C<\n> is supposed to be able to
-match either a Unix-like newline C<"\n">, a Microsoft Windows style one
-C<"\r\n">, or one in the Mac style C<"\r">.
+The definition of what constitutes a logical newline follows the L<Unicode
+definition of a line boundary|https://unicode.org/reports/tr18/#Line_Boundaries>
+and includes in particular all of: a line feed (LF) C<\U+000A>, a vertical tab
+(VT) C<\U+000B>, a form feed (FF) C<\U+000C>, a carriage return (CR) C<\U+000D>,
+and the Microsoft Windows style newline sequence CRLF.
+
+The interpretation of C<\n> in regexes is independent of the value of the
+variable C<$?NL> controlled by the L<newline pragma|/language/pragmas#newline>.
+
 
 =head3 X<C<\t> and C<\T>|regex,\t;regex,\T>
 
