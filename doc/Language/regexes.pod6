@@ -16,48 +16,63 @@ matching those patterns to actual text.
 Perl 6 has special syntax for literal regexes:
 
     m/abc/;         # a regex that is immediately matched against $_
-    rx/abc/;        # a Regex object; allow adverbs to be used before regex
+    rx/abc/;        # a Regex object
     /abc/;          # a Regex object; shorthand version of 'rx/ /' operator
 
-For the first two examples, delimiters other than the slash can be used:
+One difference between the C<rx/ /> and C<m/  /> forms on the one hand, and the
+C</ /> form on the other, is that C<rx> and C<m> may be followed by
+L<adverbs|/language/regexes#Regex_adverbs>. Another difference is that the
+former forms allow delimiters other than the slash to be used:
 
-    m{abc};
-    rx[abc];
+    m{abc};         # curly braces as delimiters
+    rx:i[abc];      # :i adverb, and rectangular brackets as delimiters
 
-Note that neither the colon nor round parentheses can be delimiters; the colon
-is forbidden because it clashes with adverbs, such as C<rx:i/abc/>
-(case insensitive regexes), and round parentheses indicate a function call
-instead.
+As may be inferred from the above example, the use of a colon as an alternative
+delimiter would clash with the use of adverbs; accordingly, such use of the
+colon is forbidden. Similarly, parentheses cannot be used as alternative regex
+delimiters, at least not without a space between the C<rx> or C<m> and the
+opening bracket. This is because identifiers that are immediately followed by
+parentheses are always parsed as a subroutine call. I.e. in C<rx()> the L<call
+operator|/language/operators#postcircumfix_(_)> C<()> invokes the subroutine
+C<rx>. The form C<rx ( abc )>, however, I<does> define a Regex object.
 
-Example of difference between C<m/ /> and C</ /> operators:
+Here's an example that illustrates the difference between the C<m/ /> and C</ />
+operators:
 
     my $match;
     $_ = "abc";
     $match = m/.+/; say $match; say $match.^name; # OUTPUT: «｢abc｣␤Match␤»
     $match =  /.+/; say $match; say $match.^name; # OUTPUT: «/.+/␤Regex␤»
 
-Whitespace in literal regexes is generally ignored (except with the C<:s> or,
-completely, C<:sigspace> adverb).
+Whitespace in literal regexes is ignored insofar as the L<:sigspace>
+adverb|/language/regexes#Sigspace> is not used to make whitespace syntactically
+significant.
 
-Comments work within a regular expression:
+In addition to whitespace, comments may be used inside of regexes to improve
+their readability and comprehensibility just as in Perl6 code in general. This
+is true for both L<single line comments|/language/syntax#Single-line_comments>
+and L<multi line/embedded comments|
+/language/syntax#Multi-line_/_embedded_comments>:
 
-    / word #`(match lexical "word") /
+    my $regex =  rx/ \d ** 4            #`(match the year YYYY)
+                     '-'
+                     \d ** 2            # ...the month MM
+                     '-'
+                     \d ** 2 /;         # ...and the day DD
 
-as long as the syntax for
-L<embedded comments|/language/syntax#Multi-line_/_embedded_comments>, with a
-backtick following the hash sign and enclosing delimiters, is used.
+    say '2015-12-25'.match($regex);     # OUTPUT: «｢2015-12-25｣␤»
 
 =head1 Literals
 
-The simplest case for a regex is a match against a string literal:
+The simplest use case for a regex is a match against a string literal:
 
     if 'properly' ~~ / perl / {
         say "'properly' contains 'perl'";
     }
 
-Alphanumeric characters and the underscore C<_> are matched literally. All
-other characters must either be escaped with a backslash (for example, C<\:>
-to match a colon), or be within quotes:
+Alphanumeric characters and the underscore _ are matched literally. All other
+characters must either be escaped with a backslash (for example, C<\:> to match
+a colon), or be within quotes:
 
     / 'two words' /;     # matches 'two words' including the blank
     / "a:b"       /;     # matches 'a:b' including the colon
@@ -74,9 +89,10 @@ matches the regex:
         say $/.to;          # OUTPUT: «22␤»
     };
 
+
 Match results are always stored in the C<$/> variable and are also returned from
 the match. They are both of type L<Match|/type/Match> if the match was
-successful; otherwise it is L<Nil|/type/Nil>.
+successful; otherwise both are of type L<Nil|/type/Nil>.
 
 
 =head1 X<Wildcards|regex, .>
@@ -90,25 +106,24 @@ So, these all match:
     'perl' ~~ / pe.l /;     # the . matches the r
     'speller' ~~ / pe.l/;   # the . matches the first l
 
-This doesn't match:
+while this doesn't match:
 
     'perl' ~~ /. per /;
 
 because there's no character to match before C<per> in the target string.
 
-Note that C<.> now does match B<any> single character, that is, it matches
-C<\n>. So the text below match:
+Notably C<.> also matches a logical newline C<\n>:
 
     my $text = qq:to/END/
       Although I am a
       multi-line text,
-      now can be matched
+      I can be matched
       with /.*/.
       END
       ;
 
     say $text ~~ / .* /;
-    # OUTPUT «｢Although I am a␤multi-line text,␤now can be matched␤with /.*/␤｣»
+    # OUTPUT «｢Although I am a␤multi-line text,␤I can be matched␤with /.*/.␤｣»
 
 =head1 Character classes
 
@@ -119,14 +134,18 @@ written with an upper-case letter, C<\W>.
 
 =head3 X<C<\n> and C<\N>|regex,\n;regex,\N>
 
-C<\n> matches a single, logical newline character. C<\N> matches a single
-character that's not a logical newline.
+C<\n> matches a logical newline. C<\N> matches a single character that's not a
+logical newline.
 
-What is considered as a single newline character is defined via the compile time
-variable L«C<$?NL>|/language/variables#index-entry-$?NL», and the
-L<newline pragma|/language/pragmas>; therefore, C<\n> is supposed to be able to
-match either a Unix-like newline C<"\n">, a Microsoft Windows style one
-C<"\r\n">, or one in the Mac style C<"\r">.
+The definition of what constitutes a logical newline follows the L<Unicode
+definition of a line boundary|https://unicode.org/reports/tr18/#Line_Boundaries>
+and includes in particular all of: a line feed (LF) C<\U+000A>, a vertical tab
+(VT) C<\U+000B>, a form feed (FF) C<\U+000C>, a carriage return (CR) C<\U+000D>,
+and the Microsoft Windows style newline sequence CRLF.
+
+The interpretation of C<\n> in regexes is independent of the value of the
+variable C<$?NL> controlled by the L<newline pragma|/language/pragmas#newline>.
+
 
 =head3 X<C<\t> and C<\T>|regex,\t;regex,\T>
 
@@ -141,7 +160,7 @@ included here.
 C<\h> matches a single horizontal whitespace character. C<\H> matches a
 single character that is not a horizontal whitespace character.
 
-Examples for horizontal whitespace characters are
+Examples of horizontal whitespace characters are
 
     =begin code :lang<text>
     U+0020 SPACE
@@ -158,7 +177,7 @@ can be matched with C<\v>; C<\s> matches any kind of whitespace.
 C<\v> matches a single vertical whitespace character. C<\V> matches a single
 character that is not vertical whitespace.
 
-Examples for vertical whitespace characters:
+Examples of vertical whitespace characters:
 
     =begin code :lang<text>
     U+000A LINE FEED
@@ -191,7 +210,7 @@ single character that is not a digit.
 Note that not only the Arabic digits (commonly used in the Latin
 alphabet) match C<\d>, but also digits from other scripts.
 
-Examples for digits are:
+Examples of digits are:
 
 =begin code :lang<text>
 U+0035 5 DIGIT FIVE
@@ -222,7 +241,7 @@ Examples of word characters:
 
     Class    | Shorthand | Description
     =========+===========+=============
-    <alpha>  |           | Alphabetic characters including _
+    <alpha>  |           | Alphabetic characters plus underscore (_)
     <digit>  | \d        | Decimal digits
     <xdigit> |           | Hexadecimal digit [0-9A-Fa-f]
     <alnum>  | \w        | <alpha> plus <digit>
@@ -356,7 +375,7 @@ write the backslashed forms for character classes between the C<[ ]>.
 You can include Unicode properties in the list as well:
 
     /<:Zs + [\x9] - [\xA0]>/
-    # Any character with "Zs" property, or a tab, but not a newline
+    # Any character with "Zs" property, or a tab, but not a "no-break space"
 
 X<|escaping characters>
 You can use C<\> to escape characters that would have some meaning in the
@@ -366,7 +385,7 @@ regular expression:
 
 To negate a character class, put a C<-> after the opening angle bracket:
 
-    say 'no quotes' ~~ /  <-[ " ]> + /;  # matches characters except "
+    say 'no quotes' ~~ /  <-[ " ]> + /;  # <-["]> matches any character except "
 
 A common pattern for parsing quote-delimited strings involves negated
 character classes:
@@ -421,9 +440,10 @@ For example, to match C<dog> or C<dogs>, you can write:
 =head2 X<General quantifier: C<** min..max>|regex quantifier,**>
 
 To quantify an atom an arbitrary number of times, use the C<**> quantifier,
-which takes a single L<Int|/type/Int> or a L<Range|/type/Range> on the right-hand side that specifies
-the number of times to match. If L<Range|/type/Range> is specified, the end-points specify
-the minimum and maximum number of times to match.
+which takes a single L<Int|/type/Int> or a L<Range|/type/Range> on the
+right-hand side that specifies the number of times to match. If a
+L<Range|/type/Range> is specified, the end-points specify the minimum and
+maximum number of times to match.
 
 =begin code
 say 'abcdefg' ~~ /\w ** 4/;      # OUTPUT: «｢abcd｣␤»
@@ -435,10 +455,10 @@ say 'abcdefg' ~~ /\w ** ^3/;     # OUTPUT: «｢ab｣␤»
 say 'abcdefg' ~~ /\w ** 1..*/;   # OUTPUT: «｢abcdefg｣␤»
 =end code
 
-Only basic literal syntax for the right-hand side of the quantifier
-is supported, to avoid ambiguities with other regex constructs. If you need
-to use a more complex expression, for example, a L<Range|/type/Range> made from
-variables, enclose the L<Range|/type/Range> into curly braces:
+Only basic literal syntax for the right-hand side of the quantifier is
+supported, to avoid ambiguities with other regex constructs. If you need to use
+a more complex expression, for example, a L<Range|/type/Range> made from
+variables, enclose the L<Range|/type/Range> in curly braces:
 
     =begin code
     my $start = 3;
@@ -455,10 +475,10 @@ Negative values are treated like zero:
     say 'abcdefg' ~~ /\w ** {-42..-10}/; # OUTPUT: «｢｣␤»
     =end code
 
-If then, the resultant value is C<Inf>
-or C<NaN> or the resultant L<Range|/type/Range> is empty, non-Numeric, contains C<NaN>
-end-points, or has minimum effective end-point as C<Inf>, the
-C<X::Syntax::Regex::QuantifierValue> exception will be thrown:
+If then, the resultant value is C<Inf> or C<NaN> or the resultant
+L<Range|/type/Range> is empty, non-Numeric, contains C<NaN> end-points, or has
+minimum effective end-point as C<Inf>, the C<X::Syntax::Regex::QuantifierValue>
+exception will be thrown:
 
     =begin code
     (try say 'abcdefg' ~~ /\w ** {42..10}/  )
@@ -501,8 +521,10 @@ ordinary and a modified quantifier:
 
 =head2 X<Preventing backtracking: C<:>|regex,:>
 
-You can prevent backtracking in regexes by attaching a C<:> modifier
-to the quantifier:
+One way to prevent L<backtracking|/language/regexes#Preventing_backtracking> is
+through the use of the C<ratchet> adverb as described
+L<below|language/regexes#Ratchet>. Another more fine-grained way of preventing
+backtracking in regexes is attaching a C<:> modifier to a quantifier:
 
 =begin code
 my $str = "ACG GCT ACT An interesting chain";
@@ -1291,8 +1313,7 @@ is available as the current match:
     .say;                    # OUTPUT: «some 22 words 42␤»
 
 Like the C<m//> operator, whitespace is ignored in the regex part of a
-substitution. Comments, as in Perl 6 in general, start with the hash
-character C<#> and go to the end of the current line.
+substitution.
 
 =head2 Replacing string literals
 
