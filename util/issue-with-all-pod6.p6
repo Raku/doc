@@ -18,7 +18,7 @@ for @docs -> $d {
             $web-path = "https://docs.perl6.org/"
         }
     }
-        
+
     $web-path .= trans( [ "Language",  "Programs", ".pod6" ] =>
                         [ "language",  "programs", "" ] );
     say "* [ ] $doc-name [file]($repo-path), [generated]($web-path)";
