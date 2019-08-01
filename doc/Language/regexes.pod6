@@ -1609,8 +1609,8 @@ pattern, which may be summarized as follows:
 
 Let's start with the first two syntactical forms. These forms will interpolate
 the stringified value of the variable or the stringified return value of the
-code literally, provided the respective value isn't a Regex. In case it is, in
-fact, a Regex, it is evaluated as such:
+code literally, assuming the respective value isn't a Regex. If the value is a
+Regex, it is evaluated as such.
 
     my $string   = 'Is this a regex or a string: 123\w+False ?';
     my $pattern1 = 'string';
@@ -1619,30 +1619,31 @@ fact, a Regex, it is evaluated as such:
     my $number   = 123;
     my $bool     = True;
 
-    say $string.match(/'string'/);                    # [1] OUTPUT: ｢string｣
-    say $string.match(/$pattern1/);                   # [2] OUTPUT: ｢string｣
-    say $string.match(/$pattern2/);                   # [3] OUTPUT: ｢\w+｣
-    say $string.match(/$number/);                     # [4] OUTPUT: ｢123｣
+    say $string.match: / 'string' /;                      # [1] OUTPUT: ｢string｣
+    say $string.match: / $pattern1 /;                     # [2] OUTPUT: ｢string｣
+    say $string.match: / $pattern2 /;                     # [3] OUTPUT: ｢\w+｣
+    say $string.match: / $number /;                       # [4] OUTPUT: ｢123｣
 
-    say $string.match(/$pattern3.flip/);              # [5] OUTPUT: Nil
-    say $string.match(/"$pattern3.flip()"/);          # [6] OUTPUT: ｢string｣
-    say $string.match($($pattern3.flip));             # [7] OUTPUT: ｢string｣
-    say $string.match($([~] $pattern3.comb.reverse)); # [8] OUTPUT: ｢string｣
-    say $string.match($(!$bool))                      # [9] OUTPUT: [False]
+    say $string.match: / $pattern3.flip /;                # [5] OUTPUT: Nil
+    say $string.match: / "$pattern3.flip()" /;            # [6] OUTPUT: ｢string｣
+    say $string.match: / $($pattern3.flip) /;             # [7] OUTPUT: ｢string｣
+    say $string.match: / $([~] $pattern3.comb.reverse) /; # [8] OUTPUT: ｢string｣
+    say $string.match: / $(!$bool) /;                     # [9] OUTPUT: ｢False｣
 
-In this example, the statements C<[1]> and C<[2]> are equivalent. Since
-unescaped/unquoted alphabetic characters in a regex match literally, the single
-quotes in the regex of statement C<[1]> are functionally redundant; they have
-merely been included to emphasize the correspondence between the first two
-statements. Statement C<[3]> unambiguously shows that the string pattern held by
-C<$pattern2> is interpreted literally, and not as a regex. In case it would have
-been interpreted as a regex, it would have matched the first word of C<$string>,
-i.e. C<｢Is｣>. Statement C<[4]> shows how the stringified number is used as a
-match pattern.
+In this example, the statements C<[1]> and C<[2]> are equivalent and meant to
+illustrate a plain case of regex interpolation. Since unescaped/unquoted
+alphabetic characters in a regex match literally, the single quotes in the regex
+of statement C<[1]> are functionally redundant; they have merely been included
+to emphasize the correspondence between the first two statements. Statement
+C<[3]> unambiguously shows that the string pattern held by C<$pattern2> is
+interpreted literally, and not as a regex. In case it would have been
+interpreted as a regex, it would have matched the first word of C<$string>, i.e.
+C<｢Is｣>. Statement C<[4]> shows how the stringified number is used as a match
+pattern.
 
 Statement C<[5]> does not work as intended. To the human reader, the dot C<.>
 may seem to represent the L<method call operator|/language/operators#methodop_.>,
-but given the regex context, the compiler will parse it as the regex wildcard
+but given the regex context the compiler will parse it as the regex wildcard
 L<.|/language/regexes#Wildcards> that matches any character. The apparent
 ambiguity may be resolved in various ways, for instance through the use of
 straightforward L<string interpolation|/language/quoting#Interpolation:_qq>
@@ -1653,21 +1654,29 @@ emerges as the return value of the C<flip> method call. Since general Perl6
 code may be run from within the parentheses of C<$( )>, the same effect can
 also be achieved with a bit more effort, like in statement C<[8]>. Statement
 C<[9]> illustrates how the stringified version of the code's return value
-(the boolean value False) is matched literally.
+(the boolean value C<False>) is matched literally.
 
 Now consider the second two syntactical forms from the table above. These forms
 will stringify the value of the variable or the return value of the code and
 evaluate it as a regex. If the respective value is a Regex, it is evalued as
-such:
+such.
 
     my $string   = 'Is this a regex or a string: 123\w+ ?';
     my $pattern1 = '\w+';
     my $number   = 123;
-    my sub f1    { return /s\w+/ };
+    my sub f1          { return /s\w+/ };
+    my sub f2 (Str $x) { return /$x x/ };
 
-    say $string.match(/ <$pattern1> /);               # OUTPUT: ｢Is｣
-    say $string.match(/ <$number> /);                 # OUTPUT: ｢123｣
-    say $string.match(/ <{ f1 }> /);                  # OUTPUT: ｢string｣
+    say $string.match: / <$pattern1>  /;                  # [1] OUTPUT: ｢Is｣
+    say $string.match: / <$number>    /;                  # [2] OUTPUT: ｢123｣
+    say $string.match: / <{ f1 }>     /;                  # [3] OUTPUT: ｢string｣
+    my $x = "rege";
+    say $string.match: / <{ f2($x) }> /;                  # [4] OUTPUT: ｢regex｣
+
+In statement C<[4]> use if made of function C<f2>, which acts as a (very simple)
+"regex factory": you can pass it a string variable, and it will return a Regex
+object into which the variable has been interpolated. In this case, C<f2> appends
+the letter 'x' to whatever string it is passed. 
 
 Note: it may be desired to run arbitrary code from within the regex I<without>
 making use of its return value inside the regex. This may, for instance, come in
