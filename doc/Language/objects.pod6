@@ -133,13 +133,15 @@ if $type ~~ Real {
 Classes are declared using the C<class> keyword, typically followed by a
 name.
 
-    class Journey { }
+=for code
+class Journey { }
 
 This declaration results in a type object being created and installed in the
 current package and current lexical scope under the name C<Journey>. You
 can also declare classes lexically:
 
-    my class Journey { }
+=for code
+my class Journey { }
 
 This restricts their visibility to the current lexical scope, which can be
 useful if the class is an implementation detail nested inside a module or
@@ -151,38 +153,44 @@ X<|Attribute> X<|Property> X<|Member> X<|Slot>
 Attributes are variables that exist per instance of a class; when instantiated
 to a value, the association between the variable and its value is called a
 property. They are where the state of an object is stored. In Perl 6, all
-attributes are I<private>, that means they can be accessed directly only by
+attributes are I<private>, which means they can be accessed directly only by
 the class instance itself. They are typically declared using the C<has>
 declarator and the C<!> twigil.
 
-    class Journey {
-        has $!origin;
-        has $!destination;
-        has @!travelers;
-        has $!notes;
-    }
+=begin code
+class Journey {
+    has $!origin;
+    has $!destination;
+    has @!travelers;
+    has $!notes;
+}
+=end code
 
 While there is no such thing as a public (or even protected) attribute,
 there is a way to have accessor methods generated automatically: replace the
 C<!> twigil with the C<.> twigil (the C<.> should remind you of a method
 call).
 
-    class Journey {
-        has $.origin;
-        has $.destination;
-        has @!travelers;
-        has $.notes;
-    }
+=begin code
+class Journey {
+    has $.origin;
+    has $.destination;
+    has @!travelers;
+    has $.notes;
+}
+=end code
 
 This defaults to providing a read-only accessor. In order to allow changes
 to the attribute, add the L<is rw|/routine/is%20rw> trait:
 
-    class Journey {
-        has $.origin;
-        has $.destination;
-        has @!travelers;
-        has $.notes is rw;
-    }
+=begin code
+class Journey {
+    has $.origin;
+    has $.destination;
+    has @!travelers;
+    has $.notes is rw;
+}
+=end code
 
 Now, after a C<Journey> object is created, its C<.origin>, C<.destination>,
 and C<.notes> will all be accessible from outside the class, but only
@@ -193,33 +201,35 @@ destination, we may not get the desired result. To prevent this, provide
 default values or make sure that an attribute is set on object creation
 by marking an attribute with an L<is required|/routine/is%20required> trait.
 
-    class Journey {
-        # error if origin is not provided
-        has $.origin is required;
-        # set the destination to Orlando as default (unless that is the origin!)
-        has $.destination = self.origin eq 'Orlando' ?? 'Kampala' !! 'Orlando';
-        has @!travelers;
-        has $.notes is rw;
-    }
+=begin code
+class Journey {
+    # error if origin is not provided
+    has $.origin is required;
+    # set the destination to Orlando as default (unless that is the origin!)
+    has $.destination = self.origin eq 'Orlando' ?? 'Kampala' !! 'Orlando';
+    has @!travelers;
+    has $.notes is rw;
+}
+=end code
 
 Since classes inherit a default constructor from C<Mu> and we have requested
 that some accessor methods are generated for us, our class is already
 somewhat functional.
 
-    =begin code :preamble<class Journey {};>
-    # Create a new instance of the class.
-    my $vacation = Journey.new(
-        origin      => 'Sweden',
-        destination => 'Switzerland',
-        notes       => 'Pack hiking gear!'
-    );
+=begin code :preamble<class Journey {};>
+# Create a new instance of the class.
+my $vacation = Journey.new(
+    origin      => 'Sweden',
+    destination => 'Switzerland',
+    notes       => 'Pack hiking gear!'
+);
 
-    # Use an accessor; this outputs Sweden.
-    say $vacation.origin;
+# Use an accessor; this outputs Sweden.
+say $vacation.origin;
 
-    # Use an rw accessor to change the value.
-    $vacation.notes = 'Pack hiking gear and sunglasses!';
-    =end code
+# Use an rw accessor to change the value.
+$vacation.notes = 'Pack hiking gear and sunglasses!';
+=end code
 
 Note that, although the default constructor can initialize read-only
 attributes, it will only set attributes that have an accessor method.
@@ -230,39 +240,38 @@ default constructor, the attribute C<@!travelers> is not initialized.
 
 Methods are declared with the C<method> keyword inside a class body.
 
-    =begin code
-    class Journey {
-        has $.origin;
-        has $.destination;
-        has @!travelers;
-        has $.notes is rw;
+=begin code
+class Journey {
+    has $.origin;
+    has $.destination;
+    has @!travelers;
+    has $.notes is rw;
 
-        method add-traveler($name) {
-            if $name ne any(@!travelers) {
-                push @!travelers, $name;
-            }
-            else {
-                warn "$name is already going on the journey!";
-            }
+    method add-traveler($name) {
+        if $name ne any(@!travelers) {
+            push @!travelers, $name;
         }
-
-        method describe() {
-            "From $!origin to $!destination"
+        else {
+            warn "$name is already going on the journey!";
         }
     }
-    =end code
+
+    method describe() {
+        "From $!origin to $!destination"
+    }
+}
+=end code
 
 A method can have a signature, just like a subroutine. Attributes can be
 used in methods and can always be used with the C<!> twigil, even if they
 are declared with the C<.> twigil. This is because the C<.> twigil
 declares a C<!> twigil and generates an accessor method.
 
-Looking at the code above,
-there is a subtle but important difference between using C<$!origin>
-and C<$.origin> in the method C<describe>.
-C<$!origin> is an inexpensive and obvious lookup of the attribute.
-C<$.origin> is a method call and thus may be overridden in a subclass.
-Only use C<$.origin> if you want to allow overriding.
+Looking at the code above, there is a subtle but important difference between
+using C<$!origin> and C<$.origin> in the method C<describe>. C<$!origin> 
+is an inexpensive and obvious lookup of the attribute. C<$.origin> is a
+method call and thus may be overridden in a subclass. Only use C<$.origin> if
+you want to allow overriding.
 
 Unlike subroutines, additional named arguments will not produce compile time or
 runtime errors. That allows chaining of methods via
@@ -271,32 +280,34 @@ L<Re-dispatching|/language/functions#Re-dispatching>.
 You may write your own accessors to override any or all of the autogenerated
 ones.
 
-    my $ⲧ = " " xx 4; # A tab-like thing
-    class Journey {
-        has $.origin;
-        has $.destination;
-        has @.travelers;
-        has Str $.notes is rw;
+=begin code
+my $ⲧ = " " xx 4; # A tab-like thing
+class Journey {
+    has $.origin;
+    has $.destination;
+    has @.travelers;
+    has Str $.notes is rw;
 
-        multi method notes() { "$!notes\n" };
-        multi method notes( Str $note ) { $!notes ~= "$note\n$ⲧ" };
+    multi method notes() { "$!notes\n" };
+    multi method notes( Str $note ) { $!notes ~= "$note\n$ⲧ" };
 
-        method Str { "⤷ $!origin\n$ⲧ" ~ self.notes() ~ "$!destination ⤶\n" };
-    }
+    method Str { "⤷ $!origin\n$ⲧ" ~ self.notes() ~ "$!destination ⤶\n" };
+}
 
-    my $trip = Journey.new( :origin<Here>, :destination<There>,
-                            travelers => <þor Freya> );
+my $trip = Journey.new( :origin<Here>, :destination<There>,
+                        travelers => <þor Freya> );
 
-    $trip.notes("First steps");
-    notes $trip: "Almost there";
-    print $trip;
+$trip.notes("First steps");
+notes $trip: "Almost there";
+print $trip;
 
-    # OUTPUT:
-    #⤷ Here
-    #       First steps
-    #       Almost there
-    #
-    #There ⤶
+# OUTPUT:
+#⤷ Here
+#       First steps
+#       Almost there
+#
+#There ⤶
+=end code
 
 The declared multi method C<notes> overrides the auto-generated
 methods implicit in the declaration of C<$.notes>, using a different
@@ -308,13 +319,14 @@ separated by a colon, the arguments: C<method invocant: arguments>. We can use
 this syntax whenever it feels more natural than the classical
 period-and-parentheses one. It works exactly in the same way.
 
-
 Method names can be resolved at runtime with the C<.""> operator.
 
-    class A { has $.b };
-    my $name = 'b';
-    A.new."$name"().say;
-    # OUTPUT: «(Any)␤»
+=begin code
+class A { has $.b };
+my $name = 'b';
+A.new."$name"().say;
+# OUTPUT: «(Any)␤»
+=end code
 
 The syntax used to update C<$.notes> changed in this section with respect
 to the previous L<#Attributes> section. Instead of an assignment:
@@ -340,16 +352,18 @@ L<weaker object oriented design|https://6guts.wordpress.com/2016/11/25/perl-6-is
 
 =head2 Class and instance methods
 
-A method's signature can have an I<invocant> as its first parameter
+A method's signature can have an I<explicit invocant> as its first parameter
 followed by a colon, which allows for the method to refer to the object
 it was called on.
 
-    class Foo {
-        method greet($me: $person) {
-            say "Hi, I am $me.^name(), nice to meet you, $person";
-        }
+=begin code
+class Foo {
+    method greet($me: $person) {
+        say "Hi, I am $me.^name(), nice to meet you, $person";
     }
-    Foo.new.greet("Bob");    # OUTPUT: «Hi, I am Foo, nice to meet you, Bob␤»
+}
+Foo.new.greet("Bob");    # OUTPUT: «Hi, I am Foo, nice to meet you, Bob␤»
+=end code
 
 Providing an invocant in the method signature also allows for defining
 the method as either as a class method, or as an object method, through
@@ -358,67 +372,75 @@ C<::?CLASS> variable can be used to provide the class name at compile
 time, combined with either C<:U> (for class methods) or C<:D> (for
 instance methods).
 
-    class Pizza {
-        has $!radius = 42;
-        has @.ingredients;
+=begin code
+class Pizza {
+    has $!radius = 42;
+    has @.ingredients;
 
-        # class method: construct from a list of ingredients
-        method from-ingredients(::?CLASS:U $pizza: @ingredients) {
-            $pizza.new( ingredients => @ingredients );
-        }
-
-        # instance method
-        method get-radius(::?CLASS:D:) { $!radius }
+    # class method: construct from a list of ingredients
+    method from-ingredients(::?CLASS:U $pizza: @ingredients) {
+        $pizza.new( ingredients => @ingredients );
     }
-    my $p = Pizza.from-ingredients: <cheese pepperoni vegetables>;
-    say $p.ingredients;     # OUTPUT: «[cheese pepperoni vegetables]␤»
-    say $p.get-radius;      # OUTPUT: «42␤»
-    say Pizza.get-radius;   # This will fail.
-    CATCH { default { put .^name ~ ":\n" ~ .Str } };
-    # OUTPUT: «X::Parameter::InvalidConcreteness:␤
-    #          Invocant of method 'get-radius' must be
-    #          an object instance of type 'Pizza',
-    #          not a type object of type 'Pizza'.
-    #          Did you forget a '.new'?»
+
+    # instance method
+    method get-radius(::?CLASS:D:) { $!radius }
+}
+my $p = Pizza.from-ingredients: <cheese pepperoni vegetables>;
+say $p.ingredients;     # OUTPUT: «[cheese pepperoni vegetables]␤»
+say $p.get-radius;      # OUTPUT: «42␤»
+say Pizza.get-radius;   # This will fail.
+CATCH { default { put .^name ~ ":\n" ~ .Str } };
+# OUTPUT: «X::Parameter::InvalidConcreteness:␤
+#          Invocant of method 'get-radius' must be
+#          an object instance of type 'Pizza',
+#          not a type object of type 'Pizza'.
+#          Did you forget a '.new'?»
+=end code
 
 A method can be both a class and object method by using the
 L<multi|/syntax/multi> declarator:
 
-    class C {
-        multi method f(::?CLASS:U:) { say "class method"  }
-        multi method f(::?CLASS:D:) { say "object method" }
-    }
-    C.f;       # OUTPUT: «class method␤»
-    C.new.f;   # OUTPUT: «object method␤»
+=begin code
+class C {
+    multi method f(::?CLASS:U:) { say "class method"  }
+    multi method f(::?CLASS:D:) { say "object method" }
+}
+C.f;       # OUTPUT: «class method␤»
+C.new.f;   # OUTPUT: «object method␤»
+=end code
 
 =head2 X<C<self>>
 
-Inside a method, the term C<self> is available and bound to the invocant object.
-C<self> can be used to call further methods on the invocant, including
-constructors:
+Inside a method, the term C<self> is available and bound to the invocant
+object. C<self> can be used to call further methods on the invocant,
+including constructors:
 
-    class Box {
-      has $.data;
+=begin code
+class Box {
+  has $.data;
 
-      method make-new-box-from() {
-          self.new: data => $!data;
-      }
-    }
+  method make-new-box-from() {
+      self.new: data => $!data;
+  }
+}
+=end code
 
 C<self> can be used in class or instance methods as well, though beware
 of trying to invoke one type of method from the other:
 
-    class C {
-        method g()            { 42     }
-        method f(::?CLASS:U:) { self.g }
-        method d(::?CLASS:D:) { self.f }
-    }
-    C.f;        # OUTPUT: «42␤»
-    C.new.d;    # This will fail.
-    CATCH { default { put .^name ~ ":\n" ~ .Str } };
-    # OUTPUT: «X::Parameter::InvalidConcreteness:␤
-    #          Invocant of method 'f' must be a type object of type 'C',
-    #          not an object instance of type 'C'.  Did you forget a 'multi'?»
+=begin code
+class C {
+    method g()            { 42     }
+    method f(::?CLASS:U:) { self.g }
+    method d(::?CLASS:D:) { self.f }
+}
+C.f;        # OUTPUT: «42␤»
+C.new.d;    # This will fail.
+CATCH { default { put .^name ~ ":\n" ~ .Str } };
+# OUTPUT: «X::Parameter::InvalidConcreteness:␤
+#          Invocant of method 'f' must be a type object of type 'C',
+#          not an object instance of type 'C'.  Did you forget a 'multi'?»
+=end code
 
 C<self> can also be used with attributes, as long as they have an accessor.
 C<self.a> will call the accessor for an attribute declared as C<has $.a>.
@@ -433,8 +455,8 @@ class A {
 A.new.b; # OUTPUT: «1␤2␤3␤(1 2 3)␤»
 =end code
 
-The colon-syntax for method
-arguments is only supported for method calls using C<self>, not the shortcut.
+The colon-syntax for method arguments is only supported for method calls
+using C<self>, not the shortcut.
 
 Note that if the relevant methods C<bless>, C<CREATE> of L<Mu|/type/Mu>
 are not overloaded, C<self> will point to the type object in those methods.
@@ -481,7 +503,7 @@ Private methods are not inherited by subclasses.
 X<|Submethods>
 =head2 Submethods
 
-Submethods are public methods that will  not be inherited by subclasses. The
+Submethods are public methods that will not be inherited by subclasses. The
 name stems from the fact that they are semantically similar to subroutines.
 
 Submethods are useful for object construction and destruction tasks, as well
@@ -491,32 +513,32 @@ certainly have to override them.
 For example, the L<default method new|/type/Mu#method_new> calls submethod
 C<BUILD> on each class in an L<inheritance|#Inheritance> chain:
 
-    =begin code
-    class Point2D {
-        has $.x;
-        has $.y;
+=begin code
+class Point2D {
+    has $.x;
+    has $.y;
 
-        submethod BUILD(:$!x, :$!y) {
-            say "Initializing Point2D";
-        }
+    submethod BUILD(:$!x, :$!y) {
+        say "Initializing Point2D";
     }
+}
 
-    class InvertiblePoint2D is Point2D {
-        submethod BUILD() {
-            say "Initializing InvertiblePoint2D";
-        }
-        method invert {
-            self.new(x => - $.x, y => - $.y);
-        }
+class InvertiblePoint2D is Point2D {
+    submethod BUILD() {
+        say "Initializing InvertiblePoint2D";
     }
+    method invert {
+        self.new(x => - $.x, y => - $.y);
+    }
+}
 
-    say InvertiblePoint2D.new(x => 1, y => 2);
-    # OUTPUT: «Initializing Point2D␤»
-    # OUTPUT: «Initializing InvertiblePoint2D␤»
-    # OUTPUT: «InvertiblePoint2D.new(x => 1, y => 2)␤»
-    =end code
+say InvertiblePoint2D.new(x => 1, y => 2);
+# OUTPUT: «Initializing Point2D␤»
+# OUTPUT: «Initializing InvertiblePoint2D␤»
+# OUTPUT: «InvertiblePoint2D.new(x => 1, y => 2)␤»
+=end code
 
-See also: L<#Object_construction>.
+See also: L<Object construction|#Object_construction>.
 
 =head2 Inheritance
 
@@ -532,34 +554,35 @@ consulted is called the I<method resolution order> (MRO). Perl 6 uses the
 L<C3 method resolution order|https://en.wikipedia.org/wiki/C3_linearization>.
 You can ask a type for its MRO through a call to its meta class:
 
-    say List.^mro;      # ((List) (Cool) (Any) (Mu))
+=for code
+say List.^mro;      # ((List) (Cool) (Any) (Mu))
 
-If a class does not specify a parent class, L<Any|/type/Any> is assumed by default.
-All classes directly or indirectly derive from L<Mu|/type/Mu>, the root of the type
-hierarchy.
+If a class does not specify a parent class, L<Any|/type/Any> is assumed
+by default. All classes directly or indirectly derive from L<Mu|/type/Mu>,
+the root of the type hierarchy.
 
 All calls to public methods are "virtual" in the C++ sense, which means that
 the actual type of an object determines which method to call, not the
 declared type:
 
-    =begin code
-    class Parent {
-        method frob {
-            say "the parent class frobs"
-        }
+=begin code
+class Parent {
+    method frob {
+        say "the parent class frobs"
     }
+}
 
-    class Child is Parent {
-        method frob {
-            say "the child's somewhat more fancy frob is called"
-        }
+class Child is Parent {
+    method frob {
+        say "the child's somewhat more fancy frob is called"
     }
+}
 
-    my Parent $test;
-    $test = Child.new;
-    $test.frob;          # calls the frob method of Child rather than Parent
-    # OUTPUT: «the child's somewhat more fancy frob is called␤»
-    =end code
+my Parent $test;
+$test = Child.new;
+$test.frob;          # calls the frob method of Child rather than Parent
+# OUTPUT: «the child's somewhat more fancy frob is called␤»
+=end code
 
 X<|new (method)>
 =head2 Object construction
@@ -567,23 +590,26 @@ X<|new (method)>
 Objects are generally created through method calls, either on the type
 object or on another object of the same type.
 
-Class L<Mu|/type/Mu> provides a constructor method called L<new|/routine/new>, which takes named
+Class L<Mu|/type/Mu> provides a constructor method called
+L<new|/routine/new>, which takes named
 L<arguments|/language/functions#Arguments> and uses them to initialize public
 attributes.
 
-    class Point {
-        has $.x;
-        has $.y;
-    }
-    my $p = Point.new( x => 5, y => 2);
-    #             ^^^ inherited from class Mu
-    say "x: ", $p.x;
-    say "y: ", $p.y;
-    # OUTPUT: «x: 5␤»
-    # OUTPUT: «y: 2␤»
+=begin code
+class Point {
+    has $.x;
+    has $.y;
+}
+my $p = Point.new( x => 5, y => 2);
+#             ^^^ inherited from class Mu
+say "x: ", $p.x;
+say "y: ", $p.y;
+# OUTPUT: «x: 5␤»
+# OUTPUT: «y: 2␤»
+=end code
 
-C<Mu.new> calls method L<bless|/routine/bless> on its invocant, passing all the named
-L<arguments|/language/functions#Arguments>. C<bless> creates the new
+C<Mu.new> calls method L<bless|/routine/bless> on its invocant, passing all
+the named L<arguments|/language/functions#Arguments>. C<bless> creates the new
 object, and then walks all subclasses in reverse method resolution order
 (i.e. from L<Mu|/type/Mu> to most derived classes) and in each class checks for
 the existence of a method named C<BUILD>. If the method exists, the
@@ -615,31 +641,31 @@ C<BUILD> submethods can be used to run custom code at object construction
 time. They can also be used for creating aliases for attribute
 initialization:
 
-    =begin code
-    class EncodedBuffer {
-        has $.enc;
-        has $.data;
+=begin code
+class EncodedBuffer {
+    has $.enc;
+    has $.data;
 
-        submethod BUILD(:encoding(:$enc), :$data) {
-            $!enc  :=  $enc;
-            $!data := $data;
-        }
+    submethod BUILD(:encoding(:$enc), :$data) {
+        $!enc  :=  $enc;
+        $!data := $data;
     }
-    my $b1 = EncodedBuffer.new( encoding => 'UTF-8', data => [64, 65] );
-    my $b2 = EncodedBuffer.new( enc      => 'UTF-8', data => [64, 65] );
-    #  both enc and encoding are allowed now
-    =end code
+}
+my $b1 = EncodedBuffer.new( encoding => 'UTF-8', data => [64, 65] );
+my $b2 = EncodedBuffer.new( enc      => 'UTF-8', data => [64, 65] );
+#  both enc and encoding are allowed now
+=end code
 
 Since passing arguments to a routine binds the arguments to the parameters,
 a separate binding step is unnecessary if the attribute is used as a
 parameter. Hence the example above could also have been written as:
 
-    =begin code :preamble<has $!enc; has $!data>
-    submethod BUILD(:encoding(:$!enc), :$!data) {
-        # nothing to do here anymore, the signature binding
-        # does all the work for us.
-    }
-    =end code
+=begin code :preamble<has $!enc; has $!data>
+submethod BUILD(:encoding(:$!enc), :$!data) {
+    # nothing to do here anymore, the signature binding
+    # does all the work for us.
+}
+=end code
 
 However, be careful when using this auto-binding of attributes
 when the attribute may have special type requirements, such as an C<:$!id>
@@ -650,13 +676,15 @@ default value will be C<Any>, which would cause a type error.
 The third implication is that if you want a constructor that accepts
 positional arguments, you must write your own C<new> method:
 
-    class Point {
-        has $.x;
-        has $.y;
-        method new($x, $y) {
-            self.bless(:$x, :$y);
-        }
+=begin code
+class Point {
+    has $.x;
+    has $.y;
+    method new($x, $y) {
+        self.bless(:$x, :$y);
     }
+}
+=end code
 
 However this is considered poor practice, because it makes correct
 initialization of objects from subclasses harder.
@@ -688,17 +716,17 @@ The cloning is done using the L<clone|/routine/clone> method available on all
 objects, which shallow-clones both public and private attributes. New values for
 I<public> attributes can be supplied as named arguments.
 
-    =begin code
-    class Foo {
-        has $.foo = 42;
-        has $.bar = 100;
-    }
+=begin code
+class Foo {
+    has $.foo = 42;
+    has $.bar = 100;
+}
 
-    my $o1 = Foo.new;
-    my $o2 = $o1.clone: :bar(5000);
-    say $o1; # Foo.new(foo => 42, bar => 100)
-    say $o2; # Foo.new(foo => 42, bar => 5000)
-    =end code
+my $o1 = Foo.new;
+my $o2 = $o1.clone: :bar(5000);
+say $o1; # Foo.new(foo => 42, bar => 100)
+say $o2; # Foo.new(foo => 42, bar => 5000)
+=end code
 
 See document for L<clone|/routine/clone> for details on how non-scalar
 attributes get cloned, as well as examples of implementing your own custom clone
@@ -707,15 +735,15 @@ methods.
 =head1 X<Roles|declarator,role>
 
 Roles are a collection of attributes and methods; however, unlike classes, roles
-are meant for describing only parts of an object's behavior; this why, in
+are meant for describing only parts of an object's behavior; this is why, in
 general, roles are intended to be I<mixed in> classes and objects. In general,
 classes are meant for managing objects and roles are meant for managing behavior
 and code reuse within objects.
 
 X<|does>
 Roles use the keyword C<role> preceding the name of the role that is
-declared. Roles are mixed in using the C<does> keyword preceding the name of the
-Role that is mixed in.
+declared. Roles are mixed in using the C<does> keyword preceding the name
+of the role that is mixed in.
 
 =begin code
 constant ⲧ = " " xx 4; #Just a ⲧab
@@ -749,8 +777,8 @@ print $trip;
 #There ⤶
 =end code
 
-Roles are immutable as soon as the compiler parses the closing curly brace of
-the role declaration.
+Roles are immutable as soon as the compiler parses the closing curly brace
+of the role declaration.
 
 =head2 Applying roles
 
@@ -770,85 +798,91 @@ trying to market it as a new form of popular transportation, you might have
 a class C<Bull>, for all the bulls you keep around the house, and a class
 C<Automobile>, for things that you can drive.
 
-    class Bull {
-        has Bool $.castrated = False;
-        method steer {
-            # Turn your bull into a steer
-            $!castrated = True;
-            return self;
-        }
+=begin code
+class Bull {
+    has Bool $.castrated = False;
+    method steer {
+        # Turn your bull into a steer
+        $!castrated = True;
+        return self;
     }
-    class Automobile {
-        has $.direction;
-        method steer($!direction) { }
-    }
-    class Taurus is Bull is Automobile { }
+}
+class Automobile {
+    has $.direction;
+    method steer($!direction) { }
+}
+class Taurus is Bull is Automobile { }
 
-    my $t = Taurus.new;
-    say $t.steer;
-    # OUTPUT: «Taurus.new(castrated => Bool::True, direction => Any)␤»
+my $t = Taurus.new;
+say $t.steer;
+# OUTPUT: «Taurus.new(castrated => Bool::True, direction => Any)␤»
+=end code
 
 With this setup, your poor customers will find themselves unable to turn
 their Taurus and you won't be able to make more of your product! In this
 case, it may have been better to use roles:
 
-    =begin code :skip-test<illustrates error>
-    role Bull-Like {
-        has Bool $.castrated = False;
-        method steer {
-            # Turn your bull into a steer
-            $!castrated = True;
-            return self;
-        }
+=begin code :skip-test<illustrates error>
+role Bull-Like {
+    has Bool $.castrated = False;
+    method steer {
+        # Turn your bull into a steer
+        $!castrated = True;
+        return self;
     }
-    role Steerable {
-        has Real $.direction;
-        method steer(Real $d = 0) {
-            $!direction += $d;
-        }
+}
+role Steerable {
+    has Real $.direction;
+    method steer(Real $d = 0) {
+        $!direction += $d;
     }
-    class Taurus does Bull-Like does Steerable { }
-    =end code
+}
+class Taurus does Bull-Like does Steerable { }
+=end code
 
 This code will die with something like:
 
-    =begin code :lang<text>
-    ===SORRY!===
-    Method 'steer' must be resolved by class Taurus because it exists in
-    multiple roles (Steerable, Bull-Like)
-    =end code
+=begin code :lang<text>
+===SORRY!===
+Method 'steer' must be resolved by class Taurus because it exists in
+multiple roles (Steerable, Bull-Like)
+=end code
 
 This check will save you a lot of headaches:
 
-    =begin code :preamble<role Bull-Like{}; role Steerable{};>
-    class Taurus does Bull-Like does Steerable {
-        method steer($direction?) {
-            self.Steerable::steer($direction)
-        }
+=begin code :preamble<role Bull-Like{}; role Steerable{};>
+class Taurus does Bull-Like does Steerable {
+    method steer($direction?) {
+        self.Steerable::steer($direction)
     }
-    =end code
+}
+=end code
 
 When a role is applied to a second role, the actual application is delayed
 until the second role is applied to a class, at which point both roles are
 applied to the class. Thus
 
-    role R1 {
-        # methods here
-    }
-    role R2 does R1 {
-        # methods here
-    }
-    class C does R2 { }
+=begin code
+role R1 {
+    # methods here
+}
+role R2 does R1 {
+    # methods here
+}
+class C does R2 { }
+=end code
 
 produces the same class C<C> as
 
-    role R1 {
-        # methods here
-    }
-    role R2 {
-        # methods here
-    }
-    class C does R1 does R2 { }
+=begin code
+role R1 {
+    # methods here
+}
+role R2 {
+    # methods here
+}
+class C does R1 does R2 { }
+=end code
 
 =head2 Stubs
 
@@ -857,28 +891,28 @@ a non-stubbed version of a method of the same name must be supplied
 at the time the role is applied to a class. This allows you to
 create roles that act as abstract interfaces.
 
-    =begin code :skip-test<illustrates error>
-    role AbstractSerializable {
-        method serialize() { ... }        # literal ... here marks the
-                                          # method as a stub
-    }
+=begin code :skip-test<illustrates error>
+role AbstractSerializable {
+    method serialize() { ... }        # literal ... here marks the
+                                      # method as a stub
+}
 
-    # the following is a compile time error, for example
-    #        Method 'serialize' must be implemented by Point because
-    #        it's required by a role
+# the following is a compile time error, for example
+#        Method 'serialize' must be implemented by Point because
+#        it's required by a role
 
-    class APoint does AbstractSerializable {
-        has $.x;
-        has $.y;
-    }
+class APoint does AbstractSerializable {
+    has $.x;
+    has $.y;
+}
 
-    # this works:
-    class SPoint does AbstractSerializable {
-        has $.x;
-        has $.y;
-        method serialize() { "p($.x, $.y)" }
-    }
-    =end code
+# this works:
+class SPoint does AbstractSerializable {
+    has $.x;
+    has $.y;
+    method serialize() { "p($.x, $.y)" }
+}
+=end code
 
 The implementation of the stubbed method may also be provided by another
 role.
@@ -889,11 +923,11 @@ Roles cannot inherit from classes, but they may I<carry> classes, causing
 any class which does that role to inherit from the carried classes.
 So if you write:
 
-    =begin code
-    role A is Exception { }
-    class X::Ouch does A { }
-    X::Ouch.^parents.say # OUTPUT: «((Exception))␤»
-    =end code
+=begin code
+role A is Exception { }
+class X::Ouch does A { }
+X::Ouch.^parents.say # OUTPUT: «((Exception))␤»
+=end code
 
 then C<X::Ouch> will inherit directly from Exception, as we can see above
 by listing its parents.
@@ -904,18 +938,18 @@ instead, which uses C<transitive> as flag for including all levels or just the
 first one. Despite this, a class or instance may still be tested with
 smartmatches or type constraints to see if it does a role.
 
-    =begin code
-    role F { }
-    class G does F { }
-    G.^roles.say;                    # OUTPUT: «((F))␤»
-    role Ur {}
-    role Ar does Ur {}
-    class Whim does Ar {}; Whim.^roles(:!transitive).say;   # OUTPUT: «((Ar))␤»
-    say G ~~ F;                      # OUTPUT: «True␤»
-    multi a (F $a) { "F".say }
-    multi a ($a)   { "not F".say }
-    a(G);                            # OUTPUT: «F␤»
-    =end code
+=begin code
+role F { }
+class G does F { }
+G.^roles.say;                    # OUTPUT: «((F))␤»
+role Ur {}
+role Ar does Ur {}
+class Whim does Ar {}; Whim.^roles(:!transitive).say;   # OUTPUT: «((Ar))␤»
+say G ~~ F;                      # OUTPUT: «True␤»
+multi a (F $a) { "F".say }
+multi a ($a)   { "not F".say }
+a(G);                            # OUTPUT: «F␤»
+=end code
 
 =head2 Pecking order
 
@@ -925,22 +959,24 @@ from roles override methods inherited from classes. This happens both when
 said class was brought in by a role, and also when said class was inherited
 directly.
 
-    role M {
-      method f { say "I am in role M" }
-    }
+=begin code
+role M {
+  method f { say "I am in role M" }
+}
 
-    class A {
-      method f { say "I am in class A" }
-    }
+class A {
+  method f { say "I am in class A" }
+}
 
-    class B is A does M {
-      method f { say "I am in class B" }
-    }
+class B is A does M {
+  method f { say "I am in class B" }
+}
 
-    class C is A does M { }
+class C is A does M { }
 
-    B.new.f; # OUTPUT «I am in class B␤»
-    C.new.f; # OUTPUT «I am in role M␤»
+B.new.f; # OUTPUT «I am in class B␤»
+C.new.f; # OUTPUT «I am in role M␤»
+=end code
 
 Note that each candidate for a multi-method is its own method. In this case,
 the above only applies if two such candidates have the same signature.
@@ -953,16 +989,16 @@ Any attempt to directly instantiate a role or use it as a type object
 will automatically create a class with the same name as the role,
 making it possible to transparently use a role as if it were a class.
 
-    =begin code
-    role Point {
-        has $.x;
-        has $.y;
-        method abs { sqrt($.x * $.x + $.y * $.y) }
-        method dimensions { 2 }
-    }
-    say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
-    say Point.dimensions;              # OUTPUT «2␤»
-    =end code
+=begin code
+role Point {
+    has $.x;
+    has $.y;
+    method abs { sqrt($.x * $.x + $.y * $.y) }
+    method dimensions { 2 }
+}
+say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
+say Point.dimensions;              # OUTPUT «2␤»
+=end code
 
 We call this automatic creation of classes I<punning>, and the generated class
 a I<pun>.
@@ -973,58 +1009,57 @@ however, as those are sometimes used to work directly with roles.
 X<|Parameterized Roles>
 =head2 Parameterized roles
 
-
 Roles can be parameterized, by giving them a signature in square brackets:
 
-    =begin code
-    role BinaryTree[::Type] {
-        has BinaryTree[Type] $.left;
-        has BinaryTree[Type] $.right;
-        has Type $.node;
+=begin code
+role BinaryTree[::Type] {
+    has BinaryTree[Type] $.left;
+    has BinaryTree[Type] $.right;
+    has Type $.node;
 
-        method visit-preorder(&cb) {
-            cb $.node;
-            for $.left, $.right -> $branch {
-                $branch.visit-preorder(&cb) if defined $branch;
-            }
-        }
-        method visit-postorder(&cb) {
-            for $.left, $.right -> $branch {
-                $branch.visit-postorder(&cb) if defined $branch;
-            }
-            cb $.node;
-        }
-        method new-from-list(::?CLASS:U: *@el) {
-            my $middle-index = @el.elems div 2;
-            my @left         = @el[0 .. $middle-index - 1];
-            my $middle       = @el[$middle-index];
-            my @right        = @el[$middle-index + 1 .. *];
-            self.new(
-                node    => $middle,
-                left    => @left  ?? self.new-from-list(@left)  !! self,
-                right   => @right ?? self.new-from-list(@right) !! self,
-            );
+    method visit-preorder(&cb) {
+        cb $.node;
+        for $.left, $.right -> $branch {
+            $branch.visit-preorder(&cb) if defined $branch;
         }
     }
+    method visit-postorder(&cb) {
+        for $.left, $.right -> $branch {
+            $branch.visit-postorder(&cb) if defined $branch;
+        }
+        cb $.node;
+    }
+    method new-from-list(::?CLASS:U: *@el) {
+        my $middle-index = @el.elems div 2;
+        my @left         = @el[0 .. $middle-index - 1];
+        my $middle       = @el[$middle-index];
+        my @right        = @el[$middle-index + 1 .. *];
+        self.new(
+            node    => $middle,
+            left    => @left  ?? self.new-from-list(@left)  !! self,
+            right   => @right ?? self.new-from-list(@right) !! self,
+        );
+    }
+}
 
-    my $t = BinaryTree[Int].new-from-list(4, 5, 6);
-    $t.visit-preorder(&say);    # OUTPUT: «5␤4␤6␤»
-    $t.visit-postorder(&say);   # OUTPUT: «4␤6␤5␤»
-    =end code
+my $t = BinaryTree[Int].new-from-list(4, 5, 6);
+$t.visit-preorder(&say);    # OUTPUT: «5␤4␤6␤»
+$t.visit-postorder(&say);   # OUTPUT: «4␤6␤5␤»
+=end code
 
 Here the signature consists only of a type capture, but any signature will do:
 
-    =begin code
-    enum Severity <debug info warn error critical>;
+=begin code
+enum Severity <debug info warn error critical>;
 
-    role Logging[$filehandle = $*ERR] {
-        method log(Severity $sev, $message) {
-            $filehandle.print("[{uc $sev}] $message\n");
-        }
+role Logging[$filehandle = $*ERR] {
+    method log(Severity $sev, $message) {
+        $filehandle.print("[{uc $sev}] $message\n");
     }
+}
 
-    Logging[$*OUT].log(debug, 'here we go'); # OUTPUT: «[DEBUG] here we go␤»
-    =end code
+Logging[$*OUT].log(debug, 'here we go'); # OUTPUT: «[DEBUG] here we go␤»
+=end code
 
 You can have multiple roles of the same name, but with different signatures;
 the normal rules of multi dispatch apply for choosing multi candidates.
@@ -1036,12 +1071,14 @@ Roles can be mixed into objects. A role's given attributes and methods will be
 added to the methods and attributes the object already has. Multiple mixins and
 anonymous roles are supported.
 
-    role R { method Str() {'hidden!'} };
-    my $i = 2 but R;
-    sub f(\bound){ put bound };
-    f($i); # OUTPUT: «hidden!␤»
-    my @positional := <a b> but R;
-    say @positional.^name; # OUTPUT: «List+{R}␤»
+=begin code
+role R { method Str() {'hidden!'} };
+my $i = 2 but R;
+sub f(\bound){ put bound };
+f($i); # OUTPUT: «hidden!␤»
+my @positional := <a b> but R;
+say @positional.^name; # OUTPUT: «List+{R}␤»
+=end code
 
 Note that the object got the role mixed in, not the object's class or the
 container. Thus, @-sigiled containers will require binding to make the role
@@ -1050,9 +1087,11 @@ a new value, which effectively strips the mixin from the result. That is why it
 might be more clear to mix in the role in the declaration of the variable using
 C<does>:
 
-    role R {};
-    my @positional does R = <a b>;
-    say @positional.^name; # OUTPUT: «Array+{R}␤»
+=begin code
+role R {};
+my @positional does R = <a b>;
+say @positional.^name; # OUTPUT: «Array+{R}␤»
+=end code
 
 The operator C<infix:<but>> is narrower than the list constructor. When
 providing a list of roles to mix in, always use parentheses.
@@ -1069,30 +1108,34 @@ say $all-roles.^name; # OUTPUT: «Int+{R1,R2}␤»
 
 Mixins can be used at any point in your object's life.
 
-    # A counter for Table of Contents
-    role TOC-Counter {
-        has Int @!counters is default(0);
-        method Str() { @!counters.join: '.' }
-        method inc($level) {
-            @!counters[$level - 1]++;
-            @!counters.splice($level);
-            self
-        }
+=begin code
+# A counter for Table of Contents
+role TOC-Counter {
+    has Int @!counters is default(0);
+    method Str() { @!counters.join: '.' }
+    method inc($level) {
+        @!counters[$level - 1]++;
+        @!counters.splice($level);
+        self
     }
+}
 
-    my Num $toc-counter = NaN;     # don't do math with Not A Number
-    say $toc-counter;              # OUTPUT: «NaN␤»
-    $toc-counter does TOC-Counter; # now we mix the role in
-    $toc-counter.inc(1).inc(2).inc(2).inc(1).inc(2).inc(2).inc(3).inc(3);
-    put $toc-counter / 1;          # OUTPUT: «NaN␤» (because that's numerical context)
-    put $toc-counter;              # OUTPUT: «2.2.2␤» (put will call TOC-Counter::Str)
+my Num $toc-counter = NaN;     # don't do math with Not A Number
+say $toc-counter;              # OUTPUT: «NaN␤»
+$toc-counter does TOC-Counter; # now we mix the role in
+$toc-counter.inc(1).inc(2).inc(2).inc(1).inc(2).inc(2).inc(3).inc(3);
+put $toc-counter / 1;          # OUTPUT: «NaN␤» (because that's numerical context)
+put $toc-counter;              # OUTPUT: «2.2.2␤» (put will call TOC-Counter::Str)
+=end code
 
 Roles can be anonymous.
 
-    my %seen of Int is default(0 but role :: { method Str() {'NULL'} });
-    say %seen<not-there>;          # OUTPUT: «NULL␤»
-    say %seen<not-there>.defined;  # OUTPUT: «True␤» (0 may be False but is well defined)
-    say Int.new(%seen<not-there>); # OUTPUT: «0␤»
+=begin code
+my %seen of Int is default(0 but role :: { method Str() {'NULL'} });
+say %seen<not-there>;          # OUTPUT: «NULL␤»
+say %seen<not-there>.defined;  # OUTPUT: «True␤» (0 may be False but is well defined)
+say Int.new(%seen<not-there>); # OUTPUT: «0␤»
+=end code
 
 =head1 Meta-object programming and introspection
 
@@ -1108,11 +1151,13 @@ Note that although this looks like a method call, it works more like a macro.
 So, what can you do with the meta object? For one you can check if two
 objects have the same meta class by comparing them for equality:
 
-    say 1.HOW ===   2.HOW;      # OUTPUT: «True␤»
-    say 1.HOW === Int.HOW;      # OUTPUT: «True␤»
-    say 1.HOW === Num.HOW;      # OUTPUT: «False␤»
+=begin code
+say 1.HOW ===   2.HOW;      # OUTPUT: «True␤»
+say 1.HOW === Int.HOW;      # OUTPUT: «True␤»
+say 1.HOW === Num.HOW;      # OUTPUT: «False␤»
+=end code
 
-Perl 6 uses the word I<HOW>, Higher Order Workings, to refer to the meta
+Perl 6 uses the word I<HOW> (Higher Order Workings) to refer to the meta
 object system. Thus it should be no surprise that in Rakudo, the class name
 of the meta class that controls class behavior is called
 C<Perl6::Metamodel::ClassHOW>. For each class there is one instance of
@@ -1124,12 +1169,14 @@ meta objects is to call the method on the meta object and pass in the object
 of interest as first argument to the object. So to get the name of the class
 of an object, you could write:
 
-    my $object = 1;
-    my $metaobject = 1.HOW;
-    say $metaobject.name($object);      # OUTPUT: «Int␤»
+=begin code
+my $object = 1;
+my $metaobject = 1.HOW;
+say $metaobject.name($object);      # OUTPUT: «Int␤»
 
-    # or shorter:
-    say 1.HOW.name(1);                  # OUTPUT: «Int␤»
+# or shorter:
+say 1.HOW.name(1);                  # OUTPUT: «Int␤»
+=end code
 
 (The motivation is that Perl 6 also wants to allow a more prototype-based
 object system, where it's not necessary to create a new meta object for
@@ -1137,9 +1184,11 @@ every type).
 
 There's a shortcut to keep from using the same object twice:
 
-    say 1.^name;                        # OUTPUT: «Int␤»
-    # same as
-    say 1.HOW.name(1);                  # OUTPUT: «Int␤»
+=begin code
+say 1.^name;                        # OUTPUT: «Int␤»
+# same as
+say 1.HOW.name(1);                  # OUTPUT: «Int␤»
+=end code
 
 See L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW> for documentation on
 the meta class of C<class> and also the L<general documentation on the meta

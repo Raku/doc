@@ -37,11 +37,15 @@ In the two classes, the default constructor is being used. This
 constructor will use named parameters in its invocation: C«Point.new(x =>
 0, y => 0)».
 
-You can also provide your own construction and C<BUILD> implementation. You need
-to do it in the case there are private attributes, like below:
+You can also provide your own constructor and C<BUILD> implementation.
+You need to do it for cases in which there are private attributes that
+might need to be populated during object construction, as in the
+example below:
 
 =begin code
-class Hero { #taken from https://medium.freecodecamp.org/a-short-overview-of-object-oriented-software-design-c7aa0a622c83
+# Example taken from
+# https://medium.freecodecamp.org/a-short-overview-of-object-oriented-software-design-c7aa0a622c83
+class Hero {
     has @!inventory;
     has Str $.name;
     submethod BUILD( :$name, :@inventory ) {
@@ -108,18 +112,18 @@ my $eat =
 $eat.perform();
 =end code
 
-In this case, C<BUILD> is needed since we have overridden the default new.
-C<bless> is eventually invoking it with the two named arguments that correspond
-to the two properties without a default value. With its signature, C<BUILD>
-converts the two positionals to the two attributes, C<&!callback> and
-C<@!dependencies>, and returns the object (or turns it in to the next phase,
-C<TWEAK>, if available).
+In this case, C<BUILD> is needed since we have overridden the default
+C<new> constructor. C<bless> is eventually invoking it with the two named
+arguments that correspond to the two properties without a default value. With
+its signature, C<BUILD> converts the two positionals to the two attributes,
+C<&!callback> and C<@!dependencies>, and returns the object (or turns it in to
+the next phase, C<TWEAK>, if available).
 
-Declaring C<new> as a C<method> and not a C<multi method> prevents us
+Declaring C<new> as a C<method> and not as a C<multi method> prevents us
 from using the default constructor; this implicit constructor uses the
-attributes as named parameters. That is one of the reasons why using
-C<new> is discouraged. If you need to declare it anyway, use C<multi
-method new> if you do not want to disable the default constructors.
+attributes as named parameters. This is one of the reasons why using
+C<new> as a method's name is discouraged. If you need to declare it anyway,
+use C<multi method new> if you do not want to disable the default constructor.
 
 C<TWEAK> is the last submethod to be called, and it has the
 advantage of having the object properties available without needing to
@@ -161,14 +165,12 @@ or supplies or delete temporary files that are no longer going to be used.
 =begin code
 my $in_destructor = 0;
 
-class Foo
-{
+class Foo {
     submethod DESTROY { $in_destructor++ }
 }
 
 my $foo;
-for 1 .. 6000
-{
+for 1 .. 6000 {
     $foo = Foo.new();
 }
 
@@ -191,9 +193,9 @@ X<|behavior>
 X<|classes,behavior>
 
 Perl 6, like many other languages, uses the C<class> keyword to define a
-class.  The block that follows may contain arbitrary code, just as with
+class. The block that follows may contain arbitrary code, just as with
 any other block, but classes commonly contain state and behavior
-declarations.  The example code includes attributes (state), introduced
+declarations. The example code includes attributes (state), introduced
 through the C<has> keyword, and behaviors, introduced through the C<method>
 keyword.
 
@@ -209,22 +211,26 @@ classes. The example above uses the class name C<Task> so that other code can
 refer to it later, such as to create class instances by calling the C<new>
 method.
 
-You can use C<.DEFINITE> method to find out if what you have is an instance
+You can use the C<.DEFINITE> method to find out if what you have is an instance
 or a type object:
 
-    say Int.DEFINITE; # OUTPUT: «False␤» (type object)
-    say 426.DEFINITE; # OUTPUT: «True␤»  (instance)
+=begin code
+say Int.DEFINITE; # OUTPUT: «False␤» (type object)
+say 426.DEFINITE; # OUTPUT: «True␤»  (instance)
 
-    class Foo {};
-    say Foo.DEFINITE;     # OUTPUT: «False␤» (type object)
-    say Foo.new.DEFINITE; # OUTPUT: «True␤»  (instance)
+class Foo {};
+say Foo.DEFINITE;     # OUTPUT: «False␤» (type object)
+say Foo.new.DEFINITE; # OUTPUT: «True␤»  (instance)
+=end code
 
 You can also use type "smileys" to only accept instances or type objects:
 
-    multi foo (Int:U) { "It's a type object!" }
-    multi foo (Int:D) { "It's an instance!"   }
-    say foo Int; # OUTPUT: «It's a type object!␤»
-    say foo 42;  # OUTPUT: «It's an instance!␤»
+=begin code
+multi foo (Int:U) { "It's a type object!" }
+multi foo (Int:D) { "It's an instance!"   }
+say foo Int; # OUTPUT: «It's a type object!␤»
+say foo 42;  # OUTPUT: «It's an instance!␤»
+=end code
 
 X<|attributes>
 X<|classes,attributes>
@@ -232,14 +238,15 @@ X<|encapsulation>
 X<|classes,encapsulation>
 =head1 State
 
-The first three lines inside the class block all declare attributes (called
-I<fields> or I<instance storage> in other languages). Just as a C<my>
-variable cannot be accessed from outside its declared scope, attributes are
-not accessible outside of the class.  This I<encapsulation> is one of the
-key principles of object oriented design.
+In the C<Task> class, the first three lines inside the block all
+declare attributes (called I<fields> or I<instance storage> in other
+languages). Just as a C<my> variable cannot be accessed from outside its
+declared scope, attributes are not accessible outside of the class.
+This I<encapsulation> is one of the key principles of object oriented design.
 
-The first declaration specifies instance storage for a callback--a bit of
-code to invoke in order to perform the task that an object represents:
+The first declaration specifies instance storage for a callback (i.e.,
+a bit of code to invoke in order to perform the task that an object
+represents):
 
 =for code
 has &!callback;
@@ -249,18 +256,18 @@ X<|twigils>
 X<|twigils,!>
 
 The C<&> sigil indicates that this attribute represents something invocable.
-The C<!> character is a I<twigil>, or secondary sigil.  A twigil forms part
-of the name of the variable.  In this case, the C<!> twigil emphasizes that
+The C<!> character is a I<twigil>, or secondary sigil. A twigil forms part
+of the name of the variable. In this case, the C<!> twigil emphasizes that
 this attribute is private to the class.
 
 The second declaration also uses the private twigil:
 
-    =for code :preamble<class Task {}>
-    has Task @!dependencies;
+=for code :preamble<class Task {}>
+has Task @!dependencies;
 
 However, this attribute represents an array of items, so it requires the
 C<@> sigil. These items each specify a task that must be completed before
-the present one can complete. Furthermore, the type declaration on this
+the present one is completed. Furthermore, the type declaration on this
 attribute indicates that the array may only hold instances of the C<Task>
 class (or some subclass of it).
 
@@ -274,20 +281,24 @@ X<|twigils,accessors>
 X<|accessor methods>
 X<|classes,accessors>
 
-This scalar attribute (with the C<$> sigil) has a type of C<Bool>.  Instead
+This scalar attribute (with the C<$> sigil) has a type of C<Bool>. Instead
 of the C<!> twigil, the C<.> twigil is used. While Perl 6 does enforce
 encapsulation on attributes, it also saves you from writing accessor
-methods.  Replacing the C<!> with a C<.> both declares the attribute
-C<$!done> and an accessor method named C<done>. It's as if you had written:
+methods. Replacing the C<!> with a C<.> both declares a private attribute
+and an accessor method named after the attribute. In this case,
+both the attribute C<$!done> and the accessor method C<done> are declared.
+It's as if you had written:
 
-    has Bool $!done;
-    method done() { return $!done }
+=begin code
+has Bool $!done;
+method done() { return $!done }
+=end code
 
 Note that this is not like declaring a public attribute, as some languages
 allow; you really get I<both> a private attribute and a method,
 without having to write the method by hand. You are free instead to write
 your own accessor method, if at some future point you need to do something
-more complex than return the value.
+more complex than returning the value.
 
 X<|traits,is rw>
 Note that using the C<.> twigil has created a method that will provide
@@ -295,30 +306,34 @@ read-only access to the attribute. If instead the users of this object
 should be able to reset a task's completion state (perhaps to perform it
 again), you can change the attribute declaration:
 
-    has Bool $.done is rw;
+=for code
+has Bool $.done is rw;
 
 The C<is rw> trait causes the generated accessor method to return a container
-external code can modify to change the value of the attribute.
+so external code can modify the value of the attribute.
 
 You can also supply default values to attributes (which works equally for
 those with and without accessors):
 
-    has Bool $.done = False;
+=for code
+has Bool $.done = False;
 
 The assignment is carried out at object build time. The right-hand side is
 evaluated at that time, and can even reference earlier attributes:
 
-    =for code :preamble<class Task {}>
-    has Task @!dependencies;
-    has $.ready = not @!dependencies;
+=begin code :preamble<class Task {}>
+has Task @!dependencies;
+has $.ready = not @!dependencies;
+=end code
 
 Writable attributes are accessible through writable containers:
 
-=for code
+=begin code
 class a-class {
     has $.an-attribute is rw;
 }
 say (a-class.new.an-attribute = "hey"); # OUTPUT: «hey␤»
+=end code
 
 This attribute can also be accessed using the C<.an-attribute> or
 C<.an-attribute()> syntax. See also
@@ -326,9 +341,9 @@ L<the C<is rw> trait on classes|/language/typesystem#trait_is_rw> for examples
 on how this works on the whole class.
 
 X<|class variables>
-A class declaration can also include I<class variables>,
-which are variables whose value is shared by all instances, and can be used for
-things like counting the number of instantiations or any other shared state.
+A class declaration can also include I<class variables>, which are variables
+whose value is shared by all instances, and can be used for things like
+counting the number of instantiations or any other shared state.
 Class variables use the same syntax as the rest of the attributes, but are
 declared as C<my> or C<our>, depending on the scope; C<our> variables will be
 shared by subclasses, since they have package scope.
@@ -362,13 +377,14 @@ In this case, using C<new> might be the easiest way to initialize the C<$.ID>
 field and increment the value of the counter at the same time. C<new>, through
 C<bless>, will invoke the default C<BUILD>, assigning the values to their
 properties correctly. You can obtain the same effect using C<TWEAK>, which is
-considered a more I<p6y> way. Please check L<the section on
+considered a more I<p6y> way of achieving such effect. Please check L<the section on
 submethods|/language/classtut#index-entry-OOP> for an alternative example on how
 to do this. Since C<TWEAK> is called in every object instantiation, it's
 incremented twice when creating objects of class C<Str-with-ID-and-tag>; this is
 a I<class hierarchy> variable that is shared by all subclasses of
 C<Str-with-ID>. Additionally, class variables declared with package scope are
-visible via their FQN, while lexically scoped class variables are "private".
+visible via their fully qualified name (FQN), while lexically scoped class
+variables are "private".
 
 =head1 Static fields?
 
@@ -395,12 +411,12 @@ importing the class using the L<use|/syntax/use> keyword.
 
 =begin code :preamble<class Foo {}; sub some_complicated_subroutine {}>
 class HaveStaticAttr {
-      my Foo $.foo = some_complicated_subroutine;
+    my Foo $.foo = some_complicated_subroutine;
 }
 =end code
 
 Class attributes may also be declared with a secondary sigil – in a similar
-manner to object attributes – that will generate read-only accessors if the
+manner to instance attributes – that will generate read-only accessors if the
 attribute is to be public.
 
 =head1 Methods
@@ -408,16 +424,16 @@ attribute is to be public.
 X<|methods>
 X<|classes,methods>
 
-While attributes give objects state, methods give objects behaviors.  Let's
+While attributes give objects state, methods give objects behaviors. Let's
 ignore the C<new> method temporarily; it's a special type of method.
 Consider the second method, C<add-dependency>, which adds a new task to a
-task's dependency list.
+task's dependency list:
 
-    =begin code :skip-test<incomplete code>
-    method add-dependency(Task $dependency) {
-        push @!dependencies, $dependency;
-    }
-    =end code
+=begin code :skip-test<incomplete code>
+method add-dependency(Task $dependency) {
+    push @!dependencies, $dependency;
+}
+=end code
 
 X<|invocant>
 In many ways, this looks a lot like a C<sub> declaration. However, there are
@@ -432,68 +448,72 @@ attribute.
 
 The C<perform> method contains the main logic of the dependency handler:
 
-    =begin code :skip-test<incomplete code>
-    method perform() {
-        unless $!done {
-            .perform() for @!dependencies;
-            &!callback();
-            $!done = True;
-        }
+=begin code :skip-test<incomplete code>
+method perform() {
+    unless $!done {
+        .perform() for @!dependencies;
+        &!callback();
+        $!done = True;
     }
-    =end code
+}
+=end code
 
 It takes no parameters, working instead with the object's attributes. First,
 it checks if the task has already completed by checking the C<$!done>
-attribute.  If so, there's nothing to do.
+attribute. If so, there's nothing to do.
 
 X<|operators,.>
 Otherwise, the method performs all of the task's dependencies, using the
 C<for> construct to iterate over all of the items in the C<@!dependencies>
-attribute.  This iteration places each item – each a C<Task> object – into
-the topic variable, C<$_>.  Using the C<.> method call operator without
+attribute. This iteration places each item – each a C<Task> object – into
+the topic variable, C<$_>. Using the C<.> method call operator without
 specifying an explicit invocant uses the current topic as the invocant.
 Thus the iteration construct calls the C<.perform()> method on every C<Task>
 object in the C<@!dependencies> attribute of the current invocant.
 
 After all of the dependencies have completed, it's time to perform the
 current C<Task>'s task by invoking the C<&!callback> attribute directly;
-this is the purpose of the parentheses.  Finally, the method sets the
+this is the purpose of the parentheses. Finally, the method sets the
 C<$!done> attribute to C<True>, so that subsequent invocations of C<perform>
 on this object (if this C<Task> is a dependency of another C<Task>, for
 example) will not repeat the task.
 
 X<|! (private methods)>
+X<|FQN>
 =head2 Private methods
 
 Just like attributes, methods can also be private. Private methods are declared
-with a prefixed exclamation mark. They are called with C<self!> followed by the
-method's name. To call a private method of another class the calling class has
-to be trusted by the called class. A trust relationship is declared with
-C<trusts> and the class to be trusted must already be declared. Calling a
-private method of another class requires an instance of that class and the fully
-qualified name of the method.  Trust also allows access to private attributes.
+with a prefixed exclamation mark. They are called with C<self!>
+followed by the method's name. To call a private method of another class the
+calling class has to be trusted by the called class. A trust relationship is
+declared with C<trusts> and the class to be trusted must already be declared.
+Calling a private method of another class requires an instance of that class
+and the fully qualified name (FQN) of the method. Trust also allows access to
+private attributes.
 
-    class B {...}
+=begin code
+class B {...}
 
-    class C {
-        trusts B;
-        has $!hidden = 'invisible';
-        method !not-yours () { say 'hidden' }
-        method yours-to-use () {
-            say $!hidden;
-            self!not-yours();
-        }
+class C {
+    trusts B;
+    has $!hidden = 'invisible';
+    method !not-yours () { say 'hidden' }
+    method yours-to-use () {
+        say $!hidden;
+        self!not-yours();
     }
+}
 
-    class B {
-        method i-am-trusted () {
-            my C $c.=new;
-            $c!C::not-yours();
-        }
+class B {
+    method i-am-trusted () {
+        my C $c.=new;
+        $c!C::not-yours();
     }
+}
 
-    C.new.yours-to-use(); # the context of this call is GLOBAL, and not trusted by C
-    B.new.i-am-trusted();
+C.new.yours-to-use(); # the context of this call is GLOBAL, and not trusted by C
+B.new.i-am-trusted();
+=end code
 
 Trust relationships are not subject to inheritance. To trust the global
 namespace, the pseudo package C<GLOBAL> can be used.
@@ -502,29 +522,32 @@ X<|constructors>
 =head1 Constructors
 
 Perl 6 is rather more liberal than many languages in the area of
-constructors.  A constructor is anything that returns an instance of the
-class.  Furthermore, constructors are ordinary methods. You inherit a
+constructors. A constructor is anything that returns an instance of the
+class. Furthermore, constructors are ordinary methods. You inherit a
 default constructor named C<new> from the base class C<Mu>, but you are
 free to override C<new>, as this example does:
 
-    method new(&callback, *@dependencies) {
-        return self.bless(:&callback, :@dependencies);
-    }
+=begin code
+method new(&callback, *@dependencies) {
+    return self.bless(:&callback, :@dependencies);
+}
+=end code
 
 X<|objects,bless>
 X<|bless>
 
 The biggest difference between constructors in Perl 6 and constructors in
 languages such as C# and Java is that rather than setting up state on a
-somehow already magically created object, Perl 6 constructors
-create the object themselves. The easiest way to do this is by calling the
-L<bless|/routine/bless> method, also inherited from L<Mu|/type/Mu>. The C<bless> method expects a
-set of named parameters to provide the initial values for each attribute.
+somehow already magically created object, Perl 6 constructors create the
+object themselves. The easiest way to do this is by calling the
+L<bless|/routine/bless> method, also inherited from L<Mu|/type/Mu>.
+The C<bless> method expects a set of named parameters to provide the initial
+values for each attribute.
 
 The example's constructor turns positional arguments into named arguments,
 so that the class can provide a nice constructor for its users. The first
 parameter is the callback (the thing which will execute the task). The rest
-of the parameters are dependent C<Task> instances.  The constructor captures
+of the parameters are dependent C<Task> instances. The constructor captures
 these into the C<@dependencies> slurpy array and passes them as named
 parameters to C<bless> (note that C<:&callback> uses the name of the
 variable – minus the sigil – as the name of the parameter).
@@ -546,8 +569,8 @@ as the bind targets for C<BUILD>'s parameters. Zero-boilerplate
 initialization! See L<objects|/language/objects#Object_construction> for
 more information.
 
-The C<BUILD> method is responsible for initializing all attributes and must also
-handle default values:
+The C<BUILD> method is responsible for initializing all attributes and must
+also handle default values:
 
 =begin code
 has &!callback;
@@ -566,7 +589,7 @@ options to influence object construction and attribute initialization.
 
 =head1 Consuming our class
 
-After creating a class, you can create instances of the class.  Declaring a
+After creating a class, you can create instances of the class. Declaring a
 custom constructor provides a simple way of declaring tasks along with their
 dependencies. To create a single task with no dependencies, write:
 
@@ -574,29 +597,29 @@ dependencies. To create a single task with no dependencies, write:
 my $eat = Task.new({ say 'eating dinner. NOM!' });
 
 An earlier section explained that declaring the class C<Task> installed a
-type object in the namespace.  This type object is a kind of "empty
-instance" of the class, specifically an instance without any state.  You can
+type object in the namespace. This type object is a kind of "empty
+instance" of the class, specifically an instance without any state. You can
 call methods on that instance, as long as they do not try to access any
 state; C<new> is an example, as it creates a new object rather than
 modifying or accessing an existing object.
 
-Unfortunately, dinner never magically happens.  It has dependent tasks:
+Unfortunately, dinner never magically happens. It has dependent tasks:
 
-    =begin code :preamble<class Task {}>
-    my $eat =
-        Task.new({ say 'eating dinner. NOM!' },
-            Task.new({ say 'making dinner' },
-                Task.new({ say 'buying food' },
-                    Task.new({ say 'making some money' }),
-                    Task.new({ say 'going to the store' })
-                ),
-                Task.new({ say 'cleaning kitchen' })
-            )
-        );
-    =end code
+=begin code :preamble<class Task {}>
+my $eat =
+    Task.new({ say 'eating dinner. NOM!' },
+        Task.new({ say 'making dinner' },
+            Task.new({ say 'buying food' },
+                Task.new({ say 'making some money' }),
+                Task.new({ say 'going to the store' })
+            ),
+            Task.new({ say 'cleaning kitchen' })
+        )
+    );
+=end code
 
-Notice how the custom constructor and sensible use of whitespace makes task
-dependencies clear.
+Notice how the custom constructor and the sensible use of whitespace makes
+task dependencies clear.
 
 Finally, the C<perform> method call recursively calls the C<perform> method
 on the various other dependencies in order, giving the output:
@@ -615,123 +638,127 @@ eating dinner. NOM!
 X<|classes, inheritance>
 
 Object Oriented Programming provides the concept of inheritance as one of
-the mechanisms for code reuse.  Perl 6 supports the ability for one
-class to inherit from one or more classes.  When a class inherits from
+the mechanisms for code reuse. Perl 6 supports the ability for one
+class to inherit from one or more classes. When a class inherits from
 another class it informs the method dispatcher to follow the inheritance
-chain to look for a method to dispatch.  This happens both for standard
-methods defined via the method keyword and for methods generated through
+chain to look for a method to dispatch. This happens both for standard
+methods defined via the C<method> keyword and for methods generated through
 other means, such as attribute accessors.
 
-    =begin code
-    class Employee {
-        has $.salary;
-    }
+=begin code
+class Employee {
+    has $.salary;
+}
 
-    class Programmer is Employee {
-        has @.known_languages is rw;
-        has $.favorite_editor;
+class Programmer is Employee {
+    has @.known_languages is rw;
+    has $.favorite_editor;
 
-        method code_to_solve( $problem ) {
-            return "Solving $problem using $.favorite_editor in "
-            ~ $.known_languages[0];
-        }
+    method code_to_solve( $problem ) {
+        return "Solving $problem using $.favorite_editor in "
+        ~ $.known_languages[0];
     }
-    =end code
+}
+=end code
 
 Now, any object of type Programmer can make use of the methods and accessors
 defined in the Employee class as though they were from the Programmer class.
 
-    =begin code :preamble<class Programmer {}>
-    my $programmer = Programmer.new(
-        salary => 100_000,
-        known_languages => <Perl5 Perl6 Erlang C++>,
-        favorite_editor => 'vim'
-    );
+=begin code :preamble<class Programmer {}>
+my $programmer = Programmer.new(
+    salary => 100_000,
+    known_languages => <Perl5 Perl6 Erlang C++>,
+    favorite_editor => 'vim'
+);
 
-    say $programmer.code_to_solve('halting problem'), " will get ", $programmer.salary(), "\$";
-    #OUTPUT: «Solving halting problem using vim in Perl5 will get 100000$␤»
-    =end code
+say $programmer.code_to_solve('halting problem'),
+    " will get \$ {$programmer.salary()}";
+# OUTPUT: «Solving halting problem using vim in Perl5 will get $100000␤»
+=end code
 
 =head2 Overriding inherited methods
 
 Of course, classes can override methods and attributes defined by parent
-classes by defining their own.  The example below demonstrates the C<Baker>
+classes by defining their own. The example below demonstrates the C<Baker>
 class overriding the C<Cook>'s C<cook> method.
 
-    =begin code :preamble<class Employee {}>
-    class Cook is Employee {
-        has @.utensils  is rw;
-        has @.cookbooks is rw;
+=begin code :preamble<class Employee {}>
+class Cook is Employee {
+    has @.utensils  is rw;
+    has @.cookbooks is rw;
 
-        method cook( $food ) {
-            say "Cooking $food";
-        }
-
-        method clean_utensils {
-            say "Cleaning $_" for @.utensils;
-        }
+    method cook( $food ) {
+        say "Cooking $food";
     }
 
-    class Baker is Cook {
-        method cook( $confection ) {
-            say "Baking a tasty $confection";
-        }
+    method clean_utensils {
+        say "Cleaning $_" for @.utensils;
     }
+}
 
-    my $cook = Cook.new(
-        utensils => <spoon ladle knife pan>,
-        cookbooks => 'The Joy of Cooking',
-        salary => 40000);
+class Baker is Cook {
+    method cook( $confection ) {
+        say "Baking a tasty $confection";
+    }
+}
 
-    $cook.cook( 'pizza' );       # OUTPUT: «Cooking pizza␤»
-    say $cook.utensils.perl;     # OUTPUT: «["spoon", "ladle", "knife", "pan"]␤»
-    say $cook.cookbooks.perl;    # OUTPUT: «["The Joy of Cooking"]␤»
-    say $cook.salary;            # OUTPUT: «40000␤»
+my $cook = Cook.new(
+    utensils  => <spoon ladle knife pan>,
+    cookbooks => 'The Joy of Cooking',
+    salary    => 40000
+);
 
-    my $baker = Baker.new(
-        utensils => 'self cleaning oven',
-        cookbooks => "The Baker's Apprentice",
-        salary => 50000);
+$cook.cook( 'pizza' );       # OUTPUT: «Cooking pizza␤»
+say $cook.utensils.perl;     # OUTPUT: «["spoon", "ladle", "knife", "pan"]␤»
+say $cook.cookbooks.perl;    # OUTPUT: «["The Joy of Cooking"]␤»
+say $cook.salary;            # OUTPUT: «40000␤»
 
-    $baker.cook('brioche');      # OUTPUT: «Baking a tasty brioche␤»
-    say $baker.utensils.perl;    # OUTPUT: «["self cleaning oven"]␤»
-    say $baker.cookbooks.perl;   # OUTPUT: «["The Baker's Apprentice"]␤»
-    say $baker.salary;           # OUTPUT: «50000␤»
-    =end code
+my $baker = Baker.new(
+    utensils  => 'self cleaning oven',
+    cookbooks => "The Baker's Apprentice",
+    salary    => 50000
+);
+
+$baker.cook('brioche');      # OUTPUT: «Baking a tasty brioche␤»
+say $baker.utensils.perl;    # OUTPUT: «["self cleaning oven"]␤»
+say $baker.cookbooks.perl;   # OUTPUT: «["The Baker's Apprentice"]␤»
+say $baker.salary;           # OUTPUT: «50000␤»
+=end code
 
 Because the dispatcher will see the C<cook> method on C<Baker> before it
 moves up to the parent class the C<Baker>'s C<cook> method will be called.
 
-To access methods in the inheritance chain use
+To access methods in the inheritance chain, use
 L<re-dispatch|/language/functions#Re-dispatching> or the
 L<MOP|/type/Metamodel::ClassHOW#method_can>.
 
 =head2 Multiple inheritance
 
-As mentioned before, a class can inherit from multiple classes.  When a
+As mentioned before, a class can inherit from multiple classes. When a
 class inherits from multiple classes the dispatcher knows to look at both
-classes when looking up a method to search for.  Perl 6 uses the L<C3 algorithm|https://en.wikipedia.org/wiki/C3_linearization> to linearize
+classes when looking up a method to search for. Perl 6 uses the
+L<C3 algorithm|https://en.wikipedia.org/wiki/C3_linearization> to linearize
 multiple inheritance hierarchies, which is better than depth-first search
 for handling multiple inheritance.
 
-    =begin code :preamble<class Programmer {}; class Cook {}>
-    class GeekCook is Programmer is Cook {
-        method new( *%params ) {
-            push( %params<cookbooks>, "Cooking for Geeks" );
-            return self.bless(|%params);
-        }
+=begin code :preamble<class Programmer {}; class Cook {}>
+class GeekCook is Programmer is Cook {
+    method new( *%params ) {
+        push( %params<cookbooks>, "Cooking for Geeks" );
+        return self.bless(|%params);
     }
+}
 
-    my $geek = GeekCook.new(
-        books           => 'Learning Perl 6',
-        utensils        => ('stainless steel pot', 'knife', 'calibrated oven'),
-        favorite_editor => 'MacVim',
-        known_languages => <Perl6>
-    );
+my $geek = GeekCook.new(
+    books           => 'Learning Perl 6',
+    utensils        => ('stainless steel pot', 'knife', 'calibrated oven'),
+    favorite_editor => 'MacVim',
+    known_languages => <Perl6>
+);
 
-    $geek.cook('pizza');
-    $geek.code_to_solve('P =? NP');
-    =end code
+$geek.cook('pizza');
+$geek.code_to_solve('P =? NP');
+=end code
 
 Now all the methods made available to the Programmer and the Cook classes
 are available from the GeekCook class.
@@ -741,7 +768,8 @@ it is important to understand that there are more useful OOP concepts.  When
 reaching for multiple inheritance it is good practice to consider whether
 the design wouldn't be better realized by using roles, which are generally
 safer because they force the class author to explicitly resolve conflicting
-method names.  For more information on roles see L<Roles|/language/objects#Roles>.
+method names. For more information on roles, see
+L<Roles|/language/objects#Roles>.
 
 =head2 The X<C<also>|also declarator> declarator
 
@@ -749,17 +777,21 @@ Classes to be inherited from can be listed in the class declaration body by
 prefixing the C<is> trait with C<also>. This also works for the role
 composition trait C<does>.
 
-    =begin code :preamble<class Programmer {}; class Cook {}>
-    class GeekCook {
-        also is Programmer;
-        also is Cook;
-        # ...
-    }
+=begin code :preamble<class Programmer {}; class Cook {}>
+class GeekCook {
+    also is Programmer;
+    also is Cook;
+    # ...
+}
 
-    role A {};
-    role B {};
-    class C { also does A; also does B }
-    =end code
+role A {};
+role B {};
+class C {
+    also does A;
+    also does B;
+    # ...
+}
+=end code
 
 =head1 Introspection
 
@@ -770,24 +802,27 @@ a controlling object) for some properties, such as its type.
 Given an object C<$o> and the class definitions from the previous sections,
 we can ask it a few questions:
 
-    =begin code :preamble<my $o; class Employee {}; class GeekCook {}>
-    if $o ~~ Employee { say "It's an employee" };
-    if $o ~~ GeekCook { say "It's a geeky cook" };
-    say $o.perl;
-    say $o.^methods(:local)».name.join(', ');
-    say $o.^name;
-    =end code
+=begin code :preamble<my $o; class Employee {}; class GeekCook {}>
+my Programmer $o .= new;
+if $o ~~ Employee { say "It's an employee" };
+say $o ~~ GeekCook ?? "It's a geeky cook" !! "Not a geeky cook";
+say $o.WHAT;
+say $o.perl;
+say $o.^methods(:local)».name.join(', ');
+say $o.^name;
+=end code
 
-The output can look like this:
+The output might look like this:
 
-    =begin code :lang<output>
-    It's an employee
-    (Programmer)
-    Programmer.new(known_languages => ["Perl", "Python", "Pascal"],
-            favorite_editor => "gvim", salary => "too small")
-    code_to_solve, known_languages, favorite_editor
-    Programmer
-    =end code
+=begin code :lang<output>
+It's an employee
+Not a geeky cook
+(Programmer)
+Programmer.new(known_languages => ["Perl", "Python", "Pascal"],
+        favorite_editor => "gvim", salary => "too small")
+code_to_solve, known_languages, favorite_editor
+Programmer
+=end code
 
 The first two tests each smartmatch against a class name. If the object is
 of that class, or of an inheriting class, it returns true. So the object in
@@ -800,7 +835,7 @@ C<$o>, which tells us the exact type of C<$o>: in this case C<Programmer>.
 C<$o.perl> returns a string that can be executed as Perl code, and
 reproduces the original object C<$o>. While this does not work perfectly in
 all cases, it is very useful for debugging simple objects.
-N<For example closures cannot easily be reproduced this way; if you
+N<For example, closures cannot easily be reproduced this way; if you
 don't know what a closure is don't worry. Also current implementations have
 problems with dumping cyclic data structures this way, but they are expected
 to be handled correctly by C<.perl> at some point.>
@@ -823,13 +858,13 @@ unsurprisingly returns the class name.
 
 Introspection is very useful for debugging and for learning the language
 and new libraries. When a function or method returns an object you don't
-know about, finding its type with C<.WHAT>, seeing a construction recipe for
-it with C<.perl>, and so on, you'll get a good idea of what its return value
-is. With C<.^methods> you can learn what you can do with the class.
+know about, by finding its type with C<.WHAT>, seeing a construction recipe
+for it with C<.perl>, and so on, you'll get a good idea of what its return
+value is. With C<.^methods>, you can learn what you can do with the class.
 
-But there are other applications too: a routine that serializes objects to a
-bunch of bytes needs to know the attributes of that object, which it can
-find out via introspection.
+But there are other applications too. For instance, a routine that serializes
+objects to a bunch of bytes needs to know the attributes of that object,
+which it can find out via introspection.
 
 =head2 X<Overriding default gist method>
 
@@ -837,7 +872,8 @@ Some classes might need its own version of C<gist>, which overrides the terse
 way it is printed when called to provide a default representation of the class.
 For instance, L<exceptions|/language/exceptions#Uncaught_exceptions> might want
 to write just the C<payload> and not the full object so that it is clearer what
-has happened. But you can do that with every class:
+to see what's happened. However, this isn't limited to exceptions; you can
+do that with every class:
 
 =begin code
 class Cook {
