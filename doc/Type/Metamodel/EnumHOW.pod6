@@ -22,21 +22,108 @@
         does Metamodel::Mixins
             { }
 
-C<Metamodel::EnumHOW> is the meta class behind the C<enum> keyword.
+C<Metamodel::EnumHOW> is the meta-class behind the C<enum> keyword.
 
-    enum numbers <1 2>;
-    say numbers.HOW ~~ Metamodel::EnumHOW       # OUTPUT: «True␤»
+    enum Numbers <1 2>;
+    say Numbers.HOW ~~ Metamodel::EnumHOW; # OUTPUT: «True␤»
+
+The following enum declaration:
+
+    our Int enum Error <Warning Failure Exception Sorrow Panic>;
+
+Is roughly equivalent to this code using C<Metamodel::EnumHOW>'s methods:
+
+    BEGIN {
+        my constant Error = Metamodel::EnumHOW.new_type: :name<Error>, :base_type(Int);
+        Error.^add_role: NumericEnumeration;
+        Error.^compose;
+        for <Warning Failure Exception Sorrow Panic>.kv -> Int $v, Str $k {
+            Error.^add_enum_value: $k => $v;
+            OUR::{$k} := Error.^enum_from_value: $v;
+        }
+        Error.^compose_values;
+        OUR::<Error> := Error;
+    }
 
 I<Warning>: This class is part of the Rakudo implementation, and is not a part
 of the language specification.
 
 =head1 Methods
 
+=head2 method new_type
+
+    method new_type(:$name!, :$base_type?, :$repr = 'P6opaque', :$is_mixin)
+
+Creates a new type object for an enum. C<$name> is the enum name, C<$base_type>
+is the type given when the enum is declared using a scoped declaration (if any),
+and C<$repr> is the type representation passed to the enum using the C<repr>
+trait. C<$is_mixin> is unused.
+
+=head2 method add_parent
+
+    method add_parent($obj, $parent)
+
+Sets the base type of an enum. This can only be used if no base type was passed
+to C<.new_type>.
+
+=head2 method set_export_callback
+
+    method set_export_callback($obj, $callback)
+
+Sets the enum's export callback, which is invoked when calling
+C<.compose_values>. This is called when applying the C<export> trait to an
+enum. C<$callback> should be a routine of some sort, taking no arguments, that
+handles exporting the enum's values.
+
+=head2 method export_callback
+
+    method export_callback($obj)
+
+Returns the export callback set by C<.set_export_callback>.
+
+=head2 method compose
+
+    method compose($obj, :$compiler_services)
+
+Completes a type object for an enum. This is when any roles done by the enum
+are mixed in. This needs to be called before any enum values can be added using
+C<.add_enum_value>.
+
+=head2 method is_composed
+
+    method is_composed($obj)
+
+Returns 1 if the enum is composed, otherwise returns 0.
+
+=head2 method compose_values
+
+    method compose_values($obj)
+
+Calls the export callback set by C<.set_export_callback> and removes it from
+state. This should be called after adding the enum's values using
+C<.add_enum_value>.
+
+=head2 method set_composalizer
+
+    method set_composalizer($c)
+
+Sets the composalizer for an enum, which produces a type that can be mixed in
+with another. C<$c> should be a routine of some that has the following
+signature:
+
+    :($type, $name, @enum_values)
+
+=head2 method composalizer
+
+    method composalizer($obj)
+
+Returns the composalizer set by C<.set_composalizer>.
+
 =head2 method add_enum_value
 
     method add_enum_value($obj, $value)
 
-Adds a value to this enum.
+Adds a value to this enum. C<$value> should be of type L<Pair|/type/Pair>.
 
 =head2 method enum_values
 
@@ -44,8 +131,8 @@ Adds a value to this enum.
 
 Returns the values for the enum.
 
-    enum numbers <10 20>;
-    say numbers.^enum_values;                   # OUTPUT: {10 => 0, 20 => 1}
+    enum Numbers <10 20>;
+    say Numbers.^enum_values;                   # OUTPUT: {10 => 0, 20 => 1}
 
 =head2 method elems
 
@@ -53,8 +140,8 @@ Returns the values for the enum.
 
 Returns the number of values.
 
-    enum numbers <10 20>;
-    say numbers.^elems;                         # OUTPUT: 2
+    enum Numbers <10 20>;
+    say Numbers.^elems;                         # OUTPUT: 2
 
 =head2 method enum_from_value
 
@@ -62,8 +149,8 @@ Returns the number of values.
 
 Given a value of the enum's base type, return the corresponding enum.
 
-    enum numbers <10 20>;
-    say numbers.^enum_from_value(0)             # OUTPUT: 10
+    enum Numbers <10 20>;
+    say Numbers.^enum_from_value(0);            # OUTPUT: 10
 
 =head2 method enum_value_list
 
@@ -71,7 +158,7 @@ Given a value of the enum's base type, return the corresponding enum.
 
 Returns a list of the enum values.
 
-    enum numbers <10 20>;
-    say numbers.^enum_value_list;               # OUTPUT: (10 20)
+    enum Numbers <10 20>;
+    say Numbers.^enum_value_list;               # OUTPUT: (10 20)
 
 =end pod
