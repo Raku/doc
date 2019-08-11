@@ -61,21 +61,64 @@ and L<multi line/embedded comments|
 
     say '2015-12-25'.match($regex);     # OUTPUT: «｢2015-12-25｣␤»
 
-=head1 Literals
+=head1 Literals and metacharacters
 
-The simplest use case for a regex is a match against a string literal:
+A regex describes a pattern to be matched in terms of literals and
+metacharacters. Alphanumeric characters and the underscore C<_> constitute the
+literals: these characters match themselves and nothing else. Other characters
+are metacharacters and may, as such, have a special meaning, either alone (such
+as the dot C<.>, which acts as a wildcard) or together with other characters in
+larger metasyntactic constructs (such as C«<?before ...>», which defines a
+lookahead assertion). But before looking at the metacharacters and their
+particular uses, let's explore the relation between literals and metacharacters
+in some more detail.
+
+In its simplest form a regex comprises only literals:
 
     if 'properly' ~~ / perl / {
-        say "'properly' contains 'perl'";
+        say "'properly' contains 'perl'";   # OUTPUT: «'properly' contains 'perl'␤»
     }
 
-Alphanumeric characters and the underscore _ are matched literally. All other
-characters must either be escaped with a backslash (for example, C<\:> to match
-a colon), or be within quotes:
+If you want a regex to match one or more metacharacters literally, the
+metacharacters must either be escaped using a backslash, or be quoted using
+single or double quotes.
 
-    / 'two words' /;     # matches 'two words' including the blank
-    / "a:b"       /;     # matches 'a:b' including the colon
-    / \# /;              # matches a hash character
+The backslash serves as a switch. It switches a single metacharacter into a
+literal, and vice versa:
+
+    / \# /              # matches the hash metacharacter literally
+    / \w /              # turns literal 'w' into a character class (see below)
+    /Hallelujah\!/      # matches string 'Halleluja!' incl. exclamation mark
+
+Even if a metacharacter does not (yet) have a special meaning in Perl 6,
+escaping (or quoting) it is required to ensure that the regex compiles and
+matches the character literally. This allows the clear distinction between
+literals and metacharacters to be maintained:
+
+    / \, /              # matches a literal comma ','
+    / ,  /              # !! error: a yet meaningless/unrecognized metacharacter
+                        # does not automatically match literally
+
+While an escaping backslash exerts its effect on the next individual character,
+single I<and multiple> metacharacters may be turned into literally matching
+strings by quoting them using single or double quotes:
+
+    / "abc" /           # you may quote literals like this, but it has no effect
+    / "two words" /     # quoting a space renders it significant
+    / '#!:@' /          # this regex matches the string of metacharacters '#!:@'
+
+Quoting does not turn any metacharacter into a literal, however. This is due to
+the fact that quotes allow for backslash-escapes and interpolation.
+Specifically: in single quotes, the backslash may be used to escape single
+quotes and the backslash itself; double quotes additionally enable the
+interpolation of variables, and of code blocks of the form C<{...}>:
+
+    / '\\\'' /           # matches a backslash followed by a single quote: \'
+
+    my $x = 'Hi';
+    / "$x there!" /      # matches the string 'Hi there!'
+
+    / "1 + 1 = {1+1}" /  # matches the string '1 + 1 = 2'
 
 Strings are searched left to right, so it is enough if only part of the string
 matches the regex:
