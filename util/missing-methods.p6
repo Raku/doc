@@ -15,7 +15,7 @@ use Perl6::TypeGraph;
 
 =head1 DESCRIPTION
 
-A first cut at a program to find methods in a Perl 6 implementation which
+A first cut at a program to find methods in a Raku implementation which
 have not yet been documented.
 
 At present this involves a call to C<p6doc> in order to find if the methods

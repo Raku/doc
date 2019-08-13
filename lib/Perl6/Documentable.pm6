@@ -1,6 +1,6 @@
 use URI::Escape;
 class Perl6::Documentable {
-    # Perl6::Documentable Represents a piece of Perl 6 that is documented.
+    # Perl6::Documentable Represents a piece of Raku that is documented.
     # It contains meta data about what is documented
     # (for example (kind => 'type', subkinds => ['class'], name => 'Code')
     # and in $.pod a reference to the actual documentation.

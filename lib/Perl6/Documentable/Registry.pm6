@@ -3,7 +3,7 @@ use OO::Monitors;
 use Perl6::Documentable;
 
 monitor Perl6::Documentable::Registry {
-    # Perl6::Documentable::Registry collects pieces of Perl 6 documentation
+    # Perl6::Documentable::Registry collects pieces of Raku documentation
     # in the form of Perl6::Documentable objects, and enables
     # lookups of these pieces of documentation.
     #

@@ -140,7 +140,7 @@ sub p2h($pod, $selection = 'nothing selected', :$pod-path = Nil) {
         :$head,
         :header(header-html($selection, $pod-path)),
         :footer(footer-html($pod-path)),
-        :default-title("Perl 6 Documentation"),
+        :default-title("Raku Documentation"),
         :css-url(''), # disable Pod::To::HTML's default CSS
     ;
 }
@@ -886,7 +886,7 @@ sub write-index-files($manage) {
     # sort programs index by file name to allow author control of order
     say 'Writing html/programs.html ...';
     spurt 'html/programs.html', p2h(pod-with-title(
-        'Perl 6 Programs Documentation',
+        'Raku Programs Documentation',
         pod-table($*DR.lookup('programs', :by<kind>).map({[
             pod-link(.name, .url),
             .summary
@@ -915,14 +915,14 @@ sub write-index-files($manage) {
             .summary
             ]})) ) if +@end;
         spurt 'html/language.html', p2h(pod-with-title(
-            'Perl 6 Language Documentation',
-            pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
+            'Raku Language Documentation',
+            pod-block("Tutorials, general reference, migration guides and meta pages for the Raku language."),
             @p-chunks
         ), 'language');
     } else {
         spurt 'html/language.html', p2h(pod-with-title(
-            'Perl 6 Language Documentation',
-            pod-block("Tutorials, general reference, migration guides and meta pages for the Perl 6 language."),
+            'Raku Language Documentation',
+            pod-block("Tutorials, general reference, migration guides and meta pages for the Raku language."),
             pod-table($*DR.lookup('language', :by<kind>).map({[
                 pod-link(.name, .url),
                 .summary
@@ -958,10 +958,10 @@ sub write-index-files($manage) {
 sub write-main-index(:$kind, :&summary = {Nil}) {
     say "Writing main index html/$kind.html ...";
     spurt "html/$kind.html", p2h(pod-with-title(
-        "Perl 6 {$kind.tc}s",
+        "Raku {$kind.tc}s",
         pod-block(
             'This is a list of ', pod-bold('all'), ' built-in ' ~ $kind.tc ~
-            "s that are documented here as part of the Perl 6 language. " ~
+            "s that are documented here as part of the Raku language. " ~
             "Use the above menu to narrow it down topically."
         ),
         pod-table(
@@ -984,7 +984,7 @@ sub write-sub-index(:$kind, :$category, :&summary = {Nil}) {
     say "Writing sub-index  html/$kind-$category.html ...";
     my $this-category = $category.tc eq "Exceptions" ?? "Exception" !! $category.tc;
     spurt "html/$kind-$category.html", p2h(pod-with-title(
-        "Perl 6 {$this-category} {$kind.tc}s",
+        "Raku {$this-category} {$kind.tc}s",
         pod-table($*DR.lookup($kind, :by<kind>)\
             .grep({$category ⊆ .categories})\ # XXX
             .categorize(*.name).sort(*.key)>>.value
