@@ -201,7 +201,7 @@ among which these are probably the most common:
   incorrect documentation;
   use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED)
   instead, if this is for a feature present in a compiler, but not in
-  the Perl 6 test suite.
+  the Raku test suite.
 * [`search`](https://github.com/perl6/doc/labels/search) - the search
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
