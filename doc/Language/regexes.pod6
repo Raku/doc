@@ -12,46 +12,138 @@ matching those patterns to actual text.
 
 =head1 X<Lexical conventions|quote,/ /;quote,rx;quote,m>
 
-Perl 6 has special syntax for literal regexes:
+Fundamentally, regexes are very much like subroutines: both are code objects,
+and just as you can have anonymous subs and named subs, you can have anonymous
+and named regexes.
 
-    m/abc/;         # a regex that is immediately matched against $_
-    rx/abc/;        # a Regex object
-    /abc/;          # a Regex object; shorthand version of 'rx/ /' operator
+A regex, whether anonymous or named, is represented by a L<C<Regex>|/type/Regex>
+object. The syntax for constructing anonymous and named C<Regex> objects
+differs, as do their intended uses.
 
-One difference between the C<m/ /> and C<rx/  /> forms on the one hand, and the
-C</ /> form on the other, is that C<m> and C<rx> may be followed by
-L<adverbs|/language/regexes#Adverbs>. Another difference is that the
-former forms allow delimiters other than the slash to be used:
+In short, anonymous regexes may be used anywhere where a regex is needed with
+the exception of L<C<Grammars>|/type/Grammar>, which are the domain of named
+regexes. Named regexes form the building blocks of grammars, in which they serve
+as methods (also known as 'subrules') that can be called from other regexes to
+effectively parse textual data.
 
-    m{abc};         # curly braces as delimiters
-    rx:i[abc];      # :i adverb, and square brackets as delimiters
 
-As may be inferred from the above example, the use of a colon as an alternative
-delimiter would clash with the use of adverbs; accordingly, such use of the
-colon is forbidden. Similarly, parentheses cannot be used as alternative regex
-delimiters, at least not without a space between C<m> or C<rx> and the
-opening delimiter. This is because identifiers that are immediately followed by
-parentheses are always parsed as a subroutine call. I.e. in C<rx()> the L<call
-operator|/language/operators#postcircumfix_(_)> C<()> invokes the subroutine
-C<rx>. The form C<rx ( abc )>, however, I<does> define a Regex object.
+=head2 Anonymous regex definition syntax
 
-Here's an example that illustrates the difference between the C<m/ /> and C</ />
-operators:
+An anonymous regex may be constructed in one of the following ways:
 
-    my $match;
-    $_ = "abc";
-    $match = m/.+/; say $match; say $match.^name; # OUTPUT: «｢abc｣␤Match␤»
-    $match =  /.+/; say $match; say $match.^name; # OUTPUT: «/.+/␤Regex␤»
+    rx/pattern/;          # an anonymous Regex object; 'rx' stands for 'regex'
+    /pattern/;            # an anonymous Regex object; shorthand for 'rx/.../'
 
-Whitespace in literal regexes is ignored insofar as the
-L<C<:sigspace> adverb|/language/regexes#Sigspace> is not used to make whitespace
+    regex { pattern }     # keyword-declared anonymous regex; this form is
+                          # intended for defining named regexes and is discussed
+                          # in that context in the next section
+
+The C<rx/ /> form has two advantages over the bare shorthand form C</ />.
+
+Firstly, it enables the use of delimiters other than the slash, which may be
+used to improve the readability of the regex definition:
+
+    rx{ '/tmp/'.* }       # the use of curly braces as delimiters makes this first
+    rx/ '/tmp/'.* /       # definition somewhat easier on the eyes than the second
+
+Although the choice is vast, not every character may be chosen as an alternative
+regex delimiter:
+
+=begin item
+You cannot use whitespace or alphanumeric characters as delimiters. Whitespace
+in regex definition syntax is generally optional, except where it is required to
+distinguish from function call syntax (discussed below).
+=end item
+
+=begin item
+Use of a colon as a delimiter would clash with the use of adverbs of the form
+C<:adverb>; accordingly, such use of the colon is forbidden.
+=end item
+
+=begin item
+Parentheses can be used as alternative regex delimiters, but only with a space
+between C<rx> and the opening delimiter. This is because identifiers that are
+immediately followed by parentheses are always parsed as a subroutine call. I.e.
+in C<rx()> the L<call operator|/language/operators#postcircumfix_(_)> C<()>
+invokes the subroutine C<rx>. The form C<rx ( abc )>, however, I<does> define a
+C<Regex> object.
+=end item
+
+=begin item
+The hash C<#> is not available as a delimiter, since it is parsed as the start
+of a L<comment|/language/syntax#Single-line_comments> that runs until the end of
+the line.
+=end item
+
+Secondly, the C<rx> form enables the use of
+L<regex adverbs|/language/regexes#Adverbs>, which may be placed between C<rx> and the
+opening delimiter to modify the definition of the entire regex:
+
+    rx:r:s/pattern/             # :r (:ratchet) and :s (:sigspace) adverbs, defining
+                                # a racheting regex in which whitespace is significant
+
+Although anonymous regexes are not, as such, I<named>, they may effectively be
+given a name by putting them inside a named variable, after which they can be
+referenced, e.g. direcly or by means of
+L<interpolation|/language/regexes#Regex_interpolation>:
+
+  my $regex = / k \w+ /;
+  say "Made in a low firing kiln" ~~ $regex;  # OUTPUT: ｢kiln｣
+
+  my $regex = /pottery/;
+  "Japanese pottery rocks!" ~~ / <$regex> /;  # Interpolation of $regex into /.../
+  say $/;                                     # OUTPUT: ｢pottery｣
+
+=head2 Named regex definition syntax
+
+A named regex may be constructed using the C<regex> declarator as follows:
+
+    regex R { pattern }         # a named Regex object, named 'R'
+
+Unlike with the C<rx> form, you cannot chose your preferred delimiter: curly
+braces are mandatory. In this regard it should be noted that the definition of a
+named regex using the C<regex> form is syntactically similar to the definition
+of a subroutine:
+
+    my sub   S { /pattern/ };   # definition of Sub object (returning a Regex)
+    my regex R {  pattern  };   # definition of Regex object
+
+which emphasizes the fact that a L<C<Regex>|/type/Regex> object represents code
+rather than data:
+
+    &S ~~ Code                  # OUTPUT: True
+
+    &R ~~ Code                  # OUTPUT: True
+    &R ~~ Method                # OUTPUT: True (A Regex is really a Method!)
+
+Also unlike with the C<rx> form for defining an anonymous regex, the definition
+of a named regex using the C<regex> form does not allow for adverbs to be
+inserted before the opening delimiter. Instead, adverbs that are to modify the
+entire regex pattern may be included first thing within the curly braces:
+
+    regex R { :i pattern }      # :i (:ignorecase), renders pattern case insensitive
+
+Alternatively, by way of shorthand, it is also possible (and recommended) to use
+the C<rule> and C<token> variants of the C<regex> declarator for defining a
+C<Regex> when the C<:ratchet> and C<:sigspace> adverbs are of interest:
+
+    regex R { :r pattern }      # apply :r (:ratchet) to entire pattern
+    token R { pattern }         # same thing: 'token' implies ':r'
+
+    regex R { :r :s pattern }   # apply :r (:ratchet) and :s (:sigspace) to pattern
+    rule  R { pattern }         # same thing: 'rule' implies ':r:s'
+
+
+=head2 Regex readability: whitespace and comments
+
+Whitespace in regexes is ignored insofar as the
+L<C<:sigspace>|/language/regexes#Sigspace> adverb is not used to make whitespace
 syntactically significant.
 
 In addition to whitespace, comments may be used inside of regexes to improve
-their readability and comprehensibility just as in Perl6 code in general. This
-is true for both L<single line comments|/language/syntax#Single-line_comments>
-and L<multi line/embedded comments|
-/language/syntax#Multi-line_/_embedded_comments>:
+their comprehensibility just as in code in general. This is true for both
+L<single line comments|/language/syntax#Single-line_comments> and
+L<multi line/embedded comments|/language/syntax#Multi-line_/_embedded_comments>:
 
     my $regex =  rx/ \d ** 4            #`(match the year YYYY)
                      '-'
@@ -60,6 +152,81 @@ and L<multi line/embedded comments|
                      \d ** 2 /;         # ...and the day DD
 
     say '2015-12-25'.match($regex);     # OUTPUT: «｢2015-12-25｣␤»
+
+=head2 Match syntax
+
+There are a variety of ways to match a string against a regex. Irrespective of
+the syntax chosen, a successful match results in a L<C<Match>|/type/Match>
+object. In case the match is unsuccessful, the result is L<C<Nil>|/type/Nil>. In
+either case, the result of the match operation is available via the special
+match variable L<C<$/>|/syntax/$$SOLIDUS>.
+
+The most common ways to match a string against an anonymous regex C</pattern/> or
+against a named regex C<R> include the following:
+
+=begin item
+I«Smartmatch: "string" ~~ /pattern/, "string" ~~ /<R>/»
+
+L<Smartmatching|/language/operators#index-entry-smartmatch_operator> a string
+(C<Str>) against a C<Regex> performs a regex match of the string against the
+C<Regex>:
+
+    say "Go ahead, make my day." ~~ / \w+ /;  # OUTPUT: ｢Go｣
+
+    my regex R { me|you };
+    say "You talkin' to me?" ~~ / <R> /;      # OUTPUT: «｢me｣␤ R => ｢me｣␤»
+    say "May the force be with you. ~~ &R ;   # OUTPUT: ｢you｣
+
+The different outputs of the last two statements show that these two ways of
+smartmatching against a named regex are not identical. The difference arises
+because the method call C«<R>» from within the anonymous regex C</.../> installs
+a so-called L<'named capture'|/language/regexes#Named_captures> in the C<Match>
+object, while the smartmatch against the named C<Regex> as such does not.
+=end item
+
+=begin item
+I«Explicit topic match: m/pattern/, m/<R>/»
+
+The match operator C<m/ /> immediately matches the topic variable
+L<C<$_>|/language/variables#index-entry-topic_variable> against the regex
+following the C<m>. As with the C<rx/ /> syntax for regex definitions, the match
+operator may be used with adverbs in between C<m> and the opening regex
+delimiter, and with delimiters other than the slash.
+
+Here's an example that illustrates the difference between the C<m/ /> and C</ />
+operators:
+
+    my $match;
+    $_ = "abc";
+    $match = m/.+/; say $match; say $match.^name; # OUTPUT: «｢abc｣␤Match␤»
+    $match =  /.+/; say $match; say $match.^name; # OUTPUT: «/.+/␤Regex␤»
+=end item
+
+=begin item
+I«Implicit topic match in sink and boolean contexts»
+
+In case a C<Regex> object is used in sink context, or in a context in which it
+is coerced to L<C<Bool>|/type/Bool>, the topic variable
+L<C<$_>|/language/variables#index-entry-topic_variable> is automatically matched
+against it:
+
+  $_ = "dummy string";        # Set the topic explicitly
+
+  rx/ s.* /;                  # Regex object in sink context matches automatically
+  say $/;                     # OUTPUT: ｢string｣
+
+  say $/ if rx/ d.* /;        # Regex object in boolean context matches automatically
+                              # OUTPUT: ｢dummy string｣
+=end item
+
+=begin item
+I«Match method: "string".match: /pattern/, "string".match: /<R>/»
+
+The L<C<match>|/type/Str#method_match> method is analogous to the C<m/ />
+operator discussed above. Invoking it on a string (C<Str>), with a C<Regex> as
+an argument, matches the string against the C<Regex>.
+=end item
+
 
 =head1 Literals and metacharacters
 
