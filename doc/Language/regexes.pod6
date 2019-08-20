@@ -69,15 +69,13 @@ literals: these characters match themselves and nothing else. Other characters
 act as metacharacters and may, as such, have a special meaning, either by
 themselves (such as the dot C<.>, which serves as a wildcard) or together with
 other characters in larger metasyntactic constructs (such as C«<?before ...>»,
-which defines a lookahead assertion). But before looking at metacharacters and
-their particular uses, let's first explore the relation between literals and
-metacharacters in some more detail.
+which defines a lookahead assertion).
 
 In its simplest form a regex comprises only literals:
 
-    if 'properly' ~~ / perl / {
-        say "'properly' contains 'perl'";   # OUTPUT: «'properly' contains 'perl'␤»
-    }
+    /Cześć/;           # "Hello" in Polish
+    /こんばんは/;        # "Good afternoon" in Japanese
+    /Καλησπέρα/;       # "Good evening" in Greek
 
 If you want a regex to literally match one or more characters that normally act
 as metacharacters, these characters must either be escaped using a backslash, or
@@ -93,19 +91,21 @@ literal, and vice versa:
 Even if a metacharacter does not (yet) have a special meaning in Perl 6,
 escaping (or quoting) it is required to ensure that the regex compiles and
 matches the character literally. This allows the clear distinction between
-literals and metacharacters to be maintained:
+literals and metacharacters to be maintained. So, for instance, to match a
+comma this will work:
 
     / \, /;             # matches a literal comma ','
 
+while this will fail:
 =for code :skip-test<deliberate error>
-    / ,  /;             # !! error: a yet meaningless/unrecognized metacharacter
-                        # does not automatically match literally
+/ ,  /;             # !! error: a yet meaningless/unrecognized metacharacter
+                    # does not automatically match literally
 
 While an escaping backslash exerts its effect on the next individual character,
-single I<and multiple> metacharacters may be turned into literally matching
-strings by quoting them using single or double quotes:
+both a single metacharacter and a sequence of metacharacters may be turned into
+literally matching strings by quoting them in single or double quotes:
 
-    / "abc" /;          # you may quote literals like this, but it has no effect
+    / "abc" /;          # quoting literals does not make them more literal
     / "Hallelujah!" /;  # yet, this form is generally preferred over /Hallelujah\!/
 
     / "two words" /;    # quoting a space renders it significant, so this matches
@@ -113,22 +113,27 @@ strings by quoting them using single or double quotes:
 
     / '#!:@' /;         # this regex matches the string of metacharacters '#!:@'
 
-Quoting does not turn every metacharacter into a literal, however. This is due
-to the fact that quotes allow for backslash-escapes and interpolation.
-Specifically: in single quotes, the backslash may be used to escape single
-quotes and the backslash itself; double quotes additionally enable the
-interpolation of variables, and of code blocks of the form C<{...}>:
+Quoting does not simply turn every metacharacter into a literal, however. This
+is because quotes allow for backslash-escapes and interpolation. Specifically:
+in single quotes, the backslash may be used to escape single quotes and the
+backslash itself; double quotes additionally enable the interpolation of
+variables, and of code blocks of the form C<{...}>. Hence all of this works:
 
     / '\\\'' /;          # matches a backslash followed by a single quote: \'
-
-=for code :skip-test<deliberate error>
-    / '\' /;             # !! error: this is NOT the way to literally match a
-                         # backslash because now it escapes the second quote
 
     my $x = 'Hi';
     / "$x there!" /;     # matches the string 'Hi there!'
 
     / "1 + 1 = {1+1}" /; # matches the string '1 + 1 = 2'
+
+while these examples illustrate mistakes that you will want to avoid:
+=begin code :skip-test<deliberate error>
+/ '\' /;             # !! error: this is NOT the way to literally match a
+                     # backslash because now it escapes the second quote
+
+/"Price tag $0.50"/; # !! error: "$0" is interpreted as the first positional
+                     # capture (which is Nil), not as '$0'
+=end code
 
 Strings are searched left to right, so it is enough if only part of the string
 matches the regex:
