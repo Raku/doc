@@ -6,9 +6,24 @@
 
 X<|Regular Expressions>
 
-Regular expressions, I<regexes> for short, are written in a domain-specific
-language that describes text patterns. Pattern matching is the process of
-matching those patterns to actual text.
+A I<regular expression> is a sequence of characters that defines a certain text
+pattern, typically one that one wishes to find in some large body of text.
+
+In theoretical computer science and formal language theory, regular expressions
+are used to describe so-called
+L<I<regular languages>|https://en.wikipedia.org/wiki/Regular_language>. Since
+their inception in the 1950's, practical implementations of regular expressions,
+for instance in the text search and replace functions of text editors, have outgrown
+their strict scientific definition. In acknowledgement of this, and in an attempt
+to disambiguate, a regular expression in Perl 6 is normally referred to as a
+I<regex> (from: I<reg>ular I<ex>pression), a term that is also in common use in
+other programming languages.
+
+In Perl 6, regexes are written in a 
+L<I<domain-specific language>|https://en.wikipedia.org/wiki/Domain-specific_language>,
+i.e. a sublanguage or I<slang>. This page describes this language, and explains how
+regexes can be used to search for text patterns in strings in a process called
+I<pattern matching>.
 
 =head1 X<Lexical conventions|quote,/ /;quote,rx;quote,m>
 
@@ -45,12 +60,7 @@ regex delimiter:
 =begin item
 You cannot use whitespace or alphanumeric characters as delimiters. Whitespace
 in regex definition syntax is generally optional, except where it is required to
-distinguish from function call syntax (discussed below).
-=end item
-
-=begin item
-Use of a colon as a delimiter would clash with the use of adverbs of the form
-C<:adverb>; accordingly, such use of the colon is forbidden.
+distinguish from function call syntax (discussed hereafter).
 =end item
 
 =begin item
@@ -63,7 +73,13 @@ C<Regex> object.
 =end item
 
 =begin item
-The hash C<#> is not available as a delimiter, since it is parsed as the start
+Use of a colon as a delimiter would clash with the use of
+L<adverbs|/language/regexes#Adverbs>, which take the form C<:adverb>;
+accordingly, such use of the colon is forbidden.
+=end item
+
+=begin item
+The hashmark C<#> is not available as a delimiter since it is parsed as the start
 of a L<comment|/language/syntax#Single-line_comments> that runs until the end of
 the line.
 =end item
@@ -72,13 +88,13 @@ Secondly, the C<rx> form enables the use of
 L<regex adverbs|/language/regexes#Adverbs>, which may be placed between C<rx> and the
 opening delimiter to modify the definition of the entire regex:
 
-    rx:r:s/pattern/             # :r (:ratchet) and :s (:sigspace) adverbs, defining
+    rx:r:s/pattern/;            # :r (:ratchet) and :s (:sigspace) adverbs, defining
                                 # a racheting regex in which whitespace is significant
 
 Although anonymous regexes are not, as such, I<named>, they may effectively be
 given a name by putting them inside a named variable, after which they can be
-referenced, e.g. direcly or by means of
-L<interpolation|/language/regexes#Regex_interpolation>:
+referenced, both outside of an embedding regex and from within an embedding
+regex by means of L<interpolation|/language/regexes#Regex_interpolation>:
 
   my $regex = / R \w+ /;
   say "Zen Buddists like Raku too" ~~ $regex; # OUTPUT: ｢Raku｣
@@ -110,7 +126,7 @@ rather than data:
     &R ~~ Method;               # OUTPUT: True (A Regex is really a Method!)
 
 Also unlike with the C<rx> form for defining an anonymous regex, the definition
-of a named regex using the C<regex> form does not allow for adverbs to be
+of a named regex using the C<regex> keyword does not allow for adverbs to be
 inserted before the opening delimiter. Instead, adverbs that are to modify the
 entire regex pattern may be included first thing within the curly braces:
 
@@ -128,9 +144,9 @@ C<Regex> when the C<:ratchet> and C<:sigspace> adverbs are of interest:
 
 Named regexes may be used as building blocks for other regexes, as they are
 methods that may called from within other regexes using the C«<regex-name>»
-syntax. When they are used this way, they are often referred to as 'subrules';
+syntax. When they are used this way, they are often referred to as I<subrules>;
 see for more details on their use L<here|/language/regexes#Subrules>.
-L<C<Grammars>|/type/Grammar> are the natural niche for subrules, but many common
+L<C<Grammars>|/type/Grammar> are the natural habitat of subrules, but many common
 predefined character classes are also implemented as named regexes.
 
 =head2 Regex readability: whitespace and comments
@@ -164,36 +180,41 @@ The most common ways to match a string against an anonymous regex C</pattern/> o
 against a named regex C<R> include the following:
 
 =begin item
-I«Smartmatch: "string" ~~ /pattern/, "string" ~~ /<R>/»
+I«Smartmatch: "string" ~~ /pattern/, or "string" ~~ /<R>/»
 
 L<Smartmatching|/language/operators#index-entry-smartmatch_operator> a string
-(C<Str>) against a C<Regex> performs a regex match of the string against the
-C<Regex>:
+against a C<Regex> performs a regex match of the string against the C<Regex>:
 
-    say "Go ahead, make my day." ~~ / \w+ /;  # OUTPUT: ｢Go｣
+    say "Go ahead, make my day." ~~ / \w+ /;  # OUTPUT: «｢Go｣␤»
 
     my regex R { me|you };
     say "You talkin' to me?" ~~ / <R> /;      # OUTPUT: «｢me｣␤ R => ｢me｣␤»
-    say "May the force be with you. ~~ &R ;   # OUTPUT: ｢you｣
+    say "May the force be with you. ~~ &R ;   # OUTPUT: «｢you｣␤»
 
 The different outputs of the last two statements show that these two ways of
 smartmatching against a named regex are not identical. The difference arises
-because the method call C«<R>» from within the anonymous regex C</.../> installs
+because the method call C«<R>» from within the anonymous regex C</ /> installs
 a so-called L<'named capture'|/language/regexes#Named_captures> in the C<Match>
 object, while the smartmatch against the named C<Regex> as such does not.
 =end item
 
 =begin item
-I«Explicit topic match: m/pattern/, m/<R>/»
+I«Explicit topic match: m/pattern/, or m/<R>/»
 
 The match operator C<m/ /> immediately matches the topic variable
 L<C<$_>|/language/variables#index-entry-topic_variable> against the regex
-following the C<m>. As with the C<rx/ /> syntax for regex definitions, the match
-operator may be used with adverbs in between C<m> and the opening regex
-delimiter, and with delimiters other than the slash.
+following the C<m>.
 
-Here's an example that illustrates the difference between the C<m/ /> and C</ />
-operators:
+As with the C<rx/ /> syntax for regex definitions, the match operator may be
+used with adverbs in between C<m> and the opening regex delimiter, and with
+delimiters other than the slash. However, while the C<rx/ /> syntax may only be
+used with L<I<regex adverbs>|/language/regexes#Regex_adverbs> that affect the
+compilation of the regex, the C<m/ /> syntax may additionally be used with
+L<I<matching adverbs>|/language/regexes#Matching_adverbs> that determine how the
+regex engine is to perform pattern matching.
+
+Here's an example that illustrates the primary difference between the C<m/ />
+and C</ /> syntax:
 
     my $match;
     $_ = "abc";
@@ -219,11 +240,21 @@ against it:
 =end item
 
 =begin item
-I«Match method: "string".match: /pattern/, "string".match: /<R>/»
+I«Match method: "string".match: /pattern/, or "string".match: /<R>/»
 
 The L<C<match>|/type/Str#method_match> method is analogous to the C<m/ />
-operator discussed above. Invoking it on a string (C<Str>), with a C<Regex> as
-an argument, matches the string against the C<Regex>.
+operator discussed above. Invoking it on a string, with a C<Regex> as an
+argument, matches the string against the C<Regex>. =end item
+
+=begin item
+I«Parsing grammars: grammar-name.parse($string)»
+
+Although parsing a L<Grammar|/language/grammars> involves more than just
+matching a string against a regex, this powerful regex-based text destructuring
+tool can't be left out from this overview of common pattern matching methods.
+
+If you feel that your needs exceed what simple regexes have to offer, check out this
+L<grammar tutorial>|/language/grammar_tutorial> to take regexes to the next level.
 =end item
 
 
