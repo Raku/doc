@@ -831,6 +831,8 @@ sub write-disambiguation-files() {
     for $*DR.grouped-by('name').kv -> $name is copy, $p is copy {
         print '.';
         my $pod = pod-with-title("Disambiguation for '$name'");
+
+        $pod.contents.append("These disambiguation URLs are DEPRECATED. Please don't link to them. They will be eventually deleted in the next release of the documentation");
         if ( $name ~~ "type" | "index" ) {
             $name = "«$name»";
         }
