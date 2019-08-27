@@ -76,10 +76,11 @@ sub gen_assets {
     );
     move $temp_css, 'html/css/app.css'
       or app->log->warn("Copying CSS failed: $!");
-
     mkdir "html/js" unless -d "html/js";
     move $temp_js,  'html/js/app.js'
-        or app->log->warn("Copying JS failed: $!");
+      or app->log->warn("Copying JS failed: $!");
+    chmod 0644, 'html/css/app.css', 'html/js/app.js';
+
     app->log->info('...done');
 
 }
