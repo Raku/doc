@@ -144,11 +144,9 @@ the configuration to make it work:
 
 ```
     location / {
-      try_files $uri $uri/ @rewrite;
+        try_files $uri $uri/ $uri.html /404.html;
     }
-    location @rewrite {
-      rewrite ^(.+)$ $1.html permanent;
-    }
+
 ```
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
