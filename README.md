@@ -134,6 +134,28 @@ If you have `pandoc` installed, you can also generate an ePub with
 
     $ make epub
 
+## nginx configuration
+
+Latest version of the generated documentation consists only of static HTML pages
+. All pages are generated with `.html` at the end; however, most internal links
+don't use that suffix. Most places (for instance, GitHub pages) will add it
+automatically for you. A bare server will not. This is what you have to add to
+the configuration to make it work:
+
+```
+    location / {
+      try_files $uri $uri/ @rewrite;
+    }
+    location @rewrite {
+      rewrite ^(.+)$ $1.html permanent;
+    }
+```
+
+This will rewrite the URLs for you. Equivalent configuration might have to be
+made in other servers.
+
+
+
 ---------
 
 ## Help Wanted!
