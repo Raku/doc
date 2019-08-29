@@ -133,12 +133,12 @@ install them all using:
 If you have `pandoc` installed, you can also generate an ePub with
 
     $ make epub
-	
+
 *Provisionally* and on our way to the 2.0 version, this is how you build the documentation using [documentable](https://github.com/perl6/Documentable)
 
-	make assets
-	make init-highlights
-	documentable start -a -v --highlight
+    make assets
+    make init-highlights
+    documentable start -a -v --highlight
 
 You need to do this only the first time, or (for now) when you add new files.
 
