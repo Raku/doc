@@ -6,7 +6,7 @@ requires      'File::Spec::Functions'            => '0';
 requires      'IO::Socket::SSL'                  => '2.056';
 requires      'JavaScript::Minifier::XS'         => '0.11';
 requires      'Mojo::File'                       => '0';
-requires      'Mojolicious'                      => '7.31';
+requires      'Mojolicious'                      => '== 7.31';
 requires      'Mojolicious::Lite'                => '0';
 requires      'Mojolicious::Plugin::AssetPack'   => '1.42';
 requires      'strict'                           => '0';
