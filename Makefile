@@ -16,7 +16,7 @@ USE_CATEGORIES := True
         gen-pod6-source clean-build \
 	docker-image docker-test docker-xtest docker-ctest docker-testall docker-run
 
-html: gen-pod6-source bigpage 
+html: gen-pod6-source bigpage
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \

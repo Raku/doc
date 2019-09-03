@@ -82,67 +82,48 @@ disk speed and Rakudo version, it might take a while.
 
 ## Building the HTML documentation
 
-You might want to have a copy of the documentation and run the web
-site locally yourself. In that case, install dependencies by running
-the following in the checkout directory:
+The documentation can be rendered to static HTML pages and/or served in a local
+web site.
 
-    $ zef --deps-only install .
+> These instructions are mainly for Ubuntu/Debian users. For the time being,
+> there is a known issue with Windows. If you need a local copy of the HTML
+> documentation, please download it via https://github.com/perl6docs/perl6docs.github.io
 
-If you use [`rakudobrew`](https://github.com/tadzik/rakudobrew), also run the
-following, to update the shims for installed executables:
+These are the prerrequisites you need to install to generate documentation.
 
-    $ rakudobrew rehash
+* perl 5.20 or later
+* node 10 or later.
+* graphviz.
+* [Documentable](https://github.com/perl6/Documentable).
 
-In addition to the Perl 6 dependencies, you need to have `graphviz` installed, which
-on Debian you can do by running:
+Please follow these instructions (in Ubuntu) to install them
 
-    $ sudo apt-get install graphviz
+    sudo apt install perl graphviz # perl not installed by default in 18.04
+    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    cpanm --installdeps .
+    zef install documentable
 
-To build the documentation web pages, simply run:
+> You can install perl and node any way you want, including version managers, as
+ long as they're available to run.
 
-    $ make html
+This should install all needed requisites. Then
 
-> For best results, we recommend that you use the latest released versions, specially any one after 2018.11.
-
-
-Please note that you will need to have [nodejs](https://nodejs.org)
-installed to produce HTML content with the above command, in particular
-a `node` executable should be in your `PATH`. Besides, you will need
-to have `g++` installed in order to build some of the dependencies
-that are installed with nodejs. nodejs is needed only to apply
-highlighting to the included code; if you do not want that, simply
-write
-
-    $ make html-nohighlight
-
-After the pages have been generated, you can view them on your local
-computer by starting the included `app.pl` program:
-
-    $ make run
-
-You can then view the examples documentation by pointing your web browser at
-[http://localhost:3000](http://localhost:3000).
-
-You will need at least [Mojolicious](https://metacpan.org/pod/Mojolicious)
-installed and you will need [nodejs](https://nodejs.org) to perform
-highlighting. There are also some additional modules you might need;
-install them all using:
-
-    $ cpanm --installdeps .
-
-If you have `pandoc` installed, you can also generate an ePub with
-
-    $ make epub
-
-*Provisionally* and on our way to the 2.0 version, this is how you build the documentation using [documentable](https://github.com/perl6/Documentable)
-
-    make assets
-    make init-highlights
-    documentable start -a -v --highlight
+    make assets # Generates CSS and JS from source.
+    make init-highlights # Install needed node modules for highlighting
+    documentable start -a -v --highlight # Builds cache and generates pages.
 
 You need to do this only the first time, or (for now) when you add new files.
 
     documentable update
+
+Documentation will be generated in the `html` subdirectory. You can use it
+pointing any static web server at that site, or use the development server based
+on Mojolicious using
+
+    make run
+
+This will serve the documentation in port 3000.
 
 
 ## nginx configuration
