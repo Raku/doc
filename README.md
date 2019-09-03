@@ -113,9 +113,12 @@ This should install all needed requisites. Then
     make init-highlights # Install needed node modules for highlighting
     documentable start -a -v --highlight # Builds cache and generates pages.
 
-You need to do this only the first time, or (for now) when you add new files.
+You need to do this only the first time to build the cache. When there's some
+change in the source,
 
     documentable update
+
+will re-generate only affected pages.
 
 Documentation will be generated in the `html` subdirectory. You can use it
 pointing any static web server at that site, or use the development server based
