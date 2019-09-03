@@ -107,7 +107,8 @@ Please follow these instructions (in Ubuntu) to install them
 > You can install perl and node any way you want, including version managers, as
  long as they're available to run.
 
-This should install all needed requisites. Then
+This should install all needed requisites. Then, inside the main directory of
+this repository
 
     make assets # Generates CSS and JS from source.
     make init-highlights # Install needed node modules for highlighting
