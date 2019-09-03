@@ -102,7 +102,7 @@ Please follow these instructions (in Ubuntu) to install them
     curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     sudo apt-get install -y nodejs
     cpanm --installdeps .
-    zef install documentable
+    zef install Documentable
 
 > You can install perl and node any way you want, including version managers, as
  long as they're available to run.
