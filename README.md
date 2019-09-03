@@ -107,9 +107,11 @@ Please follow these instructions (in Ubuntu) to install them
 > You can install perl and node any way you want, including version managers, as
  long as they're available to run.
 
-This should install all needed requisites. Then, inside the main directory of
-this repository
+This should install all needed requisites, now you can clone this repository
+and start building process:
 
+    git clone https://github.com/perl6/doc.git # clone the repo
+    cd doc # move to the clone of the repo
     make assets # Generates CSS and JS from source.
     make init-highlights # Install needed node modules for highlighting
     documentable start -a -v --highlight # Builds cache and generates pages.
