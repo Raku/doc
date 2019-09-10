@@ -3,7 +3,6 @@
 use v6;
 
 use Test;
-use lib 'lib';
 use Perl6::TypeGraph;
 
 my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
