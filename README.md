@@ -85,11 +85,12 @@ disk speed and Rakudo version, it might take a while.
 The documentation can be rendered to static HTML pages and/or served in a local
 web site.
 
-> These instructions are mainly for Ubuntu/Debian users. For the time being,
-> there is a known issue with Windows. If you need a local copy of the HTML
-> documentation, please download it via https://github.com/perl6docs/perl6docs.github.io
+> Building the documentation has a number of prerequisites, which is might you
+> might not want to do it yourself. However, if you need a local copy of the
+> HTML documentation, please download it by cloning
+> https://github.com/perl6docs/perl6docs.github.io
 
-These are the prerrequisites you need to install to generate documentation.
+These are the prerequisites you need to install to generate documentation.
 
 * perl 5.20 or later
 * node 10 or later.
@@ -105,7 +106,7 @@ Please follow these instructions (in Ubuntu) to install them
     zef install Documentable
 
 > You can install perl and node any way you want, including version managers, as
- long as they're available to run.
+ long as they're available to run from the command line.
 
 This should install all needed requisites, now you can clone this repository
 and start building process:
@@ -117,15 +118,15 @@ and start building process:
     documentable start -a -v --highlight # Builds cache and generates pages.
 
 You need to do this only the first time to build the cache. When there's some
-change in the source,
+change in the source (done by yourself or pulled form the repo),
 
     documentable update
 
 will re-generate only affected pages.
 
 Documentation will be generated in the `html` subdirectory. You can use it
-pointing any static web server at that site, or use the development server based
-on Mojolicious using
+pointing any static web server at that directory, or use the development server
+based on Mojolicious using
 
     make run
 
