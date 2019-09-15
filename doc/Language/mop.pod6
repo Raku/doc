@@ -1,17 +1,17 @@
 =begin pod :kind("Language") :subkind("Language") :category("fundamental")
 
-=TITLE Meta-object protocol (MOP)
+=TITLE Metaobject protocol (MOP)
 
 =SUBTITLE Introspection and the Perl 6 object system
 
 X<|MOP>
 X<|Introspection>
 
-Perl 6 is built on a meta object layer. That means that there are objects
-(the I<meta objects>) that control how various object-oriented constructs
+Perl 6 is built on a metaobject layer. That means that there are objects
+(the I<metaobjects>) that control how various object-oriented constructs
 (such as classes, roles, methods, attributes or enums) behave.
 
-The meta object has a practical benefit to the user when a normal object's type
+The metaobject has a practical benefit to the user when a normal object's type
 is needed. For example:
 
 =begin code
@@ -23,9 +23,9 @@ sub show-type($arr) {
 show-type $arr; # OUTPUT: «Array␤»
 =end code
 
-To get a more in-depth understanding of the meta object for a C<class>, here is
+To get a more in-depth understanding of the metaobject for a C<class>, here is
 an example repeated twice: once as normal declarations in Perl 6, and once
-expressed through the L<meta model|/type/Metamodel::ClassHOW>:
+expressed through the L<metamodel|/type/Metamodel::ClassHOW>:
 
     class A {
         method x() { say 42 }
@@ -44,18 +44,18 @@ corresponds to:
 (except that the declarative form is executed at compile time, and the latter
 form does not).
 
-The meta object behind an object can be obtained with C<$obj.HOW>, where HOW
+The metaobject behind an object can be obtained with C<$obj.HOW>, where HOW
 stands for Higher Order Workings (or, I<HOW the *%@$ does this work?>).
 
-Here, the calls with C<.^> are calls to the meta object, so C<A.^compose> is
+Here, the calls with C<.^> are calls to the metaobject, so C<A.^compose> is
 a shortcut for C<A.HOW.compose(A)>. The invocant is passed in the parameter
 list as well, to make it possible to support prototype-style type systems,
-where there is just one meta object (and not one meta object per type, as
+where there is just one metaobject (and not one metaobject per type, as
 standard Perl 6 does it).
 
 As the example above demonstrates, all object oriented features are
 available to the user, not just to the compiler. In fact the compiler just
-uses such calls to meta objects.
+uses such calls to metaobjects.
 
 =head1 Metamethods
 
@@ -98,7 +98,7 @@ Returns the metaclass object, as in "Higher Order Workings".
 C<HOW> returns an object of type C<Perl6::Metamodel::ClassHOW> in this case;
 objects of this type are used to build classes. The same operation on the C<&>
 sigil will return C<Perl6::Metamodel::ParametricRoleGroupHOW>. You will be
-calling this object whenever you use the C<^> syntax to access meta methods. In
+calling this object whenever you use the C<^> syntax to access metamethods. In
 fact, the code above is equivalent to C<say (&).HOW.HOW.name(&)> which is much
 more unwieldy. L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW> is part of the Rakudo implementation, so use with caution.
 
@@ -125,29 +125,28 @@ The presence of a C<Scalar> object indicates that the object is "itemized".
     say (1, 2, 3).VAR ~~ Scalar;  # OUTPUT: «False␤»
     say $(1, 2, 3).VAR ~~ Scalar; # OUTPUT: «True␤»
 
-=head1 Structure of the meta object system
+=head1 Structure of the metaobject system
 
-B<Note:> this documentation largely reflects the meta object system as
+B<Note:> this documentation largely reflects the metaobject system as
 implemented by the L<Rakudo Perl 6 compiler|https://rakudo.org/>, since the
 L<design documents|https://design.perl6.org/> are very light on details.
 
 For each type declarator keyword, such as C<class>, C<role>, C<enum>,
-C<module>, C<package>, C<grammar> or C<subset>, there is a separate meta
-class in the C<Metamodel::> namespace. (Rakudo implements them in the
+C<module>, C<package>, C<grammar> or C<subset>, there is a separate metaclass in the C<Metamodel::> namespace. (Rakudo implements them in the
 C<Perl6::Metamodel::> namespace, and then maps C<Perl6::Metamodel> to
 C<Metamodel>).
 
-Many of the these meta classes share common functionality. For example
+Many of the these metaclasses share common functionality. For example
 roles, grammars and classes can all contain methods and attributes, as well
 as being able to do roles.  This shared functionality is implemented in
-roles which are composed into the appropriate meta classes. For example
+roles which are composed into the appropriate metaclasses. For example
 L<role Metamodel::RoleContainer|/type/Metamodel::RoleContainer> implements
 the functionality that a type can hold roles and
-L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>, which is the meta class
+L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>, which is the metaclass
 behind the C<class> keyword, does this role.
 
-Most meta classes have a C<compose> method that you must call when you're done
-creating or modifying a meta object. It creates method caches, validates things
+Most metaclasses have a C<compose> method that you must call when you're done
+creating or modifying a metaobject. It creates method caches, validates things
 and so on, and weird behavior ensues if you forget to call it, so don't :-).
 
 =head2 Bootstrapping concerns
@@ -181,37 +180,37 @@ immutable. This is called I<composition>, and for syntactically declared
 types, it happens when the type declaration is fully parsed (so usually when
 the closing curly brace is parsed).
 
-If you create types through the meta-object system directly, you must call
+If you create types through the metaobject system directly, you must call
 C<.^compose> on them before they become fully functional.
 
-Most meta classes also use composition time to calculate some properties like
+Most metaclasses also use composition time to calculate some properties like
 the method resolution order, publish a method cache, and other house-keeping
 tasks. Meddling with types after they have been composed is sometimes
 possible, but usually a recipe for disaster. Don't do it.
 
 =head2 Power and responsibility
 
-The meta object protocol offers much power that regular Perl 6 code
+The metaobject protocol offers much power that regular Perl 6 code
 intentionally limits, such as calling private methods on classes that don't
 trust you, peeking into private attributes, and other things that usually
 simply aren't done.
 
-Regular Perl 6 code has many safety checks in place; not so the meta model. It
+Regular Perl 6 code has many safety checks in place; not so the metamodel. It
 is close to the underlying virtual machine, and violating the contracts with
 the VM can lead to all sorts of strange behaviors that, in normal code, would
 obviously be bugs.
 
-So be extra careful and thoughtful when writing meta types.
+So be extra careful and thoughtful when writing metatypes.
 
 =head2 Power, convenience and pitfalls
 
-The meta object protocol is designed to be powerful enough to implement the
+The metaobject protocol is designed to be powerful enough to implement the
 Perl 6 object system. This power occasionally comes at the cost of convenience.
 
 For example, when you write C<my $x = 42> and then proceed to call methods on
 C<$x>, most of these methods end up acting on the L<integer|/type/Int> 42, not
 on the L<scalar container|/type/Scalar> in which it is stored. This is a piece
-of convenience found in ordinary Perl 6. Many parts of the meta object
+of convenience found in ordinary Perl 6. Many parts of the metaobject
 protocol cannot afford to offer the convenience of automatically ignoring
 scalar containers, because they are used to implement those scalar containers
 as well. So if you write C<my $t = MyType; ... ; $t.^compose> you are
