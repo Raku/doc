@@ -22,7 +22,9 @@ my %variants = %( filehandle => 'file [\s+|\-] handle',
                   smartmatch => 'smart  [\s+|\-] match',
                   zero-width => 'zero \s+ width<!before \' joiner\'><!before \' no-break space\'>',
                   NYI        => 'niy',
-                  meta      => '<!after [ method || \$ ] \s*> meta [\s+|\-] <<',
+                  meta      => '<!after [ method || \$ || \-] \s*> meta
+[\s+|\-]
+<<',
                   precompil => 'pre \- compil',
                   semicolon => 'semi [\s+|\-] colon',
                   metadata  => 'meta [\s+|\+] data',
