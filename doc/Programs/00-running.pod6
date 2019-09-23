@@ -1,0 +1,231 @@
+=begin pod
+
+=TITLE Perl 6
+
+=SUBTITLE perl6 - the Rakudo Perl 6 Compiler's switches and environment variables
+
+=head1 SYNOPSIS
+
+=for code :lang<usage>
+ perl6 [switches] [--] [programfile] [arguments]
+
+=head1 DESCRIPTION
+
+With no arguments, enters a REPL (see --repl-mode option).
+With a "[programfile]" or the "-e" option, compiles the given program
+and, by default, also executes the compiled code.
+
+=begin code :skip-test
+
+  Option               Purpose
+  ======               ==============================================
+  -c                   check syntax only (runs BEGIN and CHECK blocks)
+  --doc                extract documentation and print it as text
+  -e program           one line of program, strict is enabled by default
+  -h, --help           display this help text
+  -n                   run program once for each line of input
+  -p                   same as -n, but also print $_ at the end of lines
+  -I path              adds the path to the module search path
+  -M module            loads the module prior to running the program
+  --target=stage       specify compilation stage to emit
+  --optimize=level     use the given level of optimization (0..3)
+  --encoding=mode      specify string encoding mode
+  -o, --output=name    specify name of output file
+  -v, --version        display version information
+  --stagestats         display time spent in the compilation stages
+  --ll-exception       display a low level backtrace on errors
+  --profile[=kind]     write profile information to an HTML file (MoarVM)
+                         instrumented - performance measurements (default)
+                         heap - record heap snapshots after every
+                                garbage collector run
+  --profile-filename=name
+                       provide a different filename for profile. Extension
+                       controls format:
+                            .json outputs in JSON
+                            .sql  outputs in SQL
+                            any other extension outputs in HTML
+  --doc=module         use Pod::To::[module] to render inline documentation
+
+  --repl-mode=interactive|non-interactive
+                       when running without "-e" or filename arguments,
+                       a REPL is started. By default, if STDIN is a TTY,
+                       "interactive" REPL is started that shows extra messages and
+                       prompts, otherwise a "non-interactive" mode is used where
+                       STDIN is read entirely and evaluated as if it were a program,
+                       without any extra output (in fact, no REPL machinery is even
+                       loaded). This option allows to bypass TTY detection and
+                       force one of the REPL modes.
+=end code
+
+Note that only boolean single-letter options may be bundled.
+
+To modify the include path, you can set the PERL6LIB environment variable:
+=begin code :lang<shell>
+PERL6LIB="lib" perl6 example.pl
+=end code
+
+The include path will be searched recursively for any modules when Rakudo is
+started. Directories that start with a dot are ignored and symlinks are
+followed.
+
+The supported values for C<--target> are:
+
+=begin table
+ Target   | Backend | Description
+ =========|=========|================================================
+ parse    |  all    |  a representation of the parse tree
+ ast      |  all    |  an abstract syntax tree (before optimizations)
+ optimize |  all    |  an abstract syntax tree (after optimizations)
+ mbc      |  MoarVM |  MoarVM byte code
+ jar      |  JVM    |  JVM archive
+=end table
+
+For C<--profile-filename>, specifying a name ending in C<.json> will write a raw JSON profile dump.
+The default if this is omitted is C<profile-I<[timestamp]>.html>.
+
+For examples, and notes about correct quoting on Windows, see L<"Perl 6 One Liners"|https://github.com/WildYorkies/Perl6-One-Liners/blob/master/README.md>.
+
+=head1 X<Environment Variables|Environment Variables>
+
+Rakudo's behavior can be tweaked by a (growing) number of environment variables; this section
+attempts to document all those currently in use.
+
+Other variables are listed in Rakudo's github wiki: L<https://github.com/rakudo/rakudo/wiki/dev-env-vars>.
+
+=head2 Module Loading
+
+=item C<RAKUDOLIB>, C<PERL6LIB> (I<Str>; C<src/core/Inc.pm>)
+
+Appends a comma-delimited list of paths to C<@INC>. C<RAKUDOLIB> is evaluated first.
+
+=defn C<RAKUDO_MODULE_DEBUG> (I<Bool>; C<src/Perl6/ModuleLoader.pm>)
+Causes the module loader to print debugging information to standard error.
+
+
+=head2 Error Message Verbosity and Strictness
+
+=defn C<RAKUDO_EXCEPTIONS_HANDLER> (I<Str>; C<src/core/Exception.pm>)
+Specifies the name of a custom exceptions handler. For example, to load and use
+C<Exceptions::JSON> class that comes with Rakudo, set this env var to C<JSON>.
+The exception handling class needs to implement method C<process> that takes
+a single positional argument: the exception object. If that method returns
+a truthy value, the exception will also be printed to the terminal, as if
+the exception handler was not specified.
+
+=defn C<RAKUDO_NO_DEPRECATIONS> (I<Bool>; C<src/core/Deprecations.pm>)
+If true, suppresses deprecation warnings triggered by the C<is DEPRECATED> trait.
+
+=defn C<RAKUDO_DEPRECATIONS_FATAL> (I<Bool>; C<src/core/Deprecations.pm>)
+If true, deprecation warnings become thrown exceptions.
+
+=defn C<RAKUDO_VERBOSE_STACKFRAME> (I<UInt>; C<src/core/Backtrace.pm>)
+Displays source code in stack frames surrounded by the specified number of lines of context.
+
+=defn C<RAKUDO_BACKTRACE_SETTING> (I<Bool>; C<src/core/Backtrace.pm>)
+Controls whether .setting files are included in backtraces.
+
+
+=head2 Affecting Precompilation
+
+=defn C<RAKUDO_PREFIX> (I<Str>; C<src/core/CompUnit/RepositoryRegistry.pm>)
+When this is set, Rakudo will look for the standard repositories (perl, vendor, site) in the
+specified directory. This is intended as an escape hatch for build-time bootstrapping issues,
+where Rakudo may be built as an unprivileged user without write access to the runtime paths
+in NQP's config.
+
+=defn C<RAKUDO_PRECOMP_DIST> (C<src/core/CompUnit/PrecompilationRepository.pm>)
+
+=defn C<RAKUDO_PRECOMP_LOADING> (C<src/core/CompUnit/PrecompilationRepository.pm>)
+
+=defn C<RAKUDO_PRECOMP_WITH> (C<src/core/CompUnit/PrecompilationRepository.pm>)
+These are internal variables for passing serialized state to precompilation jobs in child processes.
+Please do not set them manually.
+
+=head2 REPL
+
+=defn C<RAKUDO_LINE_EDITOR> (C<src/core/REPL.pm>)
+Specifies what line editor to use. Valid values are C<Linenoise>, C<Readline>, and C<none>,
+which load L<Linenoise|https://modules.perl6.org/repo/Linenoise> or
+L<Readline|https://modules.perl6.org/repo/Readline> line editors, or starts the
+default (C<none>) line editor that doesn't require any extra modules.
+
+=head2 Other
+
+=defn C<RAKUDO_ERROR_COLOR> (I<Bool>; C<src/core/Exception.pm>)
+Controls whether to emit ANSI codes for error highlighting. Defaults to true if unset, except on
+Win32.
+
+=defn C<RAKUDO_MAX_THREADS> (I<UInt>; C<src/core/ThreadPoolScheduler.pm>)
+Override the default maximum number of threads used by a thread pool. Defaults to C<16>.
+
+=defn C<RAKUDO_JDB_PORT> (I<Str>; C< src/core/CompUnit/PrecompilationRepository.pm>)
+In C<perl6-jdb-server> for setting the jdb port
+
+=defn C<RAKUDO_PRECOMP_NESTED_JDB> and C<RAKUDO_JDB_PORT> (I<Str>; C< src/core/CompUnit/PrecompilationRepository.pm>)
+C<RAKUDO_PRECOMP_NESTED_JDB> uses C<perl6-jdb-server> with increasing ports for precompilation and
+C<RAKUDO_JDB_PORT> in C<perl6-jdb-server> is for setting the jdb port.
+
+=defn C<TMPDIR>, C<TEMP>, C<TMP> (I<Str>; C<src/core/IO/Spec/>)
+The C<IO::Spec::Unix.tmpdir> method will return C<$TMPDIR> if it points to a directory with full
+access permissions for the current user, with a fallback default of C<'/tmp'>.
+
+C<IO::Spec::Cygwin> and C<IO::Spec::Win32> use more Win32-appropriate lists which also include the
+C<%TEMP%> and C<%TMP%> environment variables.
+
+=defn C<PATH>, C<Path> (I<Str>; C<src/core/IO/Spec/>)
+The C<IO::Spec::Unix.path> method splits C<$PATH> as a shell would; i.e. as a colon-separated list.
+C<IO::Spec::Cygwin> inherits this from C<IO::Spec::Unix>.
+
+C<IO::Spec::Win32.path> will read the first defined of either C<%PATH%> or C<%Path%> as a
+semicolon-delimited list.
+
+=defn C<PERL6_TEST_TIMES>, (I<Bool>; C<lib/Test.pm6>)
+
+When set to a true value will cause timing information to be printed when
+the test suite is running:
+
+=begin code :lang<shell>
+    $ PERL6_TEST_TIMES=1 perl6 -MTest -e 'plan 2; is sleep(2), Nil; nok sleep(.5)'
+    1..2
+    # between two timestamps 1 microseconds
+    ok 1 -
+    # t=2000562
+    ok 2 -
+    # t=500388
+=end code
+
+The C<# between two timestamps> is printed when C<plan> is called and
+indicates how long it takes
+just to read the clock to produce a timestamp. C<# t=> values that follow
+are printed after each test function is executed and the value represents
+the time in microseconds that elapsed from the previous timestamp (or the
+C<# between...> message).
+
+Note that if you use C<done-testing> instead of C<plan>, the C<# between...>
+message will not be displayed and the first C<# t=> value will be a C<NaN>.
+
+=defn C<PERL6_TEST_DIE_ON_FAIL>, (I<Bool>; C<lib/Test.pm6>)
+
+When set to a true value will cause the test suite to abort on first failure,
+even if there are more tests to be run:
+
+=for code :lang<shell>
+    $ PERL6_TEST_DIE_ON_FAIL=1 perl6 t/test-filename.t
+
+=defn C<RAKUDO_OPTIMIZER_DEBUG>, (I<Bool>; C<src/Perl6/Optimizer.nqp>)
+
+When set to a true value, causes to produce extra debugging output, useful for
+debugging Rakudo's static optimizer.
+
+=defn C<RAKUDO_SCHEDULER_DEBUG> and C<RAKUDO_SCHEDULER_DEBUG_STATUS>
+
+Set to enable scheduler debugging.
+
+=defn C<$*DEFAULT-READ-ELEMS>
+
+Default number of bytes or chars read by C<.readchars> and C<.Supply>
+methods in L<IO::Handle> and L<IO::CatHandle>. Defaults to
+C<65536> or the value of C<RAKUDO_DEFAULT_READ_ELEMS> environmental variable, if
+set.
+
+=end pod
