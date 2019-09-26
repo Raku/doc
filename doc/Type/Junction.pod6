@@ -156,13 +156,16 @@ a negated junction:
     }
 
 
-=head1 Failures and Exceptions
+=head1 Failures and exceptions
 
 L<Failures|/type/Failure> are just values like any other, as far as Junctions
 are concerned:
 
     my $j = +any "not a number", "42", "2.1";
-    (gather $j».take).grep(Numeric).say; # OUTPUT: «(42 2.1)␤»
+    my @list = gather for $j -> $e {
+        take $e if $e.defined;
+    }
+    @list.say; # OUTPUT: «[42 2.1]␤»
 
 Above, we've used prefix C<+> operator on a L<Junction|/type/Junction> to coerce
 the strings inside of it to L<Numeric|/type/Numeric>. Since the operator returns
@@ -170,8 +173,11 @@ a L<Failure|/type/Failure> when a L<Str|/type/Str> that doesn't
 contain a number
 gets coerced to C<Numeric>, one of the elements in the C<Junction> is a
 C<Failure>. Failures do not turn into exceptions until they are used or sunk,
- and we can L«C<.grep>|/routine/grep»
-it out. The exception I<will> be thrown, if you try to use the C<Failure> as a
+ but we can check for definedness to avoid that. That is what we do in the
+ loop that runs over the elements of the junction, adding them to a list only
+  if they are defined.
+
+The exception I<will> be thrown, if you try to use the C<Failure> as a
 value—just like as if this C<Failure> were on its own and not part of the
 C<Junction>:
 
