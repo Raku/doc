@@ -534,55 +534,54 @@ it automatically calls method C<TOP>, passing the match object as an argument.
 
 To make it clear that the argument is a match object, the example uses C<$/>
 as a parameter name to the action method, though that's just a handy
-convention, nothing intrinsic. C<$match> would have worked too. (Though using
+convention, nothing intrinsic; C<$match> would have worked too, though using
 C<$/> does give the advantage of providing C«$<capture>» as a shortcut
-for C«$/<capture>»).
+for C«$/<capture>»; we use another argument, anyway, in the action for C<TOP>.
 
 A slightly more involved example follows:
 
-    =begin code
-    grammar KeyValuePairs {
-        token TOP {
-            [<pair> \n+]*
-        }
-
-        token ws {
-            \h*
-        }
-
-        rule pair {
-            <key=.identifier> '=' <value=.identifier>
-        }
-        token identifier {
-            \w+
-        }
+=begin code
+grammar KeyValuePairs {
+    token TOP {
+        [<pair> \v+]*
     }
 
-    class KeyValuePairsActions {
-        method pair      ($/) {
-            $/.make: $<key>.made => $<value>.made
-        }
-        method identifier($/) {
-            # subroutine `make` is the same as calling .make on $/
-            make ~$/
-        }
-        method TOP ($match) {
-            # can use any variable name for parameter, not just $/
-            $match.make: $match<pair>».made
-        }
+    token pair {
+        <key=.identifier> '=' <value=.identifier>
     }
 
-    my $actions = KeyValuePairsActions;
-    my $res = KeyValuePairs.parse(q:to/EOI/, :$actions).made;
-        second=b
-        hits=42
-        perl=6
-        EOI
-
-    for @$res -> $p {
-        say "Key: $p.key()\tValue: $p.value()";
+    token identifier {
+        \w+
     }
-    =end code
+}
+
+class KeyValuePairsActions {
+    method pair      ($/) {
+        $/.make: $<key>.made => $<value>.made
+    }
+    method identifier($/) {
+        # subroutine `make` is the same as calling .make on $/
+        make ~$/
+    }
+
+    method TOP ($match) {
+        # can use any variable name for parameter, not just $/
+        $match.make: $match<pair>».made
+    }
+}
+
+
+my $actions = KeyValuePairsActions;
+my @res = KeyValuePairs.parse(q:to/EOI/, :$actions).made;
+second=b
+hits=42
+perl=6
+EOI
+
+for @res -> $p {
+    say "Key: $p.key()\tValue: $p.value()";
+}
+=end code
 
 This produces the following output:
 
@@ -593,8 +592,10 @@ Key: perl       Value: 6
 =end code
 
 Rule C<pair>, which parsed a pair separated by an equals sign, aliases the two
-calls to token C<identifier> to separate capture names to make them available
-more easily and intuitively. The corresponding action method constructs a
+calls to token C<identifier> to separate capture names so that they are
+available
+more easily and intuitively, as they will be in the corresponding Action. The
+corresponding action method constructs a
 L<Pair|/type/Pair> object, and uses the C<.made> property of the sub match
 objects. So it (like the action method C<TOP> too) exploits the fact that
 action methods for submatches are called before those of the calling/outer
