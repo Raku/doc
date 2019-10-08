@@ -609,6 +609,85 @@ Also note that C<KeyValuePairsActions> was passed as a type object to method
 C<parse>, which was possible because none of the action methods use attributes
 (which would only be available in an instance).
 
+We can extend above example by using inheritance.
+
+=begin code :skip-test<Incomplete example>
+use KeyValuePairs;
+
+unit grammar ConfigurationSets is KeyValuePairs;
+
+token TOP {
+    <configuration-element>+ %% \v
+}
+
+token configuration-element {
+    <pair>+ %% \v
+}
+
+token comment {
+    \s* '#' .+? $$
+}
+
+token pair {
+    <key=.identifier> '=' <value=.identifier> <comment>?
+}
+=end code
+
+We are sub-classing (actually, sub-grammaring) the previous example; we have
+overriden the definition of C<pair> by adding a C<comment>; the previous
+C<TOP> rule has been demoted to C<configuration-element>, and there's a new
+C<TOP> which now considers sets of configuration elements separated by
+vertical space. We can also reuse actions by subclassing the action class:
+
+=begin code :skip-test<Incomplete example>
+use KeyValuePairs;
+
+unit class ConfigurationSetsActions is KeyValuePairsActions;
+
+method configuration-element($match) {
+    $match.make: $match<pair>».made
+}
+
+method TOP ($match) {
+    my @made-elements = gather for $match<configuration-element> {
+        take $_.made
+    };
+    $match.make( @made-elements );
+
+}
+=end code
+
+All existing actions are reused, although obviously new ones have to be
+written for the new elements in the grammar, including C<TOP>. These can be
+used together from this script:
+
+=begin code :skip-test<Incomplete example>
+use ConfigurationSets;
+use ConfigurationSetsActions;
+
+my $actions = ConfigurationSetsActions;
+my $sets = ConfigurationSets.parse(q:to/EOI/, :$actions).made;
+second=b # Just a thing
+hits=42
+perl=6
+
+third=c # New one
+hits=33
+EOI
+
+for @$sets -> $set {
+    say "Element→ $set";
+}
+=end code
+
+Which will print
+
+=for code :lang<text>
+Element→ second	b hits	42 perl	6
+Element→ third	c hits	33
+
+
+
 In other cases, action methods might want to keep state in attributes. Then of
 course you must pass an instance to method parse.
 
