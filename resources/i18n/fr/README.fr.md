@@ -1,4 +1,4 @@
-# Documentation officielle de Perl 6
+# Documentation officielle de Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -9,7 +9,7 @@ C'est la documentation reconmmandée.
 
 Une commande est également disponible pour le terminal: "p6doc".
 
-(Si vous recherchez ce repository via GitHub, la plupart des fichiers ne seront pas affichés correctement car la documentation est écrite avec Pod pour Perl 6 et GitHub le considère comme Pod pour Perl 5)
+(Si vous recherchez ce repository via GitHub, la plupart des fichiers ne seront pas affichés correctement car la documentation est écrite avec Pod pour Raku et GitHub le considère comme Pod pour Perl 5)
 
 
 ## README dans d'autres langues
@@ -23,7 +23,7 @@ Une commande est également disponible pour le terminal: "p6doc".
 
 ## Installez p6doc
 
-`p6doc` est un module disponible dans l'écosystème des modules Perl 6. Utilisez la comande suivante:
+`p6doc` est un module disponible dans l'écosystème des modules Raku. Utilisez la comande suivante:
 
     $ zef install p6doc
 
@@ -60,7 +60,7 @@ Si vous utilisez [`rakudobrew`](https://github.com/tadzik/rakudobrew), exécutez
 
     $ rakudobrew rehash
 
-En plus des dépendances Perl 6, vous devez avoir `graphviz` installé, que vous pouvez installer avec la commande:
+En plus des dépendances Raku, vous devez avoir `graphviz` installé, que vous pouvez installer avec la commande:
 
     $ sudo apt-get install graphviz
 
@@ -86,7 +86,7 @@ Il y a aussi des modules supplémentaires dont vous pourriez avoir besoin, pour 
 
 ## Nous avons besoin de votre aide!
 
-Perl 6 est un très grand langage de programmation, le documenter nécessite beaucoup d'efforts.
+Raku est un très grand langage de programmation, le documenter nécessite beaucoup d'efforts.
 Toute aide est appréciée.
 
 Il y a plusieurs façons de nous aider, certaines d'entre elles sont:
@@ -105,11 +105,11 @@ Le document [CONTRIBUTING](CONTRIBUTING.md) explique comment vous pouvez commenc
 **Q:** Pourquoi la documentation n'est-elle pas incluse dans le code source CORE?<br>
 **R:** Il y a plusieurs raisons:
 
-  1. Cette documentation est destinée à être universelle par rapport à une version spécifique, elle n'est pas destinée à être une documentaion spécifique d'une implémenation spécifique de Perl 6.
+  1. Cette documentation est destinée à être universelle par rapport à une version spécifique, elle n'est pas destinée à être une documentaion spécifique d'une implémenation spécifique de Raku.
 
   2. La gestion des implémentations de Pod intégré est encore un peu irrégulière; cela évite les impacts d'execution potentiels.
 
-  3. Un Repository séparé du compte Perl 6 de GitHub encourage plus de contributeurs et éditeurs à participer.
+  3. Un Repository séparé du compte Raku de GitHub encourage plus de contributeurs et éditeurs à participer.
 
 **Q:** Dois-je inclure des méthodes provenant de superclasses ou de rôles dans la documentation?<br>
 **R:** Non. La version HTML inclut déjà cette information, et le script `p6doc` l'inclut également.

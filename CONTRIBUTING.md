@@ -43,7 +43,7 @@ in the [#perl6 IRC channel](https://perl6.org/community/irc).
 * Please use the present tense unless writing about history or upcoming events or planned features
 * Prefer [active voice](https://en.wikipedia.org/wiki/Active_voice) to the [passive voice](https://en.wikipedia.org/Passive_voice#In_English) with "by": "this is used by crafty programmers" → "crafty programmers use this"
 * Link to external resources (like Wikipedia) for topics that are not
-  directly related to Perl 6 (like the math that our routines implement).
+  directly related to Raku (like the math that our routines implement).
 * Duplicate small pieces of information rather than rely on linking.
 * Be explicit about routine signatures. If a method accepts an `*%args`,
   but treats some of them specially, list them separately.
@@ -201,7 +201,7 @@ among which these are probably the most common:
   incorrect documentation;
   use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED)
   instead, if this is for a feature present in a compiler, but not in
-  the Perl 6 test suite.
+  the Raku test suite.
 * [`search`](https://github.com/perl6/doc/labels/search) - the search
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
@@ -216,9 +216,9 @@ Assuming that you have already forked and cloned the
 you probably want to do is to build the documentation on your local
 computer. To do this you will need:
 
-  - Perl 6 (e.g., the Rakudo Perl 6 implementation)
-  - zef (the installer for third party Perl 6 modules)
-  - `Pod::To::HTML` (Perl 6 module for converting Pod 6 objects to HTML)
+  - Raku (e.g., the Rakudo Raku implementation)
+  - zef (the installer for third party Raku modules)
+  - `Pod::To::HTML` (Raku module for converting Pod 6 objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl 5 web framework; it allows you to run a web
@@ -235,7 +235,7 @@ computer. To do this you will need:
 
 #### Rakudo
 
-You need Perl 6 installed. You can install the Rakudo Perl 6 compiler by
+You need Raku installed. You can install the Rakudo Raku compiler by
 downloading the latest Rakudo Star release from
 [rakudo.org/downloads/star/](http://rakudo.org/downloads/star/).
 
@@ -243,7 +243,7 @@ downloading the latest Rakudo Star release from
 
 #### Zef
 
-[Zef](https://modules.perl6.org/repo/zef) is a Perl 6 module installer. If you
+[Zef](https://modules.perl6.org/repo/zef) is a Raku module installer. If you
 installed Rakudo Star package, it should already be there. Feel free to
 use any other module installer for the modules needed (see below).
 

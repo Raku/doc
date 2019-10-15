@@ -16,7 +16,7 @@ docs. If it happens that there's no consistency and this style guide
 does not give a recommendation, consult
 [Wikipedia's Manual of Style](https://en.wikipedia.org/wiki/Wikipedia:Manual_of_Style)
 and see if the issue is covered there. Typically, style decisions that
-work for Wikipedia can be safely used for writing Perl 6 documentation.
+work for Wikipedia can be safely used for writing Raku documentation.
 
 ## Structure
 
@@ -95,7 +95,7 @@ For examples where a particular format is required, or exact data is expected
 * Argument: what it looks like to the caller
 * Parameter: what it looks like to the function
 
-    S06: "In Perl 6 culture, we distinguish the terms parameter and argument; a
+    S06: "In Raku culture, we distinguish the terms parameter and argument; a
     parameter is the formal name that will attach to an incoming argument
     during the course of execution, while an argument is the actual value that
     will be bound to the formal parameter. The process of attaching these
@@ -122,13 +122,13 @@ term in the documentation and stick to the form that is used the most
 ### Use present tense when talking about Perl 5 features
 
 Perl 5 is still an active language, therefore instead of "In Perl 5
-this was used for ..., but in Perl 6 ..."  use a form like "In Perl 5
-this is used for ..., but in Perl 6 ..."  ('was' has been made a
+this was used for ..., but in Raku ..."  use a form like "In Perl 5
+this is used for ..., but in Raku ..."  ('was' has been made a
 present 'is').
 
 ### Prefer clear and readable variable names
 
-While Perl 6 allows all kinds of fancy characters in identifiers,
+While Raku allows all kinds of fancy characters in identifiers,
 stick to easily understandable names:
 
     my $sub; # GOOD
@@ -158,16 +158,16 @@ In the first case, the syntax is totally correct. But a list with 5
 elements need not be made lazy. The second is better, because it does
 show the intent: work with long lists that need not be filling up
 memory until they are needed. However, the last one is better because
-it includes a real use case: in the progression, Perl 6 does not need
+it includes a real use case: in the progression, Raku does not need
 to actually compute its terms until they are really needed.
 
-## Perl 5 and Perl 6
+## Perl 5 and Raku
 
 Style guidelines related to Perl *.
 
 ### Don't reference Perl 5 unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Perl 6,
+We are not expecting our users to have to know Perl 5 to learn Raku,
 so this should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
@@ -188,8 +188,8 @@ What should be documented? The primary goal of the programmatic
 documentation is to cover items that are part of the specification (the
 roast test suite)
 
-* If something is visible to users of Perl 6 and is in roast: document it.
-* If something is visible to users of Perl 6 and is not in roast:
+* If something is visible to users of Raku and is in roast: document it.
+* If something is visible to users of Raku and is not in roast:
   check with the dev team (#perl6-dev on freenode) - This might need
   have a test added (and therefore docs), or it might need to be
   hidden so users cannot see it. In general, documentation of

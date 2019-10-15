@@ -1,7 +1,7 @@
 # Squashathon HOW TO
 
 [SQUASHathons](https://github.com/rakudo/rakudo/wiki/Monthly-Bug-Squash-Day)
-happen monthly in the Perl 6 community, with every other one devoted
+happen monthly in the Raku community, with every other one devoted
 to this repository. It will help the organization of the hackathon if
 you follow these rules when participating in it.
 

@@ -1,4 +1,4 @@
-# Documentazione Ufficiale Perl 6
+# Documentazione Ufficiale Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -10,7 +10,7 @@ Il link precedente è il modo consigliato di leggere e usare la documentazione.
 Esiste uno strumento da riga di comando denominato "p6doc",
 
 (Se stai navigando questo repository via GitHub molti dei file non saranno visualizzati
-correttamente poiché la documentazione è scritta usando Pod per Perl 6 e GitHub
+correttamente poiché la documentazione è scritta usando Pod per Raku e GitHub
 lo considera invece come Pod per Perl 5 ).
 
 ## README in altri linguaggi
@@ -23,7 +23,7 @@ lo considera invece come Pod per Perl 5 ).
 
 ## Installare p6doc
 
-Lo strumento p6doc è un modulo disponibile nell'ecosistema  Perl 6.
+Lo strumento p6doc è un modulo disponibile nell'ecosistema  Raku.
 Il seguente comando
 
     $ zef install p6doc
@@ -66,7 +66,7 @@ per gli eseguibili installati:
 
     $ rakudobrew rehash
 
-Oltre alle dipendenze specifiche di  Perl 6, è necessario anche avere installato `graphviz`,
+Oltre alle dipendenze specifiche di  Raku, è necessario anche avere installato `graphviz`,
 che su sistemi Debian può essere installato con il seguente comando
 
     $ sudo apt-get install graphviz
@@ -98,7 +98,7 @@ Sono necessari anche alcuni altri moduli, tutti installabili con il comando
 
 ## Help Wanted!
 
-Perl 6 è un linguaggio vasto e documentarlo richiede molta fatica.
+Raku è un linguaggio vasto e documentarlo richiede molta fatica.
 Ogni forma di aiuto è apprezzata.
 
 Alcuni modi per aiutare il progetto includono:
@@ -125,7 +125,7 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
   1. Questa documentazione è pensata per essere universale rispetto
      a una data versione delle specifiche di linguaggio, e non necessariamente
-     legata a una specifica implementazione di  Perl 6.
+     legata a una specifica implementazione di  Raku.
   2. Le implementazioni che gestiscono Pod Embedded sono ancora
      non ottimali; e così facendo si evitano problemi di runtime.
   3. Un repository separato sull'account perl6 Github invita un maggior numero di
@@ -139,14 +139,14 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 ## Visione
 
 > I want p6doc and doc.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 feature, be it from the
+> when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
-> Perl 6 programmer.
+> Raku programmer.
 >
 >    -- moritz
 
 
-*Io voglio che p6doc e docs.perl6.org siano la prima risorssa da consultare quanto vuoi sapere qualcosa riguardo a una funzionalità di Perl 6, sia essa di linguaggio, tipo di dato o routine. Voglio che sia utile a ogni programmatore Perl 6.*
+*Io voglio che p6doc e docs.perl6.org siano la prima risorssa da consultare quanto vuoi sapere qualcosa riguardo a una funzionalità di Raku, sia essa di linguaggio, tipo di dato o routine. Voglio che sia utile a ogni programmatore Raku.*
 
 --------
 

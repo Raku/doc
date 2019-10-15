@@ -1,4 +1,4 @@
-# Documentação Oficial do Perl 6
+# Documentação Oficial do Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -9,7 +9,7 @@ Que é a versão recomendada.
 
 Também disponível uma ferramenta de linha de comando: "p6doc".
 
-(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Perl 6 Pod
+(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod
 mas o GitHub assume que são Perl 5 Pod.)
 
 ## README em outras línguas
@@ -25,7 +25,7 @@ mas o GitHub assume que são Perl 5 Pod.)
 
 ## Instalar p6doc
 
-Este módulo está disponivel no ecosistema de módulos do Perl 6. Use:
+Este módulo está disponivel no ecosistema de módulos do Raku. Use:
 
     $ zef install p6doc
 
@@ -64,7 +64,7 @@ Instale as dependências executando o siguinte no directório onde estão as fon
 
 para atualizar os links de compatibilidade de executáveis.
 
-Além das dependências de Perl 6, precisa do `graphviz` instalado. No Debian
+Além das dependências de Raku, precisa do `graphviz` instalado. No Debian
 instale usando:
 
     $ sudo apt-get install graphviz
@@ -96,7 +96,7 @@ E também outros módulos Perl 5, instalados executando:
 
 ## Precisamos de Ajuda!
 
-Perl 6 não é uma linguagem de programação pequena, e documentá-la requer bastante esforço. Qualquer ajuda é bem-vinda.
+Raku não é uma linguagem de programação pequena, e documentá-la requer bastante esforço. Qualquer ajuda é bem-vinda.
 
 Algumas maneira de nos ajudar:
 
@@ -116,11 +116,11 @@ Algumas maneira de nos ajudar:
 **R:** Várias razões:
 
   1. Esta documentação pretende ser universal com respeito a uma versão dada de uma especificacão, e não necesariamente estar
-  ligada a uma implementação específica de Perl 6.
+  ligada a uma implementação específica de Raku.
 
   2. O tratamento das implementações ao Pod 6 é inconsistente; assim se evita impactos potenciais durante a execução.
 
-  3. Um repo separado na conta do Perl 6 de GitHub convida mais contribuidores e editores a participar.
+  3. Um repo separado na conta do Raku de GitHub convida mais contribuidores e editores a participar.
 
 **P:** Eu deveria incluir os métodos das superclases ou dos roles?<br>
 **A:** Não. A versão HTML já os inclui, e o `p6doc` também.
@@ -130,7 +130,7 @@ Algumas maneira de nos ajudar:
 ## Objetivo
 
 > Quero que p6doc e docs.perl6.org se tornem o recurso número 1 para consultar quando quiser conhecer qualquer
-> característica do Perl 6, seja a linguagem ou seus tipos e rotinas. Quero que seja útil para todo programador de Perl 6.
+> característica do Raku, seja a linguagem ou seus tipos e rotinas. Quero que seja útil para todo programador de Raku.
 >
 >    -- moritz
 

@@ -1,4 +1,4 @@
-# Officiële documentatie van Perl 6
+# Officiële documentatie van Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -9,7 +9,7 @@ dit is momenteel de aanbevolen manier om de documentatie te raadplegen. Daarnaas
 van de documentatie ook een command line tool genaamd "p6doc".
 
 NOOT: Als je door deze repository bladert met behulp van GitHub, dan zullen de meeste bestanden niet correct
-worden weergegeven omdat ze zijn opgemaakt in Perl 6 Pod, terwijl GitHub ze interpreteert als Perl 5 Pod.
+worden weergegeven omdat ze zijn opgemaakt in Raku Pod, terwijl GitHub ze interpreteert als Perl 5 Pod.
 
 ## README in andere talen
 
@@ -21,7 +21,7 @@ worden weergegeven omdat ze zijn opgemaakt in Perl 6 Pod, terwijl GitHub ze int
 
 ## Het installeren van p6doc
 
-Deze module is beschikbaar via het Perl 6 module-ecosysteem. Geef het commando:
+Deze module is beschikbaar via het Raku module-ecosysteem. Geef het commando:
 
     $ zef install p6doc
 
@@ -59,7 +59,7 @@ het volgende commando nodig om de shims voor de geïnstalleerde programma's te u
 
     $ rakudobrew rehash
 
-Naast de Perl 6 dependencies dien je ook 'graphviz' geïnstalleerd te hebben; op Debian kun
+Naast de Raku dependencies dien je ook 'graphviz' geïnstalleerd te hebben; op Debian kun
 je dit bewerkstelligen met het commando:
 
     $ sudo apt-get install graphviz
@@ -94,7 +94,7 @@ nodig zou kunnen hebben kun je allemaal installeren middels het commando:
 
 ## Hulp gevraagd!
 
-Perl 6 is geen kleine taal en het documenteren ervan is dan ook een hele onderneming.
+Raku is geen kleine taal en het documenteren ervan is dan ook een hele onderneming.
 Alle hulp daarbij is van harte welkom, en wordt zeer gewaardeerd.
 
 Dit zijn enkele manieren waarop je ons zou kunnen helpen:
@@ -119,7 +119,7 @@ beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 
   1. Deze documentatie beoogt universeel te zijn ten aanzien van een
     gegeven versie van de specificatie, en is dus niet noodzakelijkerwijs
-    verbonden aan een specifieke Perl 6 implementatie.
+    verbonden aan een specifieke Raku implementatie.
   2. De verwerking van geëmbedde Pod door implementaties is vooralsnog
     niet volkomen vlekkeloos; afzonderlijke documentatie voorkomt dus
     potentiële runtime-complicaties.
@@ -135,9 +135,9 @@ beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 ## Visie
 
 > Ik wens dat p6doc en docs.perl6.org het nummer 1-naslagwerk worden dat
-> geraadpleegd kan worden wanneer je iets wilt weten over een Perl 6 feature,
+> geraadpleegd kan worden wanneer je iets wilt weten over een Raku feature,
 > of dit nu behoort tot de taal zelf, of tot de ingebouwde typen en functies.
-> Ik wil dat het van praktisch nut is voor iedere Perl 6-programmeur.
+> Ik wil dat het van praktisch nut is voor iedere Raku-programmeur.
 >
 >    -- moritz
 

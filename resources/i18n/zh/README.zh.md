@@ -1,4 +1,4 @@
-# Perl 6 官方文档
+# Raku 官方文档
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
 
@@ -31,7 +31,7 @@
 
 ## 安装 p6doc
 
-本模块可通过 Perl 6 模块生态系统获得。使用命令
+本模块可通过 Raku 模块生态系统获得。使用命令
 
     $ zef install p6doc
 
@@ -67,7 +67,7 @@
 
     $ rakudobrew rehash
 
-此外为了满足本仓库 Perl 6 代码的依赖，还需要安装 `graphviz`，在 Debian 可执行下面命令
+此外为了满足本仓库 Raku 代码的依赖，还需要安装 `graphviz`，在 Debian 可执行下面命令
 
     $ sudo apt-get install graphviz
 
@@ -97,7 +97,7 @@
 
 ## 我们需要帮助！
 
-Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会感激任何形式帮助。
+Raku 不是小语言，为它做文档需要付出很大的努力。我们会感激任何形式帮助。
 
 以下是一些帮助我们的方式：
 
@@ -117,8 +117,8 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 
 **A:** 起码有以下几点：
 
-  1. 这份文档与 Perl 6 的一份特定的语言标准相关联，
-     而不是跟某个 Perl 6 的具体实现相绑定。
+  1. 这份文档与 Raku 的一份特定的语言标准相关联，
+     而不是跟某个 Raku 的具体实现相绑定。
   2. 处理内嵌的 Pod 的功能还不太稳定，使用单独的文档仓库
      有利于避免运行时错误。
   3. 一个 perl6 GitHub 账号下的单独的仓库能吸引更多
@@ -133,9 +133,9 @@ Perl 6 不是小语言，为它做文档需要付出很大的努力。我们会
 ## 愿景
 
 > I want p6doc and docs.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 feature, be it from the
+> when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
-> Perl 6 programmer.
+> Raku programmer.
 >
 >    -- moritz
 

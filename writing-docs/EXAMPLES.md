@@ -23,13 +23,13 @@ runtime code is executed, and that a class is available if needed.
 
 ## Skipping or finessing tests
 
-While our goal is to test every example of Perl 6 in the repository, some
+While our goal is to test every example of Raku in the repository, some
 blocks are not easy to test. Here are some ways you can skip the test or
 finesse it.
 
 ### Other languages
 
-We're just testing Perl 6 here: to skip another language, use `:lang`
+We're just testing Raku here: to skip another language, use `:lang`
 
     =begin code :lang<tcl>
         puts "this is not Perl"

@@ -10,7 +10,7 @@ Dies ist die momentan empfohlene Methode diese Dokumentation zu nutzen.
 Ausserdem gibt es ein Kommandozeilen-Tool namens "p6doc".
 
 (Falls du dieses Repository via GitHub nutzt, werden die meisten
-Dateien nicht korrekt angezeigt, weil sie in Perl 6 Pod geschrieben
+Dateien nicht korrekt angezeigt, weil sie in Raku Pod geschrieben
 sind, GitHub aber Perl 5 Pod an nimmt).
 
 ## README in anderen Sprachen
@@ -23,7 +23,7 @@ sind, GitHub aber Perl 5 Pod an nimmt).
 
 ## Installation von p6doc
 
-Dieses Module ist im Perl 6 Module Ecosystem verfügbar. Verwende
+Dieses Module ist im Raku Module Ecosystem verfügbar. Verwende
 
     $ zef install p6doc
 
@@ -67,7 +67,7 @@ zu aktualisieren:
 
     $ rakudobrew rehash
 
-Zusätzlich zu den Perl 6 Abhängigkeiten musst du `graphviz`
+Zusätzlich zu den Raku Abhängigkeiten musst du `graphviz`
 installiert haben. Unter Debian kannst du dies tun mit
 
     $ sudo apt-get install graphviz
@@ -103,7 +103,7 @@ installieren.
 
 ## Wir brauchen deine Hilfe!
 
-Perl 6 ist eine umfangreiche Sprache und die Erstellung der Dokumentation erfordert einen hohen Aufwand. Wir sind dankbar für jede Hilfe.
+Raku ist eine umfangreiche Sprache und die Erstellung der Dokumentation erfordert einen hohen Aufwand. Wir sind dankbar für jede Hilfe.
 
 Hier einige Möglichkeiten, uns dabei zu unterstützen:
 
@@ -150,9 +150,9 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
 ## Vision
 
 > Ich möchte, dass p6doc and docs.perl6.org die Nr. 1 Quelle wird, die
-> du nutzen kannst, wenn du etwas wissen willst über eine Perl 6
+> du nutzen kannst, wenn du etwas wissen willst über eine Raku
 > ElementEigenschaft , sei es betreffend die Sprache, eingebaute Typen
-> oder Routinen. Ich möchte dass sie nützlich ist für jeden Perl 6
+> oder Routinen. Ich möchte dass sie nützlich ist für jeden Raku
 > Programmierer.
 >
 >    -- moritz

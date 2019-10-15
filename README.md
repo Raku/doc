@@ -1,4 +1,4 @@
-# Official Documentation of Perl 6
+# Official Documentation of Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc) [![CircleCI](https://circleci.com/gh/perl6/doc.svg?style=shield)](https://circleci.com/gh/perl6/doc/tree/master)
 
@@ -46,7 +46,7 @@ browser to http://localhost:3000 (or 31415, as the case may be).
 
 ## Install p6doc
 
-This module is available via the Perl 6 module ecosystem. Use:
+This module is available via the Raku module ecosystem. Use:
 
     $ zef install p6doc
 
@@ -54,7 +54,7 @@ to install the "binaries" and make them available in your binaries
 execution path.
 
 **Note**: Please note that, due to changes in the parsing of Pod6,
-this will fail in versions of Perl 6 older than 2018.06. Please upgrade to that
+this will fail in versions of Raku older than 2018.06. Please upgrade to that
 version, or install using `--force`.
 
 ## Use p6doc
@@ -157,7 +157,7 @@ made in other servers.
 
 ## Help Wanted!
 
-Perl 6 is not a small language, and documenting it takes a lot of effort.
+Raku is not a small language, and documenting it takes a lot of effort.
 Any help is appreciated.
 
 Here are some ways to help us:
@@ -183,7 +183,7 @@ explains briefly how to get started contributing documentation.
 
   1. This documentation is intended to be universal with
      respect to a given version of the specification,
-     and not necessarily tied to any specific Perl 6
+     and not necessarily tied to any specific Raku
      implementation.
   2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
@@ -199,9 +199,9 @@ explains briefly how to get started contributing documentation.
 ## Vision
 
 > I want p6doc and docs.perl6.org to become the No. 1 resource to consult
-> when you want to know something about a Perl 6 feature, be it from the
+> when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
-> Perl 6 programmer.
+> Raku programmer.
 >
 >    -- moritz
 
