@@ -1,4 +1,4 @@
-# Offizielle Dokumentation von Perl_6
+# Offizielle Dokumentation von Raku
 
 [![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
@@ -130,7 +130,7 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
 
   1. Diese Dokumentation sill allgemeingültig sein in Bezug zu einer
      bestimmten Version der Spezifikation und soll nicht an eine
-     spezifische Perl_6 Implementierung gebunden sein.
+     spezifische Raku Implementierung gebunden sein.
 
   2. Die Handhabung von eingebettetem Pod unterscheidet sich leicht
      zwischen verschiedenen Implementationen. Wir verhindern so
