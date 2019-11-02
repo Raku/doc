@@ -16,9 +16,9 @@ The simplest imaginable use of C<NativeCall> would look something like this:
 
 The first line imports various traits and types. The next line looks like
 a relatively ordinary Raku sub declaration—with a twist. We use the
-"native" trait in order to specify that the sub is actually defined in a
+C<native> trait in order to specify that the sub is actually defined in a
 native library. The platform-specific extension (e.g., C<.so> or C<.dll>),
-as well as any customary prefixes (e.g., 'lib') will be added for you.
+as well as any customary prefixes (e.g., C<lib>) will be added for you.
 
 The first time you call "some_argless_function", the "libsomething" will be
 loaded and the "some_argless_function" will be located in it. A call will then
@@ -26,7 +26,7 @@ be made. Subsequent calls will be faster, since the symbol handle is retained.
 
 Of course, most functions take arguments or return values—but everything else
 that you can do is just adding to this simple pattern of declaring a Raku sub,
-naming it after the symbol you want to call and marking it with the "native"
+naming it after the symbol you want to call and marking it with the C<native>
 trait.
 
 You will also need to declare and use native types. Please check
@@ -34,13 +34,13 @@ L<the native types page|/language/nativetypes> for more information.
 
 =head1 Changing names
 
-Sometimes you want the name of your Perl subroutine to be different from the
+Sometimes you want the name of your Raku subroutine to be different from the
 name used in the library you're loading.  Maybe the name is long or has
 different casing or is otherwise cumbersome within the context of the module you
 are trying to create.
 
 NativeCall provides a C<symbol> trait for you to specify the name of the native
-routine in your library that may be different from your Perl subroutine name.
+routine in your library that may be different from your Raku subroutine name.
 
 =begin code :solo
 unit module Foo;
@@ -49,9 +49,10 @@ our sub init() is native('foo') is symbol('FOO_INIT') { * }
 =end code
 
 Inside of C<libfoo> there is a routine called C<FOO_INIT> but, since we're
-creating a module called Foo and we'd rather call the routine as C<Foo::init>,
-we use the C<symbol> trait to specify the name of the symbol in C<libfoo>
-and call the subroutine whatever we want ("init" in this case).
+creating a module called C<Foo> and we'd rather call the routine as
+C<Foo::init> (instead of C<Foo::FOO_INIT>), we use the C<symbol> trait to specify
+the name of the symbol in C<libfoo> and call the subroutine whatever we want
+(C<init> in this case).
 
 =head1 Passing and returning values
 
@@ -66,7 +67,7 @@ Here, we have declared that the function takes two 32-bit integers and returns a
 32-bit integer. You can find the other types that you may pass in the
 L<native types|/language/nativetypes> page. Note that the lack of a C<returns>
 trait is used to indicate C<void> return type. Do I<not> use the C<void> type
-anywhere except in the Pointer parameterization.
+anywhere except in the C<Pointer> parameterization.
 
 For strings, there is an additional C<encoded> trait to give some extra hints on
 how to do the marshaling.
@@ -80,7 +81,7 @@ routine itself.
     use NativeCall;
     sub input_box() returns Str is encoded('utf8') is native('gui') { * }
 
-Note that a C<NULL> string pointer can be passed by passing the Str type
+Note that a C<NULL> string pointer can be passed by passing the C<Str> type
 object; a C<NULL> return will also be represented by the type object.
 
 If the C function requires the lifetime of a string to exceed the function
@@ -135,11 +136,10 @@ create an object of that class, we are creating exactly the kind of pointer
 C<clock_gettime> expects. This way, data can be transferred seamlessly to and
 from the native interface.
 
-
 =head1 Basic use of pointers
 
 When the signature of your native function needs a pointer to some native type
-(C<int32>, C<uint32>, etc.) all you need to do is declare the argument C<is rw> :
+(C<int32>, C<uint32>, etc.) all you need to do is declare the argument C<is rw>:
 
     use NativeCall;
     # C prototype is void my_version(int *major, int *minor)
@@ -148,14 +148,14 @@ When the signature of your native function needs a pointer to some native type
 
 Sometimes you need to get a pointer (for example, a library handle) back from a
 C library. You don't care about what it points to - you just need to keep hold
-of it. The Pointer type provides for this.
+of it. The C<Pointer> type provides for this.
 
     use NativeCall;
     sub Foo_init() returns Pointer is native("foo") { * }
     sub Foo_free(Pointer) is native("foo") { * }
 
 This works out OK, but you may fancy working with a type named something better
-than Pointer. It turns out that any class with the representation "CPointer"
+than C<Pointer>. It turns out that any class with the representation C<CPointer>
 can serve this role. This means you can expose libraries that work on handles
 by writing a class like this:
 
@@ -189,7 +189,7 @@ class FooHandle is repr('CPointer') {
 }
 =end code
 
-Note that the CPointer representation can do nothing more than hold a C pointer.
+Note that the C<CPointer> representation can do nothing more than hold a C pointer.
 This means that your class cannot have extra attributes. However, for simple
 libraries this may be a neat way to expose an object oriented interface to it.
 
@@ -197,18 +197,18 @@ Of course, you can always have an empty class:
 
     class DoorHandle is repr('CPointer') { }
 
-And just use the class as you would use Pointer, but with potential for
+And just use the class as you would use C<Pointer>, but with potential for
 better type safety and more readable code.
 
-Once again, type objects are used to represent NULL pointers.
+Once again, type objects are used to represent C<NULL> pointers.
 
 =head1 Function pointers
 
 C libraries can expose pointers to C functions as return values of functions and as
-members of Structures like, e.g., structs and unions.
+members of structures such as structs and unions.
 
-Example of invoking a function pointer "$fptr" returned by a function "f", using a
-signature defining the desired function parameters and return value:
+Example of invoking a function pointer C<$fptr> returned by a function C<f>,
+using a signature defining the desired function parameters and return value:
 
 =begin code :skip-test<external dependency>
 sub f() returns Pointer is native('mylib') { * }
@@ -265,7 +265,7 @@ C function and, for instance, return the actual number of items populated:
 
 In these cases it is important that the CArray has at least the number of
 elements that are going to be populated before passing it to the native
-subroutine, otherwise the C function may stomp all over Perl's memory
+subroutine, otherwise the C function may stomp all over Raku's memory
 leading to possibly unpredictable behavior:
 
 =begin code :preamble<use NativeCall; sub get_n_ints($, $) {}>
@@ -355,7 +355,7 @@ Element at position 4 is 5
 Thanks to representation polymorphism, it's possible to declare a normal looking
 Raku class that, under the hood, stores its attributes in the same way a C
 compiler would lay them out in a similar struct definition. All it takes is a
-quick use of the "repr" trait:
+quick use of the C<repr> trait:
 
     class Point is repr('CStruct') {
         has num64 $.x;
@@ -364,22 +364,22 @@ quick use of the "repr" trait:
 
 The attributes can only be of the types that NativeCall knows how to marshal into
 struct fields. Currently, structs can contain machine-sized integers, doubles,
-strings, and other NativeCall objects (CArrays, and those using the CPointer and
-CStruct reprs). Other than that, you can do the usual set of things you would with
+strings, and other NativeCall objects (C<CArray>s, and those using the C<CPointer> and
+C<CStruct> reprs). Other than that, you can do the usual set of things you would with
 a class; you could even have some of the attributes come from roles or have them
 inherited from another class. Of course, methods are completely fine too. Go wild!
 
-CStruct objects are passed to native functions by reference and native functions
-must also return CStruct objects by reference. The memory management
+C<CStruct> objects are passed to native functions by reference and native functions
+must also return C<CStruct> objects by reference. The memory management
 rules for these references are very much like the rules for arrays, though simpler
 since a struct is never resized. When you create a struct, the memory is managed for
-you and when the variable(s) pointing to the instance of a CStruct go away, the memory
-will be freed when the GC gets to it. When a CStruct-based type is used as the return
+you and when the variable(s) pointing to the instance of a C<CStruct> go away, the memory
+will be freed when the GC gets to it. When a C<CStruct>-based type is used as the return
 type of a native function, the memory is not managed for you by the GC.
 
 NativeCall currently doesn't put object members in containers, so assigning new values
-to them (with =) doesn't work. Instead, you have to bind new values to the private
-members:
+to them (with C<=>) doesn't work. Instead, you have to bind (with C<:=>) new
+values to the private members:
 
 =begin code :skip-test<continued example>
 class MyStruct is repr('CStruct') {
@@ -398,7 +398,7 @@ class MyStruct is repr('CStruct') {
 }
 =end code
 
-As you may have predicted by now, a NULL pointer is represented by the
+As you may have predicted by now, a C<NULL> pointer is represented by the
 type object of the struct type.
 
 =head2 CUnions
@@ -421,8 +421,8 @@ say nativesizeof(MyUnion.new);  # OUTPUT: «8␤»
 
 =head2 Embedding CStructs and CUnions
 
-CStructs and CUnions can be in turn referenced by—or embedded into—a
-surrounding CStruct and CUnion. To say the former we use C<has>
+C<CStruct>s and C<CUnion>s can be in turn referenced by—or embedded into—a
+surrounding C<CStruct> and C<CUnion>. To say the former we use C<has>
 as usual, and to do the latter we use the C<HAS> declarator
 instead:
 
@@ -501,7 +501,7 @@ void init_struct(a_string_and_an_int32_t *target, char *str, int32_t int32) {
 
 In this function we initialize the C structure by assigning an integer
 by value, and passing the string by reference. The function allocates
-memory that it points <char *a_string> to within the structure as it
+memory that it points C<char *a_string> to within the structure as it
 copies the string.  (Note you will also have to manage deallocation of
 the memory as well to avoid memory leaks.)
 
@@ -640,7 +640,7 @@ my $blob = Blob.new(0x22, 0x33);
 my $src = nativecast(Pointer, $blob);
 
 This C<$src> can then be used as an argument for any native function that takes
-a Pointer. The opposite, putting values pointed to by a C<Pointer> into a C<Buf>
+a C<Pointer>. The opposite, putting values pointed to by a C<Pointer> into a C<Buf>
 or using it to initialize a C<Blob> is not directly supported. You might want to
 use L<C<NativeHelpers::Blob>|https://github.com/salortiz/NativeHelpers-Blob> to
 do this kind of operations.
@@ -657,7 +657,7 @@ system.  When binding these functions via NativeCall, one needs only provide the
 equivalent signature as
 L<a constraint on the code parameter|/type/Signature#Constraining_signatures_of_Callables>.
 In the case of NativeCall, however, as of Rakudo 2019.07, a space between the
-function argument and the signature, and the colon of a normal Signature
+function argument and the signature, and the colon of a normal C<Signature>
 literal is omitted, as in:
 
     use NativeCall;
@@ -672,9 +672,9 @@ passed to callbacks.
 
 The C<native> trait accepts the library name, the full path, or a subroutine
 returning either of the two. When using the library name, the name is assumed
-to be prepended with "lib" and appended with ".so" (or just appended with
-".dll" on Windows), and will be searched for in the paths in the
-LD_LIBRARY_PATH (PATH on Windows) environment variable.
+to be prepended with C<lib> and appended with C<.so> (or just appended with
+C<.dll> on Windows), and will be searched for in the paths in the
+C<LD_LIBRARY_PATH> (C<PATH> on Windows) environment variable.
 
 =begin code :skip-test<external dependency>
 use NativeCall;
@@ -692,29 +692,31 @@ sub bar is native(LIBFOO) {*}
 sub baz is native(LIBBAR) {*}
 =end code
 
-You can also put an incomplete path like './foo' and NativeCall will automatically put
-the right extension according to the platform specification. If you wish to suppress this expansion, simply pass the string as the body of a block.
+You can also put an incomplete path like './foo' and NativeCall will
+automatically put the right extension according to the platform specification.
+If you wish to suppress this expansion, simply pass the string as the body of a
+block.
 
 =begin code :preamble<use NativeCall>
 sub bar is native({ './lib/Non Standard Naming Scheme' }) {*}
 =end code
 
-BE CAREFUL: the C<native> trait and C<constant> are evaluated at compile time. Don't write a constant
-that depends on a dynamic variable like:
+BE CAREFUL: the C<native> trait and C<constant> are evaluated at compile time.
+Don't write a constant that depends on a dynamic variable like:
 
     # WRONG:
     constant LIBMYSQL = %*ENV<P6LIB_MYSQLCLIENT> || 'mysqlclient';
 
-This will keep the value given at compile time. A module will be precompiled and C<LIBMYSQL> will
-keep the value it acquires when the module gets precompiled.
+This will keep the value given at compile time. A module will be precompiled and
+C<LIBMYSQL> will keep the value it acquires when the module gets precompiled.
 
 =head2 ABI/API version
 
-If you write C<native('foo')> NativeCall will search libfoo.so under Unix like
-system (libfoo.dynlib on OS X, foo.dll on win32). In most modern system it will
-require you or the user of your module to install the development package
+If you write C<native('foo')> NativeCall will search C<libfoo.so> under Unix like
+system (C<libfoo.dynlib> on OS X, C<foo.dll> on win32). In most modern system it
+will require you or the user of your module to install the development package
 because it's recommended to always provide an API/ABI version to a shared
-library, so libfoo.so ends often being a symbolic link provided only by a
+library, so C<libfoo.so> ends often being a symbolic link provided only by a
 development package.
 
 To avoid that, the C<native> trait allows you to specify the API/ABI version. It
@@ -731,8 +733,8 @@ BSD code does not care for Minor.)
 
 =head2 Routine
 
-The C<native> trait also accepts a C<Callable> as argument, allowing you to provide your
-own way to handle the way it will find the library file to load.
+The C<native> trait also accepts a C<Callable> as argument, allowing you to
+provide your own way to handle the way it will find the library file to load.
 
     use NativeCall;
     sub foo is native(sub {'libfoo.so.42'}) {*}
@@ -763,7 +765,7 @@ to print the home directory of the current user:
 
     say getpwuid(getuid()).pw_dir;
 
-Though of course C<$*HOME> is a much easier way :-)
+Though of course C<$*HOME> is a much easier way :-)!
 
 =head1 Exported variables
 
@@ -775,7 +777,7 @@ my $var := cglobal('libc.so.6', 'errno', int32)
 
 This code binds to C<$var> a new L<Proxy|/type/Proxy> object that
 redirects all its accesses to the integer variable named "errno" as
-exported by the "libc.so.6" library.
+exported by the C<libc.so.6> library.
 
 
 =head1 C++ support
@@ -794,7 +796,7 @@ data from native libraries.
 
     sub nativecast($target-type, $source) is export(:DEFAULT)
 
-This will I<cast> the Pointer C<$source> to an object of C<$target-type>.
+This will I<cast> the C<Pointer> C<$source> to an object of C<$target-type>.
 The source pointer will typically have been obtained from a call to a native subroutine
 that returns a pointer or as a member of a C<struct>, this may be specified as C<void *>
 in the C<C> library definition for instance, but you may also cast from a pointer to
@@ -809,9 +811,9 @@ L<Function Pointers|/language/nativecall#Function_pointers>.
 
     sub cglobal($libname, $symbol, $target-type) is export is rw
 
-This returns a L<Proxy|/type/Proxy> object that provides access to the C<extern> named C<$symbol> that
-is exposed by the specified library. The library can be specified in the same ways that
-they can be to the C<native> trait.
+This returns a L<Proxy|/type/Proxy> object that provides access to the C<extern>
+named C<$symbol> that is exposed by the specified library. The library can be
+specified in the same ways that they can be to the C<native> trait.
 
 =head2 sub nativesizeof
 
@@ -832,17 +834,26 @@ garbage collector.
 
 =head1 Examples
 
-Some specific examples, and instructions to use examples above in particular platforms.
+Some specific examples, and instructions to use examples above in particular
+platforms.
 
 =head2 PostgreSQL
 
-The PostgreSQL examples in L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/pg.p6> make use of the NativeCall library and C<is native> to use the native C<_putenv> function call in Windows.
+The PostgreSQL examples in
+L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/pg.p6> make use of
+the NativeCall library and C<is native> to use the native C<_putenv> function
+call in Windows.
 
 =head2 MySQL
 
-B<NOTE:> Please bear in mind that, under the hood, Debian has substituted MySQL with MariaDB since the Stretch version, so if you want to install MySQL, use L<MySQL APT repository|https://dev.mysql.com/downloads/repo/apt/> instead of the default repository.
+B<NOTE:> Please bear in mind that, under the hood, Debian has substituted MySQL
+with MariaDB since the Stretch version, so if you want to install MySQL, use
+L<MySQL APT repository|https://dev.mysql.com/downloads/repo/apt/> instead of the
+default repository.
 
-To use the MySQL example in L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/mysql.p6>, you'll need to install MySQL server locally; on Debian-esque systems
+To use the MySQL example in
+L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/mysql.p6>, you'll
+need to install MySQL server locally; on Debian-esque systems
 it can be installed with something like:
 
 =for code :lang<shell>
@@ -892,15 +903,14 @@ int getaddrinfo(const char *node, const char *service,
        struct addrinfo **res);
 =end code
 
-The function returns a response code 0 = success, 1 = error. The data are
+The function returns a response code 0 for success and 1 for error. The data are
 extracted from a linked list of C<addrinfo> elements, with the first element
 pointed to by C<res>.
 
-From the table of NativeCall Types we know that an C<int> is C<int32>.
+From the table of NativeCall types we know that an C<int> is C<int32>.
 We also know that a C<char *> is one of the forms C for a C C<Str>, which maps
-simply to Str.
-But C<addrinfo> is a structure, which means we
-will need to write our own Type class. However, the function declaration is
+simply to Str. But C<addrinfo> is a structure, which means we
+will need to write our own type class. However, the function declaration is
 straightforward:
 
 =begin code :method :preamble<use NativeCall;
@@ -926,11 +936,11 @@ sub getaddrinfo( Str $node, Str $service, Addrinfo $hints, Pointer $res is rw )
     { * }
 =end code
 
-Note that $res is to be written by the function, so it must be labeled as rw.
-Since the library is standard POSIX, the library name can be the Type
-definition or null.
+Note that C<$res> is to be written by the function, so it must be labeled with
+the C<is rw> trait. Since the library is standard POSIX, the library name can be
+the type definition or null.
 
-We now have to handle structure Addrinfo. The Linux Manual provides this
+We now have to handle structure C<Addrinfo>. The Linux Manual provides this
 information:
 
 =begin code :lang<C>
@@ -946,15 +956,16 @@ struct addrinfo {
            };
 =end code
 
-The C<int, char*> parts are straightforward. Some research indicates that C<socklen_t>
-can be architecture dependent, but is an unsigned integer of at least 32 bits.
-So C<socklen_t> can be mapped
-to the C<uint32> type.
+The C<int, char*> parts are straightforward. Some research indicates that
+C<socklen_t> can be architecture dependent, but is an unsigned integer of at
+least 32 bits. So C<socklen_t> can be mapped to the C<uint32> type.
 
-The complication is C<sockaddr> which differs depending on whether C<ai_socktype>
-is undefined, INET, or INET6 (a standard v4 IP address or a v6 address).
+The complication is C<sockaddr> which differs depending on whether
+C<ai_socktype> is undefined, INET, or INET6 (a standard v4 IP address or a v6
+address).
 
-So we create a Raku C<class> to map to the C C<struct addrinfo>; while we're at it, we also create another class for C<SockAddr> which is needed for it.
+So we create a Raku C<class> to map to the C C<struct addrinfo>; while we're at
+it, we also create another class for C<SockAddr> which is needed for it.
 
 =begin code
 class SockAddr is repr('CStruct') {
@@ -975,11 +986,13 @@ class Addrinfo is repr('CStruct') {
 }
 =end code
 
-The C<is rw> on the last three attributes reflects that these were defined in C to be pointers.
+The C<is rw> on the last three attributes reflects that these were defined in C
+to be pointers.
 
-The important thing here for mapping to a C C<Struct> is the structure of the state part of the class, that is the attributes.
-However, a class can have methods and C<NativeCall> does not 'touch' them for mapping to C.
-This means that we can add extra methods to the class to unpack the attributes in a more
+The important thing here for mapping to a C C<Struct> is the structure of the
+state part of the class, that is the attributes. However, a class can have
+methods and C<NativeCall> does not 'touch' them for mapping to C. This means
+that we can add extra methods to the class to unpack the attributes in a more
 readable manner, e.g.,
 
 =begin code :skip-test<should be compiled as part of Addrinfo defined above>
@@ -996,9 +1009,8 @@ node, which depends on the family of the Socket.  So we can add method
 C<address> to the Raku class that interprets the address depending on the
 family.
 
-In order to get a human readable IP address, there is the C function C<inet_ntop>
-which returns a C<char *> given
-a buffer with the C<addrinfo>.
+In order to get a human readable IP address, there is the C function
+C<inet_ntop> which returns a C<char *> given a buffer with the C<addrinfo>.
 
 Putting all these together, leads to the following program:
 
