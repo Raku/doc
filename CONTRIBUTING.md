@@ -14,7 +14,7 @@ credited under a different name, please add it to the local [CREDITS](CREDITS)
 file (or ask someone to do it for you until you have commit privileges).
 
 If you have any questions regarding contributing to this project, please ask
-in the [#perl6 IRC channel](https://perl6.org/community/irc).
+in the [#raku IRC channel](https://raku.org/community/irc).
 
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
@@ -67,7 +67,7 @@ available when writing code examples in the documentation.
 
 ## Adding a new Language document
 
-We suggest you discuss proposing a new Language document on the #perl6
+We suggest you discuss proposing a new Language document on the #raku
 channel and/or the [issues for this repository](https://github.com/perl6/doc/issues)
 before you proceed further. After you get consensus on a title, subtitle,
 section, and filename, you can add the document by following these steps:
@@ -89,7 +89,7 @@ lives in `doc/Type/X/Bind/Slice.pod6`.
 To start contributing, fork and checkout the repository, find the document
 you want to improve, commit your changes, and create a pull request. Should
 questions come up in the process feel free to ask in
-[#perl6 IRC channel](https://perl6.org/community/irc).
+[#raku IRC channel](https://raku.org/community/irc).
 
 If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
@@ -243,7 +243,7 @@ downloading the latest Rakudo Star release from
 
 #### Zef
 
-[Zef](https://modules.perl6.org/repo/zef) is a Raku module installer. If you
+[Zef](https://modules.raku.org/repo/zef) is a Raku module installer. If you
 installed Rakudo Star package, it should already be there. Feel free to
 use any other module installer for the modules needed (see below).
 
@@ -284,7 +284,7 @@ the `sass` command
 
     $ sudo apt-get install ruby-sass
 
-or the [CSS::Sass Perl 5 module](https://modules.perl6.org/repo/CSS::Sass)
+or the [CSS::Sass Perl 5 module](https://modules.raku.org/repo/CSS::Sass)
 
     $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
