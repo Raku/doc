@@ -395,43 +395,77 @@ grammar HTTPRequest {
     has Bool $.invalid;
 
     token TOP {
-        <type> <path> 'HTTP/1.1' \r\n
-        [<field> \r\n]+
-        \r\n
-        $<body>=.*
+         <type> <.ns> <path> <.ns> 'HTTP/1.1' <.crlf>
+         [ <field> <.crlf> ]+
+         <.crlf>
+         $<body>=.*
     }
 
     token type {
-        | GET | POST | OPTIONS | HEAD | PUT | DELETE | TRACE | CONNECT
-        | \S+ <.error>
+        | [ GET | POST | OPTIONS | HEAD | PUT | DELETE | TRACE | CONNECT ] <.accept>
+        | <-[\/]>+ <.error>
     }
 
     token path {
-        | '/' [[\w+]+ % \/] [\.\w+]?
-        | '*'
+        | '/' [[\w+]+ % \/] [\.\w+]? <.accept>
+        | '*' <.accept>
         | \S+ <.error>
     }
 
     token field {
-        | $<name>=\w+ : $<value>=<-[\r\n]>*
-        | <-[\r\n]>+ <.error>
+        | $<name>=\w+ <.ns> ':' <.ns> $<value>=<-crlf>* <.accept>
+        | <-crlf>+ <.error>
     }
 
     method error(--> ::?CLASS:D) {
         $!invalid = True;
         self;
     }
+
+    method accept(--> ::?CLASS:D) {
+        $!invalid = False;
+        self;
+    }
+
+    token crlf { # network new line (usually seen as "\r\n")
+        # Several internet protocols (such as HTTP, RF 2616) mandate
+        # the use of ASCII CR+LF (0x0D 0x0A) to terminate lines at
+        # the protocol level (even though, in practice, some applications
+        # tolerate single LF's).
+        # Raku, Raku grammars and strings (Str) adhere to Unicode
+        # conformance. Thus, CR+LF cannot be expressed unambiguosly
+        # as \r\n in in Raku grammars or strings (Str), as Unicode
+        # conformance requires \r\n to be interpreted as \n alone.
+        \x[0d] \x[0a]
+    }
+    token ns { # network space
+        # <ws> would consume, e.g., newlines, and \h (and \s) would accept
+        # more codepoints than just ASCII single space and the tab character.
+        [ ' ' | <[\t]> ]*
+    }
 }
 
-my $header = "MEOWS / HTTP/1.1\r\nHost: docs.raku.org\r\nsup lol\r\n\r\n";
-my $/ = HTTPRequest.parse($header);
-say $<type>.invalid;
-# OUTPUT: True
-say $<path>.invalid;
-# OUTPUT: (Bool)
-say $<field>».invalid;
-# OUTPUT: [(Bool) True]
+my $crlf = "\x[0d]\x[0a]";
+my $header = "GOT /index.html HTTP/1.1{$crlf}Host: docs.raku.org{$crlf}{$crlf}body";
+my $m = HTTPRequest.parse($header);
+say "type(\"$m.<type>\")={$m.<type>.invalid}";
+# OUTPUT: type("GOT ")=True
+say "path(\"$m.<path>\")={$m.<path>.invalid}";
+# OUTPUT: path("/index.html")=False
+say "field(\"$m.<field>[0]\")={$m.<field>[0].invalid}";
+# OUTPUT: field("Host: docs.raku.org")=False
 =end code
+
+Notes: C<$crlf> and token C«<.crlf>» are required if we want to somehow (within
+the context of this incomplete example) strictly adhere
+to HTTP/1.1 (RFC 2616). The reason is that Raku, in contrast to RFC 2616, is
+Unicode conformant, and \r\n needs to be interpreted as a sole \n,
+thus preventing the grammar to properly parse a string containing \r\n in
+the sense expected by the HTTP protocol.
+Notice how attribute C<invalid> is local to each component (e.g., the value for
+C«<type>» is C<True>, but for C«<path>» is C<False>). Notice also how we have a
+method for C<accept>, the reason being that attribute C<invalid> would be
+uninitialized (even if present) otherwise.
 
 =head2 Passing arguments into grammars
 
