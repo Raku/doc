@@ -113,8 +113,7 @@ and start building process:
 
     git clone https://github.com/perl6/doc.git # clone the repo
     cd doc # move to the clone of the repo
-    make assets # Generates CSS and JS from source.
-    make init-highlights # Install needed node modules for highlighting
+    make for-documentable # Generates CSS and JS, installs highlighting modules
     documentable start -a -v --highlight # Builds cache and generates pages.
 
 You need to do this only the first time to build the cache. When there's some
