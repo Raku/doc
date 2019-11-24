@@ -27,6 +27,8 @@ init-highlights:
 assets:
 	./app.pl assets
 
+for-documentable: init-highlights assets
+
 bigpage: gen-pod6-source
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
