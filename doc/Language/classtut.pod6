@@ -386,38 +386,27 @@ C<Str-with-ID>. Additionally, class variables declared with package scope are
 visible via their fully qualified name (FQN), while lexically scoped class
 variables are "private".
 
-=head1 Static fields?
+=head2 What about static fields?
 
-Raku has no B<static> keyword. Nevertheless, any class may declare anything
-that a module can, so making a scoped variable sounds like a good idea.
+Raku has no B<static> keyword, and attributes are exclusive to instances of
+types. Nevertheless, it is possible to imitate static fields using a stateful
+static method:
 
 =begin code
 class Singleton {
-    my Singleton $instance;
-    method new {!!!}
-    submethod instance {
-        $instance = Singleton.bless unless $instance;
-        $instance;
+    method instance(::?CLASS:U: --> ::?CLASS:D) {
+        state ::?CLASS:D $ = self.bless
     }
+
+    method new(|) { !!! }
 }
 =end code
 
-Class attributes defined by L<my|/syntax/my> or L<our|/syntax/our> may also be
-initialized when being declared, however we are implementing the Singleton
-pattern here and the object must be created during its first use. It is not 100%
-possible to predict the moment when attribute initialization will be executed,
-because it can take place during compilation, runtime or both, especially when
-importing the class using the L<use|/syntax/use> keyword.
-
-=begin code :preamble<class Foo {}; sub some_complicated_subroutine {}>
-class HaveStaticAttr {
-    my Foo $.foo = some_complicated_subroutine;
-}
-=end code
-
-Class attributes may also be declared with a secondary sigil – in a similar
-manner to instance attributes – that will generate read-only accessors if the
-attribute is to be public.
+C<Singleton> forbids creating instances of it using its C<new> method, and
+using the C<bless> method it inherits from L<Mu|/type/Mu#method_bless>,
+creates an instance of itself once its C<instance> method gets called for the
+first time, which gets set to an anonymous state variable and ends up as its
+return value.
 
 =head1 Methods
 
