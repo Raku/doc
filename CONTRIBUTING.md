@@ -1,6 +1,6 @@
 # Contributing
 
-Your patches to `perl6/doc` are very welcome, and if you want to
+Your patches to `Raku/doc` are very welcome, and if you want to
 help,
 [please read this guide](https://dev.to/jj/squashing-perl-6-documentation-bugs-one-at-a-time-4ojn) as
 well as the detailed instructions below.
@@ -68,7 +68,7 @@ available when writing code examples in the documentation.
 ## Adding a new Language document
 
 We suggest you discuss proposing a new Language document on the #raku
-channel and/or the [issues for this repository](https://github.com/perl6/doc/issues)
+channel and/or the [issues for this repository](https://github.com/Raku/doc/issues)
 before you proceed further. After you get consensus on a title, subtitle,
 section, and filename, you can add the document by following these steps:
 
@@ -192,27 +192,27 @@ to display heading numbers.
 
 ## Reporting bugs
 
-Report issues at https://github.com/perl6/doc/issues. You can
+Report issues at https://github.com/Raku/doc/issues. You can
 use
-[labels when tagging tickets](https://github.com/perl6/doc/labels),
+[labels when tagging tickets](https://github.com/Raku/doc/labels),
 among which these are probably the most common:
 
-* [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or
+* [`docs`](https://github.com/Raku/doc/labels/docs)   - missing or
   incorrect documentation;
-  use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED)
+  use [`NOTSPECCED`](https://github.com/Raku/doc/labels/NOTSPECCED)
   instead, if this is for a feature present in a compiler, but not in
   the Raku test suite.
-* [`search`](https://github.com/perl6/doc/labels/search) - the search
+* [`search`](https://github.com/Raku/doc/labels/search) - the search
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
 
 If you would like to contribute documentation or other bug fixes, please use
-[GitHub's pull requests](https://github.com/perl6/doc/pulls).
+[GitHub's pull requests](https://github.com/Raku/doc/pulls).
 
 ## Building the documentation
 
 Assuming that you have already forked and cloned the
-[perl6/doc](https://github.com/perl6/doc) repository, one of the first things
+[Raku/doc](https://github.com/Raku/doc) repository, one of the first things
 you probably want to do is to build the documentation on your local
 computer. To do this you will need:
 
@@ -318,12 +318,12 @@ You can skip all the above and just build and view documentation with these
 simple commands (if you have docker already installed):
 
     $ docker build -t perl6-doc .
-    $ docker run -p 3000:3000 -it -v `pwd`:/perl6/doc perl6-doc
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc
 
 This will build the documentation for you by default and it will take some time,
 but for subsequent use you may want to skip build part if nothing has been changed:
 
-    $ docker run -p 3000:3000 -it -v `pwd`:/perl6/doc perl6-doc ./app-start
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc ./app-start
 
 Now point your web browser to http://localhost:3000 to view the documentation.
 

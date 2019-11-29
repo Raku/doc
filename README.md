@@ -1,6 +1,6 @@
 # Official Documentation of Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc) [![CircleCI](https://circleci.com/gh/perl6/doc.svg?style=shield)](https://circleci.com/gh/perl6/doc/tree/master)
+[![Build Status](https://travis-ci.org/Raku/doc.svg?branch=master)](https://travis-ci.org/Raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/Raku/doc) [![CircleCI](https://circleci.com/gh/Raku/doc.svg?style=shield)](https://circleci.com/gh/Raku/doc/tree/master)
 
 An HTML version of this documentation can be found
 at [https://docs.perl6.org/](https://docs.perl6.org/) and also
@@ -111,7 +111,7 @@ Please follow these instructions (in Ubuntu) to install them
 This should install all needed requisites, now you can clone this repository
 and start building process:
 
-    git clone https://github.com/perl6/doc.git # clone the repo
+    git clone https://github.com/Raku/doc.git # clone the repo
     cd doc # move to the clone of the repo
     make for-documentable # Generates CSS and JS, installs highlighting modules
     documentable start -a -v --highlight # Builds cache and generates pages.
@@ -168,7 +168,7 @@ Here are some ways to help us:
  * Do a `git grep TODO` in this repository, and replace the TODO items by
    actual documentation.
 
-[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
+[Issues page](https://github.com/Raku/doc/issues) has a list of current issues and
 documentation parts that are known to be missing
 and [the CONTRIBUTING document](CONTRIBUTING.md)
 explains briefly how to get started contributing documentation.
@@ -197,7 +197,7 @@ explains briefly how to get started contributing documentation.
 
 ## Vision
 
-> I want p6doc and docs.perl6.org to become the No. 1 resource to consult
+> I want p6doc and docs.raku.org to become the No. 1 resource to consult
 > when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Raku programmer.
@@ -225,6 +225,6 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

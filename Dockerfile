@@ -24,7 +24,7 @@ RUN buildDeps='         \
     && chmod +x "$n"      \
     && n stable
 
-WORKDIR /perl6/doc
+WORKDIR /Raku/doc
 COPY . .
 RUN zef install zef && zef update && zef install --deps-only .
 

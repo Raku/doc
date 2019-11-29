@@ -80,21 +80,21 @@ docker-image:
 	docker build -t $(DOCKER_IMAGE_NAME) .
 
 docker-test: docker-image
-	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/Raku/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make test'
 
 docker-xtest: docker-image
-	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/Raku/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make xtest'
 
 docker-ctest: docker-image
-	docker run --rm -it -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
+	docker run --rm -it -v $(REPO_PATH):/Raku/doc/$(SELINUX_OPT) $(DOCKER_IMAGE_NAME) \
 		/bin/bash -c 'make ctest'
 
 docker-testall: docker-test docker-xtest docker-ctest
 
 docker-run: docker-image
-	docker run --rm -it -p $(DOCKER_HOST_PORT):3000 -v $(REPO_PATH):/perl6/doc/$(SELINUX_OPT) \
+	docker run --rm -it -p $(DOCKER_HOST_PORT):3000 -v $(REPO_PATH):/Raku/doc/$(SELINUX_OPT) \
 		$(DOCKER_IMAGE_NAME) /bin/bash -c './app-start' &
 
 clean-html:
