@@ -202,7 +202,7 @@ $.extend( $.ui.autocomplete, {
 } );
 
 function siteSearchUrl( keywords ) {
-    return 'https://www.google.com/search?q=site%3Adocs.perl6.org+' + encodeURIComponent( keywords );
+    return 'https://www.google.com/search?q=site%3Adocs.raku.org+' + encodeURIComponent( keywords );
 }
 
 /*
