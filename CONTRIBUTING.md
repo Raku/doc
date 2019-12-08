@@ -164,7 +164,7 @@ See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 To get a list of methods that are found via introspection but not found in any
 Pod6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
 directory or filepath as argument and limits the listing to the given file or
-any Pod6-files found. All methods listed in `util/ignored-methods.txt` are
+any Pod6 files found. All methods listed in `util/ignored-methods.txt` are
 ignored.
 
 ## Debug mode
