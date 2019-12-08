@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Ensure any text that isn't a code example is valid C<Pod 6>.
+Ensure any text that isn't a code example is valid C<Pod6>.
 
 =end overview
 
