@@ -1,20 +1,20 @@
 # Raku 官方文档
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-网站 [https://docs.perl6.org/](https://docs.perl6.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
+网站 [https://docs.raku.org/](https://docs.raku.org/)提供 HTML 版本的文档。目前我们推荐通过网站阅读文档。
 
 本仓库还提供命令行工具 p6doc 用于阅读文档（详见下文）。
 
 ## Docker 镜像
 
-官方文档的 Docker 镜像地址为 [`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc)。这个镜像包含了一份 Web 版本的文档，对应的端口为 3000。你可以这样运行这个镜像：
+官方文档的 Docker 镜像地址为 [`jjmerelo/raku-doc`](https://hub.docker.com/r/jjmerelo/raku-doc)。这个镜像包含了一份 Web 版本的文档，对应的端口为 3000。你可以这样运行这个镜像：
 
-    docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
+    docker run --rm -it -p 3000:3000 jjmerelo/raku-doc
 
 或者，如果你想发布到其他端口：
 
-    docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
+    docker run --rm -it -p 31415:3000 jjmerelo/raku-doc
 
 现在，可以通过浏览器访问 http://localhost:3000 （或者 31415 端口，取决于你使用了哪一个命令）。
 
@@ -41,7 +41,7 @@
 
 ## 使用 p6doc
 
-把 `perl6` 添加到 `PATH` 中后，可以使用命令
+把 `raku` 添加到 `PATH` 中后，可以使用命令
 
     $ ./bin/p6doc Str
 
@@ -107,7 +107,7 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
  * 通过 GitHub 的 issue 系统报告缺少的文档
  * 在本仓库下执行 `git grep TODO`，使用实际文档替换 TODO
 
-[Issues 页面](https://github.com/perl6/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了如何开始为文档工程作出贡献。
+[Issues 页面](https://github.com/raku/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了如何开始为文档工程作出贡献。
 
 --------
 
@@ -121,7 +121,7 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
      而不是跟某个 Raku 的具体实现相绑定。
   2. 处理内嵌的 Pod 的功能还不太稳定，使用单独的文档仓库
      有利于避免运行时错误。
-  3. 一个 perl6 GitHub 账号下的单独的仓库能吸引更多
+  3. 一个 raku GitHub 账号下的单独的仓库能吸引更多
      潜在的贡献和编辑。
 
 **Q:** 编写文档时我应该包括父类和 role 的方法吗？
@@ -132,7 +132,7 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
 
 ## 愿景
 
-> I want p6doc and docs.perl6.org to become the No. 1 resource to consult
+> I want p6doc and docs.raku.org to become the No. 1 resource to consult
 > when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Raku programmer.
@@ -156,6 +156,6 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

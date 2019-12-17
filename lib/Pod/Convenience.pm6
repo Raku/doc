@@ -131,4 +131,4 @@ sub extract-pod(IO() $file) is export {
     return nqp::atkey($handle.unit,'$=pod')[0];
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

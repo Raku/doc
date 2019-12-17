@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 
@@ -106,7 +106,7 @@ sub test-example ($eg) {
             temp $*ERR = open :w, $*SPEC.devnull;
             use nqp;
             my $*LINEPOSCACHE;
-            $has-error = not try { nqp::getcomp('perl6').parse($code) };
+            $has-error = not try { nqp::getcomp('raku').parse($code) };
             close $*OUT;
             close $*ERR;
 
@@ -131,7 +131,7 @@ sub code-blocks (IO() $file) {
         my $chunk = @chunks.pop;
         if $chunk ~~ Pod::Block::Code  {
             # Only testing Perl 6 snippets.
-            next unless $chunk.config<lang>:v eq '' | 'perl6';
+            next unless $chunk.config<lang>:v eq '' | 'raku';
 
             my $todo = False;
             if $chunk.config<skip-test> {

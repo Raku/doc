@@ -1,10 +1,10 @@
-# PERL6の公式文書
+# rakuの公式文書
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-ここにHTML版があります [https://docs.perl6.org/](https://docs.perl6.org/)。これを読むのがおすすめです。
+ここにHTML版があります [https://docs.raku.org/](https://docs.raku.org/)。これを読むのがおすすめです。
 
 また、"p6doc"と呼ばれるコマンドラインツールがあります。
 
@@ -21,7 +21,7 @@
 
 ## p6docの使用
 
-`PATH`にRakudo `perl6`が入った状態で、
+`PATH`にRakudo `raku`が入った状態で、
 
     $ ./bin/p6doc Str
 
@@ -92,7 +92,7 @@ Rakuは小さな言語ではありません。したがって、この言語の�
  * GithubでISSUEを開いて抜けている文書についてメンテナーに報告する
  *  `git grep TODO` コマンドをこのリポジトリで実行し、TODOになっている事項を実際の文書に置き換える
 
-[Issues page](https://github.com/perl6/doc/issues) には現在のissueと足りない文書が掲載されています。
+[Issues page](https://github.com/raku/doc/issues) には現在のissueと足りない文書が掲載されています。
 また、 [the CONTRIBUTING document](CONTRIBUTING.md)
 にはどうやって文書作成に貢献したらよいのか簡潔に述べられています。
 
@@ -117,7 +117,7 @@ Rakuは小さな言語ではありません。したがって、この言語の�
 
 ## ビジョン
 
-> Rakuの機能について調べているときにp6docとdocs.perl6.orgがこの世界で一番の情報源になってほしい。
+> Rakuの機能について調べているときにp6docとdocs.raku.orgがこの世界で一番の情報源になってほしい。
 > それは言語自体においても、組み込みの型においても、ルーチンにおいてもそうであってほしい。
 > この文書がすべてのRakuプログラマーにとって便利なものになってほしい。
 >    -- moritz
@@ -142,6 +142,6 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

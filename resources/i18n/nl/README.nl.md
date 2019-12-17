@@ -1,10 +1,10 @@
 # Officiële documentatie van Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-Een HTML-versie van deze documentatie is te vinden onder [https://docs.perl6.org/](https://docs.perl6.org/);
+Een HTML-versie van deze documentatie is te vinden onder [https://docs.raku.org/](https://docs.raku.org/);
 dit is momenteel de aanbevolen manier om de documentatie te raadplegen. Daarnaast bestaat er voor het raadplegen
 van de documentatie ook een command line tool genaamd "p6doc".
 
@@ -29,7 +29,7 @@ om het p6doc programma te installeren, en het beschikbaar te maken via het zoekp
 
 ## Het gebruik van p6doc
 
-Geef, met een uitvoerbaar Rakudo `perl6` bestand in het zoekpad `PATH`, het commando:
+Geef, met een uitvoerbaar Rakudo `raku` bestand in het zoekpad `PATH`, het commando:
 
     $ ./bin/p6doc Str
 
@@ -106,7 +106,7 @@ Dit zijn enkele manieren waarop je ons zou kunnen helpen:
  * Doe een `git grep TODO` in deze repository, en vervang de TODO items door daadwerkelijke documentatie.
 
 
-De [issues pagina](https://github.com/perl6/doc/issues) bevat een lijst van openstaande issues evenals een overzicht
+De [issues pagina](https://github.com/raku/doc/issues) bevat een lijst van openstaande issues evenals een overzicht
 van documentatieonderdelen waarvan bekend is dat ze ontbreken. Het [CONTRIBUTING dokument](CONTRIBUTING.md) legt
 beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 
@@ -123,7 +123,7 @@ beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
   2. De verwerking van geëmbedde Pod door implementaties is vooralsnog
     niet volkomen vlekkeloos; afzonderlijke documentatie voorkomt dus
     potentiële runtime-complicaties.
-  3. Een aparte repository onder de perl6 GitHub-account werkt drempelverlagend,
+  3. Een aparte repository onder de raku GitHub-account werkt drempelverlagend,
     en nodigt meer mensen uit bij te dragen en teksten te bewerken.
 
 **Q:** Kan ik ook bijdragen door methoden van superklassen of rollen op te nemen?<br>
@@ -134,7 +134,7 @@ beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 
 ## Visie
 
-> Ik wens dat p6doc en docs.perl6.org het nummer 1-naslagwerk worden dat
+> Ik wens dat p6doc en docs.raku.org het nummer 1-naslagwerk worden dat
 > geraadpleegd kan worden wanneer je iets wilt weten over een Raku feature,
 > of dit nu behoort tot de taal zelf, of tot de ingebouwde typen en functies.
 > Ik wil dat het van praktisch nut is voor iedere Raku-programmeur.
@@ -161,6 +161,6 @@ De betreffende bestanden vermelden het auteursrecht en de licentievoorwaarden aa
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

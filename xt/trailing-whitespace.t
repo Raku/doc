@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 use Test;
@@ -36,4 +36,4 @@ for @files -> $file {
     ok $ok, "$error: Must not have any trailing whitespace.";
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

@@ -3,8 +3,8 @@
 [![Build Status](https://travis-ci.org/Raku/doc.svg?branch=master)](https://travis-ci.org/Raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/Raku/doc) [![CircleCI](https://circleci.com/gh/Raku/doc.svg?style=shield)](https://circleci.com/gh/Raku/doc/tree/master)
 
 An HTML version of this documentation can be found
-at [https://docs.perl6.org/](https://docs.perl6.org/) and also
-at [`perl6docs.github.io`](https://perl6docs.github.io) (which is
+at [https://docs.raku.org/](https://docs.raku.org/) and also
+at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
 actually updated more frequently).
 This is currently the recommended way to consume the documentation.
 
@@ -12,22 +12,22 @@ There is also a command line tool called `p6doc`, which you can use to
 browse the documentation once it's installed (see below).
 
 This documentation is updated frequently to a GitHub mirror
-https://perl6docs.github.io but that might be out of sync with the
+https://rakudocs.github.io but that might be out of sync with the
 official one.
 
 ## Docker container
 
 This documentation is also published as
 the
-[`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc) Docker
+[`jjmerelo/raku-doc`](https://hub.docker.com/r/jjmerelo/raku-doc) Docker
 container. It includes a copy of the web published on port 3000, so you
 can run it with:
 
-    docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
+    docker run --rm -it -p 3000:3000 jjmerelo/raku-doc
 
 or
 
-    docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
+    docker run --rm -it -p 31415:3000 jjmerelo/raku-doc
 
 in case you want it published somewhere else. You can direct your
 browser to http://localhost:3000 (or 31415, as the case may be).
@@ -59,7 +59,7 @@ version, or install using `--force`.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try:
+With a Rakudo `raku` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
@@ -88,14 +88,14 @@ web site.
 > Building the documentation has a number of prerequisites, which is might you
 > might not want to do it yourself. However, if you need a local copy of the
 > HTML documentation, please download it by cloning
-> https://github.com/perl6docs/perl6docs.github.io
+> https://github.com/rakudocs/rakudocs.github.io
 
 These are the prerequisites you need to install to generate documentation.
 
 * perl 5.20 or later
 * node 10 or later.
 * graphviz.
-* [Documentable](https://github.com/perl6/Documentable).
+* [Documentable](https://github.com/raku/Documentable).
 
 Please follow these instructions (in Ubuntu) to install them
 
@@ -186,7 +186,7 @@ explains briefly how to get started contributing documentation.
      implementation.
   2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the perl6 Github account invites
+  3. A separate repo in the raku Github account invites
      more potential contributors and editors.
 
 **Q:** Should I include methods from superclasses or roles?<br>

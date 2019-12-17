@@ -1,7 +1,7 @@
 use Pod::To::Text;
 class Pod::To::SectionFilter {
     method render(@pod) {
-        my $search_for = %*ENV<PERL6_POD_HEADING> // die 'env var missing';
+        my $search_for = %*ENV<raku_POD_HEADING> // die 'env var missing';
         my @blocks := @pod[0].contents;
         my $from;
         my $heading-level;
@@ -25,4 +25,4 @@ class Pod::To::SectionFilter {
     }
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

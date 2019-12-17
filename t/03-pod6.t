@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 use lib 'lib';
@@ -15,4 +15,4 @@ plan 1;
 is @pod-only-files.elems, 0, "no .pod files, only .pod6" ;
 
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

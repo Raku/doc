@@ -19,14 +19,14 @@ RUN buildDeps='         \
     && rm -rf /var/lib/apt/lists/* \
                                    \
     && cpanm -vn Mojolicious  \
-    && zef install zef && zef update && zef install Test::META Perl6::TypeGraph \
+    && zef install zef && zef update && zef install Test::META raku::TypeGraph \
                               \
     && n=/usr/local/bin/n \
     && curl -fsSL https://raw.githubusercontent.com/tj/n/master/bin/n > "$n" \
     && chmod +x "$n"      \
     && n stable
 
-WORKDIR /perl6/doc
+WORKDIR /raku/doc
 EXPOSE  3000
 
 CMD make test && make html && ./app-start

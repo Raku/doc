@@ -47,7 +47,7 @@ Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
-`https://docs.perl6.org/blah/blah`). Other variations of the URL will
+`https://docs.raku.org/blah/blah`). Other variations of the URL will
 still work, for convenience, but they all simply redirect to the
 canonical version, so it's best to use it from the start.
 
@@ -114,7 +114,7 @@ objects.
 
 Be consistent when using this kind of constructs. Generally, the form
 with no dash or space is preferred.  As of
-[issue 2015](https://github.com/perl6/doc/issues/2015) the term must
+[issue 2015](https://github.com/raku/doc/issues/2015) the term must
 be written without spaces between words. When in doubt, search for the
 term in the documentation and stick to the form that is used the most
 (and create an issue to change the form that is not).
@@ -135,7 +135,7 @@ stick to easily understandable names:
     my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
 
 If you want to add some fancy characters, please stick to
-[well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
+[well-known characters from our Unicode set](https://docs.raku.org/language/unicode_ascii).
 
 ### Prefer non-ASCII syntax in examples
 

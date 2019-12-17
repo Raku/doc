@@ -1,10 +1,10 @@
 # Documentation officielle de Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-La version HTML de cette documentation peut être trouvée en [https://docs.perl6.org/](https://docs.perl6.org/).
+La version HTML de cette documentation peut être trouvée en [https://docs.raku.org/](https://docs.raku.org/).
 C'est la documentation reconmmandée.
 
 Une commande est également disponible pour le terminal: "p6doc".
@@ -31,7 +31,7 @@ pour installer le module et l'ajouter à votre path.
 
 ## Utilisez p6doc
 
-Une fois que vous ajoutez `perl6` (Rakudo) au `PATH`, exécutez la commande
+Une fois que vous ajoutez `raku` (Rakudo) au `PATH`, exécutez la commande
 
 
     $ ./bin/p6doc Str
@@ -97,7 +97,7 @@ Il y a plusieurs façons de nous aider, certaines d'entre elles sont:
   * Ouvrez `issues`sur GitHub si vous  pensez qu'il y a un manque d'information sur la documentation.
   * Faites `git grep TODO` dans ce repository, et remplacez les éléments TODO par la documentation réelle.
 
-[Cette page](https://github.com/perl6/doc/issues) contient une liste des problèmes actuels e des parties de documentation manquantes.
+[Cette page](https://github.com/raku/doc/issues) contient une liste des problèmes actuels e des parties de documentation manquantes.
 Le document [CONTRIBUTING](CONTRIBUTING.md) explique comment vous pouvez commencer à aider.
 --------
 ## Quelques clarifications:
@@ -118,9 +118,9 @@ Le document [CONTRIBUTING](CONTRIBUTING.md) explique comment vous pouvez commenc
 
 ## Objetif
 
-> Je veux que `p6doc` et docs.perl6.org soient la première ressource à consulter
-> toute  fonctionnalité de Perl6,
-> soit la langue, ou les types et les routines integrées. Je veux qu'il soit utile pour tous les programmeurs de Perl6.
+> Je veux que `p6doc` et docs.raku.org soient la première ressource à consulter
+> toute  fonctionnalité de raku,
+> soit la langue, ou les types et les routines integrées. Je veux qu'il soit utile pour tous les programmeurs de raku.
 >
 >    -- moritz
 
@@ -141,6 +141,6 @@ Ce repository contient également du code créé par des tiers que peuvent être
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Exemples de StackOverflow [Licence MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Exemples de StackOverflow [Licence MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Tableau trieur plugin de https://github.com/christianbach/tablesorter ;
   [Licence MIT](http://creativecommons.org/licenses/MIT)

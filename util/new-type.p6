@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 
@@ -39,11 +39,11 @@ sub MAIN($typename, :$kind='class') {
 
         =end pod
 
-        # vim: expandtab shiftwidth=4 ft=perl6
+        # vim: expandtab shiftwidth=4 ft=raku
         BODY
 
     say "'$path' written";
     say "(remember to 'git add $path')";
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

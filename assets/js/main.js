@@ -108,7 +108,7 @@ function setup_debug_mode(){
                 console.info("checking for dead links");
 
                 function report_broken_link(url) {
-                    $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=perl6">irc.freenode.net#perl6</a></div>');
+                    $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=raku">irc.freenode.net#raku</a></div>');
                 }
 
                 var seen_link = [];

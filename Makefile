@@ -19,9 +19,9 @@ USE_CATEGORIES := True
 html: gen-pod6-source bigpage
 
 init-highlights:
-	ATOMDIR="./highlights/atom-language-perl6";  \
+	ATOMDIR="./highlights/atom-language-raku";  \
 	if [ -d "$$ATOMDIR" ]; then (cd "$$ATOMDIR" && git pull); \
-	else git clone https://github.com/perl6/atom-language-perl6 "$$ATOMDIR"; \
+	else git clone https://github.com/raku/atom-language-raku "$$ATOMDIR"; \
 	fi; cd highlights; npm install .; npm rebuild
 
 assets:
@@ -30,22 +30,22 @@ assets:
 for-documentable: init-highlights assets
 
 bigpage: gen-pod6-source
-	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
+	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/raku.html
 
 epub: bigpage
-	pandoc html/perl6.html -o perl6.epub
+	pandoc html/raku.html -o raku.epub
 
 # Common tests that are run by travis with every commit
 test:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t; else prove -e raku t; fi
 
 # Extended tests
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t xt; else prove -e perl6 t xt; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t xt; else prove -e raku t xt; fi
 
 # Content tests
 ctest:
-	prove --exec perl6 -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec raku -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 help:
 	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"
@@ -56,7 +56,7 @@ help:
 	@echo "   assets:           generate CSS/JS assets"
 	@echo " sparse:             generate HTML documentation, but only every 10th file"
 	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
-	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
+	@echo "bigpage:             generate HTML documentation in one large file (html/raku.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"

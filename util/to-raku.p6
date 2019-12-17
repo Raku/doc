@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 use v6;
 use lib 'lib';
 use Test-Files;
@@ -7,7 +7,7 @@ use Test-Files;
 my $degree = %*ENV<UTIL_THREADS> // 2;
 
 
-multi sub replace-perl6(Str $file) {
+multi sub replace-raku(Str $file) {
     my $content = my $original-content = slurp $file;
     $content ~~ s:g/ 'Perl' [ \s+ | \x[00A0] ] '6' /Raku/;
 
@@ -18,6 +18,6 @@ multi sub replace-perl6(Str $file) {
 }
 
 multi sub MAIN() {
-    Test-Files.documents.race(:$degree).map(&replace-perl6);
+    Test-Files.documents.race(:$degree).map(&replace-raku);
 }
 

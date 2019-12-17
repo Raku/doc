@@ -1,10 +1,10 @@
 # Offizielle Dokumentation von Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-Eine HTML Version dieser Dokumentation findet sich unter [https://docs.perl6.org/](https://docs.perl6.org/).
+Eine HTML Version dieser Dokumentation findet sich unter [https://docs.raku.org/](https://docs.raku.org/).
 Dies ist die momentan empfohlene Methode diese Dokumentation zu nutzen.
 
 Ausserdem gibt es ein Kommandozeilen-Tool namens "p6doc".
@@ -32,7 +32,7 @@ Suchpfad verfügbar zu machen.
 
 ## Benutzung von p6doc
 
-Falls sich Rakudo `perl6` als ausführbare Datei in deinem `PATH`
+Falls sich Rakudo `raku` als ausführbare Datei in deinem `PATH`
 befindet, verwende
 
     $ ./bin/p6doc Str
@@ -116,7 +116,7 @@ Hier einige Möglichkeiten, uns dabei zu unterstützen:
  * Verwende `git grep TODO` in diesem Repository und ersetze TODO
    Abschnitte durch die eigentliche Dokumentation.
 
-[Issues page](https://github.com/perl6/doc/issues) hat eine Liste der
+[Issues page](https://github.com/raku/doc/issues) hat eine Liste der
 derzeitigen Problemmeldungen und bekannte fehlende Teile der
 Dokumentation. Das Dokument [CONTRIBUTING](CONTRIBUTING.md) erklärt
 kurz wie du beginnen kannst, zur Dokumentation beizutrage.
@@ -136,7 +136,7 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
      zwischen verschiedenen Implementationen. Wir verhindern so
      potentielle Einflüsse der Laufzeit-Umgebung.
 
-  3. Ein separates Repository im perl6 GitHub Konto lädt potentiell
+  3. Ein separates Repository im raku GitHub Konto lädt potentiell
      mehr Beitragende und Editoren ein.
 
 **F:** Sollte ich Methoden von Super-Klassen und Rollen integrieren?<br>
@@ -149,7 +149,7 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
 
 ## Vision
 
-> Ich möchte, dass p6doc and docs.perl6.org die Nr. 1 Quelle wird, die
+> Ich möchte, dass p6doc and docs.raku.org die Nr. 1 Quelle wird, die
 > du nutzen kannst, wenn du etwas wissen willst über eine Raku
 > ElementEigenschaft , sei es betreffend die Sprache, eingebaute Typen
 > oder Routinen. Ich möchte dass sie nützlich ist für jeden Raku
@@ -182,6 +182,6 @@ Kategorie:
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Beispiele von Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Beispiele von Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Tabellen-Sortier-Plugin von https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

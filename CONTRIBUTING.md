@@ -94,11 +94,11 @@ questions come up in the process feel free to ask in
 If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
+    $ raku util/new-type.p6 --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
-```perl6
+```raku
 =TITLE role MyFunnyRole
 
 =SUBTITLE Sentence or half-sentence about what it does
@@ -130,7 +130,7 @@ comment `Z<>`.
 
 When providing a code example result or output, use this style:
 
-```perl6
+```raku
 # For the result of an expression.
 1 + 2;     # RESULT: «3»
 # For the output.
@@ -224,7 +224,7 @@ computer. To do this you will need:
     (optional; a Perl 5 web framework; it allows you to run a web
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
-  - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
+  - [highlights](https://github.com/raku/atom-language-raku) (optional; requires
     `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
     - Debian instructions:
       - Get more modern nodejs than in package manager: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
@@ -251,9 +251,9 @@ use any other module installer for the modules needed (see below).
 
 The program that builds the HTML version of the documentation
 (`htmlify.p6`) uses `Pod::To::HTML` to convert Pod6 structures into HTML.
-You'll also need `Pod::To::BigPage` and `Perl6::TypeGraph`. Install these modules like so:
+You'll also need `Pod::To::BigPage` and `raku::TypeGraph`. Install these modules like so:
 
-    $ zef install Pod::To::HTML Pod::To::BigPage Perl6::TypeGraph
+    $ zef install Pod::To::HTML Pod::To::BigPage raku::TypeGraph
 
 although these are included in the `META.json` file so with
 
@@ -317,13 +317,13 @@ documentation.
 You can skip all the above and just build and view documentation with these
 simple commands (if you have docker already installed):
 
-    $ docker build -t perl6-doc .
-    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc
+    $ docker build -t raku-doc .
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc raku-doc
 
 This will build the documentation for you by default and it will take some time,
 but for subsequent use you may want to skip build part if nothing has been changed:
 
-    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc ./app-start
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc raku-doc ./app-start
 
 Now point your web browser to http://localhost:3000 to view the documentation.
 

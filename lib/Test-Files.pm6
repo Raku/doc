@@ -23,4 +23,4 @@ method documents() {
     return $.files.grep({$_.ends-with: '.pod6' or $_.ends-with: '.md'})
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

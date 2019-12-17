@@ -1,7 +1,7 @@
 use v6;
 
 use lib 'lib';
-use Perl6::TypeGraph;
+use raku::TypeGraph;
 
 =begin pod
 
@@ -11,7 +11,7 @@ use Perl6::TypeGraph;
 
 =head1 SYNOPSIS
 
-    $ perl6 util/missing-methods.p6 [--type_name=<Str>]
+    $ raku util/missing-methods.p6 [--type_name=<Str>]
 
 =head1 DESCRIPTION
 
@@ -26,7 +26,7 @@ from outside.
 =end pod
 
 sub MAIN(Str :$type-name) {
-    my $type-graph = Perl6::TypeGraph.new-from-file('type-graph.txt');
+    my $type-graph = raku::TypeGraph.new-from-file('type-graph.txt');
     my @types-to-search = $type-name ?? $type-graph.types{$type-name}
                                      !! $type-graph.sorted;
 
@@ -48,4 +48,4 @@ sub show-undoc-method(Str $qualified-method-name) {
     say "$qualified-method-name" if $doc-output ~~ m:s/No documentation found/;
 }
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

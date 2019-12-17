@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 # xt/aspell.t dies if you try to run too many tests. Run only a few at a time.
 # TODO: run them all inside a prove harness?

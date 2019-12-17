@@ -3,7 +3,7 @@ fs = require 'fs'
 path = require 'path'
 highlighter = new Highlights()
 highlighter.requireGrammarsSync
-  modulePath: require.resolve('./atom-language-perl6/package.json')
+  modulePath: require.resolve('./atom-language-raku/package.json')
 
 TestFolder = path.resolve('TestFolder')
 files = fs.readdirSync(TestFolder)
@@ -13,6 +13,6 @@ for file in files
     fs.readFileSync path.resolve(TestFolder, file), 'utf8'
   html = highlighter.highlightSync
     fileContents: foo()
-    scopeName: 'source.perl6fe'
+    scopeName: 'source.rakufe'
 
   console.log html

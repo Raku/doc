@@ -1,10 +1,10 @@
 # Documentazione Ufficiale Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-Una versione HTML di questa documentazione può essere trovata al seguente link [https://docs.perl6.org/](https://docs.perl6.org/).
+Una versione HTML di questa documentazione può essere trovata al seguente link [https://docs.raku.org/](https://docs.raku.org/).
 Il link precedente è il modo consigliato di leggere e usare la documentazione.
 
 Esiste uno strumento da riga di comando denominato "p6doc",
@@ -32,7 +32,7 @@ installa lo strumento e lo rende disponibile nel tuo path di esecuzione.
 
 ## Usare p6doc
 
-Una volta che si ha una versione Rakudo `perl6` eseguibile nel proprio `PATH`, è sufficiente
+Una volta che si ha una versione Rakudo `raku` eseguibile nel proprio `PATH`, è sufficiente
 impartire il comando
 
     $ ./bin/p6doc Str
@@ -110,7 +110,7 @@ Alcuni modi per aiutare il progetto includono:
  * eseguire il comando `git grep TODO` sul repository, inserendo la documentazione mancante.
    actual documentation.
 
-La pagina dei ticket [Issues](https://github.com/perl6/doc/issues)
+La pagina dei ticket [Issues](https://github.com/raku/doc/issues)
 contiene una lista dei problemi noti e delle parti di documentazione che sono note essere incomplete,
 e il file [CONTRIBUTING](CONTRIBUTING.md)
 spiega brevemente come iniziare a contribuire alla documentazione.
@@ -128,7 +128,7 @@ spiega brevemente come iniziare a contribuire alla documentazione.
      legata a una specifica implementazione di  Raku.
   2. Le implementazioni che gestiscono Pod Embedded sono ancora
      non ottimali; e così facendo si evitano problemi di runtime.
-  3. Un repository separato sull'account perl6 Github invita un maggior numero di
+  3. Un repository separato sull'account raku Github invita un maggior numero di
      potenziali volontari e scrittori.
 
 **Q:** Devo includere nella documentazione metodi dalle superclassi o ruoli?<br>
@@ -138,7 +138,7 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
 ## Visione
 
-> I want p6doc and doc.perl6.org to become the No. 1 resource to consult
+> I want p6doc and doc.raku.org to become the No. 1 resource to consult
 > when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Raku programmer.
@@ -146,7 +146,7 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 >    -- moritz
 
 
-*Io voglio che p6doc e docs.perl6.org siano la prima risorssa da consultare quanto vuoi sapere qualcosa riguardo a una funzionalità di Raku, sia essa di linguaggio, tipo di dato o routine. Voglio che sia utile a ogni programmatore Raku.*
+*Io voglio che p6doc e docs.raku.org siano la prima risorssa da consultare quanto vuoi sapere qualcosa riguardo a una funzionalità di Raku, sia essa di linguaggio, tipo di dato o routine. Voglio che sia utile a ogni programmatore Raku.*
 
 --------
 
@@ -168,6 +168,6 @@ Questo repository contiene anche codice scritto da autori terzi che potrebbe ess
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin da https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

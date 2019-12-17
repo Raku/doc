@@ -1,12 +1,12 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 
 use Test;
-use Perl6::TypeGraph;
+use raku::TypeGraph;
 use Telemetry;
 
-my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
+my $t = raku::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';
@@ -27,4 +27,4 @@ for $t.sorted -> $type {
 
 done-testing;
 
-# vim: expandtab shiftwidth=4 ft=perl6
+# vim: expandtab shiftwidth=4 ft=raku

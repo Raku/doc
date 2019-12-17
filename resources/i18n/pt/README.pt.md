@@ -1,10 +1,10 @@
 # Documentação Oficial do Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![Build Status](https://travis-ci.org/raku/doc.svg?branch=master)](https://travis-ci.org/raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
 
-[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc)
+[![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/raku/doc)
 
-Uma versão HTML dessa documentação disponível em [https://docs.perl6.org/](https://docs.perl6.org/).
+Uma versão HTML dessa documentação disponível em [https://docs.raku.org/](https://docs.raku.org/).
 Que é a versão recomendada.
 
 Também disponível uma ferramenta de linha de comando: "p6doc".
@@ -33,7 +33,7 @@ para instalar os binários e adicionar ao path.
 
 ## Usar p6doc
 
-Com o `perl6` (Rakudo) no `PATH`, execute
+Com o `raku` (Rakudo) no `PATH`, execute
 
     $ ./bin/p6doc Str
 
@@ -106,7 +106,7 @@ Algumas maneira de nos ajudar:
   * Abrindo issues no GitHub se acha que falta documentacão.
   * Fazendo `git grep TODO` neste repositório, e substituindo os items TODO por documentação.
 
-[Esta página](https://github.com/perl6/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
+[Esta página](https://github.com/raku/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
 [CONTRIBUTING](CONTRIBUTING.md) explica brevemente como começar a contribuir.
 
 --------
@@ -129,7 +129,7 @@ Algumas maneira de nos ajudar:
 
 ## Objetivo
 
-> Quero que p6doc e docs.perl6.org se tornem o recurso número 1 para consultar quando quiser conhecer qualquer
+> Quero que p6doc e docs.raku.org se tornem o recurso número 1 para consultar quando quiser conhecer qualquer
 > característica do Raku, seja a linguagem ou seus tipos e rotinas. Quero que seja útil para todo programador de Raku.
 >
 >    -- moritz
@@ -155,6 +155,6 @@ topo do próprio arquivo. Atualmente incluem:
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [Licença MIT](http://creativecommons.org/licenses/MIT)
-* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licença MIT](http://creativecommons.org/licenses/MIT)
