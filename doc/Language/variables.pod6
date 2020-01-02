@@ -87,72 +87,102 @@ L<sigilless variables|#Sigilless_variables>.
 =head2 Item and list assignment
 
 There are two types of variable assignment, I<item assignment> and I<list
-assignment>.  Both use the equal sign C<=> as operator. The syntax of the
-left-hand side determines whether an C<=> means item or list assignment.
+assignment>.
 
-Item assignment places the value from the right-hand side into the variable
-(container) on the left.
+An item assignment copies a single value from the right-hand side into a Scalar
+variable on the left. An assignment to anything other than a simple Scalar
+variable is parsed as a list assignment. A list assignment leaves the choice of
+what the assignment operation entails to the variable on the left. For example,
+L<Array|/type/Array> variables (C<@> sigil) empty themselves on list assignment,
+and then iteratively copy all values from the right-hand side into themselves as
+elements.
 
-List assignment leaves the choice of what to do to the variable on the left.
+The two types of assignment both use the equal sign C<=> as their operator and
+are both right associative, but differ in operator precedence: item assignment
+has a higher precedence level (level: Item assignment) than list assigment
+(level: List prefix). In situations in which a comma-separated list of elements
+is assigned, these precedences should in particular be contrasted with that of
+the comma operator C<,> which sits in between. So without any list-delimiting
+parentheses (or other construct to hold the list's elements together), item
+assignment will only assign the first element of the specified list, and not the
+full list.
 
-For example, L<Array|/type/Array> variables (C<@> sigil) empty themselves on
-list assignment and then put all the values from the right-hand side into
-themselves.
+In an assignment expression the context of the left-hand side determines whether
+an C<=> means item or list assignment. As mentioned, item assignment is
+restricted to simple Scalar variables. Accordingly, assignment to a Scalar
+container (scalar-context) triggers item assignment, unless the Scalar is
+explicitly put in list-context by surrounding parentheses C<( )>:
 
-The type of assignment (item or list) is decided by the first context
-seen in the current expression or declarator:
+    my $a;
+    $a = 1,2,3;         # item assignment to Scalar
+    say $a;             # OUTPUT: «1␤» ( '=' has higher precedence than ',' )
 
-    my $foo = 5;            # item assignment
-    say $foo.perl;          # OUTPUT: «5␤»
+    my $b = 1,2,3;      # item assignment to Scalar (same as preceding example)
+    say $b;             # OUTPUT: «1␤»
 
-    my @bar = 7, 9;         # list assignment
-    say @bar.^name;         # OUTPUT: «Array␤»
-    say @bar.perl;          # OUTPUT: «[7, 9]␤»
+    my $c;
+    ($c) = 4,5,6;       # list assignment to Scalar; '( )' is list-contextualizer
+    say $c;             # OUTPUT:  «(4,5,6)␤»
 
-    (my $baz) = 11, 13;     # list assignment
-    say $baz.^name;         # OUTPUT: «List␤»
-    say $baz.perl;          # OUTPUT: «$(11, 13)␤»
+    (my $d) = 4,5,6;    # list assignment to Scalar (same as preceding example)
+    say $d;             # OUTPUT:  «(4,5,6)␤»
 
-Thus, the behavior of an assignment contained within a list assignment depends
-on the expression that contains it or declarator that precedes it.
+Assignment to a List container (list-context) always triggers list assignment:
 
-For instance, if the contained assignment is a declarator, item assignment
-is used, which has tighter precedence than both the comma and the list
-assignment:
+    my @e;
+    @e = 7,8,9;                     # list assignment to Array
+    say @e;                         # OUTPUT:  «[7,8,9]␤»
+
+    my $f;
+    ($f,) = 7,8,9;                  # list assignment to List with one element
+    say $f;                         # OUTPUT:  «7␤»
+    say ( ($f,) ).VAR.WHAT;         # OUTPUT:  «(List)␤»
+
+    # ATTENTION: special declaration syntax!
+    my ($g) = 7,8,9;                # list assignment to List with one element
+    say $g;                         # OUTPUT:  «7␤»
+    say ( my ($g) ).VAR.WHAT        # OUTPUT:  «(List)␤»
+
+The last two examples above are imple I<destructuring assignments> that select
+the first item of the right-hand side list. See for a more elaborate discussion
+of destructuring assignments in the context of variable declarations the section
+on L<declaring a list of variables with lexical or package
+scope|/language/variables#index-entry-declaring_a_list_of_variables>.
+
+Chained assignments are parsed having regard to the precedence of the assignment
+operators and, where applicable, their right associativity. For instance, in the
+example below there is one chained assignment statement comprising two
+assignment operators. The assignment to C<@array> is a list assignment having a
+lower precedence than the item assignment to the Scalar variable C<$num>. The
+assignment expression involving the item assignment to the Scalar variable
+C<$num> is thus evaluated first. It returns the assigned value C<42>, which in
+turn forms part of the List C<(42, "str")> constructed by the comma operator
+that also has a higher precedence than the list assignment. Finally, the
+List C<(42, "str")> is list-assigned to C<@array>:
 
     my @array;
-    @array = my $num = 42, "str";   # item assignment: uses declarator for $num
+    @array = my $num = 42, "str";   # parsed as @array = ( (my $num = 42), "str )
     say @array.perl;                # OUTPUT: «[42, "str"]␤» (an Array)
     say $num.perl;                  # OUTPUT: «42␤» (a Num)
 
-Similarly, if the internal or contained assignment is an expression that is
-being used as an initializer for a container declarator, the context of the
-internal expression determines the assignment type:
+Here's a variant:
 
-    my $num;
-    my @array = $num = 42, "str";    # item assignment for $num: uses expression
-    say @array.perl;                 # OUTPUT: «[42, "str"]␤» (an Array)
-    say $num.perl;                   # OUTPUT: «42␤» (a Num)
+    my ( @foo, $bar );
+    @foo = ($bar) = 42, "str";       # parsed as @foo = ( $bar = (42, "str") )
+    say $bar.perl;                   # OUTPUT: «$(42, "str")␤» (a List)#
+    say @foo.perl;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
 
-The same result would be obtained if C<@array> is declared before the
-assignment; C<$num> would be still item-assigned, C<@array> list-assigned; the
-assignment expression is parsed as C<@array = (($num = 42), "str")>, because
-item assignment has tighter precedence than the comma. However, let's see what
-happens if the internal variable assignment is in a list context:
+In this case, the list contextualizer C<( )> puts C<$bar> in a list context, and
+thus triggers a list assignment to the Scalar variable C<$bar>. This means that
+there are two chained list assignments, both having a lower precedence than the
+comma operator C<,> that constructs the List C<(42, "str")>. Due to their right
+associativity, the list assignment expression that is evaluated first is the
+assignment to C<$bar>, which returns the assigned value C<$(42, "str"), i.e. a
+Scalar containing a two-element List. This value is in turn list-assigned to
+C<@array>, such that it becomes a Array with a single element, namely a List.
 
-=for code
-my ( @foo, $bar );
-@foo = ($bar) = 42, "str";       # list assignment for $bar: uses parentheses
-say @foo.perl;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
-say $bar.perl;                   # OUTPUT: «$(42, "str")␤» (a List)#
-
-In this case, C<()> is the list contextualizer, putting the assignment to
-C<$bar> in a list context; C<$bar> then I<decides> to include all the items to
-the right hand side of the C<=> sign; this is still included in a list
-assignment to C<@foo>, which then becomes an array with a single element, a
-C<List>.
-
-See L<operators|/language/operators> for more details on precedence.
+See L<operators|/language/operators> for more details on precedence and
+associativity.
 
 =head2 Sigilless variables
 X<|\ (sigilless variables)>
