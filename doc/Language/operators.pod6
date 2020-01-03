@@ -8,11 +8,36 @@ See L<creating operators|/language/optut> on how to define new operators.
 
 =head1 Operator precedence
 
-In an expression like C<1 + 2 * 3>, the C<2 * 3> is evaluated first
-because the infix C<*> has tighter B<precedence> than the C<+>.
+The precedence and associativity of Raku operators determine the order of
+evaluation of operands in expressions.
 
-The following table summarizes the precedence levels in Raku, from
-tightest to loosest:
+Where two operators with a different precedence act on the same operand, the
+subexpression involving the higher-precedence operator is evaluated first. For
+instance, in the expression C<1 + 2 * 3>, both the binary C<+> operator for
+addition and the binary C<*> operator for multiplication act on the operand
+C<2>. Because the C<*> operator has a higher precedence than the C<+> operator,
+the subexpression C<2 * 3> will be evaluated first. Consequently, the resulting
+value of the overall expression is C<7> and not C<9>.
+
+Instead of "precedence" one can also speak of "binding": operators with a higher
+precedence are then said to have a tighter binding to the operand(s) in
+question, while operators with a lower precedence are said to have a looser
+binding. In practice one may also encounter blends of terminology, such as
+statements that an operator has a tighter or looser precedence.
+
+Where two operators with a same precedence level act on an operand, the
+associativity of the operators determines which subexpression/operator is
+evaluated first. For instance, in the expression C<100 / 2 * 10>, the binary
+division operator C</> and the binary multiplication operator C<*> have equal
+precedence, so that the order of their evaluation is determined by their
+associativity. As the two operators are I<left associative>, operations are
+grouped from the left like this: C<(100 / 2) * 10>. The expression thus
+evaluates to C<500>, rather than to C<5>.
+
+The following table summarizes the associativities (column labeled C<A>) and
+precedence levels (column labeled C<Level>) offered by Raku, listing them in
+order from high to low precedence. For each precedence level, some exemplary
+operators are listed.
 
 =begin table
 
@@ -48,9 +73,11 @@ tightest to loosest:
 
 =end table
 
-Using two C<!> symbols below generically to represent any pair of operators
-that have the same precedence, the associativities specified above
-for binary operators are interpreted as follows:
+The following table further clarifies the meaning of the associativity symbols
+(C<L R N C X>) specified above in column C<A>, and uses a generic C<!> operator
+symbol representing a binary operator to illustrate how the associativities
+affect the interpretation of an expression involving two binary operators of
+equal precedence:
 
 =begin table
 
@@ -64,7 +91,8 @@ for binary operators are interpreted as follows:
 
 =end table
 
-For unary operators this is interpreted as:
+For unary operators generically represented by a C<!> symbol the
+associativites C<L R N> lead to the following interpretations:
 
 =begin table
 
@@ -223,32 +251,125 @@ value untouched and instead returns the resultant string.
 
 =head1 Assignment operators
 
-Infix operators can be combined with the assignment operator to modify a
-value and apply the result to a container in one go. Containers will be
-autovivified if possible. Some examples:
+Raku has a variety of assignment operators, which can be roughly classified as
+simple assignment operators and compound assignment operators.
+
+The simple assignment operator symbol is C<=>. It is 'overloaded' since it can
+mean either L<item assignment|/language/operators#infix_=_(item_assignment)> or
+L<list assignment|/language_operators#infix_=_(list_assignment)> depending on
+the context in which it is used:
+
+    my $x = 1;        # item assignment; $x = 1
+    my @x = 1,2,3;    # list assignment; @x = [1,2,3]
+
+See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a more elaborate
+and comparative discussion of these two types of assignment.
+
+The compound assignment operators are
+L<metaoperators|/language/operators#Metaoperators>: they combine the simple
+assignment operator C<=> with an infix operator to form a new operator that
+performs the operation specified by the infix operator before assigning the
+result to the left operand. Some examples of built-in compound assignment
+operators are C<+=>, C<-=>, C<*=>, C</=>, C<min=>, and C<~=>. Here is how they
+work:
 
     my $a = 32;
-    $a += 10;     # 42
-    $a -= 2;      # 40
+    $a += 10;         # $a = 42
+    $a -= 2;          # $a = 40
 
     $a = 3;
-    $a min= 5;    # still 3
-    $a min= 2;    # 2
+    $a min= 5;        # $a = 3
+    $a min= 2;        # $a = 2
 
     my $s = 'a';
-    $s ~= 'b';    # 'ab'
+    $s ~= 'b';        # $s = 'ab'
 
-This behavior is automatically extended to include custom-defined infix operators.
-
+    # And an example of a custom operator:
     sub infix:<space-concat> ($a, $b) { $a ~ " " ~ $b };
     my $a = 'word1';
-    $a space-concat= 'word2';     # RESULT: «'word1 word2'»
+    $a space-concat= 'word2';                 # RESULT: «'word1 word2'»
 
-Although not strictly operators, methods can be used in the same fashion.
+One thing the simple and compound assignment operators have in common is that
+they form so-called I<assignment expressions> that return or evaluate to the
+assigned value:
 
-    my Real $a = 1/2;
-    $a = 3.14;
-    $a .= round;      # RESULT: «3»
+    my sub fac (Int $n) { [*] 1..$n };        # sub for calculating factorial
+    my @x = ( my $y = fac(100), $y*101 );     # @x = [100!, 101!]
+
+    my $i = 0;
+    repeat { say $i } while ($i += 1) < 10;   # OUTPUT: 0,1,2,...9
+
+In the first example, the assignment expression C<my $y = fac(100)> declares
+C<$y>, assigns the value C<fac(100)> to it, and finally returns the assigned
+value C<fac(100)>; the returned value is then taken into account for
+constructing the List. In the second example the compound-assignment expression
+C<$i += 1> assigns the value C<$i + 1> to C<$i>, and subsequently evaluates to
+the assigned value C<$i+1>, thus allowing the returned value to be used for
+judging the while loop condition.
+
+In dealing with simple and compound assignment operators, it is tempting to
+think that for instance the following two statements are (always) equivalent:
+
+    expression1 += expression2;
+    expression1  = expression1 + expression2;
+
+They are not, however, for two reasons. Firstly, C<expression1> in the compound
+assignment is evaluated only once, whereas C<expression1> in the simple
+assignment is evaluated twice. Secondly, the compound assignment may, depending
+on the infix operator in question, effectively initialize an undefined variable
+appearing in C<expression1>, i.e. in the left operand. Such initialization will
+not occur for an undefined variable in the left operand of the simple
+assignment.
+
+The first difference pointed out above is common amongst programming languages
+and mostly self-explanatory. In the compound assignment, C<expression1> is
+explicitly specified to serve both as a term of the addition to be performed and
+as the location where the result of the addition, the sum, is to be stored.
+There is thus no need to evaluate it twice. The simple assignment, in contrast,
+is more generic in the sense that C<expression1> as a term of the addition need
+not necessarily be the same as C<expression1> that defines the location where
+the sum must be stored. The two expressions are therefore evaluated separately.
+In cases where the evaluation of C<expression1> has side effects that change the
+state of variables, this distinction is relevant:
+
+    my @arr = [10, 20, 30];
+    my $i = 0;
+
+    if rand < 1/2 {
+        @arr[++$i] += 1;                # @arr = [10,21,30]
+    } else {
+        @arr[++$i] = @arr[++$i] + 1;    # @arr = [10,31,30] (or [10,20,21]?)
+    }                                   # the result may be implementation specific
+    say @arr;
+
+The second difference pointed out above is related to the common practice of
+using compound assignment operators in I<accumulator patterns>. Such patterns
+involve a so-called I<accumulator>: a variable that calculates the sum or a
+product of a series of values in a loop. To obviate the need for explicit
+accumulator initialization, Raku's compound assignment operators silently take
+care of the initialization where this is sensibly possible:
+
+    my @str = "Cleanliness is next to godliness".comb;
+    my ($len, $str);
+    for @str -> $c {
+      $len += 1;
+      $str ~= $c;
+    }
+    say "The string '$str' has $len characters.";
+
+In this example the accumulators C<$len> and C<$str> are implicitly initialized
+to C<0> and C<"">, respectively, which illustrates that the initialization value
+is operator-specific. In this regard it is also noted that not all compound
+assignment operators can sensibly initialize an undefined left-hand side
+variable. The C</=> operator, for instance, will not arbitrarily select a value
+for the dividend; instead, it will throw an exception.
+
+Although not strictly operators, methods can be used in the same fashion as
+compound assignment operators:
+
+    my $a = 3.14;
+    $a .= round;      # $a = $a.round; RESULT: «3»
 
 =head1 Negated relational operators
 X<|! (negation metaoperator)>X<|!==>X<|!eq>
@@ -2691,17 +2812,21 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 =head1 Item assignment precedence
 
 X<|item =>
-=head2 infix C«=»
+=head2 infix C«=» (item assignment)
 
     =for code :skip-test<compile-time error>
     sub infix:<=>(Mu $a is rw, Mu $b)
 
-Called the I<item assignment operator>, it Places the value of the right-hand side into the container on the left-hand
-side. Its exact semantics are left to the container type on the left-hand side.
+Called the I<item assignment operator>. It copies the value of the right-hand
+side into the Scalar container on the left-hand side.
 
-(Note that item assignment and list assignment have different precedence
-levels, and the syntax of the left-hand side decides whether an equal sign
-C<=> is parsed as item assignment or list assignment operator).
+The item assignment operator should be distinguished from the L<list assignment
+operator|/language/operators#infix_=_(list assignment)>, which uses the same
+operator symbol C<=> but has a lower precedence. The context of the left-hand
+side of the C<=> symbol determines whether it is parsed as item assignment or
+list assignment. See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a comparative
+discussion of the two assignment types.
 
 =head2 infix C«=>»
 
@@ -2914,14 +3039,20 @@ well, so they are also checked against the endpoint:
 
 X<|list =>
 X<|List assignment operator>
-=head2 infix C«=»
+=head2 infix C«=» (list assignment)
 
-In this context, it acts as the list assignment operator. Its exact
-semantics are left to the container type on the left-hand side. See
-L<Array|/type/Array> and L<Hash|/type/Hash> for common cases.
+The list assignment operator generally copies values from its right-hand side
+into the container on its left-hand side. Its exact semantics are left to the
+left-hand side container type. See L<Array|/type/Array> and L<Hash|/type/Hash>
+for common cases.
 
-The distinction between item assignment and list assignment is
-determined by the parser depending on the syntax of the left-hand side.
+The list assignment operator should be distinguished from the L<item assignment
+operator|/language/operators#infix_=_(item assignment)>, which uses the same
+operator symbol C<=> but has a higher precedence. The context of the left-hand
+side of the C<=> symbol determines whether it is parsed as item assignment or
+list assignment. See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a comparative
+discussion of the two assignment types.
 
 =head2 infix C«:=»
 
