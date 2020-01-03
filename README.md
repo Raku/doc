@@ -83,7 +83,8 @@ disk speed and Rakudo version, it might take a while.
 ## Building the HTML documentation
 
 The documentation can be rendered to static HTML pages and/or served in a local
-web site.
+web site. This process involves creating a cache of precompiled
+documents, so that generation after the first time is sped up.
 
 > Building the documentation has a number of prerequisites, which is might you
 > might not want to do it yourself. However, if you need a local copy of the
