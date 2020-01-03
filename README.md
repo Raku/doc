@@ -135,11 +135,12 @@ This will serve the documentation in port 3000.
 
 ## nginx configuration
 
-Latest version of the generated documentation consists only of static HTML pages
-. All pages are generated with `.html` at the end; however, most internal links
-don't use that suffix. Most places (for instance, GitHub pages) will add it
-automatically for you. A bare server will not. This is what you have to add to
-the configuration to make it work:
+Latest version of the generated documentation consists only of static
+HTML pages. All pages are generated with `.html` at the end; however,
+most internal links don't use that suffix. Most web servers (for
+instance, the one that serves with GitHub pages) will add it
+automatically for you. A bare server will not. This is what you have
+to add to the configuration to make it work:
 
 ```
     location / {
@@ -149,7 +150,7 @@ the configuration to make it work:
 ```
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
-made in other servers.
+made in other server applications.
 
 
 
@@ -157,8 +158,8 @@ made in other servers.
 
 ## Help Wanted!
 
-Raku is not a small language, and documenting it takes a lot of effort.
-Any help is appreciated.
+Raku is not a small language, and documenting it and maintaining that
+documentation takes a lot of effort. Any help is appreciated.
 
 Here are some ways to help us:
 
