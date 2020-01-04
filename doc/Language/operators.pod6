@@ -34,10 +34,11 @@ associativity. As the two operators are I<left associative>, operations are
 grouped from the left like this: C<(100 / 2) * 10>. The expression thus
 evaluates to C<500>, rather than to C<5>.
 
-The following table summarizes the associativities (column labeled C<A>) and
-precedence levels (column labeled C<Level>) offered by Raku, listing them in
-order from high to low precedence. For each precedence level, some exemplary
-operators are listed.
+The following table summarizes the precedence levels (column labeled C<Level>)
+offered by Raku, listing them in order from high to low precedence. For each
+precedence level the table also indicates the associativity of the operators
+assigned to that level (column labeled C<A>), and some exemplary operators
+(column labeled C<Examples>).
 
 =begin table
 
@@ -74,10 +75,9 @@ operators are listed.
 =end table
 
 The following table further clarifies the meaning of the associativity symbols
-(C<L R N C X>) specified above in column C<A>, and uses a generic C<!> operator
-symbol representing a binary operator to illustrate how the associativities
-affect the interpretation of an expression involving two binary operators of
-equal precedence:
+(C<L R N C X>) specified above in column C<A>. Using a fictitious C<!> binary
+operator symbol, it shows how each associativity affects the interpretation of
+of an expression involving two such operators of equal precedence:
 
 =begin table
 
@@ -91,7 +91,7 @@ equal precedence:
 
 =end table
 
-For unary operators generically represented by a C<!> symbol the
+For unary operators generically represented by a C<!> symbol, the
 associativites C<L R N> lead to the following interpretations:
 
 =begin table
@@ -254,10 +254,11 @@ value untouched and instead returns the resultant string.
 Raku has a variety of assignment operators, which can be roughly classified as
 simple assignment operators and compound assignment operators.
 
-The simple assignment operator symbol is C<=>. It is 'overloaded' since it can
-mean either L<item assignment|/language/operators#infix_=_(item_assignment)> or
-L<list assignment|/language_operators#infix_=_(list_assignment)> depending on
-the context in which it is used:
+The simple assignment operator symbol is C<=>. It is 'overloaded' in the sense
+that it can mean either L<item
+assignment|/language/operators#infix_=_(item_assignment)> or L<list
+assignment|/language_operators#infix_=_(list_assignment)> depending on the
+context in which it is used:
 
     my $x = 1;        # item assignment; $x = 1
     my @x = 1,2,3;    # list assignment; @x = [1,2,3]
@@ -302,7 +303,7 @@ assigned value:
 
 In the first example, the assignment expression C<my $y = fac(100)> declares
 C<$y>, assigns the value C<fac(100)> to it, and finally returns the assigned
-value C<fac(100)>; the returned value is then taken into account for
+value C<fac(100)>. The returned value is then taken into account for
 constructing the List. In the second example the compound-assignment expression
 C<$i += 1> assigns the value C<$i + 1> to C<$i>, and subsequently evaluates to
 the assigned value C<$i+1>, thus allowing the returned value to be used for
@@ -311,27 +312,32 @@ judging the while loop condition.
 In dealing with simple and compound assignment operators, it is tempting to
 think that for instance the following two statements are (always) equivalent:
 
-    expression1 += expression2;
-    expression1  = expression1 + expression2;
+    =for code :skip-test<pseudo code>
+    expression1 += expression2;                     # compound assignment
+    expression1  = expression1 + expression2;       # simple assignment
 
 They are not, however, for two reasons. Firstly, C<expression1> in the compound
-assignment is evaluated only once, whereas C<expression1> in the simple
-assignment is evaluated twice. Secondly, the compound assignment may, depending
-on the infix operator in question, effectively initialize an undefined variable
-appearing in C<expression1>, i.e. in the left operand. Such initialization will
-not occur for an undefined variable in the left operand of the simple
-assignment.
+assignment statement is evaluated only once, whereas C<expression1> in the
+simple assignment statement is evaluated twice. Secondly, the compound
+assignment statement may, depending on the infix operator in question,
+implicitly initialize C<expression1> if it is a variable with an undefined
+value. Such initialization will not occur for C<expression1> in the simple
+assignment statement.
 
-The first difference pointed out above is common amongst programming languages
-and mostly self-explanatory. In the compound assignment, C<expression1> is
-explicitly specified to serve both as a term of the addition to be performed and
-as the location where the result of the addition, the sum, is to be stored.
-There is thus no need to evaluate it twice. The simple assignment, in contrast,
-is more generic in the sense that C<expression1> as a term of the addition need
-not necessarily be the same as C<expression1> that defines the location where
-the sum must be stored. The two expressions are therefore evaluated separately.
-In cases where the evaluation of C<expression1> has side effects that change the
-state of variables, this distinction is relevant:
+The aforementioned two differences between the simple and compound assignment
+statements are briefly elucidated below.
+
+The first difference is common amongst programming languages and mostly
+self-explanatory. In the compound assignment, there is only one C<expression1>
+that is explicitly specified to serve both as a term of the addition to be
+performed and as the location where the result of the addition, the sum, is to
+be stored. There is thus no need to evaluate it twice. The simple assignment, in
+contrast, is more generic in the sense that the value of the C<expression1> that
+serves as a term of the addition need not necessarily be the same as the value
+of the C<expression1> that defines the location where the sum must be stored.
+The two expressions are therefore evaluated separately. The distinction is
+particularly relevant in cases where the evaluation of C<expression1> has side
+effects in the form of changes to one or more variables:
 
     my @arr = [10, 20, 30];
     my $i = 0;
@@ -340,10 +346,10 @@ state of variables, this distinction is relevant:
         @arr[++$i] += 1;                # @arr = [10,21,30]
     } else {
         @arr[++$i] = @arr[++$i] + 1;    # @arr = [10,31,30] (or [10,20,21]?)
-    }                                   # the result may be implementation specific
+    }                                   # the result may be implementation-specific
     say @arr;
 
-The second difference pointed out above is related to the common practice of
+The second difference pointed out above is related to the widespread practice of
 using compound assignment operators in I<accumulator patterns>. Such patterns
 involve a so-called I<accumulator>: a variable that calculates the sum or a
 product of a series of values in a loop. To obviate the need for explicit
