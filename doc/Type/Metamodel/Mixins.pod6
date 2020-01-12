@@ -1,0 +1,200 @@
+=begin pod :kind("Type") :subkind("role") :category("metamodel")
+
+=TITLE role Metamodel::Mixins
+
+=SUBTITLE Metaobject for generating mixins
+
+    role Metamodel::Mixins {}
+
+I<Warning>: this role is part of the Rakudo implementation, and is not a
+part of the language specification.
+
+Using the C<does> and C<but> infix operators, I<mixins> of a base object
+and an arbitrary number of roles (or another object) can be created.
+These are objects whose types have properties of both operands' types.
+Respectively, these rebless the existing object to have the generated
+mixin type and clone said object with said mixin type:
+
+=begin code :solo
+class Billboard {
+    has Str:D $.advertisement is required;
+
+    method vandalism(::?CLASS:D: --> Str:D) { ... }
+
+    multi method Str(::?CLASS:D: --> Str:D) { $!advertisement }
+
+    role Vandalized[Str:D :$vandalism] {
+        method vandalism(::?CLASS:D: --> Str:D) { $vandalism }
+
+        multi method Str(::?CLASS:D: --> Str:D) { $vandalism }
+    }
+}
+
+my Str:D $advertisement = Q:to/ADVERTISEMENT/.chomp;
+Brilliant Solutions: sane and knowledgeable consultants.
+We have been providing excellent services since 1972!
+ADVERTISEMENT
+my Str:D $vandalism = Q:to/VANDALISM/.chomp;
+          S       s  s ne     k          l   o   l     .
+We    e  ee            e  e  e    e    e      e     !
+VANDALISM
+
+my Billboard:D $billboard .= new: :$advertisement;
+say $billboard eq $advertisement; # OUTPUT: «True␤»
+
+my Billboard:D $draft = $billboard but Billboard::Vandalized[:$vandalism];
+say $draft eq $vandalism; # OUTPUT: «True␤»
+
+$billboard does Billboard::Vandalized[:$vandalism];
+say $billboard eq $vandalism; # OUTPUT: «True␤»
+=end code
+
+Optionally, mixins may have a I<mixin attribute>. This occurs when only
+one role having only one public attribute gets mixed into an object.  If
+a mixin attribute exists on a resulting mixin's type, it can be
+initialized by C<but> or C<does> using its C<value> named parameter.
+This makes it possible for mixins to not only have composable methods,
+but composable state as well. Using this feature, the example above can
+be rewritten so billboards can be vandalized more than once without
+needing to generate more mixins by making C<Billboard::Vandalism>'s
+C<$vandalism> named parameter an
+L<rw|/type/Attribute#index-entry-trait_is_rw_(Attribute)-trait_is_rw>
+mixin attribute instead:
+
+=begin code :solo
+class Billboard {
+    has Str:D $.advertisement is required;
+
+    method vandalism(::?CLASS:D: --> Str:D) { ... }
+
+    multi method Str(::?CLASS:D: --> Str:D) { $!advertisement }
+
+    role Vandalized {
+        has Str:D $.vandalism is required is rw;
+
+        multi method Str(::?CLASS:D: --> Str:D) { $!vandalism }
+    }
+}
+
+my Str:D $advertisement = Q:to/ADVERTISEMENT/.chomp;
+Brilliant Solutions: sane and knowledgeable consultants.
+We have been providing excellent services since 1972!
+ADVERTISEMENT
+my Str:D $vandalism = Q:to/VANDALISM/.chomp;
+          S       s  s ne     k          l   o   l     .
+We    e  ee            e  e  e    e    e      e     !
+VANDALISM
+my Str:D $false-alarm = Qs:to/FALSE-ALARM/.chomp;
+$vandalism
+⬆️ This is just one of our namesakes we at Brilliant Solutions have been
+helping people like you create since 1972!
+FALSE-ALARM
+
+my Billboard:D $billboard .= new: :$advertisement;
+say $billboard eq $advertisement; # OUTPUT: «True␤»
+
+$billboard does Billboard::Vandalized :value($vandalism);
+say $billboard eq $vandalism; # OUTPUT: «True␤»
+
+$billboard.vandalism = $false-alarm;
+say $billboard eq $false-alarm; # OUTPUT: «True␤»
+=end code
+
+C<Metamodel::Mixins> is the metarole that implements the behavior of
+said mixins. Formally, mixins are objects whose HOW inherits from a base
+composable metaobject and applies an arbitrary number of roles,
+resulting in an object whose HOW has a combination of their properties.
+In particular, the metamethods this metarole provides are used to
+implement the behavior of the C<but> and C<does> infix operators, but
+these also support introspection related to mixins. For example, the
+work done by C<but> when invoked with an object and one role can be
+written explicitly using the C<mixin> metamethod provided:
+
+=begin code
+class Foo { }
+role Bar { }
+
+say Foo.new but Bar;     # OUTPUT: «Foo+{Bar}.new␤»
+say Foo.new.^mixin(Bar); # OUTPUT: «Foo+{Bar}.new␤»
+=end code
+
+=for comment
+TODO: document what a HOW needs in order to support mixins. What
+behavior the composable archetype handles and what is required in order
+for a HOW to be considered composable is all that's strictly necessary
+to document before this would be reasonable to do, but documentation for
+some of the additional metaroles needed, like
+Metamodel::LanguageRevision, would be useful to have as well.
+
+=head1 Methods
+
+=head2 method set_is_mixin
+
+    method set_is_mixin($obj)
+
+Marks C<$obj> as being a mixin.
+
+=head2 method is_mixin
+
+    method is_mixin($obj)
+
+Returns C<1> If C<$obj> has been marked as being a mixin with
+C<set_is_mixin>, otherwise returns C<0>.
+
+=head2 method set_mixin_attribute
+
+    method set_mixin_attribute($obj, $attr)
+
+Sets the mixin attribute for C<$obj> to C<$attr> (which should be an
+L<Attribute|/type/Attribute> instance).
+
+=head2 method mixin_attribute
+
+    method mixin_attribute($obj)
+
+Returns the mixin attribute for C<$obj> set with
+C<set_mixin_attribute>.
+
+=head2 method setup_mixin_cache
+
+    method setup_mixin_cache($obj)
+
+Sets up caching of mixins for C<$obj>. After this metamethod has been
+called, calls to C<mixin> will not create a new type for mixins of
+C<$obj> given the same list of roles more than once. This should be
+called at some point before composition.
+
+=head2 method flush_cache
+
+    method flush_cache($obj)
+
+No-op.
+
+=head2 method generate_mixin
+
+    method generate_mixin($obj, @roles)
+
+Creates a new mixin metaobject that inherits from C<$obj> and does each
+of the roles in C<@roles>. This is then composed and has its mixin
+attribute set (if any exists) before getting returned.
+
+While this generates a new mixin type, this doesn't actually mix it into
+C<$obj>; if that is what you intend to do, use the L<mixin> metamethod
+instead.
+
+=head2 method mixin
+
+    method mixin($obj, *@roles, :$needs-mixin-attribute)
+
+Generates a new mixin type by calling C<generate_mixin> with C<$obj> and
+C<@roles>. If C<$obj> is composed, the mixin cache of C<$obj> will be checked
+for any existing mixin for these beforehand. If C<$obj> is an instance of a
+type, this will return C<$obj> reblessed with the mixin generated, otherwise
+this will return the mixin itself.
+
+If C<$needs-mixin-attribute> is C<True>, this will throw an exception if
+no mixin attribute exists on the mixin generated before returning.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
