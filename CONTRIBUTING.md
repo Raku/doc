@@ -207,7 +207,8 @@ among which these are probably the most common:
   or for the search functionality itself.
 
 If you would like to contribute documentation or other bug fixes, please use
-[GitHub's pull requests](https://github.com/Raku/doc/pulls).
+[GitHub's pull requests](https://github.com/Raku/doc/pulls). For a complete 
+recipe for a new PR contributor, check [this PR guide](./CONTRIBUTING-PRs.md).
 
 ## Building the documentation
 
