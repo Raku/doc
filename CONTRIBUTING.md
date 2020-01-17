@@ -28,7 +28,7 @@ in the [#raku IRC channel](https://raku.org/community/irc).
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
-- [Contributing Pull Requests (PRs)](#contributing-PRs)
+- [Contributing pull requests](#contributing-pull-requests)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -207,8 +207,10 @@ among which these are probably the most common:
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
 
+## Contributing pull requests
+
 If you would like to contribute documentation or other bug fixes, please use
-[GitHub's pull requests](https://github.com/Raku/doc/pulls). For a complete 
+[GitHub's pull requests (PRs)](https://github.com/Raku/doc/pulls). For a complete 
 recipe for a new PR contributor, check [this PR guide](./CONTRIBUTING_PRs.md).
 
 ## Building the documentation
