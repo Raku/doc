@@ -40,6 +40,7 @@ for @files -> $file {
                 | "Normal Form " ( "C" | "D" | "KC" | "KD" )
                 | POSIX | QNX | Windows | Cygwin | Win32
                 # class names
+                | CompUnits
                 | Whatever
                 | Scheduler
                 | NaN
