@@ -28,6 +28,7 @@ in the [#raku IRC channel](https://raku.org/community/irc).
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
+- [Contributing Pull Requests (PRs)](#contributing-PRs)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -208,7 +209,7 @@ among which these are probably the most common:
 
 If you would like to contribute documentation or other bug fixes, please use
 [GitHub's pull requests](https://github.com/Raku/doc/pulls). For a complete 
-recipe for a new PR contributor, check [this PR guide](./CONTRIBUTING-PRs.md).
+recipe for a new PR contributor, check [this PR guide](./CONTRIBUTING_PRs.md).
 
 ## Building the documentation
 
