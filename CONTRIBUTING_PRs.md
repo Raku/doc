@@ -5,9 +5,12 @@
 On Github
 
 1. Get your own Github account
-2a. Define a token (??name) to allow command line access from your local host to your Github account
-2b. Assign the token in your local git resource file (??name)
-3. Fork this repository to your account
+
+    a. Define a token (??name) to allow command line access from your local host to your Github account
+    
+    b. Assign the token in your local git resource file (??name)
+
+2. Fork this repository to your account
 
 On your local host:
 
