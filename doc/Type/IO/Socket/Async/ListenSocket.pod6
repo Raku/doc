@@ -2,66 +2,65 @@
 
 =TITLE class IO::Socket::Async::ListenSocket
 
-=SUBTITLE A tap for listening sockets
+=SUBTITLE A tap for listening TCP sockets
 
     class IO::Socket::Async::ListenSocket is Tap {}
 
-C<IO::Socket::Async::ListenSocket> is returned by the C<tap
-method|/type/Supply#method_tap> when called on the L<Supply|/type/Supply>
-returned by calling the L<listen method|/type/IO::Socket::Async#method_listen>
-of L<IO::Socket::Async|/type/IO::Socket::Async>:
+C<IO::Socket::Async::ListenSocket> is returned by the
+C<tap|/type/Supply#method_tap> method when called on the
+L<Supply|/type/Supply> returned by calling the
+L<listen|/type/IO::Socket::Async#method_listen> method of
+L<IO::Socket::Async|/type/IO::Socket::Async>, which represents a listening TCP
+socket:
 
 =begin code
-my $listener = IO::Socket::Async.listen('127.0.0.1', 0).tap: -> $peer {
-    $peer.print: "Hello. Good-bye\n";
-    $peer.close;
-}
+my IO::Socket::Async::ListenSocket:D $server =
+    IO::Socket::Async.listen('127.0.0.1', 0).tap(-> $peer {
+        await $peer.print: "Hello. Goodbye!\r\n";
+        $peer.close;
+    });
 
-my $host = await $tap.socket-host;
-my $port = await $tap.socket-port;
-
+my (Str:D $host, Int:D $port) = await $server.socket-host, $server.socket-port;
 say "The rude service is listening on $host:$port for the next 10 seconds...";
-
-sleep 10;
-$listener.close;
-
+await Promise.in(10).then({ $server.close });
 say "I'm done now.";
 =end code
 
-Alternatively, by using the C<do> prefix to C<whenever>, you can also get it while inside a C<react> block:
+Alternatively, by using the C<do> prefix with C<whenever>, you can also use it
+from within a C<react> block:
 
-=begin code
-my $listener;
+=for code
 react {
-    $listener = do whenever IO::Socket::Async.listen('127.0.0.1', 0) -> $peer {
-        $peer.print: "Hello. Good-bye\n";
-        $peer.close;
-    }
+    my IO::Socket::Async::ListenSocket:D $server =
+        do whenever IO::Socket::Async.listen('127.0.0.1', 0) -> IO::Socket::Async:D $connection {
+            await $connection.print: "Hello. Goodbye!\r\n";
+            $connection.close;
+            QUIT { $server.close; .rethrow }
+        };
+    # Use $server here somehow.
 }
 
-$listener.close;
-=end code
-
 =head1 Methods
-
-This object cannot be constructed. It is only returned when tapping the L<Supply|/type/Supply> returned by the L<listen method|/type/IO::Socket::Async#method_listen>.
 
 =head2 method socket-host
 
     method socket-host(--> Promise)
 
-Returns a L<Promise|/type/Promise> that will be kept with a string containing the local listening host name.
+Returns a L<Promise|/type/Promise> that will be kept with a C<Str|/type/Str>
+containing the address of the listening socket.
 
 =head2 method socket-port
 
     method socket-port(--> Promise)
 
-Returns a L<Promise|/type/Promise> that will be kept with the port number of the listening socket.
+Returns a L<Promise|/type/Promise> that will be kept with an C<Int|/type/Int>
+containing the port of the listening socket.
 
-=head2 method close
+=head2 method native-descriptor
 
-    method close()
+    method native-descriptor(--> Int)
 
-Closes the listening socket as well as closing the tap.
+Returns the corresponding file descriptor (C<SOCKET> on Windows) for the
+listening socket.
 
 =end pod
