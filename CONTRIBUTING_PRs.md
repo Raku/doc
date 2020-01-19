@@ -221,7 +221,7 @@ Total 4 (delta 3), reused 0 (delta 0)
 remote: Resolving deltas: 100% (3/3), completed with 3 local objects.
 remote:
 remote: Create a pull request for 'fix-typo' on GitHub by visiting:
-remote:      https://github.com/tbrowder/doc/pull/new/fix-typo
+remote:      https://github.com/grace/doc/pull/new/fix-typo
 remote:
 To github.com:tbrowder/doc.git
  * [new branch]          fix-typo -> fix-typo
