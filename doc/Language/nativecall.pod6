@@ -99,19 +99,33 @@ routine itself.
 Note that a C<NULL> string pointer can be passed by using the C<Str> type
 object; a C<NULL> return will also be represented by the type object.
 
-If the C function requires the lifetime of a string to exceed the function
-call, the argument must be manually encoded and passed as C<CArray[uint8]>:
+If the C function requires the lifetime of data, say some buffer of type
+C<CArray[uint8]>, passed by pointer to exceed the function call, you have
+to ensure that the backing C<CArray[uint8]> Raku object is not destroyed
+before the C function expects it.
+
+This is particularly important for strings, as the (usually preferable)
+C<is encoded>-way of passing strings creates only a temporary object that
+is automatically destroyed after the call. In this case, the argument
+must be manually encoded:
 
     use NativeCall;
-    # C prototype is void set_foo(const char *)
+    # void set_foo(const char *)
+    # Records a char pointer for later usage
     sub set_foo(CArray[uint8]) is native('foo') { * }
-    # C prototype is void use_foo(void)
-    sub use_foo() is native('foo') { * } # will use pointer stored by set_foo()
+    # void use_foo(void)
+    # Uses the pointer stored by set_foo()
+    sub use_foo() is native('foo') { * }
 
     my $string = "FOO";
-    # The lifetime of this variable must be equal to the required lifetime of
-    # the data passed to the C function.
-    my $array = CArray[uint8].new($string.encode.list);
+    # Manually marshal the $string into $array. Take care that $array
+    # is not destroyed (e.g. by going out of scope) while the library
+    # still holds on to it, after set_foo().
+    #
+    # $string.encode takes care of UTF-8 encoding. If $array is used
+    # as a string by the native function, don't forget to append the
+    # NUL byte that terminates a C string: ------------v
+    my $array = CArray[uint8].new($string.encode.list, 0);
 
     set_foo($array);
     # ...
