@@ -1,6 +1,6 @@
-# Guide to contributing a pull request (PR) on a Linux host [A WORK IN PROGRESS]
+# Guide to contributing a pull request (PR) on a Linux host
 
-## Quick start guide for experienced Github users (on a Linux host)
+## Quick start guide for experienced Github users
 
 ### Part A: On Github
 
