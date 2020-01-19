@@ -2,15 +2,17 @@
 
 =TITLE class Seq
 
-=SUBTITLE An iterable, lazy sequence of values
+=SUBTITLE An iterable, potentially lazy sequence of values
 
     class Seq is Cool does Iterable does PositionalBindFailover { }
 
-A C<Seq> represents anything that can lazily produce a sequence of values. A
-C<Seq> is born in a state where iterating it will consume the values. However,
-calling C<.cache> on a C<Seq> will return a List that is still lazy, but stores the
-generated values for later access. However, assigning a C<Seq> to an array consumes the C<Seq>;
-alternatively, you can use the C<lazy> statement prefix to avoid it from being
+A C<Seq> represents anything that can produce a sequence of values. A
+C<Seq> is born in a state where iterating it will consume the values.
+Calling C<.cache> on a C<Seq> will make it store the generated values
+for later access.
+
+Assigning the values of a C<Seq> to an array consumes a C<Seq> that is
+not lazy. Use the C<lazy> statement prefix to avoid a C<Seq> from being
 iterated during the assignment:
 
 =begin code
@@ -78,22 +80,25 @@ Returns the underlying iterator, and marks the invocant as consumed.
 If called on an already consumed sequence, throws an error of type
 L<X::Seq::Consumed|/type/X::Seq::Consumed>.
 
-=head2 method elems
-
-    method elems(Seq:D:)
-
-If the caller C<Seq> is not lazy, consumes and caches its values,
-returning their length. Otherwise, throws an error of type
-L<X::Cannot::Lazy|/type/X::Cannot::Lazy>.
-
 =head2 method is-lazy
 
     method is-lazy(Seq:D: --> Bool:D)
 
-Returns C<True> if the sequence is lazy and potentially infinite, and C<False>
-otherwise.
-If called on an already consumed sequence, throws an error of type
+Returns C<True> if and only if the underlying iterator guarantees lazy
+evaluation and has not been completely evaluated. If called on an
+already consumed sequence, throws an error of type
 L<X::Seq::Consumed|/type/X::Seq::Consumed>.
+
+=head2 method elems
+
+    method elems(Seq:D:)
+
+Returns the number of values in the sequence. If this number cannot be
+predicted, the `Seq` is cached and evaluated till the end.
+
+Because an infinite sequence cannot be evaluated till the end, such a
+sequence I<should> be declared lazy. Calling `.elems` on a lazy sequence
+throws an error of type L<X::Cannot::Lazy|/type/X::Cannot::Lazy>.
 
 =head2 method eager
 
