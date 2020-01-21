@@ -56,6 +56,8 @@ sub test-it(Str $output, Str $file) {
             next if $safe-dupes ∋ ~$dupe[0];
             # Single characters that are probably fine
             next if $dupe ~~ /^ [<:Sm>|<:CS>] $/;
+            # Ignore numbers
+            next if $dupe ~~ /^ \d+ $/;
             @dupes.push: "“" ~ $dupe[0] ~ "” on line $line-num";
         }
     }
