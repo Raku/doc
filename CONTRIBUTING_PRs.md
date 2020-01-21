@@ -11,7 +11,7 @@
     3. Select "SSH and GPG keys" from the left-side menu
     4. Select the green "New SSH key" widget at the top right of the window
     5. Generate your SSH key pair on your local host
-    6. Copy your PUBLIC key into the window and give it a meaningfule title (such as the host name with the private key)
+    6. Copy your PUBLIC key into the window and give it a meaningful title (such as the host name with the private key)
 3. Back in this repository, fork this repository to your account by clicking on the "Fork" button at the top-right of this repository
 
 ### Part B: On your local host
@@ -197,7 +197,7 @@ index 265956373..7a0573209 100644
 
 4. When ready to submit the PR, commit your changes with a good commit message
 
-I'm happy with my changes so I commit the chages:
+I'm happy with my changes so I commit the changes:
 
 ```Raku
 $ git commit -a -m"Use better word than 'exposition' and reword the paragraph"
