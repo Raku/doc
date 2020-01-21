@@ -98,8 +98,8 @@ CD into the new repo to check:
 ```Raku
 $ cd doc
 $ git remote -v
-origin	git@github.com:grace/doc.git (fetch)
-origin	git@github.com:grace/doc.git (push)
+origin    git@github.com:grace/doc.git (fetch)
+origin    git@github.com:grace/doc.git (push)
 ```
 
 Add the upstream repo (we will use the https protocol for read-only access):
@@ -112,10 +112,10 @@ and notice the new remotes have been added:
 
 ```Raku
 $ git remote -v
-origin	git@github.com:grace/doc.git (fetch)
-origin	git@github.com:grace/doc.git (push)
-upstream	https://github.com/raku/doc (fetch)
-upstream	https://github.com/raku/doc (push)
+origin    git@github.com:grace/doc.git (fetch)
+origin    git@github.com:grace/doc.git (push)
+upstream    https://github.com/raku/doc (fetch)
+upstream    https://github.com/raku/doc (push)
 ```
 
 Check what branches we have:
@@ -165,7 +165,7 @@ Changes not staged for commit:
   (use "git add <file>..." to update what will be committed)
   (use "git checkout -- <file>..." to discard changes in working directory)
 
-	modified:   writing-docs/STYLEGUIDE.md
+    modified:   writing-docs/STYLEGUIDE.md
 
 no changes added to commit (use "git add" and/or "git commit -a")
 ```
