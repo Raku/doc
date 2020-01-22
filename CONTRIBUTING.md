@@ -211,7 +211,7 @@ among which these are probably the most common:
 
 If you would like to contribute documentation or other bug fixes, please use
 [GitHub's pull requests (PRs)](https://github.com/Raku/doc/pulls). For a complete
-recipe for a new PR contributor, check [this PR guide](./CONTRIBUTING_PRs.md).
+recipe for a new PR contributor, check [this PR guide](https://github.com/tbrowder/tidbits/Contributing_PRs.md).
 
 ## Building the documentation
 
