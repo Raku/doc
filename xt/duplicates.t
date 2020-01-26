@@ -33,7 +33,7 @@ sub test-it(Str $output, Str $file) {
     my $line-num = 0;
     for $output.lines -> $line is copy {
         $line-num++;
-        if $line.starts-with: ' ' {
+        if $line.starts-with: ' ' or $line eq '' {
             # could be code, table, heading; don't check for dupes
             $last-word = '';
             next;
