@@ -106,7 +106,8 @@ sub test-example ($eg) {
             temp $*ERR = open :w, $*SPEC.devnull;
             use nqp;
             my $*LINEPOSCACHE;
-            $has-error = not try { nqp::getcomp('perl6').parse($code) };
+            my $parser = nqp::getcomp('Raku') || nqp::getcomp('perl6');
+            $has-error = not try { $parser.parse($code) };
             close $*OUT;
             close $*ERR;
 
