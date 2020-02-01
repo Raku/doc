@@ -47,7 +47,7 @@ Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
-`https://docs.perl6.org/blah/blah`). Other variations of the URL will
+`https://docs.raku.org/blah/blah`). Other variations of the URL will
 still work, for convenience, but they all simply redirect to the
 canonical version, so it's best to use it from the start.
 
@@ -133,8 +133,7 @@ stick to easily understandable names:
     my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
 
 If you want to add some fancy characters, please stick to
-[well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
-
+[well-known characters from our Unicode set](https://docs.raku.org/language/unicode_ascii).
 ### Prefer non-ASCII syntax in examples
 
     my @infinite-sequence = 1, 3 … ∞     # GOOD
