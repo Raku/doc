@@ -99,6 +99,9 @@ sub USAGE() {
     say "          $PROGRAM-NAME path/to/file";
     say "\nSet the POD_TO_TEXT_ANSI if you want to use ANSI escape sequences to enhance text";
 
+    say "\nYou can search for references to a particular term:";
+    say "          $PROGRAM-NAME search comb";
+
     say "\nYou can list some top level documents:";
     say "          $PROGRAM-NAME -l";
 
@@ -152,6 +155,38 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
 
 multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
     show-docs($file, :no-pager($n));
+}
+
+
+multi sub MAIN('search', $term = '') {
+    exit note "Missing search term" unless $term;
+    say "searching for $term";
+    sub dirtree($d) {
+      return Empty unless $d.IO.d;
+      gather {
+        for dir($d) -> $f {
+          if $f.d {
+            .take for dirtree($f)
+          } else {
+            take $f
+          }
+        }
+      }
+    }
+
+    my @paths = search-paths() X~ <Type/ Language/>;
+    my regex delim { '#' | '/' | '|' | '<' | '>' }
+    my @found = @paths.race.map: -> $dir {
+      |dirtree($dir).race.grep( { .lines.first( /:i <&delim> $term <&delim> / ) } )
+    }
+    exit note "no results found"  unless @found;
+    my %labels = @found.map: { .basename.subst('.pod6','') => "$_" }
+    my @choose = %labels.keys.sort;
+    for @choose {
+        say ++$ ~ ") $_";
+    }
+    my $which = prompt "Choose: " or exit;
+    show-docs(%labels{ @choose[$which - 1] });
 }
 
 # index related
