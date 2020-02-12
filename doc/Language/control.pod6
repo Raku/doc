@@ -597,6 +597,33 @@ assign them to an array:
     my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # OUTPUT: «[2 4 6]␤»
     my @b = (for 1, 2, 3 { $_ * 2 }); @b.say;  # OUTPUT: «[2 4 6]␤»
 
+This implies that, if the results of the loop are not assigned, they will be
+in a L<sink context|/language/contexts#index-entry-sink_context>:
+
+=for code
+class Sunk {
+    has $.titanic;
+    method sink {
+        say "Sinking $!titanic";
+    }
+}
+Sunk.new( :titanic($_) ) for ^3;
+for 1 {
+    say "About to sink";
+    Sunk.new( :titanic($_) );
+}
+# OUTPUT:
+# Sinking 0
+# Sinking 1
+# Sinking 2
+# About to sink
+# Sinking 1
+
+
+The first loop creates three elements but they are in a sink context, so its
+C<sink> method is called. In the second loop, its last statement will be in a
+ sink context, so it will be also sunk (from version 6.d).
+
 The C<Empty> constant will act as a no-op for a loop:
 
 =for code
