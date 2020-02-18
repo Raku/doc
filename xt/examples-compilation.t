@@ -91,6 +91,7 @@ sub test-example ($eg) {
     my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
 
     my $has-error;
+    my $error-reason;
     {
         # Does the test require its own file?
         if $eg<solo> {
@@ -98,7 +99,7 @@ sub test-example ($eg) {
             $tmp_io.spurt: $code, :close;
             my $proc = Proc::Async.new($*EXECUTABLE, '-c', $tmp_fname);
             $proc.stdout.tap: {;};
-            $proc.stderr.tap: {;};
+            $proc.stderr.tap: {$error-reason ~= $_};
             $has-error = ! await $proc.start;
         }
         else {
@@ -108,6 +109,7 @@ sub test-example ($eg) {
             my $*LINEPOSCACHE;
             my $parser = nqp::getcomp('Raku') || nqp::getcomp('perl6');
             $has-error = not try { $parser.parse($code) };
+            $error-reason = $! if $!;
             close $*OUT;
             close $*ERR;
 
@@ -117,7 +119,7 @@ sub test-example ($eg) {
     todo(1) if $eg<todo>;
     if $has-error {
         diag $eg<contents>;
-        diag $has-error;
+        diag $error-reason;
         flunk $msg;
     }
     else {
