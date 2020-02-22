@@ -817,6 +817,44 @@ Firstly, we read lines from C<config> file, split every line using
 C<words> method and return resulting pair for every line, thus
 creating a List of Pairs.
 
+=head3 Typing Enums
+
+When declaring enums with an explicit scope, a type may be provided,
+which will be used to typecheck the enum's values:
+
+=for code
+my Str enum Foo (foo => 'foo');
+
+All enum pairs are typed as L<Enumeration|/type/Enumeration>. In
+addition, when the enum values are typed as C<Numeric>, C<Stringy>, or a
+combination of these two types, enum pairs also do the
+C<NumericEnumeration>, C<StringyEnumeration>, and
+C<NumericStringyEnumeration> roles respectively.  These simply determine
+how enum pairs get stringified with the C<Str> method.
+
+Given that these types are roles, naturally you can provide your own
+roles when declaring an enum, which allows you to give them custom
+behavior and state. For example, to make it simpler to check if a number
+matches a flag in a bitmask enum, you could write a
+C<BitmaskEnumeration> role with an C<ACCEPTS> method to handle this via
+smartmatching:
+
+=begin code
+role BitmaskEnumeration {
+    multi method ACCEPTS(::?CLASS:D: Int:D $value --> Bool:D) {
+        so $value +& $.value
+    }
+}
+
+enum Flags does BitmaskEnumeration (
+    FLAG_FOO => 0b001,
+    FLAG_BAR => 0b010,
+    FLAG_BAZ => 0b100,
+);
+
+say 0b111 ~~ FLAG_FOO & FLAG_BAR & FLAG_BAZ; # OUTPUT: «True␤»
+=end code
+
 =head3 Metaclass
 
 To test if a given type object is an C<enum>, test the metaobject method
