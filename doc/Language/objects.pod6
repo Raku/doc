@@ -598,6 +598,91 @@ $test.frob;          # calls the frob method of Child rather than Parent
 # OUTPUT: «the child's somewhat more fancy frob is called␤»
 =end code
 
+X<|delegation (trait handles)>
+=head2 Delegation
+
+Delegation is a technique whereby a member of an object (the I«delegatee») is
+evaluated in the context of another original object (the I«delegator»). In other
+words, all method calls on the delegator are I«delegated» to the delegatee.
+
+In Raku, delegation is specified by applying the L«handles|/language/typesystem#trait_handles»
+trait to an attribute. The arguments provided to the trait specify the methods
+the current object and the delegatee object will have in common. Instead of a
+list of method names, a C<Pair> (for renaming), a list of C<Pairs>, a C<Regex>
+or a C<Whatever> can be provided.
+
+=begin code
+class Book {
+    has Str  $.title;
+    has Str  $.author;
+    has Str  $.language;
+    has Cool $.publication;
+}
+
+class Product {
+    has Book $.book handles('title', 'author', 'language', year => 'publication');
+}
+
+my $book = Book.new:
+    :title<Dune>,
+    :author('Frank Herbert'),
+    :language<English>,
+    :publication<1965>
+;
+
+given Product.new(:$book) {
+    say .title;    # OUTPUT: «Dune␤»
+    say .author;   # OUTPUT: «Frank Herbert␤»
+    say .language; # OUTPUT: «English␤»
+    say .year;     # OUTPUT: «1965␤»
+}
+=end code
+
+In the example above, the class C«Product» defines the attribute C«$.book»
+and mark it with the C«handles» trait to specify the methods that will be
+forwarded to the class C«Book» whenever they're invoked on an instance
+object of the C«Product» class. There are a few things to notice here:
+
+=item We didn't write any methods inside the C«Product» class that we invoked
+in its instance object. Instead, we instructed the class to delegate a call to
+any those methods to the C«Book» class.
+
+=item We've specified the method names C«title», C«author», and C«language»
+as they appear in the C«Book» class. On the other hand, we've renamed
+the C«publication» method to C«year» by providing the appropriate C«Pair».
+
+Delegation can be used as an alternative to inheritance by delegating
+to the parent class and not inheriting all of its methods. For example, the
+following C«Queue» class delegates several methods proper of queues
+to the L«Array|/type/Array» class while also providing a preferred interface for
+a few of those methods (e.g., C«enqueue» for C«push»):
+
+=begin code
+class Queue {
+    has @!q handles(
+        enqueue => 'push', dequeue => 'shift',
+        'push', 'shift', 'head', 'tail', 'elems', 'splice'
+    );
+
+    method gist {
+        '[' ~ @!q.join(', ') ~ ']'
+    }
+}
+
+my Queue $q .= new;
+$q.enqueue($_) for 1..5;
+$q.push(6);
+say $q.shift;                  # OUTPUT: «1␤»
+say $q.dequeue while $q.elems; # OUTPUT: «2␤3␤4␤5␤6␤»
+
+$q.enqueue($_) for <Perl Python Raku Ruby>;
+say $q.head;                   # OUTPUT: «Perl␤»
+say $q.tail;                   # OUTPUT: «Ruby␤»
+say $q;                        # OUTPUT: «[Perl, Python, Raku, Ruby]␤»
+$q.dequeue while $q.elems;
+say $q;                        # OUTPUT: «[]␤»
+=end code
+
 X<|new (method)>
 =head2 Object construction
 
