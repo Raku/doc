@@ -1068,8 +1068,8 @@ next if $line ~~ m:i/static/  ; # Raku
 
 =head2 Add :P5 or :Perl5 adverb
 
-If the actual regex is complex, you may want to use it as-is, by adding the
-C<P5> modifier.
+If the actual regex is complex, you may want to use it as-is (with some exceptions),
+by adding the C<P5> modifier.
 
 =for code :lang<perl5>
 next if $line =~    m/[aeiou]/   ; # Perl 5
@@ -1077,14 +1077,36 @@ next if $line =~    m/[aeiou]/   ; # Perl 5
 next if $line ~~ m:P5/[aeiou]/   ; # Raku, using P5 modifier
 next if $line ~~ m/  <[aeiou]> / ; # Raku, native new syntax
 
+If the Perl regex has any modifiers, move them from the end and place them
+after the C<P5> modifier. Each modifier will have to be separated from any
+others by a colon. For example:
+
+=for code :lang<perl5>
+my $a = "abcabc";
+my $b = $a;
+$a =~ s/abcaBc//gi;  # Perl 5
+$a ~~ s:P5:g:i/ab//; # Raku, using P5 modifier
+$b ~~ s:gi/ab//;     # Raku, native new syntax
+say $a;
+say $b;
+
+Another accomodation required with the P5 syntax is to replace curly braces
+with square brackets when specifying Unicode in the expression:
+
+=for code :lang<perl5>
+next if $line =~ m/\x{2043};
+next if $line ~~ m:P5/\x[2043]/;
+next if $line ~~ /\x[2043]/;
+
 Please note that the Perl 5 regular expression syntax dates from many years
 ago and may lack features that have been added since the beginning of the
-Raku project.
+Raku project. Two such features not yet implemented in Raku for the P5
+syntax are the Perl Unicode property matchers C<\p{}> and C<\P{}>.
 
 =head2 Special matchers generally fall under the <> syntax
 
 There are many cases of special matching syntax that Perl 5 regexes
-support. They won't all be listed here, but often instead of being
+support. They won't all be listed here but often, instead of being
 surrounded by C<()>, the assertions will be surrounded by C«<>».
 
 For character classes, this means that:
@@ -1860,7 +1882,7 @@ L<https://fglock.github.io/Perlito/perlito/perlito5.html>
 
 =head2 Perl-ToPerl6
 
-Jeff Goff's
+The late Jeff Goff's
 L<Perl::ToPerl6|https://metacpan.org/release/JGOFF/Perl-ToPerl6-0.03> module for
 Perl 5 is designed around Perl::Critic's framework. It aims to convert Perl5 to
 compilable (if not necessarily running) Raku code with the bare minimum of
