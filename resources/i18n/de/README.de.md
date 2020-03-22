@@ -11,7 +11,7 @@ Ausserdem gibt es ein Kommandozeilen-Tool namens "p6doc".
 
 (Falls du dieses Repository via GitHub nutzt, werden die meisten
 Dateien nicht korrekt angezeigt, weil sie in Raku Pod geschrieben
-sind, GitHub aber Perl 5 Pod an nimmt).
+sind, GitHub aber Perl Pod an nimmt).
 
 ## README in anderen Sprachen
 
