@@ -117,10 +117,10 @@ be written without spaces between words. When in doubt, search for the
 term in the documentation and stick to the form that is used the most
 (and create an issue to change the form that is not).
 
-### Use present tense when talking about Perl 5 features
+### Use present tense when talking about Perl features
 
-Perl 5 is still an active language, therefore instead of "In Perl 5
-this was used for ..., but in Raku ..."  use a form like "In Perl 5
+Per5 is still an active language, therefore instead of "In Perl
+this was used for ..., but in Raku ..."  use a form like "In Perl
 this is used for ..., but in Raku ..."  ('was' has been made a
 present 'is').
 
@@ -159,13 +159,13 @@ memory until they are needed. However, the last one is better because
 it includes a real use case: in the progression, Raku does not need
 to actually compute its terms until they are really needed.
 
-## Perl 5 and Raku
+## Perl and Raku
 
-Style guidelines related to Perl *.
+Style guidelines related to Perl family languages.
 
-### Don't reference Perl 5 unless in a 5-to-6 document or related document
+### Don't reference Perl unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Raku,
+We are not expecting our users to have to know Perl to learn Raku,
 so this should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
