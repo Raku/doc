@@ -10,7 +10,7 @@ Que é a versão recomendada.
 Também disponível uma ferramenta de linha de comando: "p6doc".
 
 (Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod6
-mas o GitHub assume que são Perl 5 Pod.)
+mas o GitHub assume que são Perl Pod.)
 
 ## README em outras línguas
 
@@ -88,7 +88,7 @@ Feito o anterior, a documentacão estará dsiponível em [http://localhost:3000]
 
 `app.pl` depende do [Mojolicious](https://metacpan.org/pod/Mojolicious)
 instalado. Tamabém é necesário o [nodejs](https://nodejs.org) para que funcione o destaque de código.
-E também outros módulos Perl 5, instalados executando:
+E também outros módulos Perl, instalados executando:
 
     $ cpanm --installdeps .
 

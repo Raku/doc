@@ -11,7 +11,7 @@ Esiste uno strumento da riga di comando denominato "p6doc",
 
 (Se stai navigando questo repository via GitHub molti dei file non saranno visualizzati
 correttamente poiché la documentazione è scritta usando Pod per Raku e GitHub
-lo considera invece come Pod per Perl 5 ).
+lo considera invece come Pod per Perl ).
 
 ## README in altri linguaggi
 

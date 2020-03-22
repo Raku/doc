@@ -9,7 +9,7 @@ C'est la documentation reconmmandée.
 
 Une commande est également disponible pour le terminal: "p6doc".
 
-(Si vous recherchez ce repository via GitHub, la plupart des fichiers ne seront pas affichés correctement car la documentation est écrite avec Pod pour Raku et GitHub le considère comme Pod pour Perl 5)
+(Si vous recherchez ce repository via GitHub, la plupart des fichiers ne seront pas affichés correctement car la documentation est écrite avec Pod pour Raku et GitHub le considère comme Pod pour Perl)
 
 
 ## README dans d'autres langues

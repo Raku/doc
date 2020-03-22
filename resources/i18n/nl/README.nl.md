@@ -9,7 +9,7 @@ dit is momenteel de aanbevolen manier om de documentatie te raadplegen. Daarnaas
 van de documentatie ook een command line tool genaamd "p6doc".
 
 NOOT: Als je door deze repository bladert met behulp van GitHub, dan zullen de meeste bestanden niet correct
-worden weergegeven omdat ze zijn opgemaakt in Raku Pod, terwijl GitHub ze interpreteert als Perl 5 Pod.
+worden weergegeven omdat ze zijn opgemaakt in Raku Pod, terwijl GitHub ze interpreteert als Perl Pod.
 
 ## README in andere talen
 
