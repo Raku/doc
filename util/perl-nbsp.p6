@@ -30,7 +30,7 @@ multi sub replace-spaces(IO::Path $file) {
         return $in-line unless $in-line;
 
         $state = check-line $in-line, $state;
-        # Perl 5 and Perl 6 should keep regular spaces in code.
+        # Perl and Raku should keep regular spaces in code.
         return $in-line if $state == CodeDoc;
 
         my Str $out-line = $in-line.clone;
@@ -48,7 +48,7 @@ multi sub replace-spaces(IO::Path $file) {
     });
 
     if $modified {
-        say "Corrected mentions of Perl 5 and 6 to use NBSP in '$file'.";
+        say "Corrected mentions of Perl and Raku to use NBSP in '$file'.";
         $file.spurt(@out.join("\n"), :close);
     }
 }

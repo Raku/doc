@@ -10,7 +10,7 @@ Esta es la documentación recomendada.
 También hay disponible un comando para la terminal: "p6doc".
 
 (Si estás buscando el repositorio en GitHub, la mayoría de los archivos no serán mostrados correctamente,
-ya que esto es Raku Pod6, y GitHub asume que es Perl 5 Pod).
+ya que esto es Raku Pod6, y GitHub asume que es Perl Pod).
 
 ## README en otros lenguajes
 

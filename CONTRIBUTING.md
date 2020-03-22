@@ -225,7 +225,7 @@ computer. To do this you will need:
   - `Pod::To::HTML` (Raku module for converting Pod6 objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
-    (optional; a Perl 5 web framework; it allows you to run a web
+    (optional; a Perl web framework; it allows you to run a web
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
@@ -267,7 +267,7 @@ you're good to go.
 
 #### Mojolicious / Web Server
 
-This is a Perl 5 web framework which is used to run the included
+This is a Perl web framework which is used to run the included
 web application that displays the HTML documentation in a web browser. It's
 no required for development, as the site is static and you can serve it using
 any other webserver.
@@ -275,7 +275,7 @@ any other webserver.
 The app *does* automatically convert the SASS file to CSS, so it's handy to
 use for that as well.
 
-Mojolicious is written in Perl 5, so assuming that you use
+Mojolicious is written in Perl, so assuming that you use
 [`cpanm`](https://metacpan.org/pod/App::cpanminus),
 install this now:
 
@@ -288,7 +288,7 @@ the `sass` command
 
     $ sudo apt-get install ruby-sass
 
-or the [CSS::Sass Perl 5 module](https://modules.raku.org/repo/CSS::Sass)
+or the [CSS::Sass Perl module](https://modules.raku.org/repo/CSS::Sass)
 
     $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
