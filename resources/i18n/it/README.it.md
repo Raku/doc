@@ -32,7 +32,7 @@ installa lo strumento e lo rende disponibile nel tuo path di esecuzione.
 
 ## Usare p6doc
 
-Una volta che si ha una versione Rakudo `perl6` eseguibile nel proprio `PATH`, è sufficiente
+Una volta che si ha una versione Rakudo `EADl6` eseguibile nel proprio `PATH`, è sufficiente
 impartire il comando
 
     $ ./bin/p6doc Str

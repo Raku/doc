@@ -59,7 +59,7 @@ version, or install using `--force`.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try:
+With a Rakudo `raku` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 

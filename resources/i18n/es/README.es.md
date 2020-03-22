@@ -30,7 +30,7 @@ para instalar los binarios y añadirlo a tu path.
 
 ## Usar p6doc
 
-Cuando tengas `perl6` (Rakudo) añadido al `PATH`, ejecuta
+Cuando tengas `raku` (Rakudo) añadido al `PATH`, ejecuta
 
     $ ./bin/p6doc Str
 

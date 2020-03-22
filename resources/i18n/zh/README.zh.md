@@ -41,7 +41,7 @@
 
 ## 使用 p6doc
 
-把 `perl6` 添加到 `PATH` 中后，可以使用命令
+把 `raku` 添加到 `PATH` 中后，可以使用命令
 
     $ ./bin/p6doc Str
 

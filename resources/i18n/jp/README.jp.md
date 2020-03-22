@@ -21,7 +21,7 @@
 
 ## p6docの使用
 
-`PATH`にRakudo `perl6`が入った状態で、
+`PATH`にRakudo `raku`が入った状態で、
 
     $ ./bin/p6doc Str
 

@@ -31,7 +31,7 @@ pour installer le module et l'ajouter à votre path.
 
 ## Utilisez p6doc
 
-Une fois que vous ajoutez `perl6` (Rakudo) au `PATH`, exécutez la commande
+Une fois que vous ajoutez `raku` (Rakudo) au `PATH`, exécutez la commande
 
 
     $ ./bin/p6doc Str

@@ -32,7 +32,7 @@ Suchpfad verfügbar zu machen.
 
 ## Benutzung von p6doc
 
-Falls sich Rakudo `perl6` als ausführbare Datei in deinem `PATH`
+Falls sich Rakudo `raku` als ausführbare Datei in deinem `PATH`
 befindet, verwende
 
     $ ./bin/p6doc Str

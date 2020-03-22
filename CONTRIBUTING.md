@@ -95,7 +95,7 @@ questions come up in the process feel free to ask in
 If the documentation for a type does not exist, create the skeleton of the doc
 with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
+    $ raku util/new-type.p6 --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 

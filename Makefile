@@ -37,15 +37,15 @@ epub: bigpage
 
 # Common tests that are run by travis with every commit
 test:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t; else prove -e perl6 t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t; else prove -e raku t; fi
 
 # Extended tests
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e perl6 t xt; else prove -e perl6 t xt; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t xt; else prove -e raku t xt; fi
 
 # Content tests
 ctest:
-	prove --exec perl6 -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec raku -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 help:
 	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"

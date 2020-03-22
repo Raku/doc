@@ -29,7 +29,7 @@ om het p6doc programma te installeren, en het beschikbaar te maken via het zoekp
 
 ## Het gebruik van p6doc
 
-Geef, met een uitvoerbaar Rakudo `perl6` bestand in het zoekpad `PATH`, het commando:
+Geef, met een uitvoerbaar Rakudo `raku` bestand in het zoekpad `PATH`, het commando:
 
     $ ./bin/p6doc Str
 
