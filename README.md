@@ -214,6 +214,10 @@ explains briefly how to get started contributing documentation.
 Helpful when debugging failing test suite.
 - `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
 
+# UPDATES
+
+Updates are done for the time being by hand. This probably needs improvement. 
+
 # LICENSE
 
 The code in this repository is available under the Artistic License 2.0
