@@ -31,7 +31,7 @@ for @files -> $file {
                 | AST | EVAL | PRE | POST | CLI | MOP
                 | TITLE | SUBTITLE | "MONKEY-TYPING"
                 | API | TCP | UDP | FAQ
-                | JavaScript | Node | Haskell | Python | Ruby | C | Node.js
+                | JavaScript | Node | Haskell | Python | Ruby | C | Node.js | Perl
                 | "Input/Output" | "I/O"
                 | "Alice in Wonderland"
                 | "Virtual Machine"
