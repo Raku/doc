@@ -216,7 +216,7 @@ Helpful when debugging failing test suite.
 
 # UPDATES
 
-Updates are done for the time being by hand. This probably needs improvement. 
+Updates are done for the time being by hand. This probably needs improvement.
 
 # LICENSE
 
