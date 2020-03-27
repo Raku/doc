@@ -399,7 +399,9 @@ because C<42> doesn't match C<Str>.
 say &congratulate.signature # OUTPUT: «(Str $reason, Str $name, | is raw)␤»
 
 You can give the C<proto> a function body, and place the C<{*}> where
-you want the dispatch to be done.
+you want the dispatch to be done. This can be useful when you have a
+"hole" in your routine that gives it different behavior depending on the
+arguments given:
 
     # attempts to notify someone -- False if unsuccessful
     proto notify(Str $user, Str $msg) {
@@ -411,6 +413,26 @@ you want the dispatch to be done.
           return False;
        }
     }
+
+Since C<proto> is a wrapper for C<multi> candidates, the signatures of
+the routine's C<multi> candidates do not necessarily have to match that
+of the C<proto>; arguments of C<multi> candidates may have subtypes of
+those of the C<proto>, and the return types of the C<multi> candidates
+may be entirely different from that of the C<proto>. Using differing
+types like this is especially useful when giving C<proto> a function
+body:
+
+=begin code
+enum DebugType <LOG WARNING ERROR>;
+
+#|[ Prints a message to stderr with a color-coded key. ]
+proto debug(DebugType:D $type, Str:D $message --> Bool:_) {
+    note sprintf qb/\e[1;%dm[%s]\e[0m %s/, {*}, $type.key, $message
+}
+multi debug(LOG;; Str:D --> 32)     { }
+multi debug(WARNING;; Str:D --> 33) { }
+multi debug(ERROR;; Str:D --> 31)   { }
+=end code
 
 C<{*}> always dispatches to candidates with the parameters it's called
 with. Parameter defaults and type coercions will work but are not passed on.
