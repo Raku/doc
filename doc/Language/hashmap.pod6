@@ -126,11 +126,34 @@ You can add new pairs simply by assigning to an unused key:
 =head1 Hash assignment
 
 Assigning a list of elements to a hash variable first empties the variable, and
-then iterates the elements of the right-hand side. If an element is a
-L<Pair|/type/Pair>, its key is taken as a new hash key, and its value as the new
-hash value for that key. Otherwise the value is coerced to L<Str|/type/Str> and
-used as a hash key, while the next element of the list is taken as the
-corresponding value.
+then iterates the elements of the right-hand side (which must contain an even number
+of elements). Note that hash keys are always
+coerced to be strings even if they are unquoted, but keys with spaces in their
+names must be quoted. For example, using the common L<Pair|/type/Pair> syntax:
+
+    my %h = 1 => 'a', b => 2, '1 2' => 3;
+    say %h.keys.sort.raku;       # OUTPUT: «("1", "1 2", "b").Seq␤»
+    say %h.values.sort.raku      # OUTPUT: «(2, 3, "a").Seq␤»
+
+The stringification of the keys can lead to surprising results. For example, the Raku
+module C<CSV::Parser> in one mode returns a CSV data line as a hash of C<{UInt => 'value'}> pairs
+which can look like this fragment of a 20-field line:
+
+    my %csv = '2' => 'a', '10' => 'b';
+    say %csv.keys.sort.raku;           # OUTPUT: «("10", "2").Seq␤»         
+
+The sort result is not what one would normally want. We can use the power of Raku to coerce
+the string values into integers for the sort. There are several ways that can be done but this
+method may present the least "line noise" to novices or non-Raku viewers:
+
+    say %csv.keys.map(+*).sort.raku;   # OUTPUT: «(2, 10).Seq␤»
+    
+In a hash constructor list the C<Pair> syntax doesn't have to be used, or it may be intermixed
+with ordinary list values as long as the list has an even number of elements in total as well
+as between C<Pair>s. If an element is a C<Pair> type (e.g., 'a => 1'), its key is taken as a 
+new hash key, and its value as the new hash value for that key. Otherwise the value is coerced
+to L<Str|/type/Str> and used as a hash key, while the next element of the list is taken as the
+corresponding value. 
 
     my %h = 'a', 'b', c => 'd', 'e', 'f';
 
@@ -146,7 +169,11 @@ or even
 
     my %h = %( a => 'b', c => 'd', e => 'f' );
 
-or
+If you have an odd number of elements using most constructors you will see an error:
+
+    my %h = <a b c>; # OUTPUT: «hash initializer expected...␤»
+
+There are two other valid ways of constructing a hash, but the user should be wary:
 
     my %h = [ a => 'b', c => 'd', e => 'f' ]; # This format is NOT recommended.
                                               # It cannot be a constant and there
