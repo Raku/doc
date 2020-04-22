@@ -10,13 +10,13 @@ LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
 # Managing of the language index page
 USE_CATEGORIES := True
 
-.PHONY: html init-highlights html-nohighlight sparse assets webdev-build \
+.PHONY: html init-highlights html-nohighlight assets \
 	bigpage test xtest ctest help run clean-html clean-images \
 	clean-search clean test-links push \
-        gen-pod6-source clean-build \
+	clean-build \
 	docker-image docker-test docker-xtest docker-ctest docker-testall docker-run
 
-html: gen-pod6-source bigpage
+html: bigpage
 
 init-highlights:
 	ATOMDIR="./highlights/atom-language-perl6";  \
@@ -29,7 +29,7 @@ assets:
 
 for-documentable: init-highlights assets
 
-bigpage: gen-pod6-source
+bigpage:
 	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
 
 epub: bigpage
@@ -54,8 +54,6 @@ help:
 	@echo "   html:             generate the HTML documentation"
 	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   assets:           generate CSS/JS assets"
-	@echo " sparse:             generate HTML documentation, but only every 10th file"
-	@echo "webdev-build:        generate only a few HTML files (useful for testing website changes)"
 	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
