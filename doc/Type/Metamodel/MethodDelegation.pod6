@@ -1,0 +1,67 @@
+=begin pod :kind<Type> :subkind<class> :category<metamodel>
+
+=TITLE role Metamodel::MethodDelegation
+
+=SUBTITLE Metarole for delegating method dispatch
+
+    role Metamodel::MethodDelegation { }
+
+I<Warning>: this role is part of the Rakudo implementation, and is not
+a part of the language specification.
+
+Methods of C<Any> and C<Mu> can be invoked on roles, despite them not
+actually having these types as parents:
+
+=begin code
+role Role { }
+
+say Role.raku;                             # OUTPUT: «Role␤»
+say Role.^pun.^parents(:all).map(*.^name); # OUTPUT: «()␤»
+=end code
+
+C<Metamodel::MethodDelegation> is the metarole responsible for this
+behavior. Using the metamethods this provides, metaobjects can delegate
+method dispatch to another type object. This can be useful when
+implementing types that shouldn't store methods of their own through
+L<C<Metamodel::MethodContainer>|/type/Metamodel::MethodContainer>, but
+should still support method dispatch somehow.
+
+All this metarole does is provide an interface for storing a type object
+to delegate methods to and provide a default C<find_method> method for
+delegating method lookups to that type object if no other method lookup
+behavior for it exists; any other behavior related to methods is left up
+to the metaclasses that do this metarole to implement themselves.
+
+Because method delegation is a property of the metaclass for a HOW, not
+HOWs themselves, the C<delegate_methods_to> and
+C<delegating_methods_to> metamethods this metarole provides must be
+invoked directly through a metaclass or HOW, not with C<.^> syntax:
+
+=for code :preamble<role Role { }>
+say Role.HOW.delegating_methods_to.^name; # OUTPUT: «Any␤»
+
+This metarole is commonly used in combination with
+L<C<Metamodel::TypePretense>|/type/Metamodel::TypePretense>.
+
+=head1 Methods
+
+=head2 method delegate_methods_to
+
+    method delegate_methods_to($type)
+
+Delegates methods to a type object.
+
+=head2 method delegating_methods_to
+
+    method delegating_methods_to()
+
+Returns the type object a metaobject is delegating methods to.
+
+=head2 method find_method
+
+    method find_method($obj, $name)
+
+Looks up a method on the type object this metaobject is delegating
+method dispatch to.
+
+=end pod
