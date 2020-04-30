@@ -89,6 +89,11 @@ example in the code.
         $x = frob();
     =end code
 
+Note that when running the code, it's compiled inside an anonymous class.
+The preamble is the first code in this class, so if you're testing the
+definition of a complex method signature that requires attributes, you can
+declare them using this construct.
+
 ### Complicated Examples
 
 Some examples are too complicated to be run using our EVAL trick.
