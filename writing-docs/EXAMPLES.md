@@ -56,6 +56,15 @@ You can allow it with ok-test:
         dd 42;
     =end
 
+### Allow .perl
+
+One of the checks is to dissuade using `.perl` in tests. If needed you
+can allow it with ok-test:
+
+    =begin code :ok-test<perl>
+        say {:42a}.perl;
+    =end
+
 ### Methods
 
 If a code snippet looks like a method declaration, it's automatically
