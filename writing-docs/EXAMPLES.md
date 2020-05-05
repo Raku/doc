@@ -58,8 +58,9 @@ You can allow it with ok-test:
 
 ### Allow .perl
 
-One of the checks is to dissuade using `.perl` in tests. If needed you
-can allow it with ok-test:
+One of the checks is to discourage using `.perl` in tests: the `raku`
+method should be used instead.
+If needed you can allow the use of the `perl` method with ok-test:
 
     =begin code :ok-test<perl>
         say {:42a}.perl;
