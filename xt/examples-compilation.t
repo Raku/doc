@@ -52,6 +52,7 @@ sub test-example ($eg) {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
+    # #3309 - don't like .perl in examples
     if ! $eg<ok-test>.contains('perl') && $eg<contents>.contains('.perl') {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .perl: use .raku instead';
         next;
