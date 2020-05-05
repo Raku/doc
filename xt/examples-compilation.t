@@ -52,6 +52,10 @@ sub test-example ($eg) {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
+    if ! $eg<ok-test>.contains('perl') && $eg<contents>.contains('.perl') {
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .perl: use .raku instead';
+        next;
+    }
 
     # Wrap snippets in an anonymous class (so bare method works)
     # and add in empty blocks if needed.
