@@ -7,7 +7,7 @@ assignees: ''
 
 ---
 
-## Problem or new feature 
+## Problem or new feature
 
 A clear and concise description of what the bug is, including links to the page where you have found it.
 
