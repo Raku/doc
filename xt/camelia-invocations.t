@@ -8,7 +8,7 @@ use Test-Files;
 
 =begin SYNOPSIS
 
-Search through all code blocks (with C«:lang<perl6>» or unset C«:lang»)
+Search through all code blocks (with C«:lang<raku>», C«:lang<perl6>» or unset C«:lang»)
 in the document files for lines beginning with "m:" which are likely
 copy-pasted from an IRC log where Camelia or evalable was involved.
 
@@ -38,8 +38,8 @@ for @files -> $file {
     while @chunks {
         my $chunk = @chunks.pop;
         if $chunk ~~ Pod::Block::Code {
-            # Only test :lang<perl6> (which is the default)
-            next unless quietly $chunk.config<lang> eq '' | 'perl6';
+            # Only test :lang<raku> or :lang<perl6> (which is the default)
+            next unless quietly $chunk.config<lang> eq '' | 'raku' | 'perl6';
             @examples.push: %(
                 'contents',  $chunk.contents.map({walk $_}).join,
                 'file',      $file,
