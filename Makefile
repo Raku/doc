@@ -3,37 +3,31 @@ PATH := $(PATH)
 DOCKER_IMAGE_NAME    ?= p6doc
 DOCKER_HOST_PORT     ?= 3000
 DOCKER_SELINUX_LABEL ?= 0
-COLON_Z              := :Z
-SELINUX_OPT          := $(shell [ $(DOCKER_SELINUX_LABEL) -eq 1 ] && echo "$(COLON_Z)" || echo '' )
-# dependencies for a new doc/Language build:
-LANG_POD6_SOURCE     := $(wildcard doc/Language/*.pod6)
-# Managing of the language index page
-USE_CATEGORIES := True
+ifeq ($(DOCKER_SELINUX_LABEL),1)
+SELINUX_OPT          := :Z
+else
+SELINUX_OPT          :=
+endif
 
-.PHONY: html init-highlights html-nohighlight assets \
-	bigpage test xtest ctest help run clean-html clean-images \
+.PHONY: html init-highlights assets \
+	test xtest ctest help run clean-html clean-images \
 	clean-search clean test-links push \
-	clean-build \
+	clean-cache \
 	docker-image docker-test docker-xtest docker-ctest docker-testall docker-run
 
-html: bigpage
+html: for-documentable
+	documentable start -a -v --highlight
 
-init-highlights:
+init-highlights highlights/package-lock.json:
 	ATOMDIR="./highlights/atom-language-perl6";  \
 	if [ -d "$$ATOMDIR" ]; then (cd "$$ATOMDIR" && git pull); \
 	else git clone https://github.com/perl6/atom-language-perl6 "$$ATOMDIR"; \
 	fi; cd highlights; npm install .; npm rebuild
 
-assets:
+assets assets/assetpack.db:
 	./app.pl assets
 
-for-documentable: init-highlights assets
-
-bigpage:
-	pod2onepage --html -v --source-path=./build --exclude=404.pod6 > html/perl6.html
-
-epub: bigpage
-	pandoc html/perl6.html -o perl6.epub
+for-documentable: highlights/package-lock.json assets/assetpack.db
 
 # Common tests that are run by travis with every commit
 test:
@@ -48,13 +42,11 @@ ctest:
 	prove --exec perl6 -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 help:
-	@echo "Usage: make [html|html-nohighlight|test|xtest|ctest]"
+	@echo "Usage: make [html|test|xtest|ctest]"
 	@echo ""
 	@echo "Options:"
 	@echo "   html:             generate the HTML documentation"
-	@echo "   html-nohighlight: generate HTML documentation without syntax highlighting"
 	@echo "   assets:           generate CSS/JS assets"
-	@echo "bigpage:             generate HTML documentation in one large file (html/perl6.html)"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
 	@echo "  xtest:             run the test suite, including extra tests"
@@ -112,15 +104,18 @@ clean-images:
 clean-search:
 	rm -f html/js/search.js
 
-clean-build:
-	find build -name "*.pod6" -exec rm -f {} \;
+clean-cache:
+	-rm -rf .cache-doc
 
-remove-build:
-	rm -rf build
+clean: clean-html clean-images clean-search
 
-clean: clean-html clean-images clean-search clean-build
-
-distclean: clean remove-build
+distclean: clean clean-cache
+	-rm -rf assets/assetpack.db assets/cache
+	-rm -rf highlights/atom-language-perl6/
+	-rm -rf highlights/node_modules/
+	-rm -rf highlights/package-lock.json
+	-rm -rf html/css/app.css
+	-rm -rf html/js
 
 
 test-links: links.txt
