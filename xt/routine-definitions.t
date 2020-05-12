@@ -16,7 +16,7 @@ ref #3350
 
 =end overview
 
-my @files = Test-Files.pods;
+plan +my @files = Test-Files.pods;
 
 for @files -> $file {
     subtest $file => {
