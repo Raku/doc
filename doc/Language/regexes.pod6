@@ -504,6 +504,51 @@ Examples of word characters:
     0409 Љ CYRILLIC CAPITAL LETTER LJE
     =end code
 
+=head3 X<C<\c> and C<\C>|regex,\c;regex,\C>
+
+C<\c> takes a parameter delimited by square-brackets which is the name
+of a Unicode character as it appears in the
+L<Unicode Character Database (UCD)|https://unicode.org/ucd/> and matches
+that specific character. For example:
+
+    'a.b' ~~ /\c[FULL STOP]/ and say ~$/;    # OUTPUT: «.»
+
+C<\C> matches a single character that is not the named Unicode character.
+
+Note that the word "character" is used, here, in the sense that the UCD
+does, but because Raku uses L<NFG|/language/glossary#NFG>, combining
+code points and the base characters to which they are attached,
+will generally not match individually. For example if you compose
+C<"ü"> as C<"u\x[0308]">, that works just fine, but matching may surprise
+you:
+
+     say "u\x[0308]" ~~ /\c[LATIN SMALL LETTER U]/;    # OUTPUT: «Nil»
+
+To match the unmodified character, you can use the
+L<C<:ignoremark>|#regex adverb,:ignoremark> adverb.
+
+=head3 X<C<\x> and C<\X>|regex,\x;regex,\X>
+
+C<\x> takes a parameter delimited by square-brackets which is the
+hexadecimal representation of the Unicode codepoint representing the
+character to be matched. For example:
+
+    'a.b' ~~ /\x[2E]/ and say ~$/;    # OUTPUT: «.»
+
+C<\X> matches a single character that is not the given Unicode codepoint.
+
+In addition, C<\x> and C<\X> can be used without brackets, in which case, any
+characters that follow the C<x> or C<X> that are valid hexadecimal digits will
+be consumed. This means that all of these are equivalent:
+
+    /\x2e/ and /\x002e/ and /\x00002e/
+
+But this format can be ambiguous, so the use of surrounding whitespace is
+highly recommended in non-trivial expressions.
+
+For additional provisos with respect to combining codepoints, see
+L<C<\c> and C<\C>|#regex,\c>.
+
 =head2 Predefined character classes
 
 =begin table
@@ -1109,7 +1154,8 @@ two leading spaces each.
 To match any word boundary, use C«<|w>» or C«<?wb>». This is similar to
 X«C<\b>|regex deprecated,\b» in other languages. To match the opposite, any
 character that is not bounding a word, use C«<!|w>» or C«<!wb>». This is similar
-to X«C<\B>|regex deprecated,\B» in other languages.
+to X«C<\B>|regex deprecated,\B» in other languages; C<\b> and C<\B> will
+throw an L<C<X::Obsolete>|/type/X::Obsolete> exception from version 6.d of Raku.
 
 These are both zero-width regex elements.
 
@@ -1187,7 +1233,7 @@ There are two variants: lookahead and lookbehind assertions.
 Technically, anchors are also zero-width assertions, and they can look
 both ahead and behind.
 
-=head2 X«Lookaround assertions|regex,positive lookaround assertion;regex,negative lookaround assertion»
+=head2 X«Lookaround assertions|regex,positive lookaround assertion, <?>;regex,negative lookaround assertion, <!>; regex ?[ »
 
 Lookaround assertions work both ways. They match, but they don't consume a
 character.
@@ -1219,7 +1265,7 @@ negative lookaround assertion behaves in the same way. In the fourth
 statement the last digit is matched but not consumed, thus the match includes
  only the first two digits.
 
-=head2 X<Lookahead assertions|regex,before>
+=head2 X«Lookahead assertions|regex, before;regex, <?before>»
 
 To check that a pattern appears before another pattern, use a
 lookahead assertion via the C<before> assertion. This has the form:
@@ -1269,7 +1315,7 @@ that are followed by a unit (like I<kg>), but not other numbers:
 Since the lookahead is not part of the match object, the unit
 is not substituted.
 
-=head2 X<Lookbehind assertions|regex,after>
+=head2 X«Lookbehind assertions|regex, after; regex, <?after>»
 
 To check that a pattern appears after another pattern, use a
 lookbehind assertion via the C<after> assertion. This has the form:
@@ -1856,7 +1902,7 @@ Here's more complete code for parsing C<ini> files:
             %config{ $section<header>[0] } = %section;
         }
     }
-    say %config.perl;
+    say %config.raku;
 
     # OUTPUT: «{:passwords(${:jack("password1"), :joy("muchmoresecure123")}),
     #           :quotas(${:jack("123"), :joy("42")})}»
@@ -1894,6 +1940,10 @@ pattern, which may be summarized as follows:
 
 =end table
 
+Instead of the C<$> sigil, you may use the C<@> sigil for array interpolation.
+See below for how this works.
+
+X<|regex, $variable>X<|regex, $(code)>
 Let's start with the first two syntactical forms: C«$variable» and C«$(code)».
 These forms will interpolate the stringified value of the variable or the
 stringified return value of the code literally, provided that the respective
@@ -1969,6 +2019,7 @@ interpolation. Hence, in general, after possible stringification, C«$variable»
 and C«$(code)» provide for a strictly literal match of the variable or return
 value.
 
+X«|regex, <$variable>»X«|regex, <{code}>»
 Now consider the second two syntactical forms from the table above:
 C«<$variable>» and C«<{code}>». These forms will stringify the value of the
 variable or the return value of the code and interpolate it as a regex. If the
@@ -2015,10 +2066,20 @@ regexes. Just as with ordinary C<|> interpolation, the longest match succeeds:
     my @a = '2', 23, rx/a.+/;
     say ('b235' ~~ /  b @a /).Str;      # OUTPUT: «b23»
 
+If you have an expression that evaluates to a list, but you do not want to
+assign it to an @-sigiled variable first, you can interpolate it with
+C<@(code)>. In this example, both regexes are equivalent:
+
+    my %h = a => 1, b => 2;
+    my @a = %h.keys;
+    say S:g/@(%h.keys)/%h{$/}/ given 'abc';    # OUTPUT: «12c>
+    say S:g/@a/%h{$/}/ given 'abc';            # OUTPUT: «12c>
+
 The use of hashes in regexes is reserved.
 
 =head2 Regex boolean condition check
 
+X«|regex, <?{}>;regex, <!{}>»
 The special operator C«<?{}>» allows the evaluation of a boolean expression that
 can perform a semantic evaluation of the match before the regular expression
 continues. In other words, it is possible to check in a boolean context a part
@@ -2520,9 +2581,9 @@ C<:sigspace> modifier for the regex, and in addition, copies the
 whitespace from the matched string to the replacement string:
 
 =begin code
-say S:samespace/a ./c d/.perl given "a b";      # OUTPUT: «"c d"»
-say S:samespace/a ./c d/.perl given "a\tb";     # OUTPUT: «"c\td"»
-say S:samespace/a ./c d/.perl given "a\nb";     # OUTPUT: «"c\nd"»
+say S:samespace/a ./c d/.raku given "a b";      # OUTPUT: «"c d"»
+say S:samespace/a ./c d/.raku given "a\tb";     # OUTPUT: «"c\td"»
+say S:samespace/a ./c d/.raku given "a\nb";     # OUTPUT: «"c\nd"»
 =end code
 
 The C<ss/.../.../> syntactic form is a shorthand for

@@ -52,6 +52,11 @@ sub test-example ($eg) {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
+    # #3309 - don't like .perl in examples
+    if ! $eg<ok-test>.contains('perl') && $eg<contents>.contains('.perl') {
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .perl: use .raku instead';
+        next;
+    }
 
     # Wrap snippets in an anonymous class (so bare method works)
     # and add in empty blocks if needed.
@@ -133,8 +138,8 @@ sub code-blocks (IO() $file) {
     gather while @chunks {
         my $chunk = @chunks.pop;
         if $chunk ~~ Pod::Block::Code  {
-            # Only testing Perl 6 snippets.
-            next unless $chunk.config<lang>:v eq '' | 'perl6';
+            # Only testing Raku snippets.
+            next unless $chunk.config<lang>:v eq '' | 'raku' | 'perl6';
 
             my $todo = False;
             if $chunk.config<skip-test> {
