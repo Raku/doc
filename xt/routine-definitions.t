@@ -93,7 +93,8 @@ sub test-definitions($file, $header, $routine-form is rw, $code is rw) {
                                 [  (multi \h+)? sub \h+ <ident>+
                                 || multi \h+ <!before method> <ident>+
                                 ]
-                              /;
+				/;
+    say "has_sub $has_sub";
     my $has_method =
         so $code ~~ /^^ \h* (multi \h+)? << method >>/;
 
@@ -105,7 +106,7 @@ sub test-definitions($file, $header, $routine-form is rw, $code is rw) {
         $error-reason = 'has sub definition';
     }
 
-    if $routine-form eq 'routine' && !($has_sub && $has_method) {
+    if $routine-form eq 'routine' && !($has_sub || $has_method) {
         $error-reason = "lacks both sub and method definition";
     }
 
