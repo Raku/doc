@@ -94,7 +94,6 @@ sub test-definitions($file, $header, $routine-form is rw, $code is rw) {
                                 || multi \h+ <!before method> <ident>+
                                 ]
 				/;
-    say "has_sub $has_sub";
     my $has_method =
         so $code ~~ /^^ \h* (multi \h+)? << method >>/;
 
