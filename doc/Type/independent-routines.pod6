@@ -629,16 +629,48 @@ functions.  The only difference between the two functions is that C<sprintf>
 returns a string while the C<printf> function writes to a filehandle. C<sprintf>
 returns a C<Str>, not a literal.
 
-The C<$format> is scanned for C<%> characters. Any C<%> introduces a format
-token. Directives guide the use (if any) of the arguments. When a directive
-other than C<%> is used, it indicates how the next argument passed is to be
-formatted into the string to be created.
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Directives guide the use (if any) of the arguments. When
+a directive other than C<%> is used, it indicates how the next
+argument passed is to be formatted into the string to be
+created. I<Parameter indexes> may also be used in the format
+tokens. They take the form C<N$> and are explained in more detail
+below.
+
+The C<$format> may be defined enclosed in single or double quotes. The
+double-quoted C<$format> string is interpolated before being scanned
+and any embedded string whose interpolated value contains a C<%>
+character will cause an exception. For example:
+
+=begin code
+my $prod = "Ab-%x-42";
+my $cost = "30";
+sprintf("Product $prod; cost: \$%d", $cost).put;
+# OUTPUT: «Your printf-style directives specify 2 arguments, but 1 argument was supplied␤»
+          «  in block <unit> at <unknown file> line 1␤»
+=end code
+
+When handling unknown input you should avoid using such syntax by
+putting all variables in the C<*@args> array and have one C<%> for each
+in C<$format>. If you need to include a C<$> symbol in the format
+string (even as a I<parameter index>) either escape it or use the
+single-quoted form.  For example, either of the following forms works
+without error:
+
+=begin code
+sprintf("2 x \$20 = \$%d", 2*20).put; # OUTPUT: «2 x $20 = $40␤»
+sprintf('2 x $20 = $%d', 2*20).put;   # OUTPUT: «2 x $20 = $40␤»
+=end code
+
+In summary, unless you need something very special, you will have
+fewer unexpected problems by using the single-quoted format string and
+not using interpolated strings inside the format string.
 
 N<The information below is for a fully functioning C<sprintf> implementation
 which hasn't been achieved yet. Formats or features not yet implemented are
 marked NYI.>
 
-The directives are:
+=head3 Directives
 
 =begin table
 
@@ -671,6 +703,8 @@ Compatibility:
 
 =end table
 
+=head2 Modifiers
+
 Modifiers change the meaning of format directives, but are largely
 no-ops (the semantics are still being determined).
 
@@ -688,13 +722,32 @@ Between the C<%> and the format letter, you may specify several
 additional attributes controlling the interpretation of the format. In
 order, these are:
 
-=head3 Format parameter index
+=head3 Format parameter index using the '$' symbol
 
-An explicit format parameter index, such as C<2$>. By default,
-C<sprintf> will format the next unused argument in the list, but this
-allows you to take the arguments out of order:
+An explicit format parameter index (ranging from 1 to N args)
+before the directive, such as C<%2$d>. By default, C<sprintf> will
+format the next unused argument in the list, but the parameter index
+allows you to take the arguments out of order (note single quotes
+are required unless you escape the C<$>):
+
+=head4 Without index:
+
+  sprintf '%d %d', 12, 34;      # OUTPUT: «12 34␤»
+  sprintf '%d %d %d', 1, 2, 3;  # OUTPUT: «1 2 3␤»
+
+
+=head4 With index:
+
+The first example works as we expect it to when we index all
+directives.
 
   sprintf '%2$d %1$d', 12, 34;      # OUTPUT: «34 12␤»
+
+But notice the effect when mixing indexed and non-indexed directives
+in the second example (be careful what you ask for). The second,
+non-indexed directive gets the first argument, but it is also
+specifically requested in the last directive:
+
   sprintf '%3$d %d %1$d', 1, 2, 3;  # OUTPUT: «3 1 1␤»
 
 =head3 Flags
@@ -713,6 +766,8 @@ One or more of:
    #     |  ensure the leading "0" for any octal,
          |  prefix non-zero hexadecimal with "0x" or "0X",
          |  prefix non-zero binary with "0b" or "0B"
+----------------------------------------------------------------
+   v     |  NYI vector flag, see description below
 =end table
 
 For example:
@@ -748,16 +803,17 @@ the actual number of elements will return the number with 0 to the left:
   say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0 results in no output!
   say sprintf '<%#.0o>', 0o1       # OUTPUT: «<01>␤»
 
-=head3 Vector flag
+=head3 Vector flag 'v'
 
-This flag tells Raku to interpret the supplied string as a vector of
-integers, one for each character in the string. Raku applies the
-format to each integer in turn, then joins the resulting strings with
-a separator (a dot, C<'.'>, by default). This can be useful for
-displaying ordinal values of characters in arbitrary strings:
+This special flag (C<v>) tells Raku to interpret the supplied string
+as a vector of integers, one for each character in the string. Raku
+applies the format to each integer in turn, then joins the resulting
+strings with a dot (C<'.'>) separator. This can be
+useful for displaying ordinal values of characters in arbitrary
+strings:
 
 =begin code :skip-test<not yet implemented>
-NYI sprintf "%vd", "AB\x[100]";           # "65.66.256"
+NYI sprintf "%vd", "AB\x[100]";           # OUTPUT: «65.66.256␤»
 =end code
 
 You can also explicitly specify the argument number to use for the
@@ -768,21 +824,22 @@ NYI sprintf '%*4$vX %*4$vX %*4$vX',       # 3 IPv6 addresses
         @addr[1..3], ":";
 =end code
 
-=head3 (Minimum) Width
+=head3 Width (minimum)
 
-Arguments are usually formatted to be only as wide as required to
-display the given value. You can override the width by putting a
-number here, or get the width from the next argument (with C<*> ) or
+Arguments are usually formatted by default to be only as wide as required to
+display the given value. You specify a minimum width that can override the default width by putting a
+number here, or get the desired width from the next argument (with C<*> ) or
 from a specified argument (e.g., with C<*2$>):
 
 =begin code :skip-test<partly not yet implemented>
  sprintf "<%s>", "a";           # RESULT: «<a>␤»
  sprintf "<%6s>", "a";          # RESULT: «<     a>␤»
  sprintf "<%*s>", 6, "a";       # RESULT: «<     a>␤»
- NYI sprintf '<%*2$s>', "a", 6; # "<     a>"
+ NYI sprintf '<%*2$s>', "a", 6; # RESULT: «<     a>␤»
  sprintf "<%2s>", "long";       # RESULT: «<long>␤» (does not truncate)
 =end code
 
+In all cases, the specified width will be increased as necessary to accomodate the given integral numerical value or string.
 If a field width obtained through C<*> is negative, it has the same
 effect as the C<-> flag: left-justification.
 
@@ -794,7 +851,7 @@ number. For floating-point formats, except C<g> and C<G>, this
 specifies how many places right of the decimal point to show (the
 default being 6). For example:
 
-  # these examples are subject to system-specific variation
+  # These examples are subject to system-specific variation.
   sprintf '<%f>', 1;    # RESULT: «"<1.000000>"␤»
   sprintf '<%.1f>', 1;  # RESULT: «"<1.0>"␤»
   sprintf '<%.0f>', 1;  # RESULT: «"<1>"␤»
@@ -814,20 +871,20 @@ example:
   sprintf '<%.5g>', 100.01; # RESULT: «<100.01>␤»
   sprintf '<%.4g>', 100.01; # RESULT: «<100>␤»
 
-For integer conversions, specifying a precision implies that the
-output of the number itself should be zero-padded to this width, where
-the C<0> flag is ignored:
+For integer conversions, specifying a precision implies the
+output of the number itself should be zero-padded to this width (where
+the C<0> flag is ignored):
 
 (Note that this feature currently works for unsigned integer conversions, but
 not for signed integer.)
 
   =begin code :skip-test<partly not yet implemented>
-  sprintf '<%.6d>', 1;      # <000001>
-  NYI sprintf '<%+.6d>', 1;     # <+000001>
-  NYI sprintf '<%-10.6d>', 1;   # <000001    >
-  sprintf '<%10.6d>', 1;    # <    000001>
-  NYI sprintf '<%010.6d>', 1;   #     000001>
-  NYI sprintf '<%+10.6d>', 1;   # <   +000001>
+  sprintf '<%.6d>', 1;         # RESULT: «<000001>␤»
+  NYI sprintf '<%+.6d>', 1;    # RESULT: «<+000001>␤»
+  NYI sprintf '<%-10.6d>', 1;  # RESULT: «<000001    >␤»
+  sprintf '<%10.6d>', 1;       # RESULT: «<    000001>␤»
+  NYI sprintf '<%010.6d>', 1;  # RESULT: «<    000001>␤»
+  NYI sprintf '<%+10.6d>', 1;  # RESULT: «<   +000001>␤»
   sprintf '<%.6x>', 1;         # RESULT: «<000001>␤»
   sprintf '<%#.6x>', 1;        # RESULT: «<0x000001>␤»
   sprintf '<%-10.6x>', 1;      # RESULT: «<000001    >␤»
@@ -914,11 +971,11 @@ Here are some more examples; be aware that when using an explicit
 index, the C<$> may need escaping:
 
 =for code :skip-test<partly not yet implemented>
-sprintf "%2\$d %d\n",      12, 34;     # RESULT: «34 12␤␤»
-sprintf "%2\$d %d %d\n",   12, 34;     # RESULT: «34 12 34␤␤»
-sprintf "%3\$d %d %d\n",   12, 34, 56; # RESULT: «56 12 34␤␤»
-NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # " 34 12\n"
-NYI sprintf "%*1\$.*f\n",       4,  5, 10; # "5.0000\n"
+sprintf "%2\$d %d\n",      12, 34;         # RESULT: «34 12␤␤»
+sprintf "%2\$d %d %d\n",   12, 34;         # RESULT: «34 12 34␤␤»
+sprintf "%3\$d %d %d\n",   12, 34, 56;     # RESULT: «56 12 34␤␤»
+NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # RESULT: « 34 12␤␤»
+NYI sprintf "%*1\$.*f\n",       4,  5, 10; # RESULT: «5.0000␤␤»
 
 Other examples:
 
