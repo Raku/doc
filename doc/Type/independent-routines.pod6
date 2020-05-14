@@ -639,29 +639,27 @@ below.
 
 The C<$format> may be defined enclosed in single or double quotes. The
 double-quoted C<$format> string is interpolated before being scanned
-and any embedded string whose interpolated value contains a '%'
-character will cause an exception. N<The invalid sprintf
-formatexception messages have been improved for Rakudo releases after
-I<2020.05.1>.> For example:
+and any embedded string whose interpolated value contains a C<%>
+character will cause an exception. For example:
 
 =begin code
 my $prod = "Ab-%x-42";
 my $cost = "30";
 sprintf("Product $prod; cost: \$%d", $cost).put;
-Your printf-style directives specify 2 arguments, but 1 argument was supplied
-  in block <unit> at <unknown file> line 1
+# OUTPUT: «Your printf-style directives specify 2 arguments, but 1 argument was supplied␤»
+          «  in block <unit> at <unknown file> line 1␤»
 =end code
 
 When handling unknown input you should avoid using such syntax by
-putting all variables in the C<*@args> array and have one '%' for each
-in C<$format>. If you need to include a '$' symbol in the format
+putting all variables in the C<*@args> array and have one C<%> for each
+in C<$format>. If you need to include a C<$> symbol in the format
 string (even as a I<parameter index>) either escape it or use the
 single-quoted form.  For example, either of the following forms works
 without error:
 
 =begin code
 sprintf("2 x \$20 = \$%d", 2*20).put; # OUTPUT: «2 x $20 = $40␤»
-sprintf('2 x $20 = $%d', 2*20").put;  # OUTPUT: «2 x $20 = $40␤»
+sprintf('2 x $20 = $%d', 2*20).put;   # OUTPUT: «2 x $20 = $40␤»
 =end code
 
 In summary, unless you need something very special, you will have
@@ -705,6 +703,8 @@ Compatibility:
 
 =end table
 
+=head2 Modifiers
+
 Modifiers change the meaning of format directives, but are largely
 no-ops (the semantics are still being determined).
 
@@ -724,11 +724,11 @@ order, these are:
 
 =head3 Format parameter index using the '$' symbol
 
-An explicit format parameter integer index (ranging from 1 to N args)
-before the directive, such as C<2$>. By default, C<sprintf> will
+An explicit format parameter index (ranging from 1 to N args)
+before the directive, such as C<%2$d>. By default, C<sprintf> will
 format the next unused argument in the list, but the parameter index
-allows you to take the arguments out of order (note that the single quotes
-are needed unless you escape the '$'):
+allows you to take the arguments out of order (note single quotes
+are required unless you escape the C<$>):
 
 =head4 Without index:
 
@@ -766,6 +766,8 @@ One or more of:
    #     |  ensure the leading "0" for any octal,
          |  prefix non-zero hexadecimal with "0x" or "0X",
          |  prefix non-zero binary with "0b" or "0B"
+----------------------------------------------------------------
+   v     |  NYI vector flag, see description below
 =end table
 
 For example:
@@ -801,17 +803,17 @@ the actual number of elements will return the number with 0 to the left:
   say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0 results in no output!
   say sprintf '<%#.0o>', 0o1       # OUTPUT: «<01>␤»
 
-=head3 Vector flag
+=head3 Vector flag 'v'
 
 This special flag (C<v>) tells Raku to interpret the supplied string
 as a vector of integers, one for each character in the string. Raku
 applies the format to each integer in turn, then joins the resulting
-strings with a separator (a dot, C<'.'>, by default). This can be
+strings with a dot (C<'.'>) separator. This can be
 useful for displaying ordinal values of characters in arbitrary
 strings:
 
 =begin code :skip-test<not yet implemented>
-NYI sprintf "%vd", "AB\x[100]";           # "65.66.256"
+NYI sprintf "%vd", "AB\x[100]";           # OUTPUT: «65.66.256␤»
 =end code
 
 You can also explicitly specify the argument number to use for the
@@ -849,7 +851,7 @@ number. For floating-point formats, except C<g> and C<G>, this
 specifies how many places right of the decimal point to show (the
 default being 6). For example:
 
-  # these examples are subject to system-specific variation
+  # These examples are subject to system-specific variation.
   sprintf '<%f>', 1;    # RESULT: «"<1.000000>"␤»
   sprintf '<%.1f>', 1;  # RESULT: «"<1.0>"␤»
   sprintf '<%.0f>', 1;  # RESULT: «"<1>"␤»
@@ -972,8 +974,8 @@ index, the C<$> may need escaping:
 sprintf "%2\$d %d\n",      12, 34;         # RESULT: «34 12␤␤»
 sprintf "%2\$d %d %d\n",   12, 34;         # RESULT: «34 12 34␤␤»
 sprintf "%3\$d %d %d\n",   12, 34, 56;     # RESULT: «56 12 34␤␤»
-NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # RESULT: « 34 12\n"
-NYI sprintf "%*1\$.*f\n",       4,  5, 10; # RESULT: «5.0000\n"
+NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # RESULT: « 34 12␤␤»
+NYI sprintf "%*1\$.*f\n",       4,  5, 10; # RESULT: «5.0000␤␤»
 
 Other examples:
 
