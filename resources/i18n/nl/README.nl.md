@@ -106,7 +106,7 @@ Dit zijn enkele manieren waarop je ons zou kunnen helpen:
  * Doe een `git grep TODO` in deze repository, en vervang de TODO items door daadwerkelijke documentatie.
 
 
-De [issues pagina](https://github.com/perl6/doc/issues) bevat een lijst van openstaande issues evenals een overzicht
+De [issues pagina](https://github.com/Raku/doc/issues) bevat een lijst van openstaande issues evenals een overzicht
 van documentatieonderdelen waarvan bekend is dat ze ontbreken. Het [CONTRIBUTING dokument](CONTRIBUTING.md) legt
 beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 
@@ -161,6 +161,6 @@ De betreffende bestanden vermelden het auteursrecht en de licentievoorwaarden aa
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

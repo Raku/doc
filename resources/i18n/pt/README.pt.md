@@ -106,7 +106,7 @@ Algumas maneira de nos ajudar:
   * Abrindo issues no GitHub se acha que falta documentacão.
   * Fazendo `git grep TODO` neste repositório, e substituindo os items TODO por documentação.
 
-[Esta página](https://github.com/perl6/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
+[Esta página](https://github.com/Raku/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
 [CONTRIBUTING](CONTRIBUTING.md) explica brevemente como começar a contribuir.
 
 --------
@@ -155,6 +155,6 @@ topo do próprio arquivo. Atualmente incluem:
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [Licença MIT](http://creativecommons.org/licenses/MIT)
-* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licença MIT](http://creativecommons.org/licenses/MIT)

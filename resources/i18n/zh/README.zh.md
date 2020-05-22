@@ -107,7 +107,7 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
  * 通过 GitHub 的 issue 系统报告缺少的文档
  * 在本仓库下执行 `git grep TODO`，使用实际文档替换 TODO
 
-[Issues 页面](https://github.com/perl6/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了如何开始为文档工程作出贡献。
+[Issues 页面](https://github.com/Raku/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](CONTRIBUTING.md)简要地说明了如何开始为文档工程作出贡献。
 
 --------
 
@@ -156,6 +156,6 @@ Raku 不是小语言，为它做文档需要付出很大的努力。我们会感
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

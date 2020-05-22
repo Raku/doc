@@ -102,7 +102,7 @@ Algunas maneras en las que puedes ayudarnos:
   * Abriendo issues en GitHub si consideras que falta documentación.
   * Haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
 
-[Esta página](https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
+[Esta página](https://github.com/Raku/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
 
 --------
 ## Algunas aclaraciones:
@@ -145,6 +145,6 @@ Este repositorio también contiene código de terceros que podría tener otra li
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licencia MIT](http://creativecommons.org/licenses/MIT)

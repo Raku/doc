@@ -97,7 +97,7 @@ Il y a plusieurs façons de nous aider, certaines d'entre elles sont:
   * Ouvrez `issues`sur GitHub si vous  pensez qu'il y a un manque d'information sur la documentation.
   * Faites `git grep TODO` dans ce repository, et remplacez les éléments TODO par la documentation réelle.
 
-[Cette page](https://github.com/perl6/doc/issues) contient une liste des problèmes actuels e des parties de documentation manquantes.
+[Cette page](https://github.com/Raku/doc/issues) contient une liste des problèmes actuels e des parties de documentation manquantes.
 Le document [CONTRIBUTING](CONTRIBUTING.md) explique comment vous pouvez commencer à aider.
 --------
 ## Quelques clarifications:
@@ -141,6 +141,6 @@ Ce repository contient également du code créé par des tiers que peuvent être
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Exemples de StackOverflow [Licence MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Exemples de StackOverflow [Licence MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Tableau trieur plugin de https://github.com/christianbach/tablesorter ;
   [Licence MIT](http://creativecommons.org/licenses/MIT)
