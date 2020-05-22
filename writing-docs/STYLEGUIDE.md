@@ -112,7 +112,7 @@ objects.
 
 Be consistent when using this kind of constructs. Generally, the form
 with no dash or space is preferred.  As of
-[issue 2015](https://github.com/perl6/doc/issues/2015) the term must
+[issue 2015](https://github.com/Raku/doc/issues/2015) the term must
 be written without spaces between words. When in doubt, search for the
 term in the documentation and stick to the form that is used the most
 (and create an issue to change the form that is not).
