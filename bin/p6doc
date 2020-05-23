@@ -256,48 +256,27 @@ multi sub MAIN('lookup', $key) {
 }
 
 sub disambiguate-f-search($docee, %data) {
-    my %found;
 
-    for <routine method sub> -> $pref {
-        my $ndocee = $pref ~ " " ~ $docee;
-
-        if %data{$ndocee} {
-            my @types = %data{$ndocee}.values>>.Str.grep({ $^v ~~ /^ 'Type' / });
-            @types = [gather @types.deepmap(*.take)].unique.list;
-            @types.=grep({!/^ $pref \h/});
-            %found{$ndocee}.push: @types X~ $docee;
-        }
-    }
+    my @keys = (<method routine sub> X $docee)».join(' ');
+    my @found = %data{@keys}.grep(*.defined).map(
+            # Each entry is a list of 2-element lists; we want just the
+            # first, and then slip the results into a single flat list
+            |*.map(*.first)
+        ).unique X~ $docee;
 
     my $final-docee;
-    my $total-found = %found.values.map( *.elems ).sum;
-    if ! $total-found {
+    if ! @found {
         say "No documentation found for a routine named '$docee'";
         exit 2;
-    } elsif $total-found == 1 {
-        $final-docee = %found.values[0];
+    } elsif @found == 1 {
+        $final-docee = @found.head;
     } else {
         say "We have multiple matches for '$docee'\n";
 
-        my %options;
-        for %found.keys -> $key {
-            %options{$key}.push: %found{$key};
-        }
-        my @opts = %options.values.map({ @($^a) });
-
-        # 's' => Type::Supply.grep, ... | and we specifically want the %found values,
-        #                               | not the presentation-versions in %options
         if INTERACT {
-            my $total-elems = %found.values.map( +* ).sum;
-            if +%found.keys < $total-elems {
-                my @prefixes = (1..$total-elems) X~ ") ";
-                say "\t" ~ ( @prefixes Z~ @opts ).join("\n\t") ~ "\n";
-            } else {
-                say "\t" ~ @opts.join("\n\t") ~ "\n";
-            }
-            $final-docee = prompt-with-options(%options, %found);
+            $final-docee = prompt-with-options(@found);
         } else {
-            say "\t" ~ @opts.join("\n\t") ~ "\n";
+            say "\t", $_ for @found;
             exit 1;
         }
     }
@@ -305,33 +284,32 @@ sub disambiguate-f-search($docee, %data) {
     return $final-docee;
 }
 
-sub prompt-with-options(%options, %found) {
+sub prompt-with-options(@found) {
     my $final-docee;
 
-    my %prefixes = do for %options.kv -> $k,@o { @o.map(*.comb[0].lc) X=> %found{$k} };
+    printf "%3d)  %s\n", .key + 1, .value for @found.pairs;
 
-    if %prefixes.values.grep( -> @o { +@o > 1 } ) {
-        my (%indexes,$base-idx);
-        $base-idx = 0;
-        for %options.kv -> $k,@o {
-            %indexes.push: @o>>.map({ ++$base-idx }) Z=> @(%found{$k});
-        }
-        %prefixes = %indexes;
-    }
+    my $prompt-text = "\nNarrow your choice (1 .. @found.elems()): ";
 
-    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.sort.join(', ') }, or !{ '/' ~ 'q' if !%prefixes<q> } to quit): ";
-
-    while prompt($prompt-text).words -> $word {
-        if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>) {
-            exit 1;
-        } elsif $word ~~ /:i $<choice> = [ @(%prefixes.keys) ] / {
-            $final-docee = %prefixes{ $<choice>.lc };
+    while prompt($prompt-text) -> $choice {
+        if 1 <= ($choice.Int // 0) <= @found {
+            $final-docee = @found[$choice.Int - 1];
             last;
-        } else {
-            say "$word doesn't seem to apply here.\n";
-            next;
         }
+
+        my @match = @found.grep(*.contains($choice));
+        if @match == 1 {
+            $final-docee = @match.first;
+            last;
+        }
+
+        say  "'$choice' ", @match == 0
+                ?? "doesn't seem to apply here."
+                !! "matches more than one option.";
+        next;
     }
+
+    exit 1 unless $final-docee;
 
     return $final-docee;
 }
