@@ -32,10 +32,9 @@ or
 in case you want it published somewhere else. You can direct your
 browser to http://localhost:3000 (or 31415, as the case may be).
 
-
 ## README in other languages
 
-* [README in Chinese](resources/i18n/zh/README.zh.md)
+* [中文（Chinese）](resources/i18n/zh/README.zh.md)
 * [README in Dutch](resources/i18n/nl/README.nl.md)
 * [README in French](resources/i18n/fr/README.fr.md)
 * [README in German](resources/i18n/de/README.de.md)
@@ -59,7 +58,7 @@ version, or install using `--force`.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try:
+With a Rakudo `rakudo` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
@@ -107,7 +106,7 @@ Please follow these instructions (in Ubuntu) to install them
     zef install Documentable
 
 > You can install perl and node any way you want, including version managers, as
- long as they're available to run from the command line.
+> long as they're available to run from the command line.
 
 This should install all needed requisites, now you can clone this repository
 and start building process:
@@ -118,7 +117,7 @@ and start building process:
     documentable start -a -v --highlight # Builds cache and generates pages.
 
 You need to do this only the first time to build the cache. When there's some
-change in the source (done by yourself or pulled form the repo),
+change in the source (done by yourself or pulled from the repo),
 
     documentable update
 
@@ -131,7 +130,6 @@ based on Mojolicious using
     make run
 
 This will serve the documentation in port 3000.
-
 
 ## nginx configuration
 
@@ -151,8 +149,6 @@ to add to the configuration to make it work:
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
 made in other server applications.
-
-
 
 ---------
 
