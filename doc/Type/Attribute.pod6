@@ -10,8 +10,42 @@ In Raku lingo, an I<attribute> refers to a per-instance/object storage slot.
 An C<Attribute> is used to talk about classes' and roles' attributes at the
 metalevel.
 
-Normal usage of attributes does not require the user to use this class
-explicitly.
+C<Attribute> is typically useful when working with the L<MOP|/language/mop>.
+For instance, the names of all the attributes of a type can be introspected
+using its L<name|#method_name> method:
+
+=begin code :solo
+class WithAttributes {
+    has $.attribute;
+    has $.attribute-two-electric-boogaloo;
+    has $.yet-another-attribute;
+}
+
+.say for WithAttributes.^attributes(:local).map(*.name);
+# OUTPUT:
+# $!attribute
+# $!attribute-two-electric-boogaloo
+# $!yet-another-attribute
+=end code
+
+Because of C<Attribute>, a type containing attributes, such as this:
+
+=for code :solo
+class WithAttribute {
+    has $.attribute;
+}
+
+Is not something only the compiler knows how to generate. This class in
+particular can be generated manually like so:
+
+=for code :solo
+BEGIN {
+    constant WithAttribute = Metamodel::ClassHOW.new_type: :name<WithAttribute>;
+    WithAttribute.^add_attribute: Attribute.new:
+        :name<$!attribute>, :type(Any), :package(WithAttribute),
+        :1has_accessor;
+    WithAttribute.^compose;
+}
 
 =head1 Traits
 
@@ -38,8 +72,6 @@ argument of C<is default> will set the default item value or hash value.
     say $foo; # OUTPUT: «Foo.new(bar => [42])␤»
 
 =head2 X<Trait is required|trait,is required (Attribute)>
-
-Defined as:
 
     multi sub trait_mod:<is> (Attribute $attr, :$required!)
 
@@ -104,8 +136,6 @@ STDERR:
 
 =head2 X<trait is rw|trait,is rw (Attribute)>
 
-Defined as:
-
     multi sub trait_mod:<is> (Attribute:D $attr, :$rw!)
 
 Marks an attribute as read/write as opposed to the default C<readonly>.  The
@@ -123,8 +153,6 @@ default accessor for the attribute will return a writable value.
    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Any␤»
 
 =head2 X<trait is built|trait,is built (Attribute)>
-
-Defined as:
 
     multi sub trait_mod:<is>(Attribute:D $a, :$built!)
 
@@ -147,23 +175,46 @@ I«public attribute» via C«.new» by passing it the boolean value C«False».
 
 =head1 Methods
 
-The usual way to obtain an object of type C<Attribute> is by introspection:
+=head2 method new
 
-    class Useless {
-        has @!things;
-    }
-    my $a = Useless.^attributes(:local)[0];
-    say $a.raku;            # OUTPUT: «Attribute.new␤»
-    say $a.name;            # OUTPUT: «@!things␤»
-    say $a.package;         # OUTPUT: «(Useless)␤»
-    say $a.has_accessor;    # OUTPUT: «False␤»
+=for code :skip-test<too long a method signature for one line>
+method new(Attribute:_:
+    :$name!, :$type!, :$package!,
+    :$inlined = 0, :$has_accessor = 0, :$is_built = $has_accessor, :$is_bound = 0,
+    :$positional_delegate = 0, :$associative_delegate = 0, *%other)
 
-Modifying a private attribute from the outside is usually not possible, but
-since Attribute is at the level of the metaclass, all is fair game.
+Creates a new attribute. The following named arguments are required:
+
+- C<$name> contains the attribute's name, which should always be a
+string prefixed with the attribute's sigil and the I<!> twigil.
+- C<$type> contains type of the attribute. When creating untyped
+attributes, C<Any> should be passed.
+- C<$package> contains the type to which the attribute belongs to.
+
+Additional named arguments may optionally be included:
+
+- If C<$inlined> is set to C<1>, the attribute created will behave as if
+it were declared with
+L<HAS|/language/nativecall#Embedding_CStructs_and_CUnions> as its scope.
+- If C<$has_accessor> is set to C<1>, then an accessor method for the
+attribute will be generated for the attribute's package upon
+composition.
+- If C<$is_built> is set to C<1>, then this attribute will behave as if
+it had the L<C<is built>|#trait_is_built> trait applied to it.
+- If C<$is_bound> is set to C<1>, then this attribute will behave as if
+it had the L<C<is built>|#trait_is_built> trait applied to it with
+C<:bind> as its argument.
+
+The remaining named parameters are heavily dependent on Rakudo's
+internals, and are not something that should ordinarily be relied upon.
+
+=for comment
+That last sentence is a bit of a lie since there are a couple other
+named parameters that may be useful in some niche cases, but container
+descriptors and how autovivification works internally are undocumented
+as of writing.
 
 =head2 method name
-
-Defined as:
 
     method name(Attribute:D: --> Str:D)
 
@@ -176,11 +227,26 @@ so if an attribute is declared as C<has $.a>, the name returned is C<$!a>.
     my $a = Foo.^attributes(:local)[0];
     say $a.name;            # OUTPUT: «@!bar␤»
 
+=head2 method type
+
+    method type(Attribute:D: --> Mu)
+
+Returns the type constraint of the attribute.
+
+    class TypeHouse {
+        has Int @.array;
+        has $!scalar;
+        has @.mystery;
+    }
+    my @types = TypeHouse.^attributes(:local)[0..2];
+    for 0..2 { say @types[$_].type }
+    # OUTPUT: «(Positional[Int])
+    # (Mu)
+    # (Positional)␤»
+
 =head2 method package
 
-Defined as:
-
-    method package()
+    method package(Attribute:D:)
 
 Returns the package (class/grammar/role) to which this attribute belongs.
 
@@ -191,8 +257,6 @@ Returns the package (class/grammar/role) to which this attribute belongs.
     say $a.package;         # OUTPUT: «(Boo)␤»
 
 =head2 method has_accessor
-
-Defined as:
 
     method has_accessor(Attribute:D: --> Bool:D)
 
@@ -209,8 +273,6 @@ Returns C<True> if the attribute has a public accessor method.
 
 =head2 method rw
 
-Defined as:
-
     method rw(Attribute:D: --> Bool:D)
 
 Returns C<True> for attributes that have the "is rw" trait applied to them.
@@ -225,8 +287,6 @@ Returns C<True> for attributes that have the "is rw" trait applied to them.
     say $new-books.rw; # OUTPUT: «True␤»
 
 =head2 method readonly
-
-Defined as:
 
     method readonly(Attribute:D: --> Bool:D)
 
@@ -244,8 +304,6 @@ attributes marked as C<is rw>.
 
 =head2 method required
 
-Defined as:
-
     method required(Attribute:D: --> Any:D)
 
 Returns C<1> for attributes that have the "is required" trait applied, or C<Mu>
@@ -261,28 +319,22 @@ is applied with a string, then that string will be returned instead of C<1>.
     say $addr.required;      # OUTPUT: «1␤»
     say $new-books.readonly; # OUTPUT: «"we always need more books"␤»
 
-=head2 method type
+=head2 method is_built
 
-Defined as:
+    method is_built()
 
-    method type(Attribute:D: --> Mu)
+Returns C<True> if the attribute had the L<C<is built>|#trait_is_built>
+trait applied to it, otherwise returns C<False>.
 
-Returns the type constraint of the attribute.
+=head2 method is_bound
 
-    class TypeHouse {
-        has Int @.array;
-        has $!scalar;
-        has @.mystery;
-    }
-    my @types = TypeHouse.^attributes(:local)[0..2];
-    for 0..2 { say @types[$_].type }
-    # OUTPUT: «(Positional[Int])
-    # (Mu)
-    # (Positional)␤»
+    method is_bound()
+
+Returns C<True> if the attribute had the L<C<is built>|#trait_is_built>
+trait applied to it with C<:bind> as an argument, otherwise returns
+C<False>.
 
 =head2 method get_value
-
-Defined as:
 
     method get_value(Mu $obj)
 
@@ -298,8 +350,6 @@ Note that this method violates encapsulation of the object, and should be
 used with care.  Here be dragons.
 
 =head2 method set_value
-
-Defined as:
 
     method set_value(Mu $obj, Mu \new_val)
 
@@ -319,8 +369,6 @@ Note that this method violates encapsulation of the object, and should be
 used with care.  Here be dragons.
 
 =head2 method gist
-
-Defined as
 
     multi method gist(Attribute:D:)
 
