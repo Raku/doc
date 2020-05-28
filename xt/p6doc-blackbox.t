@@ -22,6 +22,7 @@ sub run-doc(*@args, :$interact = False, :$rc = 0) {
     # XXX: This should be fixed in bin/p6doc itself, probably
     # Avoid hard-coded, non-portable 'less -r' in bin/p6doc
     %env<PAGER> = 'more';
+    %env<TERM> = %*ENV<TERM> // 'unknown';
 
     my $in := $interact ~~ IO::Handle ?? $interact !! so $interact;
 
