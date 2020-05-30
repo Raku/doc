@@ -884,24 +884,40 @@ Defined as:
     multi method reduce(Any:D: &with)
     multi sub reduce (&with, +list)
 
-The first form is obviously a no-op. The second form generates a single
+The first form is obviously a no-op. The remaining forms generate a single
 "combined" value from a list of arbitrarily many values, by iteratively
-applying a function which knows how to combine I<two> values.
+applying a function which knows how to combine I<two> values. In addition to
+the subroutine and the list, an initial value can be provided to initialize
+the reduction, which ends up being the return value if the list is empty.
+Thus C<reduce f, init, list> combines the elements of the list from left
+to right, as follows:
 
-If C<@values> contains just a single element, the operator is applied to that
+    result0 = init
+    result1 = f(result0, list[0])
+    result2 = f(result1, list[1])
+    ...
+    resultn = f(resultn-1, list[n-1])
+
+C<resultn> is the final result for an n-element list.
+
+    say reduce &[+], [1, 2, 3];     # OUTPUT: «6␤»
+    say [1, 2, 3].reduce: &[+];     # OUTPUT: «6␤»
+    say reduce &max, [5, 9, 12, 1]; # OUTPUT: «12␤»
+
+If C<list> contains just a single element, the operator is applied to that
 single element if possible; if not, it returns the element itself.
 
-    say [-] <10 5 3>; #OUTPUT: 2␤
-    say [-] 10;       #OUTPUT: 10␤
+    say reduce &[+], <10 5 3>; # OUTPUT: «2␤»
+    say reduce &[-], 10;       # OUTPUT: «10␤»
 
-If it contains no elements, an exception is thrown, unless
-C<&with> is an I<operator> with a known identity value. For this
-reason, you may want to prefix the input list with an explicit identity
-value:
+When the list contains no elements, an exception is thrown, unless C<&with>
+is an I<operator> with a known identity value (e.g., C«infix:<+>» is 0). For
+this reason, you're advised to prefix the input list with an initial value:
 
-    my @strings = ("One good string!", "And one another good string!");
+    my @strings = "One good string!", "And one another good string!";
     say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
-    my @numbers = (1,2,3,4,5);
+
+    my @numbers = (1, 2, 3, 4, 5;
     say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
 
 If C<&with> is the function object of an I<operator>, its
@@ -919,25 +935,49 @@ for operators which aren't left-associative:
     ((2-3)-4).say;                        # OUTPUT: «-5␤»
     (2-3-4).say;                          # OUTPUT: «-5␤»
 
-Since reducing with an infix operator is a common thing to do, the C<[ ]>
-metaoperator provides a syntactic shortcut:
+Since reducing with an infix operator is a common thing to do, the
+L<reduction metaoperator|/language/operators#Reduction_metaoperators> C<[ ]>
+provides a syntactic shortcut. Thus, instead of passing the operator's code
+object to C<reduce>, just pass the operator directly to C<[ ]>. To use a
+user-defined subroutine instead, provide an additional layer of square brackets
+around the subroutine's code object:
 
-    # The following all do the same thing...
-    my @numbers = (1,2,3,4,5);
+    say [*] [1, 2, 3, 4];       # OUTPUT: «24␤»
+    say [min] [4, 2, 1, 3];     # OUTPUT: «1␤»
+
+    sub mult { $^a * $^b };
+    say [[&mult]] [1, 2, 3, 4]; # OUTPUT: «24␤»
+
+Semantically, all the following do the same thing:
+
+    my @numbers = 1, 2, 3, 4, 5;
     say reduce { $^a + $^b }, 0, |@numbers;
     say reduce * + *, 0, |@numbers;
-    say reduce &[+], @numbers; # operator does not need explicit identity
-    say [+] @numbers;          # most people write it this way
+    say reduce &[+], @numbers; # operator does not need explicit identity value
+    say [+] @numbers;
 
-Please note also the use of C<reduce> in sub form. Since C<reduce> is an
-implicit loop, it responds to C<next>, C<last> and C<redo> statements inside
-C<&with>:
+Since C<reduce> is an implicit loop, it responds to C<next>, C<last> and C<redo>
+statements inside C<&with>:
 
-    say (2,3,4,5).reduce: { last if $^a > 7; $^a + $^b }; # says 9
+    sub last-after-seven { last if $^a > 7; $^a + $^b };
+    say (2, 3, 4, 5).reduce: &last-after-seven; # OUTPUT: «9␤»
 
-Practical example:
 
-    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+Whether C<reduce> accumulates the elements starting from the left or from the right
+depends on the operator. In the functional programming world, this operation is
+generally called a L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+With a right-associative operator it is a I<right fold>, otherwise (and usually)
+it is a I<left fold>. In Raku, you can specify the associativity of an operator
+with the L<C«is assoc»|/language/functions#index-entry-is_assoc_(trait)>.
+
+    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
+    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+
+    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
+    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+
+B<Practical example 1:> In this example, we generate a random-ish math
+formula (e.g., "(4 + ((3 * x) + 11) / 6))").
 
     my @ops = [Z] (<+ - * />, 1..20)».roll(4);
 
@@ -946,17 +986,19 @@ Practical example:
                   !! "($number $op $formula)"
     }
 
-I<Note:> In the functional programming world, this operation is generally called
-a
-L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
-With a right-associative operator it is a right fold, otherwise (and usually) it
-is a left fold:
+B<Practical example 2:> Suppose we have a polynomial represented as a list of
+integer coefficients, c[n-1], c[n-2], ..., c[0], where c[i] is the coefficient
+of xi. We can evaluate it using C<map> and C<reduce> as follows:
 
-    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
-    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+    sub evaluate1(Int:D @c, Rat:D \x --> Rat:D) {
+        my \xi = (@c.elems ^... 0).map: { x ** $^i }; # [x^(n-1), ..., x^0]
+        my \axi = [+] @c Z* xi;                       # [c[n-1]*x^(n-1), ..., c[*]x^0]
+        [+] axi;                                      # sum of axi
+    }
 
-    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
-    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+    my Int @c = 2, 3, 1;    # 2x² + 3x + 1
+    say evaluate @c, 3.0;   # OUTPUT: «28␤»
+    say evaluate @c, 10.0;  # OUTPUT: «231␤»
 
 =head2 routine produce
 
