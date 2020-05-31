@@ -880,64 +880,113 @@ say <01 11 111 2 20 02>.sort( { .Int, .comb.sum, .Str } );
 
 Defined as:
 
-    multi method reduce(Any:U: & --> Nil)
     multi method reduce(Any:D: &with)
     multi sub reduce (&with, +list)
 
-The first form is obviously a no-op. The second form generates a single
-"combined" value from a list of arbitrarily many values, by iteratively
-applying a function which knows how to combine I<two> values.
+Returns a single "combined" value from a list of arbitrarily many values, by
+iteratively applying a routine which knows how to combine I<two> values. In
+addition to the subroutine and the list, an initial value can be provided to
+initialize the reduction, which ends up being the return value if the list is
+empty. Thus C<reduce f, init, list> combines the elements of the list from left
+to right, as follows:
 
-If C<@values> contains just a single element, the operator is applied to that
+    result0 = init
+    result1 = f(result0, list[0])
+    result2 = f(result1, list[1])
+    ...
+    resultn = f(resultn-1, list[n-1])
+
+C<resultn> is the final result for an n-element list.
+
+    say reduce &infix:<+>, (1, 2, 3); # OUTPUT: «6␤»
+    say (1, 2, 3).reduce: &infix:<+>; # OUTPUT: «6␤»
+    say reduce &max, (5, 9, 12, 1);   # OUTPUT: «12␤»
+
+If C<list> contains just a single element, the operator is applied to that
 single element if possible; if not, it returns the element itself.
 
-    say [-] <10 5 3>; #OUTPUT: 2␤
-    say [-] 10;       #OUTPUT: 10␤
+    say reduce &infix:<->, (10,);     # OUTPUT: «10␤»
 
-If it contains no elements, an exception is thrown, unless
-C<&with> is an I<operator> with a known identity value. For this
-reason, you may want to prefix the input list with an explicit identity
-value:
+When the list contains no elements, an exception is thrown, unless C<&with>
+is an I<operator> with a known identity value (e.g., the identity value of
+C«infix:<+>» is 0). For this reason, you're advised to prefix the input list
+with an initial value (or explicit identity value):
 
-    my @strings = ("One good string!", "And one another good string!");
-    say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
-    my @numbers = (1,2,3,4,5);
-    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
+    my \strings = "One good string!", "And one another good string!";
+    say reduce { $^a ~ $^b }, '', |strings;               # like strings.join
 
-If C<&with> is the function object of an I<operator>, its
+    my \numbers = 1, 2, 3, 4, 5;
+    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |numbers; # like numbers.max
+
+    sub count-and-sum-evens( (Int \count, Int \sum), Int \x ) {
+        x %% 2 ?? (count+1, sum+x) !! (count, sum)
+    }
+
+    say reduce &count-and-sum-evens, (0, 0), |numbers;    # OUTPUT: «(2 6)␤»
+
+In the last example, since C<reduce> only supports one initial value we use a
+C<List> with two values, which is by itself a single value. The
+C<count-and-sum-evens> subroutine takes two positional values: a
+C<List> of two C<Int>s and an C<Int>, and return a C<List> storing the count
+and sum of the even integers accumulated.
+
+If C<&with> is the code object of an I<operator>, its
 inherent identity value and associativity is respected - in other words,
-C<(VAL1, VAL2, VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
-for operators which aren't left-associative:
+C<(VAL1, VAL2, VAL3).reduce(&infix:<OP>)> is the same as C<VAL1 OP VAL2 OP VAL3>
+even for operators which aren't left-associative:
 
     # Raise 2 to the 81st power, because 3 to the 4th power is 81
-    [2,3,4].reduce(&[**]).lsb.say;        # OUTPUT: «81␤»
+    (2,3,4).reduce(&infix:<**>).lsb.say;  # OUTPUT: «81␤»
     (2**(3**4)).lsb.say;                  # OUTPUT: «81␤»
     (2**3**4).lsb.say;                    # OUTPUT: «81␤»
 
     # Subtract 4 from -1, because 2 minus 3 is -1
-    [2,3,4].reduce(&[-]).say;             # OUTPUT: «-5␤»
+    (2,3,4).reduce(&infix:<->).say;       # OUTPUT: «-5␤»
     ((2-3)-4).say;                        # OUTPUT: «-5␤»
     (2-3-4).say;                          # OUTPUT: «-5␤»
 
-Since reducing with an infix operator is a common thing to do, the C<[ ]>
-metaoperator provides a syntactic shortcut:
+Since reducing with an infix operator is a common thing to do, the
+L<reduction metaoperator|/language/operators#Reduction_metaoperators> C<[ ]>
+provides a syntactic shortcut. Thus, instead of passing the operator's code
+object to C<reduce>, just pass the operator directly to C<[ ]>. To use a
+user-defined subroutine instead, provide an additional layer of square brackets
+around the subroutine's code object:
 
-    # The following all do the same thing...
-    my @numbers = (1,2,3,4,5);
-    say reduce { $^a + $^b }, 0, |@numbers;
-    say reduce * + *, 0, |@numbers;
-    say reduce &[+], @numbers; # operator does not need explicit identity
-    say [+] @numbers;          # most people write it this way
+    say [*] (1, 2, 3, 4);       # OUTPUT: «24␤»
+    say [min] (4, 2, 1, 3);     # OUTPUT: «1␤»
 
-Please note also the use of C<reduce> in sub form. Since C<reduce> is an
-implicit loop, it responds to C<next>, C<last> and C<redo> statements inside
-C<&with>:
+    sub mult { $^a * $^b };
+    say [[&mult]] (1, 2, 3, 4); # OUTPUT: «24␤»
 
-    say (2,3,4,5).reduce: { last if $^a > 7; $^a + $^b }; # says 9
+Semantically, all the following do the same thing:
 
-Practical example:
+    my \numbers = 1, 2, 3, 4, 5;
+    say reduce { $^a + $^b }, 0, |numbers;
+    say reduce * + *, 0, |numbers;
+    say reduce &[+], numbers; # operator does not need explicit identity value
+    say [+] numbers;
 
-    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+Since C<reduce> is an implicit loop that iterates over with its I<reducing> subroutine,
+it responds to C<next>, C<last> and C<redo> statements inside C<&with>:
+
+    sub last-after-seven { last if $^a > 7; $^a + $^b };
+    say (2, 3, 4, 5).reduce: &last-after-seven; # OUTPUT: «9␤»
+
+Whether C<reduce> accumulates the elements starting from the left or from the right
+depends on the operator. In the functional programming world, this operation is
+generally called a L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+With a right-associative operator it is a I<right fold>, otherwise (and usually)
+it is a I<left fold>. In Raku, you can specify the associativity of an operator
+with the L<C«is assoc»|/language/functions#index-entry-is_assoc_(trait)>.
+
+    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
+    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+
+    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
+    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+
+B<Practical example 1:> In this example, we generate a random-ish math
+formula (e.g., "(4 + ((3 * x) + 11) / 6))") using C<reduce>.
 
     my @ops = [Z] (<+ - * />, 1..20)».roll(4);
 
@@ -946,17 +995,19 @@ Practical example:
                   !! "($number $op $formula)"
     }
 
-I<Note:> In the functional programming world, this operation is generally called
-a
-L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
-With a right-associative operator it is a right fold, otherwise (and usually) it
-is a left fold:
+B<Practical example 2:> Suppose we have a polynomial represented as a list of
+integer coefficients, c[n-1], c[n-2], ..., c[0], where c[i] is the coefficient
+of xi. We can evaluate it using C<map> and C<reduce> as follows:
 
-    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
-    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+    sub evaluate(List:D \c where c.all ~~ Int, Rat:D \x --> Rat:D) {
+        my \xi = (c.elems ^... 0).map: -> \i { x ** i }; # [x^(n-1), ..., x^0]
+        my \axi = [+] c Z* xi;                           # [c[n-1]*x^(n-1), ..., c[*]x^0]
+        [+] axi;                                         # sum of axi
+    }
 
-    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
-    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+    my \c = 2, 3, 1;       # 2x² + 3x + 1
+    say evaluate c, 3.0;   # OUTPUT: «28␤»
+    say evaluate c, 10.0;  # OUTPUT: «231␤»
 
 =head2 routine produce
 
