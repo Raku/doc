@@ -10,63 +10,106 @@ X<|\() (Capture)>
 =for code
 class Capture { }
 
-A C<Capture> is a container for passing arguments to a code object.  Captures
-are the flip-side of L<Signature|/type/Signature>s – Captures are the caller defined arguments,
-while Signatures are the callee defined parameters.
-
-When you call C<print $a, $b>, the C<$a, $b> part is a Capture.
+A C<Capture> is a container for passing arguments to a code object. Captures
+are the flip-side of L<Signature|/type/Signature>s. Thus, captures are the
+caller-defined arguments, while signatures are the callee-defined parameters.
+For example when you call C<print $a, $b>, the C<$a, $b> part is a capture.
 
 Captures contain a list-like part for positional arguments and a hash-like part
-for named arguments, thus behaving as L<Positional|/type/Positional> and L<Associative|/type/Associative>, although
-it does not actually mixes in those roles.  For the named arguments, Captures
-use a slightly different I<syntax> than a normal List.  There are two easy ways
-to make a named argument: 1) use an unquoted key naming a parameter, followed by
-C«=>», followed by the argument and 2) use a colon-pair literal named after the
-parameter:
+for named arguments, thus behaving as L<Positional|/type/Positional> and
+L<Associative|/type/Associative>, although it does not actually mixes in those
+roles. Like any other data structure, a stand-alone capture can be created,
+stored, and used later.
 
-    say unique 1, -2, 2, 3, as => { abs $_ };   # OUTPUT: «(1 -2 3)␤»
-    # ... is the same thing as:
-    say unique 1, -2, 2, 3, :as({ abs $_ });    # OUTPUT: «(1 -2 3)␤»
-    # Be careful not to quote the name of a named parameter:
-    say unique 1, -2, 2, 3, 'as' => { abs $_ };
-    # OUTPUT: «(1 -2 2 3 as => -> ;; $_? is raw { #`(Block|78857320) ... })␤»
+A literal C<Capture> can be created by prefixing a term with a backslash C<\>.
+Commonly, this term will be a L«List|/type/List» of terms, from which
+the forms C«key => value» and C«:key<value>» of a L«C<Pair>|/type/Pair» literal
+will be placed in the named part, and all other terms will be placed in the
+positional part (including C<Pair>s of the form C«'key' => value»).
 
-A stand-alone Capture can also be made, stored, and used later.  A literal
-Capture can be created by prefixing a term with a backslash C<\>.
-Commonly, this term will be a List of terms, from which any Pair
-literal will be placed in the named part, and all other terms will be
-placed in the positional part.
+    my $a = \(42);                      # Capture with one positional arg
+    my $b = \(1, 2, verbose => True);   # Capture with two positional args and one named arg
+    my $c = \(1, 2, :verbose(True));    # same as before
+    my $c = \(1, 2, 'verbose' => True); # Capture with three positional args
 
-    my $c = \(42);          # Capture with one positional part
-    $c = \(1, 2, a => 'b'); # Capture with two positional and one named parts
+To reiterate, named arguments in a capture must be created using one of two
+ways:
 
-To use such a Capture, you may use C<'|'> before it in a function call, and it
-will be as if the values in the Capture were passed directly to the function
-as arguments – named arguments will be passed as named arguments and positional
-arguments will be passed as positional arguments.  You may re-use the Capture
-as many times as you want, even with different functions.
+=item Use an I<unquoted> key naming a parameter, followed by C«=>», followed by
+the argument. For example, C«as => by => {1/$_}».
 
-    my $c = \(4, 2, 3);
-    reverse(|$c).say; # OUTPUT: «3 2 4␤»
-    sort(5,|$c).say;  # OUTPUT: «2 3 4 5␤»
+=item Use a L<colon-pair|/language/glossary#Colon_pair_and_colon_list> literal
+named after the parameter. For example, C<:into(my %leap-years)>.
 
-Inside a Signature, a Capture may be created by prefixing a sigilless parameter
-with a vertical bar C<|>.  This packs the remainder of the argument list
-into that parameter.
+For example:
 
-    f(1, 2, 3, a => 4, b => 5);
-    sub f($a, |c) {
-        # c  is  \(2, 3, a => 4, b => 5)
+    sub greet(:$name, :$age) {
+        "$name, $age"
     }
 
-Note that Captures are still Lists in that they may contain containers, not
-just values:
+    my $d = \(name => 'Mugen', age => 19);   # OK
+    my $e = \(:name('Jin'), :age(20));       # OK
+    my $f = \('name' => 'Fuu', 'age' => 15); # Not OK, keys are quoted.
+
+For the C<greet> subroutine that accepts two named arguments C<name> and
+C<age>, the captures C<$d> and C<$e> will work fine while the capture C<$f>
+will throw a C<Too many positionals passed...> error. This is because
+C«'age' => 20» isn't a named argument (as per the two ways of creating one
+mentioned above) but a positional argument of which C<greet> expects none. In
+the context of captures, quoted keys don't create named arguments. Any C«'key'
+=> value» is just another positional parameter, thus exercise some caution when
+creating captures with named arguments.
+
+Once a capture is created, you may use it by prefixing it with a vertical bar
+C<|> in a subroutine call, and it will be as if the values in the capture were
+passed directly to the subroutine as arguments — named arguments will be passed
+as named arguments and positional arguments will be passed as positional
+arguments. You may re-use the capture as many times as you want, even with
+different subroutines.
+
+    say greet |$d;                # OUTPUT: «Mugen, 19␤»
+    say greet |$e;                # OUTPUT: «Jin, 20␤»
+
+    my $x = \(4, 2, 3, -2);
+    say reverse |$x;              # OUTPUT: «(-2 3 2 4)␤»
+    say sort 5, |$x;              # OUTPUT: «(-2 2 3 4 5)␤»
+
+    say unique |$x, as => {.abs}; # OUTPUT: «(4 2 3)␤»
+    say unique |$x, :as({.abs});  # OUTPUT: «(4 2 3)␤»
+
+    my $y = \(1, 7, 3, by => {1/$_});
+    say min |$y;                  # OUTPUT: «7␤», same as min 1, 7, 3, by => {1/$_}
+    say max |$y;                  # OUTPUT: «1␤», same as max 1, 7, 3, by => {1/$_}
+
+Inside a C<Signature>, a C<Capture> may be created by prefixing a
+L<sigilless parameter|/language/variables#Sigilless_variables> with a
+vertical bar C<|>. This packs the remainder of the argument list into that
+L<capture parameter|/type/Signature#Capture_parameters>.
+
+    sub f($a, |c) {
+        say $a;
+        say c;
+        say c.^name;
+        say c.list; # see Methods section
+        say c.hash; # see Methods section
+    }
+
+    f 1, 2, 3, a => 4, :b(5);
+    # OUTPUT:
+    # 1
+    # \(2, 3, :a(4), :b(5))
+    # Capture
+    # (2 3)
+    # Map.new((a => 4, b => 5))
+
+Note that C<Capture>s are still C<List>s in that they may contain containers,
+not just literal values:
 
     my $b = 1;
     my $c = \(4, 2, $b, 3);
-    sort(|$c).say;        # OUTPUT: «1 2 3 4␤»
-    $b = 6;
-    sort(|$c).say;        # OUTPUT: «2 3 4 6␤»
+    say min |$c;        # OUTPUT: «1␤»
+    $b = -5;
+    say min |$c;        # OUTPUT: «-5␤»
 
 =head1 Methods
 
@@ -76,10 +119,10 @@ Defined as:
 
     method list(Capture:D:)
 
-Returns the positional part of the Capture.
+Returns the positional part of the C<Capture>.
 
     my Capture $c = \(2, 3, 5, apples => (red => 2));
-    say $c.list;                                      # OUTPUT: «(2 3 5)␤»
+    say $c.list; # OUTPUT: «(2 3 5)␤»
 
 =head2 method hash
 
@@ -87,7 +130,7 @@ Defined as:
 
     method hash(Capture:D:)
 
-Returns the named/hash part of the Capture.
+Returns the named/hash part of the C<Capture>.
 
     my Capture $c = \(2, 3, 5, apples => (red => 2));
     say $c.hash; # OUTPUT: «Map.new((:apples(:red(2))))␤»
@@ -98,10 +141,10 @@ Defined as:
 
     method elems(Capture:D: --> Int:D)
 
-Returns the number of positional elements in the Capture.
+Returns the number of positional elements in the C<Capture>.
 
     my Capture $c = \(2, 3, 5, apples => (red => 2));
-    say $c.elems;                                  # OUTPUT: «3␤»
+    say $c.elems; # OUTPUT: «3␤»
 
 =head2 method keys
 
@@ -114,7 +157,7 @@ named keys. For positional arguments the keys are the respective arguments
 ordinal position starting from zero.
 
     my $capture = \(2, 3, 5, apples => (red => 2));
-    say $capture.keys;                             # OUTPUT: «(0 1 2 apples)␤»
+    say $capture.keys; # OUTPUT: «(0 1 2 apples)␤»
 
 =head2 method values
 
@@ -126,7 +169,7 @@ Returns a L<Seq|/type/Seq> containing all positional values followed by all
 named argument values.
 
     my $capture = \(2, 3, 5, apples => (red => 2));
-    say $capture.values;                           # OUTPUT: «(2 3 5 red => 2)␤»
+    say $capture.values; # OUTPUT: «(2 3 5 red => 2)␤»
 
 =head2 method kv
 
@@ -139,7 +182,7 @@ L<values|#method_values>. The positional keys and values, if any, comes
 first followed by the named keys and values.
 
     my $capture = \(2, 3, apples => (red => 2));
-    say $capture.kv;                                  # OUTPUT: «(0 2 1 3 apples red => 2)␤»
+    say $capture.kv; # OUTPUT: «(0 2 1 3 apples red => 2)␤»
 
 =head2 method pairs
 
@@ -153,7 +196,7 @@ their respective ordinal value, starting at zero, as key while the
 named arguments have their names as key.
 
     my Capture $c = \(2, 3, apples => (red => 2));
-    say $c.pairs;                                     # OUTPUT: «(0 => 2 1 => 3 apples => red => 2)␤»
+    say $c.pairs; # OUTPUT: «(0 => 2 1 => 3 apples => red => 2)␤»
 
 =head2 method antipairs
 
@@ -168,7 +211,7 @@ the value. This behavior is the opposite of the L<pairs|#method_pairs>
 method.
 
     my $capture = \(2, 3, apples => (red => 2));
-    say $capture.antipairs;                           # OUTPUT: «(2 => 0 3 => 1 (red => 2) => apples)␤»
+    say $capture.antipairs; # OUTPUT: «(2 => 0 3 => 1 (red => 2) => apples)␤»
 
 =head2 method Bool
 
@@ -176,11 +219,11 @@ Defined as:
 
     method Bool(Capture:D: --> Bool:D)
 
-Returns C<True> if the Capture contains at least one named or one
+Returns C<True> if the C<Capture> contains at least one named or one
 positional argument.
 
-    say \(1,2,3, apples => 2).Bool;                   # OUTPUT: «True␤»
-    say \().Bool;                                     # OUTPUT: «False␤»
+    say \(1,2,3, apples => 2).Bool; # OUTPUT: «True␤»
+    say \().Bool;                   # OUTPUT: «False␤»
 
 =head2 method Capture
 
@@ -198,9 +241,9 @@ Defined as:
 
     method Numeric(Capture:D: --> Int:D)
 
-Returns the number of positional elements in the Capture.
+Returns the number of positional elements in the C<Capture>.
 
-    say \(1,2,3, apples => 2).Numeric;                # OUTPUT: «3␤»
+    say \(1,2,3, apples => 2).Numeric; # OUTPUT: «3␤»
 
 =end pod
 
