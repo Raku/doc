@@ -484,19 +484,32 @@ The signature of a L<Callable|/type/Callable> parameter can be constrained by
 specifying a L<Signature|/type/Signature> literal right after the parameter (no
 whitespace allowed):
 
-    sub f(&c:(Int, Str))  { say c(10, 'ten') };
-    sub g(Int $i, Str $s) { $s ~ $i };
-    f(&g);
-    # OUTPUT: «ten10␤»
+    sub apply(&l:(Int:D --> Int:D), Int:D \n) {
+        l(n)
+    }
 
-This shorthand syntax is available only for parameters with the C<&>
+    sub identity(Int:D \i --> Int:D) { i }
+    sub double(Int:D \x --> Int:D) { 2 * x }
+
+    say apply &identity, 10; # OUTPUT: «10␤»
+    say apply &double, 10;   # OUTPUT: «20␤»
+
+Typed L<lambdas|/language/functions#Blocks_and_lambdas> also work with
+constrained callable parameters.
+
+    say apply -> Int:D \x --> Int:D { 2 * x }, 3;  # OUTPUT: «6␤»
+    say apply -> Int:D \x --> Int:D { x ** 3 }, 3; # OUTPUT: «27␤»
+
+Note that this shorthand syntax is available only for parameters with the C<&>
 sigil. For others, you need to use the long version:
 
-    sub f($c where .signature ~~ :(Int, Str))  { say $c(10, 'ten') }
+    sub play-with-tens($c where .signature ~~ :(Int, Str)) { say $c(10, 'ten') }
+    sub by-joining-them(Int $i, Str $s) { $s ~ $i }
+    play-with-tens &by-joining-them;                              # OUTPUT: «ten10␤»
+    play-with-tens -> Int \i, Str \s { s x (1..10).roll mod i };  # OUTPUT: «tenten␤»
+
     sub g(Num $i, Str $s) { $s ~ $i }
-    sub h(Int $i, Str $s) { $s ~ $i }
-    # f(&g); # Constraint type check failed
-    f(&h);   # OUTPUT: «ten10␤»
+    # play-with-tens(&g); # Constraint type check failed
 
 =head3 Constraining return types
 
