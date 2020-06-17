@@ -163,11 +163,17 @@ the failure as handled.
 
 Defined as:
 
+    multi sub    fail(--> Nil)
     multi sub    fail(*@text)
-    multi sub    fail(Exception $e)
+    multi sub    fail(Exception:U $e  --> Nil )
+    multi sub    fail($payload --> Nil)
+    multi sub    fail(|cap (*@msg) --> Nil)
+    multi sub    fail(Failure:U $f --> Nil)
+    multi sub    fail(Failure:D $fail --> Nil)
 
 Exits the calling C<Routine> and returns a L<Failure|/type/Failure> object wrapping the
-exception C<$e> - or, for the C<*@text> form, an L<X::AdHoc|/type/X::AdHoc> exception
+exception C<$e> - or, for the C<cap> or C<$payload> form, an
+L<X::AdHoc|/type/X::AdHoc> exception
 constructed from the concatenation of C<@text>. If the caller
 activated fatal exceptions via the pragma C<use fatal;>, the exception is
 thrown instead of being returned as a C<Failure>.
@@ -199,6 +205,24 @@ thrown instead of being returned as a C<Failure>.
     $result = copy-directory-tree('foo');
     say $result.exception; # OUTPUT: «This directory is forbidden: 'foo'␤»
 
+If it's called with a generic C<Failure>, an ad-hoc undefined failure is
+thrown; if it's a defined C<Failure>, it will be marked as unhandled.
+
+=begin code
+sub re-fail {
+    my $x = +"a";
+    unless $x.defined {
+        $x.handled = True;
+        say "Something has failed in \$x ", $x.^name;
+        # OUTPUT: «Something has failed in $x Failure»
+        fail($x);
+        return $x;
+    }
+}
+
+my $x = re-fail;
+say $x.handled; # OUTPUT: «False»
+=end code
 
 =end pod
 
