@@ -1,4 +1,7 @@
 unit class Pod::Cache;
+use NativeCall;
+
+sub flock(int32, int32) is native {...};
 
 # Given a filename, generate a cached, rendered version of the POD
 # in that file as text.
@@ -14,7 +17,7 @@ method cache-file(Str $file --> Str) {
        mkdir $output-io.dirname;
        my $outfile = $output-io.open(:w);
        LEAVE $outfile.close;
-       $outfile.lock;
+       flock($outfile.native-descriptor, 2); # EXCLUSIVE LOCK
        my $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
        $job.stdout.tap(-> $buf {$outfile.print: $buf});
 
