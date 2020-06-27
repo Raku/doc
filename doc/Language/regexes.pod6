@@ -97,11 +97,11 @@ referenced, both outside of an embedding regex and from within an embedding
 regex by means of L<interpolation|/language/regexes#Regex_interpolation>:
 
   my $regex = / R \w+ /;
-  say "Zen Buddhists like Raku too" ~~ $regex; # OUTPUT: ｢Raku｣
+  say "Zen Buddhists like Raku too" ~~ $regex; # OUTPUT: «｢Raku｣␤»
 
   my $regex = /pottery/;
   "Japanese pottery rocks!" ~~ / <$regex> /;  # Interpolation of $regex into /.../
-  say $/;                                     # OUTPUT: ｢pottery｣
+  say $/;                                     # OUTPUT: «｢pottery｣␤»
 
 =head2 Named regex definition syntax
 
@@ -121,10 +121,10 @@ which emphasizes the fact that a L<C<Regex>|/type/Regex> object represents code
 rather than data:
 
 =begin code :preamble<my sub   S { /pattern/ }; my regex R {  pattern  };>
-&S ~~ Code;                 # OUTPUT: True
+&S ~~ Code;                 # OUTPUT: «True␤»
 
-&R ~~ Code;                 # OUTPUT: True
-&R ~~ Method;               # OUTPUT: True (A Regex is really a Method!)
+&R ~~ Code;                 # OUTPUT: «True␤»
+&R ~~ Method;               # OUTPUT: «True␤»   (A Regex is really a Method!)
 =end code
 
 Also unlike with the C<rx> form for defining an anonymous regex, the definition
@@ -247,10 +247,10 @@ against it:
   $_ = "dummy string";        # Set the topic explicitly
 
   rx/ s.* /;                  # Regex object in sink context matches automatically
-  say $/;                     # OUTPUT: ｢string｣
+  say $/;                     # OUTPUT: «｢string｣␤»
 
   say $/ if rx/ d.* /;        # Regex object in boolean context matches automatically
-                              # OUTPUT: ｢dummy string｣
+                              # OUTPUT: «｢dummy string｣␤»
 =end item
 
 =begin item
@@ -503,6 +503,51 @@ Examples of word characters:
     03F3 ϳ GREEK LETTER YOT
     0409 Љ CYRILLIC CAPITAL LETTER LJE
     =end code
+
+=head3 X<C<\c> and C<\C>|regex,\c;regex,\C>
+
+C<\c> takes a parameter delimited by square-brackets which is the name
+of a Unicode character as it appears in the
+L<Unicode Character Database (UCD)|https://unicode.org/ucd/> and matches
+that specific character. For example:
+
+    'a.b' ~~ /\c[FULL STOP]/ and say ~$/;    # OUTPUT: «.»
+
+C<\C> matches a single character that is not the named Unicode character.
+
+Note that the word "character" is used, here, in the sense that the UCD
+does, but because Raku uses L<NFG|/language/glossary#NFG>, combining
+code points and the base characters to which they are attached,
+will generally not match individually. For example if you compose
+C<"ü"> as C<"u\x[0308]">, that works just fine, but matching may surprise
+you:
+
+     say "u\x[0308]" ~~ /\c[LATIN SMALL LETTER U]/;    # OUTPUT: «Nil»
+
+To match the unmodified character, you can use the
+L<C<:ignoremark>|#regex adverb,:ignoremark> adverb.
+
+=head3 X<C<\x> and C<\X>|regex,\x;regex,\X>
+
+C<\x> takes a parameter delimited by square-brackets which is the
+hexadecimal representation of the Unicode codepoint representing the
+character to be matched. For example:
+
+    'a.b' ~~ /\x[2E]/ and say ~$/;    # OUTPUT: «.»
+
+C<\X> matches a single character that is not the given Unicode codepoint.
+
+In addition, C<\x> and C<\X> can be used without square brackets, in which case, any
+characters that follow the C<x> or C<X> that are valid hexadecimal digits will
+be consumed. This means that all of these are equivalent:
+
+    /\x2e/ and /\x002e/ and /\x00002e/
+
+But this format can be ambiguous, so the use of surrounding whitespace is
+highly recommended in non-trivial expressions.
+
+For additional provisos with respect to combining codepoints, see
+L<C<\c> and C<\C>|#regex,\c>.
 
 =head2 Predefined character classes
 
@@ -802,7 +847,7 @@ ordinary and a modified quantifier:
 
 One way to prevent L<backtracking|/language/regexes#Preventing_backtracking> is
 through the use of the C<ratchet> adverb as described
-L<below|language/regexes#Ratchet>. Another more fine-grained way of preventing
+L<below|/language/regexes#Ratchet>. Another more fine-grained way of preventing
 backtracking in regexes is attaching a C<:> modifier to a quantifier:
 
 =begin code
@@ -824,11 +869,11 @@ instance here:
 =for code :preamble<my $str>
 say $str ~~ m:g/[(<[ACGT]> **: 3) \s*]+ \s+ (<[A..Z a..z \s]>+)/;
 # OUTPUT:
-# (｢ACG GCT ACT An interesting chain｣
-# 0 => ｢ACG｣
-# 0 => ｢GCT｣
-# 0 => ｢ACT｣
-# 1 => ｢An interesting chain｣)
+# «(｢ACG GCT ACT An interesting chain｣
+# «0 => ｢ACG｣␤»
+# «0 => ｢GCT｣␤»
+# «0 => ｢ACT｣␤»
+# «1 => ｢An interesting chain｣)␤»
 
 Although in this case, eliminating the C<:> from behind C<**> would make it
 behave exactly in the same way. The best use is to create I<tokens> that will
@@ -837,11 +882,11 @@ not be backtracked:
     $_ = "ACG GCT ACT IDAQT";
     say  m:g/[(\w+:) \s*]+ (\w+) $$/;
     # OUTPUT:
-    # (｢ACG GCT ACT IDAQT｣
-    # 0 => ｢ACG｣
-    # 0 => ｢GCT｣
-    # 0 => ｢ACT｣
-    # 1 => ｢IDAQT｣)
+    # «(｢ACG GCT ACT IDAQT｣␤»
+    # «0 => ｢ACG｣␤»
+    # «0 => ｢GCT｣␤»
+    # «0 => ｢ACT｣␤»
+    # «1 => ｢IDAQT｣)␤»
 
 Without the C<:> following C<\w+>, the I<ID> part captured would have been
 simply C<T>, since the pattern would go ahead and match everything, leaving a
@@ -915,10 +960,10 @@ Briefly, what C<|> does is this:
 
 =item1 First, select the branch which has the longest declarative prefix.
 
-    say "abc" ~~ /ab | a.* /;                 # Output: ⌜abc⌟
-    say "abc" ~~ /ab | a {} .* /;             # Output: ⌜ab⌟
-    say "if else" ~~ / if | if <.ws> else /;  # Output: ｢if｣
-    say "if else" ~~ / if | if \s+   else /;  # Output: ｢if else｣
+    say "abc" ~~ /ab | a.* /;                 # Output: «⌜abc⌟␤»
+    say "abc" ~~ /ab | a {} .* /;             # Output: «⌜ab⌟␤»
+    say "if else" ~~ / if | if <.ws> else /;  # Output: «｢if｣␤»
+    say "if else" ~~ / if | if \s+   else /;  # Output: «｢if else｣␤»
 
 As is shown above, C<a.*> is a declarative prefix, while C<a {} .*> terminates
 at C<{}>, then its declarative prefix is C<a>. Note that non-declarative atoms
@@ -928,7 +973,7 @@ terminates declarative prefix.
 
 =item1 If it's a tie, select the match with the highest specificity.
 
-    say "abc" ~~ /a. | ab { print "win" } /;  # Output: win｢ab｣
+    say "abc" ~~ /a. | ab { print "win" } /;  # Output: «win｢ab｣␤»
 
 When two alternatives match at the same length, the tie is broken by
 specificity. That is, C<ab>, as an exact match, counts as closer than C<a.>,
@@ -936,7 +981,7 @@ which uses character classes.
 
 =item1 If it's still a tie, use additional tie-breakers.
 
-    say "abc" ~~ /a\w| a. { print "lose" } /; # Output: ⌜ab⌟
+    say "abc" ~~ /a\w| a. { print "lose" } /; # Output: «⌜ab⌟␤»
 
 If the tie breaker above doesn't work, then the textually earlier alternative
 takes precedence.
@@ -1109,7 +1154,8 @@ two leading spaces each.
 To match any word boundary, use C«<|w>» or C«<?wb>». This is similar to
 X«C<\b>|regex deprecated,\b» in other languages. To match the opposite, any
 character that is not bounding a word, use C«<!|w>» or C«<!wb>». This is similar
-to X«C<\B>|regex deprecated,\B» in other languages.
+to X«C<\B>|regex deprecated,\B» in other languages; C<\b> and C<\B> will
+throw an L<C<X::Obsolete>|/type/X::Obsolete> exception from version 6.d of Raku.
 
 These are both zero-width regex elements.
 
@@ -1187,7 +1233,7 @@ There are two variants: lookahead and lookbehind assertions.
 Technically, anchors are also zero-width assertions, and they can look
 both ahead and behind.
 
-=head2 X«Lookaround assertions|regex,positive lookaround assertion;regex,negative lookaround assertion»
+=head2 X«Lookaround assertions|regex,positive lookaround assertion, <?>;regex,negative lookaround assertion, <!>; regex ?[ »
 
 Lookaround assertions work both ways. They match, but they don't consume a
 character.
@@ -1219,7 +1265,7 @@ negative lookaround assertion behaves in the same way. In the fourth
 statement the last digit is matched but not consumed, thus the match includes
  only the first two digits.
 
-=head2 X<Lookahead assertions|regex,before>
+=head2 X«Lookahead assertions|regex, before;regex, <?before>»
 
 To check that a pattern appears before another pattern, use a
 lookahead assertion via the C<before> assertion. This has the form:
@@ -1251,10 +1297,10 @@ characters ranges, interpolated variables, subscripts and so on. In such
 cases it does suffice to use a C<?>, or a C<!> for the negate form.
 For instance, the following lines all produce the very same result:
 
-    say 'abcdefg' ~~ rx{ abc <?before def> };        # OUTPUT: ｢abc｣
-    say 'abcdefg' ~~ rx{ abc <?[ d..f ]> };          # OUTPUT: ｢abc｣
+    say 'abcdefg' ~~ rx{ abc <?before def> };        # OUTPUT: «｢abc｣␤»
+    say 'abcdefg' ~~ rx{ abc <?[ d..f ]> };          # OUTPUT: «｢abc｣␤»
     my @ending_letters = <d e f>;
-    say 'abcdefg' ~~ rx{ abc <?@ending_letters> };   # OUTPUT: ｢abc｣
+    say 'abcdefg' ~~ rx{ abc <?@ending_letters> };   # OUTPUT: «｢abc｣␤»
 
 A practical use of lookahead assertions is in substitutions, where
 you only want to substitute regex matches that are in a certain
@@ -1264,12 +1310,12 @@ that are followed by a unit (like I<kg>), but not other numbers:
     my @units = <kg m km mm s h>;
     $_ = "Please buy 2 packs of sugar, 1 kg each";
     s:g[\d+ <?before \s* @units>] = 5 * $/;
-    say $_;         # OUTPUT: Please buy 2 packs of sugar, 5 kg each
+    say $_;         # OUTPUT: «Please buy 2 packs of sugar, 5 kg each␤»
 
 Since the lookahead is not part of the match object, the unit
 is not substituted.
 
-=head2 X<Lookbehind assertions|regex,after>
+=head2 X«Lookbehind assertions|regex, after; regex, <?after>»
 
 To check that a pattern appears after another pattern, use a
 lookbehind assertion via the C<after> assertion. This has the form:
@@ -1338,9 +1384,9 @@ an element of the resulting L<Match|/type/Match> object:
 
     my $str =  'number 42';
     if $str ~~ /'number ' (\d+) / {
-        say "The number is $0";         # OUTPUT: The number is 42
+        say "The number is $0";         # OUTPUT: «The number is 42␤»
         # or
-        say "The number is $/[0]";      # OUTPUT: The number is 42
+        say "The number is $/[0]";      # OUTPUT: «The number is 42␤»
     }
 
 Pairs of parentheses are numbered left to right, starting from zero.
@@ -1411,8 +1457,8 @@ to use the capture variables, but it will become a list with the rest of the
 levels behaving as elements of that list
 
     if 'abc' ~~ / ( a (.) (.) ) / {
-        say "Outer: $0";                # OUTPUT: Outer: abc
-        say "Inner: $0[0] and $0[1]";   # OUTPUT: Inner: b and c
+        say "Outer: $0";                # OUTPUT: «Outer: abc␤»
+        say "Inner: $0[0] and $0[1]";   # OUTPUT: «Inner: b and c␤»
     }
 
 These capture variables are only available outside the regex.
@@ -1796,8 +1842,8 @@ will be called on parse failure:
 Note that you can use this construct to set up expectations for a
 closing construct even when there's no opening delimiter:
 
-    "3)"  ~~ / <?> ~ ')' \d+ /;  # RESULT: «｢3)｣»
-    "(3)" ~~ / <?> ~ ')' \d+ /;  # RESULT: «｢3)｣»
+    "3)"  ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
+    "(3)" ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
 
 Here C«<?>» successfully matches the null string.
 
@@ -1856,7 +1902,7 @@ Here's more complete code for parsing C<ini> files:
             %config{ $section<header>[0] } = %section;
         }
     }
-    say %config.perl;
+    say %config.raku;
 
     # OUTPUT: «{:passwords(${:jack("password1"), :joy("muchmoresecure123")}),
     #           :quotas(${:jack("123"), :joy("42")})}»
@@ -1894,6 +1940,10 @@ pattern, which may be summarized as follows:
 
 =end table
 
+Instead of the C<$> sigil, you may use the C<@> sigil for array interpolation.
+See below for how this works.
+
+X<|regex, $variable>X<|regex, $(code)>
 Let's start with the first two syntactical forms: C«$variable» and C«$(code)».
 These forms will interpolate the stringified value of the variable or the
 stringified return value of the code literally, provided that the respective
@@ -1912,11 +1962,11 @@ For C«$variable» this means the following:
     my $number   = 123;
     my $regex    = /\w+/;
 
-    say $string.match: / 'string' /;                      #  [1] OUTPUT: ｢string｣
-    say $string.match: / $pattern1 /;                     #  [2] OUTPUT: ｢string｣
-    say $string.match: / $pattern2 /;                     #  [3] OUTPUT: ｢\w+｣
-    say $string.match: / $regex /;                        #  [4] OUTPUT: ｢Is｣
-    say $string.match: / $number /;                       #  [5] OUTPUT: ｢123｣
+    say $string.match: / 'string' /;                      #  [1] OUTPUT: «｢string｣␤»
+    say $string.match: / $pattern1 /;                     #  [2] OUTPUT: «｢string｣␤»
+    say $string.match: / $pattern2 /;                     #  [3] OUTPUT: «｢\w+｣␤»
+    say $string.match: / $regex /;                        #  [4] OUTPUT: «｢Is｣␤»
+    say $string.match: / $number /;                       #  [5] OUTPUT: «｢123｣␤»
 
 In this example, the statements C<[1]> and C<[2]> are equivalent and meant to
 illustrate a plain case of regex interpolation. Since unescaped/unquoted
@@ -1938,14 +1988,14 @@ This code exemplifies the use of the C«$(code)» syntax:
     my $bool     = True;
     my sub f1    { return Q[$pattern1] };
 
-    say $string.match: / $pattern3.flip /;                #  [6] OUTPUT: Nil
-    say $string.match: / "$pattern3.flip()" /;            #  [7] OUTPUT: ｢string｣
-    say $string.match: / $($pattern3.flip) /;             #  [8] OUTPUT: ｢string｣
-    say $string.match: / $([~] $pattern3.comb.reverse) /; #  [9] OUTPUT: ｢string｣
-    say $string.match: / $(!$bool) /;                     # [10] OUTPUT: ｢False｣
+    say $string.match: / $pattern3.flip /;                #  [6] OUTPUT: «Nil␤»
+    say $string.match: / "$pattern3.flip()" /;            #  [7] OUTPUT: «｢string｣␤»
+    say $string.match: / $($pattern3.flip) /;             #  [8] OUTPUT: «｢string｣␤»
+    say $string.match: / $([~] $pattern3.comb.reverse) /; #  [9] OUTPUT: «｢string｣␤»
+    say $string.match: / $(!$bool) /;                     # [10] OUTPUT: «｢False｣␤»
 
-    say $string.match: / $pattern4 /;                     # [11] OUTPUT: ｢$pattern1｣
-    say $string.match: / $(f1) /;                         # [12] OUTPUT: ｢$pattern1｣
+    say $string.match: / $pattern4 /;                     # [11] OUTPUT: «｢$pattern1｣␤»
+    say $string.match: / $(f1) /;                         # [12] OUTPUT: «｢$pattern1｣␤»
 
 Statement C<[6]> does not work as probably intended. To the human reader, the
 dot C<.> may seem to represent the L<method call operator|/language/operators#methodop_.>,
@@ -1969,6 +2019,7 @@ interpolation. Hence, in general, after possible stringification, C«$variable»
 and C«$(code)» provide for a strictly literal match of the variable or return
 value.
 
+X«|regex, <$variable>»X«|regex, <{code}>»
 Now consider the second two syntactical forms from the table above:
 C«<$variable>» and C«<{code}>». These forms will stringify the value of the
 variable or the return value of the code and interpolate it as a regex. If the
@@ -1979,9 +2030,9 @@ respective value is a C<Regex>, it is interpolated as such:
     my $number         = 123;
     my sub f1          { return /s\w+/ };
 
-    say $string.match: / <$pattern1>  /;                  # OUTPUT: ｢Is｣
-    say $string.match: / <$number>    /;                  # OUTPUT: ｢123｣
-    say $string.match: / <{ f1 }>     /;                  # OUTPUT: ｢string｣
+    say $string.match: / <$pattern1>  /;                  # OUTPUT: «｢Is｣␤»
+    say $string.match: / <$number>    /;                  # OUTPUT: «｢123｣␤»
+    say $string.match: / <{ f1 }>     /;                  # OUTPUT: «｢string｣␤»
 
 Importantly, 'to interpolate as a regex' means to interpolate/insert into the
 target regex without protective quoting. Consequently, if the value of the
@@ -1997,13 +2048,13 @@ C<$variable2>:
     my sub f1     { return Q[$variable2] };
 
     # /<{ f1 }>/ ==> /$variable2/ ==> / '$variable1' /
-    say $string.match: / <{ f1 }>     /; # OUTPUT: ｢$variable1｣
+    say $string.match: / <{ f1 }>     /; # OUTPUT: «｢$variable1｣␤»
 
     # /<$variable2>/ ==> /$variable1/ ==> / '\w+' /
-    say $string.match: /<$variable2>/;   # OUTPUT: ｢\w+｣
+    say $string.match: /<$variable2>/;   # OUTPUT: «｢\w+｣␤»
 
     # /<$variable1>/ ==> /\w+/
-    say $string.match: /<$variable1>/;   # OUTPUT: ｢Mindless｣
+    say $string.match: /<$variable1>/;   # OUTPUT: «｢Mindless｣␤»
 
 When an array variable is interpolated into a regex, the regex engine handles it
 like a C<|> alternative of the regex elements (see the documentation on
@@ -2015,10 +2066,20 @@ regexes. Just as with ordinary C<|> interpolation, the longest match succeeds:
     my @a = '2', 23, rx/a.+/;
     say ('b235' ~~ /  b @a /).Str;      # OUTPUT: «b23»
 
+If you have an expression that evaluates to a list, but you do not want to
+assign it to an @-sigiled variable first, you can interpolate it with
+C<@(code)>. In this example, both regexes are equivalent:
+
+    my %h = a => 1, b => 2;
+    my @a = %h.keys;
+    say S:g/@(%h.keys)/%h{$/}/ given 'abc';    # OUTPUT: «12c>
+    say S:g/@a/%h{$/}/ given 'abc';            # OUTPUT: «12c>
+
 The use of hashes in regexes is reserved.
 
 =head2 Regex boolean condition check
 
+X«|regex, <?{}>;regex, <!{}>»
 The special operator C«<?{}>» allows the evaluation of a boolean expression that
 can perform a semantic evaluation of the match before the regular expression
 continues. In other words, it is possible to check in a boolean context a part
@@ -2036,7 +2097,7 @@ example that involves a simple IPv4 address matching:
 my $localhost = '127.0.0.1';
 my regex ipv4-octet { \d ** 1..3 <?{ True }> }
 $localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
-say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+say $/<ipv4-octet>;   # OUTPUT: «[｢127｣ ｢0｣ ｢0｣ ｢1｣]␤»
 =end code
 
 The C<octet> regular expression matches against a number made by one up to three
@@ -2050,7 +2111,7 @@ syntactic point of view:
 my $localhost = '127.0.0.1';
 my regex ipv4-octet { \d ** 1..3 <?{ False }> }
 $localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
-say $/<ipv4-octet>;   # OUTPUT: Nil
+say $/<ipv4-octet>;   # OUTPUT: «Nil␤»
 =end code
 
 From the above examples, it should be clear that it is possible to improve the
@@ -2061,7 +2122,7 @@ octet:
 my $localhost = '127.0.0.1';
 my regex ipv4-octet { \d ** 1..3 <?{ $/.Int <= 255 && $/.Int >= 0 }> }
 $localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
-say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+say $/<ipv4-octet>;   # OUTPUT: «[｢127｣ ｢0｣ ｢0｣ ｢1｣]␤»
 =end code
 
 Please note that it is not required to evaluate the regular expression in-line,
@@ -2072,7 +2133,7 @@ my $localhost = '127.0.0.1';
 sub check-octet ( Int $o ){ $o <= 255 && $o >= 0 }
 my regex ipv4-octet { \d ** 1..3 <?{ &check-octet( $/.Int ) }> }
 $localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
-say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+say $/<ipv4-octet>;   # OUTPUT: «[｢127｣ ｢0｣ ｢0｣ ｢1｣]␤»
 =end code
 
 Of course, being C«<!{}>» the negation form of C«<?{}>» the same boolean
@@ -2083,7 +2144,7 @@ my $localhost = '127.0.0.1';
 sub invalid-octet( Int $o ){ $o < 0 || $o > 255 }
 my regex ipv4-octet { \d ** 1..3 <!{ &invalid-octet( $/.Int ) }> }
 $localhost ~~ / ^ <ipv4-octet> ** 4 % "." $ /;
-say $/<ipv4-octet>;   # OUTPUT: [｢127｣ ｢0｣ ｢0｣ ｢1｣]
+say $/<ipv4-octet>;   # OUTPUT: «[｢127｣ ｢0｣ ｢0｣ ｢1｣]␤»
 =end code
 
 =head1 Adverbs
@@ -2127,7 +2188,7 @@ C<:overlap> (which can be abbreviated to C<:ov>) are appended to the match call:
     }
     # OUTPUT: «ba␤aA␤»
 
-=head2 X<Regex adverbs|regex adverb,:ignorecase;regex adverb,:i>
+=head2 X<Regex adverbs|regex, Regex adverbs>
 
 The adverbs that appear at the time of a regex declaration are part of the
 actual regex and influence how the Raku compiler translates the regex into
@@ -2174,6 +2235,14 @@ When two adverbs are used together, they keep their colon at the front
 
 That implies that when there are two vowels together after a C<:>, they
 correspond to the same adverb, as in C<:ov> or C<:P5>.
+
+=head3 X<Ignorecase|regex adverb,:ignorecase;regex adverb,:i>
+
+The C<:ignorecase> or C<:i> adverb instructs the regex engine to ignore
+the distinction between upper case, lower case and title case letters.
+
+See the L<section Regex adverbs|/language/regexes#Regex_adverbs>
+for examples.
 
 =head3 X<Ignoremark|regex adverb,:ignoremark;regex adverb,:m>
 
@@ -2241,7 +2310,16 @@ regex.
 C<m:s/ photo shop /> acts the same as
 C<m/ photo <.ws> shop <.ws> />. By default, C<< <.ws> >> makes sure that
 words are separated, so C<a    b> and C<^&> will match C<< <.ws> >> in the
-middle, but C<ab> won't.
+middle, but C<ab> won't:
+
+    =begin code :allow<B>
+    say so "ab" ~~ m:s/a <.ws> b/;     # OUTPUT: «False␤»
+    say so "a b" ~~ m:s/a <.ws> b/;    # OUTPUT: «True␤»
+    say so "^&" ~~ m:s/'^' <.ws> '&'/; # OUTPUT: «True␤»
+    =end code
+
+The third line is matched, because C<^&> is not a word. For more clarification
+on how <.ws> rule works, refer to L<WS rule description|/language/grammars#ws>.
 
 Where whitespace in a regex turns into C«<.ws>» depends on what comes before
 the whitespace. In the above example, whitespace in the beginning of a regex
@@ -2321,17 +2399,17 @@ Grammars provide an easy way to override what C«<.ws>» matches:
 When parsing file formats where some whitespace (for example, vertical
 whitespace) is significant, it's advisable to override C<ws>.
 
-=head3 Perl 5 compatibility adverb
+=head3 Perl compatibility adverb
 
 The B<C<:Perl5>> or B<C<:P5>> adverb switch the Regex parsing and matching
-to the way Perl 5 regexes behave:
+to the way Perl regexes behave:
 
     so 'hello world' ~~ m:Perl5/^hello (world)/;   # OUTPUT: «True␤»
     so 'hello world' ~~ m/^hello (world)/;         # OUTPUT: «False␤»
     so 'hello world' ~~ m/^ 'hello ' ('world')/;   # OUTPUT: «True␤»
 
 The regular behavior is recommended and more idiomatic in Raku of course,
-but the B<C<:Perl5>> adverb can be useful when compatibility with Perl5 is required.
+but the B<C<:Perl5>> adverb can be useful when compatibility with Perl is required.
 
 =head2 Matching adverbs
 
@@ -2354,7 +2432,9 @@ position:
 
 As you can see, the adverb argument can also be a list. There's actually no
 difference between the C<:nth> adverb and the rest. You choose them only based
-on legibility. From 6.d, you can also use C<Junction>s as arguments.
+on legibility. From 6.d, you can also use C<Junction>s, C<Seq>s and C<Range>s,
+even
+infinite ones, as arguments.
 
     my $data = "f fo foo fooo foooo fooooo foooooo";
     say $data ~~ m:st(1|8)/fo+/;  # OUTPUT: «True␤»
@@ -2503,9 +2583,9 @@ C<:sigspace> modifier for the regex, and in addition, copies the
 whitespace from the matched string to the replacement string:
 
 =begin code
-say S:samespace/a ./c d/.perl given "a b";      # OUTPUT: «"c d"»
-say S:samespace/a ./c d/.perl given "a\tb";     # OUTPUT: «"c\td"»
-say S:samespace/a ./c d/.perl given "a\nb";     # OUTPUT: «"c\nd"»
+say S:samespace/a ./c d/.raku given "a b";      # OUTPUT: «"c d"»
+say S:samespace/a ./c d/.raku given "a\tb";     # OUTPUT: «"c\td"»
+say S:samespace/a ./c d/.raku given "a\nb";     # OUTPUT: «"c\nd"»
 =end code
 
 The C<ss/.../.../> syntactic form is a shorthand for
@@ -2525,7 +2605,7 @@ In order to better understand backtracking, consider the following example:
 
 =begin code
 my $string = 'PostgreSQL is an SQL database!';
-say $string ~~ /(.+)(SQL) (.+) $1/; # OUTPUT: ｢PostgreSQL is an SQL｣
+say $string ~~ /(.+)(SQL) (.+) $1/; # OUTPUT: «｢PostgreSQL is an SQL｣␤»
 =end code
 
 What happens in the above example is that the string has to be matched against
@@ -2549,7 +2629,7 @@ sub show-captures( Match $m ){
     say $result_split;
 }
 
-$string ~~ /(.+)(SQL) (.+) $1 (.+) { show-captures( $/ );  }/;
+$string ~~ /(.+)(SQL) (.+) $1 .+ { show-captures( $/ );  }/;
 =end code
 
 The C<show-captures> method will dump all the elements of C<$/> producing
@@ -2621,7 +2701,7 @@ It is worth noting that the final iteration is number I<24>, and that such numbe
 the distance, in number of chars, from the end of the string to the first I<SQL> occurrence:
 
 =begin code :preamble<my $string = '';>
-say $string.chars - $string.index: 'SQL'; # OUTPUT: 23
+say $string.chars - $string.index: 'SQL'; # OUTPUT: «23␤»
 =end code
 
 Since there are 23 chars from the very end of the string to the very first I<S> of I<SQL>
@@ -2635,8 +2715,8 @@ With regards to the above example, disabling backtracking means
 the regular expression will not have any chance to match:
 
 =begin code :preamble<my $string = '';>
-say $string ~~ /(.+)(SQL) (.+) $1/;      # OUTPUT: ｢PostgreSQL is an SQL｣
-say $string ~~ / :r (.+)(SQL) (.+) $1/;  # OUTPUT: Nil
+say $string ~~ /(.+)(SQL) (.+) $1/;      # OUTPUT: «｢PostgreSQL is an SQL｣␤»
+say $string ~~ / :r (.+)(SQL) (.+) $1/;  # OUTPUT: «Nil␤»
 =end code
 
 The fact is that, as shown in the I<iteration 1> output, the first match of the
@@ -2651,7 +2731,7 @@ Consider the following slightly changed example:
 
 =begin code
 my $string = 'PostgreSQL is an SQL database!';
-say $string ~~ / (SQL) (.+) $1 /; # OUTPUT: Nil
+say $string ~~ / (SQL) (.+) $1 /; # OUTPUT: «Nil␤»
 =end code
 
 Since there is no specification for a character before the word I<SQL>,
@@ -2739,9 +2819,9 @@ matched:
 =begin code
 my $answer = 'a lot of Stuff';
 say 'Hit a capital letter!' if $answer ~~ / <[A..Z>]> /;
-say $/;  # OUTPUT: ｢S｣
+say $/;  # OUTPUT: «｢S｣␤»
 say 'hit an x!' if $answer ~~ / x /;
-say $/;  # OUTPUT: Nil
+say $/;  # OUTPUT: «Nil␤»
 =end code
 
 The reset of C<$/> applies independently from the scope where the regular expression
@@ -2751,16 +2831,16 @@ is matched:
 my $answer = 'a lot of Stuff';
 if $answer ~~ / <[A..Z>]> / {
    say 'Hit a capital letter';
-   say $/;  # OUTPUT: ｢S｣
+   say $/;  # OUTPUT: «｢S｣␤»
 }
-say $/;  # OUTPUT: ｢S｣
+say $/;     # OUTPUT: «｢S｣␤»
 
 if True {
   say 'hit an x!' if $answer ~~ / x /;
-  say $/;  # OUTPUT: Nil
+  say $/;   # OUTPUT: «Nil␤»
 }
 
-say $/;  # OUTPUT: Nil
+say $/;     # OUTPUT: «Nil␤»
 =end code
 
 The very same concept applies to named captures:
@@ -2769,13 +2849,13 @@ The very same concept applies to named captures:
 my $answer = 'a lot of Stuff';
 if $answer ~~ / $<capital>=<[A..Z>]> / {
    say 'Hit a capital letter';
-   say $/<capital>; # OUTPUT: ｢S｣
+   say $/<capital>; # OUTPUT: «｢S｣␤»
 }
 
-say $/<capital>;    # OUTPUT: ｢S｣
+say $/<capital>;    # OUTPUT: «｢S｣␤»
 say 'hit an x!' if $answer ~~ / $<x>=x /;
-say $/<x>;          # OUTPUT: Nil
-say $/<capital>;    # OUTPUT: Nil
+say $/<x>;          # OUTPUT: «Nil␤»
+say $/<capital>;    # OUTPUT: «Nil␤»
 =end code
 
 =head1 Best practices and gotchas

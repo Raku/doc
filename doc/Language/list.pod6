@@ -105,7 +105,7 @@ guarantees that this is going to fail:
 =head1 Reset a list container
 
 To remove all elements from a Positional container assign
-L<C<Empty>|/type/Slip#Empty>, the empty list C<()> or a C<Slip> of the empty
+L<C<Empty>|/type/Slip#constant_Empty>, the empty list C<()> or a C<Slip> of the empty
 list to the container.
 
     my @a = 1, 2, 3;
@@ -137,9 +137,9 @@ my @list = [ (1, 2, 3),
              [[1]] ];
 
 for @list -> @element {
-  say "{@element} → {@element.^name}";
+    say "{@element} → {@element.^name}";
     for @element -> $sub-element {
-      say $sub-element;
+        say $sub-element;
     }
 }
 # OUTPUT
@@ -169,7 +169,7 @@ would expect>.
 =head1 Testing for elements
 
 To test for elements in a C<List> or C<Array>, you can use the
-L<"is element of"|/language/setbagmix#infix_(elem)>
+L<"is element of"|/language/setbagmix#infix_(elem),_infix_∈>
 L<C<Set>|/type/Set> operator.
 
     my @a = <foo bar buzz>;
@@ -284,7 +284,7 @@ value, but unlike the above options, it will break L<Scalars|/type/Scalar>.
 
     say (1, |(2, 3), 4) eqv (1, 2, 3, 4);        # OUTPUT: «True␤»
     say (1, |$(2, 3), 4) eqv (1, 2, 3, 4);       # OUTPUT: «True␤»
-    say (1, slip($(2, 3)), 4) eqv (1, 2, 3, 4);  # OUTPUT: «False␤»
+    say (1, slip($(2, 3)), 4) eqv (1, 2, 3, 4);  # OUTPUT: «True␤»
 
 X<|laziness in Iterable objects>
 =head1 Lazy lists
@@ -620,12 +620,12 @@ C<@>-sigiled variable has an element type of C<Mu>, however its default value is
 an undefined C<Any>:
 
     my @a;
-    @a.of.perl.say;                 # OUTPUT: «Mu␤»
-    @a.default.perl.say;            # OUTPUT: «Any␤»
+    @a.of.raku.say;                 # OUTPUT: «Mu␤»
+    @a.default.raku.say;            # OUTPUT: «Any␤»
     @a[0].say;                      # OUTPUT: «(Any)␤»
     my Numeric @n is default(Real);
-    @n.of.perl.say;                 # OUTPUT: «Numeric␤»
-    @n.default.perl.say;            # OUTPUT: «Real␤»
+    @n.of.raku.say;                 # OUTPUT: «Numeric␤»
+    @n.default.raku.say;            # OUTPUT: «Real␤»
     @n[0].say;                      # OUTPUT: «(Real)␤»
 
 
@@ -639,11 +639,11 @@ kind of C<Array> will default to C<Any>. The shape can be accessed at runtime
 via the C<shape> method.
 
     my @a[2,2];
-    say @a.perl;
+    say @a.raku;
     # OUTPUT: «Array.new(:shape(2, 2), [Any, Any], [Any, Any])␤»
     say @a.shape;         # OUTPUT: «(2 2)␤»
     my @just-three[3] = <alpha beta kappa>;
-    say @just-three.perl;
+    say @just-three.raku;
     # OUTPUT: «Array.new(:shape(3,), ["alpha", "beta", "kappa"])␤»
 
 Shape will control the amount of elements that can be assigned by dimension:
@@ -659,11 +659,20 @@ Arrays (making then mutable in the process).
     my @a[2;2] = (1,2; 3,4);
     say @a.Array; # OUTPUT: «[1 2 3 4]␤»
     @a[1;1] = 42;
-    say @a.perl;
+    say @a.raku;
     # OUTPUT: «Array.new(:shape(2, 2), [1, 2], [3, 42])␤»
 
 As the third statement shows, you can assign directly to an element in a shaped
 array too. B<Note>: the second statement works only from version 2018.09.
+
+Since version 6.d,
+L<C<enum>s|/language/typesystem#index-entry-Enumeration-_Enums-_enum> can be
+used also as shape parameters:
+
+=for code
+enum Cards <Trump Ace Deuce Trey>;
+my @cards[Deuce;Deuce];
+say @cards.shape; # OUTPUT: «(Deuce Deuce)␤»
 
 =head2 Itemization
 
@@ -677,11 +686,11 @@ firm understanding of.
 
 First, be aware that because itemization in Arrays is assumed, it essentially
 means that C<$(…)>s are being put around everything that you assign to an
-array, if you do not put them there yourself.  On the other side, Array.perl
-does not put C<$> to explicitly show scalars, unlike List.perl:
+array, if you do not put them there yourself.  On the other side, Array.raku
+does not put C<$> to explicitly show scalars, unlike List.raku:
 
-    ((1, 2), $(3, 4)).perl.say; # says "((1, 2), $(3, 4))"
-    [(1, 2), $(3, 4)].perl.say; # says "[(1, 2), (3, 4)]"
+    ((1, 2), $(3, 4)).raku.say; # says "((1, 2), $(3, 4))"
+    [(1, 2), $(3, 4)].raku.say; # says "[(1, 2), (3, 4)]"
                                 # ...but actually means: "[$(1, 2), $(3, 4)]"
 
 It was decided all those extra dollar signs and parentheses were more of an
@@ -692,14 +701,14 @@ Second, remember that these invisible dollar signs also protect against
 flattening, so you cannot really flatten the elements inside of an Array
 with a normal call to C<flat> or C<.flat>.
 
-    ((1, 2), $(3, 4)).flat.perl.say; # OUTPUT: «(1, 2, $(3, 4)).Seq␤»
-    [(1, 2), $(3, 4)].flat.perl.say; # OUTPUT: «($(1, 2), $(3, 4)).Seq␤»
+    ((1, 2), $(3, 4)).flat.raku.say; # OUTPUT: «(1, 2, $(3, 4)).Seq␤»
+    [(1, 2), $(3, 4)].flat.raku.say; # OUTPUT: «($(1, 2), $(3, 4)).Seq␤»
 
 Since the square brackets do not themselves protect against flattening,
 you can still spill the elements out of an Array into a surrounding list
 using C<flat>.
 
-    (0, [(1, 2), $(3, 4)], 5).flat.perl.say; # OUTPUT: «(0, $(1, 2), $(3, 4), 5).Seq␤»
+    (0, [(1, 2), $(3, 4)], 5).flat.raku.say; # OUTPUT: «(0, $(1, 2), $(3, 4), 5).Seq␤»
 
 ...the elements themselves, however, stay in one piece.
 

@@ -104,7 +104,7 @@ C<@> can also be used as a list or C<Positional> contextualizer:
 
 =for code
 my $not-a-list-yet = $[1,2,3];
-say $not-a-list-yet.perl;             # OUTPUT: «$[1, 2, 3]␤»
+say $not-a-list-yet.raku;             # OUTPUT: «$[1, 2, 3]␤»
 my @maybe-a-list = @$not-a-list-yet;
 say @maybe-a-list.^name;              # OUTPUT: «Array␤»
 
@@ -162,15 +162,15 @@ Examples:
     say 'bca'.comb.sort({$^b cmp $^a}).join;    # OUTPUT: «cba␤»
     say '231'.comb.sort(&infix:«<=>»).join;     # OUTPUT: «123␤»
 
-=head2 method map
+=head2 routine map
 
 Defined as:
 
+    multi method map(\SELF: &block;; :$label, :$item)
+    multi sub map(&code, +values)
     multi method map(Hash:D \hash)
     multi method map(Iterable:D \iterable)
     multi method map(|c)
-    multi method map(\SELF: &block;; :$label, :$item)
-    multi sub map(&code, +values)
 
 C<map> will iterate over the invocant and apply the number of positional
 parameters of the code object from the invocant per call.  The returned values
@@ -181,11 +181,23 @@ converted to C<map>s. The C<:$label> takes an existing L<Label|/type/Label> to
 label the C<.map>'s loop with and C<:$item> controls whether the iteration will
 occur over C<(SELF,)> (if C<:$item> is set) or C<SELF>.
 
-In C<sub> form, will apply the C<code> block to the C<values>, which will be
+In C<sub> form, it will apply the C<code> block to the C<values>, which will be
 used as invocant.
 
-The form with C<\c>, C<Iterable:D \iterable> and C<Hash:D \hash> as signatures
+The forms with C<|c>, C<Iterable:D \iterable> and C<Hash:D \hash> as signatures
 will fail with C<X::Cannot::Map>, and are mainly meant to catch common traps.
+
+Inside a C<for> statement that has been sunk, a C<Seq> created by a map will
+also sink:
+
+=for code
+say gather for 1 {
+    ^3 .map: *.take;
+} # OUTPUT: «(0 1 2)␤»
+
+In this case, C<gather> sinks the C<for> statement, and the result of sinking
+the C<Seq> will be iterating over its elements, calling C<.take> on them.
+
 
 =head2 method deepmap
 
@@ -300,8 +312,8 @@ into lists of pairs.
     say ((1, 2), (3), %(:42a)).flat; # OUTPUT: «(1 2 3 a => 42)␤»
 
 Note that L<Arrays|/type/Array> containerize their elements by default, and so
-C<flat> will not flatten them. You can use
-L<hyper method call|/language/operators#index-entry-postfix_».> to call
+C<flat> will not flatten them. You can use the
+L<hyper method call|/language/operators#index-entry-postfix_».> to call the
 L«C<.List>|/routine/List» method on all the inner L<Iterables|/type/Iterable>
 and so de-containerize them, so that C<flat> can flatten them:
 
@@ -370,7 +382,7 @@ constructs a pair from them, unless the item in the key position already is a
 pair (in which case the pair is passed through, and the next list item, if any,
 is considered to be a key again). It returns a C<Seq> of C<Pair>s.
 
-    say (a => 1, 'b', 'c').pairup.perl;     # OUTPUT: «(:a(1), :b("c")).Seq␤»
+    say (a => 1, 'b', 'c').pairup.raku;     # OUTPUT: «(:a(1), :b("c")).Seq␤»
 
 X<|$ (item contextualizer)>
 =head2 sub item
@@ -383,14 +395,14 @@ Defined as:
 
 Forces given object to be evaluated in item context and returns the value of it.
 
-    say item([1,2,3]).perl;              # OUTPUT: «$[1, 2, 3]␤»
-    say item( %( apple => 10 ) ).perl;   # OUTPUT: «${:apple(10)}␤»
-    say item("abc").perl;                # OUTPUT: «"abc"␤»
+    say item([1,2,3]).raku;              # OUTPUT: «$[1, 2, 3]␤»
+    say item( %( apple => 10 ) ).raku;   # OUTPUT: «${:apple(10)}␤»
+    say item("abc").raku;                # OUTPUT: «"abc"␤»
 
 You can also use C<$> as item contextualizer.
 
-    say $[1,2,3].perl;                   # OUTPUT: «$[1, 2, 3]␤»
-    say $("abc").perl;                   # OUTPUT: «"abc"␤»
+    say $[1,2,3].raku;                   # OUTPUT: «$[1, 2, 3]␤»
+    say $("abc").raku;                   # OUTPUT: «"abc"␤»
 
 =head2 method Array
 
@@ -544,7 +556,7 @@ Defined as:
 First, it coerces the invocant to a C<list> by applying its
 L«C<.list>|/routine/list» method, and then to a L<Supply|/type/Supply>.
 
-=head2 method min
+=head2 routine min
 
 Defined as:
 
@@ -555,11 +567,14 @@ Defined as:
 
 Coerces the invocant to L<Iterable|/type/Iterable> and returns the numerically
 smallest element; in the case of C<Hash>es, it returns the C<Pair> with the
-lowest value. In C<sub> form, the invocant is passed as an argument.
+lowest value.
 
 If a L<Callable|/type/Callable> positional argument is provided, each value is
 passed into the filter, and its return value is compared instead of the original
 value. The original value is still the one returned from C<min>.
+
+In C<sub> form, the invocant is passed as an argument and a comparison C<Callable>
+can be specified with the named argument C<:by>.
 
     say (1,7,3).min();              # OUTPUT:«1␤»
     say (1,7,3).min({1/$_});        # OUTPUT:«7␤»
@@ -568,7 +583,7 @@ value. The original value is still the one returned from C<min>.
     min( %(a => 3, b=> 7 ) ).say ;  # OUTPUT: «a => 3␤»
 
 
-=head2 method max
+=head2 routine max
 
 Defined as:
 
@@ -584,13 +599,16 @@ If a L<Callable|/type/Callable> positional argument is provided, each value is
 passed into the filter, and the return value is compared instead of the original
 value. The original value is still the one returned from C<max>.
 
+In C<sub> form, the invocant is passed as an argument and a comparison C<Callable>
+can be specified with the named argument C<:by>.
+
     say (1,7,3).max();                # OUTPUT:«7␤»
     say (1,7,3).max({1/$_});          # OUTPUT:«1␤»
     say max(1,7,3,:by( { 1/$_ } ));   # OUTPUT: «1␤»
     say max(1,7,3);                   # OUTPUT: «7␤»
     max( %(a => 'B', b=> 'C' ) ).say; # OUTPUT: «b => C␤»
 
-=head2 method minmax
+=head2 routine minmax
 
 Defined as:
 
@@ -604,6 +622,9 @@ Returns a C<Range> from the smallest to the largest element.
 If a L<Callable|/type/Callable> positional argument is provided, each value is
 passed into the filter, and its return value is compared instead of the original
 value. The original values are still used in the returned C<Range>.
+
+In C<sub> form, the invocant is passed as an argument and a comparison C<Callable>
+can be specified with the named argument C<:by>.
 
     say (1,7,3).minmax();        # OUTPUT:«1..7␤»
     say (1,7,3).minmax({-$_});   # OUTPUT:«7..1␤»
@@ -620,8 +641,8 @@ Calls L«C<.pairs>|/routine/pairs» and returns a L<Seq|/type/Seq> with
 all of the Pairs with minimum values, as judged by the
 L«C<cmp> operator|/routine/cmp»:
 
-    <a b c a b c>.minpairs.perl.put; # OUTPUT: «(0 => "a", 3 => "a").Seq␤»
-    %(:42a, :75b).minpairs.perl.put; # OUTPUT: «(:a(42),).Seq␤»
+    <a b c a b c>.minpairs.raku.put; # OUTPUT: «(0 => "a", 3 => "a").Seq␤»
+    %(:42a, :75b).minpairs.raku.put; # OUTPUT: «(:a(42),).Seq␤»
 
 =head2 method maxpairs
 
@@ -633,8 +654,8 @@ Calls L«C<.pairs>|/routine/pairs» and returns a L<Seq|/type/Seq> with all of t
 Pairs with maximum values, as judged by the L«C<cmp>
 operator|/routine/cmp»:
 
-    <a b c a b c>.maxpairs.perl.put; # OUTPUT: «(2 => "c", 5 => "c").Seq␤»
-    %(:42a, :75b).maxpairs.perl.put; # OUTPUT: «(:b(75),).Seq␤»
+    <a b c a b c>.maxpairs.raku.put; # OUTPUT: «(2 => "c", 5 => "c").Seq␤»
+    %(:42a, :75b).maxpairs.raku.put; # OUTPUT: «(:b(75),).Seq␤»
 
 =head2 method keys
 
@@ -781,7 +802,7 @@ L«C<Array.unshift>|/type/Array#routine_unshift» on it.
     my $b;
     say $b.unshift([1,2,3]); # OUTPUT: «[[1 2 3]]␤»
 
-=head2 method first
+=head2 routine first
 
 Defined as:
 
@@ -851,7 +872,7 @@ by default the L<C<===>|/routine/===> operator is used:
 
     ("1", 1, "1 ", 2).unique( as => Int, with => &[==] ).say; #OUTPUT: «(1 2)␤»
 
-Please see L<C<unique>|/type/independent-routines#routine_unique> for
+Please see L<C<unique>|/language/independent-routines#routine_unique> for
 additional examples that use its sub form.
 
 =head2 method repeated
@@ -872,7 +893,7 @@ as a normalizing function and C<:with> as equality function.
 
 It returns the last repeated element before normalization, as shown in the
 example above. See
-L<C<repeated>|/type/independent-routines#routine_repeated> for more
+L<C<repeated>|/language/independent-routines#routine_repeated> for more
 examples that use its sub form.
 
 =head2 method squish
@@ -893,7 +914,7 @@ argument or C<===> by default.
 (3+2i,3+3i,4+0i).squish( as => *.re, with => &[==]).put; #OUTPUT: «3+2i 4+0i␤»
 
 As shown in the last example, a sequence can contain a single element. See
-L<C<squish>|/type/independent-routines#routine_squish> for additional C<sub>
+L<C<squish>|/language/independent-routines#routine_squish> for additional C<sub>
 examples.
 
 =head2 method permutations
@@ -911,6 +932,11 @@ L«C<List.permutations>|/type/List#routine_permutations» on it.
     say set(1,2).permutations;
     # OUTPUT: «((2 => True 1 => True) (1 => True 2 => True))␤»
 
+Permutations of data structures with a single or no element will return a
+list containing an empty list or a list with a single element.
+
+    say 1.permutations; # OUTPUT: «((1))␤»
+
 =head2 method join
 
 Defined as
@@ -925,7 +951,7 @@ Can take a separator, which is an empty string by default.
     (1..3).join.say;       # OUTPUT: «123␤»
     <a b c>.join("❧").put; # OUTPUT: «a❧b❧c␤»
 
-=head2 method categorize
+=head2 routine categorize
 
 Defined as:
 
@@ -986,7 +1012,7 @@ say (3..13).categorize( &divisible-by );
 In this case, every number in the range is classified in as many bins as it can
 be divided by.
 
-=head2 method classify
+=head2 routine classify
 
 Defined as:
 
@@ -1017,7 +1043,7 @@ into; in the example above, it's defined on the fly.
 
 From version 6.d, C<.classify> will also work with C<Junctions>.
 
-=head2 method reduce
+=head2 routine reduce
 
 Defined as:
 
@@ -1025,15 +1051,32 @@ Defined as:
     multi method reduce(Any:D: &with)
     multi sub reduce (&with, +list)
 
-Applying it to a class will always produce Nil.
-Applies its argument (or first argument, in case it's a sub) as an operator to
-all the elements in the object (or second argument), producing a single result.
-The argument must be an infix operator or take, in any case, two positional
-arguments.
+This routine combines the elements in a list-y object, and produces a single
+result, by applying a binary subroutine. It applies its argument (or first
+argument for the sub form) as an operator to all the elements in the object (or
+second argument for the sub form), producing a single result. The subroutine
+must be either an
+L<infix operator|https://docs.raku.org/language/operators#index-entry-infix_operator>
+or take two positional arguments. When using an infix operator, we must provide
+the code object of its subroutine version, i.e., the operator category, followed
+by a colon, then a list quote construct with the symbol(s) that make up the
+operator (e.g., C«infix:<+>»). See L<Operators|/language/operators>.
 
-    (1..13).reduce( &[*] ).say; # OUTPUT: «6227020800␤»
+    say (1..4).reduce(&infix:<+>);   # OUTPUT: «10␤»
+    say reduce &infix:<+>, 1..4;     # OUTPUT: «10␤»
+    say reduce &min, 1..4;           # OUTPUT: «1␤»
 
-=head2 method produce
+    sub hyphenate(Str \a, Str \b) { a ~ '-' ~ b }
+    say reduce &hyphenate, 'a'..'c'; # OUTPUT: «a-b-c␤»
+
+Applied to a class, the routine will always return C<Nil>.
+
+    say Range.reduce(&infix:<+>);    # OUTPUT: «Nil␤»
+    say Str.reduce(&infix:<~>);      # OUTPUT: «Nil␤»
+
+See L<List.reduce|/type/List#routine_reduce> for a more thorough discussion.
+
+=head2 routine produce
 
 Defined as:
 
@@ -1108,7 +1151,7 @@ In this case, a C<Bag> can be converted to a list of C<Pair>s. If the result of
 converting the object to a list is not a list of pairs, the method will fail.
 
 
-=head2 method kv
+=head2 routine kv
 
 Defined as:
 
@@ -1322,6 +1365,13 @@ method and uses L«C<List.combinations>|/type/List#routine_combinations» on it.
 =for code
 say (^3).combinations; # OUTPUT: «(() (0) (1) (2) (0 1) (0 2) (1 2) (0 1 2))␤»
 
+Combinations on an empty data structure will return a list with a single
+element, an empty list; on a data structure with a single element it will
+return a list with two lists, one of them empty and the other with a single
+element.
+
+    say set().combinations; # OUTPUT: «(())␤»
+
 =head2 method grep
 
 Defined as:
@@ -1332,7 +1382,8 @@ Coerces the invocant to a C<list> by applying
 its L«C<.list>|/routine/list» method and uses
 L«C<List.grep>|/type/List#routine_grep» on it.
 
-Based on C<$matcher> value can be either C<((Any))> or empty List.
+For undefined invocants, based on C<$matcher> the return value can
+be either C<((Any))> or the empty List.
 
     my $a;
     say $a.grep({ True }); # OUTPUT: «((Any))␤»
@@ -1431,7 +1482,8 @@ Defined as:
     multi method rotor(Any:D: Int:D $batch, :$partial)
     multi method rotor(Any:D: *@cycle, :$partial)
 
-Groups the elements of the object in lists of C<$batch> elements.
+Creates a C<Seq> that groups the elements of the object in lists of C<$batch>
+elements.
 
     say (3..9).rotor(3); # OUTPUT: «((3 4 5) (6 7 8))␤»
 
@@ -1451,6 +1503,21 @@ skip if it's positive, or overlap if it's negative.
 In this case, the first batch (ruled by an integer) has 3 elements; the second
 one has 2 elements (key of the pair), but skips one (the number 8); the third
 one has size 2 (because partials are allowed), and an overlap of 2 also.
+
+The overlap cannot be larger than the sublist size; in that case, it will
+throw an C<Exception>:
+
+=for code :skip-list<Throws>
+say (3..11).rotor(3, 2 => 1, 3 => -4, :partial);
+# OUTPUT: «(exit code 1) Rotorizing gap is out of range. Is: -4, should be in
+# -3..^Inf; ␤Ensure a negative gap is not larger than the length of the
+# sublist␤ ␤␤»
+
+Non-C<Int> values of C<$batch> will be coerced to Int:
+
+    say (3..9).rotor(3+⅓); # OUTPUT: «((3 4 5) (6 7 8))␤»
+
+
 
 Please see also L<C<list.rotor>|/type/List#method_rotor> for examples applied to
 lists.

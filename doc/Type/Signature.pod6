@@ -53,7 +53,34 @@ closure.
 
     f(-> Int { 'this works too' } );
 
-Smartmatching signatures against a List is supported.
+You can use any kind of literal, including numeric ones, as part of a
+signature; this
+is generally
+used in conjunction with multis
+
+=for code
+proto sub stuff(|) {*}
+multi sub stuff(33) { 58 }
+multi sub stuff(⅓) { 43 }
+multi sub stuff(Int)  { 3 }
+multi sub stuff(Complex)  { 66 }
+say stuff($_) for (33, ⅓, i, 48); # OUTPUT: «58␤43␤66␤3␤»
+
+
+However, you can't use C<True> or C<False> as literals in signatures since
+they will always succeed (or fail). A warning will be issued if you do so:
+
+=for code :skip-test<warns>
+sub foo(True) {};
+my $sig =  :( True );
+
+They will both warn "Literal values in signatures are smartmatched against
+and smartmatch with C<True> will always succeed. Use the C<where> clause
+instead.". Use of C<False> will produce a similar warning.
+
+
+
+Smartmatching signatures against a C<List> is supported.
 
     my $sig = :(Int $i, Str $s);
     say (10, 'answer') ~~ $sig;
@@ -103,10 +130,11 @@ commas.
     sub add($a, $b) { $a + $b };
 
 As an exception the first parameter may be followed by a colon instead
-of a comma to mark the invocant of a method.  The invocant is the
-object that was used to call the method, which is usually bound to L<C<self>|/routine/self>.
-By specifying it in the signature, you can change the variable name it
-is bound to.
+of a comma to mark the invocant of a method. This is done in order to
+distinguish it from what would then be a regular positional parameter.
+The invocant is the object that was used to call the method, which is usually
+bound to L<C<self>|/routine/self>. By specifying it in the signature, you can
+change the variable name it is bound to.
 
     method ($a: @b, %c) {};       # first argument is the invocant
 
@@ -235,7 +263,7 @@ CATCH { default { say .^name, ' ==> ', .Str }  }
 
 =head3 Constraining named arguments
 
-Constraints against L<Named arguments|#Positional_vs._named_arguments> apply to
+Constraints against L<named arguments|#Positional_vs._named_arguments> apply to
 the value part of the L<colon-pair|/type/Pair>.
 
     sub f(Int :$i){};
@@ -267,7 +295,7 @@ and type objects (C<Int>). Consider the following code:
         my @lines = $s.lines;
         @lines[0 .. min @lines.elems, $limit].join("\n")
     }
-    say (limit-lines "a \n b \n c \n d \n", 3).perl; # "a \n b \n c \n d "
+    say (limit-lines "a \n b \n c \n d \n", 3).raku; # "a \n b \n c \n d "
     say limit-lines Str, 3;
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::Multi::NoMatch: Cannot resolve caller lines(Str: );
@@ -332,8 +360,9 @@ say can-turn-into("a string", 123);
 # of type 'Any', not an object instance of type 'Int'...»
 
 For explicitly indicating the normal behavior, that is, not constraining whether
-the argument will be an instance or a type object, C<:_> can be used, but this
-is unnecessary. C<:(Num:_ $)> is the same as C<:(Num $)>.
+the argument will be an instance or a type object, C<:_> can be used but this
+is unnecessary since this is the default constraint (of this kind) on arguments.
+Thus, C<:(Num:_ $)> is the same as C<:(Num $)>.
 
 To recap, here is a quick illustration of these type constraints, also
 known collectively as I<type smileys>:
@@ -342,6 +371,12 @@ known collectively as I<type smileys>:
     say Int ~~ Any:D;    # OUTPUT: «False␤»
     say Int ~~ Any:U;    # OUTPUT: «True␤»
     say Int ~~ Any:_;    # OUTPUT: «True␤»
+
+    # Checking a subset
+    subset Even of Int where * // 2;
+    say 3 ~~ Even:D;     # OUTPUT: «True␤»
+    say 3 ~~ Even:U;     # OUTPUT: «False␤»
+    say Int ~~ Even:U;   # OUTPUT: «True␤»
 
     # Checking an object instance
     say 42 ~~ Any:D;     # OUTPUT: «True␤»
@@ -389,7 +424,7 @@ positional or named, gets no value I<at all>.
     f Nil; # OUTPUT: «Nil␤answer␤»
 
 C<$a> has 42 as its default value. With no value, C<$a> will be assigned the
-default value declared in the Signature. However, in the second case, it
+default value declared in the C<Signature>. However, in the second case, it
 I<does> receive a value, which happens to be C<Nil>. Assigning C<Nil> to
 any variable resets it to its default value, which has been declared as
 C<'answer'> by use of the I<default> trait. That explains what happens the second time we call C<f>.
@@ -449,19 +484,33 @@ The signature of a L<Callable|/type/Callable> parameter can be constrained by
 specifying a L<Signature|/type/Signature> literal right after the parameter (no
 whitespace allowed):
 
-    sub f(&c:(Int, Str))  { say c(10, 'ten') };
-    sub g(Int $i, Str $s) { $s ~ $i };
-    f(&g);
-    # OUTPUT: «ten10␤»
+    sub apply(&l:(Int:D --> Int:D), Int:D \n) {
+        l(n)
+    }
 
-This shorthand syntax is available only for parameters with the C<&>
+    sub identity(Int:D \i --> Int:D) { i }
+    sub double(Int:D \x --> Int:D) { 2 * x }
+
+    say apply &identity, 10; # OUTPUT: «10␤»
+    say apply &double, 10;   # OUTPUT: «20␤»
+
+Typed L<lambdas|/language/functions#Blocks_and_lambdas> also work with
+constrained callable parameters.
+
+=for code :preamble<sub apply {...}>
+    say apply -> Int:D \x --> Int:D { 2 * x }, 3;  # OUTPUT: «6␤»
+    say apply -> Int:D \x --> Int:D { x ** 3 }, 3; # OUTPUT: «27␤»
+
+Note that this shorthand syntax is available only for parameters with the C<&>
 sigil. For others, you need to use the long version:
 
-    sub f($c where .signature ~~ :(Int, Str))  { say $c(10, 'ten') }
+    sub play-with-tens($c where .signature ~~ :(Int, Str)) { say $c(10, 'ten') }
+    sub by-joining-them(Int $i, Str $s) { $s ~ $i }
+    play-with-tens &by-joining-them;                              # OUTPUT: «ten10␤»
+    play-with-tens -> Int \i, Str \s { s x (1..10).roll mod i };  # OUTPUT: «tenten␤»
+
     sub g(Num $i, Str $s) { $s ~ $i }
-    sub h(Int $i, Str $s) { $s ~ $i }
-    # f(&g); # Constraint type check failed
-    f(&h);   # OUTPUT: «ten10␤»
+    # play-with-tens(&g); # Constraint type check failed
 
 =head3 Constraining return types
 
@@ -475,7 +524,7 @@ L<Failure|/type/Failure> to be returned and passed on down the call
 chain.
 
     sub foo(--> Int) { Nil };
-    say foo.perl; # OUTPUT: «Nil␤»
+    say foo.raku; # OUTPUT: «Nil␤»
 
 Type captures are not supported.
 
@@ -588,7 +637,7 @@ for 2,4, *²  … 256 -> $a {
 #          256² is 5 figures long␤»
 =end code
 
-In this example, coercing the return type to C<String> allows us to
+In this example, coercing the return type to C<Str> allows us to
 directly apply string methods, such as the number of characters.
 
 X<|parameter,*@>
@@ -692,7 +741,7 @@ dissolving one or more layers of bare L<Iterable|/type/Iterable>s.
 =begin code
 my @array = <a b c>;
 my $list := <d e f>;
-sub a(*@a)  { @a.perl.say };
+sub a(*@a)  { @a.raku.say };
 a(@array);                 # OUTPUT: «["a", "b", "c"]»
 a(1, $list, [2, 3]);       # OUTPUT: «[1, "d", "e", "f", 2, 3]»
 a([1, 2]);                 # OUTPUT: «[1, 2]»
@@ -712,7 +761,7 @@ more or less as-is:
 =begin code
 my @array = <a b c>;
 my $list := <d e f>;
-sub b(**@b) { @b.perl.say };
+sub b(**@b) { @b.raku.say };
 b(@array);                 # OUTPUT: «[["a", "b", "c"],]␤»
 b(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
 b([1, 2]);                 # OUTPUT: «[[1, 2],]␤»
@@ -736,7 +785,7 @@ array. In any other case, C<+@> works like C<**@>.
 =begin code
 my @array = <a b c>;
 my $list := <d e f>;
-sub c(+@b) { @b.perl.say };
+sub c(+@b) { @b.raku.say };
 c(@array);                 # OUTPUT: «["a", "b", "c"]␤»
 c(1, $list, [2, 3]);       # OUTPUT: «[1, ("d", "e", "f"), [2, 3]]␤»
 c([1, 2]);                 # OUTPUT: «[1, 2]␤»
@@ -871,6 +920,24 @@ say alias-named(color => "red", style => "A");
 say alias-named(colour => "green", variety => "B");
 say alias-named(color => "white", class => "C");
 
+You can create named arguments that do not create any variables by
+making the argument an alias for an
+L<anonymous argument|#index-entry-anonymous_arguments>. This can be
+useful when using named arguments solely as a means of selecting a
+C<multi> candidate, which is often the case with traits, for instance:
+
+=begin code
+# Timestamps calls to a routine.
+multi sub trait_mod:<is>(Routine:D $r is raw, :timestamped($)!) {
+    $r does my role timestamped { has Instant:D @.timestamps };
+    $r.wrap: -> | { ENTER $r.timestamps.push: now; callsame };
+}
+
+sub foo is timestamped { }
+foo;
+say +&foo.?timestamps; # OUTPUT: «1␤»
+=end code
+
 X<|optional argument>
 =head2 Optional and mandatory arguments
 
@@ -944,7 +1011,7 @@ To match against a compound parameter use a sub-signature following the argument
 name in parentheses.
 
     sub foo(|c(Int, Str)){
-       put "called with {c.perl}"
+       put "called with {c.raku}"
     };
     foo(42, "answer");
     # OUTPUT: «called with \(42, "answer")␤»
@@ -954,7 +1021,7 @@ name in parentheses.
 To exclude certain parameters from being considered in multiple dispatch,
 separate them with a double semicolon.
 
-    multi sub f(Int $i, Str $s;; :$b) { say "$i, $s, {$b.perl}" };
+    multi sub f(Int $i, Str $s;; :$b) { say "$i, $s, {$b.raku}" };
     f(10, 'answer');
     # OUTPUT: «10, answer, Any␤»
 

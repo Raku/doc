@@ -71,6 +71,7 @@ what type they coerce to:
     exp             Numeric
     roots           Numeric
     log10           Numeric
+    log2            Numeric
     unpolar         Numeric
     round           Numeric
     floor           Numeric
@@ -149,7 +150,7 @@ Defined as:
 =for code :method
 method EVAL(*%_)
 
-It calls the L<subroutine form|/type/independent-routines#sub_mkdir> with the
+It calls the L<subroutine form|/language/independent-routines#routine_EVAL> with the
 invocant as the first argument, C<$code>, passing along named args, if any.
 
 
@@ -284,17 +285,29 @@ radians.
 
 Defined as:
 
-    method atan2($y = 1e0)
+    sub atan2($y, $x = 1e0)
+    method atan2($x = 1e0)
 
-Coerces self and argument to L<Numeric|/type/Numeric>, using them to compute the
-two-argument L<arc-tangent|https://en.wikipedia.org/wiki/Atan2> in radians.
+The sub should usually be written with two arguments for clarity as it
+is seen in other languages and in mathematical texts, but the
+single-argument form is available; its result will always match that of
+L<atan|/routine/atan>.
+
+    say atan2 3, 1;             # OUTPUT: «1.2490457723982544␤»
+    say atan2 3;                # OUTPUT: «1.2490457723982544␤»
+    say atan2 ⅔, ⅓;             # OUTPUT: «1.1071487177940904␤»
+
+The method coerces self and its single argument to
+L<Numeric|/type/Numeric>, using them to compute the two-argument
+L<arc-tangent|https://en.wikipedia.org/wiki/Atan2> in radians.
 
     say 3.atan2;                # OUTPUT: «1.24904577239825␤»
     say ⅔.atan2(⅓);             # OUTPUT: «1.1071487177940904␤»
 
-The first argument defaults to 1, so in the first case the function will return
-the angle θ in radians between a vector that goes from origin to the point (3, 1)
-and the x axis.
+The $x argument in either the method or the sub defaults to 1 so, in both
+single-argument cases, the function will return the angle θ in radians
+between the x-axis and a vector that goes from the origin to the point
+(3, 1).
 
 =head2 routine sec
 
@@ -576,6 +589,20 @@ of 10. Returns C<NaN> for negative arguments and C<-Inf> for C<0>.
 
     say log10(1001);            # OUTPUT: «3.00043407747932␤»
 
+=head2 routine log2
+
+Defined as:
+
+    multi method log2()
+
+Coerces the invocant to L<Numeric|/type/Numeric>, and returns its
+L<Logarithm|https://en.wikipedia.org/wiki/Logarithm> to base 2, that is, a
+number that approximately produces the original number when raised to the power
+of 2. Returns C<NaN> for negative arguments and C<-Inf> for C<0>.
+
+    say log2(5);            # OUTPUT: «2.321928094887362␤»
+    say "4".log2;           # OUTPUT: «2␤»
+
 =head2 routine exp
 
 Defined as:
@@ -629,9 +656,9 @@ affect the precision you seek to achieve. For L<Real|/type/Real> types, the type
 is the type of the argument (L<Complex|/type/Complex> argument gets coerced to L<Real|/type/Real>, ending up a L<Num|/type/Num>).
 If rounding a L<Complex|/type/Complex>, the result is L<Complex|/type/Complex> as well, regardless of the type of the argument.
 
-    9930972392403501.round(1)      .perl.say; # OUTPUT: «9930972392403501␤»
-    9930972392403501.round(1e0)    .perl.say; # OUTPUT: «9.9309723924035e+15␤»
-    9930972392403501.round(1e0).Int.perl.say; # OUTPUT: «9930972392403500␤»
+    9930972392403501.round(1)      .raku.say; # OUTPUT: «9930972392403501␤»
+    9930972392403501.round(1e0)    .raku.say; # OUTPUT: «9.9309723924035e+15␤»
+    9930972392403501.round(1e0).Int.raku.say; # OUTPUT: «9930972392403500␤»
 
 =head2 routine floor
 
@@ -924,7 +951,7 @@ smartmatches against C<$where> through the C<&filter>. With the default
 filter (first character to upper case, rest to lower) and matcher (which
 accepts everything), this title-cases each word:
 
-    say "perl 6 programming".wordcase;      # OUTPUT: «Raku Programming␤»
+    say "raku programming".wordcase;        # OUTPUT: «Raku Programming␤»
 
 With a matcher:
 
@@ -956,8 +983,8 @@ If C<$string> is longer than
 C<$pattern>, the case information from the last character of C<$pattern> is
 applied to the remaining characters of C<$string>.
 
-    say "perL 6".samecase("A__a__"); # OUTPUT: «Raku␤»
-    say "pERL 6".samecase("Ab");     # OUTPUT: «Raku␤»
+    say "raKu".samecase("A_a_"); # OUTPUT: «Raku␤»
+    say "rAKU".samecase("Ab");   # OUTPUT: «Raku␤»
 
 =head2 routine uniprop
 
@@ -1025,13 +1052,13 @@ Defined as:
 Returns of a Seq of Unicode names for the all the codepoints in the Str
 provided.
 
-    say ‘»ö«’.uninames.perl;
+    say ‘»ö«’.uninames.raku;
     # OUTPUT: «("RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK", "LATIN SMALL LETTER O WITH DIAERESIS", "LEFT-POINTING DOUBLE ANGLE QUOTATION MARK").Seq␤»
 
 Note this example, which gets a Seq where each element is a Seq of all the
 codepoints in that character.
 
-    say "Ḍ̇'oh".comb>>.uninames.perl;
+    say "Ḍ̇'oh".comb>>.uninames.raku;
     # OUTPUT: «(("LATIN CAPITAL LETTER D WITH DOT BELOW", "COMBINING DOT ABOVE").Seq, ("APOSTROPHE",).Seq, ("LATIN SMALL LETTER O",).Seq, ("LATIN SMALL LETTER H",).Seq)␤»
 
 See L<uniparse|/routine/uniparse> for the opposite direction.
@@ -1153,14 +1180,14 @@ If C<$delimiter> is a string, it is searched for literally and not treated
 as a regex. You can also provide multiple delimiters by specifying them as a
 list; mixing Cool and Regex objects is OK.
 
-    say split(';', "a;b;c").perl;               # OUTPUT: «("a", "b", "c")␤»
-    say split(';', "a;b;c", 2).perl;            # OUTPUT: «("a", "b;c").Seq␤»
+    say split(';', "a;b;c").raku;               # OUTPUT: «("a", "b", "c")␤»
+    say split(';', "a;b;c", 2).raku;            # OUTPUT: «("a", "b;c").Seq␤»
 
-    say split(';', "a;b;c,d").perl;             # OUTPUT: «("a", "b", "c,d")␤»
-    say split(/\;/, "a;b;c,d").perl;            # OUTPUT: «("a", "b", "c,d")␤»
-    say split(/<[;,]>/, "a;b;c,d").perl;        # OUTPUT: «("a", "b", "c", "d")␤»
+    say split(';', "a;b;c,d").raku;             # OUTPUT: «("a", "b", "c,d")␤»
+    say split(/\;/, "a;b;c,d").raku;            # OUTPUT: «("a", "b", "c,d")␤»
+    say split(/<[;,]>/, "a;b;c,d").raku;        # OUTPUT: «("a", "b", "c", "d")␤»
 
-    say split(['a', /b+/, 4], '1a2bb345').perl; # OUTPUT: «("1", "2", "3", "5")␤»
+    say split(['a', /b+/, 4], '1a2bb345').raku; # OUTPUT: «("1", "2", "3", "5")␤»
 
 By default, split omits the matches, and returns a list of only those parts of
 the string that did not match. Specifying one of the C<:k, :v, :kv, :p> adverbs
@@ -1197,8 +1224,8 @@ to C<split>.
 Note that empty chunks are not removed from the result list.
 For that behavior, use the C<:skip-empty> named argument:
 
-    say ("f,,b,c,d".split: /","/             ).perl;  # OUTPUT: «("f", "", "b", "c", "d")␤»
-    say ("f,,b,c,d".split: /","/, :skip-empty).perl;  # OUTPUT: «("f", "b", "c", "d")␤»
+    say ("f,,b,c,d".split: /","/             ).raku;  # OUTPUT: «("f", "", "b", "c", "d")␤»
+    say ("f,,b,c,d".split: /","/, :skip-empty).raku;  # OUTPUT: «("f", "b", "c", "d")␤»
 
 =head2 routine lines
 
@@ -1312,8 +1339,8 @@ Defined as:
 
     method contains(Cool:D: |c)
 
-Coerces the invocant L<C<Str>|/type/Str>, and calls
-L<C<Str.contains>|/type/Str#routine_contains> on it. Please refer to
+Coerces the invocant to a L<C<Str>|/type/Str>, and calls
+L<C<Str.contains>|/type/Str#method_contains> on it. Please refer to
 that version of the method for arguments and general syntax.
 
     say 123.contains("2")# OUTPUT: «True␤»
@@ -1334,13 +1361,19 @@ their components for obvious reasons.
 
 Defined as:
 
-    multi sub index(Cool $s, Cool $needle, Cool $pos = 0)
-    method    index(Cool:D: |c)
+    multi sub index(Cool:D $s, Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi sub index(Cool:D $s, Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi method index(Cool:D: Cool:D $needle --> Int:D)
+    multi method index(Cool:D: Cool:D $needle, :m(:$ignoremark)! --> Int:D)
+    multi method index(Cool:D: Cool:D $needle, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D)
+    multi method index(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D)
+    multi method index(Cool:D: Cool:D $needle, Cool:D $pos, :m(:$ignoremark)!  --> Int:D)
+    multi method index(Cool:D: Cool:D $needle, Cool:D $pos, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D)
 
 Coerces the first two arguments (in method form, also counting the invocant) to
 a L<Str|/type/Str>, and searches for C<$needle> in the string C<$s> starting
-from C<$startpos>. It returns the offset into the string where C<$needle> was
-found, and an undefined value if it was not found.
+from C<$pos>. It returns the offset into the string where C<$needle> was
+found, and C<Nil> if it was not found.
 
 See L<the documentation in type Str|/type/Str#routine_index> for examples.
 
@@ -1348,13 +1381,15 @@ See L<the documentation in type Str|/type/Str#routine_index> for examples.
 
 Defined as:
 
-    multi sub    rindex(Str(Cool) $haystack, Str(Cool) $needle, Int(Cool) $startpos = $haystack.chars)
-    multi method rindex(Str(Cool) $haystack: Str(Cool) $needle, Int(Cool) $startpos = $haystack.chars)
+    multi sub rindex(Cool:D $s, Cool:D $needle --> Int:D)
+    multi sub rindex(Cool:D $s, Cool:D $needle, Cool:D $pos --> Int:D)
+    multi method rindex(Cool:D: Cool:D $needle --> Int:D)
+    multi method rindex(Cool:D: Cool:D $needle, Cool:D $pos --> Int:D)
 
 Coerces the first two arguments (including the invocant in method form) to
-L<Str|/type/Str> and C<$startpos> to L<Int|/type/Int>, and
-returns the last position of C<$needle> in C<$haystack> not after C<$startpos>.
-Returns an undefined value if C<$needle> wasn't found.
+L<Str|/type/Str> and C<$pos> to L<Int|/type/Int>, and returns the last
+position of C<$needle> in the string not after C<$pos>. Returns C<Nil>
+if C<$needle> wasn't found.
 
 See L<the documentation in type Str|/type/Str#routine_rindex> for examples.
 

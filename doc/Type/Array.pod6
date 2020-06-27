@@ -12,7 +12,8 @@ scalar containers, which means you can assign to array elements.
 C<Array> implements C<Positional> and as such provides support for
 L<subscripts|/language/subscripts>.
 
-B<Note> from version 6.d, C<.perl> can be called on multi-dimensional arrays.
+B<Note> from version 6.d, C<.raku> (C<.perl> before version 2019.11) can be
+called on multi-dimensional arrays.
 
 =head1 Methods
 
@@ -76,7 +77,7 @@ multiple values added to the array:
 See L<method append|#method append> for when you want to append multiple
 values that are stored in a single array.
 
-=head2 method append
+=head2 routine append
 
 Defined as
 
@@ -143,6 +144,22 @@ the original from another thread is not safe.
     say @b[^3]; # OUTPUT: «(1 0.0216426755282736 0.567660896142156)␤»
     say @a[^3]; # OUTPUT: «(1 0.0216426755282736 0.567660896142156)␤»
 
+=head2 method flat
+
+Defined as:
+
+    multi method flat(Array:U:)
+    multi method flat(Array:D:)
+
+This method will return the type object itself if it's applied to a type
+object; when applied to an object, it will return a C<Seq> created from the
+array's underlying iterator.
+
+=for code
+my @a = <a 2 c>;
+say @a.flat.^name; OUTPUT: «Seq␤»
+
+
 =head2 routine shift
 
 Defined as:
@@ -183,7 +200,7 @@ regarding how many elements are added to the array.
 L<#method prepend> is the equivalent for adding multiple elements from one
 list or array.
 
-=head2 method prepend
+=head2 routine prepend
 
 Defined as
 
@@ -220,23 +237,54 @@ returned.
 
 Each of C<$start> and C<$elems> can be specified as a
 L<Whatever|/type/Whatever> or as a L<Callable|/type/Callable> that returns an
-C<int>-compatible value.
+C<Int>-compatible value.
 
-A C<Whatever> C<$start> uses the number of elements
-of C<@list> (or invocant). A C<Callable> C<$start> is called with one
-argument—the number of elements in C<@list>—and its return value is used
-as C<$start>.
+A C<Whatever> C<$start> uses the number of elements of C<@list> (or invocant). A
+C<Callable> C<$start> is called with one argument—the number of elements in
+C<@list> (or C<self>) —-and its return value is used as C<$start>.
 
-A C<Whatever> C<$elems> deletes from C<$start> to end of
-C<@list> (same as no C<$elems>). A C<Callable> C<$elems> is called with
-just one argument—the number of elements in C<@list> minus the value of
-C<$start>—and its return value is used the value of C<$elems>.
+A C<Whatever> C<$elems> deletes from C<$start> to end of C<@list> (or C<self>)
+(same as no C<$elems>). A C<Callable> C<$elems> is called with just one
+argument—the number of elements in C<@list> minus the value of C<$start>—and its
+return value is used the value of C<$elems>.
 
 Example:
 
     my @foo = <a b c d e f g>;
     say @foo.splice(2, 3, <M N O P>);        # OUTPUT: «[c d e]␤»
     say @foo;                                # OUTPUT: «[a b M N O P f g]␤»
+
+It can be used to extend an array by simply splicing in more elements than
+the current size (since version 6.d)
+
+=for code
+my @foo = <a b c d e f g>;
+say @foo.splice(6, 4, <M N O P>);       # OUTPUT: «[g]␤»
+say @foo;                               # OUTPUT: «[a b c d e f M N O P]␤»
+
+The following equivalences hold (assuming that C«@a.elems ≥ $i»):
+
+=begin code :lang<text>
+@a.push($x, $y)      @a.splice: *  , *, $x, $y
+@a.pop               @a.splice: *-1,
+@a.shift             @a.splice: 0  , 1,
+@a.unshift($x, $y)   @a.splice: 0  , 0, $x, $y
+@a[$i] = $y          @a.splice: $i , 1, $y,
+=end code
+
+As mentioned above, a C«Whatever» or C«Callable» object can be provided
+for both the C«$start» and C«$elems» parameters. For example, we could use
+either of them to remove the second to last element from an array provided
+it's large enough to have one:
+
+    my @foo = <a b c d e f g>;
+    say @foo.splice: *-2, *-1;           # OUTPUT: «[f]␤»
+    say @foo;                            # OUTPUT: «[a b c d e g]␤»
+
+    my &start     = -> $n { $n - 2 };
+    my &elems-num = -> $m { $m - 1 };
+    say @foo.splice: &start, &elems-num; # OUTPUT: «[e]␤»
+    say @foo;                            # OUTPUT: «[a b c d g]␤»
 
 =head2 method shape
 
@@ -297,14 +345,15 @@ returns C<(Mu)>.
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::TypeCheck::Assignment: Type check failed in assignment to @a2; expected Int but got Str ("d")␤»
 
-=head2 routine dynamic
+=head2 method dynamic
 
 Defined as:
 
     method dynamic(Array:D: --> Bool:D)
 
 Returns C<True> if the invocant has been declared with the L<is dynamic|/routine/is dynamic>
-trait.
+trait, that is, if it's a dynamic variable that can be accessed from the
+inner lexical scope without having been declared there.
 
     my @a;
     say @a.dynamic;                          # OUTPUT: «False␤»
@@ -317,12 +366,39 @@ If you declare a variable with the C<*> twigil C<is dynamic> is implied.
     my @*b;
     say @*b.dynamic;                         # OUTPUT: «True␤»
 
-Note that in the L<Scalar|/type/Scalar> case you have to use the C<VAR> method in
-order to get correct information.
+Please note that the C<dynamic> trait is a property of the variable, not the
+content. If a C<Scalar> dynamic variable contains an array, rules for this
+container will apply (and it will always return C<False>).
 
-    my $s is dynamic = [1, 2, 3];
-    say $s.dynamic;                          # OUTPUT: «False␤»  (wrong, don't do this)
-    say $s.VAR.dynamic;                      # OUTPUT: «True␤»   (correct approach)
+=head2 method List
+
+Defined as:
+
+    multi method List(Array:D:)
+
+Converts the array to a C<List>
+
+=for code
+my @array= [1];
+@array[3]=3;
+say @array.List;       # OUTPUT: «(1 Nil Nil 3)␤»
+
+The holes will show up as C<Nil>.
+
+
+=head2 method Slip
+
+Defined as:
+
+     multi method Slip(Array:D: --> Slip:D)
+
+Converts the array to a C<Slip>, filling the holes with the type value the
+Array has been defined with.
+
+=for code
+my Int @array= [0];
+@array[3]=3;
+say @array.Slip; # OUTPUT: «(0 (Int) (Int) 3)␤»
 
 =end pod
 

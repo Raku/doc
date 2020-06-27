@@ -13,7 +13,7 @@ the exit code. It is typically created through the C<run> subroutine:
 =for code
 my $proc = run 'echo', 'Hallo world', :out;
 my $captured-output = $proc.out.slurp: :close;
-say "Output was $captured-output.perl()";# OUTPUT: «Output was "Hallo world\n"␤»
+say "Output was $captured-output.raku()";# OUTPUT: «Output was "Hallo world\n"␤»
 
 Piping several commands is easy too. To achieve the equivalent of the
 pipe C<echo "Hello, world" | cat -n> in Raku, and capture the output
@@ -59,7 +59,7 @@ Use L<Proc::Async|/type/Proc::Async> for non-blocking operations.
 
 =head1 Methods
 
-=head2 method new
+=head2 routine new
 
 =begin code :skip-test<compile time error>
 method new(Proc:U:
@@ -170,10 +170,16 @@ n block <unit> at /tmp/3169qXElwq line 1␤␤»
 
 =head2 method spawn
 
-    method spawn(*@args ($, *@), :$cwd = $*CWD, Hash() :$env = %*ENV --> Bool:D)
+    method spawn(*@args ($, *@), :$cwd = $*CWD, Hash() :$env = %*ENV, :$win-verbatim-args = False --> Bool:D)
 
 Runs the C<Proc> object with the given command, argument list, working directory,
 and environment.
+
+On Windows the flag C<$win-verbatim-args> disables all automatic quoting of
+process arguments. See L<this blog|https://docs.microsoft.com/en-us/archive/blogs/twistylittlepassagesallalike/everyone-quotes-command-line-arguments-the-wrong-way>
+for more information on windows command quoting. The flag is ignored on all
+other platforms. The flag was introduced in Rakudo version 2020.06 and is not
+present in older releases.
 
 =head2 method shell
 
@@ -181,7 +187,7 @@ and environment.
 
 Runs the C<Proc> object with the given command and environment which are
 passed through to the shell for parsing and execution. See
-L<C<shell>|/type/independent-routines#sub_shell> for an explanation of which shells
+L<C<shell>|/language/independent-routines#sub_shell> for an explanation of which shells
 are used by default in the most common operating systems.
 
 =head2 method command
@@ -191,6 +197,13 @@ are used by default in the most common operating systems.
 The command method is an accessor to a list containing the arguments
 that were passed when the Proc object was executed via C<spawn> or
 C<shell> or C<run>.
+
+=head2 method Bool
+
+    multi method Bool(Proc:D:)
+
+Awaits for the process to finish and returns C<True> if both exit code and signal
+of the process were 0, indicating a successful process termination. Returns C<False> otherwise.
 
 =head2 method pid
 

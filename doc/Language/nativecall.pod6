@@ -29,8 +29,23 @@ that you can do is just adding to this simple pattern of declaring a Raku sub,
 naming it after the symbol you want to call and marking it with the C<native>
 trait.
 
-You will also need to declare and use native types. Please check
+You will also need to declare and use native types, which cannot be imported
+from the shared library in the same way. Please check
 L<the native types page|/language/nativetypes> for more information.
+
+Except in the case you are using your own compiled libraries, or any other
+kind of bundled library, shared libraries are versioned, i.e., they will be
+in a file C<libfoo.so.x.y.z>, and this shared library will be symlinked to
+C<libxxx.so.x>. By default, Raku will pick up that file if it's the only
+existing one. This is why it safer, and advisable, to always include a
+version, this way:
+
+=for code :skip-test<simple snippet>
+sub some_argless_function() is native('foo',v1.2.3) { * }
+
+Please check the
+L<section on the ABI/API version|/language/nativecall#ABI/API_version> for
+more information.
 
 =head1 Changing names
 
@@ -81,22 +96,36 @@ routine itself.
     use NativeCall;
     sub input_box() returns Str is encoded('utf8') is native('gui') { * }
 
-Note that a C<NULL> string pointer can be passed by passing the C<Str> type
+Note that a C<NULL> string pointer can be passed by using the C<Str> type
 object; a C<NULL> return will also be represented by the type object.
 
-If the C function requires the lifetime of a string to exceed the function
-call, the argument must be manually encoded and passed as C<CArray[uint8]>:
+If the C function requires the lifetime of data, say some buffer of type
+C<CArray[uint8]>, passed by pointer to exceed the function call, you have
+to ensure that the backing C<CArray[uint8]> Raku object is not destroyed
+before the C function expects it.
+
+This is particularly important for strings, as the (usually preferable)
+C<is encoded>-way of passing strings creates only a temporary object that
+is automatically destroyed after the call. In this case, the argument
+must be manually encoded:
 
     use NativeCall;
-    # C prototype is void set_foo(const char *)
+    # void set_foo(const char *)
+    # Records a char pointer for later usage
     sub set_foo(CArray[uint8]) is native('foo') { * }
-    # C prototype is void use_foo(void)
-    sub use_foo() is native('foo') { * } # will use pointer stored by set_foo()
+    # void use_foo(void)
+    # Uses the pointer stored by set_foo()
+    sub use_foo() is native('foo') { * }
 
     my $string = "FOO";
-    # The lifetime of this variable must be equal to the required lifetime of
-    # the data passed to the C function.
-    my $array = CArray[uint8].new($string.encode.list);
+    # Manually marshal the $string into $array. Take care that $array
+    # is not destroyed (e.g. by going out of scope) while the library
+    # still holds on to it, after set_foo().
+    #
+    # $string.encode takes care of UTF-8 encoding. If $array is used
+    # as a string by the native function, don't forget to append the
+    # NUL byte that terminates a C string: ------------v
+    my $array = CArray[uint8].new($string.encode.list, 0);
 
     set_foo($array);
     # ...
@@ -304,12 +333,14 @@ X<|CArray methods>
 =head2 CArray methods
 
 Besides the usual methods available on every Raku instance,
-C<CArray> provides the following methods that can be used to interact with the it
+C<CArray> provides the following methods that can be used to interact with it
 from the Raku point of view:
 
 =item C<elems> provides the number of elements within the array;
 
-=item C<AT-POS> provides a specific element at the given position (starting from zero);
+=item C<AT-POS> provides a specific element at the given position (starting
+from zero). This method is not intended to be used directly, but invoked
+using the subscript notation C<[]>.
 
 =item C<list> provides the L<List|/type/List> of elements within the array building
 it from the native array iterator.
@@ -330,7 +361,7 @@ for $native-array.list -> $elem {
 # get every element by its index-based position
 for 0..$native-array.elems - 1 -> $position {
     say "Element at position $position is "
-          ~ $native-array.AT-POS( $position );
+          ~ $native-array[ $position ];
 }
 
 =end code
@@ -419,7 +450,7 @@ say nativesizeof(MyUnion.new);  # OUTPUT: «8␤»
                                 # ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
 =end code
 
-=head2 Embedding CStructs and CUnions
+=head2 Embedding CStructs and CUnions with X<C<HAS>|HAS, declarator>
 
 C<CStruct>s and C<CUnion>s can be in turn referenced by—or embedded into—a
 surrounding C<CStruct> and C<CUnion>. To say the former we use C<has>
@@ -668,6 +699,11 @@ Note: the native code is responsible for memory management of values passed to
 Raku callbacks this way. In other words, NativeCall will not free() strings
 passed to callbacks.
 
+It is important that any code passed as a native callback handles its exceptions and,
+if applicable, returns an appropriate error value to the native code that invoked it.
+It is not allowed to throw an exception out of a native callback, and doing so will
+lead to process termination.
+
 =head1 Library paths and names
 
 The C<native> trait accepts the library name, the full path, or a subroutine
@@ -840,7 +876,7 @@ platforms.
 =head2 PostgreSQL
 
 The PostgreSQL examples in
-L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/pg.p6> make use of
+L<DBIish|https://github.com/raku-community-modules/DBIish/blob/master/examples/pg.p6> make use of
 the NativeCall library and C<is native> to use the native C<_putenv> function
 call in Windows.
 
@@ -852,7 +888,7 @@ L<MySQL APT repository|https://dev.mysql.com/downloads/repo/apt/> instead of the
 default repository.
 
 To use the MySQL example in
-L<DBIish|https://github.com/perl6/DBIish/blob/master/examples/mysql.p6>, you'll
+L<DBIish|https://github.com/raku-community-modules/DBIish/blob/master/examples/mysql.p6>, you'll
 need to install MySQL server locally; on Debian-esque systems
 it can be installed with something like:
 
@@ -1015,7 +1051,7 @@ C<inet_ntop> which returns a C<char *> given a buffer with the C<addrinfo>.
 Putting all these together, leads to the following program:
 
 =begin code :solo
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 use NativeCall;

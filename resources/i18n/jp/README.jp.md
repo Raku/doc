@@ -8,7 +8,7 @@
 
 また、"p6doc"と呼ばれるコマンドラインツールがあります。
 
-あなたがこのリポジトリをGitHubで閲覧しているのなら、ほとんどのファイルは正しく表示されないかもしれません。 GitHubはRaku PodをPerl 5 Podとみなすからです。
+あなたがこのリポジトリをGitHubで閲覧しているのなら、ほとんどのファイルは正しく表示されないかもしれません。 GitHubはRaku PodをPerl Podとみなすからです。
 
 ## 外国語のREADME
 
@@ -92,7 +92,7 @@ Rakuは小さな言語ではありません。したがって、この言語の�
  * GithubでISSUEを開いて抜けている文書についてメンテナーに報告する
  *  `git grep TODO` コマンドをこのリポジトリで実行し、TODOになっている事項を実際の文書に置き換える
 
-[Issues page](https://github.com/perl6/doc/issues) には現在のissueと足りない文書が掲載されています。
+[Issues page](https://github.com/Raku/doc/issues) には現在のissueと足りない文書が掲載されています。
 また、 [the CONTRIBUTING document](CONTRIBUTING.md)
 にはどうやって文書作成に貢献したらよいのか簡潔に述べられています。
 
@@ -142,6 +142,6 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

@@ -75,12 +75,12 @@ C<rule> declarator causes L<C<:sigspace>|/language/regexes#Sigspace> to go
 into effect for the Regex:
 
     =begin code
-    my token non-space-y { 'once' 'upon' 'a' 'time' }
-    my rule space-y { 'once' 'upon' 'a' 'time' }
-    say so 'onceuponatime'    ~~ &non-space-y; # OUTPUT: «True␤»
-    say so 'once upon a time' ~~ &non-space-y; # OUTPUT: «False␤»
-    say so 'onceuponatime'    ~~ &space-y;     # OUTPUT: «False␤»
-    say so 'once upon a time' ~~ &space-y;     # OUTPUT: «True␤»
+    my token token-match { 'once' 'upon' 'a' 'time' }
+    my rule  rule-match  { 'once' 'upon' 'a' 'time' }
+    say so 'onceuponatime'    ~~ &token-match; # OUTPUT: «True␤»
+    say so 'once upon a time' ~~ &token-match; # OUTPUT: «False␤»
+    say so 'onceuponatime'    ~~ &rule-match;  # OUTPUT: «False␤»
+    say so 'once upon a time' ~~ &rule-match;  # OUTPUT: «True␤»
     =end code
 
 =head1 X<Creating grammars>
@@ -88,12 +88,8 @@ into effect for the Regex:
 L<Grammar|/type/Grammar> is the superclass that classes automatically get when
 they are declared with the C<grammar> keyword instead of C<class>. Grammars
 should only be used to parse text; if you wish to extract complex data, you can
-add actions within the grammar, or an
-L<action object|/language/grammars#Action_objects> is recommended to be used in
-conjunction with the grammar. If action objects are not used, C<.parse> returns
-a L<Match|/type/Match> object and sets, by default, the
-L<default match object C<$/>|/syntax/$$SOLIDUS>, to the same value.
-
+add actions within the grammar or use an L<action
+object|/language/grammars#Action_objects> in conjunction with the grammar.
 
 =head2 X«Proto regexes| :sym<>; proto regex; declarator,grammar»
 
@@ -377,7 +373,7 @@ say GrammarAdvice.subparse("use tokens for insignificant whitespace by default")
 say GrammarAdvice.subparse("use regexes for insignificant whitespace by default");
 # OUTPUT: «use regexes for insignificant whitespace by default»
 
-say GrammarAdvice.subparse("use regexes for significant whitespace by default")
+say GrammarAdvice.subparse("use regexes for significant whitespace by default");
 # OUTPUT: #<failed match>
 =end code
 
@@ -431,9 +427,9 @@ grammar HTTPRequest {
         # Several internet protocols (such as HTTP, RF 2616) mandate
         # the use of ASCII CR+LF (0x0D 0x0A) to terminate lines at
         # the protocol level (even though, in practice, some applications
-        # tolerate single LF's).
+        # tolerate a single LF).
         # Raku, Raku grammars and strings (Str) adhere to Unicode
-        # conformance. Thus, CR+LF cannot be expressed unambiguosly
+        # conformance. Thus, CR+LF cannot be expressed unambiguously
         # as \r\n in in Raku grammars or strings (Str), as Unicode
         # conformance requires \r\n to be interpreted as \n alone.
         \x[0d] \x[0a]
@@ -555,7 +551,7 @@ grammar TestGrammar {
 
 class TestActions {
     method TOP($/) {
-        $/.make(2 + $/);
+        make(2 + $/);
     }
 }
 
@@ -593,7 +589,7 @@ grammar KeyValuePairs {
 
 class KeyValuePairsActions {
     method pair      ($/) {
-        $/.make: $<key>.made => $<value>.made
+        make $/<key>.made => $/<value>.made
     }
     method identifier($/) {
         # subroutine `make` is the same as calling .make on $/
@@ -639,7 +635,11 @@ regex. So action methods are called in
 L<post-order|https://en.wikipedia.org/wiki/Tree_traversal#Post-order>.
 
 The action method C<TOP> simply collects all the objects that were C<.made> by
-the multiple matches of the C<pair> rule, and returns them in a list.
+the multiple matches of the C<pair> rule, and returns them in a list. Please
+note that, in this case, we need to use the method form of
+L<C<make>|/routine/make>, since the routine form can only be used if the
+argument to the action method is C<$/>. Inversely, if the argument of the
+method is C<$/>, we can use simply C<make>, which is equivalent to C<$/.make>.
 
 Also note that C<KeyValuePairsActions> was passed as a type object to method
 C<parse>, which was possible because none of the action methods use attributes

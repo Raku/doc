@@ -45,21 +45,20 @@ Examples:
 
 Defined as:
 
-    multi method contains(Str:D: Cool:D $needle --> Bool:D)
-    multi method contains(Str:D: Str:D $needle --> Bool:D)
-    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos --> Bool:D)
-    multi method contains(Str:D: Str:D $needle, Int:D $pos --> Bool:D)
+    multi method contains(Str:D: Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
+    multi method contains(Str:D: Str:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
+    multi method contains(Str:D: Regex:D $needle --> Bool:D)
+    multi method contains(Str:D: Cool:D $needle, Int(Cool:D) $pos, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
+    multi method contains(Str:D: Str:D $needle, Int:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
+    multi method contains(Str:D: Regex:D $needle, Int:D $pos --> Bool:D)
+    multi method contains(Str:D: Regex:D $needle, Cool:D $pos --> Bool:D)
 
-Coerces the invocant (represented in the signature by C<Str:D:>, that would be
-the I<haystack>) and first argument (which we are calling C<$needle>) to
-L<C<Str>|/type/Str> (if it's not already, that is, in the first and third
-C<multi> forms), and searches for C<$needle> in the invocant (or I<haystack>)
-starting from C<$pos> characters into the string, if that is included as an
-argument. Returns C<True> if C<$needle> is found. C<$pos> is an optional
-parameter, and if it's not present, C<contains> will search from the beginning
-of the string (using the first two forms of the C<multi>).
+Given a C<Str> invocant (known as the I<haystack>) and a first argument
+(known as the C<$needle>), it searches for the C<$needle> in the I<haystack>
+from the beginning of the string and returns C<True> if C<$needle> is found.
+If the optional parameter C<$pos> is provided, then C<contains> will
+search the I<haystack> starting from C<$pos> characters into the string.
 
-    say <Hello, World>.contains('Hello', 0);   # OUTPUT: «True␤»
     say "Hello, World".contains('Hello');      # OUTPUT: «True␤»
     say "Hello, World".contains('hello');      # OUTPUT: «False␤»
     say "Hello, World".contains('Hello', 1);   # OUTPUT: «False␤»
@@ -67,13 +66,45 @@ of the string (using the first two forms of the C<multi>).
     say "Hello, World".contains(',', 3);       # OUTPUT: «True␤»
     say "Hello, World".contains(',', 10);      # OUTPUT: «False␤»
 
-In the first example, coercion is used to convert a C<List> to a Str.
-In the 4th case, the C<'Hello'> string is not found since we have
-started looking at the second position in it (index 1). Note that
-because of how a L<List|/type/List> or L<Array|/type/Array> is
-L<coerced|/type/List#method_Str> into a L<Str|/type/Str>, the results
-may sometimes be surprising. See
-L<traps|/language/traps#Lists_become_strings,_so_beware_.contains()>.
+In the first case, C<contains> searches for the C<'Hello'> string on the
+invocant right from the start of the invocant string and returns C<True>.
+In the third case, the C<'Hello'> string is not found since we have
+started looking from the second position (index 1) in C<'Hello, World'>.
+
+Since Rakudo version 2020.02, the C<$needle> can also be
+a L<C<Regex>|/type/Regex> in which case the C<contains> method
+quickly returns whether the regex matches the string at least
+once. No L<C<Match>|/type/Match> objects are created, so this is
+relatively fast.
+
+    say 'Hello, World'.contains(/\w <?before ','>/);    # OUTPUT: «True␤»
+    say 'Hello, World'.contains(/\w <?before ','>/, 5); # OUTPUT: «False␤»
+
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the search for C<$needle>
+ignores the distinction between upper case, lower case and title
+case letters.
+
+    say "Hello, World".contains("world");              # OUTPUT: «False␤»
+    say "Hello, World".contains("world", :ignorecase); # OUTPUT: «True␤»
+
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignoremark>, or C<:m>, is specified, the search for C<$needle>
+only considers base characters, and ignores additional marks such as
+combining accents.
+
+    say "abc".contains("ä");               # OUTPUT: «False␤»
+    say "abc".contains("ä", :ignoremark);  # OUTPUT: «True␤»
+
+Note that because of how a L<List|/type/List> or L<Array|/type/Array> is
+L<coerced|/type/List#method_Str> into a L<Str|/type/Str>, the results may
+sometimes be surprising.
+
+    say <Hello, World>.contains('Hello');    # OUTPUT: «True␤»
+    say <Hello, World>.contains('Hello', 0); # OUTPUT: «True␤»
+    say <Hello, World>.contains('Hello', 1); # OUTPUT: «False␤»
+
+See L<traps|/language/traps#Lists_become_strings,_so_beware_.contains()>.
 
 =head2 routine lc
 
@@ -86,8 +117,8 @@ Returns a lower-case version of the string.
 
 Examples:
 
-    lc("A"); # RESULT: «"a"»
-    "A".lc;  # RESULT: «"a"»
+    lc("A"); # OUTPUT: «"a"»
+    "A".lc;  # OUTPUT: «"a"»
 
 =head2 routine uc
 
@@ -202,49 +233,79 @@ a string by calling a method that returns the size of the C<Blob> on it:
 say "þor".encode.bytes; # OUTPUT: «4␤»
 say "þor".encode.elems; # OUTPUT: «4␤»
 
-=head2 routine index
+=head2 method index
 
-    multi method index(Str:D: Cool:D $needle --> Int:D)
-    multi method index(Str:D: Str:D $needle --> Int:D)
-    multi method index(Str:D: Cool:D $needle, Cool:D $pos --> Int:D)
-    multi method index(Str:D: Str:D $needle, Int:D $pos --> Int:D)
+    multi method index(Str:D: Cool:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi method index(Str:D: Str:D $needle, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi method index(Str:D: Cool:D $needle, Cool:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi method index(Str:D: Str:D $needle, Int:D $pos, :i(:$ignorecase), :m(:$ignoremark) --> Int:D)
+    multi method index(Str:D: @needles --> Int:D)
+    multi method index(Str:D: @needles, :m(:$ignoremark)! --> Int:D)
+    multi method index(Str:D: @needles, :i(:$ignorecase)!, :m(:$ignoremark) --> Int:D)
 
 Searches for C<$needle> in the string starting from C<$pos> (if present). It
 returns the offset into the string where C<$needle> was found, and C<Nil> if it
 was not found.
 
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the search for C<$needle> ignores
+the distinction between upper case, lower case and title case letters. In
+addition, if the optional named parameter C<:ignoremark>, or C<:m>, is
+specified, the search for C<$needle> only considers base characters, and ignores
+additional marks such as combining accents.
+
+Since Rakudo version 2020.05, C<index> accepts a list of needles to search
+the string with, and return the lowest index found or C<Nil>.
+
 Examples:
 
-    say index "Camelia is a butterfly", "a";     # OUTPUT: «1␤»
-    say index "Camelia is a butterfly", "a", 2;  # OUTPUT: «6␤»
-    say index "Camelia is a butterfly", "er";    # OUTPUT: «17␤»
-    say index "Camelia is a butterfly", "Camel"; # OUTPUT: «0␤»
-    say index "Camelia is a butterfly", "Onion"; # OUTPUT: «Nil␤»
+    say "Camelia is a butterfly".index("a");         # OUTPUT: «1␤»
+    say "Camelia is a butterfly".index("a", 2);      # OUTPUT: «6␤»
+    say "Camelia is a butterfly".index("er");        # OUTPUT: «17␤»
+    say "Camelia is a butterfly".index("Camel");     # OUTPUT: «0␤»
+    say "Camelia is a butterfly".index("Onion");     # OUTPUT: «Nil␤»
+    say "Camelia is a butterfly".index(<a e i u>);   # OUTPUT: «1␤»
+    say "Camelia is a butterfly".index(<a c>, :i);   # OUTPUT: «0␤»
+    say "Camelia is a butterfly".index(('w', 'x'));  # OUTPUT: «Nil␤»
 
-    say index("Camelia is a butterfly", "Onion").defined ?? 'OK' !! 'NOT'; # OUTPUT: «NOT␤»
+    say "Hello, World".index("world");               # OUTPUT: «Nil␤»
+    say "Hello, World".index("world", :ignorecase);  # OUTPUT: «7␤»
 
-Other forms of index, including a sub, are
-L<inherited from C<Cool>|/type/Cool#routine_index>. Check them there.
+    say "abc".index("ä");                            # OUTPUT: «Nil␤»
+    say "abc".index("ä", :ignoremark);               # OUTPUT: «0␤»
+    say "abc".index("x").defined ?? 'OK' !! 'NOT';   # OUTPUT: «NOT␤»
+
+Other forms of C<index>, including subs, are
+L<inherited from C<Cool>|/type/Cool#routine_index>.
 
 =head2 routine rindex
 
-    multi sub    rindex(Str:D $haystack, Str:D $needle, Int $startpos = $haystack.chars --> Int)
-    multi method rindex(Str:D $haystack: Str:D $needle, Int $startpos = $haystack.chars --> Int)
+    multi method rindex(Str:D: Str:D $needle --> Int:D)
+    multi method rindex(Str:D: Str:D $needle, Int:D $pos --> Int:D)
+    multi method rindex(Str:D: @needles --> Int:D)
 
-Returns the last position of C<$needle> in C<$haystack> not after C<$startpos>.
+Returns the last position of C<$needle> in the string not after C<$pos>.
 Returns C<Nil> if C<$needle> wasn't found.
+
+Since Rakudo version 2020.05, C<rindex> accepts a list of needles to search
+the string with, and return the highest index found or C<Nil>.
 
 Examples:
 
-    say rindex "Camelia is a butterfly", "a";     # OUTPUT: «11␤»
-    say rindex "Camelia is a butterfly", "a", 10; # OUTPUT: «6␤»
+    say "aardvark".rindex: "a";       # OUTPUT: «5␤»
+    say "aardvark".rindex: "a", 0;    # OUTPUT: «0␤
+    say "aardvark".rindex: "t";       # OUTPUT: «Nil␤»
+    say "aardvark".rindex: <d v k>;   # OUTPUT: «7␤»
+
+Other forms of C<rindex>, including subs, are
+L<inherited from C<Cool>|/type/Cool#routine_rindex>.
 
 =head2 method indices
 
 Defined as:
 
-    multi method indices(Str:D: Str:D $needle, :$overlap --> List:D)
-    multi method indices(Str:D: Str:D $needle, Int:D $start, :$overlap --> List:D)
+    multi method indices(Str:D: Str:D $needle, :i(:$ignorecase), :m(:$ignoremark), :$overlap --> List:D)
+    multi method indices(Str:D: Str:D $needle, Int:D $start, :i(:$ignorecase), :m(:$ignoremark), :$overlap --> List:D)
 
 Searches for all occurrences of C<$needle> in the string starting from position
 C<$start>, or zero if it is not specified, and returns a C<List> with all offsets
@@ -258,6 +319,21 @@ after the previous match.
     say "banana".indices("ana");            # OUTPUT: «(1)␤»
     say "banana".indices("ana", :overlap);  # OUTPUT: «(1 3)␤»
     say "banana".indices("ana", 2);         # OUTPUT: «(3)␤»
+
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the search for C<$needle>
+ignores the distinction between upper case, lower case and title
+case letters.
+
+    say "banAna".indices("a");              # OUTPUT:«(1 5)␤»
+    say "banAna".indices("a", :ignorecase); # OUTPUT:«(1 3 5)␤»
+
+Since Rakudo 2020.02, if the optional named parameter C<:ignoremark>,
+or C<:m>, is specified, the search for C<$needle> only considers base
+characters, and ignores additional marks such as combining accents.
+
+    say "tête-à-tête".indices("te");              # OUTPUT:«(2 9)␤»
+    say "tête-à-tête".indices("te", :ignoremark); # OUTPUT:«(0 2 7 9)␤»
 
 =head2 method match
 
@@ -346,10 +422,14 @@ Only Unicode characters with property C<Nd>, as well as leading and trailing
 whitespace are allowed, with the special case of the empty string being coerced
 to C<0>. Synthetic codepoints (e.g. C<"7\x[308]">) are forbidden.
 
-While C<Nl> and C<No> characters can be used as numeric literals
-in the language, their conversion via C<Str.Numeric> will fail, by design.
+While C<Nl> and C<No> characters can be used as numeric literals in the
+language, their conversion via C<Str.Numeric> will fail, by design; the same
+will happen with synthetic numerics (composed of numbers and diacritic marks).
 See L«unival|/routine/unival» if you need to coerce such characters to
-C<Numeric>.
+C<Numeric>. +, - and the Unicode MINUS SIGN − are all allowed.
+
+=for code
+" −33".Numeric;       # OUTPUT: «-33␤»
 
 =head2 method Int
 
@@ -492,22 +572,22 @@ Also return the B<index> of the delimiter and the delimiter as a C<Pair>.
 
 Examples:
 
-    say split(";", "a;b;c").perl;           # OUTPUT: «("a", "b", "c").Seq␤»
-    say split(";", "a;b;c", :v).perl;       # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
-    say split(";", "a;b;c", 2).perl;        # OUTPUT: «("a", "b;c").Seq␤»
-    say split(";", "a;b;c", 2, :v).perl;    # OUTPUT: «("a", ";", "b;c").Seq␤»
-    say split(";", "a;b;c,d").perl;         # OUTPUT: «("a", "b", "c,d").Seq␤»
-    say split(/\;/, "a;b;c,d").perl;        # OUTPUT: «("a", "b", "c,d").Seq␤»
-    say split(<; ,>, "a;b;c,d").perl;       # OUTPUT: «("a", "b", "c", "d").Seq␤»
-    say split(/<[;,]>/, "a;b;c,d").perl;    # OUTPUT: «("a", "b", "c", "d").Seq␤»
-    say split(<; ,>, "a;b;c,d", :k).perl;   # OUTPUT: «("a", 0, "b", 0, "c", 1, "d").Seq␤»
-    say split(<; ,>, "a;b;c,d", :kv).perl;  # OUTPUT: «("a", 0, ";", "b", 0, ";", "c", 1, ",", "d").Seq␤»
+    say split(";", "a;b;c").raku;           # OUTPUT: «("a", "b", "c").Seq␤»
+    say split(";", "a;b;c", :v).raku;       # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
+    say split(";", "a;b;c", 2).raku;        # OUTPUT: «("a", "b;c").Seq␤»
+    say split(";", "a;b;c", 2, :v).raku;    # OUTPUT: «("a", ";", "b;c").Seq␤»
+    say split(";", "a;b;c,d").raku;         # OUTPUT: «("a", "b", "c,d").Seq␤»
+    say split(/\;/, "a;b;c,d").raku;        # OUTPUT: «("a", "b", "c,d").Seq␤»
+    say split(<; ,>, "a;b;c,d").raku;       # OUTPUT: «("a", "b", "c", "d").Seq␤»
+    say split(/<[;,]>/, "a;b;c,d").raku;    # OUTPUT: «("a", "b", "c", "d").Seq␤»
+    say split(<; ,>, "a;b;c,d", :k).raku;   # OUTPUT: «("a", 0, "b", 0, "c", 1, "d").Seq␤»
+    say split(<; ,>, "a;b;c,d", :kv).raku;  # OUTPUT: «("a", 0, ";", "b", 0, ";", "c", 1, ",", "d").Seq␤»
 
-    say "".split("x").perl;                 # OUTPUT: «("",).Seq␤»
-    say "".split("x", :skip-empty).perl;    # OUTPUT: «().Seq␤»
+    say "".split("x").raku;                 # OUTPUT: «("",).Seq␤»
+    say "".split("x", :skip-empty).raku;    # OUTPUT: «().Seq␤»
 
-    say "abcde".split("").perl;             # OUTPUT: «("", "a", "b", "c", "d", "e", "").Seq␤»
-    say "abcde".split("",:skip-empty).perl; # OUTPUT: «("a", "b", "c", "d", "e").Seq␤»
+    say "abcde".split("").raku;             # OUTPUT: «("", "a", "b", "c", "d", "e", "").Seq␤»
+    say "abcde".split("",:skip-empty).raku; # OUTPUT: «("a", "b", "c", "d", "e").Seq␤»
 
 =head2 routine comb
 
@@ -528,15 +608,15 @@ as if the matcher was C<rx/./>.
 
 Examples:
 
-    say "abc".comb.perl;                 # OUTPUT: «("a", "b", "c").Seq␤»
-    say "abc".comb(:match).perl;         # OUTPUT: «(｢a｣ ｢b｣ ｢c｣)␤»
-    say 'abcdefghijk'.comb(3).perl;      # OUTPUT: «("abc", "def", "ghi", "jk").Seq␤»
-    say 'abcdefghijk'.comb(3, 2).perl;   # OUTPUT: «("abc", "def").Seq␤»
-    say comb(/\w/, "a;b;c").perl;        # OUTPUT: «("a", "b", "c").Seq␤»
-    say comb(/\N/, "a;b;c").perl;        # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
-    say comb(/\w/, "a;b;c", 2).perl;     # OUTPUT: «("a", "b").Seq␤»
-    say comb(/\w\;\w/, "a;b;c", 2).perl; # OUTPUT: «("a;b",).Seq␤»
-    say comb(/.<(.)>/, "<>[]()").perl;   # OUTPUT: «(">", "]", ")").Seq␤»
+    say "abc".comb.raku;                 # OUTPUT: «("a", "b", "c").Seq␤»
+    say "abc".comb(:match).raku;         # OUTPUT: «(｢a｣ ｢b｣ ｢c｣)␤»
+    say 'abcdefghijk'.comb(3).raku;      # OUTPUT: «("abc", "def", "ghi", "jk").Seq␤»
+    say 'abcdefghijk'.comb(3, 2).raku;   # OUTPUT: «("abc", "def").Seq␤»
+    say comb(/\w/, "a;b;c").raku;        # OUTPUT: «("a", "b", "c").Seq␤»
+    say comb(/\N/, "a;b;c").raku;        # OUTPUT: «("a", ";", "b", ";", "c").Seq␤»
+    say comb(/\w/, "a;b;c", 2).raku;     # OUTPUT: «("a", "b").Seq␤»
+    say comb(/\w\;\w/, "a;b;c", 2).raku; # OUTPUT: «("a;b",).Seq␤»
+    say comb(/.<(.)>/, "<>[]()").raku;   # OUTPUT: «(">", "]", ")").Seq␤»
 
 If the matcher is an integer value, C<comb> behaves as if the matcher
 was C<rx/ . ** {1..$matcher} />, but which is optimized to be much faster.
@@ -548,18 +628,23 @@ is returned by using features which explicitly set the top-level capture.
 
 Defined as:
 
-    multi method lines(Str:D: $limit)
-    multi method lines(Str:D:)
+    multi method lines(Str:D: $limit, :$chomp = True)
+    multi method lines(Str:D: :$chomp = True)
 
-Returns a list of lines (without trailing newline characters), i.e. the
-same as a call to C<$input.comb( / ^^ \N* /, $limit )> would.
+Returns a list of lines. By default, it chomps line endings the same as a
+call to C<$input.comb( / ^^ \N* /, $limit )> would. To keep line endings,
+set the optional named parameter C<$chomp> to C<False>.
 
 Examples:
 
-    say lines("a\nb").perl;    # OUTPUT: «("a", "b").Seq␤»
+    say lines("a\nb").raku;    # OUTPUT: «("a", "b").Seq␤»
     say lines("a\nb").elems;   # OUTPUT: «2␤»
     say "a\nb".lines.elems;    # OUTPUT: «2␤»
     say "a\n".lines.elems;     # OUTPUT: «1␤»
+
+    # Keep line endings
+    say lines(:!chomp, "a\nb").raku;  # OUTPUT: «("a\n", "b").Seq␤»
+    say "a\n".lines(:!chomp).elems;   # OUTPUT: «1␤»
 
 You can limit the
 number of lines returned by setting the C<$limit> variable to a non-zero,
@@ -586,10 +671,10 @@ C<$input.comb( / \S+ /, $limit )> would.
 
 Examples:
 
-    say "a\nb\n".words.perl;       # OUTPUT: «("a", "b").Seq␤»
-    say "hello world".words.perl;  # OUTPUT: «("hello", "world").Seq␤»
-    say "foo:bar".words.perl;      # OUTPUT: «("foo:bar",).Seq␤»
-    say "foo:bar\tbaz".words.perl; # OUTPUT: «("foo:bar", "baz").Seq␤»
+    say "a\nb\n".words.raku;       # OUTPUT: «("a", "b").Seq␤»
+    say "hello world".words.raku;  # OUTPUT: «("hello", "world").Seq␤»
+    say "foo:bar".words.raku;      # OUTPUT: «("foo:bar",).Seq␤»
+    say "foo:bar\tbaz".words.raku; # OUTPUT: «("foo:bar", "baz").Seq␤»
 
 It can also be used as a subroutine, turning the first argument into the
 invocant. C<$limit> is optional, but if it is provided (and not equal to
@@ -607,33 +692,66 @@ Returns the string reversed character by character.
 
 Examples:
 
-    "Perl".flip;  # RESULT: «lreP»
-    "ABBA".flip;  # RESULT: «ABBA»
+    "Perl".flip;  # OUTPUT: «lreP»
+    "ABBA".flip;  # OUTPUT: «ABBA»
 
 =head2 method starts-with
 
-    multi method starts-with(Str:D: Str(Cool) $needle --> Bool:D)
+    multi method starts-with(Str:D: Str(Cool) $needle, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
 
 Returns C<True> if the invocant is identical to or starts with C<$needle>.
 
     say "Hello, World".starts-with("Hello");     # OUTPUT: «True␤»
     say "https://raku.org/".starts-with('ftp');  # OUTPUT: «False␤»
 
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the comparison of the invocant
+and C<$needle> ignores the distinction between upper case, lower case
+and title case letters.
+
+    say "Hello, World".starts-with("hello");              # OUTPUT: «False␤»
+    say "Hello, World".starts-with("hello", :ignorecase); # OUTPUT: «True␤»
+
+Since Rakudo 2020.02, if the optional named parameter C<:ignoremark>,
+or C<:m>, is specified, the comparison of the invocant and C<$needle>
+only considers base characters, and ignores additional marks such as
+combining accents.
+
+    say "abc".starts-with("ä");              # OUTPUT: «False␤»
+    say "abc".starts-with("ä", :ignoremark); # OUTPUT: «True␤»
+
 =head2 method ends-with
 
-    multi method ends-with(Str:D: Str(Cool) $needle --> Bool:D)
+    multi method ends-with(Str:D: Str(Cool) $needle, :i(:$ignorecase), :m(:$ignoremark) --> Bool:D)
 
 Returns C<True> if the invocant is identical to or ends with C<$needle>.
 
     say "Hello, World".ends-with('Hello');      # OUTPUT: «False␤»
     say "Hello, World".ends-with('ld');         # OUTPUT: «True␤»
 
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the comparison of the invocant
+and C<$needle> ignores the distinction between upper case, lower case
+and title case letters.
+
+    say "Hello, World".ends-with("world");              # OUTPUT: «False␤»
+    say "Hello, World".ends-with("world", :ignorecase); # OUTPUT: «True␤»
+
+Since Rakudo 2020.02, if the optional named parameter C<:ignoremark>,
+or C<:m>, is specified, the comparison of the invocant and C<$needle>
+only considers base characters, and ignores additional marks such as
+combining accents.
+
+    say "abc".ends-with("ç");              # OUTPUT: «False␤»
+    say "abc".ends-with("ç", :ignoremark); # OUTPUT: «True␤»
+
 =head2 method subst
 
-    multi method subst(Str:D: $matcher, $replacement, *%opts)
+    multi method subst(Str:D: $matcher, $replacement = "", *%options)
 
 Returns the invocant string where C<$matcher> is replaced by C<$replacement>
-(or the original string, if no match was found).
+(or the original string, if no match was found). If no C<$replacement> is
+provided, the empty string is used (i.e., matched string(s) are removed).
 
 There is an in-place syntactic variant of C<subst> spelled
 C<s/matcher/replacement/> and with
@@ -650,6 +768,8 @@ objects (if multi-match options like C<:g> are used).
     my $some-string = "Some foo";
     my $another-string = $some-string.subst(/foo/, "string"); # gives 'Some string'
     $some-string.=subst(/foo/, "string"); # in-place substitution. $some-string is now 'Some string'
+
+    say "multi-hyphenate".subst("-"); # OUTPUT: «multihyphenate␤»
 
 =head3 Callable
 
@@ -703,12 +823,23 @@ regex, not the C<subst> method call.
 Here are other examples of usage:
 
     my $str = "Hey foo foo foo";
-    $str.subst(/foo/, "bar", :g); # global substitution - returns Hey bar bar bar
 
-    $str.subst(/foo/, "no subst", :x(0)); # targeted substitution. Number of times to substitute. Returns back unmodified.
-    $str.subst(/foo/, "bar", :x(1)); #replace just the first occurrence.
+    say $str.subst(/foo/, "bar", :g);           # OUTPUT: «Hey bar bar bar␤»
+    say $str.subst(/\s+/, :g);                  # OUTPUT: «Heyfoofoofoo␤»
 
-    $str.subst(/foo/, "bar", :nth(3)); # replace nth match alone. Replaces the third foo. Returns Hey foo foo bar
+    say $str.subst(/foo/, "bar", :x(0));        # OUTPUT: «Hey foo foo foo␤»
+    say $str.subst(/foo/, "bar", :x(1));        # OUTPUT: «Hey bar foo foo␤»
+    # Can not match 4 times, so no substitutions made
+    say $str.subst(/foo/, "bar", :x(4));        # OUTPUT: «Hey foo foo foo␤»
+    say $str.subst(/foo/, "bar", :x(2..4));     # OUTPUT: «Hey bar bar bar␤»
+    # Replace all of them, identical to :g
+    say $str.subst(/foo/, "bar", :x(*));        # OUTPUT: «Hey bar bar bar␤»
+
+    say $str.subst(/foo/, "bar", :nth(3));      # OUTPUT: «Hey foo foo bar␤»
+    # Replace last match
+    say $str.subst(/foo/, "bar", :nth(*));      # OUTPUT: «Hey foo foo bar␤»
+    # Replace next-to-last last match
+    say $str.subst(/foo/, "bar", :nth(*-1));    # OUTPUT: «Hey foo bar foo␤»
 
 The C<:nth> adverb has readable English-looking variants:
 
@@ -768,16 +899,16 @@ zero, C<X::OutOfRange> exception is thrown. The C<$from-to>'s ending index is
 permitted to extend past the end of string, in which case it will be equivalent
 to the index of the last character.
 
-    say substr("Long string", 3..6);     # RESULT: «g st␤»
-    say substr("Long string", 6, 3);     # RESULT: «tri␤»
-    say substr("Long string", 6);        # RESULT: «tring␤»
-    say substr("Long string", 6, *-1);   # RESULT: «trin␤»
-    say substr("Long string", *-3, *-1); # RESULT: «in␤»
+    say substr("Long string", 3..6);     # OUTPUT: «g st␤»
+    say substr("Long string", 6, 3);     # OUTPUT: «tri␤»
+    say substr("Long string", 6);        # OUTPUT: «tring␤»
+    say substr("Long string", 6, *-1);   # OUTPUT: «trin␤»
+    say substr("Long string", *-3, *-1); # OUTPUT: «in␤»
 
 =head2 method substr-eq
 
-    multi method substr-eq(Str:D:  Str(Cool) $test-string, Int(Cool) $from --> Bool)
-    multi method substr-eq(Cool:D: Str(Cool) $test-string, Int(Cool) $from --> Bool)
+    multi method substr-eq(Str:D:  Str(Cool) $test-string, Int(Cool) $from, :i(:$ignorecase), :m(:$ignoremark) --> Bool)
+    multi method substr-eq(Cool:D: Str(Cool) $test-string, Int(Cool) $from, :i(:$ignorecase), :m(:$ignoremark) --> Bool)
 
 Returns C<True> if the C<$test-string> exactly matches the C<String> object,
 starting from the given initial index C<$from>.  For example, beginning with
@@ -796,6 +927,22 @@ Naturally, to match the entire string, one merely matches from index 0:
 
     my $string = "foobar";
     say $string.substr-eq("foobar", 0); # OUTPUT: «True␤»
+
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignorecase>, or C<:i>, is specified, the comparison of the invocant
+and C<$test-string> ignores the distinction between upper case,
+lower case and title case letters.
+
+    say "foobar".substr-eq("Bar", 3);              # OUTPUT: «False␤»
+    say "foobar".substr-eq("Bar", 3, :ignorecase); # OUTPUT: «True␤»
+
+Since Rakudo version 2020.02, if the optional named parameter
+C<:ignoremark>, or C<:m>, is specified, the comparison of the
+invocant and C<$test-string> only considers base characters, and
+ignores additional marks such as combining accents.
+
+    say "cliché".substr-eq("che", 3);              # OUTPUT: «False␤»
+    say "cliché".substr-eq("che", 3, :ignoremark); # OUTPUT: «True␤»
 
 Since this method is inherited from the C<Cool> type, it also works on
 integers.  Thus the integer C<42> will match the value C<342> starting from
@@ -891,18 +1038,18 @@ Returns the string incremented by one.
 String increment is "magical". It searches for the last alphanumeric
 sequence that is not preceded by a dot, and increments it.
 
-    '12.34'.succ;      # RESULT: «13.34»
-    'img001.png'.succ; # RESULT: «img002.png»
+    '12.34'.succ;      # OUTPUT: «13.34»
+    'img001.png'.succ; # OUTPUT: «img002.png»
 
 The actual increment step works by mapping the last alphanumeric
 character to a character range it belongs to, and choosing the next
 character in that range, carrying to the previous letter on overflow.
 
-    'aa'.succ;   # RESULT: «ab»
-    'az'.succ;   # RESULT: «ba»
-    '109'.succ;  # RESULT: «110»
-    'α'.succ;    # RESULT: «β»
-    'a9'.succ;   # RESULT: «b0»
+    'aa'.succ;   # OUTPUT: «ab»
+    'az'.succ;   # OUTPUT: «ba»
+    '109'.succ;  # OUTPUT: «110»
+    'α'.succ;    # OUTPUT: «β»
+    'a9'.succ;   # OUTPUT: «b0»
 
 String increment is Unicode-aware, and generally works for scripts where a
 character can be uniquely classified as belonging to one range of characters.
@@ -917,9 +1064,9 @@ String decrementing is "magical" just like string increment (see
 L<succ|/routine/succ>). It fails on underflow
 
 =for code
-'b0'.pred;           # RESULT: «a9»
-'a0'.pred;           # Failure
-'img002.png'.pred;   # RESULT: «img001.png»
+'b0'.pred;           # OUTPUT: «a9»
+'a0'.pred;           # OUTPUT: Failure
+'img002.png'.pred;   # OUTPUT: «img001.png»
 
 =head2 routine ord
 
@@ -978,11 +1125,11 @@ Example:
 
     $str.=trans( ['a'..'y'] => ['A'..'z'] );
 
-    "abcdefghij".trans(/<[aeiou]> \w/ => '');                     # RESULT: «cdgh»
+    "abcdefghij".trans(/<[aeiou]> \w/ => '');                     # OUTPUT: «cdgh»
 
-    "a123b123c".trans(['a'..'z'] => 'x', :complement);            # RESULT: «axxxbxxxc»
-    "aaa1123bb123c".trans('a'..'z' => 'A'..'Z', :squash);         # RESULT: «A1123B123C»
-    "aaa1123bb123c".trans('a'..'z' => 'x', :complement, :squash); # RESULT: «aaaxbbxc»
+    "a123b123c".trans(['a'..'z'] => 'x', :complement);            # OUTPUT: «axxxbxxxc»
+    "aaa1123bb123c".trans('a'..'z' => 'A'..'Z', :squash);         # OUTPUT: «A1123B123C»
+    "aaa1123bb123c".trans('a'..'z' => 'x', :complement, :squash); # OUTPUT: «aaaxbbxc»
 
 In general, the strings will have the same length after the substitution:
 
@@ -1111,26 +1258,78 @@ Throws C<X::Cannot::Capture>.
 
 =head2 routine val
 
+    multi sub val(*@maybevals)
+    multi sub val(Slip:D \maybevals)
+    multi sub val(List:D \maybevals)
+    multi sub val(Pair:D \ww-thing)
+    multi sub val(\one-thing)
     multi sub val(Str:D $MAYBEVAL, :$val-or-fail)
 
 Given a C<Str> that may be parsable as a numeric value, it will
 attempt to construct the appropriate L<allomorph|/language/glossary#Allomorph>,
 returning one of L<IntStr|/type/IntStr>, L<NumStr|/type/NumStr>, L<RatStr|/type/RatStr>
 or L<ComplexStr|/type/ComplexStr> or a plain C<Str> if a numeric value cannot
-be parsed.  If the C<:val-or-fail> adverb is provided it will return an
-L<X::Str::Numeric|/type/X::Str::Numeric> rather than the original string if it
-cannot parse the string as a number.
+be parsed.
 
     say val("42").^name;    # OUTPUT: «IntStr␤»
     say val("42e0").^name;  # OUTPUT: «NumStr␤»
     say val("42.0").^name;  # OUTPUT: «RatStr␤»
     say val("42+0i").^name; # OUTPUT: «ComplexStr␤»
 
+You can use the plus and minus sign, as well as the Unicode "Minus Sign" as
+part of the String
+
+    say val("−42");         # OUTPUT: «−42␤»
+
 While characters belonging to the Unicode categories C<Nl> (number letters)
 and C<No> (other numbers) can be used as numeric literals in the language,
-they will not be converted to a number by C<val>, by design.
-See L«unival|/routine/unival» if you need to convert such characters to
+they will not be converted to a number by C<val>, by design, and using C<val>
+ on them will produce a failure. The same will happen with synthetic numerics
+  (such as 7̈ )See L«unival|/routine/unival» if you need to convert such
+  characters to
 C<Numeric>.
+
+=head2 method Version
+
+    method Version(Str:D: --> Version:D)
+
+Coerces the string to L<Version|/type/Version>.
+
+This could be used for L<type coercion in
+signature|/type/Signature#Coercion_type>, as for example:
+
+    sub f(Version(Str) $want-version) { say $want-version.^name };
+    f "1.2.3";  # OUTPUT: «Version␤»
+
+B<Note>: Available since version 6.e (2020.01 and later).
+
+=head2 method Date
+
+Defined as:
+
+    method Date(Str:D:)
+
+Coerces a C<Str> to a L«C«Date»|/type/Date» object, provided the string is
+properly formatted. C«Date(Str)» also works.
+
+Examples:
+
+    say '2015-11-24'.Date.year;  # OUTPUT: «2015␤»
+    say Date('2015-11-24').year; # OUTPUT: «2015␤»
+
+=head2 method DateTime
+
+Defined as:
+
+    method DateTime(Str:D:)
+
+Coerces a C<Str> to a L«C«DateTime»|/type/DateTime» object, provided the
+string is properly formatted. C«DateTime(Str)» also works.
+
+Examples:
+
+    say ('2012-02-29T12:34:56Z').DateTime.hour; # OUTPUT: «12␤»
+    say DateTime('2012-02-29T12:34:56Z').hour;  # OUTPUT: «12␤»
 
 =end pod
 

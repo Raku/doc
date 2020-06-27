@@ -1,0 +1,122 @@
+=begin pod :kind("Type") :subkind("class") :category("metamodel")
+
+=TITLE class Metamodel::DefiniteHOW
+
+=SUBTITLE Metaobject for type definiteness
+
+    class Metamodel::DefiniteHOW
+        does Metamodel::Documenting
+            { }
+
+I<Warning>: this class is part of the Rakudo implementation, and is not
+a part of the language specification.
+
+Type objects may be given a I<type smiley>, which is a suffix that
+denotes their definiteness:
+
+=begin code
+say Any:D.^name; # OUTPUT: «Any:D␤»
+say Any:U.^name; # OUTPUT: «Any:U␤»
+say Any:_.^name; # OUTPUT: «Any␤»
+=end code
+
+Despite sharing a type with C<Any>, C<Any:U> and C<Any:D> in particular
+have different type-checking behaviors from it:
+
+=begin code
+say Any ~~ Any:D;     # OUTPUT: «False␤»
+say Any ~~ Any:U;     # OUTPUT: «True␤»
+say Any ~~ Any:_;     # OUTPUT: «True␤»
+say Any.new ~~ Any:D; # OUTPUT: «True␤»
+say Any.new ~~ Any:U; # OUTPUT: «False␤»
+say Any.new ~~ Any:_; # OUTPUT: «True␤»
+=end code
+
+This happens because C<Any:D> and C<Any:U> are not created with
+L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW> like you might expect
+C<Any> type objects to be, but C<Metamodel::DefiniteHOW> instead. This
+HOW defines the behavior for definite type objects such as these.
+
+The following type declaration:
+
+=for code
+my Any constant Definite = Any:D;
+
+Is roughly equivalent to this code using the methods of
+C<Metamodel::DefiniteHOW>:
+
+=for code
+my Any constant Definite = Metamodel::DefiniteHOW.new_type: base_type => Any, definite => 1;
+
+=head1 Methods
+
+=head2 method new_type
+
+    method new_type(:$base_type!, :$definite!)
+
+Creates a new definite type given a base type and definiteness.
+C<$definite> should either be C<1> for C<:D> types or C<0> for C<:U>
+types.
+
+=head2 method name
+
+    method name($definite_type)
+
+Returns the name of a definite type.
+
+=head2 method shortname
+
+    method shortname($definite_type)
+
+Returns the shortname of a definite type.
+
+=head2 method base_type
+
+    method base_type($definite_type)
+
+Returns the base type for a definite type:
+
+=for code
+say Any:D.^base_type.^name; # OUTPUT: «Any␤»
+
+=head2 method definite
+
+    method definite($definite_type)
+
+Returns C<1> if the definite type given is a C<:D> type or C<0> if it is
+a C<:U> type.
+
+=head2 method nominalize
+
+    method nominalize($obj)
+
+Produces a nominal type object for a definite type. This is its base
+type, which may also get nominalized if it has the C<nominalizable>
+archetype.
+
+=head2 method find_method
+
+    method find_method($definite_type, $name)
+
+Looks up a method on the base type of a definite type.
+
+=head2 method type_check
+
+    method type_check($definite_type, $checkee)
+
+Performs a type-check of a definite type against C<$checkee>. This will
+check if C<$checkee> is of its base type, returning C<True> if they
+match or C<False> otherwise. This metamethod can get called when a
+definite type is on the left-hand side of a smartmatch, for instance.
+
+=head2 method accepts_type
+
+    method accepts_type($definite_type, $checkee)
+
+Performs a type-check of C<$checkee> against a definite type. This will
+check if C<$checkee> is of its base type and matches its definiteness,
+returning C<True> if they match or C<False> otherwise.  This metamethod
+can get called when the definite type is on the right-hand side of a
+smartmatch, for instance.
+
+=end pod

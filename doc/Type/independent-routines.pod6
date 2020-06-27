@@ -12,7 +12,7 @@ classes, but are not actually attached to any particular class or role.
 Defined as:
 
 =begin code :method
-proto sub EVAL($code where Blob|Cool|Callable, Str() :$lang = 'perl6',
+proto sub EVAL($code where Blob|Cool|Callable, Str() :$lang = 'Raku',
                 PseudoStash :$context, *%n)
 =end code
 =begin code :method
@@ -22,7 +22,7 @@ multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' },
 
 This routine coerces L<Cool|/type/Cool> C<$code> to L<Str|/type/Str>. If
 C<$code> is a L<Blob|/type/Blob>, it'll be processed using the same encoding as
-the C<$lang> compiler would: for C<perl6> C<$lang>, uses C<utf-8>; for C<Perl5>,
+the C<$lang> compiler would: for C<Raku> C<$lang>, uses C<utf-8>; for C<Perl5>,
 processes using the same rules as C<perl>.
 
 This works as-is with a literal string parameter. More complex input,
@@ -88,7 +88,7 @@ say EVAL 'say 1; 2 mean 6 mean 4';         # OUTPUT: «1␤4␤»
 C<EVAL> is also a gateway for executing code in other languages:
 
 =for code
-EVAL "use v5.20; say 'Hello from perl5!'", :lang<Perl5>;
+EVAL "use v5.20; say 'Hello from perl!'", :lang<Perl5>;
 
 You need to have L<C<Inline::Perl5>|https://github.com/niner/Inline-Perl5> for
 this to work correctly.
@@ -97,7 +97,7 @@ this to work correctly.
 
 Defined as:
 
-    sub EVALFILE($filename where Blob|Cool, :$lang = 'perl6')
+    sub EVALFILE($filename where Blob|Cool, :$lang = 'Raku')
 
 Slurps the specified file and evaluates it. Behaves the same way as
 C<EVAL> with regard to L<Blob|/type/Blob> decoding, scoping, and the C<$lang>
@@ -288,16 +288,19 @@ is not guaranteed.
     print [1, 2, 3];       # OUTPUT: «1 2 3»
 
 To print text and include the trailing newline, use
-L«C<put>|/type/independent-routines#sub_put».
+L«C<put>|/language/independent-routines#sub_put».
 
 =head2 sub put
 
 Defined as:
 
+    multi sub put()
     multi sub put(**@args --> True)
     multi sub put(Junction:D --> True)
+    multi sub put(Str:D \x)
+    multi sub put(\x)
 
-Same as L«C<print>|/type/independent-routines#sub_print», except it uses
+Same as L«C<print>|/language/independent-routines#sub_print», except it uses
 L«C<print-nl>|/routine/print-nl» (which prints a L<newline|/language/newline>,
 by default) at the end. L<Junction|/type/Junction> arguments
 L<autothread|/language/glossary#index-entry-Autothreading> and the order of
@@ -307,20 +310,34 @@ printed strings is not guaranteed.
     put "Hi there!";     # OUTPUT: «Hi there!␤»
     put [1, 2, 3];       # OUTPUT: «1 2 3␤»
 
+By itself, C<put()> will print a new line
+
+    put "Hey"; put(); put("Hey"); # OUTPUT: «Hey␤␤Hey␤»
+
+but please note that we have used parentheses after C<put>. By itself, it
+will thrown an exception (with version 6.d and after). It will also raise an
+exception if it's used that way before C<for>; use the method form <.put>
+instead.
+
+    .put for <1 2 3>;             # # OUTPUT: «1␤2␤3␤»
+
 =head2 sub say
 
 Defined as:
 
     multi sub say(**@args --> True)
 
-Prints the "gist" of given objects. Same as L«C<put>|/type/independent-routines#sub_put»,
-except uses L«C<.gist>|/routine/gist» method to obtain string
+Prints the "gist" of given objects; it will always invoke C<.gist> in the
+case the object is a subclass of C<Str>. Same
+as
+L«C<put>|/language/independent-routines#sub_put»,
+except it uses L«C<.gist>|/routine/gist» method to obtain string
 representation of the object.
 
 B<NOTE:> the L«C<.gist>|/routine/gist» method of some objects, such as
 L<Lists|/type/List#method_gist>, returns only B<partial> information
 about the object (hence the "gist"). If you mean to print textual
-information, you most likely want to use L«C<put>|/type/independent-routines#sub_put»
+information, you most likely want to use L«C<put>|/language/independent-routines#sub_put»
 instead.
 
     say Range;        # OUTPUT: «(Range)␤»
@@ -345,6 +362,9 @@ note;       # STDERR OUTPUT: «Noted␤»
 note 'foo'; # STDERR OUTPUT: «foo␤»
 note 1..*;  # STDERR OUTPUT: «1..Inf␤»
 =end code
+
+This command is guaranteed to call C<.gist> on the object if it's a subclass
+of C<Str>.
 
 =head2 sub prompt
 
@@ -482,17 +502,18 @@ sub run(
     Str:D :$enc = 'UTF-8',
     Str:D :$nl = "\n",
     :$cwd = $*CWD,
-    Hash() :$env = %*ENV
+    Hash() :$env = %*ENV,
+    :$win-verbatim-args = False
 --> Proc:D)
 
 Runs an external command I<without involving a shell> and returns a
 L<Proc|/type/Proc> object. By default, the external command will print to
 standard output and error, and read from standard input.
 
-    run 'touch', '>foo.txt'; # Create a file named >foo.txt
+    run 'touch', '--', '*.txt'; # Create a file named “*.txt”
 
-    run <<rm >foo.txt>>; # Another way to use run, using word quoting for the
-                         # arguments
+    run <rm -- *.txt>; # Another way to use run, using word quoting for the
+                       # arguments
 
 If you want to pass some variables you can still use C«< >», but try
 to avoid using C<« »> as it will do word splitting if you forget to
@@ -540,7 +561,8 @@ These argument are quite flexible and admit, for instance, handles to
 redirect them. See L<Proc|/type/Proc> and
 L<Proc::Async|/type/Proc::Async> for more details.
 
-See also L<C<new>|/type/Proc#method_new> for more examples.
+See also L<C<new>|/type/Proc#method_new> and L<C<spawn>|/type/Proc#method_spawn>
+for more examples and explanation of all arguments.
 
 =head2 sub shell
 
@@ -605,7 +627,7 @@ L<the same language as C<Str.sprintf>|/type/Str#routine_sprintf>, using as such
 format either the object (if called in method form) or the first argument (if
 called as a routine)
 
-    sprintf( "%s the %d%s", "þor", 1, "st").put; #OUTPUT: «þor the 1st␤»
+    sprintf( "%s the %d%s", "þor", 1, "st").put; # OUTPUT: «þor the 1st␤»
     sprintf( "%s is %s", "þor", "mighty").put;   # OUTPUT: «þor is mighty␤»
     "%s's weight is %.2f %s".sprintf( "Mjölnir", 3.3392, "kg").put;
     # OUTPUT: «Mjölnir's weight is 3.34 kg␤»
@@ -615,16 +637,48 @@ functions.  The only difference between the two functions is that C<sprintf>
 returns a string while the C<printf> function writes to a filehandle. C<sprintf>
 returns a C<Str>, not a literal.
 
-The C<$format> is scanned for C<%> characters. Any C<%> introduces a format
-token. Directives guide the use (if any) of the arguments. When a directive
-other than C<%> is used, it indicates how the next argument passed is to be
-formatted into the string to be created.
+The C<$format> is scanned for C<%> characters. Any C<%> introduces a
+format token. Directives guide the use (if any) of the arguments. When
+a directive other than C<%> is used, it indicates how the next
+argument passed is to be formatted into the string to be
+created. I<Parameter indexes> may also be used in the format
+tokens. They take the form C<N$> and are explained in more detail
+below.
+
+The C<$format> may be defined enclosed in single or double quotes. The
+double-quoted C<$format> string is interpolated before being scanned
+and any embedded string whose interpolated value contains a C<%>
+character will cause an exception. For example:
+
+=begin code
+my $prod = "Ab-%x-42";
+my $cost = "30";
+sprintf("Product $prod; cost: \$%d", $cost).put;
+# OUTPUT: «Your printf-style directives specify 2 arguments, but 1 argument was supplied␤»
+          «  in block <unit> at <unknown file> line 1␤»
+=end code
+
+When handling unknown input you should avoid using such syntax by
+putting all variables in the C<*@args> array and have one C<%> for each
+in C<$format>. If you need to include a C<$> symbol in the format
+string (even as a I<parameter index>) either escape it or use the
+single-quoted form.  For example, either of the following forms works
+without error:
+
+=begin code
+sprintf("2 x \$20 = \$%d", 2*20).put; # OUTPUT: «2 x $20 = $40␤»
+sprintf('2 x $20 = $%d', 2*20).put;   # OUTPUT: «2 x $20 = $40␤»
+=end code
+
+In summary, unless you need something very special, you will have
+fewer unexpected problems by using the single-quoted format string and
+not using interpolated strings inside the format string.
 
 N<The information below is for a fully functioning C<sprintf> implementation
 which hasn't been achieved yet. Formats or features not yet implemented are
 marked NYI.>
 
-The directives are:
+=head3 Directives
 
 =begin table
 
@@ -657,13 +711,15 @@ Compatibility:
 
 =end table
 
+=head2 Modifiers
+
 Modifiers change the meaning of format directives, but are largely
 no-ops (the semantics are still being determined).
 
 =begin table
 
-     | h  | interpret integer as native "short" (typically int16)
- NYI | l  | interpret integer as native "long" (typically int32 or int64)
+     | h  | interpret integer as native "short"     (typically int16)
+ NYI | l  | interpret integer as native "long"      (typically int32 or int64)
  NYI | ll | interpret integer as native "long long" (typically int64)
  NYI | L  | interpret integer as native "long long" (typically uint64)
  NYI | q  | interpret integer as native "quads" (typically int64 or larger)
@@ -674,14 +730,38 @@ Between the C<%> and the format letter, you may specify several
 additional attributes controlling the interpretation of the format. In
 order, these are:
 
-=head3 Format parameter index
+=head3 NYI Format parameter index using the '$' symbol
 
-An explicit format parameter index, such as C<2$>. By default,
-C<sprintf> will format the next unused argument in the list, but this
-allows you to take the arguments out of order:
+An explicit format parameter index (ranging from 1 to N args)
+before the directive, such as C<%2$d>. By default, C<sprintf> will
+format the next unused argument in the list, but the parameter index
+allows you to take the arguments out of order (note single quotes
+are required unless you escape the C<$>):
 
-  sprintf '%2$d %1$d', 12, 34;      # OUTPUT: «34 12␤»
-  sprintf '%3$d %d %1$d', 1, 2, 3;  # OUTPUT: «3 1 1␤»
+=head4 Without index:
+
+=begin code
+sprintf '%d %d', 12, 34;      # OUTPUT: «12 34␤»
+sprintf '%d %d %d', 1, 2, 3;  # OUTPUT: «1 2 3␤»
+=end code
+
+=head4 NYI With index:
+
+The first example works as we expect it to when we index all
+directives.
+
+=begin code :skip-test<not yet implemented>
+sprintf '%2$d %1$d', 12, 34;      # OUTPUT: «34 12␤»
+=end code
+
+But notice the effect when mixing indexed and non-indexed directives
+in the second example (be careful what you ask for). The second,
+non-indexed directive gets the first argument, but it is also
+specifically requested in the last directive:
+
+=begin code :skip-test<not yet implemented>
+sprintf '%3$d %d %1$d', 1, 2, 3;  # OUTPUT: «3 1 1␤»
+=end code
 
 =head3 Flags
 
@@ -699,30 +779,32 @@ One or more of:
    #     |  ensure the leading "0" for any octal,
          |  prefix non-zero hexadecimal with "0x" or "0X",
          |  prefix non-zero binary with "0b" or "0B"
+----------------------------------------------------------------
+   v     |  NYI vector flag (used only with directive "d"), see description below
 =end table
 
 For example:
 
-  sprintf '<% d>',  12;   # RESULT: «< 12>␤»
-  sprintf '<% d>',   0;   # RESULT: «< 0>"»
-  sprintf '<% d>', -12;   # RESULT: «<-12>␤»
-  sprintf '<%+d>',  12;   # RESULT: «<+12>␤»
-  sprintf '<%+d>',   0;   # RESULT: «<+0>"»
-  sprintf '<%+d>', -12;   # RESULT: «<-12>␤»
-  sprintf '<%6s>',  12;   # RESULT: «<    12>␤»
-  sprintf '<%-6s>', 12;   # RESULT: «<12    >␤»
-  sprintf '<%06s>', 12;   # RESULT: «<000012>␤»
-  sprintf '<%#o>',  12;   # RESULT: «<014>␤»
-  sprintf '<%#x>',  12;   # RESULT: «<0xc>␤»
-  sprintf '<%#X>',  12;   # RESULT: «<0XC>␤»
-  sprintf '<%#b>',  12;   # RESULT: «<0b1100>␤»
-  sprintf '<%#B>',  12;   # RESULT: «<0B1100>␤»
+  sprintf '<% d>',  12;   # OUTPUT: «< 12>␤»
+  sprintf '<% d>',   0;   # OUTPUT: «< 0>"»
+  sprintf '<% d>', -12;   # OUTPUT: «<-12>␤»
+  sprintf '<%+d>',  12;   # OUTPUT: «<+12>␤»
+  sprintf '<%+d>',   0;   # OUTPUT: «<+0>"»
+  sprintf '<%+d>', -12;   # OUTPUT: «<-12>␤»
+  sprintf '<%6s>',  12;   # OUTPUT: «<    12>␤»
+  sprintf '<%-6s>', 12;   # OUTPUT: «<12    >␤»
+  sprintf '<%06s>', 12;   # OUTPUT: «<000012>␤»
+  sprintf '<%#o>',  12;   # OUTPUT: «<014>␤»
+  sprintf '<%#x>',  12;   # OUTPUT: «<0xc>␤»
+  sprintf '<%#X>',  12;   # OUTPUT: «<0XC>␤»
+  sprintf '<%#b>',  12;   # OUTPUT: «<0b1100>␤»
+  sprintf '<%#B>',  12;   # OUTPUT: «<0B1100>␤»
 
 When a space and a plus sign are given as the flags at once, the space
 is ignored:
 
-  sprintf '<%+ d>', 12;   # RESULT: «<+12>␤»
-  sprintf '<% +d>', 12;   # RESULT: «<+12>␤»
+  sprintf '<%+ d>', 12;   # OUTPUT: «<+12>␤»
+  sprintf '<% +d>', 12;   # OUTPUT: «<+12>␤»
 
 When the C<#> flag and a precision are given in the C<%o> conversion, the
 necessary number of 0s is added at the beginning. If the value of the number is
@@ -731,44 +813,49 @@ the actual number of elements will return the number with 0 to the left:
 
   say sprintf '<%#.5o>', 0o12;     # OUTPUT: «<00012>␤»
   say sprintf '<%#.5o>', 0o12345;  # OUTPUT: «<012345>␤»
-  say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0 results in no output!
+  say sprintf '<%#.0o>', 0;        # OUTPUT: «<>␤» zero precision and value 0
+                                   #               results in no output!
   say sprintf '<%#.0o>', 0o1       # OUTPUT: «<01>␤»
 
-=head3 Vector flag
+=head3 Vector flag 'v'
 
-This flag tells Raku to interpret the supplied string as a vector of
-integers, one for each character in the string. Raku applies the
-format to each integer in turn, then joins the resulting strings with
-a separator (a dot, C<'.'>, by default). This can be useful for
-displaying ordinal values of characters in arbitrary strings:
+This special flag (C<v>, followed by directive C<d>) tells Raku to
+interpret the supplied string as a vector of integers, one for each
+character in the string (the `ord` routine is used for the conversion
+to an integer). Raku applies the format to each integer in turn, then
+joins the resulting strings with a separator (a dot C<'.'>, by
+default). This can be useful for displaying ordinal values of
+characters in arbitrary strings:
 
 =begin code :skip-test<not yet implemented>
-NYI sprintf "%vd", "AB\x[100]";           # "65.66.256"
+NYI sprintf "%vd", "AB\x[100]";           # OUTPUT: «65.66.256␤»
 =end code
 
 You can also explicitly specify the argument number to use for the
-join string using something like C<*2$v>; for example:
+separator string by using an asterisk with a parameter index (e.g.,
+C<*2$v>); for example:
 
 =begin code :skip-test<not yet implemented>
 NYI sprintf '%*4$vX %*4$vX %*4$vX',       # 3 IPv6 addresses
         @addr[1..3], ":";
 =end code
 
-=head3 (Minimum) Width
+=head3 Width (minimum)
 
-Arguments are usually formatted to be only as wide as required to
-display the given value. You can override the width by putting a
-number here, or get the width from the next argument (with C<*> ) or
+Arguments are usually formatted by default to be only as wide as required to
+display the given value. You specify a minimum width that can override the default width by putting a
+number here, or get the desired width from the next argument (with C<*> ) or
 from a specified argument (e.g., with C<*2$>):
 
 =begin code :skip-test<partly not yet implemented>
- sprintf "<%s>", "a";           # RESULT: «<a>␤»
- sprintf "<%6s>", "a";          # RESULT: «<     a>␤»
- sprintf "<%*s>", 6, "a";       # RESULT: «<     a>␤»
- NYI sprintf '<%*2$s>', "a", 6; # "<     a>"
- sprintf "<%2s>", "long";       # RESULT: «<long>␤» (does not truncate)
+ sprintf "<%s>", "a";           # OUTPUT: «<a>␤»
+ sprintf "<%6s>", "a";          # OUTPUT: «<     a>␤»
+ sprintf "<%*s>", 6, "a";       # OUTPUT: «<     a>␤»
+ NYI sprintf '<%*2$s>', "a", 6; # OUTPUT: «<     a>␤»
+ sprintf "<%2s>", "long";       # OUTPUT: «<long>␤»   (does not truncate)
 =end code
 
+In all cases, the specified width will be increased as necessary to accommodate the given integral numerical value or string.
 If a field width obtained through C<*> is negative, it has the same
 effect as the C<-> flag: left-justification.
 
@@ -780,74 +867,74 @@ number. For floating-point formats, except C<g> and C<G>, this
 specifies how many places right of the decimal point to show (the
 default being 6). For example:
 
-  # these examples are subject to system-specific variation
-  sprintf '<%f>', 1;    # RESULT: «"<1.000000>"␤»
-  sprintf '<%.1f>', 1;  # RESULT: «"<1.0>"␤»
-  sprintf '<%.0f>', 1;  # RESULT: «"<1>"␤»
-  sprintf '<%e>', 10;   # RESULT: «"<1.000000e+01>"␤»
-  sprintf '<%.1e>', 10; # RESULT: «"<1.0e+01>"␤»
+  # These examples are subject to system-specific variation.
+  sprintf '<%f>', 1;    # OUTPUT: «"<1.000000>"␤»
+  sprintf '<%.1f>', 1;  # OUTPUT: «"<1.0>"␤»
+  sprintf '<%.0f>', 1;  # OUTPUT: «"<1>"␤»
+  sprintf '<%e>', 10;   # OUTPUT: «"<1.000000e+01>"␤»
+  sprintf '<%.1e>', 10; # OUTPUT: «"<1.0e+01>"␤»
 
 For "g" and "G", this specifies the maximum number of digits to show,
 including those prior to the decimal point and those after it; for
 example:
 
   # These examples are subject to system-specific variation.
-  sprintf '<%g>', 1;        # RESULT: «<1>␤»
-  sprintf '<%.10g>', 1;     # RESULT: «<1>␤»
-  sprintf '<%g>', 100;      # RESULT: «<100>␤»
-  sprintf '<%.1g>', 100;    # RESULT: «<1e+02>␤»
-  sprintf '<%.2g>', 100.01; # RESULT: «<1e+02>␤»
-  sprintf '<%.5g>', 100.01; # RESULT: «<100.01>␤»
-  sprintf '<%.4g>', 100.01; # RESULT: «<100>␤»
+  sprintf '<%g>', 1;        # OUTPUT: «<1>␤»
+  sprintf '<%.10g>', 1;     # OUTPUT: «<1>␤»
+  sprintf '<%g>', 100;      # OUTPUT: «<100>␤»
+  sprintf '<%.1g>', 100;    # OUTPUT: «<1e+02>␤»
+  sprintf '<%.2g>', 100.01; # OUTPUT: «<1e+02>␤»
+  sprintf '<%.5g>', 100.01; # OUTPUT: «<100.01>␤»
+  sprintf '<%.4g>', 100.01; # OUTPUT: «<100>␤»
 
-For integer conversions, specifying a precision implies that the
-output of the number itself should be zero-padded to this width, where
-the C<0> flag is ignored:
+For integer conversions, specifying a precision implies the
+output of the number itself should be zero-padded to this width (where
+the C<0> flag is ignored):
 
 (Note that this feature currently works for unsigned integer conversions, but
 not for signed integer.)
 
   =begin code :skip-test<partly not yet implemented>
-  sprintf '<%.6d>', 1;      # <000001>
-  NYI sprintf '<%+.6d>', 1;     # <+000001>
-  NYI sprintf '<%-10.6d>', 1;   # <000001    >
-  sprintf '<%10.6d>', 1;    # <    000001>
-  NYI sprintf '<%010.6d>', 1;   #     000001>
-  NYI sprintf '<%+10.6d>', 1;   # <   +000001>
-  sprintf '<%.6x>', 1;         # RESULT: «<000001>␤»
-  sprintf '<%#.6x>', 1;        # RESULT: «<0x000001>␤»
-  sprintf '<%-10.6x>', 1;      # RESULT: «<000001    >␤»
-  sprintf '<%10.6x>', 1;       # RESULT: «<    000001>␤»
-  sprintf '<%010.6x>', 1;      # RESULT: «<    000001>␤»
-  sprintf '<%#10.6x>', 1;      # RESULT: «<  0x000001>␤»
+  sprintf '<%.6d>', 1;         # OUTPUT: «<000001>␤»
+  NYI sprintf '<%+.6d>', 1;    # OUTPUT: «<+000001>␤»
+  NYI sprintf '<%-10.6d>', 1;  # OUTPUT: «<000001    >␤»
+  sprintf '<%10.6d>', 1;       # OUTPUT: «<    000001>␤»
+  NYI sprintf '<%010.6d>', 1;  # OUTPUT: «<    000001>␤»
+  NYI sprintf '<%+10.6d>', 1;  # OUTPUT: «<   +000001>␤»
+  sprintf '<%.6x>', 1;         # OUTPUT: «<000001>␤»
+  sprintf '<%#.6x>', 1;        # OUTPUT: «<0x000001>␤»
+  sprintf '<%-10.6x>', 1;      # OUTPUT: «<000001    >␤»
+  sprintf '<%10.6x>', 1;       # OUTPUT: «<    000001>␤»
+  sprintf '<%010.6x>', 1;      # OUTPUT: «<    000001>␤»
+  sprintf '<%#10.6x>', 1;      # OUTPUT: «<  0x000001>␤»
   =end code
 
 For string conversions, specifying a precision truncates the string to
 fit the specified width:
 
-  sprintf '<%.5s>', "truncated";   # RESULT: «<trunc>␤»
-  sprintf '<%10.5s>', "truncated"; # RESULT: «<     trunc>␤»
+  sprintf '<%.5s>', "truncated";   # OUTPUT: «<trunc>␤»
+  sprintf '<%10.5s>', "truncated"; # OUTPUT: «<     trunc>␤»
 
 You can also get the precision from the next argument using C<.*>, or
 from a specified argument (e.g., with C<.*2$>):
 
   =begin code :skip-test<partly not yet implemented>
-  sprintf '<%.6x>', 1;       # RESULT: «<000001>␤»
-  sprintf '<%.*x>', 6, 1;    # RESULT: «<000001>␤»
-  NYI sprintf '<%.*2$x>', 1, 6;  # "<000001>"
-  NYI sprintf '<%6.*2$x>', 1, 4; # "<  0001>"
+  sprintf '<%.6x>', 1;           # OUTPUT: «<000001>␤»
+  sprintf '<%.*x>', 6, 1;        # OUTPUT: «<000001>␤»
+  NYI sprintf '<%.*2$x>', 1, 6;  # OUTPUT: «<000001>␤»
+  NYI sprintf '<%6.*2$x>', 1, 4; # OUTPUT: «<  0001>␤»
   =end code
 
 If a precision obtained through C<*> is negative, it counts as having
 no precision at all:
 
-  sprintf '<%.*s>',  7, "string";   # RESULT: «<string>␤»
-  sprintf '<%.*s>',  3, "string";   # RESULT: «<str>␤»
-  sprintf '<%.*s>',  0, "string";   # RESULT: «<>␤»
-  sprintf '<%.*s>', -1, "string";   # RESULT: «<string>␤»
-  sprintf '<%.*d>',  1, 0;          # RESULT: «<0>␤»
-  sprintf '<%.*d>',  0, 0;          # RESULT: «<>␤»
-  sprintf '<%.*d>', -1, 0;          # RESULT: «<0>␤»
+  sprintf '<%.*s>',  7, "string";   # OUTPUT: «<string>␤»
+  sprintf '<%.*s>',  3, "string";   # OUTPUT: «<str>␤»
+  sprintf '<%.*s>',  0, "string";   # OUTPUT: «<>␤»
+  sprintf '<%.*s>', -1, "string";   # OUTPUT: «<string>␤»
+  sprintf '<%.*d>',  1, 0;          # OUTPUT: «<0>␤»
+  sprintf '<%.*d>',  0, 0;          # OUTPUT: «<>␤»
+  sprintf '<%.*d>', -1, 0;          # OUTPUT: «<0>␤»
 
 =head3 Size
 
@@ -886,7 +973,7 @@ the next argument.
 So:
 
    my $a = 5; my $b = 2; my $c = 'net';
-   sprintf "<%*.*s>", $a, $b, $c; # RESULT: «<   ne>␤»
+   sprintf "<%*.*s>", $a, $b, $c; # OUTPUT: «<   ne>␤»
 
 uses C<$a> for the width, C<$b> for the precision, and C<$c> as the value to
 format; while:
@@ -897,33 +984,33 @@ NYI sprintf '<%*1$.*s>', $a, $b;
 would use C<$a> for the width and precision and C<$b> as the value to format.
 
 Here are some more examples; be aware that when using an explicit
-index, the C<$> may need escaping:
+index, the C<$> will need escaping if the format string is double-quoted:
 
 =for code :skip-test<partly not yet implemented>
-sprintf "%2\$d %d\n",      12, 34;     # RESULT: «34 12␤␤»
-sprintf "%2\$d %d %d\n",   12, 34;     # RESULT: «34 12 34␤␤»
-sprintf "%3\$d %d %d\n",   12, 34, 56; # RESULT: «56 12 34␤␤»
-NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # " 34 12\n"
-NYI sprintf "%*1\$.*f\n",       4,  5, 10; # "5.0000\n"
+sprintf "%2\$d %d\n",      12, 34;         # OUTPUT: «34 12␤␤»
+sprintf "%2\$d %d %d\n",   12, 34;         # OUTPUT: «34 12 34␤␤»
+sprintf "%3\$d %d %d\n",   12, 34, 56;     # OUTPUT: «56 12 34␤␤»
+NYI sprintf "%2\$*3\$d %d\n",  12, 34,  3; # OUTPUT: « 34 12␤␤»
+NYI sprintf "%*1\$.*f\n",       4,  5, 10; # OUTPUT: «5.0000␤␤»
 
 Other examples:
 
 =for code :skip-test<partly not yet implemented>
 NYI sprintf "%ld a big number", 4294967295;
 NYI sprintf "%%lld a bigger number", 4294967296;
-sprintf('%c', 97);                  # RESULT: «a␤»
-sprintf("%.2f", 1.969);             # RESULT: «1.97␤»
-sprintf("%+.3f", 3.141592);         # RESULT: «+3.142␤»
-sprintf('%2$d %1$d', 12, 34);       # RESULT: «34 12␤»
-sprintf("%x", 255);                 # RESULT: «ff␤»
+sprintf('%c', 97);                  # OUTPUT: «a␤»
+sprintf("%.2f", 1.969);             # OUTPUT: «1.97␤»
+sprintf("%+.3f", 3.141592);         # OUTPUT: «+3.142␤»
+sprintf('%2$d %1$d', 12, 34);       # OUTPUT: «34 12␤»
+sprintf("%x", 255);                 # OUTPUT: «ff␤»
 
 Special case: C«sprintf("<b>%s</b>\n", "Raku")» will not work, but
 one of the following will:
 
 =for code
-sprintf Q:b "<b>%s</b>\n",  "Raku"; # RESULT: «<b>Raku</b>␤␤»
-sprintf     "<b>\%s</b>\n", "Raku"; # RESULT: «<b>Raku</b>␤␤»
-sprintf     "<b>%s\</b>\n", "Raku"; # RESULT: «<b>Raku</b>␤␤»
+sprintf Q:b "<b>%s</b>\n",  "Raku"; # OUTPUT: «<b>Raku</b>␤␤»
+sprintf     "<b>\%s</b>\n", "Raku"; # OUTPUT: «<b>Raku</b>␤␤»
+sprintf     "<b>%s\</b>\n", "Raku"; # OUTPUT: «<b>Raku</b>␤␤»
 
 =head2 sub flat
 

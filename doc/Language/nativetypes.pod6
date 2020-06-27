@@ -55,14 +55,16 @@ counterparts:
 
 B<Note>: In v6.c, the default value for C<num> would have been a NaN.
 
-This is due to the fact that Natives don't know their types because they're just
-values, without any metadata. In
-L<multi-dispatch|/language/glossary#Multi-Dispatch>, you can have a native
-candidate, but you cannot differentiate different sizes of the same native type.
-That is, you can have an L<Int|/type/Int> and L<int|/type/int> candidates, but
-there would be an ambiguity between, for instance L<int|/type/int>,
-L<atomicint|/type/atomicint> or L<int64|/language/nativetypes#index-entry-int64>
-candidates.
+This is due to the fact that Natives don't know their types because
+they're just values, without any metadata. In
+L<multi-dispatch|/language/glossary#Multi-Dispatch>, you can have a
+native candidate, but you cannot differentiate different sizes or
+signedness of the same native type.  That is, you can have an
+L<Int|/type/Int> and L<int|/type/int> candidates, but there would be an
+ambiguity between, for instance L<int|/type/int>,
+L<uint|/language/nativetypes#index-entry-uint>,
+L<atomicint|/type/atomicint> or
+L<int64|/language/nativetypes#index-entry-int64> candidates.
 
 They cannot be bound either. Trying to do C<my num $numillo := 3.5> will
 raise the exception C<Cannot bind to natively typed variable
@@ -74,7 +76,7 @@ Native types can also be composite.
     my int @intillos = ^10_000_000;
     say [+] @intillos; # OUTPUT: «49999995000000␤»
 
-X<|native array>
+X<|native array>X<|array>
 In this case, I<native>ness extends to the composite type, which will be
 C<array>
 
@@ -86,9 +88,23 @@ they can be shaped:
 
 =begin code
 my str @letter-pairs[10] = 'a'..'j' Z~ 'A'..'J';
-say @letter-pairs.perl;
+say @letter-pairs.raku;
 # OUTPUT: «array[str].new(:shape(10,), ["aA", "bB", "cC", "dD", "eE", "fF", "gG", "hH", "iI", "jJ"])␤»
 =end code
+
+Native arrays of C<str> can only be used from version 6.d.
+
+These native types can also be used as attributes, and they can be used as
+bound targets, for instance in submethods like C<BUILD>:
+
+=for code
+class Foo {
+    has num $.numillo;
+    submethod BUILD( :$!numillo = 3.5e0 ) {}
+};
+my $foo = Foo.new;
+say $foo.raku; # OUTPUT: «Foo.new(numillo => 3.5e0)␤»
+
 
 X<|int8>X<|int16>X<|int32>X<|int64>X<|uint8>X<|uint16>X<|uint32>X<|uint64>
 X<|num32>X<|num64>X<|byte>
@@ -143,7 +159,7 @@ valid type, you can use it in expressions:
 
      use NativeCall;
      my void $nothing;
-     say $nothing.perl; # OUTPUT: «NativeCall::Types::void␤»
+     say $nothing.raku; # OUTPUT: «NativeCall::Types::void␤»
 
 In practice, it is an C<Uninstantiable> type that can rarely be used by itself,
 and in fact it is
@@ -155,7 +171,7 @@ pointer in C.
 =begin code :preamble<use NativeCall;>
 sub malloc( int32 $size --> Pointer[void] ) is native { * };
 my Pointer[void] $for-malloc = malloc( 32 );
-say $for-malloc.perl;
+say $for-malloc.raku;
 =end code
 
 You can also L<nativecast|/routine/nativecast> L<Blob|/type/Blob>s to this kind

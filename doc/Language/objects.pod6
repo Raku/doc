@@ -319,6 +319,30 @@ separated by a colon, the arguments: C<method invocant: arguments>. We can use
 this syntax whenever it feels more natural than the classical
 period-and-parentheses one. It works exactly in the same way.
 
+Note how the call to the C<notes> method in the C<Str> method is made on
+C<self>. Writing method calls this way will leave the return value of
+the method as is with regards to containers. To containerize return
+values, you can make method calls on a sigil instead of C<self>. This
+calls various methods on the return value of the method depending on the
+sigil used to containerize it:
+
+=begin table
+Sigil | Method
+==============
+ $    | item
+ @    | list
+ %    | hash
+ &    | item
+=end table
+
+For example, the C<Str> method of C<Journey> can be rewritten not to use
+the C<~> operator by embedding a sigiled method call in the string it
+returns:
+
+=begin code :skip-test<demonstrates another way of writing a method>
+method Str { "⤷ $!origin\n$ⲧ$.notes()$!destination ⤶\n" }
+=end code
+
 Method names can be resolved at runtime with the C<.""> operator.
 
 =begin code
@@ -345,7 +369,7 @@ A method call is the preferred approach to adding computation and
 logic to the update of an attribute. Many modern languages can update
 an attribute by overloading assignment with a “setter” method. While
 Raku can overload the assignment operator for this purpose with a
-L<C<Proxy>|https://github.com/perl6/roast/blob/master/S12-attributes/mutators.t>
+L<C<Proxy>|https://github.com/Raku/roast/blob/master/S12-attributes/mutators.t>
 object, overloading assignment to set attributes with complex logic is
 currently discouraged as
 L<weaker object oriented design|https://6guts.wordpress.com/2016/11/25/perl-6-is-biased-towards-mutators-being-really-simple-thats-a-good-thing/>.
@@ -449,14 +473,27 @@ will itemize; C<$.a> will be equivalent to C<self.a.item> or C<$(self.a)>.
 
 =begin code
 class A {
+    has Int @.numbers;
     has $.x = (1, 2, 3);
-    method b() { .say for self.x; .say for $.x }
+
+    method show-diff() { .say for self.x; .say for $.x }
+
+    method twice  { self.times: 2 }
+    method thrice { $.times: 3    }
+
+    method times($val = 1) { @!numbers.map(* * $val).list }
 };
-A.new.b; # OUTPUT: «1␤2␤3␤(1 2 3)␤»
+
+my $obj = A.new(numbers => [1, 2, 3]);
+$obj.show-diff;   # OUTPUT: «1␤2␤3␤(1 2 3)␤»
+say $obj.twice;   # OUTPUT: «(2 4 6)␤»
+say $obj.thrice;  # OUTPUT: «(3 6 9)␤»
 =end code
 
-The colon-syntax for method arguments is only supported for method calls
-using C<self>, not the shortcut.
+
+The colon-syntax for method arguments is supported for method calls
+using either C<self> or the shortcut, as illustrated with the methods
+C<twice> and C<thrice> in the example above.
 
 Note that if the relevant methods C<bless>, C<CREATE> of L<Mu|/type/Mu>
 are not overloaded, C<self> will point to the type object in those methods.
@@ -547,6 +584,7 @@ Classes can have I<parent classes>.
 =for code :preamble<class Parent1 {}; class Parent2 {};>
 class Child is Parent1 is Parent2 { }
 
+X<|MRO>
 If a method is called on the child class, and the child class does not
 provide that method, the method of that name in one of the parent classes is
 invoked instead, if it exists. The order in which parent classes are
@@ -582,6 +620,99 @@ my Parent $test;
 $test = Child.new;
 $test.frob;          # calls the frob method of Child rather than Parent
 # OUTPUT: «the child's somewhat more fancy frob is called␤»
+=end code
+
+If you want to explicitly call the parent method on a child object,
+refer to its full name in the parent namespace:
+
+=begin code :preamble<my $test>
+$test.Parent::frob;  # calls the frob method of Parent
+# OUTPUT: «the parent class frobs␤»
+=end code
+
+X<|delegation (trait handles)>
+=head2 Delegation
+
+Delegation is a technique whereby a member of an object (the I«delegatee») is
+evaluated in the context of another original object (the I«delegator»). In other
+words, all method calls on the delegator are I«delegated» to the delegatee.
+
+In Raku, delegation is specified by applying the L«handles|/language/typesystem#trait_handles»
+trait to an attribute. The arguments provided to the trait specify the methods
+the current object and the delegatee object will have in common. Instead of a
+list of method names, a C<Pair> (for renaming), a list of C<Pairs>, a C<Regex>
+or a C<Whatever> can be provided.
+
+=begin code
+class Book {
+    has Str  $.title;
+    has Str  $.author;
+    has Str  $.language;
+    has Cool $.publication;
+}
+
+class Product {
+    has Book $.book handles('title', 'author', 'language', year => 'publication');
+}
+
+my $book = Book.new:
+    :title<Dune>,
+    :author('Frank Herbert'),
+    :language<English>,
+    :publication<1965>
+;
+
+given Product.new(:$book) {
+    say .title;    # OUTPUT: «Dune␤»
+    say .author;   # OUTPUT: «Frank Herbert␤»
+    say .language; # OUTPUT: «English␤»
+    say .year;     # OUTPUT: «1965␤»
+}
+=end code
+
+In the example above, the class C«Product» defines the attribute C«$.book»
+and mark it with the C«handles» trait to specify the methods that will be
+forwarded to the class C«Book» whenever they're invoked on an instance
+object of the C«Product» class. There are a few things to notice here:
+
+=item We didn't write any methods inside the C«Product» class that we invoked
+in its instance object. Instead, we instructed the class to delegate a call to
+any those methods to the C«Book» class.
+
+=item We've specified the method names C«title», C«author», and C«language»
+as they appear in the C«Book» class. On the other hand, we've renamed
+the C«publication» method to C«year» by providing the appropriate C«Pair».
+
+Delegation can be used as an alternative to inheritance by delegating
+to the parent class and not inheriting all of its methods. For example, the
+following C«Queue» class delegates several methods proper of queues
+to the L«Array|/type/Array» class while also providing a preferred interface for
+a few of those methods (e.g., C«enqueue» for C«push»):
+
+=begin code
+class Queue {
+    has @!q handles(
+        enqueue => 'push', dequeue => 'shift',
+        'push', 'shift', 'head', 'tail', 'elems', 'splice'
+    );
+
+    method gist {
+        '[' ~ @!q.join(', ') ~ ']'
+    }
+}
+
+my Queue $q .= new;
+$q.enqueue($_) for 1..5;
+$q.push(6);
+say $q.shift;                  # OUTPUT: «1␤»
+say $q.dequeue while $q.elems; # OUTPUT: «2␤3␤4␤5␤6␤»
+
+$q.enqueue($_) for <Perl Python Raku Ruby>;
+say $q.head;                   # OUTPUT: «Perl␤»
+say $q.tail;                   # OUTPUT: «Ruby␤»
+say $q;                        # OUTPUT: «[Perl, Python, Raku, Ruby]␤»
+$q.dequeue while $q.elems;
+say $q;                        # OUTPUT: «[]␤»
 =end code
 
 X<|new (method)>
@@ -891,10 +1022,10 @@ class C does R1 does R2 { }
 
 =head2 Stubs
 
-When a role contains a L<stubbed|/routine/...> method,
-a non-stubbed version of a method of the same name must be supplied
-at the time the role is applied to a class. This allows you to
-create roles that act as abstract interfaces.
+When a role contains a stubbed method, that is, a method whose code is limited
+to C<...>, a non-stubbed version of a method of the same name must be supplied
+at the time the role is applied to a class. This allows you to create roles that
+act as abstract interfaces.
 
 =begin code :skip-test<illustrates error>
 role AbstractSerializable {

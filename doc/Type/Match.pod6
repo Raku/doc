@@ -6,7 +6,7 @@
 
     class Match is Capture is Cool does NQPMatchRole {}
 
-C<Match> objects are the result of a successful regex match, this does include
+C<Match> objects are the result of a successful regex match, including
 any zero-width match. They store a reference to the original string (C<.orig>),
 positional and named captures, the positions of the start and end of the match
 in the original string, and a payload referred to as I<AST> (abstract syntax
@@ -21,7 +21,8 @@ expression, as shown here:
     'abc' ~~ /.$${ $c = $¢ }/;
     say $c; # OUTPUT: «｢c｣␤»
 
-In this case, we are running the code among curly braces when the match occurs,
+In this example we are running the code among curly braces when the match
+occurs,
 in this case the last letter in the string (actually, the last, indicated by the
 double C<$>, character); C<$c> gets the value of the cursor C<$¢>, which
 contains the C<Match>; when used with C<say>, the C<Match> is stringified by
@@ -75,7 +76,8 @@ in progress:
     my $a = 'abcdef';
     $a ~~ /b. {say $/.pos }../; say $/.pos;     # OUTPUT: «3␤»
 
-You should not use this method on finished Match, as the output can be implementation
+You should not use this method on finished C<Match>, as the output can be
+implementation
 specific.
 
 =head2 method target
@@ -89,7 +91,12 @@ Returns a string representation of the object against which the regex matches. T
 
 =head2 method chars
 
-Returns the numbers of characters in the matched string.
+Defined as:
+
+    method chars()
+
+Returns the numbers of characters in the matched string or 0 if there's been
+no match.
 
 Returns the same as C<.Str.chars>.
 
@@ -103,6 +110,10 @@ Clones the C<Match> object.
 
 =head2 method orig
 
+Defined as:
+
+    method orig()
+
 Returns the original input to the regex engine, which is usually a string,
 but doesn't need to be (could be anything that can be coerced to a string):
 
@@ -114,17 +125,25 @@ See L<#method target> for a close equivalent that always returns a string.
 
 =head2 method from
 
+Defined as:
+
+    method from()
+
 Returns the index of the starting position of the match.
 
 =head2 method to
+
+    method to()
 
 Returns the index of the end position of the match.
 
 =head2 method made
 
+    method made()
+
 Returns the payload that was set with L<C<make>|/routine/make>.
 
-=head2 method make
+=head2 routine make
 
 Defined as
 
@@ -136,12 +155,16 @@ Sets the C<.ast> attribute, which will be retrieved using C<.made>.
     $/.make("your payload here");
 
 That is, it stores an arbitrary payload into the C<Match> object that can later
-be retrieved via L«C<.made>|/routine/made» method.
+be retrieved via L«C<.made>|/routine/made» method. Since the sub form
+operates, by default, on C<$/>, that example is equivalent to:
+
+    make("your payload here");
 
 This is typically used in a L<grammar|/language/grammars>'s actions class
 methods, where a piece of data is stored by one method and then later retrieved
 by another. It's up to you what data you store. It could be a tree node, L<result
-of a calculation|/language/grammars#Protoregexes>, or a list of values.
+of a calculation|/language/grammars#Protoregexes>, a type object, or a list of
+values.
 
 The sub form operates on the current Match C<$/>, which can be a convenient shortcut:
 
@@ -248,6 +271,19 @@ Returns the part of the original string following the match.
     # will return a list of three match objects
     "abc123def" ~~ m:g/\d/;
     say $/.[1].postmatch;     # OUTPUT: «3def␤»
+
+=head2 method replace-with
+
+Defined as:
+
+    multi method replace-with(Match:D: Str() $replacement --> Str:D)
+
+Returns the invocant string where the C«Match» object is replaced by
+C«$replacement».
+
+    my Str $some-string = "Some foo";
+    my Match $match = $some-string.match(/foo/);
+    my $another-string = $match.replace-with("string"); # «Some string»
 
 =head2 method infix:<eqv>
 

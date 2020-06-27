@@ -8,7 +8,8 @@
 
 A C<Lock::Async> instance provides a mutual exclusion mechanism: when the
 lock is held, any other code wishing to C<lock> must wait until the holder
-calls C<unlock>.
+calls C<unlock>, which helps against all kinds of issues resulting from
+data being read and modified simultaneously from different threads.
 
 Unlike L<Lock|/type/Lock>, which provides a traditional OS-backed mutual
 exclusion mechanism, C<Lock::Async> works with the high-level concurrency
@@ -88,41 +89,69 @@ Defined as:
 
     method protect(Lock::Async:D: &code)
 
-Calls C<lock>, does an C<await> to wait for the lock to be available,
-and reliably calls C<unlock> afterwards, even if the code throws an
-exception.
+This method reliably wraps code passed to C<&code> parameter with a
+lock it is called on.  It calls C<lock>, does an C<await> to wait for
+the lock to be available, and reliably calls C<unlock> afterwards,
+even if the code throws an exception.
 
-Note that the L<Lock::Async|/type/Lock::Async> itself needs to be created outside the portion
-of the code that gets threaded and it needs to protect. In the first
-example below, L<Lock::Async|/type/Lock::Async> is first created and assigned to C<$lock>,
-which is then used I<inside> the L<Promises|/type/Promise> to protect
-the sensitive code. In the second example, a mistake is made, the
-C<Lock::Async> is created right inside the L<Promise|/type/Promise>, so the code ends up
-with a bunch of separate locks, created in a bunch of threads, and
-thus they don't actually protect the code we want to protect.
+Note that the L<Lock::Async|/type/Lock::Async> itself needs to be
+created outside the portion of the code that gets threaded and it
+needs to protect. In the first example below,
+L<Lock::Async|/type/Lock::Async> is first created and assigned to
+C<$lock>, which is then used I<inside> the L<Promises|/type/Promise>
+code to protect the sensitive code. In the second example, a mistake is
+made, the C<Lock::Async> is created right inside the
+L<Promise|/type/Promise>, so the code ends up with a bunch of different
+locks, created in a bunch of threads, and thus they don't actually
+protect the code we want to protect. Modifying an Array I<simultaneously>
+from different in the second example is not safe and leads to memory errors.
+
+=begin code :preamble<my @writers>
+    # Compute how many prime numbers there are in first 10 000 of them
+    # using 50 threads
+    my @primes = 0 .. 10_000;
+    my @results;
+    my @threads;
 
     # Right: $lock is instantiated outside the portion of the
-    # code that will get threaded and be in need of protection
+    # code that will get threaded and be in need of protection,
+    # so all threads share the lock
     my $lock = Lock::Async.new;
-    await ^20 .map: {
-        start {
+    for ^50 -> $thread {
+        @threads.push: start {
             $lock.protect: {
-                print "Foo";
-                sleep rand;
-                say "Bar";
+                my $from = $thread * 200;
+                my $to = ($thread + 1) * 200;
+                @results.append: @primes[$from..$to].map(*.is-prime);
             }
         }
     }
 
-    # !!! WRONG !!! Lock::Async is instantiated inside threaded area!
-    await ^20 .map: {
-        start {
+    # await for all threads to finish calculation
+    await Promise.allof(@writers);
+    # say how many prime numbers we found
+    say "We found " ~ @results.grep(*.value).elems ~ " prime numbers";
+=end code
+
+The example below demonstrates the wrong approach: without proper locking
+this code will work most of the time, but occasionally will result
+in bogus error messages or low-level memory errors:
+
+=begin code :preamble<my @threads;my @results; my @primes>
+    # !!! WRONG !!! Lock::Async is instantiated inside threaded area,
+    # so all the 20 threads use 20 different locks, not syncing with
+    # each other
+    for ^50 -> $thread {
+        @threads.push: start {
             my $lock = Lock::Async.new;
             $lock.protect: {
-                print "Foo"; sleep rand; say "Bar";
+                my $from = $thread * 200;
+                my $to = ($thread + 1) * 200;
+                @results.append: @primes[$from..$to].map(*.is-prime);
             }
         }
     }
+=end code
 
 =head2 method protect-or-queue-on-recursion
 

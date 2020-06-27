@@ -47,7 +47,7 @@ Works well instead.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
-`https://docs.perl6.org/blah/blah`). Other variations of the URL will
+`https://docs.raku.org/blah/blah`). Other variations of the URL will
 still work, for convenience, but they all simply redirect to the
 canonical version, so it's best to use it from the start.
 
@@ -71,11 +71,9 @@ Try to avoid abbreviations. For example, “RHS” is short, but
 “right-hand side” is much clearer for beginners.
 
 In general, try to put yourself in the shoes of someone with no
-previous exposition to the language (or computer science
-altogether). Although it might seem obvious to
-you that only the first line can in fact initialize a hash, the
-documentation is targeted at people with no previous exposition to the
-language.
+previous exposure to the language or computer science. Although it
+might seem obvious to you that only the first line can in fact
+initialize a hash, the documentation is targeted at such novices.
 
 ### 'say' vs 'put'
 
@@ -88,7 +86,7 @@ Additionally, add a comment showing the intended output, e.g.:
     say 3.^name; #OUTPUT: «Int␤»
 
 For examples where a particular format is required, or exact data is expected
-(e.g. for something sent over a network connection), prefer 'put'.
+(e.g., for something sent over a network connection), prefer 'put'.
 
 ### 'parameter' vs 'argument'
 
@@ -114,15 +112,15 @@ objects.
 
 Be consistent when using this kind of constructs. Generally, the form
 with no dash or space is preferred.  As of
-[issue 2015](https://github.com/perl6/doc/issues/2015) the term must
+[issue 2015](https://github.com/Raku/doc/issues/2015) the term must
 be written without spaces between words. When in doubt, search for the
 term in the documentation and stick to the form that is used the most
 (and create an issue to change the form that is not).
 
-### Use present tense when talking about Perl 5 features
+### Use present tense when talking about Perl features
 
-Perl 5 is still an active language, therefore instead of "In Perl 5
-this was used for ..., but in Raku ..."  use a form like "In Perl 5
+Per5 is still an active language, therefore instead of "In Perl
+this was used for ..., but in Raku ..."  use a form like "In Perl
 this is used for ..., but in Raku ..."  ('was' has been made a
 present 'is').
 
@@ -135,8 +133,7 @@ stick to easily understandable names:
     my $ßub; # BAD; Is it a twigil? How do I type this? HELP!
 
 If you want to add some fancy characters, please stick to
-[well-known characters from our Unicode set](https://docs.perl6.org/language/unicode_ascii).
-
+[well-known characters from our Unicode set](https://docs.raku.org/language/unicode_ascii).
 ### Prefer non-ASCII syntax in examples
 
     my @infinite-sequence = 1, 3 … ∞     # GOOD
@@ -146,7 +143,8 @@ If you want to add some fancy characters, please stick to
 
 All operators have an ASCII equivalent, but they are more verbose and
 do not correspond exactly to the mathematical operator or constant
-they often represent. Please use that syntax whenever possible.
+they often represent. Please use that syntax (the Unicode mathematical
+operator or constant) whenever possible.
 
 ### Try to express intent, rather than just demonstrating the syntax
 
@@ -161,13 +159,13 @@ memory until they are needed. However, the last one is better because
 it includes a real use case: in the progression, Raku does not need
 to actually compute its terms until they are really needed.
 
-## Perl 5 and Raku
+## Perl and Raku
 
-Style guidelines related to Perl *.
+Style guidelines related to Perl family languages.
 
-### Don't reference Perl 5 unless in a 5-to-6 document or related document
+### Don't reference Perl unless in a 5-to-6 document or related document
 
-We are not expecting our users to have to know Perl 5 to learn Raku,
+We are not expecting our users to have to know Perl to learn Raku,
 so this should not be part of the bulk of the documentation.
 
 ### Use non-breaking spaces when dealing with Perl version numbers
@@ -190,7 +188,7 @@ roast test suite)
 
 * If something is visible to users of Raku and is in roast: document it.
 * If something is visible to users of Raku and is not in roast:
-  check with the dev team (#perl6-dev on freenode) - This might need
+  check with the dev team (#raku-dev on freenode) - This might need
   have a test added (and therefore docs), or it might need to be
   hidden so users cannot see it. In general, documentation of
   implementation-specific features should be avoided; however, if
@@ -199,16 +197,16 @@ roast test suite)
   the first and latest version the documented feature is available.
 
 Future considerations along this line include: documenting things that
-are rakudo specific (like "dd"), and documenting which versions of the
+are Rakudo specific (like "dd"), and documenting which versions of the
 spec items are available in.
 
 ## Use of HTML
 
-Generally, Pod 6 should be more than enough for any
+Generally, Pod6 should be more than enough for any
 documentation. However, if you need to embed HTML into the
-documentation after thinking it twice, bear in mind that we support
+documentation after thinking about it twice, bear in mind that we support
 the current and previous major releases of Chrome, Firefox, Internet
-Explorer (Edge), and Safari. Please test layout changes.  Lacking
+Explorer (Edge), and Safari. Please test layout changes. Lacking
 actual browsers to test in, you can use
 [browsershots.org](http://browsershots.org) or
 [browserstack.com](http://browserstack.com). Ensure the layout looks

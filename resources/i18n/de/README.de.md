@@ -11,7 +11,7 @@ Ausserdem gibt es ein Kommandozeilen-Tool namens "p6doc".
 
 (Falls du dieses Repository via GitHub nutzt, werden die meisten
 Dateien nicht korrekt angezeigt, weil sie in Raku Pod geschrieben
-sind, GitHub aber Perl 5 Pod an nimmt).
+sind, GitHub aber Perl Pod an nimmt).
 
 ## README in anderen Sprachen
 
@@ -116,7 +116,7 @@ Hier einige Möglichkeiten, uns dabei zu unterstützen:
  * Verwende `git grep TODO` in diesem Repository und ersetze TODO
    Abschnitte durch die eigentliche Dokumentation.
 
-[Issues page](https://github.com/perl6/doc/issues) hat eine Liste der
+[Issues page](https://github.com/Raku/doc/issues) hat eine Liste der
 derzeitigen Problemmeldungen und bekannte fehlende Teile der
 Dokumentation. Das Dokument [CONTRIBUTING](CONTRIBUTING.md) erklärt
 kurz wie du beginnen kannst, zur Dokumentation beizutrage.
@@ -182,6 +182,6 @@ Kategorie:
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Beispiele von Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Beispiele von Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Tabellen-Sortier-Plugin von https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

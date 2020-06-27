@@ -8,11 +8,37 @@ See L<creating operators|/language/optut> on how to define new operators.
 
 =head1 Operator precedence
 
-In an expression like C<1 + 2 * 3>, the C<2 * 3> is evaluated first
-because the infix C<*> has tighter B<precedence> than the C<+>.
+The precedence and associativity of Raku operators determine the order of
+evaluation of operands in expressions.
 
-The following table summarizes the precedence levels in Raku, from
-tightest to loosest:
+Where two operators with a different precedence act on the same operand, the
+subexpression involving the higher-precedence operator is evaluated first. For
+instance, in the expression C<1 + 2 * 3>, both the binary C<+> operator for
+addition and the binary C<*> operator for multiplication act on the operand
+C<2>. Because the C<*> operator has a higher precedence than the C<+> operator,
+the subexpression C<2 * 3> will be evaluated first. Consequently, the resulting
+value of the overall expression is C<7> and not C<9>.
+
+Instead of "precedence" one can also speak of "binding": operators with a higher
+precedence are then said to have a tighter binding to the operand(s) in
+question, while operators with a lower precedence are said to have a looser
+binding. In practice one may also encounter blends of terminology, such as
+statements that an operator has a tighter or looser precedence.
+
+Where two operators with a same precedence level act on an operand, the
+associativity of the operators determines which subexpression/operator is
+evaluated first. For instance, in the expression C<100 / 2 * 10>, the binary
+division operator C</> and the binary multiplication operator C<*> have equal
+precedence, so that the order of their evaluation is determined by their
+associativity. As the two operators are I<left associative>, operations are
+grouped from the left like this: C<(100 / 2) * 10>. The expression thus
+evaluates to C<500>, rather than to C<5>.
+
+The following table summarizes the precedence levels (column labeled C<Level>)
+offered by Raku, listing them in order from high to low precedence. For each
+precedence level the table also indicates the associativity of the operators
+assigned to that level (column labeled C<A>), and some exemplary operators
+(column labeled C<Examples>).
 
 =begin table
 
@@ -48,9 +74,10 @@ tightest to loosest:
 
 =end table
 
-Using two C<!> symbols below generically to represent any pair of operators
-that have the same precedence, the associativities specified above
-for binary operators are interpreted as follows:
+The following table further clarifies the meaning of the associativity symbols
+(C<L R N C X>) specified above in column C<A>. Using a fictitious C<!> binary
+operator symbol, it shows how each associativity affects the interpretation of
+an expression involving two such operators of equal precedence:
 
 =begin table
 
@@ -64,7 +91,8 @@ for binary operators are interpreted as follows:
 
 =end table
 
-For unary operators this is interpreted as:
+For unary operators generically represented by a C<!> symbol, the
+associativities C<L R N> lead to the following interpretations:
 
 =begin table
 
@@ -207,7 +235,7 @@ that measures the distance between original value and the resultant string.
 
     my $str = 'old string';
     $str ~~ tr:c:d/dol st//;
-    say $str; # OUTPUT: «ring␤»
+    say $str; # OUTPUT: «old st␤»
 
 =head2 X«C<TR///> non-destructive transliteration»
 
@@ -223,32 +251,131 @@ value untouched and instead returns the resultant string.
 
 =head1 Assignment operators
 
-Infix operators can be combined with the assignment operator to modify a
-value and apply the result to a container in one go. Containers will be
-autovivified if possible. Some examples:
+Raku has a variety of assignment operators, which can be roughly classified as
+simple assignment operators and compound assignment operators.
+
+The simple assignment operator symbol is C<=>. It is 'overloaded' in the sense
+that it can mean either L<item
+assignment|/language/operators#infix_=_(item_assignment)> or L<list
+assignment|/language/operators#infix_=_(list_assignment)> depending on the
+context in which it is used:
+
+    my $x = 1;        # item assignment; $x = 1
+    my @x = 1,2,3;    # list assignment; @x = [1,2,3]
+
+See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a more elaborate
+and comparative discussion of these two types of assignment.
+
+The compound assignment operators are
+L<metaoperators|/language/operators#Metaoperators>: they combine the simple
+assignment operator C<=> with an infix operator to form a new operator that
+performs the operation specified by the infix operator before assigning the
+result to the left operand. Some examples of built-in compound assignment
+operators are C<+=>, C<-=>, C<*=>, C</=>, C<min=>, and C<~=>. Here is how they
+work:
 
     my $a = 32;
-    $a += 10;     # 42
-    $a -= 2;      # 40
+    $a += 10;         # $a = 42
+    $a -= 2;          # $a = 40
 
     $a = 3;
-    $a min= 5;    # still 3
-    $a min= 2;    # 2
+    $a min= 5;        # $a = 3
+    $a min= 2;        # $a = 2
 
     my $s = 'a';
-    $s ~= 'b';    # 'ab'
+    $s ~= 'b';        # $s = 'ab'
 
-This behavior is automatically extended to include custom-defined infix operators.
-
+    # And an example of a custom operator:
     sub infix:<space-concat> ($a, $b) { $a ~ " " ~ $b };
     my $a = 'word1';
-    $a space-concat= 'word2';     # RESULT: «'word1 word2'»
+    $a space-concat= 'word2';                 # OUTPUT: «'word1 word2'␤»
 
-Although not strictly operators, methods can be used in the same fashion.
+One thing the simple and compound assignment operators have in common is that
+they form so-called I<assignment expressions> that return or evaluate to the
+assigned value:
 
-    my Real $a = 1/2;
-    $a = 3.14;
-    $a .= round;      # RESULT: «3»
+    my sub fac (Int $n) { [*] 1..$n };        # sub for calculating factorial
+    my @x = ( my $y = fac(100), $y*101 );     # @x = [100!, 101!]
+
+    my $i = 0;
+    repeat { say $i } while ($i += 1) < 10;   # OUTPUT: «0,1,2,...9␤»
+
+In the first example, the assignment expression C<my $y = fac(100)> declares
+C<$y>, assigns the value C<fac(100)> to it, and finally returns the assigned
+value C<fac(100)>. The returned value is then taken into account for
+constructing the List. In the second example the compound-assignment expression
+C<$i += 1> assigns the value C<$i + 1> to C<$i>, and subsequently evaluates to
+the assigned value C<$i+1>, thus allowing the returned value to be used for
+judging the while loop condition.
+
+In dealing with simple and compound assignment operators, it is tempting to
+think that for instance the following two statements are (always) equivalent:
+
+    =for code :skip-test<pseudo code>
+    expression1 += expression2;                     # compound assignment
+    expression1  = expression1 + expression2;       # simple assignment
+
+They are not, however, for two reasons. Firstly, C<expression1> in the compound
+assignment statement is evaluated only once, whereas C<expression1> in the
+simple assignment statement is evaluated twice. Secondly, the compound
+assignment statement may, depending on the infix operator in question,
+implicitly initialize C<expression1> if it is a variable with an undefined
+value. Such initialization will not occur for C<expression1> in the simple
+assignment statement.
+
+The aforementioned two differences between the simple and compound assignment
+statements are briefly elucidated below.
+
+The first difference is common amongst programming languages and mostly
+self-explanatory. In the compound assignment, there is only one C<expression1>
+that is explicitly specified to serve both as a term of the addition to be
+performed and as the location where the result of the addition, the sum, is to
+be stored. There is thus no need to evaluate it twice. The simple assignment, in
+contrast, is more generic in the sense that the value of the C<expression1> that
+serves as a term of the addition need not necessarily be the same as the value
+of the C<expression1> that defines the location where the sum must be stored.
+The two expressions are therefore evaluated separately. The distinction is
+particularly relevant in cases where the evaluation of C<expression1> has side
+effects in the form of changes to one or more variables:
+
+    my @arr = [10, 20, 30];
+    my $i = 0;
+
+    if rand < 1/2 {
+        @arr[++$i] += 1;                # @arr = [10,21,30]
+    } else {
+        @arr[++$i] = @arr[++$i] + 1;    # @arr = [10,31,30] (or [10,20,21]?)
+    }                                   # the result may be implementation-specific
+    say @arr;
+
+The second difference pointed out above is related to the widespread practice of
+using compound assignment operators in I<accumulator patterns>. Such patterns
+involve a so-called I<accumulator>: a variable that calculates the sum or a
+product of a series of values in a loop. To obviate the need for explicit
+accumulator initialization, Raku's compound assignment operators silently take
+care of the initialization where this is sensibly possible:
+
+    my @str = "Cleanliness is next to godliness".comb;
+    my ($len, $str);
+    for @str -> $c {
+      $len += 1;
+      $str ~= $c;
+    }
+    say "The string '$str' has $len characters.";
+
+In this example the accumulators C<$len> and C<$str> are implicitly initialized
+to C<0> and C<"">, respectively, which illustrates that the initialization value
+is operator-specific. In this regard it is also noted that not all compound
+assignment operators can sensibly initialize an undefined left-hand side
+variable. The C</=> operator, for instance, will not arbitrarily select a value
+for the dividend; instead, it will throw an exception.
+
+Although not strictly operators, methods can be used in the same fashion as
+compound assignment operators:
+
+    my $a = 3.14;
+    $a .= round;      # $a = $a.round; OUTPUT: «3»
 
 =head1 Negated relational operators
 X<|! (negation metaoperator)>X<|!==>X<|!eq>
@@ -319,7 +446,8 @@ the blunt end at the list to be operated on.
     say !« @wisdom;     # OUTPUT: «[False True False]␤»
 
     my @a = 1, 2, 3;
-    @a»++;              # OUTPUT: «(2, 3, 4)␤»
+    @a»++;
+    say @a;             # OUTPUT: «[2 3 4]␤»
 
 Hyper operators are defined recursively on nested arrays.
 
@@ -432,10 +560,10 @@ C<\> already, quote it with C<[]> (e.g. C<[\[\x]]>).
 X<|X (cross metaoperator)>
 
 The cross metaoperator, C<X>, will apply a given infix operator in order of
-cross product to all lists, such that the rightmost operator varies most
+cross product to all lists, such that the rightmost operand varies most
 quickly.
 
-    1..3 X~ <a b> # RESULT: «<1a, 1b, 2a, 2b, 3a, 3b>␤»
+    1..3 X~ <a b> # OUTPUT: «<1a, 1b, 2a, 2b, 3a, 3b>␤»
 
 =head1 Zip metaoperator
 X<|Z (zip metaoperator)>
@@ -444,19 +572,19 @@ The zip metaoperator (which is not the same thing as L<Z|#infix_Z>) will
 apply a given infix operator to pairs taken one left, one right, from its
 arguments. The resulting list is returned.
 
-    my @l = <a b c> Z~ 1, 2, 3;     # RESULT: «[a1 b2 c3]␤»
+    my @l = <a b c> Z~ 1, 2, 3;     # OUTPUT: «[a1 b2 c3]␤»
 
 If one of the operands runs out of elements prematurely, the zip operator will
 stop. An infinite list can be used to repeat elements. A list with a final
 element of C<*> will repeat its 2nd last element indefinitely.
 
-    my @l = <a b c d> Z~ ':' xx *;  # RESULT: «<a: b: c: d:>»
-       @l = <a b c d> Z~ 1, 2, *;   # RESULT: «<a1 b2 c2 d2>»
+    my @l = <a b c d> Z~ ':' xx *;  # OUTPUT: «<a: b: c: d:>»
+       @l = <a b c d> Z~ 1, 2, *;   # OUTPUT: «<a1 b2 c2 d2>»
 
 If an infix operator is not given, the C<,> (comma operator) will be used by
 default:
 
-    my @l = 1 Z 2;  # RESULT: «[(1 2)]»
+    my @l = 1 Z 2;  # OUTPUT: «[(1 2)]»
 
 =head1 Sequential operators
 X<|S,sequential metaoperator>
@@ -527,7 +655,7 @@ L<hash|/routine/hash> routine instead:
 The X<L<Array|/type/Array> constructor> returns an itemized L<Array|/type/Array> that does not flatten
 in list context. Check this:
 
-    say .perl for [3,2,[1,0]]; # OUTPUT: «3␤2␤$[1, 0]␤»
+    say .raku for [3,2,[1,0]]; # OUTPUT: «3␤2␤$[1, 0]␤»
 
 This array is itemized, in the sense that every element constitutes an item, as
 shown by the C<$> preceding the last element of the array, the
@@ -553,10 +681,10 @@ Universal interface for positional access to zero or more elements of a
     say @alphabet[*-1];                 # OUTPUT: «z␤»
     say @alphabet[100]:exists;          # OUTPUT: «False␤»
     say @alphabet[15, 4, 17, 11].join;  # OUTPUT: «perl␤»
-    say @alphabet[23 .. *].perl;        # OUTPUT: «("x", "y", "z")␤»
+    say @alphabet[23 .. *].raku;        # OUTPUT: «("x", "y", "z")␤»
 
     @alphabet[1, 2] = "B", "C";
-    say @alphabet[0..3].perl            # OUTPUT: «("a", "B", "C", "d")␤»
+    say @alphabet[0..3].raku;           # OUTPUT: «("a", "B", "C", "d")␤»
 
 See L<Subscripts|/language/subscripts>, for a more detailed explanation of this
 operator's behavior and for how to implement support for it in custom types.
@@ -571,11 +699,11 @@ Universal interface for associative access to zero or more elements of a
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     say %color{"banana"};                 # OUTPUT: «yellow␤»
-    say %color{"cherry", "kiwi"}.perl;    # OUTPUT: «("red", "green")␤»
+    say %color{"cherry", "kiwi"}.raku;    # OUTPUT: «("red", "green")␤»
     say %color{"strawberry"}:exists;      # OUTPUT: «False␤»
 
     %color{"banana", "lime"} = "yellowish", "green";
-    %color{"cherry"}:delete;
+    %color{"cherry"}:delete; # note that value is always returned but removal only happens when delete is true.
     say %color;             # OUTPUT: «banana => yellowish, kiwi => green, lime => green␤»
 
 See L«C«postcircumfix < >»|/routine/< >#(Operators)_postcircumfix_<_>» and
@@ -592,10 +720,10 @@ it independent of the container type.
 =begin code
 use JSON::Tiny;
 
-my $config = from-json('{ "files": 3, "path": "/home/perl6/perl6.pod6" }');
-say $config.perl;      # OUTPUT: «${:files(3), :path("/home/perl6/perl6.pod6")}»
+my $config = from-json('{ "files": 3, "path": "/home/some-user/raku.pod6" }');
+say $config.raku;      # OUTPUT: «${:files(3), :path("/home/some-user/raku.pod6")}»
 my %config-hash = $config<>;
-say %config-hash.perl; # OUTPUT: «{:files(3), :path("/home/perl6/perl6.pod6")}»
+say %config-hash.raku; # OUTPUT: «{:files(3), :path("/home/some-user/raku.pod6")}»
 =end code
 
 It's a C<Hash> in both cases, and it can be used like that; however, in the
@@ -610,7 +738,7 @@ that quotes its argument using the same rules as the L«quote-words operator|
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     say %color<banana>;               # OUTPUT: «yellow␤»
-    say %color<cherry kiwi>.perl;     # OUTPUT: «("red", "green")␤»
+    say %color<cherry kiwi>.raku;     # OUTPUT: «("red", "green")␤»
     say %color<strawberry>:exists;    # OUTPUT: «False␤»
 
 Technically, not a real operator; it's syntactic sugar that's turned into the
@@ -625,7 +753,7 @@ of the same name.
 
     my %color = kiwi => "green", banana => "yellow", cherry => "red";
     my $fruit = "kiwi";
-    say %color«cherry "$fruit"».perl;   # OUTPUT: «("red", "green")␤»
+    say %color«cherry "$fruit"».raku;   # OUTPUT: «("red", "green")␤»
 
 Technically, not a real operator; it's syntactic sugar that's turned into the
 C<{ }> postcircumfix operator at compile-time.
@@ -639,7 +767,7 @@ Note that an identifier followed by a pair of parentheses is always parsed as a
 subroutine call.
 
 If you want your objects to respond to the call operator,
-implement a C<method CALL-ME>.
+implement a L«C<method CALL-ME>|/routine/CALL-ME».
 
 =head2 methodop C«.»
 
@@ -677,6 +805,17 @@ metaclass. It desugars to C<$invocant.HOW.method($invocant, ...)>. See
 L<the metaobject protocol documentation|/language/mop> for more information.
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
+It can be also applied, within classes, to access metamethods on self:
+
+=for code
+class Foo {
+    has $.a = 3;
+    method bar {
+        return $.^name
+    }
+};
+say Foo.new.bar; # OUTPUT: «Foo␤»
+
 
 X«|methodop .?»
 =head2 methodop C«.?»
@@ -690,7 +829,7 @@ Technically, not a real operator; it's syntax special-cased in the compiler.
 X«|methodop .+»
 =head2 methodop C«.+»
 
-C<$foo.+meth> walks the MRO and calls all the methods called C<meth> and
+C<$foo.+meth> walks the L<MRO|/language/objects#index-entry-MRO> and calls all the methods called C<meth> and
 submethods called C<meth> if the type is the same as type of C<$foo>. Those
 methods might be multis, in which case the matching candidate would be called.
 
@@ -714,7 +853,7 @@ was found, it throws a L<X::Method::NotFound|/type/X::Method::NotFound> exceptio
 X«|methodop .*»
 =head2 methodop C«.*»
 
-C<$foo.*meth> walks the MRO and calls all the methods called C<meth> and
+C<$foo.*meth> walks the L<MRO|/language/objects#index-entry-MRO> and calls all the methods called C<meth> and
 submethods called C<meth> if the type is the same as type of C<$foo>. Those
 methods might be multis, in which case the matching candidate would be called.
 
@@ -800,8 +939,8 @@ method call.
 
 Technically, not a real operator; it's syntax special-cased in the compiler.
 
-X<|postfix call>
-=head2 methodop C«.:<prefix>»
+X<|postfix operator call>
+=head2 methodop C«.:<prefix operator>»
 
 An operator in prefix form can still be called like a method, that is, using the
 C<.> methodop notation, by preceding it by a colon. For example:
@@ -837,12 +976,12 @@ the variable on the left hand side and the expression on the right hand side:
 
 =head1 Autoincrement precedence
 
+X<|prefix increment operator>
 =head2 prefix X<C«++»|prefix ++>
 
     multi sub prefix:<++>($x is rw) is assoc<non>
 
-This is the X<|prefix increment operator>. Increments its argument by one and
-returns the updated value.
+Increments its argument by one and returns the updated value.
 
     my $x = 3;
     say ++$x;   # OUTPUT: «4␤»
@@ -853,7 +992,7 @@ argument, which gives custom types the freedom to implement their own increment
 semantics.
 
 X<|prefix decrement operator>
-=head2 prefix X<C«--»|-->
+=head2 prefix X<C«--»|prefix -->
 
     multi sub prefix:<-->($x is rw) is assoc<non>
 
@@ -867,12 +1006,12 @@ It works by calling the L<pred|/routine/pred> method (for I<predecessor>) on its
 which gives custom types the freedom to implement their own decrement
 semantics.
 
-
+X<|postfix increment operator>
 =head2 postfix X<C«++»|postfix ++>
 
     multi sub postfix:<++>($x is rw) is assoc<non>
 
-Increments its argument by one and returns the original value.X<|postfix increment operator>
+Increments its argument by one and returns the original value.
 
     my $x = 3;
     say $x++;   # OUTPUT: «3␤»
@@ -880,7 +1019,11 @@ Increments its argument by one and returns the original value.X<|postfix increme
 
 It works by calling the L<succ|/routine/succ> method (for I<successor>) on its argument,
 which gives custom types the freedom to implement their own increment
-semantics.
+semantics; when undefined, it sets the value to 1 and returns it.
+
+    my $x;
+    $x++;
+    say $x;     # OUTPUT: «1␤»
 
 Note that this does not necessarily return its argument; e.g., for
 undefined values, it returns 0:
@@ -896,7 +1039,22 @@ assign the resulting string to the container. A C<is rw>-container is required.
     say $filename++ for 1..3;
     # OUTPUT: «somefile-001.txt␤somefile-002.txt␤somefile-003.txt␤»
 
-=head2 postfix C«--» X<|postfix decrement operator>
+This will act on any Unicode numeral:
+
+=for code
+my $was٧ = "ثمانية٧";
+$was٧++;
+say $was٧; # OUTPUT: «ثمانية٨␤»
+
+Including, since version 6.d, Thai numerals
+
+=for code
+my $เลขไทย="๙๙";
+$เลขไทย++;
+say $เลขไทย; # OUTPUT: «๑๐๐␤»
+
+X<|postfix decrement operator>
+=head2 postfix X<C«--»|postfix -->
 
     multi sub postfix:<-->($x is rw) is assoc<non>
 
@@ -1001,7 +1159,7 @@ Flattens objects of type L<Capture|/type/Capture>, L<Pair|/type/Pair>, L<List|/t
 L<Hash|/type/Hash> into an argument list.
 
     sub slurpee( |args ){
-        say args.perl
+        say args.raku
     };
     slurpee( <a b c d>, { e => 3 }, 'e' => 'f' => 33 )
     # OUTPUT: «\(("a", "b", "c", "d"), {:e(3)}, :e(:f(33)))␤»
@@ -1020,9 +1178,26 @@ arguments.
 
     multi sub prefix:<+^>(Any --> Int:D)
 
-X<Integer bitwise negation operator>: Coerces the argument to L<Int|/type/Int>
-and does a bitwise negation on the result, assuming
-L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>.
+X<Integer bitwise negation operator>: converts the number to binary using as
+many bytes as needed by the number plus one; flips all bits and returns the
+result assuming it is a
+L<two's complement|https://en.wikipedia.org/wiki/Two%27s_complement>
+representation.
+
+=for code
+say +^255; # OUTPUT: «-256␤»
+
+In this case, 255 is 11111111 and would need a single byte. We use the
+representation in bytes needed for this value plus one, converting it to 0000
+ 0000 1111 1111. Bitwise negation turns it into 1111 1111 0000 0000 and this
+ is the representation in two's complement of -256, which is returned.
+
+=for code
+say +^1;        # OUTPUT: «-2␤»
+say +^(-256);   # OUTPUT: «255␤»
+
+Negative numbers are assumed to be represented as two's complements, and thus
+ circle back to the original number.
 
 =head2 prefix C«~^»
 
@@ -1176,6 +1351,16 @@ and then performs a numeric bitwise right shift on the bits of the buffer.
 
 Please note that this has not yet been implemented.
 
+=head2 infix C«?&»
+
+    multi sub infix:<?&>(Mu $x = Bool::True)
+    multi sub infix:<?&>(Mu \a, Mu \b)
+
+X<Boolean logical AND operator>. Coerces the argument(s) to L<Bool|/type/Bool>
+and performs logical AND on it(them): it will return True if and only if both
+arguments are True. On a single argument it behaves as identity, returning
+the coerced value.
+
 =head2 infix C«gcd»
 
     multi sub infix:<gcd>($a, $b --> Int:D)
@@ -1196,18 +1381,18 @@ the smallest integer that is evenly divisible by both arguments.X<|least common 
 
     multi sub infix:<+>($a, $b --> Numeric:D)
 
-X<Addition operator>.
-
-Coerces both arguments to L<Numeric|/type/Numeric> and adds them.
+X<Addition operator>: Coerces both arguments to L<Numeric|/type/Numeric> and
+adds them. From version 6.d it works also on L<C<Duration>|/type/Duration>,
+L<C<DateTime>|/type/DateTime> and L<C<Real>|/type/Real> types.
 
 =head2 infix C«-»
 
     multi sub infix:<->($a, $b --> Numeric:D)
 
-X<Subtraction operator>.
-
-Coerces both arguments to L<Numeric|/type/Numeric> and subtracts the second from the
-first.
+X<Subtraction operator>: Coerces both arguments to L<Numeric|/type/Numeric>
+and subtracts the second from the
+first. From version 6.d it works also on L<C<Duration>|/type/Duration>,
+L<C<DateTime>|/type/DateTime> and L<C<Real>|/type/Real> types.
 
 =head2 infix C«+|»
 
@@ -1222,6 +1407,9 @@ does a bitwise I<OR> (inclusive OR) operation.
 
 X<Integer bitwise XOR operator>: Coerces both arguments to L<Int|/type/Int> and
 does a bitwise I<XOR> (exclusive OR) operation.
+
+=for code
+say (0b00001101 +^ 0b00001001).base(2); # OUTPUT: «100␤»
 
 =head2 infix C«~|»
 
@@ -1240,18 +1428,20 @@ shorter buffer with zeroes.
     multi sub infix:<?^>(Mu $x = Bool::False)
     multi sub infix:<?^>(Mu \a, Mu \b)
 
-X<Boolean bitwise XOR operator>: Coerces the argument(s) to L<Bool|/type/Bool>
-and performs logical XOR on them: it will return True if and only if just one of
-the argument is true. It returns identity on a single argument.
+X<Boolean logical XOR operator>. Coerces the argument(s) to L<Bool|/type/Bool>
+and performs logical XOR on it(them): it will return True if and only if just one of
+the argument is True. On a single argument it behaves as identity, returning
+the coerced value.
 
 =head2 infix C«?|»
 
-    multi sub infix:<?|>($a, $b --> Bool:D)
+    multi sub infix:<?|>(Mu $x = Bool::False)
+    multi sub infix:<?|>(Mu \a, Mu \b)
 
-X<Boolean logical OR operator>.
-
-Coerces both arguments to L<Bool|/type/Bool> and does a logical I<OR> (inclusive OR)
-operation.
+X<Boolean logical OR operator>. Coerces the argument(s) to L<Bool|/type/Bool>
+and performs logical OR (inclusive OR) on it(them): it will return True if at least one of
+the argument is True. On a single argument it behaves as identity, returning
+the coerced value.
 
 =head1 Replication precedence
 
@@ -1262,7 +1452,7 @@ operation.
 X<String repetition operator>.
 
 Repeats the string C<$a> C<$b> times, if necessary coercing C<$a> to L«C<Str>|/type/Str»
-and C<$b> L«C<Int>|/type/Int». Returns an empty string if C<< $b <= 0 >>. An exception
+and C<$b> to L«C<Int>|/type/Int». Returns an empty string if C<< $b <= 0 >>. An exception
 C<X::Numeric::CannotConvert> will be thrown if C<$b> is C<-Inf> or C<NaN>.
 
     say 'ab' x 3;           # OUTPUT: «ababab␤»
@@ -1272,7 +1462,6 @@ C<X::Numeric::CannotConvert> will be thrown if C<$b> is C<-Inf> or C<NaN>.
     my $b = 3.5;
     say $a x $b;            # OUTPUT: «aaa␤»
 
-X<List repetition operator>
 =head2 infix C«xx»
 
 Defined as:
@@ -1287,6 +1476,8 @@ Defined as:
     multi sub infix:<xx>(Mu \x, Whatever)
     multi sub infix:<xx>(Mu \x, Bool:D $b)
     multi sub infix:<xx>(Mu \x, Int:D $n)
+
+X<List repetition operator>
 
 In general, it returns a Sequence of C<$a> repeated and evaluated C<$b> times
 (C<$b> is coerced to L<Int|/type/Int>). If C<< $b <= 0 >>, the empty list is
@@ -1320,12 +1511,26 @@ L<assignment|/language/operators#Assignment_operators>, for instance.
     multi sub infix:<~>(Any,   Any)
     multi sub infix:<~>(Str:D, Str:D)
     multi sub infix:<~>(Buf:D, Buf:D)
+    multi sub infix:<~>(Blob:D $a, Blob:D $b)
+    multi sub infix:<~>(Junction:D \a, Junction:D \b)
 
 This is the X<string concatenation operator>, which coerces both
 arguments to L<Str|/type/Str> and concatenates them. If both arguments
 are L<Buf|/type/Buf>, a combined buffer is returned.
 
-    say 'ab' ~ 'c';     # OUTPUT: «abc␤»
+=for code
+say 'ab' ~ 'c';     # OUTPUT: «abc␤»
+my $bob = Blob.new([1,2,3]);
+my $bao = Blob.new([3,4,5]);
+say $bao ~ $bob;     # OUTPUT: «Blob:0x<03 04 05 01 02 03>␤»
+
+The arity-1 version of this operator will be called when the hyper version of
+the operator is used on an array or list with a single element, or simply an
+element
+
+=for code
+say [~] Blob.new([3,4,5]);     # OUTPUT: «Blob:0x<03 04 05>␤»
+say [~] 1|2;                   # OUTPUT: «any(1, 2)␤»
 
 =head2 infix C«∘»
 
@@ -1333,14 +1538,17 @@ are L<Buf|/type/Buf>, a combined buffer is returned.
     multi sub infix:<∘>(&f)
     multi sub infix:<∘>(&f, &g --> Block:D)
 
+X<|o, operators>
 The X<function composition operator> C«infix:<∘>» or C«infix:<o>»
 combines two functions, so that the left function is called with the
 return value of the right function. If the L«C<.count>|/routine/count»
 of the left function is greater than 1, the return value of the right
 function will be L<slipped|/type/Slip> into the left function.
 
-Both C<.count> and C<.arity> of the right-hand side will be maintained.
+Both C<.count> and C<.arity> of the right-hand side will be maintained, as
+well as the C<.of> of the left hand side.
 
+=begin code
     sub f($p){ say 'f'; $p / 2 }
     sub g($p){ say 'g'; $p * 2 }
 
@@ -1350,15 +1558,19 @@ Both C<.count> and C<.arity> of the right-hand side will be maintained.
     say 2.&g.&f;
     # or to:
     say f g 2;
+    say &composed.arity; #  OUTPUT: «1␤»
+    say &composed.count; #  OUTPUT: «1␤»
+    say &composed.of;    #  OUTPUT: «(Mu)␤»
+=end code
 
-    =begin code
+=begin code
     sub f($a, $b, $c) { [~] $c, $b, $a }
     sub g($str){ $str.comb }
     my &composed = &f ∘ &g;
     say composed 'abc'; # OUTPUT: «cba␤»
     # equivalent to:
     say f |g 'abc';
-    =end code
+=end code
 
 The single-arg candidate returns the given argument as is. The zero-arg candidate
 returns an identity routine that simply returns its argument.
@@ -1397,7 +1609,7 @@ L<BagHash|/type/BagHash>, L<Mix|/type/Mix> or L<MixHash|/type/MixHash>.
     <a b c d> ∩ <b c d e> ∩ <c d e f>; # OUTPUT: «set(c d)␤»
     =end code
 
-If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>>,
+If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>,
 the result is a new C<Bag> (or C<Mix>) containing the common elements, each
 weighted by the largest I<common> weight (which is the minimum of the weights
 of that element over all arguments).
@@ -1438,7 +1650,7 @@ X<|Any junction operator>
 Creates an I<any> L<Junction|/type/Junction> from its arguments.
 
     my $three-letters = /<[a b c]>/ | /<[i j k]>/ | /<[x y z]>/;
-    say $three-letters.perl; # OUTPUT: «any(/<[a b c]>/, /<[i j k]>/, /<[x y z]>/)␤»
+    say $three-letters.raku; # OUTPUT: «any(/<[a b c]>/, /<[i j k]>/, /<[x y z]>/)␤»
     say 'b' ~~ $three-letters; # OUTPUT: «True␤»
 
 This first creates an C<any> C<Junction> of three regular expressions
@@ -1462,7 +1674,7 @@ L<Mix|/type/Mix> or L<MixHash|/type/MixHash>.
     say <a b d> ∪ bag(<a a b c>); # OUTPUT: «Bag(a(2), b, c, d)␤»
     =end code
 
-If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>>,
+If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>,
 the result is a new C<Bag> (or C<Mix>) containing all the elements, each
 weighted by the I<highest> weight that appeared for that element.
 
@@ -1514,7 +1726,7 @@ are a L<Bag|/type/Bag>, L<BagHash|/type/BagHash>, L<Mix|/type/Mix> or L<MixHash|
     say <a b c d e> (-) <a b c> (-) <a b d>; # OUTPUT: «set(e)␤»
     =end code
 
-If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>>,
+If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>,
 the result is a new C<Bag> (or C<Mix>) containing all the elements remaining
 after the first argument with its weight subtracted by the weight of that
 element in each of the other arguments.
@@ -1555,7 +1767,7 @@ or L<MixHash|/type/MixHash>. Equivalent to C<($a ∖ $b) ∪ ($b ∖ $a)>.
     say <a b> (^) <b c>; # OUTPUT: «set(a c)␤»
     =end code
 
-If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>>,
+If any of the arguments are L<Baggy|/type/Baggy> or L<Mixy|/type/Mixy>,
 the result is a new C<Bag> (or C<Mix>).
 
     =begin code
@@ -1727,9 +1939,9 @@ Strings are compared codepoint by codepoint; if leading codepoints are the
 same, the result of comparing the first differing codepoint is returned or
 the longer string if their lengths differ.
 
-    "abcd" cmp "abcde"    # OUTPUT: «Less␤»
-    "abcd " cmp "abcde"   # OUTPUT: «Less␤»
-    'A' cmp 'Ẳ'           # OUTPUT: «Less␤»
+    "abcd" cmp "abcde";    # OUTPUT: «Less␤»
+    "abcd " cmp "abcde";   # OUTPUT: «Less␤»
+    'A' cmp 'Ẳ';           # OUTPUT: «Less␤»
 
 =head2 infix C<coll>
 
@@ -2019,8 +2231,9 @@ Returns C<True> if the first argument is larger than the second.
 
     sub infix:<eqv>(Any, Any)
 
-X<Equivalence operator>. Returns C<True> if the two arguments are structurally
-the same, i.e. from the same type and (recursively) contain equivalent values.
+This could be called an X<equivalence operator>, and it will return C<True> if
+the two arguments are structurally the same, i.e. from the same type and
+(recursively) contain equivalent values.
 
     say [1, 2, 3] eqv [1, 2, 3];    # OUTPUT: «True␤»
     say Any eqv Any;                # OUTPUT: «True␤»
@@ -2079,6 +2292,14 @@ produces the expected behavior:
     }
     say Set(A.new(a => 5)) eqv Set(A.new(a => 5));  # OUTPUT: «True␤»
 
+You can call a single-argument version of the operator by using its full
+name; it will always return true.
+
+=for code
+say infix:<eqv>(33);    # OUTPUT: «True␤»
+say infix:<eqv>(False); # OUTPUT: «True␤»
+
+
 =head2 infix C«===»
 
     sub infix:<===>(Any, Any)
@@ -2126,6 +2347,12 @@ also modify the other.
     say $a =:= $b;      # OUTPUT: «True␤»
     $a = 5;
     say $b;             # OUTPUT: «5␤»
+
+The single argument version, called as a routine, will always return True:
+
+=for code
+say infix:<=:=>(42);    # OUTPUT: «True␤»
+say infix:<=:=>(False); # OUTPUT: «True␤»
 
 X<|smartmatch operator>
 =head2 infix C«~~»
@@ -2221,7 +2448,7 @@ Returns C<True> if C<$a> is B<not> an B<element> of C<$b>.  Equivalent to
 C<!(elem)>.
 
     =begin code
-    say 4 ∉ (1, 2, 3); # OUTPUT: «True␤»
+    say 4 ∉ (1, 2, 3);       # OUTPUT: «True␤»
     say 2 !(elem) (1, 2, 3); # OUTPUT: «False␤»
     =end code
 
@@ -2234,11 +2461,11 @@ C«∉» is codepoint U+2209 (NOT AN ELEMENT OF).
 
 X<Membership operator>.
 
-Returns C<True> if C<$a> is an B<element> of C<$b>.
+Returns C<True> if C<$a> B<contains> C<$b>.
 
     =begin code
     say (1,2,3) (cont) 2; # OUTPUT: «True␤»
-    say (1, 2, 3) ∋ 4; # OUTPUT: «False␤»
+    say (1, 2, 3) ∋ 4;    # OUTPUT: «False␤»
     =end code
 
 C«∋» is equivalent to C«(cont)», at codepoint U+220B (CONTAINS AS MEMBER).
@@ -2249,15 +2476,15 @@ C«∋» is equivalent to C«(cont)», at codepoint U+220B (CONTAINS AS MEMBER).
 
 X<Non-membership operator>.
 
-Returns C<True> if C<$a> is B<not> an B<element> of C<$b>.  Equivalent to
+Returns C<True> if C<$a> does B<not> B<contain> C<$b>.  Equivalent to
 C<!(cont)>.
 
     =begin code
-    say (1,2,3) ∌ 4; # OUTPUT: «True␤»
+    say (1,2,3) ∌ 4;       # OUTPUT: «True␤»
     say (1,2,3) !(cont) 2; # OUTPUT: «False␤»
     =end code
 
-C«∉» is codepoint U+220C (DOES NOT CONTAIN AS MEMBER).
+C«∌» is codepoint U+220C (DOES NOT CONTAIN AS MEMBER).
 
 =head2 infix C«(<)», infix C«⊂»
 
@@ -2271,8 +2498,8 @@ elements of C<$a> are elements of C<$b> but C<$a> is a smaller set than C<$b>.
 
     =begin code
     say (1,2,3) (<) (2,3,1); # OUTPUT: «False␤»
-    say (2,3) (<) (2,3,1); # OUTPUT: «True␤»
-    say 4 ⊂ (1,2,3); # OUTPUT: «False␤»
+    say (2,3) (<) (2,3,1);   # OUTPUT: «True␤»
+    say 4 ⊂ (1,2,3);         # OUTPUT: «False␤»
     =end code
 
 C«⊂» is equivalent to C«(<)», at codepoint U+2282 (SUBSET OF).
@@ -2288,8 +2515,8 @@ C«!(<)».
 
     =begin code
     say (1,2,3) ⊄ (2,3,1); # OUTPUT: «True␤»
-    say (2,3) ⊄ (2,3,1); # OUTPUT: «False␤»
-    say 4 !(<) (1,2,3); # OUTPUT: «True␤»
+    say (2,3) ⊄ (2,3,1);   # OUTPUT: «False␤»
+    say 4 !(<) (1,2,3);    # OUTPUT: «True␤»
     =end code
 
 C«⊄» is codepoint U+2284 (NOT A SUBSET OF).
@@ -2307,8 +2534,8 @@ set than C<$b>.
 
     =begin code
     say (1,2,3) (<=) (2,3,1); # OUTPUT: «True␤»
-    say (2,3) (<=) (2,3,1); # OUTPUT: «True␤»
-    say 4 ⊆ (1,2,3); # OUTPUT: «False␤»
+    say (2,3) (<=) (2,3,1);   # OUTPUT: «True␤»
+    say 4 ⊆ (1,2,3);          # OUTPUT: «False␤»
     =end code
 
 C«⊆» is equivalent to C«(<=)», at codepoint U+2286 (SUBSET OF OR EQUAL TO).
@@ -2323,9 +2550,9 @@ Returns C<True> if C<$a> is B<not> a C<subset> of C<$b>.  Equivalent to
 C«!(<=)».
 
     =begin code
-    say (1,2,3) ⊄ (2,3,1); # OUTPUT: «True␤»
-    say (2,3) ⊄ (2,3,1); # OUTPUT: «False␤»
-    say 4 !(<=) (1,2,3); # OUTPUT: «True␤»
+    say (1,2,3) ⊈ (2,3,1); # OUTPUT: «False␤»
+    say (2,3) ⊈ (2,3,1);   # OUTPUT: «False␤»
+    say 4 !(<=) (1,2,3);   # OUTPUT: «True␤»
     =end code
 
 C«⊈» is codepoint U+2288 (NEITHER A SUBSET OF NOR EQUAL TO).
@@ -2342,8 +2569,8 @@ elements of C<$b> are elements of C<$a> but C<$a> is a larger set than C<$b>.
 
     =begin code
     say (1,2,3) (>) (2,3,1); # OUTPUT: «False␤»
-    say (1,2,3) (>) (2,3); # OUTPUT: «True␤»
-    say 4 ⊃ (1,2,3); # OUTPUT: «False␤»
+    say (1,2,3) (>) (2,3);   # OUTPUT: «True␤»
+    say 4 ⊃ (1,2,3);         # OUTPUT: «False␤»
     =end code
 
 C«⊃» is equivalent to C«(>)», at codepoint U+2283 (SUPERSET OF).
@@ -2359,8 +2586,8 @@ C«!(>)».
 
     =begin code
     say (1,2,3) ⊅ (2,3,1); # OUTPUT: «True␤»
-    say (1,2,3) ⊅ (2,3); # OUTPUT: «False␤»
-    say 4 !(>) (1,2,3); # OUTPUT: «True␤»
+    say (1,2,3) ⊅ (2,3);   # OUTPUT: «False␤»
+    say 4 !(>) (1,2,3);    # OUTPUT: «True␤»
     =end code
 
 C«⊅» is codepoint U+2285 (NOT A SUPERSET OF).
@@ -2378,8 +2605,8 @@ set than C<$b>.
 
     =begin code
     say (1,2,3) (>=) (2,3,1); # OUTPUT: «True␤»
-    say (1,2,3) (>=) (2,3); # OUTPUT: «True␤»
-    say 4 ⊇ (1,2,3); # OUTPUT: «False␤»
+    say (1,2,3) (>=) (2,3);   # OUTPUT: «True␤»
+    say 4 ⊇ (1,2,3);          # OUTPUT: «False␤»
     =end code
 
 C«⊇» is equivalent to C«(>=)», at codepoint U+2287 (SUPERSET OF OR EQUAL TO).
@@ -2395,8 +2622,8 @@ C«!(>=)».
 
     =begin code
     say (1,2,3) ⊉ (2,3,1); # OUTPUT: «False␤»
-    say (1,2,3) ⊉ (2,3); # OUTPUT: «False␤»
-    say 4 !(>=) (1,2,3); # OUTPUT: «True␤»
+    say (1,2,3) ⊉ (2,3);   # OUTPUT: «False␤»
+    say 4 !(>=) (1,2,3);   # OUTPUT: «True␤»
     =end code
 
 C«⊉» is codepoint U+2289 (NEITHER A SUPERSET OF OR EQUAL TO).
@@ -2691,17 +2918,21 @@ This operator cannot be overloaded, as it's handled specially by the compiler.
 =head1 Item assignment precedence
 
 X<|item =>
-=head2 infix C«=»
+=head2 infix C«=» (item assignment)
 
     =for code :skip-test<compile-time error>
     sub infix:<=>(Mu $a is rw, Mu $b)
 
-Called the I<item assignment operator>, it Places the value of the right-hand side into the container on the left-hand
-side. Its exact semantics are left to the container type on the left-hand side.
+Called the I<item assignment operator>. It copies the value of the right-hand
+side into the Scalar container on the left-hand side.
 
-(Note that item assignment and list assignment have different precedence
-levels, and the syntax of the left-hand side decides whether an equal sign
-C<=> is parsed as item assignment or list assignment operator).
+The item assignment operator should be distinguished from the L<list assignment
+operator|/language/operators#infix_=_(list assignment)>, which uses the same
+operator symbol C<=> but has a lower precedence. The context of the left-hand
+side of the C<=> symbol determines whether it is parsed as item assignment or
+list assignment. See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a comparative
+discussion of the two assignment types.
 
 =head2 infix C«=>»
 
@@ -2754,7 +2985,7 @@ Constructs a higher-order L<Cool|/type/Cool> from its arguments.
     my @list = :god('Þor'), ['is',"mighty"];
     say @list;      # OUTPUT: «[god => Þor [is mighty]]␤»
     my %hash = :god('Þor'), :is("mighty");
-    say %hash.perl; # OUTPUT: «{:god("Þor"), :is("mighty")}␤»
+    say %hash.raku; # OUTPUT: «{:god("Þor"), :is("mighty")}␤»
     my %a = :11a, :22b;
     say %(%a, :33x);  # OUTPUT: «{a => 11, b => 22, x => 33}␤»
 
@@ -2798,7 +3029,7 @@ one of the operands runs out of elements prematurely, the zip operator will
 stop.
 
 =for code
-say (1, 2 Z <a b c> Z <+ ->).perl;
+say (1, 2 Z <a b c> Z <+ ->).raku;
 # OUTPUT: «((1, "a", "+"), (2, "b", "-")).Seq␤»
 for <a b c> Z <1 2 3 4> -> [$l, $r] {
     say "$l:$r"
@@ -2811,6 +3042,17 @@ list:
 
     say 100, 200 Z+ 42, 23;             # OUTPUT: «(142 223)␤»
     say 1..3 Z~ <a b c> Z~ 'x' xx 3;    # OUTPUT: «(1ax 2bx 3cx)␤»
+
+As any other infix operator, it can be used under its full name:
+
+=for code
+say infix:<Z>(<a b>,<c d>);             # OUTPUT: «((a c) (b d))␤»
+
+If no argument is given, it will return an empty C<Seq>
+
+=for code
+say infix:<Z>();                        # OUTPUT: «()␤»
+
 
 X<|cross product operator>
 X<|X,operators>
@@ -2914,14 +3156,20 @@ well, so they are also checked against the endpoint:
 
 X<|list =>
 X<|List assignment operator>
-=head2 infix C«=»
+=head2 infix C«=» (list assignment)
 
-In this context, it acts as the list assignment operator. Its exact
-semantics are left to the container type on the left-hand side. See
-L<Array|/type/Array> and L<Hash|/type/Hash> for common cases.
+The list assignment operator generally copies values from its right-hand side
+into the container on its left-hand side. Its exact semantics are left to the
+left-hand side container type. See L<Array|/type/Array> and L<Hash|/type/Hash>
+for common cases.
 
-The distinction between item assignment and list assignment is
-determined by the parser depending on the syntax of the left-hand side.
+The list assignment operator should be distinguished from the L<item assignment
+operator|/language/operators#infix_=_(item assignment)>, which uses the same
+operator symbol C<=> but has a higher precedence. The context of the left-hand
+side of the C<=> symbol determines whether it is parsed as item assignment or
+list assignment. See the section on L<item and list
+assignment|/language/variables#Item_and_list_assignment> for a comparative
+discussion of the two assignment types.
 
 =head2 infix C«:=»
 
@@ -3005,6 +3253,12 @@ are based on.
 
     say [-] 4, 3, 2;      # 4-3-2 = (4-3)-2 = -1
     say [**] 4, 3, 2;     # 4**3**2 = 4**(3**2) = 262144
+
+Applying [+] to a single element will return that element
+
+=for code
+say [+] 42;           # OUTPUT: «42␤»
+
 
 =head1 Loose AND precedence
 
@@ -3335,7 +3589,7 @@ This only applies to operators where empty or 0 is always a valid operand. For
 instance, applying it to division will yield an exception.
 
 =for code
-say [%] ();  # OUTPUT: «(exit code 1) No zero-arg meaning for infix:<%>␤
+say [%] ();  # OUTPUT: «(exit code 1) No zero-arg meaning for infix:<%>␤»
 
 =end pod
 

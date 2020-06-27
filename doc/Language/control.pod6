@@ -24,7 +24,7 @@ also be written as:
 =head1 X<Blocks|control flow, blocks>
 
 Like many other languages, Raku uses C<blocks> enclosed by C<{> and C<}> to
-turn a sequence of statements into a single one. It is OK to skip the semicolon
+turn a sequence of statements into a single one. It is OK to omit the semicolon
 between the last statement in a block and the closing C<}>.
 
     { say "Hello"; say "World" }
@@ -129,7 +129,8 @@ the expression it is contained in is evaluated:
     # This says "(..1 ..2 ..3)" not "(..1 ...2 ....3)"
     my $f = "."; say do { $f ~= "." } X~ 1, 2, 3;
 
-In other words, it follows the same reification rules as everything else.
+In other words, it follows the same
+L<reification|/language/glossary#index-entry-Reify> rules as everything else.
 
 Technically, C<do> is a loop which runs exactly one iteration.
 
@@ -223,7 +224,7 @@ if 0 { "0 is true".say }  ; # does not say anything, because 0 is false
 if 42.say and 0 { 43.say }; # says "42" but does not say "43"
 
 There is also a form of C<if> called a "statement modifier" form. In this
-case, the if and then the condition come after the code you want to run
+case, the C<if> and the condition come after the code you want to run
 conditionally. Do note that the condition is still always evaluated first:
 
     43.say if 42.say and 0;     # says "42" but does not say "43"
@@ -387,7 +388,7 @@ As with C<unless>, you may use C<without> to check for undefinedness,
 but you may not add an C<else> clause:
 
     my $answer = Any;
-    without $answer { warn "Got: {$_.perl}" }
+    without $answer { warn "Got: {$_.raku}" }
 
 There are also C<with> and C<without> statement modifiers:
 
@@ -515,7 +516,8 @@ get a value.
 
 The C<for> loop iterates over a list, running the statements inside a
 L<block|/type/Block> once on each iteration. If the block takes parameters, the
-elements of the list are provided as arguments.
+elements of the list are provided as arguments. By default, the block takes one
+parameter, C<$_>:
 
     my @foo = 1..3;
     for @foo { $_.print } # prints each value contained in @foo
@@ -536,16 +538,27 @@ as many elements from the list as needed before running the block.
     for @foo.kv -> $idx, $val { say "$idx: $val" }
     my %hash = <a b c> Z=> 1,2,3;
     for %hash.kv -> $key, $val { say "$key => $val" }
-    for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # says "1 < 1.1" then says "2 < 2.1"
+    for 1, 1.1, 2, 2.1 { say "$^x < $^y" }  # OUTPUT: «1 < 1.1␤2 < 2.1␤»
 
-Parameters of a pointy block can have default values, allowing to handle lists
-with missing elements.
+Parameters of a pointy block can have default values, allowing the code to
+handle lists with missing elements.
 
     my @list = 1,2,3,4;
     for @list -> $a, $b = 'N/A', $c = 'N/A' {
         say "$a $b $c"
     }
     # OUTPUT: «1 2 3␤4 N/A N/A␤»
+
+When no parameters are specified for a C<for> loop's block, C<when> can be used
+within it similarly to how it's used in a C<given> block:
+
+    # A solution for FizzBuzz:
+    for 1..100 {
+        when * %% 15 { say 'FizzBuzz' }
+        when * %% 3  { say 'Fizz' }
+        when * %% 5  { say 'Buzz' }
+        default      { say $_ }
+    }
 
 If the postfix form of C<for> is used, a block is not required and the topic is
 set for the statement list.
@@ -562,21 +575,37 @@ for $*IN.lines -> $line { .say }
 
 Iteration variables are always lexical, so you don't need to use C<my> to give
 them the appropriate scope. Also, they are read-only aliases. If you need them
-to be read-write, use C«<->» instead of C«->».
+to be writable, use C«<->» instead of C«->». Alternatively, you can add
+the L«C«is rw»|/type/Signature#index-entry-trait_is_rw» trait; this performs
+a binding operation so assigning to the parameter changes the value of the
+variable at the caller side. If instead you want to modify copies of the
+arguments within the block, add
+L«C«is copy»|/type/Signature#index-entry-trait_is_copy».
 
 =begin code
 my @foo = 1..3;
-my @bar;
-
 for @foo <-> $value {
-    given $value {
-      when $value %% 2 { $value = $value but "Even" }
-      default { $value = $value but "Odd" }
-    }
-    @bar.push: $value;
+    $value = $value %% 2 ?? "Even" !! "Odd"
 }
 
-say @bar; # # OUTPUT: «[Odd Even Odd]»
+say @foo; # OUTPUT: «[Odd Even Odd]»
+
+@foo = 1..3;
+for @foo -> $value is rw {
+    $value = $value %% 2 ?? "Even" !! "Odd"
+}
+
+say @foo; # OUTPUT: «[Odd Even Odd]»
+
+@foo = 1..3;
+my @bar;
+for @foo -> $value is copy {
+    $value = $value %% 2 ?? "Even" !! "Odd";
+    @bar.push: $value
+}
+
+say @foo; # OUTPUT: «[1 2 3]»
+say @bar; # OUTPUT: «[Odd Even Odd]»
 =end code
 
 This rule also applies to the topic variable C«$_», which by default is a
@@ -592,9 +621,36 @@ A C<for> loop can produce a C<List> of the values produced by each run of the
 attached block. To capture these values, put the for loop in parenthesis or
 assign them to an array:
 
-    (for 1, 2, 3 { $_ * 2 }).say;              # OUTPUT «(2 4 6)␤»
-    my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # OUTPUT «[2 4 6]␤»
+    (for 1, 2, 3 { $_ * 2 }).say;              # OUTPUT: «(2 4 6)␤»
+    my @a = do for 1, 2, 3 { $_ * 2 }; @a.say; # OUTPUT: «[2 4 6]␤»
     my @b = (for 1, 2, 3 { $_ * 2 }); @b.say;  # OUTPUT: «[2 4 6]␤»
+
+This implies that, if the results of the loop are not assigned, they will be
+in a L<sink context|/language/contexts#index-entry-sink_context>:
+
+=for code
+class Sunk {
+    has $.titanic;
+    method sink {
+        say "Sinking $!titanic";
+    }
+}
+Sunk.new( :titanic($_) ) for ^3;
+for 1 {
+    say "About to sink";
+    Sunk.new( :titanic($_) );
+}
+# OUTPUT:
+# Sinking 0
+# Sinking 1
+# Sinking 2
+# About to sink
+# Sinking 1
+
+
+The first loop creates three elements but they are in a sink context, so its
+C<sink> method is called. In the second loop, its last statement will be in a
+sink context, so it will be also sunk (from version 6.d).
 
 The C<Empty> constant will act as a no-op for a loop:
 
@@ -637,20 +693,30 @@ X<|lazy list,gather>X<|lazy list,take>
 
 C<gather> is a statement or block prefix that returns a L<sequence|/type/Seq>
 of values. The values come from calls to L<take|/type/Mu#routine_take> in the
-dynamic scope of the C<gather> block.
+dynamic scope of the C<gather> block. In the following example, we implement
+a subroutine to compute the factors of an integer with C<gather> (note that the
+factors are not generated in a strictly increasing order):
 
-    my @a = gather {
-        take 1;
-        take 5;
-        take 42;
+    sub factors( Int:D \n ) {
+        my $k = 1;
+        gather {
+            while $k**2 < n {
+                if n %% $k {
+                    take $k;
+                    take n div $k;
+                }
+                $k++;
+            }
+            take $k if $k**2 == n;
+        }
     }
-    say join ', ', @a;          # OUTPUT: «1, 5, 42␤»
+
+    say factors(36); # OUTPUT: «1, 36, 2, 18, 3, 12, 4, 9, 6␤»
 
 C<gather/take> can generate values lazily, depending on context. If you want to
 force lazy evaluation use the L<lazy|/type/Iterable#method_lazy> subroutine or
 method. Binding to a scalar or sigilless container will also force laziness.
-
-For example
+For example:
 
     my @vals = lazy gather {
         take 1;
@@ -711,6 +777,7 @@ L<supply|/language/concurrency#index-entry-supply_(on-demand)>:
 
 =head1 X<given|control flow, given>
 X<|switch (given)>
+X<|case statements (given)>
 
 The C<given> statement is Raku's topicalizing keyword in a similar way that
 C<switch> topicalizes in languages such as C. In other words, C<given>
@@ -788,8 +855,7 @@ be in the same "switch" just so long as you do not open a new block:
 C<when> statements can smartmatch
 against L<Signatures|/language/syntax#Signature_literals>.
 
-=head2 X<proceed|control flow, proceed>
-=head2 X<succeed|control flow, succeed>
+=head2 X<proceed|control flow, proceed> and X<succeed|control flow, succeed>
 
 Both C<proceed> and C<succeed> are meant to be used only from inside C<when>
 or C<default> blocks.
@@ -869,6 +935,8 @@ if there is one:
         }
         "This also says".say;
     }
+    # OUTPUT: «This says␤This says too␤And this says␤This also says␤»
+
 =head2 X<given as a statement|control flow,given statement>
 
 C<given> can follow a statement to set the topic in the statement it follows.
@@ -887,15 +955,24 @@ C<given> can follow a statement to set the topic in the statement it follows.
 =head1 X<loop|control flow, loop>
 
 The C<loop> statement takes three statements in parentheses separated by C<;>
-that take the role of initializer, conditional and incrementer. The initializer
-is executed once and any variable declaration will spill into the surrounding
-block. The conditional is executed once per iteration and coerced to C<Bool>,
-if C<False> the loop is stopped. The incrementer is executed once per
-iteration.
+that take the roles of initializer, conditional and incrementer, respectively.
+The initializer is executed once before the conditional is first tested. In case
+the initializer involves a variable declaration, the variable is declared as a
+lexical variable in the loop's I<outer or containing> scope so that it can be
+used in code following the loop statement. The conditional is executed before
+each iteration and coerced to C<Bool>; if C<False> the loop is stopped. The
+incrementer is executed after each iteration, and before the conditional is
+tested again.
 
-    loop (my $i = 0; $i < 10; $i++) {
+    loop (my $i = 0; $i < 10; $i++) {       # A typical loop
         say $i;
     }
+
+    my @str = "However Long".comb;          # Our very own .char routine:
+    loop (my $l = 0;;) {                    # Declare $l in outer scope
+        last if !@str[$l++]                 # and count chars until we hit an
+    }                                       # undefined element (Any)
+    say "The string is {--$l} chars long.";
 
 The infinite loop does not require parentheses.
 

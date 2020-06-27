@@ -1,6 +1,6 @@
 # Contributing
 
-Your patches to `perl6/doc` are very welcome, and if you want to
+Your patches to `Raku/doc` are very welcome, and if you want to
 help,
 [please read this guide](https://dev.to/jj/squashing-perl-6-documentation-bugs-one-at-a-time-4ojn) as
 well as the detailed instructions below.
@@ -28,6 +28,7 @@ in the [#raku IRC channel](https://raku.org/community/irc).
     - [Broken links](#broken-links)
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
+- [Contributing pull requests](#contributing-pull-requests)
 - [Building the documentation](#building-the-documentation)
     - [Dependency installation](#dependency-installation)
         - [Rakudo](#rakudo)
@@ -68,7 +69,7 @@ available when writing code examples in the documentation.
 ## Adding a new Language document
 
 We suggest you discuss proposing a new Language document on the #raku
-channel and/or the [issues for this repository](https://github.com/perl6/doc/issues)
+channel and/or the [issues for this repository](https://github.com/Raku/doc/issues)
 before you proceed further. After you get consensus on a title, subtitle,
 section, and filename, you can add the document by following these steps:
 
@@ -82,8 +83,8 @@ section, and filename, you can add the document by following these steps:
 
 ## Documenting types
 
-The Pod 6 documentation of types is located in the `doc/Type` directory and
-subdirectories of this repository. For example the Pod 6 file of `X::Bind::Slice`
+The Pod6 documentation of types is located in the `doc/Type` directory and
+subdirectories of this repository. For example the Pod6 file of `X::Bind::Slice`
 lives in `doc/Type/X/Bind/Slice.pod6`.
 
 To start contributing, fork and checkout the repository, find the document
@@ -162,9 +163,9 @@ See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 ## Testing method completeness
 
 To get a list of methods that are found via introspection but not found in any
-Pod 6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
+Pod6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
 directory or filepath as argument and limits the listing to the given file or
-any Pod 6-files found. All methods listed in `util/ignored-methods.txt` are
+any Pod6 files found. All methods listed in `util/ignored-methods.txt` are
 ignored.
 
 ## Debug mode
@@ -192,36 +193,39 @@ to display heading numbers.
 
 ## Reporting bugs
 
-Report issues at https://github.com/perl6/doc/issues. You can
+Report issues at https://github.com/Raku/doc/issues. You can
 use
-[labels when tagging tickets](https://github.com/perl6/doc/labels),
+[labels when tagging tickets](https://github.com/Raku/doc/labels),
 among which these are probably the most common:
 
-* [`docs`](https://github.com/perl6/doc/labels/docs)   - missing or
+* [`docs`](https://github.com/Raku/doc/labels/docs)   - missing or
   incorrect documentation;
-  use [`NOTSPECCED`](https://github.com/perl6/doc/labels/NOTSPECCED)
+  use [`NOTSPECCED`](https://github.com/Raku/doc/labels/NOTSPECCED)
   instead, if this is for a feature present in a compiler, but not in
   the Raku test suite.
-* [`search`](https://github.com/perl6/doc/labels/search) - the search
+* [`search`](https://github.com/Raku/doc/labels/search) - the search
   component, either for items that are on the site but not searchable,
   or for the search functionality itself.
 
+## Contributing pull requests
+
 If you would like to contribute documentation or other bug fixes, please use
-[GitHub's pull requests](https://github.com/perl6/doc/pulls).
+[GitHub's pull requests (PRs)](https://github.com/Raku/doc/pulls). For a complete
+recipe for a new PR contributor, check [this PR guide](https://github.com/tbrowder/tidbits/blob/master/Contributing-PRs.md).
 
 ## Building the documentation
 
 Assuming that you have already forked and cloned the
-[perl6/doc](https://github.com/perl6/doc) repository, one of the first things
+[Raku/doc](https://github.com/Raku/doc) repository, one of the first things
 you probably want to do is to build the documentation on your local
 computer. To do this you will need:
 
   - Raku (e.g., the Rakudo Raku implementation)
   - zef (the installer for third party Raku modules)
-  - `Pod::To::HTML` (Raku module for converting Pod 6 objects to HTML)
+  - `Pod::To::HTML` (Raku module for converting Pod6 objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
-    (optional; a Perl 5 web framework; it allows you to run a web
+    (optional; a Perl web framework; it allows you to run a web
     app locally to display the docs)
   - [SASS](http://sass-lang.com/) Compiler
   - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
@@ -250,7 +254,7 @@ use any other module installer for the modules needed (see below).
 #### Building the documentation
 
 The program that builds the HTML version of the documentation
-(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod 6 structures into HTML.
+(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod6 structures into HTML.
 You'll also need `Pod::To::BigPage` and `Perl6::TypeGraph`. Install these modules like so:
 
     $ zef install Pod::To::HTML Pod::To::BigPage Perl6::TypeGraph
@@ -263,7 +267,7 @@ you're good to go.
 
 #### Mojolicious / Web Server
 
-This is a Perl 5 web framework which is used to run the included
+This is a Perl web framework which is used to run the included
 web application that displays the HTML documentation in a web browser. It's
 no required for development, as the site is static and you can serve it using
 any other webserver.
@@ -271,7 +275,7 @@ any other webserver.
 The app *does* automatically convert the SASS file to CSS, so it's handy to
 use for that as well.
 
-Mojolicious is written in Perl 5, so assuming that you use
+Mojolicious is written in Perl, so assuming that you use
 [`cpanm`](https://metacpan.org/pod/App::cpanminus),
 install this now:
 
@@ -284,7 +288,7 @@ the `sass` command
 
     $ sudo apt-get install ruby-sass
 
-or the [CSS::Sass Perl 5 module](https://modules.raku.org/repo/CSS::Sass)
+or the [CSS::Sass Perl module](https://modules.raku.org/repo/CSS::Sass)
 
     $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
 
@@ -318,12 +322,12 @@ You can skip all the above and just build and view documentation with these
 simple commands (if you have docker already installed):
 
     $ docker build -t perl6-doc .
-    $ docker run -p 3000:3000 -it -v `pwd`:/perl6/doc perl6-doc
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc
 
 This will build the documentation for you by default and it will take some time,
 but for subsequent use you may want to skip build part if nothing has been changed:
 
-    $ docker run -p 3000:3000 -it -v `pwd`:/perl6/doc perl6-doc ./app-start
+    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc ./app-start
 
 Now point your web browser to http://localhost:3000 to view the documentation.
 

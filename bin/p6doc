@@ -1,5 +1,16 @@
 #!/usr/bin/env perl6
 
+# DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+#
+# This program is scheduled to be replaced as soon as possible. Details
+# of the plan are in https://github.com/Raku/doc/issues/2983
+#
+# If you _must_ scratch an itch with a quick fix here, it's okay to
+# submit a pull request. But any real development should be done in the
+# new repository.
+#
+# DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED DEPRECATED
+
 use v6;
 use JSON::Fast;
 use File::Find;
@@ -60,7 +71,7 @@ sub show-docs(Str $path, :$section, :$no-pager, :$package is copy) {
         say "No Pod found in $path";
         return;
     }
-    my $doc-command-str = $*EXECUTABLE-NAME;
+    my $doc-command-str = ~$*EXECUTABLE;
     if $section.defined {
         %*ENV<PERL6_POD_HEADING> = $section;
         my $i = findbin() ~ '../lib';
@@ -98,6 +109,9 @@ sub USAGE() {
     say "          $PROGRAM-NAME faq";
     say "          $PROGRAM-NAME path/to/file";
     say "\nSet the POD_TO_TEXT_ANSI if you want to use ANSI escape sequences to enhance text";
+
+    say "\nYou can search for references to a particular term:";
+    say "          $PROGRAM-NAME search comb";
 
     say "\nYou can list some top level documents:";
     say "          $PROGRAM-NAME -l";
@@ -152,6 +166,38 @@ multi sub MAIN($docee, Bool :$f!, Bool :$n) {
 
 multi sub MAIN(Str $file where $file.IO ~~ :e, Bool :$n) {
     show-docs($file, :no-pager($n));
+}
+
+
+multi sub MAIN('search', $term = '') {
+    exit note "Missing search term" unless $term;
+    say "searching for $term";
+    sub dirtree($d) {
+      return Empty unless $d.IO.d;
+      gather {
+        for dir($d) -> $f {
+          if $f.d {
+            .take for dirtree($f)
+          } else {
+            take $f
+          }
+        }
+      }
+    }
+
+    my @paths = search-paths() X~ <Type/ Language/>;
+    my regex delim { '#' | '/' | '|' | '<' | '>' }
+    my @found = @paths.race.map: -> $dir {
+      |dirtree($dir).race.grep( { .lines.first( /:i <&delim> $term <&delim> / ) } )
+    }
+    exit note "no results found"  unless @found;
+    my %labels = @found.map: { .basename.subst('.pod6','') => "$_" }
+    my @choose = %labels.keys.sort;
+    for @choose {
+        say ++$ ~ ") $_";
+    }
+    my $which = prompt "Choose: " or exit;
+    show-docs(%labels{ @choose[$which - 1] });
 }
 
 # index related
@@ -221,48 +267,27 @@ multi sub MAIN('lookup', $key) {
 }
 
 sub disambiguate-f-search($docee, %data) {
-    my %found;
 
-    for <routine method sub> -> $pref {
-        my $ndocee = $pref ~ " " ~ $docee;
-
-        if %data{$ndocee} {
-            my @types = %data{$ndocee}.values>>.Str.grep({ $^v ~~ /^ 'Type' / });
-            @types = [gather @types.deepmap(*.take)].unique.list;
-            @types.=grep({!/$pref/});
-            %found{$ndocee}.push: @types X~ $docee;
-        }
-    }
+    my @keys = (<method routine sub> X $docee)».join(' ');
+    my @found = %data{@keys}.grep(*.defined).map(
+            # Each entry is a list of 2-element lists; we want just the
+            # first, and then slip the results into a single flat list
+            |*.map(*.first)
+        ).unique X~ $docee;
 
     my $final-docee;
-    my $total-found = %found.values.map( *.elems ).sum;
-    if ! $total-found {
+    if ! @found {
         say "No documentation found for a routine named '$docee'";
         exit 2;
-    } elsif $total-found == 1 {
-        $final-docee = %found.values[0];
+    } elsif @found == 1 {
+        $final-docee = @found.head;
     } else {
         say "We have multiple matches for '$docee'\n";
 
-        my %options;
-        for %found.keys -> $key {
-            %options{$key}.push: %found{$key};
-        }
-        my @opts = %options.values.map({ @($^a) });
-
-        # 's' => Type::Supply.grep, ... | and we specifically want the %found values,
-        #                               | not the presentation-versions in %options
         if INTERACT {
-            my $total-elems = %found.values.map( +* ).sum;
-            if +%found.keys < $total-elems {
-                my @prefixes = (1..$total-elems) X~ ") ";
-                say "\t" ~ ( @prefixes Z~ @opts ).join("\n\t") ~ "\n";
-            } else {
-                say "\t" ~ @opts.join("\n\t") ~ "\n";
-            }
-            $final-docee = prompt-with-options(%options, %found);
+            $final-docee = prompt-with-options(@found);
         } else {
-            say "\t" ~ @opts.join("\n\t") ~ "\n";
+            say "\t", $_ for @found;
             exit 1;
         }
     }
@@ -270,33 +295,32 @@ sub disambiguate-f-search($docee, %data) {
     return $final-docee;
 }
 
-sub prompt-with-options(%options, %found) {
+sub prompt-with-options(@found) {
     my $final-docee;
 
-    my %prefixes = do for %options.kv -> $k,@o { @o.map(*.comb[0].lc) X=> %found{$k} };
+    printf "%3d)  %s\n", .key + 1, .value for @found.pairs;
 
-    if %prefixes.values.grep( -> @o { +@o > 1 } ) {
-        my (%indexes,$base-idx);
-        $base-idx = 0;
-        for %options.kv -> $k,@o {
-            %indexes.push: @o>>.map({ ++$base-idx }) Z=> @(%found{$k});
-        }
-        %prefixes = %indexes;
-    }
+    my $prompt-text = "\nNarrow your choice (1 .. @found.elems()): ";
 
-    my $prompt-text = "Narrow your choice? ({ %prefixes.keys.sort.join(', ') }, or !{ '/' ~ 'q' if !%prefixes<q> } to quit): ";
-
-    while prompt($prompt-text).words -> $word {
-        if $word  ~~ '!' or ($word ~~ 'q' and !%prefixes<q>) {
-            exit 1;
-        } elsif $word ~~ /:i $<choice> = [ @(%prefixes.keys) ] / {
-            $final-docee = %prefixes{ $<choice>.lc };
+    while prompt($prompt-text) -> $choice {
+        if 1 <= ($choice.Int // 0) <= @found {
+            $final-docee = @found[$choice.Int - 1];
             last;
-        } else {
-            say "$word doesn't seem to apply here.\n";
-            next;
         }
+
+        my @match = @found.grep(*.contains($choice));
+        if @match == 1 {
+            $final-docee = @match.first;
+            last;
+        }
+
+        say  "'$choice' ", @match == 0
+                ?? "doesn't seem to apply here."
+                !! "matches more than one option.";
+        next;
     }
+
+    exit 1 unless $final-docee;
 
     return $final-docee;
 }

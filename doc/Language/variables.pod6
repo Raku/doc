@@ -87,72 +87,102 @@ L<sigilless variables|#Sigilless_variables>.
 =head2 Item and list assignment
 
 There are two types of variable assignment, I<item assignment> and I<list
-assignment>.  Both use the equal sign C<=> as operator. The syntax of the
-left-hand side determines whether an C<=> means item or list assignment.
+assignment>.
 
-Item assignment places the value from the right-hand side into the variable
-(container) on the left.
+An item assignment copies a single value from the right-hand side into a Scalar
+variable on the left. An assignment to anything other than a simple Scalar
+variable is parsed as a list assignment. A list assignment leaves the choice of
+what the assignment operation entails to the variable on the left. For example,
+L<Array|/type/Array> variables (C<@> sigil) empty themselves on list assignment,
+and then iteratively copy all values from the right-hand side into themselves as
+elements.
 
-List assignment leaves the choice of what to do to the variable on the left.
+The two types of assignment both use the equal sign C<=> as their operator and
+are both right associative, but differ in operator precedence: item assignment
+has a higher precedence level (level: Item assignment) than list assignment
+(level: List prefix). In situations in which a comma-separated list of elements
+is assigned, these precedences should in particular be contrasted with that of
+the comma operator C<,> which sits in between. So without any list-delimiting
+parentheses (or other construct to hold the list's elements together), item
+assignment will only assign the first element of the specified list, and not the
+full list.
 
-For example, L<Array|/type/Array> variables (C<@> sigil) empty themselves on
-list assignment and then put all the values from the right-hand side into
-themselves.
+In an assignment expression the context of the left-hand side determines whether
+an C<=> means item or list assignment. As mentioned, item assignment is
+restricted to simple Scalar variables. Accordingly, assignment to a Scalar
+container (scalar-context) triggers item assignment, unless the Scalar is
+explicitly put in list-context by surrounding parentheses C<( )>:
 
-The type of assignment (item or list) is decided by the first context
-seen in the current expression or declarator:
+    my $a;
+    $a = 1,2,3;         # item assignment to Scalar
+    say $a;             # OUTPUT: «1␤» ( '=' has higher precedence than ',' )
 
-    my $foo = 5;            # item assignment
-    say $foo.perl;          # OUTPUT: «5␤»
+    my $b = 1,2,3;      # item assignment to Scalar (same as preceding example)
+    say $b;             # OUTPUT: «1␤»
 
-    my @bar = 7, 9;         # list assignment
-    say @bar.^name;         # OUTPUT: «Array␤»
-    say @bar.perl;          # OUTPUT: «[7, 9]␤»
+    my $c;
+    ($c) = 4,5,6;       # list assignment to Scalar; '( )' is list-contextualizer
+    say $c;             # OUTPUT:  «(4,5,6)␤»
 
-    (my $baz) = 11, 13;     # list assignment
-    say $baz.^name;         # OUTPUT: «List␤»
-    say $baz.perl;          # OUTPUT: «$(11, 13)␤»
+    (my $d) = 4,5,6;    # list assignment to Scalar (same as preceding example)
+    say $d;             # OUTPUT:  «(4,5,6)␤»
 
-Thus, the behavior of an assignment contained within a list assignment depends
-on the expression that contains it or declarator that precedes it.
+Assignment to a List container (list-context) always triggers list assignment:
 
-For instance, if the contained assignment is a declarator, item assignment
-is used, which has tighter precedence than both the comma and the list
-assignment:
+    my @e;
+    @e = 7,8,9;                     # list assignment to Array
+    say @e;                         # OUTPUT:  «[7,8,9]␤»
+
+    my $f;
+    ($f,) = 7,8,9;                  # list assignment to List with one element
+    say $f;                         # OUTPUT:  «7␤»
+    say ( ($f,) ).VAR.^name;        # OUTPUT:  «List␤»
+
+    # ATTENTION: special declaration syntax!
+    my ($g) = 7,8,9;                # list assignment to List with one element
+    say $g;                         # OUTPUT:  «7␤»
+    say ( ($g) ).VAR.^name       # OUTPUT:  «List␤»
+
+The last two examples above are simple I<destructuring assignments> that select
+the first item of the right-hand side list. See for a more elaborate discussion
+of destructuring assignments in the context of variable declarations the section
+on L<declaring a list of variables with lexical or package
+scope|/language/variables#index-entry-declaring_a_list_of_variables>.
+
+Chained assignments are parsed having regard to the precedence of the assignment
+operators and, where applicable, their right associativity. For instance, in the
+example below there is one chained assignment statement comprising two
+assignment operators. The assignment to C<@array> is a list assignment having a
+lower precedence than the item assignment to the Scalar variable C<$num>. The
+assignment expression involving the item assignment to the Scalar variable
+C<$num> is thus evaluated first. It returns the assigned value C<42>, which in
+turn forms part of the List C<(42, "str")> constructed by the comma operator
+that also has a higher precedence than the list assignment. Finally, the
+List C<(42, "str")> is list-assigned to C<@array>:
 
     my @array;
-    @array = my $num = 42, "str";   # item assignment: uses declarator for $num
-    say @array.perl;                # OUTPUT: «[42, "str"]␤» (an Array)
-    say $num.perl;                  # OUTPUT: «42␤» (a Num)
+    @array = my $num = 42, "str";   # parsed as @array = ( (my $num = 42), "str )
+    say @array.raku;                # OUTPUT: «[42, "str"]␤» (an Array)
+    say $num.raku;                  # OUTPUT: «42␤» (a Num)
 
-Similarly, if the internal or contained assignment is an expression that is
-being used as an initializer for a container declarator, the context of the
-internal expression determines the assignment type:
+Here's a variant:
 
-    my $num;
-    my @array = $num = 42, "str";    # item assignment for $num: uses expression
-    say @array.perl;                 # OUTPUT: «[42, "str"]␤» (an Array)
-    say $num.perl;                   # OUTPUT: «42␤» (a Num)
+    my ( @foo, $bar );
+    @foo = ($bar) = 42, "str";       # parsed as @foo = ( $bar = (42, "str") )
+    say $bar.raku;                   # OUTPUT: «$(42, "str")␤» (a List)#
+    say @foo.raku;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
 
-The same result would be obtained if C<@array> is declared before the
-assignment; C<$num> would be still item-assigned, C<@array> list-assigned; the
-assignment expression is parsed as C<@array = (($num = 42), "str")>, because
-item assignment has tighter precedence than the comma. However, let's see what
-happens if the internal variable assignment is in a list context:
+In this case, the list contextualizer C<( )> puts C<$bar> in a list context, and
+thus triggers a list assignment to the Scalar variable C<$bar>. This means that
+there are two chained list assignments, both having a lower precedence than the
+comma operator C<,> that constructs the List C<(42, "str")>. Due to their right
+associativity, the list assignment expression that is evaluated first is the
+assignment to C<$bar>, which returns the assigned value C<$(42, "str")>, i.e. a
+Scalar containing a two-element List. This value is in turn list-assigned to
+C<@array>, such that it becomes a Array with a single element, namely a List.
 
-=for code
-my ( @foo, $bar );
-@foo = ($bar) = 42, "str";       # list assignment for $bar: uses parentheses
-say @foo.perl;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
-say $bar.perl;                   # OUTPUT: «$(42, "str")␤» (a List)#
-
-In this case, C<()> is the list contextualizer, putting the assignment to
-C<$bar> in a list context; C<$bar> then I<decides> to include all the items to
-the right hand side of the C<=> sign; this is still included in a list
-assignment to C<@foo>, which then becomes an array with a single element, a
-C<List>.
-
-See L<operators|/language/operators> for more details on precedence.
+See L<operators|/language/operators> for more details on precedence and
+associativity.
 
 =head2 Sigilless variables
 X<|\ (sigilless variables)>
@@ -176,10 +206,10 @@ Sigilless variables do not enforce L<context|/language/contexts>, so they can be
 used to pass something on as-is:
 
     sub logged(&f, |args) {
-        say('Calling ' ~ &f.name ~ ' with arguments ' ~ args.perl);
+        say('Calling ' ~ &f.name ~ ' with arguments ' ~ args.raku);
         my \result = f(|args);
         #  ^^^^^^^ not enforcing any context here
-        say(&f.name ~ ' returned ' ~ result.perl);
+        say(&f.name ~ ' returned ' ~ result.raku);
         return |result;
     }
 
@@ -211,15 +241,15 @@ only depends on the C<$>.
 
 =end table
 
-=head2 The C<*> twigil
 X<|$*>
+X<|Dynamically scoped variables>
+=head2 The C<*> twigil
 
 This twigil is used for dynamic variables which are looked up through the
-caller's, not through the outer, scope. Look at the example below.
-
-I<Note:> So far, if you use rakudo perl6, the example below cannot run
-correctly in the REPL. Please test it by copy-pasting it into a file, then
-run the file.
+caller's, not through the outer, scope. Look at the example below.N<The example
+below cannot run correctly in the REPL, yielding an error about not finding the
+dynamic variables. Please test it by copy-pasting it into a file, then run the
+file.>
 
 =begin code
 my $lexical   = 1;
@@ -380,7 +410,7 @@ sub say-it()  { say $^a; } # invalid
 
 Placeholder variables cannot have type constraints or a variable name with a
 single upper-case letter (this is disallowed to enable catching some
-Perl5-isms).
+Perl-isms).
 
 =head2 The C<:> twigil
 X<|$:>
@@ -429,12 +459,12 @@ following are useful:
 X<|$~MAIN>X<|$~Quote>X<|$~Quasi>X<|$~Regex>X<|$~Trans>X<|$~P5Regex>
 
 =begin table
-    $~MAIN       the current main language (e.g. Perl statements)
+    $~MAIN       the current main language (e.g., Raku statements)
     $~Quote      the current root of quoting language
     $~Quasi      the current root of quasiquoting language
     $~Regex      the current root of regex language
     $~Trans      the current root of transliteration language
-    $~P5Regex    the current root of the Perl 5 regex language
+    $~P5Regex    the current root of the Perl regex language
 =end table
 
 You C<augment> these languages in your current lexical scope.
@@ -579,7 +609,7 @@ elements are left will result in undefined values according to the type of the
 variables.
 
     my (Str $a, Str $b, Int $c) = <a b>;
-    say [$a, $b, $c].perl;
+    say [$a, $b, $c].raku;
     # OUTPUT: «["a", "b", Int]␤»
 
 To destructure a list into a single value, create a list literal with one
@@ -588,13 +618,13 @@ parentheses around a single variable is sufficient.
 
     sub f { 1,2,3 };
     my ($a) = f;
-    say $a.perl;
+    say $a.raku;
     # OUTPUT: «1␤»
 
 To skip elements in the list use the anonymous state variable C<$>.
 
     my ($,$a,$,%h) = ('a', 'b', [1,2,3], {:1th});
-    say [$a, %h].perl;
+    say [$a, %h].raku;
     # OUTPUT: «["b", {:th(1)}]␤»
 
 =head2 The C<has> declarator
@@ -745,14 +775,14 @@ Furthermore, state variables can be used outside of subroutines. You
 could, for example, use C<$> in a one-liner to number the lines in a file.
 
 =begin code :lang<shell>
-perl6 -ne 'say ++$ ~ " $_"' example.txt
+raku -ne 'say ++$ ~ " $_"' example.txt
 =end code
 
 Each reference to C<$> within a lexical scope is in effect a separate
 variable.
 
 =begin code :lang<shell>
-perl6 -e '{ say ++$; say $++  } for ^5'
+raku -e '{ say ++$; say $++  } for ^5'
 # OUTPUT: «1␤0␤2␤1␤3␤2␤4␤3␤5␤4␤»
 =end code
 
@@ -933,9 +963,10 @@ C<True>). Otherwise the C<die> statement will cause the block to exit
 unsuccessfully, resetting the answer to 42.
 
 X<|constant (Prefix)>
+X<|constants (syntax)>
 =head2 The C<constant> prefix
 
-The C<constant> prefix declares that a container value is not going to change
+The C<constant> prefix declares that the value it tags is not going to change
 during its lifetime.
 
 =begin code
@@ -943,7 +974,9 @@ constant $pi2 = pi * 2;
 $pi2 = 6; # OUTPUT: «(exit code 1) Cannot assign to an immutable value␤
 =end code
 
-The value is assigned at compile time. Please check
+The value is assigned at compile time. Since Raku modules are L<precompiled
+automatically|/language/compilation>, constants defined in modules are not
+re-evaluated when the program is run. Please check
 L<the section on constants in the Terms page|/language/terms#Constants> for
 additional information.
 
@@ -1215,7 +1248,7 @@ Module-Foo/
         └── foo.jpg
 =end code
 
-Then a relative path (starting from root directory of a distribution)
+Then a relative path (starting from the root directory of a distribution)
 to a file is specified under C<"resources"> field in META6.json file:
 
 =begin code :lang<js>
@@ -1228,17 +1261,17 @@ Every resource file is added to an installed Distribution and is
 accessible using a Hash-like access to C<%?RESOURCES>:
 
 =begin code :skip-test<resources-example>
-my $foo-IO = %?RESOURCE<images/foo.jpg>;          # gets an object you can slurp
-my $foo-IO = %?RESOURCE<images/foo.jpg>.absolute; # gets an absolute path to a file
-my $foo-IO = %?RESOURCE<images/foo.jpg>.open;     # gets an opened IO::Handle to work with
+my $foo-IO = %?RESOURCES<images/foo.jpg>;          # gets an object you can slurp
+my $foo-IO = %?RESOURCES<images/foo.jpg>.absolute; # gets an absolute path to a file
+my $foo-IO = %?RESOURCES<images/foo.jpg>.open;     # gets an opened IO::Handle to work with
 =end code
 
 Note that paths and names of resource files can be mangled in an
 installed distribution, so do not rely on their values in any other
-case besides using them as keys for C<%?RESOURCES> variable.
+case besides using them as keys for the C<%?RESOURCES> variable.
 
-C<%?RESOURCES> variable is not implemented as a plain Hash, but an
-instance of C<Distribution::Resources> type, so do not expect to see
+The C<%?RESOURCES> variable is not implemented as a plain Hash, but as an
+instance of the C<Distribution::Resources> type, so do not expect to see
 all available resource files in a distribution by printing or other
 ways to inspect its value. Instead, use the API described above to
 access particular files.
@@ -1251,13 +1284,13 @@ X<|$?TABSTOP>X<|$?NL>X<|$?DISTRIBUTION>
 The following compile time variables allow for a deeper introspection:
 
 =for table
-    $?PACKAGE        Which package am I in?
-    $?MODULE         Which module am I in?
-    $?CLASS          Which class am I in? (as variable)
-    $?ROLE           Which role am I in? (as variable)
-    $?TABSTOP        How many spaces is a tab in a heredoc or virtual margin?
-    $?NL             What a vertical newline "\n" means: LF, CR or CRLF
-    $?DISTRIBUTION   The Distribution of the current compilation unit.
+    $?PACKAGE            Which package am I in?
+    $?MODULE, ::?MODULE  Which module am I in? It contains the type of the module.
+    $?CLASS              Which class am I in? (as variable)
+    $?ROLE               Which role am I in? (as variable)
+    $?TABSTOP            How many spaces is a tab in a heredoc or virtual margin?
+    $?NL                 What a vertical newline "\n" means: LF, CR or CRLF
+    $?DISTRIBUTION       The Distribution of the current compilation unit.
 
 With particular regard to the C<$?NL>, see the L<newline
 pragma|/language/pragmas>.
@@ -1413,8 +1446,14 @@ C<BEGIN now> executed in your program.
 X<|$*TZ>
 =head4 C<$*TZ>
 
-C<$*TZ> contains the system's local time zone offset, as the number of
+C<$*TZ> is a dynamic variable intended to contain an object with information
+about the system's local timezone.  It should numify to the number of
 B<seconds> from GMT.
+
+If not set explicitly, it contains just an integer value without any
+further information, set the first time C<$*TZ> is accessed.  Any
+daylight saving time changes occurring during the duration of the
+process will B<not> be seen in that case.
 
 X<|$*CWD>
 =head4 C<$*CWD>
@@ -1451,7 +1490,7 @@ This shows additional information on the operating system and version it's
 using, but as a matter of fact, this variable contains information which is
 useful to create portable programs, such as the path separator:
 
-    say $*DISTRO.perl;
+    say $*DISTRO.raku;
     # OUTPUT: «Distro.new(release => "42.3", is-win => Bool::False,
     #          path-sep => ":", name => "opensuse",
     #          auth => "https://www.opensuse.org/", version => v42.3,
@@ -1478,22 +1517,32 @@ configuration values used to create the virtual machine, e.g.
 which are the version of the virtual machine, generally the same one as the one
 used in the interpreter and the overall Raku environment.
 
-X<|$*PERL>
-=head4 C<$*PERL>
+X<|$*RAKU>
+=head4 C<$*RAKU>
 
-This object of the L<C<Perl>|/type/Perl> class contains information on the
+This object of the L<C<Raku>|/type/Raku> class contains information on the
 current implementation of the Raku language:
 
-    say $*PERL.compiler.version; # OUTPUT: «v2018.11.52.g.06156.a.7.ca␤»
+    say $*RAKU.compiler.version; # OUTPUT: «v2020.01␤»
 
 but its gist includes the name of the language, followed by the major
 version of the compiler:
 
-    say $*PERL; # OUTPUT: «Raku (6.d)␤»
+    say $*RAKU; # OUTPUT: «Raku (6.d)␤»
 
 It stringifies to C<Raku>:
 
-    $*PERL.put; # OUTPUT: «Raku␤»
+    $*RAKU.put; # OUTPUT: «Raku␤»
+
+B<Note:> Before Rakudo version 2020.1, this information was only
+available through the C<$*PERL> variable. Since Rakudo version 2020.1,
+it is available through both the C<$*RAKU> and the C<$*PERL> variables.
+
+X<|$*PERL>
+=head4 C<$*PERL>
+
+For the foreseeable future, the same as C<$*RAKU>.  Will be deprecated at
+some point.
 
 X<|$*PID>
 =head4 C<$*PID>
@@ -1505,7 +1554,7 @@ X<|$*PROGRAM-NAME>
 =head4 C<$*PROGRAM-NAME>
 
 This contains the path to the current executable as it was entered on the
-command line, or C<-e> if perl was invoked with the -e flag.
+command line, or C<-e> if raku was invoked with the -e flag.
 
 X<|$*PROGRAM>
 =head4 C<$*PROGRAM>
@@ -1518,20 +1567,20 @@ X<|&*EXIT>
 
 This is a L<Callable|/type/Callable> that contains the code that will be
 executed when doing an C<exit()> call.  Intended to be used in situations where
-Raku is embedded in another language runtime (such as Inline::Perl6 in Perl 5).
+Raku is embedded in another language runtime (such as Inline::Perl6 in Perl).
 
 X<|$*EXECUTABLE>
 =head4 C<$*EXECUTABLE>
 
-Contains an C<IO::Path> absolute path of the perl executable that is currently
+Contains an C<IO::Path> absolute path of the raku executable that is currently
 running.
 
 X<|$*EXECUTABLE-NAME>
 =head4 C<$*EXECUTABLE-NAME>
 
-Contains the name of the Perl executable that is currently running. (e.g.
-perl6-p, perl6-m). Favor C<$*EXECUTABLE> over this one, since it's not
-guaranteed that the perl executable is in C<PATH>.
+Contains the name of the Raku executable that is currently running. (e.g.
+raku-p, raku-m). Favor C<$*EXECUTABLE> over this one, since it's not
+guaranteed that the raku executable is in C<PATH>.
 
 X<|$*USAGE>
 =head4 C<$*USAGE>
@@ -1605,7 +1654,7 @@ By default this imposes a maximum of 64 threads on the methods C<.hyper>,
 C<.race> and other thread-pool classes that use that scheduler such as
 C<Promise>s or C<Supply>s. This is, however, implementation, dependent and might
 be subject to change. To change the maximum number of threads, you can either
-set the environment variable C<RAKUDO_MAX_THREADS> before running perl6 or
+set the environment variable C<RAKUDO_MAX_THREADS> before running raku or
 create a scoped copy with the default changed before using them:
 
     my $*SCHEDULER = ThreadPoolScheduler.new( max_threads => 128 );
@@ -1626,7 +1675,7 @@ message.
 
 =for code
 sub MAIN($a, :$b, UInt :$ehehe) {
-    say $*USAGE; # OUTPUT: «Usage:␤  perl6.pl6 [-a=<Int>] [-b=<Str>] [--<opts>=...]»
+    say $*USAGE; # OUTPUT: «Usage:␤  my-script.raku [-a=<Int>] [-b=<Str>] [--<opts>=...]»
 }
 
 It is accessible only inside of MAIN sub.

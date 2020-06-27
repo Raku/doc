@@ -27,15 +27,22 @@ The first line is pretty much equivalent to the following piece of code:
 
 Defined as:
 
-=for code :method
+=for code :method :preamble<has $!chomp; has $nl-in; has $nl-out;>
 method open(IO::Handle:D:
-    :$bin, :$enc, :$chomp, :$nl-in, Str:D :$nl-out,
-    Str :$mode,
-    :$r, :$w, :$a, :$x, :$update, :$rw, :$rx, :$ra,
-    :$create, :$append, :$truncate, :$exclusive,
-    :$out-buffer,
-    --> IO::Handle:D
-)
+      :$r, :$w, :$x, :$a, :$update,
+      :$rw, :$rx, :$ra,
+      :$mode is copy,
+      :$create is copy,
+      :$append is copy,
+      :$truncate is copy,
+      :$exclusive is copy,
+      :$bin,
+      :$enc is copy,
+      :$chomp = $!chomp,
+      :$nl-in is copy = $!nl-in,
+      Str:D :$nl-out is copy = $!nl-out,
+      :$out-buffer is copy,
+    )
 
 Opens the handle in one of the modes. L<Fails|/routine/fail> with appropriate
 exception if the open fails.
@@ -68,6 +75,8 @@ C<:r>) and can be controlled by a mix of the following arguments:
 :rx     same as specifying   :mode<rw>, :create, :exclusive
 =end code
 
+Argument C<:r> along with C<:w>, C<:a>, C<:x> are exactly the same as the
+combination of both letters, shown in the three last rows in the table above.
 Support for combinations of modes I<other> than what is listed above
 is implementation-dependent and should be assumed unsupported. That is,
 specifying, for example, C<.open(:r :create)> or
@@ -98,7 +107,7 @@ C<open> to open (if C<closed>) the C<$*IN> handle if opening in read-only
 mode or to open the C<$*OUT> handle if opening in write-only mode. All other
 modes in this case will result in exception being thrown.
 
-As of B<6.d> language version, use path C<'-'> is deprecated and it will
+As of B<6.d> language version, the use of path C<'-'> is deprecated and it will
 be removed in future language versions entirely.
 
 The C<:out-buffer> controls output buffering and by default behaves as if
@@ -257,7 +266,7 @@ the first C<read> consumes all of the data, but it's only until the second
 C<read> that reads nothing would the EOF on a TTY handle be set:
 
     =begin code :lang<shell>
-    $ echo "x" | perl6 -e 'with $*IN { .read: 10000; .eof.say; .read: 10; .eof.say }'
+    $ echo "x" | raku -e 'with $*IN { .read: 10000; .eof.say; .read: 10; .eof.say }'
     False
     True
     =end code
@@ -353,10 +362,16 @@ with 'foo'.IO {
 
 Defined as:
 
-    sub lines(IO::Handle:D $fh = $*ARGFILES, $limit = Inf, :$close --> Seq:D)
-    method lines(IO::Handle:D:               $limit = Inf, :$close --> Seq:D)
+    sub          lines( $what = $*ARGFILES, |c)
+    multi method lines( IO::Handle:D: $limit, :$close )
+    multi method lines( IO::Handle:D:         :$close )
 
-Return a L<Seq|/type/Seq> each element of which is a line from the handle (that is
+The sub form, which takes C<$*ARGFILES> by default, will apply the C<lines>
+method to the object that's the first argument, and pass it the rest of the
+arguments.
+
+The method will return a L<Seq|/type/Seq> each element of which is a line from
+the handle (that is
 chunks delineated by L«C<.nl-in>|/type/IO::Handle#method_nl-in»). If the
 handle's L«C<.chomp>|/type/IO::Handle#method_chomp» attribute is set to C<True>,
 then characters specified by L«C<.nl-in>|/type/IO::Handle#method_nl-in» will be
@@ -384,6 +399,11 @@ say "The file contains ",
   " lines that mention Perl";
 # OUTPUT: «The file contains 72 lines that mention Perl␤»
 =end code
+
+You can use C<lines> in C</proc/*> files (from the 6.d version):
+
+=for code
+say lines( "/proc/$*PID/statm".IO ); # OUTPUT: «(58455 31863 8304 2 0 29705 0)␤»
 
 =head2 method lock
 
@@ -625,7 +645,7 @@ C<X::IO::BinaryMode> exception being thrown.
 
 =for code
 my $fh = open 'path/to/file', :w;
-$fh.say(Complex.new(3, 4));        # RESULT: «3+4i\n»
+$fh.say(Complex.new(3, 4));        # OUTPUT: «3+4i␤»
 $fh.close;
 
 =head2 method read
@@ -754,12 +774,12 @@ parameter and C<65536> bytes in binary mode or C<65536> characters in non-binary
 mode.
 
 =begin code
-"foo".IO.open(:bin).Supply(:size<10>).tap: *.perl.say;
+"foo".IO.open(:bin).Supply(:size<10>).tap: *.raku.say;
 # OUTPUT:
 # Buf[uint8].new(73,32,226,153,165,32,80,101,114,108)
 # Buf[uint8].new(32,54,33,10)
 
-"foo".IO.open.Supply(:size<10>).tap: *.perl.say;
+"foo".IO.open.Supply(:size<10>).tap: *.raku.say;
 # OUTPUT:
 # "I ♥ Perl"
 # " 6!\n"
@@ -792,7 +812,7 @@ Returns the value of L«C<.path>|/type/IO::Handle#method_path», coerced
 to L<Str|/type/Str>.
 
 =for code
-say "foo".IO.open.path; # OUTPUT: «"foo".IO␤»
+say "foo".IO.open.Str; # OUTPUT: «foo␤»
 
 =head2 routine close
 
@@ -801,24 +821,30 @@ Defined as:
     method close(IO::Handle:D: --> Bool:D)
     multi sub close(IO::Handle $fh)
 
-Closes an open filehandle. It's not an error to call C<close> on an
-already-closed filehandle. Returns C<True> on success. If you close
-one of the standard filehandles (by default: C<$*IN>, C<$*OUT>, or C<$*ERR>),
-that is any handle with L<native-descriptor|/routine/native-descriptor> C<2> or lower, you won't be
-able to re-open such a handle.
+Closes an open filehandle, returning C<True> on success. No error is thrown if the
+filehandle is already closed, although if you close one of the standard
+filehandles (by default: C<$*IN>, C<$*OUT>, or C<$*ERR>: any handle
+with L<native-descriptor|/routine/native-descriptor> C<2> or lower), you won't be
+able to re-open them.
+
+=for code
+given "foo/bar".IO.open(:w) {
+    .spurt: "I ♥ Raku!";
+    .close;
+}
 
 It's a common idiom to use L«C<LEAVE> phaser|/language/phasers#LEAVE» for
 closing the handles, which ensures the handle is closed regardless of how the
 block is left.
 
-=begin code :skip-test<compile time error>
-if $do-stuff-with-the-file {
+=begin code
+do {
     my $fh = open "path-to-file";
     LEAVE close $fh;
     # ... do stuff with the file
 }
 
-sub do-stuff-with-the-file (IO $path-to-file)
+sub do-stuff-with-the-file (IO $path-to-file) {
   my $fh = $path-to-file.open;
 
   # stick a `try` on it, since this will get run even when the sub is
@@ -826,11 +852,6 @@ sub do-stuff-with-the-file (IO $path-to-file)
   LEAVE try close $fh;
 
   # ... do stuff with the file
-}
-
-given "foo/bar".IO.open(:w) {
-    .spurt: "I ♥ Raku!";
-    .close;
 }
 =end code
 
@@ -917,7 +938,7 @@ with 'test'.IO {
         .put: 42;
         .close;
     }
-    .slurp.perl.say; # OUTPUT: «"42\n42foo"»
+    .slurp.raku.say; # OUTPUT: «"42\n42foo"»
 }
 =end code
 

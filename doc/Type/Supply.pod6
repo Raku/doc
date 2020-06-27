@@ -110,7 +110,7 @@ a time.
 
 Defined as:
 
-    method Capture(Supply:D --> Capture:D)
+    method Capture(Supply:D: --> Capture:D)
 
 Equivalent to calling L«C<.List.Capture>|/type/List#method_Capture»
 on the invocant.
@@ -234,6 +234,20 @@ return C<Supply>.
     my $t = $s.sort();
     $t.tap(&say);           # OUTPUT: «2␤3␤4␤10␤»
 
+=head2 method collate
+
+    method collate(Supply:D:)
+
+Taps the C<Supply> it is called on. Once that C<Supply> emits C<done>,
+all of the values that it emitted will be sorted taking into account
+Unicode grapheme characteristics. A new C<Supply> is returned with
+the sorted values emitted. See L<Any.collate|/type/Any#method_collate>
+for more details on the collated sort.
+
+    my $s = Supply.from-list(<ä a o ö>);
+    my $t = $s.collate();
+    $t.tap(&say);           # OUTPUT: «a␤ä␤o␤ö␤»
+
 =head1 Methods that return another Supply
 
 =head2 method from-list
@@ -303,7 +317,7 @@ Creates a supply that emits a value every C<$interval> seconds, starting
 C<$delay> seconds from the call. The emitted value is an integer, starting from
 0, and is incremented by one for each value emitted.
 
-Implementations may treat too-small values as lowest resolution they support,
+Implementations may treat too-small and negative values as lowest resolution they support,
 possibly warning in such situations; e.g. treating C<0.0001> as C<0.001>.
 For 6.d language version, the minimal value specified is C<0.001>.
 
@@ -331,7 +345,7 @@ C<&mapper> and emits it to the new supply.
     my $all      = $supplier.Supply;
     my $double   = $all.map(-> $value { $value * 2 });
     $double.tap(&say);
-    $supplier.emit(4);           # RESULT: «8»
+    $supplier.emit(4);           # OUTPUT: «8»
 
 =head2 method batch
 
@@ -369,6 +383,24 @@ Creates a "tail" supply with the same semantics as L<List.tail|/type/List#method
     my $s = Supply.from-list(4, 10, 3, 2);
     my $ts = $s.tail(2);
     $ts.tap(&say);           # OUTPUT: «3␤2␤»
+
+=head2 method first
+
+    method first(Supply:D: :$end, |c)
+
+This method creates a supply of the first element, or the last element if
+the optional named parameter C<:end> is truthy, from a supply created by
+calling the C<grep> method on the invocant, with any remaining arguments
+as parameters.
+If there is no remaining argument, this method is equivalent to calling
+on the invocant, without parameter, the C<head> or the C<tail> method,
+according to named parameter C<:end>.
+
+    my $rand = supply { emit (rand × 100).floor for ^∞ };
+    my $first-prime = $rand.first: &is-prime;
+    # output the first prime from the endless random number supply $rand,
+    # then the $first-prime supply reaches its end
+    $first-prime.tap: &say;
 
 =head2 method rotor
 
@@ -613,17 +645,36 @@ supply that's usually created by some asynchronous I/O operation.
 
     method unique(Supply:D: :$as, :$with, :$expires --> Supply:D)
 
-Creates a supply that only provides unique values, as defined by the optional
-C<:as> and C<:with> parameters (same as with L<List.unique|/type/List#routine_unique>).  The optional C<:expires>
-parameter how long to wait (in seconds) before "resetting" and not considering
-a value to have been seen, even if it's the same as an old value.
+Creates a supply that only provides unique values, as defined
+by the optional C<:as> and C<:with> parameters (same as with
+L<C<unique>|/language/independent-routines#routine_unique>).  The optional
+C<:expires> parameter how long to wait (in seconds) before "resetting"
+and not considering a value to have been seen, even if it's the same as
+an old value.
+
+=head2 method repeated
+
+    method repeated(Supply:D: :&as, :&with)
+
+Creates a supply that only provides repeated values, as defined
+by the optional C<:as> and C<:with> parameters (same as with
+L<C<unique>|/language/independent-routines#routine_unique>).
+
+    my $supply = Supply.from-list(<a A B b c b C>).repeated(:as(&lc));
+    $supply.tap(&say);           # OUTPUT: «A␤b␤b␤C␤»
+
+See L<C<repeated>|/language/independent-routines#routine_repeated>
+for more examples that use its sub form.
+
+B<Note>: Available since version 6.e (L<Rakudo|/language/glossary#Rakudo> 2020.01 and later).
 
 =head2 method squish
 
     method squish(Supply:D: :$as, :$with --> Supply:D)
 
-Creates a supply that only provides unique values, as defined by the optional
-C<:as> and C<:with> parameters (same as with L<List.squish|/type/List#routine_squish>).
+Creates a supply that only provides unique values, as defined
+by the optional C<:as> and C<:with> parameters (same as with
+L<C<squish>|/language/independent-routines#routine_squish>).
 
 =head2 method max
 

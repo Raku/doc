@@ -7,12 +7,10 @@
 =head1 Creating and using modules
 
 A module is usually a source file or set of source files that expose
-Raku constructs.
-
-N<Technically a module is a set of I<compunits> which are usually files
+Raku constructs N<Technically a module is a set of I<compunits> which are usually files
 but could come from anywhere as long as there is a I<compunit
 repository> that can provide it. See
-L<S11|https://design.raku.org/S11.html>.>
+L<S11|https://design.raku.org/S11.html>.>.
 
 Modules are typically packages (L<classes|/language/objects#Classes>,
 L<roles|/language/objects#Roles>, L<grammars|/type/Grammar>),
@@ -39,8 +37,8 @@ instance. Then,
 zef install WWW
 
 will install the module with that particular name, if it is not already
-installed. N<If it's installed, it will reinstall only if the version of
-the module is newer than the one installed>
+installed N<If it's installed, it will reinstall only if the version of
+the module is newer than the one installed>.
 
 
 =head2 Basic structure
@@ -54,9 +52,12 @@ L<synopsis S11|https://design.raku.org/S11.html#Units> says: Confusing? Yes it
 is.> , a C<t> directory for tests, and possibly a C<bin> directory for
 executable programs and scripts.
 
-Source files generally use the C<.pm6> extension, and scripts or
-executables use the C<.p6>. Test files use the C<.t> extension. Files which
-contain documentation use the C<.pod6> extension.
+Source files generally use the C<.rakumod> extension, and scripts or
+executables use the C<.raku>. Test files use the C<.rakutest> (or C<.t>)
+extension. Files which contain documentation use the C<.rakudoc> extension N«The
+old C<.p6> (or C<.pl6>), C<.pm6> (or C<.pm> which is also supported, but
+discouraged) and C<.pod6> extensions will continue to be supported for 6.e
+and marked as B<deprecated> in 6.f».
 
 X<|compunit>
 =head1 Loading and basic importing
@@ -76,7 +77,7 @@ need MyModule;
 Any packages in the namespace defined within will also be available.
 
 =begin code :solo
-# MyModule.pm6
+# MyModule.rakumod
 unit module MyModule;
 
 class Class {}
@@ -88,7 +89,7 @@ defined that way are not automatically exported; you will need to explicitly
 export it if you want to use it by its short name:
 
 =begin code :solo
-# MyModule.pm6
+# MyModule.rakumod
 unit module MyModule;
 
 class Class is export {}
@@ -100,14 +101,13 @@ And then
 use MyModule;
 
 my $class = Class.new();
-say $class.perl;
+say $class.raku;
 =end code
 
 =head2 X<C<use>>
 
 C<use> loads and then imports from a compunit at compile time. It will look for
-files that end in C<.pm6> (C<.pm> is also supported, but discouraged). See
-L<here|/language/modules#Finding_installed_modules>
+files that end in C<.rakumod>. See L<here|/language/modules#Finding_installed_modules>
 for where the runtime will look for modules.
 
 =for code :skip-test<needs dummy module>
@@ -189,6 +189,11 @@ a C<Failure>. The correct way is:
         say "Failed to load Foo!";
     }
 
+In the current (6.d) version of the language, C<require>d symbols are no longer
+transitively exposed, which means that you need to import symbols from the
+module they were originally declared, not from the module where they have
+been imported.
+
 =head2 Lexical module loading
 
 Raku takes great care to avoid global state, i.e. whatever you do in
@@ -256,7 +261,7 @@ so that the importer can pick and choose. There are three predefined
 tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
 
     =begin code :solo
-    # lib/MyModule.pm6
+    # lib/MyModule.rakumod
     unit module MyModule;
     sub bag        is export             { ... }
     # objects with tag ':MANDATORY' are always exported
@@ -267,7 +272,7 @@ tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
     =end code
 
     =begin code :skip-test<needs dummy module>
-    # main.p6
+    # main.raku
     use lib 'lib';
     use MyModule;          # bag, pants
     use MyModule :DEFAULT; # the same
@@ -307,7 +312,7 @@ no matter whether the using program adds any tag or not.
 4. Multiple import tags may be used (separated by commas).  For example:
 
     =begin code :skip-test<needs dummy module>
-    # main.p6
+    # main.raku
     use lib 'lib';
     use MyModule :day, :night; # pants, sunglasses, torch
     =end code
@@ -353,7 +358,7 @@ packages are useful when you want to produce the exported symbols
 dynamically. For example:
 
     =begin code :solo
-    # lib/MyModule.pm6
+    # lib/MyModule.rakumod
     unit module MyModule;
 
     my package EXPORT::DEFAULT {
@@ -367,7 +372,7 @@ dynamically. For example:
     =end code
 
     =begin code :skip-test<needs dummy module>
-    # main.p6
+    # main.raku
     use MyModule;
     say sqrt-of-four; # OUTPUT: «2␤»
     say log-of-zero;  # OUTPUT: «-Inf␤»
@@ -382,7 +387,7 @@ the values are the desired values. The names should include the sigil
 (if any) for the associated type.
 
     =begin code
-    # lib/MyModule.pm6
+    # lib/MyModule.rakumod
 
     class MyModule::Class { }
 
@@ -398,7 +403,7 @@ the values are the desired values. The names should include the sigil
     =end code
 
     =begin code :skip-test<needs dummy module>
-    # main.p6
+    # main.raku
     use lib 'lib';
     use MyModule;
     say $var;          # OUTPUT: «one␤»
@@ -436,7 +441,7 @@ passing C<:DEFAULT> to C<use> along with your positional parameters.
     =end code
 
     =begin code :skip-test<needs dummy module>
-    # main.p6
+    # main.raku
     use lib 'lib';
     use MyModule 'foo';
     say foo.new(); # OUTPUT: «MyModule::Class.new␤»
@@ -450,7 +455,7 @@ effect. This example creates a C<?> postfix which will only work on
 L<Cool|/type/Cool>s.
 
     =begin code
-    # lib/MakeQuestionable.pm6
+    # lib/MakeQuestionable.rakumod
     sub EXPORT(::Questionable) {
         my multi postfix:<?>(Questionable $_) { .so };
         %(
@@ -506,11 +511,12 @@ zef --force install .
 X<|use lib>
 A user may have a collection of modules not found in the normal ecosystem,
 maintained by a module or package manager, but needed regularly.  Instead of
-using the C<use lib> pragma one can use the C<PERL6LIB> environment variable to
-point to module locations.  For example:
+using the C<use lib> L<pragma|/language/pragmas#index-entry-lib__pragma> one
+can use the C<RAKULIB> environment variable to point to module locations.
+For example:
 
 =for code :lang<shell>
-export PERL6LIB=/path/to/my-modules,/path/to/more/modules
+export RAKULIB=/path/to/my-modules,/path/to/more/modules
 
 Note that the comma (',') is used as the directory separator.
 
@@ -528,7 +534,7 @@ Currently there are two different module ecosystems (module distribution
 networks) available:
 
 =item B<CPAN>
-This is the same ecosystem Perl5 is using. Modules are uploaded as I<.zip>
+This is the same ecosystem Perl is using. Modules are uploaded as I<.zip>
 or I<.tar.gz> files on L<PAUSE|https://pause.perl.org/>.
 
 =item B<p6c>
@@ -555,7 +561,7 @@ Make your project directory look like this:
 Vortex-TotalPerspective/
 ├── lib
 │   └── Vortex
-│       └── TotalPerspective.pm6
+│       └── TotalPerspective.rakumod
 ├── LICENSE
 ├── META6.json
 ├── README.md
@@ -569,10 +575,10 @@ its job, they should go in your lib directory like so:
 =begin code :lang<text>
 lib
 └── Vortex
-    ├── TotalPerspective.pm6
+    ├── TotalPerspective.rakumod
     └── TotalPerspective
-        ├── FairyCake.pm6
-        └── Gargravarr.pm6
+        ├── FairyCake.rakumod
+        └── Gargravarr.rakumod
 =end code
 =end item
 
@@ -595,7 +601,7 @@ C<META6.json>) so that the distribution path can be provided to the program.
 {
     "name" : "Vortex::TotalPerspective",
     "provides" : {
-        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.pm6"
+        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.rakumod"
     },
     "resources": [ "templates/default-template.mustache"]
 }
@@ -681,7 +687,7 @@ Make your X<C<META6.json>|META6.json> file look something like this:
     "authors" : [ "R<Your Name>" ],
     "license" : "Artistic-2.0",
     "provides" : {
-        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.pm6"
+        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.rakumod"
     },
     "depends" : [ ],
     "build-depends" : [ ],
@@ -832,7 +838,8 @@ zef install ./your-module-folder
 =end code
 
 Note that doing so precompiles and installs your module. If you make changes to
-the source, you'll need to re-install the module. (See C<use lib> pragma, C<-I>
+the source, you'll need to re-install the module.
+(See C<use lib> L<pragma|/language/pragmas#index-entry-lib__pragma>, C<-I>
 command line switch, or C<PERL6LIB> env variable, to include a path to your
 module source while developing it, so you don't have to install it at all).
 
@@ -908,8 +915,8 @@ local repository to know about your GitHub repository.
 
 =item Consider setting up automated testing (see L<https://docs.travis-ci.com/user/languages/perl6>).
 
-=item Create a PR on L<ecosystem|https://github.com/perl6/ecosystem> adding
-your module to META.list, or ping someone on IRC (#perl6 at freenode) to
+=item Create a PR (Pull Request) on L<ecosystem|https://github.com/Raku/ecosystem> adding
+your module to META.list, or ping someone on IRC (#raku at freenode) to
 get help having it added.
 
 =item After the pull request has been accepted, wait for an hour. If
@@ -943,7 +950,7 @@ writing/test modules at L<Modules Extra|/language/modules-extra>
 
 To discuss module development in general, or if your module would
 fill a need in the ecosystem, naming, etc., you can use the
-L<#perl6 on irc.freenode.net|irc://irc.freenode.net/#perl6> IRC channel.
+L<#raku on irc.freenode.net|irc://irc.freenode.net/#raku> IRC channel.
 
 To discuss toolchain specific questions, you can use the
 L<#perl6-toolchain on irc.freenode.net|irc://irc.freenode.net/#perl6-toolchain>

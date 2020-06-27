@@ -59,7 +59,7 @@ L<multi dispatch|/language/glossary#index-entry-Multi-Dispatch> semantics.
 
 A simple example:
 
-    # inside file 'hello.p6'
+    # inside file 'hello.raku'
     sub MAIN($name) {
         say "Hello $name, how are you?"
     }
@@ -68,32 +68,32 @@ If you call that script without any parameters, you get the following
 usage message:
 
 =begin code :lang<shell>
-$ perl6 hello.p6
+$ raku hello.raku
 Usage:
-  hello.p6 <name>
+  hello.raku <name>
 =end code
 
 However, if you give a default value for the parameter, running the script
 either with or without specifying a name will always work:
 
-    # inside file 'hello.p6'
+    # inside file 'hello.raku'
     sub MAIN($name = 'bashful') {
         say "Hello $name, how are you?"
     }
 
 =begin code :lang<shell>
-$ perl6 hello.p6
+$ raku hello.raku
 Hello bashful, how are you?
 =end code
 
 =begin code :lang<shell>
-$ perl6 hello.p6 Liz
+$ raku hello.raku Liz
 Hello Liz, how are you?
 =end code
 
 Another way to do this is to make C<sub MAIN> a C<multi sub>:
 
-    # inside file 'hello.p6'
+    # inside file 'hello.raku'
     multi sub MAIN()      { say "Hello bashful, how are you?" }
     multi sub MAIN($name) { say "Hello $name, how are you?"   }
 
@@ -101,10 +101,11 @@ Which would give the same output as the examples above. Whether you should
 use either method to achieve the desired goal is entirely up to you.
 
 A more complicated example using a single positional and multiple
-named parameters:
+named parameters, and also showing that C<where> clauses can also be applied
+to C<MAIN> arguments:
 
 =for code :method<False>
-# inside "frobnicate.p6"
+# inside "frobnicate.raku"
 sub MAIN(
   Str   $file where *.IO.f = 'file.dat',
   Int  :$length = 24,
@@ -117,7 +118,7 @@ sub MAIN(
 
 With C<file.dat> present, this will work this way:
 =begin code :lang<shell>
-$ perl6 frobnicate.p6
+$ raku frobnicate.raku
 24
 file.dat
 Verbosity off
@@ -126,7 +127,7 @@ Verbosity off
 Or this way with C<--verbose>:
 
 =begin code :lang<shell>
-$ perl6 frobnicate.p6 --verbose
+$ raku frobnicate.raku --verbose
 24
 file.dat
 Verbosity on
@@ -137,9 +138,9 @@ that doesn't exist, you would get the standard usage message created from
 introspection of the C<MAIN> sub:
 
 =begin code :lang<shell>
-$ perl6 frobnicate.p6 doesntexist.dat
+$ raku frobnicate.raku doesnotexist.dat
 Usage:
-  frobnicate.p6 [--length=<Int>] [--verbose] [<file>]
+  frobnicate.raku [--length=<Int>] [--verbose] [<file>]
 =end code
 
 Although you don't have to do anything in your code to do this, it may still
@@ -147,7 +148,7 @@ be regarded as a bit terse. But there's an easy way to make that usage
 message better by providing hints using pod features:
 
 =for code :method<False>
-# inside "frobnicate.p6"
+# inside "frobnicate.raku"
 sub MAIN(
   Str   $file where *.IO.f = 'file.dat',  #= an existing file to frobnicate
   Int  :$length = 24,                     #= length needed for frobnication
@@ -161,9 +162,9 @@ sub MAIN(
 Which would improve the usage message like this:
 
 =begin code :lang<shell>
-$ perl6 frobnicate.p6 doesntexist.dat
+$ raku frobnicate.raku doesnotexist.dat
 Usage:
-  frobnicate.p6 [--length=<Int>] [--verbose] [<file>]
+  frobnicate.raku [--length=<Int>] [--verbose] [<file>]
 
     [<file>]          an existing file to frobnicate
     --length=<Int>    length needed for frobnication
@@ -188,12 +189,34 @@ In which case, these aliases will also be listed as alternatives with C<--help>:
 
 =begin code :lang<text>
 Usage:
-  frobnicate.p6 [--size|--length=<Int>] [--verbose] [<file>]
+  frobnicate.raku [--size|--length=<Int>] [--verbose] [<file>]
 
     [<file>]                 an existing file to frobnicate
     --size|--length=<Int>    length needed for frobnication
     --verbose                required verbosity
 =end code
+
+C<Enumeration>s can be used in signatures with arguments converted
+automatically to its corresponding C<enum> symbol:
+
+=begin code
+enum Flag  (
+    FLAG_FOO => 0b001,
+    FLAG_BAR => 0b010,
+    FLAG_BAZ => 0b100,
+);
+
+sub MAIN(Flag $flag = FLAG_FOO) {
+    say "Flagging $flag";
+}
+=end code
+
+This will work correctly with
+
+=for code :lang<text>
+raku MAIN-enum.raku FLAG_BAR
+
+but will die if called with something that is not a C<Flag>.
 
 X<|%*SUB-MAIN-OPTS>
 =head2 %*SUB-MAIN-OPTS
@@ -224,7 +247,7 @@ can be specified anywhere, even after positional parameter. For example,
 the above program can be called with:
 
 =begin code :lang<shell>
-$ perl6 example.p6 1 --c=2 3 --d=4
+$ raku example.raku 1 --c=2 3 --d=4
 =end code
 
 X<|hidden-from-USAGE>
@@ -235,7 +258,7 @@ automatically generated usage message. This can be achieved by adding
 a C<hidden-from-USAGE> trait to the specification of the C<MAIN> candidate
 you do not want to show. Expanding on an earlier example:
 
-    # inside file 'hello.p6'
+    # inside file 'hello.raku'
     multi sub MAIN() is hidden-from-USAGE {
         say "Hello bashful, how are you?"
     }
@@ -247,19 +270,19 @@ So, if you would call this script with just a named variable, you would get
 the following usage:
 
 =begin code :lang<shell>
-$ perl6 hello.p6 --verbose
+$ raku hello.raku --verbose
 Usage:
-  hello.p6 <name> -- the name by which you would like to be called
+  hello.raku <name> -- the name by which you would like to be called
 =end code
 
 Without the C<hidden-from-USAGE> trait on the first candidate, it would have
 looked like this:
 
 =begin code :lang<shell>
-$ perl6 hello.p6 --verbose
+$ raku hello.raku --verbose
 Usage:
-  hello.p6
-  hello.p6 <name> -- the name by which you would like to be called
+  hello.raku
+  hello.raku <name> -- the name by which you would like to be called
 =end code
 
 Which, although technically correct, doesn't read as well.
@@ -379,7 +402,7 @@ class Hero {
 }
 
 sub new-main($name, *@stuff ) {
-    Hero.new(:name($name), :inventory(@stuff) ).perl.say
+    Hero.new(:name($name), :inventory(@stuff) ).raku.say
 }
 
 RUN-MAIN( &new-main, Nil );
@@ -430,7 +453,7 @@ undocumented interface will continue to function until C<v6.e>. From v6.d
 onward, the use of the undocumented API will cause a C<DEPRECATED> message.
 
 Ecosystem modules can provide both the new and the old interface for
-compatibility with older versions of Raku: if a newer Raku recognizes
+compatibility with older versions of Perl 6 and Raku: if a newer Raku recognizes
 the new (documented) interface, it will use that. If there is no new
 interface subroutine available, but the old C<MAIN_HELPER> interface is,
 then it will use the old interface.

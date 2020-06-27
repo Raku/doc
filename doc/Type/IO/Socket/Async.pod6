@@ -6,7 +6,7 @@
 
     class IO::Socket::Async {}
 
-C<IO::Socket::Async|/type/IO::Socket::Async> provides asynchronous sockets, for both the
+C<IO::Socket::Async> provides asynchronous sockets, for both the
 server and the client side.
 
 Here is a simple example of a simple "hello world" HTTP server that
@@ -140,37 +140,19 @@ made.
 
     method listen(Str $host, Int $port --> Supply)
 
-Creates a listening socket on the specified C<$host> and C<$port>, returning a
-L<Supply|/type/Supply> to which the accepted client L<IO::Socket::Async|/type/IO::Socket::Async>s will
-be C<emit>ted. This L<Supply|/type/Supply> should be tapped start listening for
-client connections. You can use C<$port = 0> if you want the operating system to
-find one for you.
+Creates a listening socket on the specified C<$host> and C<$port>,
+returning a L<Supply|/type/Supply> to which the accepted client
+L<IO::Socket::Async|/type/IO::Socket::Async>s will be emitted. This
+L<Supply|/type/Supply> should be tapped start listening for client
+connections.  You can set C<$port> to C<0> if you want the operating
+system to find one for you.
 
-To close the underlying listening socket, the L<Tap|/type/Tap> returned by
-tapping the listener should be C<close>d.
-
-For example, when using C<tap>:
-
-=begin code
-my $listener = IO::Socket::Async.listen('127.0.0.1', 8080);
-my $tap = $listener.tap({ ... });
-
-# When you want to close the listener
-$tap.close;
-=end code
-
-Or when using C<whenever>:
-
-=begin code
-my $listener = IO::Socket::Async.listen('127.0.0.1', 5000);
-my $tap;
-react {
-    $tap = do whenever $listener -> $conn { ... }
-}
-
-# When you want to close the listener, you can still use:
-$tap.close;
-=end code
+The L<IO::Socket::Async::ListenSocket|/type/IO::Socket::Async::ListenSocket>
+returned by calling the L<tap|/type/Supply#method_tap> method on the supply
+returned represents the underlying listening TCP socket, which can be closed
+using its L<close|/type/Tap#method_close> method. If C<$port> was set to C<0>,
+you can get the port the socket ended up with using its
+L<socket-port|/type/IO::Socket::Async::ListenSocket#method_socket-port> method.
 
 =head2 method udp
 
@@ -268,8 +250,10 @@ Close the connected client L<IO::Socket::Async|/type/IO::Socket::Async> which wi
 obtained from the C<listen> L<Supply|/type/Supply> or the C<connect>
 L<Promise|/type/Promise>.
 
-In order to close the underlying listening socket created by C<listen> you
-can C<close> the L<Tap|/type/Tap>. See C<listen> for examples.
+In order to close the underlying listening socket created by C<listen> you can
+C<close> the
+L<IO::Socket::Async::ListenSocket/type/IO::Socket::Async::ListenSocket>. See
+L<listen|#method_listen> for examples.
 
 =head2 method socket-host
 

@@ -90,7 +90,7 @@ On the other hand, X<P6opaque> is the default representation used for
 all objects in Raku.
 
     class Thar {};
-    say Thar.REPR;    #OUTPUT: «P6opaque␤»
+    say Thar.REPR;    # OUTPUT: «P6opaque␤»
 
 The L<metaobject protocol|/language/mop> uses it by default for every object
 and class unless specified otherwise; for that reason, it is in general not
@@ -107,6 +107,35 @@ of the traits that are going to be added. In the case of subroutines, traits
 would be a way of adding functionality which cuts across class and role
 hierarchies, or can even be used to add behaviors to independently defined
 routines.
+
+=head2 X<C<is implementation-detail>|is implementation-detail, traits> trait
+
+Note: this trait has been available in Rakudo compiler starting from 2020.05 release.
+
+This trait is used by Raku language implementations and module authors
+to mark particular routines (including methods) as not meant to be a
+part of public API. While such routines can be found when looked up
+directly, they will not appear in results of introspection:
+
+    my &do-not-use-routine = CORE::<&DYNAMIC>;
+    say CORE::.keys.grep(* eq '&DYNAMIC'); # OUTPUT: «()␤»
+
+Such routines are not meant for use by users and their behavior and availability can be changed
+anytime.
+
+Applying this trait makes the C<is-implementation-detail> method called on
+L<Code|/type/Code> to return C<True>, thus giving a hint to the user not to use it
+if they are not willing to maintain this code in case of changes for years to come:
+
+    my &fail-routine = &fail;
+    unless &fail-routine.is-implementation-detail {
+        say "&fail is not an implementation detail, can expect backward compatibility";
+    }
+
+    sub PRIVATE-CALCULATION is implementation-detail { #`(Not safe to rely on this) }
+    if &PRIVATE-CALCULATION.is-implementation-detail {
+        say "You better not to rely on &PRIVATE-CALCULATION unless you really know what you are doing";
+    }
 
 =end pod
 

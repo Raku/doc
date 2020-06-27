@@ -10,7 +10,7 @@ Esta es la documentación recomendada.
 También hay disponible un comando para la terminal: "p6doc".
 
 (Si estás buscando el repositorio en GitHub, la mayoría de los archivos no serán mostrados correctamente,
-ya que esto es Raku Pod, y GitHub asume que es Perl 5 Pod).
+ya que esto es Raku Pod6, y GitHub asume que es Perl Pod).
 
 ## README en otros lenguajes
 
@@ -102,7 +102,7 @@ Algunas maneras en las que puedes ayudarnos:
   * Abriendo issues en GitHub si consideras que falta documentación.
   * Haciendo `git grep TODO` en este repositorio, y reemplazando los items TODO con documentación.
 
-[Esta página](https://github.com/perl6/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
+[Esta página](https://github.com/Raku/doc/issues) tiene una lista de issues actuales y partes de la documentación que faltan. El documento [CONTRIBUTING](CONTRIBUTING.md) explica brevemente cómo empezar a contribuir.
 
 --------
 ## Algunas aclaraciones:
@@ -112,7 +112,7 @@ Algunas maneras en las que puedes ayudarnos:
 
   1. Esta documentación pretende ser universal con respecto a una versión dada de una especificación, y no necesariamente estar atada a una implementación específica de Raku.
 
-  2. El tratamiento que las implementaciones hacen de Pod 6 es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
+  2. El tratamiento que las implementaciones hacen de Pod6 es todavía un poco inconsistente; esto evita impactos potenciales en el tiempo de ejecución.
 
   3. Un repo separado en la cuenta de Raku de GitHub invita a más contribuidores y editores a participar.
 
@@ -145,6 +145,6 @@ Este repositorio también contiene código de terceros que podría tener otra li
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licencia MIT](http://creativecommons.org/licenses/MIT)

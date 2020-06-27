@@ -1,10 +1,10 @@
 # Official Documentation of Raku
 
-[![Build Status](https://travis-ci.org/perl6/doc.svg?branch=master)](https://travis-ci.org/perl6/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/perl6/doc) [![CircleCI](https://circleci.com/gh/perl6/doc.svg?style=shield)](https://circleci.com/gh/perl6/doc/tree/master)
+[![Build Status](https://travis-ci.org/Raku/doc.svg?branch=master)](https://travis-ci.org/Raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/Raku/doc) [![CircleCI](https://circleci.com/gh/Raku/doc.svg?style=shield)](https://circleci.com/gh/Raku/doc/tree/master)
 
 An HTML version of this documentation can be found
-at [https://docs.perl6.org/](https://docs.perl6.org/) and also
-at [`perl6docs.github.io`](https://perl6docs.github.io) (which is
+at [https://docs.raku.org/](https://docs.raku.org/) and also
+at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
 actually updated more frequently).
 This is currently the recommended way to consume the documentation.
 
@@ -12,7 +12,7 @@ There is also a command line tool called `p6doc`, which you can use to
 browse the documentation once it's installed (see below).
 
 This documentation is updated frequently to a GitHub mirror
-https://perl6docs.github.io but that might be out of sync with the
+https://rakudocs.github.io but that might be out of sync with the
 official one.
 
 ## Docker container
@@ -32,10 +32,9 @@ or
 in case you want it published somewhere else. You can direct your
 browser to http://localhost:3000 (or 31415, as the case may be).
 
-
 ## README in other languages
 
-* [README in Chinese](resources/i18n/zh/README.zh.md)
+* [中文（Chinese）](resources/i18n/zh/README.zh.md)
 * [README in Dutch](resources/i18n/nl/README.nl.md)
 * [README in French](resources/i18n/fr/README.fr.md)
 * [README in German](resources/i18n/de/README.de.md)
@@ -59,7 +58,7 @@ version, or install using `--force`.
 
 ## Use p6doc
 
-With a Rakudo `perl6` executable in the `PATH`, try:
+With a Rakudo `rakudo` executable in the `PATH`, try:
 
     $ ./bin/p6doc Str
 
@@ -83,19 +82,20 @@ disk speed and Rakudo version, it might take a while.
 ## Building the HTML documentation
 
 The documentation can be rendered to static HTML pages and/or served in a local
-web site.
+web site. This process involves creating a cache of precompiled
+documents, so that generation after the first time is sped up.
 
 > Building the documentation has a number of prerequisites, which is might you
 > might not want to do it yourself. However, if you need a local copy of the
 > HTML documentation, please download it by cloning
-> https://github.com/perl6docs/perl6docs.github.io
+> https://github.com/rakudocs/rakudocs.github.io
 
 These are the prerequisites you need to install to generate documentation.
 
 * perl 5.20 or later
 * node 10 or later.
 * graphviz.
-* [Documentable](https://github.com/perl6/Documentable).
+* [Documentable](https://github.com/Raku/Documentable).
 
 Please follow these instructions (in Ubuntu) to install them
 
@@ -106,19 +106,18 @@ Please follow these instructions (in Ubuntu) to install them
     zef install Documentable
 
 > You can install perl and node any way you want, including version managers, as
- long as they're available to run from the command line.
+> long as they're available to run from the command line.
 
 This should install all needed requisites, now you can clone this repository
 and start building process:
 
-    git clone https://github.com/perl6/doc.git # clone the repo
+    git clone https://github.com/Raku/doc.git # clone the repo
     cd doc # move to the clone of the repo
-    make assets # Generates CSS and JS from source.
-    make init-highlights # Install needed node modules for highlighting
+    make for-documentable # Generates CSS and JS, installs highlighting modules
     documentable start -a -v --highlight # Builds cache and generates pages.
 
 You need to do this only the first time to build the cache. When there's some
-change in the source (done by yourself or pulled form the repo),
+change in the source (done by yourself or pulled from the repo),
 
     documentable update
 
@@ -132,14 +131,14 @@ based on Mojolicious using
 
 This will serve the documentation in port 3000.
 
-
 ## nginx configuration
 
-Latest version of the generated documentation consists only of static HTML pages
-. All pages are generated with `.html` at the end; however, most internal links
-don't use that suffix. Most places (for instance, GitHub pages) will add it
-automatically for you. A bare server will not. This is what you have to add to
-the configuration to make it work:
+Latest version of the generated documentation consists only of static
+HTML pages. All pages are generated with `.html` at the end; however,
+most internal links don't use that suffix. Most web servers (for
+instance, the one that serves with GitHub pages) will add it
+automatically for you. A bare server will not. This is what you have
+to add to the configuration to make it work:
 
 ```
     location / {
@@ -149,16 +148,14 @@ the configuration to make it work:
 ```
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
-made in other servers.
-
-
+made in other server applications.
 
 ---------
 
 ## Help Wanted!
 
-Raku is not a small language, and documenting it takes a lot of effort.
-Any help is appreciated.
+Raku is not a small language, and documenting it and maintaining that
+documentation takes a lot of effort. Any help is appreciated.
 
 Here are some ways to help us:
 
@@ -169,7 +166,7 @@ Here are some ways to help us:
  * Do a `git grep TODO` in this repository, and replace the TODO items by
    actual documentation.
 
-[Issues page](https://github.com/perl6/doc/issues) has a list of current issues and
+[Issues page](https://github.com/Raku/doc/issues) has a list of current issues and
 documentation parts that are known to be missing
 and [the CONTRIBUTING document](CONTRIBUTING.md)
 explains briefly how to get started contributing documentation.
@@ -187,7 +184,7 @@ explains briefly how to get started contributing documentation.
      implementation.
   2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the perl6 Github account invites
+  3. A separate repo in the Raku Github account invites
      more potential contributors and editors.
 
 **Q:** Should I include methods from superclasses or roles?<br>
@@ -198,7 +195,7 @@ explains briefly how to get started contributing documentation.
 
 ## Vision
 
-> I want p6doc and docs.perl6.org to become the No. 1 resource to consult
+> I want p6doc and docs.raku.org to become the No. 1 resource to consult
 > when you want to know something about a Raku feature, be it from the
 > language, or built-in types and routines. I want it to be useful to every
 > Raku programmer.
@@ -213,6 +210,10 @@ explains briefly how to get started contributing documentation.
 Helpful when debugging failing test suite.
 - `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
 
+# UPDATES
+
+Updates are done for the time being by hand. This probably needs improvement.
+
 # LICENSE
 
 The code in this repository is available under the Artistic License 2.0
@@ -226,6 +227,6 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

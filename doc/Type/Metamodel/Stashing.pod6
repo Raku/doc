@@ -1,0 +1,62 @@
+=begin pod :kind<Type> :subkind<role> :category<metamodel>
+
+=TITLE role Metamodel::Stashing
+
+=SUBTITLE Metarole for type stashes
+
+    role Metamodel::Stashing { }
+
+I<Warning>: this role is part of the Rakudo implementation, and is not
+a part of the language specification.
+
+Types may have a stash associated with them, which is a named hash
+containing our-scoped symbols for that type's package. When this is
+the case, they can be used like namespaces; you can get their stash
+using their C<WHO> property or with the C<::> dispatch operator:
+
+=begin code :solo
+module Nested {
+    module Namespace {
+        constant Symbol = $?MODULE;
+    }
+}
+
+say Nested::Namespace::Symbol;         # OUTPUT: «(Namespace)␤»
+say Nested.WHO<Namespace>.WHO<Symbol>; # OUTPUT: «(Namespace)␤»
+=end code
+
+C<Metamodel::Stashing> is the metarole that handles creating and
+setting a stash object for types. Types used with this metarole are
+expected to support naming, so when writing custom HOWs that do it,
+ensure they also do L<Metamodel::Naming|/type/Metamodel::Naming>.
+
+=head1 Methods
+
+=head2 method add_stash
+
+    method add_stash($type_obj)
+
+Creates and sets a stash for a type, returning C<$type_obj>.
+
+This method is typically called as the last step of creating a new
+type. For example, this is how it would be used in a minimal HOW that
+only supports naming and stashing:
+
+=begin code :solo
+class WithStashHOW
+    does Metamodel::Naming
+    does Metamodel::Stashing
+{
+    method new_type(WithStashHOW:_: Str:D :$name! --> Mu) {
+        my WithStashHOW:D $meta := self.new;
+        my Mu             $type := Metamodel::Primitives.create_type: $meta, 'Uninstantiable';
+        $meta.set_name: $type, $name;
+        self.add_stash: $type
+    }
+}
+
+my Mu constant WithStash = WithStashHOW.new_type: :name<WithStash>;
+say WithStash.WHO; # OUTPUT: «WithStash␤»
+=end code
+
+=end pod

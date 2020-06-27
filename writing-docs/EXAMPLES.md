@@ -56,6 +56,16 @@ You can allow it with ok-test:
         dd 42;
     =end
 
+### Allow .perl
+
+One of the checks is to discourage using `.perl` in tests: the `raku`
+method should be used instead.
+If needed you can allow the use of the `perl` method with ok-test:
+
+    =begin code :ok-test<perl>
+        say {:42a}.perl;
+    =end
+
 ### Methods
 
 If a code snippet looks like a method declaration, it's automatically
@@ -88,6 +98,11 @@ example in the code.
     =begin code :preamble<my $x; sub frob {...};>
         $x = frob();
     =end code
+
+Note that when running the code, it's compiled inside an anonymous class.
+The preamble is the first code in this class, so if you're testing the
+definition of a complex method signature that requires attributes, you can
+declare them using this construct.
 
 ### Complicated Examples
 

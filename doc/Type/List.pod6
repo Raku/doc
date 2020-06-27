@@ -17,6 +17,42 @@ Arrays to have every value of the list stored in a container.
 C<List> implements C<Positional> and as such provides support for
 L<subscripts|/language/subscripts>.
 
+=head1 Immutability
+
+Lists are immutable objects, i.e., neither the number of elements in a list
+nor the elements themselves can be changed. Thus, it is not possible to use
+operations that change the list structure itself such as L<shift|/routine/shift>,
+L<unshift|/routine/unshift>, L<push|/routine/push>, L<pop|/routine/pop>,
+L<splice|/routine/splice>
+and L<binding|/language/operators#index-entry-Binding_operator>.
+
+=begin code :skip-test<illustrates error>
+(1, 2, 3).shift;      # Error Cannot call 'shift' on an immutable 'List'
+(1, 2, 3).unshift(0); # Error Cannot call 'unshift' on an immutable 'List'
+(1, 2, 3).push(4);    # Error Cannot call 'push' on an immutable 'List'
+(1, 2, 3).pop;        # Error Cannot call 'pop' on an immutable 'List'
+(1, 2, 3)[0]:delete;  # Error Cannot remove elements from a List
+(1, 2, 3)[0] := 0;    # Error Cannot use bind operator with this left-hand side
+(1, 2, 3)[0] = 0;     # Error Cannot modify an immutable Int
+=end code
+
+A C«List» doesn't L«containerize|/language/containers» its elements, but if
+any element happens to be inside a L«Scalar|/type/Scalar» container then
+the element's contents can be replaced via an assignment.
+
+=begin code :skip-test<illustrates error>
+my $a = 'z';
+my $list = ($a, $, 'b');
+
+say $list[0].VAR.^name; # OUTPUT: «Scalar␤», containerized
+say $list[1].VAR.^name; # OUTPUT: «Scalar␤», containerized
+say $list[2].VAR.^name; # OUTPUT: «Str␤», non-containerized
+
+$list[0] = 'a'; # OK!
+$list[1] = 'c'; # OK!
+$list[2] = 'd'; # Error: Cannot modify an immutable List
+=end code
+
 =head1 Items, flattening and sigils
 
 In Raku, assigning a C<List> to a scalar variable does not lose information.
@@ -70,7 +106,7 @@ operation such as C<append>:
     say @d.elems;           # OUTPUT: «3␤»
 
 The same flattening behavior applies all objects that do the
-L<Iterable|/type/Iterable> role, notable L<hashes|/type/Hash>:
+L<Iterable|/type/Iterable> role, notably L<hashes|/type/Hash>:
 
     my %h = a => 1, b => 2;
     my @b = %h;   say @b.elems;     # OUTPUT: «2␤»
@@ -92,6 +128,11 @@ list will check for the absence of elements.
         say listoid ~~ ()
     }
     # OUTPUT: «True␤True␤True␤»
+
+Retrieving values from an empty list will always return C<Nil>:
+
+    say ()[33.rand]; # OUTPUT: «Nil␤»
+
 
 Coercion to C<Bool> also indicates if the C<List> got any elements.
 
@@ -242,7 +283,7 @@ can omit the C<$separator> if you use the method syntax.
 
 Example:
 
-    join ', ', <a b c>;             # RESULT: «a, b, c»
+    join ', ', <a b c>;             # OUTPUT: «a, b, c»
 
 Note that the method form does not flatten sublists:
 
@@ -319,7 +360,7 @@ be handled in the context of that C<Routine>.
         say 'oi‽' # dead code
     };
     s
-    # RESULT: «hi»
+    # OUTPUT: «hi»
 
 =head2 method flatmap
 
@@ -339,13 +380,13 @@ Unlike C<map> it flattens non-itemized lists and arrays, so
 
     ## flatmap
     my @list = ('first1', ('second2', ('third3', 'third4'), 'second5'), 'first6');
-    say @list.flatmap({.reverse}).perl;
+    say @list.flatmap({.reverse}).raku;
     # OUTPUT «("first1", "second5", "third3", "third4", "second2", "first6").Seq␤»
     ## map
-    say @list.map({"$_ was a {.^name}"}).perl;
+    say @list.map({"$_ was a {.^name}"}).raku;
     # OUTPUT «("first1 was a Str", "second2 third3 third4 second5 was a List", "first6 was a Str").Seq␤»
     ## .map .flat has the same output as .flatmap
-    say @list.map({.reverse}).flat.perl
+    say @list.map({.reverse}).flat.raku;
     # OUTPUT «("first1", "second5", "third3", "third4", "second2", "first6").Seq␤»
 
 =head2 method gist
@@ -662,7 +703,7 @@ positional argument, getting index C<1> etc.
     my $list = (7, 5, a => 2, b => 17);
     my $capture = $list.Capture;
     say $capture.keys;                                # OUTPUT: «(0 1 a b)␤»
-    my-sub(|$capture);                                # RESULT: «7, 5, 2, 17»
+    my-sub(|$capture);                                # OUTPUT: «7, 5, 2, 17»
 
     sub my-sub($first, $second, :$a, :$b) {
         say "$first, $second, $a, $b"
@@ -839,64 +880,114 @@ say <01 11 111 2 20 02>.sort( { .Int, .comb.sum, .Str } );
 
 Defined as:
 
-    multi method reduce(Any:U: & --> Nil)
     multi method reduce(Any:D: &with)
     multi sub reduce (&with, +list)
 
-The first form is obviously a no-op. The second form generates a single
-"combined" value from a list of arbitrarily many values, by iteratively
-applying a function which knows how to combine I<two> values.
+Returns a single "combined" value from a list of arbitrarily many values, by
+iteratively applying a routine which knows how to combine I<two> values. In
+addition to the subroutine and the list, an initial value can be provided to
+initialize the reduction, which ends up being the return value if the list is
+empty. Thus C<reduce f, init, list> combines the elements of the list from left
+to right, as is shown in the following pseudocode:
 
-If C<@values> contains just a single element, the operator is applied to that
+=for code :skip-test<Pseudocode>
+result0 = init
+result1 = f(result0, list[0])
+result2 = f(result1, list[1])
+...
+resultn = f(resultn-1, list[n-1])
+
+C<resultn> is the final result for an n-element list.
+
+    say reduce &infix:<+>, (1, 2, 3); # OUTPUT: «6␤»
+    say (1, 2, 3).reduce: &infix:<+>; # OUTPUT: «6␤»
+    say reduce &max, (5, 9, 12, 1);   # OUTPUT: «12␤»
+
+If C<list> contains just a single element, the operator is applied to that
 single element if possible; if not, it returns the element itself.
 
-    say [-] <10 5 3>; #OUTPUT: 2␤
-    say [-] 10;       #OUTPUT: 10␤
+    say reduce &infix:<->, (10,);     # OUTPUT: «10␤»
 
-If it contains no elements, an exception is thrown, unless
-C<&with> is an I<operator> with a known identity value. For this
-reason, you may want to prefix the input list with an explicit identity
-value:
+When the list contains no elements, an exception is thrown, unless C<&with>
+is an I<operator> with a known identity value (e.g., the identity value of
+C«infix:<+>» is 0). For this reason, you're advised to prefix the input list
+with an initial value (or explicit identity value):
 
-    my @strings = ("One good string!", "And one another good string!");
-    say reduce { $^a ~ $^b }, '', |@strings;               # like @strings.join
-    my @numbers = (1,2,3,4,5);
-    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |@numbers;  # like @numbers.max
+    my \strings = "One good string!", "And one another good string!";
+    say reduce { $^a ~ $^b }, '', |strings;               # like strings.join
 
-If C<&with> is the function object of an I<operator>, its
+    my \numbers = 1, 2, 3, 4, 5;
+    say reduce { $^a > $^b ?? $^a !! $^b }, 0, |numbers; # like numbers.max
+
+    sub count-and-sum-evens( (Int \count, Int \sum), Int \x ) {
+        x %% 2 ?? (count+1, sum+x) !! (count, sum)
+    }
+
+    say reduce &count-and-sum-evens, (0, 0), |numbers;    # OUTPUT: «(2 6)␤»
+
+In the last example, since C<reduce> only supports one initial value we use a
+C<List> with two values, which is by itself a single value. The
+C<count-and-sum-evens> subroutine takes two positional values: a
+C<List> of two C<Int>s and an C<Int>, and return a C<List> storing the count
+and sum of the even integers accumulated.
+
+If C<&with> is the code object of an I<operator>, its
 inherent identity value and associativity is respected - in other words,
-C<(VAL1, VAL2, VAL3).reduce(&[OP])> is the same as C<VAL1 OP VAL2 OP VAL3> even
-for operators which aren't left-associative:
+C<(VAL1, VAL2, VAL3).reduce(&infix:<OP>)> is the same as C<VAL1 OP VAL2 OP VAL3>
+even for operators which aren't left-associative:
 
     # Raise 2 to the 81st power, because 3 to the 4th power is 81
-    [2,3,4].reduce(&[**]).lsb.say;        # OUTPUT: «81␤»
+    (2,3,4).reduce(&infix:<**>).lsb.say;  # OUTPUT: «81␤»
     (2**(3**4)).lsb.say;                  # OUTPUT: «81␤»
     (2**3**4).lsb.say;                    # OUTPUT: «81␤»
 
     # Subtract 4 from -1, because 2 minus 3 is -1
-    [2,3,4].reduce(&[-]).say;             # OUTPUT: «-5␤»
+    (2,3,4).reduce(&infix:<->).say;       # OUTPUT: «-5␤»
     ((2-3)-4).say;                        # OUTPUT: «-5␤»
     (2-3-4).say;                          # OUTPUT: «-5␤»
 
-Since reducing with an infix operator is a common thing to do, the C<[ ]>
-metaoperator provides a syntactic shortcut:
+Since reducing with an infix operator is a common thing to do, the
+L<reduction metaoperator|/language/operators#Reduction_metaoperators> C<[ ]>
+provides a syntactic shortcut. Thus, instead of passing the operator's code
+object to C<reduce>, just pass the operator directly to C<[ ]>. To use a
+user-defined subroutine instead, provide an additional layer of square brackets
+around the subroutine's code object:
 
-    # The following all do the same thing...
-    my @numbers = (1,2,3,4,5);
-    say reduce { $^a + $^b }, 0, |@numbers;
-    say reduce * + *, 0, |@numbers;
-    say reduce &[+], @numbers; # operator does not need explicit identity
-    say [+] @numbers;          # most people write it this way
+    say [*] (1, 2, 3, 4);       # OUTPUT: «24␤»
+    say [min] (4, 2, 1, 3);     # OUTPUT: «1␤»
 
-Please note also the use of C<reduce> in sub form. Since C<reduce> is an
-implicit loop, it responds to C<next>, C<last> and C<redo> statements inside
-C<&with>:
+    sub mult { $^a * $^b };
+    say [[&mult]] (1, 2, 3, 4); # OUTPUT: «24␤»
 
-    say (2,3,4,5).reduce: { last if $^a > 7; $^a + $^b }; # says 9
+Semantically, all the following do the same thing:
 
-Practical example:
+    my \numbers = 1, 2, 3, 4, 5;
+    say reduce { $^a + $^b }, 0, |numbers;
+    say reduce * + *, 0, |numbers;
+    say reduce &[+], numbers; # operator does not need explicit identity value
+    say [+] numbers;
 
-    # Generate a random-ish math formula like "(4 + ((3 * x) + 11) / 6))"
+Since C<reduce> is an implicit loop that iterates over with its I<reducing> subroutine,
+it responds to C<next>, C<last> and C<redo> statements inside C<&with>:
+
+    sub last-after-seven { last if $^a > 7; $^a + $^b };
+    say (2, 3, 4, 5).reduce: &last-after-seven; # OUTPUT: «9␤»
+
+Whether C<reduce> accumulates the elements starting from the left or from the right
+depends on the operator. In the functional programming world, this operation is
+generally called a L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
+With a right-associative operator it is a I<right fold>, otherwise (and usually)
+it is a I<left fold>. In Raku, you can specify the associativity of an operator
+with the L<C«is assoc»|/language/functions#index-entry-is_assoc_(trait)>.
+
+    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
+    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+
+    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
+    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+
+B<Practical example 1:> In this example, we generate a random-ish math
+formula (e.g., "(4 + ((3 * x) + 11) / 6))") using C<reduce>.
 
     my @ops = [Z] (<+ - * />, 1..20)».roll(4);
 
@@ -905,17 +996,19 @@ Practical example:
                   !! "($number $op $formula)"
     }
 
-I<Note:> In the functional programming world, this operation is generally called
-a
-L<fold|https://en.wikipedia.org/wiki/Fold_%28higher-order_function%29#Folds_on_lists>.
-With a right-associative operator it is a right fold, otherwise (and usually) it
-is a left fold:
+B<Practical example 2:> Suppose we have a polynomial represented as a list of
+integer coefficients, c[n-1], c[n-2], ..., c[0], where c[i] is the coefficient
+of xi. We can evaluate it using C<map> and C<reduce> as follows:
 
-    sub infix:<foo>($a, $b) is assoc<right> { "($a, $b)" }
-    say [foo] 1, 2, 3, 4; # OUTPUT: «(1, (2, (3, 4)))␤»
+    sub evaluate(List:D \c where c.all ~~ Int, Rat:D \x --> Rat:D) {
+        my \xi = (c.elems ^... 0).map: -> \i { x ** i }; # [x^(n-1), ..., x^0]
+        my \axi = [+] c Z* xi;                           # [c[n-1]*x^(n-1), ..., c[*]x^0]
+        [+] axi;                                         # sum of axi
+    }
 
-    sub infix:<bar>($a, $b) is assoc<left> { "($a, $b)" }
-    say [bar] 1, 2, 3, 4; # OUTPUT: «(((1, 2), 3), 4)␤»
+    my \c = 2, 3, 1;       # 2x² + 3x + 1
+    say evaluate c, 3.0;   # OUTPUT: «28␤»
+    say evaluate c, 10.0;  # OUTPUT: «231␤»
 
 =head2 routine produce
 
@@ -1100,7 +1193,7 @@ Combining multiple cycles and C<:partial> also works:
     say ('a'..'h').rotor(1 => 1, 3 => -1, :partial).join('|');
     # OUTPUT: «a|c d e|e|g h␤»
 
-See L<this blog post for more elaboration on rotor|https://perl6.party/post/Perl-6-.rotor-The-King-of-List-Manipulation>.
+See L<this blog post for more elaboration on rotor|http://blogs.perl.org/users/zoffix_znet/2016/01/perl-6-rotor-the-king-of-list-manipulation.html>.
 
 =head2 method batch
 
@@ -1109,10 +1202,13 @@ Defined As:
     multi method batch(Int:D $batch --> Seq)
     multi method batch(Int:D :$elems --> Seq)
 
-Returns a C<Seq> of the elements in batches of C<:$elems> or C<$batch>,
-respectively. If the number of elements is not a multiple of C<$batch>, the
-last batch may have less than C<$batch> elements, similar to
-C<.rotor($batch, :partial)>.
+Returns a sequence of lists, wherein each list with the exception of the last
+one is guaranteed to comprise a number of elements equal to the batch size
+specified by C<$batch> or C<$elems>, respectively. If the invocant has a number
+of elements that is not an integer multiple of the batch size, the last list in
+the returned sequence will contain any remaining elements and thus have less
+than C<$batch> or C<$elems> elements. Accordingly, C<.batch($batch)> is
+shorthand for C<.rotor($batch, :partial)>.
 
 =head2 routine cross
 
@@ -1240,8 +1336,8 @@ post-processing step can then be undertaken.
 
 Defined as:
 
-    sub    sum($list   --> Numeric:D)
-    method sum(List:D: --> Numeric:D)
+    sub    sum($list  )
+    method sum(List:D:)
 
 Returns the sum of all elements in the list or 0 if the list is empty.
 Throws an exception if an element can not be coerced into Numeric.
@@ -1250,7 +1346,13 @@ Throws an exception if an element can not be coerced into Numeric.
     say (1, "0xff").sum;      # OUTPUT: «256␤»
     say sum(0b1111, 5);       # OUTPUT: «20␤»
 
-When being called on native integer arrays, it is also possible to specify
+If the list includes a C<Junction>, the result will accordingly be a
+C<Junction>:
+
+=for code
+say ( 1|2, 3).sum;            # OUTPUT: «any(4, 5)␤»
+
+When called on native integer arrays, it is also possible to specify
 a C<:wrap> named parameter.  This will add the values as native integers,
 wrapping around if they exceed the size of a native integer.  If you are
 sure you will not exceed that value, or if you don't mind, using C<:wrap>
@@ -1324,7 +1426,7 @@ more thorough explanation.
 
 =head1 Operators
 
-=head2 infix C«cmp»
+=head2 infix C<cmp>
 
     multi sub infix:<cmp>(List @a, List @b)
 

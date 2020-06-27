@@ -9,8 +9,8 @@ Que é a versão recomendada.
 
 Também disponível uma ferramenta de linha de comando: "p6doc".
 
-(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod
-mas o GitHub assume que são Perl 5 Pod.)
+(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod6
+mas o GitHub assume que são Perl Pod.)
 
 ## README em outras línguas
 
@@ -88,7 +88,7 @@ Feito o anterior, a documentacão estará dsiponível em [http://localhost:3000]
 
 `app.pl` depende do [Mojolicious](https://metacpan.org/pod/Mojolicious)
 instalado. Tamabém é necesário o [nodejs](https://nodejs.org) para que funcione o destaque de código.
-E também outros módulos Perl 5, instalados executando:
+E também outros módulos Perl, instalados executando:
 
     $ cpanm --installdeps .
 
@@ -106,7 +106,7 @@ Algumas maneira de nos ajudar:
   * Abrindo issues no GitHub se acha que falta documentacão.
   * Fazendo `git grep TODO` neste repositório, e substituindo os items TODO por documentação.
 
-[Esta página](https://github.com/perl6/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
+[Esta página](https://github.com/Raku/doc/issues) tem uma lista de issues atuais e partes da documentação que faltam.
 [CONTRIBUTING](CONTRIBUTING.md) explica brevemente como começar a contribuir.
 
 --------
@@ -118,7 +118,7 @@ Algumas maneira de nos ajudar:
   1. Esta documentação pretende ser universal com respeito a uma versão dada de uma especificacão, e não necesariamente estar
   ligada a uma implementação específica de Raku.
 
-  2. O tratamento das implementações ao Pod 6 é inconsistente; assim se evita impactos potenciais durante a execução.
+  2. O tratamento das implementações ao Pod6 é inconsistente; assim se evita impactos potenciais durante a execução.
 
   3. Um repo separado na conta do Raku de GitHub convida mais contribuidores e editores a participar.
 
@@ -155,6 +155,6 @@ topo do próprio arquivo. Atualmente incluem:
 * [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [Licença MIT](http://creativecommons.org/licenses/MIT)
-* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Exemplos do StackOverflow [Licença MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licença MIT](http://creativecommons.org/licenses/MIT)

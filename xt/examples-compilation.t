@@ -52,6 +52,11 @@ sub test-example ($eg) {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses dd: try say instead';
         next;
     }
+    # #3309 - don't like .perl in examples
+    if ! $eg<ok-test>.contains('perl') && $eg<contents>.contains('.perl') {
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .perl: use .raku instead';
+        next;
+    }
 
     # Wrap snippets in an anonymous class (so bare method works)
     # and add in empty blocks if needed.
@@ -91,6 +96,7 @@ sub test-example ($eg) {
     my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
 
     my $has-error;
+    my $error-reason;
     {
         # Does the test require its own file?
         if $eg<solo> {
@@ -98,7 +104,7 @@ sub test-example ($eg) {
             $tmp_io.spurt: $code, :close;
             my $proc = Proc::Async.new($*EXECUTABLE, '-c', $tmp_fname);
             $proc.stdout.tap: {;};
-            $proc.stderr.tap: {;};
+            $proc.stderr.tap: {$error-reason ~= $_};
             $has-error = ! await $proc.start;
         }
         else {
@@ -106,7 +112,9 @@ sub test-example ($eg) {
             temp $*ERR = open :w, $*SPEC.devnull;
             use nqp;
             my $*LINEPOSCACHE;
-            $has-error = not try { nqp::getcomp('perl6').parse($code) };
+            my $parser = nqp::getcomp('Raku') || nqp::getcomp('perl6');
+            $has-error = not try { $parser.parse($code) };
+            $error-reason = $! if $!;
             close $*OUT;
             close $*ERR;
 
@@ -116,7 +124,7 @@ sub test-example ($eg) {
     todo(1) if $eg<todo>;
     if $has-error {
         diag $eg<contents>;
-        diag $has-error;
+        diag $error-reason;
         flunk $msg;
     }
     else {
@@ -130,8 +138,8 @@ sub code-blocks (IO() $file) {
     gather while @chunks {
         my $chunk = @chunks.pop;
         if $chunk ~~ Pod::Block::Code  {
-            # Only testing Perl 6 snippets.
-            next unless $chunk.config<lang>:v eq '' | 'perl6';
+            # Only testing Raku snippets.
+            next unless $chunk.config<lang>:v eq '' | 'raku' | 'perl6';
 
             my $todo = False;
             if $chunk.config<skip-test> {

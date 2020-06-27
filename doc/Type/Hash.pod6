@@ -17,7 +17,7 @@ them in the same order:
 
     my %orig = :1a, :2b; my %new = :5b, :6c;
     %orig{ %new.keys } = %new.values;
-    say %orig.perl; # OUTPUT: «{:a(1), :b(5), :c(6)}␤»
+    say %orig.raku; # OUTPUT: «{:a(1), :b(5), :c(6)}␤»
 
 In this case, C<b> will always be associated to 5 and C<c> to 6; even if two
 successive calls to C<keys> will return them in different order. Successive
@@ -71,7 +71,8 @@ values using the given C<mapper>, optionally altering the values using the
 C<:&as> L«C<Callable>|/type/Callable». The C<@list> cannot be lazy.
 
 The mapper can be a L«C<Callable>|/type/Callable» that takes a single argument,
-an L«C<Associative>|/type/Associative», or an L«C<Iterable>|/type/Iterable».
+an L«C<Associative>|/type/Associative», or an L«C<Iterable>|/type/Iterable»;
+this C<Callable> is guaranteed to be called only once per item.
 With L«C<Associative>|/type/Associative» and an L«C<Iterable>|/type/Iterable»
 mappers, the values in the C<@list> represent the key and index of the mapper's
 value respectively. A L«C<Callable>|/type/Callable» mapper will be executed
@@ -122,10 +123,39 @@ C<@list>'s item under:
     #     }
     # }
 
-B<NOTE:> each of those L«C<Iterable>|/type/Iterable»s must have the same number
+In the case we are using C<Iterables> and not C<Callables>, each of those
+L«C<Iterable>|/type/Iterable»s must
+have the same number
 of elements, or the method will throw an exception. This restriction exists to
 avoid conflicts when the same key is a leaf of one value's classification but a
 node of another value's classification.
+
+=for code
+my @mapper = [['1a','1b','1c'],['2a','2b','2c'],['3a','3b','3c']];
+say % .classify-list: @mapper, 1,2,1,1,2,0;
+# OUTPUT: «{1a => {1b => {1c => [0]}}, 2a => {2b => {2c => [1 1 1]}}, 3a => {3b => {3c => [2 2]}}}␤»
+
+Every element of the array represents a different level in the tree, with the
+elements of the list that is being mapped used as index, and the elements of
+the mapper array used as keys to the different levels. So C<0> selects the
+first sub-array and then the subsequent levels are built by running over the
+rest of the elements of that sub-array.
+
+=for code
+my @mapper = [['1a','1b'],['2a','2b'],['3a','3b']];
+say % .classify-list: @mapper, 1,0,1,1,1,0,2;
+# OUTPUT: «{1a => {1b => [0 0]}, 2a => {2b => [1 1 1 1]}, 3a => {3b => [2]}}␤»
+
+From version 6.d, trying to use C<Iterable>s of different size will throw an
+error:
+
+=for code :skip-test<Illustrates error>
+my @mapper = [<1a 1b>, <2a 2b 2fail>];
+say % .classify-list: @mapper, 1,0,1,1,1,0;
+# OUTPUT: «mapper on classify-list computed to an item with different number
+# of elements in it than previous items, which cannot be used because all
+# values need to have the same number of elements. Mixed-level classification
+# is not supported.␤  in block <unit>…»
 
 =head3 C<:&as> value modifier
 
@@ -187,7 +217,7 @@ Notice how some items, e.g. C<6> and C<7>, are present in several categories.
 
 =head3 Multi-level categorization
 
-In multi-level categorization, the categories produced by the mapper can are
+In multi-level categorization, the categories produced by the mapper are
 L<Iterables|/type/Iterable> and categorization combines features
 of L<classify|/routine/classify>, by producing nested hashes of classifications
 for each category.
@@ -211,14 +241,15 @@ for each category.
     #     }
     # }
 
-The mapper in above snippet produces single-item list (note the significant
+The mapper in the snippet above produces a single-item list (note the
+significant
 trailing comma) with a two-item C<Array> in it. The first item in that array
 indicates the first level of classification: the C<largish>/C<smallish>
 categories the routine produces. The second item in that array indicates
 further levels of classification, in our case the classification into
 C<prime>/C<non-prime> inside of each category.
 
-B<NOTE:> each of category L«C<Iterables>|/type/Iterable»
+B<NOTE:>: every L«C<Iterables>|/type/Iterable» category
 must have the same number of elements, or the method will throw an exception.
 This restriction exists to avoid conflicts when the same key is a
 leaf of one value's classification but a node of another value's classification.
@@ -270,7 +301,7 @@ The same applies to the sub C<push>.
 
     my %h .= push(e => 6);
     push %h, f => 7;
-    say %h.perl;
+    say %h.raku;
     # OUTPUT: «{}␤»
 
 Also note that push can be used as a replacement for assignment during hash
@@ -353,7 +384,7 @@ Defined as:
 
 Returns the type constraint for the keys of the invocant. For
 normal hashes the method returns the coercion type C<(Str(Any))>
-while for L<non-string keys|/type/Hash#Non-string_keys>
+while for L<non-string keys|/language/hashmap#Non-string_keys_(object_hash)>
 hashes the type used in the declaration of the C<Hash> is returned.
 
     my %h1 = 'apples' => 3, 'oranges' => 7;  # (no key type specified)
@@ -429,7 +460,8 @@ than one key is supplied it returns a C<List> of C<Bool>.
 
 =head2 C<:delete>
 
-Use C<:delete> to remove a C<Pair> from the C<Hash>.
+Use C<:delete> to remove a C<Pair> from the C<Hash>.  In addition, the value
+is always returned but the removal only happens if delete is true.
 
     my %h = a => 1;
     say %h;         # OUTPUT: «{a => 1}␤»

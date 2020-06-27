@@ -100,7 +100,7 @@ Or even
     say { $^a ** 2 + $^b ** 2 }(3, 4)            # OUTPUT: «25␤»
 
 X<|pointy blocks>
-=head2 X«Blocks and lambdas|syntax,->»
+=head2 X«Blocks and lambdas|->,syntax»
 
 Whenever you see something like C«{ $_ + 42 }», C«-> $a, $b { $a ** $b }», or
 C«{ $^text.indent($:spaces) }», that's L<Block|/type/Block> syntax; the C«->» is
@@ -170,6 +170,7 @@ argument list of a function call, some special syntax is supported:
     f named => 35;    # Also a named argument
     f :35named;       # A named argument using abbreviated adverb form
     f 'named' => 35;  # Not a named argument, a Pair in a positional argument
+    f 'hi', :1x, :2y; # Positional and named arguments
     my \c = <a b c>.Capture;
     f |c;             # Merge the contents of Capture $c as if they were supplied
 
@@ -177,13 +178,31 @@ Arguments passed to a function are conceptually first collected in a
 C<Capture> container. Details about the syntax and use of these containers
 can be found in the L<documentation on the C<Capture> class|/type/Capture>.
 
-When using named arguments, note that normal List "pair-chaining" allows
+When using named arguments, note that normal list "pair-chaining" allows
 one to skip commas between named arguments.
 
     sub f(|c){};
     f :dest</tmp/foo> :src</tmp/bar> :lines(512);
     f :32x :50y :110z;   # This flavor of "adverb" works, too
     f :a:b:c;            # The spaces are also optional.
+
+If positional arguments are also passed, then either they must be passed
+within parentheses placed I<immediately> after the function's name or the comma
+after the last positional argument must be kept when chaining named arguments in
+abbreviated adverb form. The spaces between chained named arguments and
+the list of positional arguments is optional.
+
+    sub p($x, $y, :$translate, :$rotate) {};
+    p(1, 1, :translate, :rotate); # normal way
+    p 1, 1, :translate, :rotate;  # also normal way
+
+    p(1, 1) :translate  :rotate;  # parentheses + chained named arguments
+    p(1, 1) :translate:rotate;
+    p(1, 1):translate:rotate;
+
+    p 1, 1, :translate  :rotate;  # dangling comma + chained named arguments
+    p 1, 1, :translate:rotate;
+    p 1, 1,:translate:rotate;
 
 =head2 Return values
 
@@ -203,7 +222,7 @@ L<Capture|/type/Capture>. Destructuring can be used to untangle multiple return
 values.
 
     sub a { 42, 'answer' };
-    put a.perl;
+    put a.raku;
     # OUTPUT: «(42, "answer")␤»
 
     my ($n, $s) = a;
@@ -211,7 +230,7 @@ values.
     # OUTPUT: «answer 42␤»
 
     sub b { <a b c>.Capture };
-    put b.perl;
+    put b.raku;
     # OUTPUT: «\("a", "b", "c")␤»
 
 =head2 Return type constraints
@@ -359,6 +378,16 @@ Please note that a non-multi sub or operator will hide multi candidates of the
 same name in any parent scope or child scope. The same is true for imported
 non-multi candidates.
 
+Multi-dispatch can also work on parameter traits, with routines with C<is rw>
+ parameters having a higher priority than those that do not:
+
+=for code
+proto þoo (|) {*}
+multi sub þoo( $ðar is rw ) { $ðar = 42 }
+multi sub þoo( $ðar ) { $ðar + 42 }
+my $bar = 7;
+say þoo($bar); # OUTPUT: «42»
+
 =head3 X<proto|declarator>
 
 C<proto> is a way to formally declare commonalities between C<multi>
@@ -389,7 +418,9 @@ because C<42> doesn't match C<Str>.
 say &congratulate.signature # OUTPUT: «(Str $reason, Str $name, | is raw)␤»
 
 You can give the C<proto> a function body, and place the C<{*}> where
-you want the dispatch to be done.
+you want the dispatch to be done. This can be useful when you have a
+"hole" in your routine that gives it different behavior depending on the
+arguments given:
 
     # attempts to notify someone -- False if unsuccessful
     proto notify(Str $user, Str $msg) {
@@ -401,6 +432,26 @@ you want the dispatch to be done.
           return False;
        }
     }
+
+Since C<proto> is a wrapper for C<multi> candidates, the signatures of
+the routine's C<multi> candidates do not necessarily have to match that
+of the C<proto>; arguments of C<multi> candidates may have subtypes of
+those of the C<proto>, and the return types of the C<multi> candidates
+may be entirely different from that of the C<proto>. Using differing
+types like this is especially useful when giving C<proto> a function
+body:
+
+=begin code
+enum DebugType <LOG WARNING ERROR>;
+
+#|[ Prints a message to stderr with a color-coded key. ]
+proto debug(DebugType:D $type, Str:D $message --> Bool:_) {
+    note sprintf qb/\e[1;%dm[%s]\e[0m %s/, {*}, $type.key, $message
+}
+multi debug(LOG;; Str:D --> 32)     { }
+multi debug(WARNING;; Str:D --> 33) { }
+multi debug(ERROR;; Str:D --> 31)   { }
+=end code
 
 C<{*}> always dispatches to candidates with the parameters it's called
 with. Parameter defaults and type coercions will work but are not passed on.
@@ -537,6 +588,24 @@ which applies a function to each input element:
     my @squared = map &square,  1..5;
     say join ', ', @squared;        # OUTPUT: «1, 4, 9, 16, 25␤»
 
+You can use the same for operators, except that in that case the name with
+which they have been declared, using C<infix:>, must be used:
+
+     my $exp := &infix:<**>; say $exp(7,3); # OUTPUT: «343»
+
+This can be done even in cases where operators have been I<auto-generated>,
+for instance in this case where C<XX> is the metaoperator C<X> applied to the
+C<X> operator.
+
+    my $XX := &infix:<XX>; say $XX( [1,(2,3)] , [(4,5),6]  );
+    # OUTPUT: «(((1 (4 5))) ((1 6)) (((2 3) (4 5))) (((2 3) 6)))»
+
+Baseline is that, in case of operators, you don't really need to worry about
+the actual way they were defined, just use the C«&infix< >» to grab a pointer
+to them.
+
+
+
 =head2 Z<>Infix form
 
 To call a subroutine with 2 arguments like an infix operator, use a subroutine
@@ -612,11 +681,11 @@ pragma C<use soft;> to prevent inlining to allow wrapping at runtime.
     }
 
     sub wrap-to-debug(&c){
-        say "wrapping {&c.name} with arguments {&c.signature.perl}";
+        say "wrapping {&c.name} with arguments {&c.signature.raku}";
         &c.wrap: sub (|args){
             note "calling {&c.name} with {args.gist}";
             my \ret-val := callwith(|args);
-            note "returned from {&c.name} with return value {ret-val.perl}";
+            note "returned from {&c.name} with return value {ret-val.raku}";
             ret-val
         }
     }
@@ -638,7 +707,9 @@ pragma C<use soft;> to prevent inlining to allow wrapping at runtime.
 Operators are just subroutines with funny names. The funny names are composed
 of the category name (C<infix>, C<prefix>, C<postfix>, C<circumfix>,
 C<postcircumfix>), followed by a colon, and a list of the operator name or
-names (two components in the case of circumfix and postcircumfix).
+names (two components in the case of circumfix and postcircumfix). A expanded
+ explanation of all these operators and what they mean is included
+L<in this table|/language/operators#Operator_classification>.
 
 This works both for adding multi candidates to existing operators and for
 defining new ones. In the latter case, the definition of the new subroutine
@@ -1047,7 +1118,7 @@ say Version.new('1.0.2') # OUTPUT: v1.0.2
 =begin code
 class LoggedVersion is Version {
     method new(|c) {
-        note "New version object created with arguments " ~ c.perl;
+        note "New version object created with arguments " ~ c.raku;
         nextsame;
     }
 }

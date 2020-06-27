@@ -4,4 +4,4 @@
 # (much faster than running the whole suite)
 
 
-TEST_FILES=$(git llog | egrep '^M.*\.(pod6|md)$' | head -40 | sort -u | awk '{print $2}' | tr '\n' ' ' | sed 's/ $//') make xtest
+TEST_FILES="$(git log --name-status | awk '/^M.*\.(pod6|md)$/ {print $2}' | head -40 | sort -u)" make xtest "$@"

@@ -1,0 +1,64 @@
+=begin pod :kind("Type") :subkind("class") :category("domain-specific")
+
+=TITLE class IO::Socket::Async::ListenSocket
+
+=SUBTITLE A tap for listening TCP sockets
+
+    class IO::Socket::Async::ListenSocket is Tap {}
+
+C<IO::Socket::Async::ListenSocket> represents a listening TCP socket.
+Instances of this are returned by the L<tap|/type/Supply#method_tap>
+method of the supply returned by
+L<IO::Socket::Async.listen|/type/IO::Socket::Async#method_listen>:
+
+=begin code
+my IO::Socket::Async::ListenSocket:D $server =
+    IO::Socket::Async.listen('127.0.0.1', 0).tap(-> $peer {
+        await $peer.print: "Hello. Goodbye!\r\n";
+        $peer.close;
+    });
+
+my (Str:D $host, Int:D $port) = await $server.socket-host, $server.socket-port;
+say "The rude service is listening on $host:$port for the next 10 seconds...";
+await Promise.in(10).then({ $server.close });
+say "I'm done now.";
+=end code
+
+Alternatively, by using the C<do> prefix with C<whenever>, you can also
+use it from within a C<react> block:
+
+=for code
+react {
+    my IO::Socket::Async::ListenSocket:D $server =
+        do whenever IO::Socket::Async.listen('127.0.0.1', 0) -> IO::Socket::Async:D $connection {
+            await $connection.print: "Hello. Goodbye!\r\n";
+            $connection.close;
+            QUIT { $server.close; .rethrow }
+        };
+    # Use $server here somehow.
+}
+
+=head1 Methods
+
+=head2 method socket-host
+
+    method socket-host(--> Promise)
+
+Returns a L<Promise|/type/Promise> that will be kept with a C<Str|/type/Str>
+containing the address of the listening socket.
+
+=head2 method socket-port
+
+    method socket-port(--> Promise)
+
+Returns a L<Promise|/type/Promise> that will be kept with an C<Int|/type/Int>
+containing the port of the listening socket.
+
+=head2 method native-descriptor
+
+    method native-descriptor(--> Int)
+
+Returns the corresponding file descriptor (C<SOCKET> on Windows) for the
+listening socket.
+
+=end pod

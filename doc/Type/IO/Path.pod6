@@ -12,7 +12,7 @@ C<IO::Path> is the workhorse of IO operations.
 Conceptually, an C<IO::Path> object consists of a volume, a directory,
 and a basename. It supports both purely textual operations, and
 operations that access the filesystem, e.g. to resolve a path, or to
-read all content of a file.
+read all the content of a file.
 
 At creation, each C<IO::Path> object is given information about the
 current working directory the path might be relative to using the
@@ -63,17 +63,21 @@ current L«C<$*SPEC>|/language/variables#Dynamic_variables») and will use
 C<:$CWD> as the directory the path is relative to (defaults to
 L«C<$*CWD>|/language/variables#Dynamic_variables»).
 
+If C<$path> includes the null byte, it will throw an Exception with a "Cannot
+use null character (U+0000) as part of the path" message.
+
+
 =head2 attribute CWD
 
     IO::Path.new("foo", :CWD</home/camelia>)
-        .IO.CWD.say; # OUTPUT: «/home/camelia␤»
+        .CWD.say; # OUTPUT: «/home/camelia␤»
 
 Read-only. Contains implicit or explicit value of C<:$CWD> argument to C<.new>.
 
 =head2 attribute SPEC
 
     IO::Path.new("foo", :SPEC(IO::Spec::Unix.new))\
-        .IO.SPEC.^name.say; # OUTPUT: «IO::Spec::Unix␤»
+        .SPEC.^name.say; # OUTPUT: «IO::Spec::Unix␤»
 
 Read-only. Contains implicit or explicit value of C<:$SPEC> argument to C<.new>.
 
@@ -305,7 +309,7 @@ are the same as available via methods L«C<.volume>|/routine/volume»,
 L«C<.dirname>|/routine/dirname», and L«C<.basename>|/routine/basename»
 respectively.
 
-    say IO::Path::Win32.new("C:/rakudo/perl6.bat").parts.perl;
+    say IO::Path::Win32.new("C:/rakudo/perl6.bat").parts.raku;
     # OUTPUT: «Map.new((:basename("perl6.bat"),:dirname("/rakudo"),:volume("C:")))␤»
 
 =head2 method perl
@@ -317,6 +321,7 @@ Defined as:
 Returns a string that, when given passed through L«C<EVAL>|/routine/EVAL»
 gives the original invocant back.
 
+=for code :ok-test<perl>
     "foo/bar".IO.perl.say;
     # OUTPUT: IO::Path.new("foo/bar", :SPEC(IO::Spec::Unix), :CWD("/home/camelia"))
 
@@ -498,13 +503,16 @@ platforms, e.g. Windows, since it assumes POSIX semantics.
 
 Defined as:
 
-    sub    dir(Cool $path = '.', Mu :$test = none('.', '..'))
-    method dir(IO::Path:D: Mu :$test = none('.', '..'))
+    multi sub dir(*%_)
+    multi sub dir(IO::Path:D $path, |c)
+    multi sub dir(IO()       $path, |c)
+    method dir(IO::Path:D: Mu :$test = $*SPEC.curupdir)
 
 Returns the contents of a directory as a lazy list of C<IO::Path> objects
 representing relative paths, filtered by
 L<smartmatching|/language/operators#infix_~~> their names (as strings) against
-the C<:test> parameter.
+the C<:test> parameter. The path of returned files will be absolute or
+relative depending on what C<$path> is.
 
 Since the tests are performed against C<Str> arguments, not C<IO>, the tests are
 executed in the C<$*CWD>, instead of the target directory. When testing against
@@ -538,7 +546,7 @@ Examples:
         say $file;
     }
 
-    # To get the names of all .jpg and .jpeg files in ~/Downloads:
+    # To get the names of all .jpg and .jpeg files in the home directory of the current user:
     my @jpegs = $*HOME.dir: test => /:i '.' jpe?g $/;
 
 An example program that lists all files and directories recursively:
@@ -570,7 +578,8 @@ my $perl-files = gather while @stack {
 
 For most file tests, you can do a smartmatch C<~~> or you can call a method.
 You don't need to actually open a filehandle in the traditional way (although
-you can) to do a filetest. You can simply append C<.IO> to the filename. For
+you can) to do a filetest. You can simply append C<.IO> to the filename and
+smartmatch it to a test adverb. For
 instance, here is how to check whether a file is readable using smartmatch:
 
     '/path/to/file'.IO ~~ :r;
@@ -588,6 +597,8 @@ File tests include:
 =item C<:w> (L«Writable|/type/IO::Path#method_w»)
 =item C<:x> (L«Executable|/type/IO::Path#method_x»)
 =item C<:z> (L«Zero size|/type/IO::Path#method_z»)
+
+These tests will not cache the results of earlier test executions.
 
 L«Smartmatching on Pairs|/type/Pair#method_ACCEPTS» can be used to perform
 multiple tests at once:
@@ -845,7 +856,7 @@ set to C<True>, they'll perform L«C<.d>|/routine/d», L«C<.r>|/routine/r»,
 L«C<.w>|/routine/w», and L«C<.x>|/routine/x» tests respectively. By default,
 only C<:d> is set to C<True>.
 
-=head2 sub mkdir
+=head2 method mkdir
 
 Defined as:
 
@@ -873,8 +884,8 @@ Remove the invocant, or in sub form, all of the provided directories in the
 given list, which can contain any L<Cool|/type/Cool> object. Only works on empty
 directories.
 
-Method form returns C<True> on success and throws an exception of type
-C<X::IO::Rmdir> if the directory cannot be removed (e.g.
+Method form returns C<True> on success and returns a L<Failure|/type/Failure>
+of type C<X::IO::Rmdir> if the directory cannot be removed (e.g.
 the directory is not empty, or the path is not a directory). Subroutine
 form returns a list of directories that were successfully deleted.
 

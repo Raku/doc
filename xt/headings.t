@@ -27,11 +27,11 @@ for @files -> $file {
             # proper names, macros, acronyms, and other exceptions
             $title ~~ s:g/ <|w> (
                 I
-                | Raku | Perl 6 | Pod 6 | P6 | C3 | NQP
+                | Raku | Perl 6 | Pod6 | P6 | C3 | NQP
                 | AST | EVAL | PRE | POST | CLI | MOP
                 | TITLE | SUBTITLE | "MONKEY-TYPING"
                 | API | TCP | UDP | FAQ
-                | JavaScript | Node | Haskell | Python | Ruby | C | Node.js
+                | JavaScript | Node | Haskell | Python | Ruby | C | Node.js | Perl
                 | "Input/Output" | "I/O"
                 | "Alice in Wonderland"
                 | "Virtual Machine"
@@ -40,6 +40,7 @@ for @files -> $file {
                 | "Normal Form " ( "C" | "D" | "KC" | "KD" )
                 | POSIX | QNX | Windows | Cygwin | Win32
                 # class names
+                | CompUnits
                 | Whatever
                 | Scheduler
                 | NaN

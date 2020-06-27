@@ -9,7 +9,11 @@
 Strings are usually represented in Raku code using some form of quoting
 construct. The most minimalistic of these is C<Q>, usable via the shortcut
 C<｢…｣>, or via C<Q> followed by any pair of delimiters surrounding your
-text. Most of the time, though, the most you'll need is C<'…'> or C<"…">,
+text, including many
+L<Unicode pairs|https://github.com/Raku/roast/blob/aa4994a7f6b3f6b450a9d231bebd5fba172439b0/S02-literals/quoting-unicode.t#L49-L65>.
+Most of the time, though, the most you'll need is
+C<'…'>
+ or C<"…">,
 described in more detail in the following sections.
 
 =head2 X<Literal strings: Q|quote,Q;quote,｢ ｣>
@@ -19,6 +23,7 @@ B<Q[>A literal stringB<]>
 B<｢>More plainly.B<｣>
 B<Q ^>Almost any non-word character can be a delimiter!B<^>
 B<Q ｢｢>Delimiters can be repeated/nested if they are adjacent.B<｣｣>
+B<Q｟Quoting with fancy unicode pairs｠>
 
 Delimiters can be nested, but in the plain C<Q> form, backslash escapes
 aren't allowed. In other words, basic C<Q> strings are as literal as
@@ -172,7 +177,7 @@ Therefore its volume should be 42 m³!
 
 By default, only variables with the C<$> sigil are interpolated normally.
 This way, when you write C<"documentation@raku.org">, you aren't
-interpolating the C<@perl6> variable. If that's what you want to do, append
+interpolating the C<@raku> variable. If that's what you want to do, append
 a C<[]> to the variable name:
 
 =begin code :allow<B>
@@ -279,7 +284,7 @@ The angle brackets quoting is like C<qw>, but with extra feature that lets you
 construct L<allomorphs|/language/glossary#index-entry-Allomorph> or literals
 of certain numbers:
 
-    say <42 4/2 1e6 1+1i abc>.perl;
+    say <42 4/2 1e6 1+1i abc>.raku;
     # OUTPUT: «(IntStr.new(42, "42"), RatStr.new(2.0, "4/2"), NumStr.new(1000000e0, "1e6"), ComplexStr.new(<1+1i>, "1+1i"), "abc")␤»
 
 To construct a L«C<Rat>|/type/Rat» or L«C<Complex>|/type/Complex» literal, use
@@ -310,12 +315,17 @@ sub compilation-failure (355/113) {}
 The C<qw> form of word quoting will treat quote characters literally, leaving
 them in the resulting words:
 
-    say qw{"a b" c}.perl; # OUTPUT: «("\"a", "b\"", "c")␤»
+    say qw{"a b" c}.raku; # OUTPUT: «("\"a", "b\"", "c")␤»
 
 Thus, if you wish to preserve quoted sub-strings as single items in the resulting words
 you need to use the C<qww> variant:
 
-    say qww{"a b" c}.perl; # OUTPUT: «("a b", "c")␤»
+    say qww{"a b" c}.raku; # OUTPUT: «("a b", "c")␤»
+
+Other kind of quotes are also supported
+
+    say qww{ ’this and that’ “here or there” ｢infinity and beyond｣ }.raku;
+    # OUTPUT: «("this and that", "here or there", "infinity and beyond")␤»
 
 =head2 X<Word quoting with interpolation: qqw|quote,qqw>
 
@@ -341,21 +351,21 @@ Note that variable interpolation happens before word splitting:
 The C<qqw> form of word quoting will treat quote characters literally,
 leaving them in the resulting words:
 
-    my $a = 42; say qqw{"$a b" c}.perl;  # OUTPUT: «("\"42", "b\"", "c")␤»
+    my $a = 42; say qqw{"$a b" c}.raku;  # OUTPUT: «("\"42", "b\"", "c")␤»
 
 Thus, if you wish to preserve quoted sub-strings as single items in the
 resulting words you need to use the C<qqww> variant:
 
-    my $a = 42; say qqww{"$a b" c}.perl; # OUTPUT: «("42 b", "c")␤»
+    my $a = 42; say qqww{"$a b" c}.raku; # OUTPUT: «("42 b", "c")␤»
 
 Quote protection happens before interpolation, and interpolation happens
 before word splitting, so quotes coming from inside interpolated variables are
 just literal quote characters:
 
     my $a = "1 2";
-    say qqww{"$a" $a}.perl; # OUTPUT: «("1 2", "1", "2")␤»
+    say qqww{"$a" $a}.raku; # OUTPUT: «("1 2", "1", "2")␤»
     my $b = "1 \"2 3\"";
-    say qqww{"$b" $b}.perl; # OUTPUT: «("1 \"2 3\"", "1", "\"2", "3\"")␤»
+    say qqww{"$b" $b}.raku; # OUTPUT: «("1 \"2 3\"", "1", "\"2", "3\"")␤»
 
 =head2 X<<<Word quoting with interpolation and quote protection: « »|quote,<< >>;quote,« »>>>
 
@@ -365,12 +375,12 @@ functionally equivalent to L<qq:ww:v|#index-entry-:val_(quoting_adverb)>). The
 ASCII equivalent to C<« »> are double angle brackets C«<< >>».
 
     # Allomorph Construction
-    my $a = 42; say «  $a b c    ».perl;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
-    my $a = 42; say << $a b c   >>.perl;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
+    my $a = 42; say «  $a b c    ».raku;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
+    my $a = 42; say << $a b c   >>.raku;  # OUTPUT: «(IntStr.new(42, "42"), "b", "c")␤»
 
     # Quote Protection
-    my $a = 42; say «  "$a b" c  ».perl;  # OUTPUT: «("42 b", "c")␤»
-    my $a = 42; say << "$a b" c >>.perl;  # OUTPUT: «("42 b", "c")␤»
+    my $a = 42; say «  "$a b" c  ».raku;  # OUTPUT: «("42 b", "c")␤»
+    my $a = 42; say << "$a b" c >>.raku;  # OUTPUT: «("42 b", "c")␤»
 
 =head2 X<Shell quoting: qx|quote,qx>
 
@@ -469,7 +479,7 @@ some multi line
 Heredocs include the newline from before the terminator.
 
 To allow interpolation of variables use the C<qq> form, but you will then have
-to escape metacharacters C<{\> as well as C<$> if it is not the sigil for a
+to escape metacharacters C<\{> as well as C<$> if it is not the sigil for a
 defined variable. For example:
 
   my $f = 'db.7.3.8';

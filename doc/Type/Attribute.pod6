@@ -54,6 +54,17 @@ error.
     CATCH{ default { say .^name, ': ', .Str } }
     # OUTPUT: «X::Attribute::Required: The attribute '$!a' is required, but you did not provide a value for it.␤»
 
+This trait also allows attributes to be typed with types that have a
+C<:D> smiley without giving them a default value:
+
+    class Power {
+        has Numeric:D $.base     is required;
+        has Numeric:D $.exponent is required;
+        multi method Numeric(::?CLASS:D: --> Numeric:D) {
+            $!base ** $!exponent
+        }
+    }
+
 B<Available as of 6.d language version> (early implementation exists in Rakudo
 compiler 2018.08+): You can specify a reason why the attribute is required:
 
@@ -111,6 +122,29 @@ default accessor for the attribute will return a writable value.
    CATCH { default { put .^name, ': ', .Str } };
    # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Any␤»
 
+=head2 X<trait is built|trait,is built (Attribute)>
+
+Defined as:
+
+    multi sub trait_mod:<is>(Attribute:D $a, :$built!)
+
+By default, this trait allows setting up a I«private attribute» during object
+construction via C«.new». The same trait can be used to prevent setting up a
+I«public attribute» via C«.new» by passing it the boolean value C«False».
+
+    class Foo {
+        has $!bar is built; # same as `is built(True)`
+        has $.baz is built(False);
+
+        method bar {
+            $!bar
+        }
+    }
+
+    my $foo = Foo.new(bar => 1, baz => 2);
+    say $foo.bar; # «1␤»
+    say $foo.baz; # «Any␤»
+
 =head1 Methods
 
 The usual way to obtain an object of type C<Attribute> is by introspection:
@@ -119,7 +153,7 @@ The usual way to obtain an object of type C<Attribute> is by introspection:
         has @!things;
     }
     my $a = Useless.^attributes(:local)[0];
-    say $a.perl;            # OUTPUT: «Attribute.new␤»
+    say $a.raku;            # OUTPUT: «Attribute.new␤»
     say $a.name;            # OUTPUT: «@!things␤»
     say $a.package;         # OUTPUT: «(Useless)␤»
     say $a.has_accessor;    # OUTPUT: «False␤»
@@ -313,7 +347,7 @@ If an attribute is marked as C<DEPRECATED>, then calling the C<DEPRECATED>
 method is possible and will return C<"something else"> (if no specific reason
 was specified) or the string that was specified with the C<DEPRECATED> trait.
 
-If an attribute is B<not> marked as DEPRECATED, one cannot B<not> call the
+If an attribute is B<not> marked as DEPRECATED, one B<cannot> call the
 C<DEPRECATED> method.  Therefore, the C<.?method> syntax should be used.
 
     class Hangout {
@@ -326,7 +360,7 @@ C<DEPRECATED> method.  Therefore, the C<.?method> syntax should be used.
         say "Table is deprecated with '$text'";
         # OUTPUT:
     }
-    with $attr-table.?DEPRECATED -> $text {
+    with $attr-bar.?DEPRECATED -> $text {
         say "Bar is deprecated with '$text'";
         # OUTPUT: «Bar is deprecated with 'the patio'"␤»
     }

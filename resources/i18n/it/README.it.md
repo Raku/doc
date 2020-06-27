@@ -11,7 +11,7 @@ Esiste uno strumento da riga di comando denominato "p6doc",
 
 (Se stai navigando questo repository via GitHub molti dei file non saranno visualizzati
 correttamente poiché la documentazione è scritta usando Pod per Raku e GitHub
-lo considera invece come Pod per Perl 5 ).
+lo considera invece come Pod per Perl ).
 
 ## README in altri linguaggi
 
@@ -110,7 +110,7 @@ Alcuni modi per aiutare il progetto includono:
  * eseguire il comando `git grep TODO` sul repository, inserendo la documentazione mancante.
    actual documentation.
 
-La pagina dei ticket [Issues](https://github.com/perl6/doc/issues)
+La pagina dei ticket [Issues](https://github.com/Raku/doc/issues)
 contiene una lista dei problemi noti e delle parti di documentazione che sono note essere incomplete,
 e il file [CONTRIBUTING](CONTRIBUTING.md)
 spiega brevemente come iniziare a contribuire alla documentazione.
@@ -168,6 +168,6 @@ Questo repository contiene anche codice scritto da autori terzi che potrebbe ess
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/perl6/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin da https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

@@ -1,18 +1,97 @@
-=begin pod :kind("Type") :subkind("role") :category("basic")
+=begin pod :kind("Type") :subkind("role") :category("composite")
 
-=TITLE class Sequence
+=TITLE role Sequence
 
-=SUBTITLE Operations for higher-level sequences
+=SUBTITLE Common methods of sequences
 
-    class Sequence does PositionalBindFailover { }
+    role Sequence does PositionalBindFailover { }
 
-A C<Sequence> implements a series of methods for converting hight-level
-C<Seq>s into different types of objects, from positional to other.
+This role implements a series of methods for converting sequences and
+accessing their elements. These methods should work on all sequences:
+serial L<Seq|/type/Seq>, ordered parallel L<HyperSeq|/type/HyperSeq>,
+and unordered parallel L<RaceSeq|/type/RaceSeq>.
+
+These methods have in common that they all access the underlying
+iterator if the sequence has not been
+L<cached|/type/PositionalBindFailover#method_cache> yet. Therefore they
+will throw an error of type L<X::Seq::Consumed|/type/X::Seq::Consumed>
+if called on a C<Seq> that was already consumed.
 
 =head1 Methods
 
+=head2 method Str
 
-TBD
+    multi method Str(::?CLASS:D:)
+
+L<Stringifies|/type/List#method_Str> the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
+
+=head2 method Stringy
+
+    multi method Stringy(::?CLASS:D:)
+
+Calls C<.Stringy> on the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
+
+=head2 method Numeric
+
+    method Numeric(::?CLASS:D:)
+
+Returns the number of elements in the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
+
+=head2 method AT-POS
+
+    multi method AT-POS(::?CLASS:D: Int:D $idx)
+    multi method AT-POS(::?CLASS:D: int $idx)
+
+Returns the element at position C<$idx> in the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
+
+=head2 method EXISTS-POS
+
+    multi method EXISTS-POS(::?CLASS:D: Int:D $idx)
+    multi method EXISTS-POS(::?CLASS:D: int $idx)
+
+Returns a C<Bool> indicating whether there is an element at position
+C<$idx> in the L<cached|/type/PositionalBindFailover#method_cache>
+sequence.
+
+=head2 method eager
+
+    method eager(::?CLASS:D: --> List:D)
+
+Returns an eagerly evaluated L<List|/type/List> based on the invocant
+sequence, and marks it as consumed.
+If called on an already consumed C<Seq>, throws an error of type
+L<X::Seq::Consumed|/type/X::Seq::Consumed>.
+
+    my $s = lazy 1..5;
+
+    say $s.is-lazy; # OUTPUT: «True␤»
+    say $s.eager;   # OUTPUT: «(1 2 3 4 5)␤»
+
+    say $s.eager;
+    CATCH {
+        when X::Seq::Consumed {
+            say 'Throws exception if already consumed';
+        }
+    }
+    # OUTPUT: «Throws exception if already consumed␤»
+
+=head2 method fmt
+
+    method fmt($format = '%s', $separator = ' ' --> Str:D)
+
+L<Formats|/type/List#method_fmt> the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
+
+=head2 method gist
+
+    multi method gist(::?CLASS:D:)
+
+Returns the L<gist|/type/List#method_gist> of the
+L<cached|/type/PositionalBindFailover#method_cache> sequence.
 
 =end pod
 

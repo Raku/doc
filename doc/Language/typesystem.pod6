@@ -265,11 +265,11 @@ X<|FALLBACK (method)>
 A method with the special name C<FALLBACK> will be called when other means to
 resolve the name produce no result. The first argument holds the name and all
 following arguments are forwarded from the original call. Multi methods and
-L«sub-signatures|/type/Signature#Destructuring_arguments» are supported.
+L«sub-signatures|/type/Signature#Sub-signatures» are supported.
 
     class Magic {
         method FALLBACK ($name, |c(Int, Str)) {
-        put "$name called with parameters {c.perl}"  }
+        put "$name called with parameters {c.raku}"  }
     };
     Magic.new.simsalabim(42, "answer");
 
@@ -360,27 +360,27 @@ Instead of a method name, a C<Pair> (for renaming), a list of names or
 C<Pair>s, a C<Regex> or a C<Whatever> can be provided. In the latter case
 existing methods, both in the class itself and its inheritance chain, will take
 precedence. If even local X«C<FALLBACK>|FALLBACK (trait handles)»s should be
-searched, use a C<HyperWhatever>.
+searched, use a L<C<HyperWhatever>|/type/HyperWhatever>.
 
     class A {
-        method m1(){}
-        method m2(){}
+        method m1(){ 'A::m1 has been called.' }
+        method m2(){ 'A::m2 has been called.' }
     }
 
     class C {
         has $.delegate handles <m1 m2> = A.new()
     }
-    C.new.m2;
+    say C.new.m2; # OUTPUT: «A::m2 has been called.␤»
 
     class D {
         has $.delegate handles /m\d/ = A.new()
     }
-    D.new.m1;
+    say D.new.m1; # OUTPUT: «A::m1 has been called.␤»
 
     class E {
         has $.delegate handles (em1 => 'm1') = A.new()
     }
-    E.new.em1;
+    say E.new.em1; # OUTPUT: «A::m1 has been called.␤»
 
 =head3  X<trait C<is>|classes,is>
 
@@ -401,7 +401,7 @@ methods to provide an interface for introspection and coercion to basic types.
     class A {
         multi method from-a(){ 'A::from-a' }
     }
-    say A.new.^parents(:all).perl;
+    say A.new.^parents(:all).raku;
     # OUTPUT: «(Any, Mu)␤»
 
     class B {
@@ -536,18 +536,6 @@ attributes is not yet implemented. Please note that adding a multi candidate
 that differs only in its named parameters will add that candidate behind the
 already defined one and as such it won't be picked by the dispatcher.
 
-=head3 Versioning and authorship
-
-Versioning and authorship can be applied via the adverbs
-X«C«:ver<>»|:ver<> (class)» and X«C«:auth<>»|:auth<> (class)».
-Both take a string as argument, for C<:ver> the string is converted to a
-L<Version|/type/Version> object. To query a class version and author use
-C<.^ver> and C<^.auth>.
-
-    class C:ver<4.2.3>:auth<me@here.local> {}
-    say [C.^ver, C.^auth];
-    # OUTPUT: «[v4.2.3 me@here.local]␤»
-
 =head2 C<role>
 
 X<|declarator,role (typesystem)>
@@ -627,7 +615,7 @@ X<|Type Capture (role)>L<Type captures|/type/Signature#Type_captures> are suppor
     # OUTPUT: «C.new(a => "default")␤»
 
 Parameters can have type constraints, C<where> clauses are not supported for
-types but can be implemented via C<subset>s.
+types but can be implemented via L<C<subset>s|#subset>.
 
     class A {};
     class B {};
@@ -686,18 +674,6 @@ say [(75kg).^name, N(75kg).^name];
 # OUTPUT: «[Int+{SI-kilogram} Rat+{SI-Newton}]␤»
 =end code
 
-=head3 Versioning and authorship
-
-Versioning and authorship can be applied via the adverbs
-X«C«:ver<>»|:ver<> (role)» and X«C«:auth<>»|:auth<> (role)».
-Both take a string as argument, for C<:ver> the string is converted to a
-L<Version|/type/Version> object. To query a role's version and author use
-C<.^ver> and C<^.auth>.
-
-    role R:ver<4.2.3>:auth<me@here.local> {}
-    say [R.^ver, R.^auth];
-    # OUTPUT: «[v4.2.3 me@here.local]␤»
-
 X<|Enumeration; Enums; enum>
 =head2 C<enum>
 
@@ -746,6 +722,8 @@ As long as you refer to that symbol using the full syntax:
 
 =for code :preamble<< enum Suit<♣> >>
 say Suit::<♣>; # OUTPUT: «♣␤»
+my $heart = '♥';
+say Suit::«$heart»; # OUTPUT: «♥␤»
 
 Attempting to access unicode enum keys without said syntax will result in an
 error:
@@ -792,10 +770,10 @@ that have been defined. All of them turn the values into C<Str>, which may not
 be desirable. By treating the enum as a package, we can get a list of types for
 the keys.
 
-    enum E(<one two>);
+    enum E <one two>;
     my @keys = E::.values;
-    say @keys.map: *.enums;
-    # OUTPUT: «(Map.new((one => 0, two => 1)) Map.new((one => 0, two => 1)))␤»
+    say @keys.map: *.raku;
+    # OUTPUT: «(E::one E::two)␤»
 
 With the use of B<()> parentheses, an enum can be defined using any
 arbitrary dynamically defined list. The list should consist of Pair
@@ -803,18 +781,57 @@ objects:
 
 For example, in file C<config> we have:
 
-C<a 1
-b 2>
+=for code :lang<text>
+a 1
+b 2
 
 We can create an enum using it with this code:
 
-    =for code :skip-test<needs filesystem>
-    enum ConfigValues ('config'.IO.lines.map({ my ($key, $value) = $_.words; $key => $value }));
-    say ConfigValues.enums;          # OUTPUT: «Map.new((a => 1, b => 2))␤»
+=for code :skip-test<needs filesystem>
+enum ConfigValues ('config'.IO.lines.map({ my ($key, $value) = $_.words; $key => $value }));
+say ConfigValues.enums;          # OUTPUT: «Map.new((a => 1, b => 2))␤»
 
 Firstly, we read lines from C<config> file, split every line using
 C<words> method and return resulting pair for every line, thus
 creating a List of Pairs.
+
+=head3 Typing Enums
+
+When declaring enums with an explicit scope, a type may be provided,
+which will be used to typecheck the enum's values:
+
+=for code
+my Str enum Foo (foo => 'foo');
+
+All enum pairs are typed as L<Enumeration|/type/Enumeration>. In
+addition, when the enum values are typed as C<Numeric>, C<Stringy>, or a
+combination of these two types, enum pairs also do the
+C<NumericEnumeration>, C<StringyEnumeration>, and
+C<NumericStringyEnumeration> roles respectively.  These simply determine
+how enum pairs get stringified with the C<Str> method.
+
+Given that these types are roles, naturally you can provide your own
+roles when declaring an enum, which allows you to give them custom
+behavior and state. For example, to make it simpler to check if a number
+matches a flag in a bitmask enum, you could write a
+C<BitmaskEnumeration> role with an C<ACCEPTS> method to handle this via
+smartmatching:
+
+=begin code
+role BitmaskEnumeration {
+    multi method ACCEPTS(::?CLASS:D: Int:D $value --> Bool:D) {
+        so $value +& self.value
+    }
+}
+
+enum Flags does BitmaskEnumeration (
+    FLAG_FOO => 0b001,
+    FLAG_BAR => 0b010,
+    FLAG_BAZ => 0b100,
+);
+
+say 0b111 ~~ FLAG_FOO & FLAG_BAR & FLAG_BAZ; # OUTPUT: «True␤»
+=end code
 
 =head3 Metaclass
 
@@ -861,17 +878,6 @@ another Raku program.
 
 For a full explanation see L<Modules|/language/modules>.
 
-=head3 Versioning and authorship
-
-Versioning and authorship can be applied via the adverbs C«:ver<>» and C«:auth<>».
-Both take a string as argument, for C<:ver> the string is converted to a
-L<Version|/type/Version> object. To query a modules version and author use
-C<.^ver> and C<^.auth>.
-
-    module M:ver<4.2.3>:auth<me@here.local> {}
-    say [M.^ver, M.^auth];
-    # OUTPUT: «[v4.2.3 me@here.local]␤»
-
 =head2 C<package>
 
 Packages are nested namespaces of named program elements. Modules, classes and
@@ -886,18 +892,6 @@ composed of rules, tokens and regexes which are actually methods, since grammars
 are classes.
 
 For a full explanation see L<Grammars|/language/grammars>.
-
-=head3 Versioning and authorship
-
-Versioning and authorship can be applied via the adverbs
-X«C«:ver<>»|:ver<> (grammar)» and X«C«:auth<>»|:auth<> (grammar)».
-Both take a string as argument, for C<:ver> the string is converted to a
-L<Version|/type/Version> object. To query a grammars version and author use
-C<.^ver> and C<^.auth>.
-
-    grammar G:ver<4.2.3>:auth<me@here.local> {}
-    say [G.^ver, G.^auth];
-    # OUTPUT: «[v4.2.3 me@here.local]␤»
 
 =head2 C<subset>
 
@@ -937,6 +931,35 @@ X<|dynamic subset>
 =for code
 require ::('YourModule');
 subset C where ::('YourModule::C');
+
+X«|:ver<>»X«|:auth<>»X«|:api<>»
+=head1 Versioning, authorship, and API version.
+
+When you declare a type you can pass it a version, author, and/or API number,
+all of which you can subsequently introspect. The versioning, authorship,
+and/or API number of a type can be applied via the adverbs C«:ver<>»,
+C«:auth<>», and C«:api<>» respectively. All of them take a string as argument;
+for C<:ver> the string is converted to a L«C«Version»|/type/Version» object, and
+for C<:api> the string is converted into an
+L<allomorph|/language/glossary#index-entry-Allomorph>
+L«C«IntStr»|/type/IntStr» object. C<:auth> generally takes the form
+C<hosting:ID>, as in C<github:githubnick> or C<gitlab:gitlab-user>.
+
+
+To query the version, author, and API version
+of a type use L<C<.^ver>|/type/Metamodel::Versioning#method_ver>,
+L<C<.^auth>|/type/Metamodel::Versioning#method_auth>, and
+L<C<.^api>|/type/Metamodel::Versioning#method_api> respectively, as illustrated
+down below by querying a C<class>.
+
+    class C:ver<4.2.3>:auth<github:jane>:api<1> {}
+    say C.^ver;       # OUTPUT: «v4.2.3␤»
+    say C.^ver.parts; # OUTPUT: «(4 2 3)␤»
+    say C.^auth;      # OUTPUT: «github:jane␤»
+    say C.^api;       # OUTPUT: «1␤»
+
+In a similar fashion, C<role>s, C<grammar>s, and C<module>s can be queried about
+the aforementioned information.
 
 =end pod
 
