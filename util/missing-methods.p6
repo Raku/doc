@@ -11,7 +11,7 @@ use Perl6::TypeGraph;
 
 =head1 SYNOPSIS
 
-    $ perl6 util/missing-methods.p6 [--type_name=<Str>]
+    $ raku util/missing-methods.p6 [--type_name=<Str>]
 
 =head1 DESCRIPTION
 
