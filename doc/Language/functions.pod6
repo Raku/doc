@@ -417,7 +417,8 @@ because C<42> doesn't match C<Str>.
 =for code :preamble<sub congratulate {}>
 say &congratulate.signature # OUTPUT: «(Str $reason, Str $name, | is raw)␤»
 
-You can give the C<proto> a function body, and place the C<{*}> where
+You can give the C<proto> a function body, and place the C<{*}> (note there is no
+whitespace inside the curly braces) where
 you want the dispatch to be done. This can be useful when you have a
 "hole" in your routine that gives it different behavior depending on the
 arguments given:
@@ -462,6 +463,49 @@ multi mistake-proto($str, $number) { say $str.^name }
 mistake-proto(7, 42);  # OUTPUT: «Int␤» -- not passed on
 =for code :skip-test<illustrates error>
 mistake-proto('test'); # fails -- not passed on
+
+A longer example using C<proto> for methods shows how to extract common functionality into 
+a proto method.
+
+=for code
+class NewClass {
+    has $.debug is rw = False;
+    has $.value is rw = 'Initial value';
+    proto method handle( | ) {
+        note "before value is ｢$.value｣" if $.debug;
+        {*}
+        note "after value is ｢$.value｣" if $.debug;
+    }
+    multi method handle(Str $s) {
+        $.value = $s;
+        say 'in string'
+    }
+    multi method handle(Positional $s) {
+        $.value = $s[0];
+        say 'in positional'
+    }
+    multi method handle( $a, $b ) {
+        $.value = "$a is looking askance at $b";
+        say 'in string'
+    }
+}
+my NewClass $x .= new;
+$x.handle('hello world');
+$x.handle(<hello world>);
+$x.debug = True;
+$x.handle('hello world');
+$x.handle(<hello world>);
+$x.handle('Claire', 'John');
+# OUTPUT:
+#in string
+#after value is ｢hello world｣
+#before value is ｢hello world｣
+#in positional
+#after value is ｢hello｣
+#before value is ｢hello｣
+#in string
+#after value is ｢Claire is looking askance at John｣
+
 
 =head2 X<only|declarator>
 
