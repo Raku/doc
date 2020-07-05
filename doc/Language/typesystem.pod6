@@ -239,7 +239,7 @@ class C {
 
 The L<submethod|/type/Submethod> C<BUILD> is (indirectly) called by
 L<.bless|/type/Mu#method_bless>. It
-is meant to set private and public attributes of a class and receives all names
+is meant to set private and public attributes of a class and receives all named
 attributes passed into C<.bless>. The default
 constructor L<.new|/type/Mu#method_new> defined in C<Mu> is the method that
 invokes it. Given that public accessor methods are not available in C<BUILD>,
@@ -258,6 +258,49 @@ you must use private attribute notation instead.
     C.new.say; C.new('answer').say;
     # OUTPUT: «C.new(attr => 42)␤
     #          C.new(attr => "answer")␤»
+    
+=head4 submethod TWEAK
+
+The L<submethod|/type/Submethod> C<TWEAK> is (indirectly) called by
+L<.bless|/type/Mu#method_bless>. It
+is meant to set private and public attributes of a class after the BUILD submethod has been called. The default
+constructor L<.new|/type/Mu#method_new> defined in C<Mu> is the method that
+invokes it. Given that public accessor methods are not available in C<TWEAK>,
+you must use private attribute notation instead.
+
+The difference between BUILD and TWEAK is that not all the attributes in an object have been built.
+In addition, when there is inheritance the BUILD submethods of the child classes are called after
+the BUILD submethods of the parent classes. The TWEAK submethods are called after all the BUILD 
+submethods.
+
+Both C<BUILD> and C<TWEAK> receive all named
+attributes passed into C<.bless>
+
+    class C {
+        has $.m = 'nothing';
+        has $.attr = 42;
+        submethod BUILD {
+            # this will fail because $!attr has not been given its default value yet
+            $!message = 'A very special number' if $!attr == 42;
+        }
+    };
+    class D {
+        has $.m = 'nothing';
+        has $.attr = 42;
+        submethod TWEAK {
+            $!message = 'A very special number' if $!attr == 42;
+        }
+    };
+
+    C.new.m.say;
+    # OUTPUT: 
+    # Use of uninitialized value of type Any in numeric context
+    # in submethod BUILD at <unknown file> line 1
+    # in block <unit> at <unknown file> line 1
+    #
+    # nothing
+    D.new.m.say;
+    # OUTPUT: A very special number
 
 =head4 Fallback method
 X<|FALLBACK (method)>
