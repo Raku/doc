@@ -3,7 +3,7 @@ use NativeCall;
 
 sub flock(int32, int32) is native {...};
 
-# Given a filename, generate a cached, rendered version of the POD
+# Given a filename, generate a cached, rendered version of the Pod
 # in that file as text.
 
 method cache-file(Str $file --> Str) {

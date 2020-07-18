@@ -12,7 +12,7 @@ subtest {
     eval-dies-ok('use Pod::Convenience; first-code-block();', "pod argument required");
     eval-dies-ok('use Pod::Convenience; first-code-block("moo");', "array argument required");
 
-    is(first-code-block(["text"]), '', "non-code POD returns empty string");
+    is(first-code-block(["text"]), '', "non-code Pod returns empty string");
 
     my @code-blocks;
     @code-blocks.push(Pod::Block::Code.new(contents => ['my $first-block']));
@@ -145,7 +145,7 @@ subtest {
 
     my $lowered-pod = pod-lower-headings([pod-heading("A head 1 heading")]);
     isa-ok($lowered-pod, Array);
-    is($lowered-pod[0].level, 1, "single POD heading lowered from 1 to 1");
+    is($lowered-pod[0].level, 1, "single Pod heading lowered from 1 to 1");
     is($lowered-pod[0].contents[0].contents, "A head 1 heading", "lowered heading contents match input");
 
     # if first heading is equal to default level to be lowered to, then don't lower

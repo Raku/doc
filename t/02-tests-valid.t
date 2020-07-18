@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Ensure any test file, including author tests, have clean syntax and POD
+Ensure any test file, including author tests, have clean syntax and Pod
 
 =end overview
 
@@ -27,7 +27,7 @@ test-files( @files-t );
 
 sub test-it($job) {
     my $file = $job.command[*-1];
-    ok !$job.exitcode && !%data{$file}, "$file POD6 and syntax check out"
+    ok !$job.exitcode && !%data{$file}, "$file Pod and syntax check out"
 }
 
 sub test-files( @files ) {

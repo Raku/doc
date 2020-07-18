@@ -9,7 +9,7 @@ Que é a versão recomendada.
 
 Também disponível uma ferramenta de linha de comando: "p6doc".
 
-(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod6
+(Se está acessando pelo GitHub, a maioria dos documentos não serão exibidos corretamente, pois estão escritos em Raku Pod
 mas o GitHub assume que são Perl Pod.)
 
 ## README em outras línguas
@@ -118,7 +118,7 @@ Algumas maneira de nos ajudar:
   1. Esta documentação pretende ser universal com respeito a uma versão dada de uma especificacão, e não necesariamente estar
   ligada a uma implementação específica de Raku.
 
-  2. O tratamento das implementações ao Pod6 é inconsistente; assim se evita impactos potenciais durante a execução.
+  2. O tratamento das implementações ao Pod é inconsistente; assim se evita impactos potenciais durante a execução.
 
   3. Um repo separado na conta do Raku de GitHub convida mais contribuidores e editores a participar.
 

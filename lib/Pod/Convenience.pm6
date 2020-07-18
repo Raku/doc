@@ -118,7 +118,7 @@ my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-
 
 sub extract-pod(IO() $file) is export {
     use nqp;
-    # The file name is enough for the id because POD files don't have depends
+    # The file name is enough for the id because Pod files don't have depends
     my $id = nqp::sha1(~$file);
     my $handle = $precomp.load($id,:since($file.modified))[0];
 

@@ -9,7 +9,7 @@ use Test-Files;
 
 =begin overview
 
-Ensure any text that isn't a code example is valid C<Pod6>.
+Ensure any text that isn't a code example is valid C<Pod>.
 
 =end overview
 
@@ -23,7 +23,7 @@ test-files( @files-pod ); #Splits in two batches to avoid some errors.
 
 sub test-it($job) {
     my $file = $job.command[*-1];
-    ok !$job.exitcode && !%data{$file}, "$file has clean POD6"
+    ok !$job.exitcode && !%data{$file}, "$file has clean Pod"
 }
 
 sub test-files( @files ) {

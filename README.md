@@ -49,7 +49,7 @@ This module is available via the Raku module ecosystem. Use:
 to install the "binaries" and make them available in your binaries
 execution path.
 
-**Note**: Please note that, due to changes in the parsing of Pod6,
+**Note**: Please note that, due to changes in the parsing of Pod,
 this will fail in versions of Raku older than 2018.06. Please upgrade to that
 version, or install using `--force`.
 

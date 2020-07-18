@@ -77,14 +77,10 @@ section, and filename, you can add the document by following these steps:
   ensure it adheres to the conventions in
   [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md).
 
-+ create an entry for your new document in the Language directory's
-  [00-POD6-CONTROL](doc/Language/00-POD6-CONTROL) file following
-  the instructions there.
-
 ## Documenting types
 
-The Pod6 documentation of types is located in the `doc/Type` directory and
-subdirectories of this repository. For example the Pod6 file of `X::Bind::Slice`
+The Pod documentation of types is located in the `doc/Type` directory and
+subdirectories of this repository. For example the Pod file of `X::Bind::Slice`
 lives in `doc/Type/X/Bind/Slice.pod6`.
 
 To start contributing, fork and checkout the repository, find the document
@@ -163,9 +159,9 @@ See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 ## Testing method completeness
 
 To get a list of methods that are found via introspection but not found in any
-Pod6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
+Pod file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
 directory or filepath as argument and limits the listing to the given file or
-any Pod6 files found. All methods listed in `util/ignored-methods.txt` are
+any Pod files found. All methods listed in `util/ignored-methods.txt` are
 ignored.
 
 ## Debug mode
@@ -222,7 +218,7 @@ computer. To do this you will need:
 
   - Raku (e.g., the Rakudo Raku implementation)
   - zef (the installer for third party Raku modules)
-  - `Pod::To::HTML` (Raku module for converting Pod6 objects to HTML)
+  - `Pod::To::HTML` (Raku module for converting Pod objects to HTML)
   - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
   - [Mojolicious](https://metacpan.org/pod/Mojolicious)
     (optional; a Perl web framework; it allows you to run a web
