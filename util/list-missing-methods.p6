@@ -86,7 +86,7 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
 
     for matched-methods -> ($type-name, $path, Set $missing-methods) {
         put "Type: {$type-name}, File: ⟨{$path}⟩";
-        put $missing-methods;
+        put $missing-methods.keys.sort;
         put "";
     };
 }
