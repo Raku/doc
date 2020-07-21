@@ -58,12 +58,10 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
         .IO.dir(test => exclude)».&?BLOCK when .IO.d
     }
 
-    my $prefix-length = $source-path.ends-with('.pod6') ?? ($source-path.chars - $source-path.IO.basename.chars) !! $source-path.chars;
-
     # lazy list of (type-name, IO::PATH)
     my \types := gather for type-pod-files».IO {
-        my $file-path = .substr($prefix-length);
-        my $type-name = $file-path.chop(5).subst(:g, '/', '::');
+        my $file-path = S/.*'doc/'['Type'|'Language'](.*)'.pod6'/$0/;
+        my $type-name = $file-path.subst(:g, '/', '::');
 
         take ($type-name, .IO)
     }
