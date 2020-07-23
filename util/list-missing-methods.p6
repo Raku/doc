@@ -1,5 +1,4 @@
 #! /usr/bin/env raku
-
 use v6;
 
 sub USAGE () {
@@ -46,6 +45,16 @@ class LazyLookup does Associative {
     }
 }
 
+grammar MethodDoc {
+    token TOP { [<in-header>  | <with-signature>]
+                { make [~] ($<in-header><method> // ()), ($<with-signature><method> // ())}}
+
+    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' }
+    token in-header { '=head' \d? <ws> <keyword> <ws> <method> }
+    token keyword          { ['method'|'routine'] }
+    token method           { <[-'\w]>+ }
+}
+
 sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/ignored-methods.txt') {
     my \exclude = none('.', '..', $exclude.split(','));
 
@@ -78,15 +87,16 @@ sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/
     }
 
     my \matched-methods := gather for methods -> ($type-name, $path, @expected-methods) {
-        my @found-methods = ($path.slurp ~~ m:g/method \s (<[-'\w]>+) '('/)».[0];
-        my Set $missing-methods = @expected-methods (-) ignore{$type-name} (-) @found-methods».Str;
-        # dd @missing-methods, @expected-methods, @found-methods».Str;
-        take ($type-name, $path, $missing-methods) if $missing-methods
+        my ($in-header, $with-signature) = [Z] $path.lines.map({ MethodDoc.parse($_).made });
+        my Set $missing-from-header = @expected-methods (-) ignore{$type-name} (-) $in-header;
+        take ($type-name, $path, $missing-from-header) if $missing-from-header
     }
 
-    for matched-methods -> ($type-name, $path, Set $missing-methods) {
+    for matched-methods -> ($type-name, $path, Set $missing-from-header) {
         put "Type: {$type-name}, File: ⟨{$path}⟩";
-        put $missing-methods.keys.sort;
+        put $missing-from-header.keys.sort;
         put "";
     };
 }
+
+
