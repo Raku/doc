@@ -1,16 +1,6 @@
 #! /usr/bin/env raku
 use v6;
 
-sub USAGE () {
-print Q:c:to/EOH/;
-    Usage: {$*PROGRAM-NAME} [FILE|PATH]
-
-    Scan a single pod6 file or pod6 files under a path for method declarations,
-    infer the typename from the filename and output any methods name that is
-    found in the type but not in the pod6 file.
-EOH
-}
-
 class LazyLookup does Associative {
     # Read a file line by line, turn it into a hash in a lazy fashion. Quite
     # handy when only a single file is checked and the key is close to the top
@@ -55,7 +45,12 @@ grammar MethodDoc {
     token method           { <[-'\w]>+ }
 }
 
-sub MAIN($source-path = './doc/Type/', Str :$exclude = ".git", :$ignore = 'util/ignored-methods.txt') {
+#| Scan one or more pod6 files for undocumented methods
+sub MAIN(
+    IO(Str) $source-path = './doc/Type/',   #= The file or directory to check (default: ./doc/Type)
+    Str :$exclude = ".git",                 #= Comma-seperated list of file extensions to ignore (default: .git)
+    :$ignore = './util/ignored-methods.txt' #= File listing methods to ignore (default ./util/ignored-methods.txt)
+) {
     my \exclude = none('.', '..', $exclude.split(','));
 
     my \ignore = LazyLookup.new(:path($ignore));
