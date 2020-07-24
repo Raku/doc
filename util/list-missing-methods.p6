@@ -37,12 +37,12 @@ class LazyLookup does Associative {
 
 grammar MethodDoc {
     token TOP { [<in-header>  | <with-signature>]
-                { make [~] ($<in-header><method> // ()), ($<with-signature><method> // ())}}
+                { make ($<in-header><method>, $<with-signature><method>).map({ ~($_ // ()) }) } }
 
-    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' }
-    token in-header { '=head' \d? <ws> <keyword> <ws> <method> }
-    token keyword          { ['method'|'routine'] }
-    token method           { <[-'\w]>+ }
+    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' .* }
+    token in-header      { '=head' \d? <ws> <keyword> <ws> <method> }
+    token keyword        { ['method' | 'routine'] }
+    token method         { <[-'\w]>+ }
 }
 
 #| Scan one or more pod6 files for undocumented methods
@@ -64,7 +64,7 @@ sub MAIN(
 
     # lazy list of (type-name, IO::PATH)
     my \types := gather for type-pod-files».IO {
-        my $file-path = S/.*'doc/'['Type'|'Language'](.*)'.pod6'/$0/;
+        my $file-path = S/.*'doc/Type/'(.*)'.pod6'/$0/;
         my $type-name = $file-path.subst(:g, '/', '::');
 
         take ($type-name, .IO)
@@ -81,17 +81,20 @@ sub MAIN(
         })».name)
     }
 
-    my \matched-methods := gather for methods -> ($type-name, $path, @expected-methods) {
-        my ($in-header, $with-signature) = [Z] $path.lines.map({ MethodDoc.parse($_).made });
-        my Set $missing-from-header = @expected-methods (-) ignore{$type-name} (-) $in-header;
-        take ($type-name, $path, $missing-from-header) if $missing-from-header
+    my \matched-methods := gather for methods -> ($type-name, $path, @existing) {
+        my ($in-header, $with-signature) = [Z] $path.lines.map({ MethodDoc.parse($_).made}).grep({.elems == 2});
+        my Set $missing-header      = @existing (-) ignore{$type-name} (-) $in-header;
+        my Set $missing-signature   = @existing (-) ignore{$type-name} (-) $with-signature (-) $missing-header;
+        if $missing-header || $missing-signature {
+            take ($type-name, $path, $missing-header, $missing-signature)
+        }
     }
 
-    for matched-methods -> ($type-name, $path, Set $missing-from-header) {
-        put "Type: {$type-name}, File: ⟨{$path}⟩";
-        put $missing-from-header.keys.sort;
-        put "";
+    for matched-methods -> ($type-name, $path, Set $missing-from-header, Set $missing-signature) {
+        put "{$type-name} – documented at ⟨{$path}⟩";
+        put "{$missing-from-header.elems} missing methods:";
+        put "    {$missing-from-header.keys.sort.join("\n    ")}\n";
+        put "{$missing-signature.elems} missing signatures:";
+        put  "    {$missing-signature.keys.sort.join("\n    ")}\n";
     };
 }
-
-
