@@ -8,9 +8,6 @@ at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
 actually updated more frequently).
 This is currently the recommended way to consume the documentation.
 
-There is also a command line tool called `p6doc`, which you can use to
-browse the documentation once it's installed (see below).
-
 This documentation is updated frequently to a GitHub mirror
 https://rakudocs.github.io but that might be out of sync with the
 official one.
@@ -55,27 +52,6 @@ execution path.
 **Note**: Please note that, due to changes in the parsing of Pod6,
 this will fail in versions of Raku older than 2018.06. Please upgrade to that
 version, or install using `--force`.
-
-## Use p6doc
-
-With a Rakudo `rakudo` executable in the `PATH`, try:
-
-    $ ./bin/p6doc Str
-
-to see the documentation for class `Str`, or:
-
-    $ ./bin/p6doc Str.split
-
-to see the documentation for method `split` in class `Str`. You can
-skip the `./bin` part if you have installed it via
-`zef`. You can also do:
-
-    $ p6doc -f slurp
-
-to browse the documentation of standard functions (which, in this
-particular case, will actually return multiple matches, which you can
-check individually). Depending on your
-disk speed and Rakudo version, it might take a while.
 
 -------
 
@@ -189,7 +165,7 @@ explains briefly how to get started contributing documentation.
 
 **Q:** Should I include methods from superclasses or roles?<br>
 **A:** No. The HTML version already includes methods from superclasses and
-       roles, and the `p6doc` script will be taught about those as well.
+       roles.
 
 --------
 

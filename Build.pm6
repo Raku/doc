@@ -1,7 +1,3 @@
-# Since the p6doc pod is now moved from 'lib' to 'doc' in the distribution we
-# need this to install pod under .../share/perl6/doc
-# This fixes p6doc command line use.
-
 use v6;
 use File::Find;
 
