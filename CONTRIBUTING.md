@@ -251,19 +251,9 @@ downloading the latest Rakudo Star release from
 installed Rakudo Star package, it should already be there. Feel free to
 use any other module installer for the modules needed (see below).
 
-#### Building the documentation
-
-The program that builds the HTML version of the documentation
-(`htmlify.p6`) uses `Pod::To::HTML` to convert Pod6 structures into HTML.
-You'll also need `Pod::To::BigPage` and `Perl6::TypeGraph`. Install these modules like so:
-
-    $ zef install Pod::To::HTML Pod::To::BigPage Perl6::TypeGraph
-
-although these are included in the `META.json` file so with
+To install any prerequistes for this module, use:
 
     $ zef install --deps-only .
-
-you're good to go.
 
 #### Mojolicious / Web Server
 
