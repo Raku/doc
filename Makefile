@@ -15,6 +15,25 @@ endif
 	clean-cache \
 	docker-image docker-test docker-xtest docker-ctest docker-testall docker-run
 
+help:
+	@echo "Usage: make [html|test|xtest|ctest]"
+	@echo ""
+	@echo "Options:"
+	@echo "   html:             generate the HTML documentation"
+	@echo "   assets:           generate CSS/JS assets"
+	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
+	@echo "   test:             run the test suite"
+	@echo "  xtest:             run the test suite, including extra tests"
+	@echo "  ctest:             run the test suite, content tests only"
+	@echo "    run:             run the development webserver"
+	@echo "docker-image:        build Docker image from Dockerfile"
+
+	@echo "docker-test:         run the test suite (in container)"
+	@echo "docker-xtest:        run the test suite, including extra tests (in container)"
+	@echo "docker-ctest:        run the test suite, content tests only (in container)"
+	@echo "docker-testall:      run all tests (in container)"
+	@echo "docker-run:          run the development webserver (in container)"
+
 html: for-documentable
 	documentable start -a -v --highlight
 
@@ -40,25 +59,6 @@ xtest:
 # Content tests
 ctest:
 	prove --exec raku -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
-
-help:
-	@echo "Usage: make [html|test|xtest|ctest]"
-	@echo ""
-	@echo "Options:"
-	@echo "   html:             generate the HTML documentation"
-	@echo "   assets:           generate CSS/JS assets"
-	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
-	@echo "   test:             run the test suite"
-	@echo "  xtest:             run the test suite, including extra tests"
-	@echo "  ctest:             run the test suite, content tests only"
-	@echo "    run:             run the development webserver"
-	@echo "docker-image:        build Docker image from Dockerfile"
-
-	@echo "docker-test:         run the test suite (in container)"
-	@echo "docker-xtest:        run the test suite, including extra tests (in container)"
-	@echo "docker-ctest:        run the test suite, content tests only (in container)"
-	@echo "docker-testall:      run all tests (in container)"
-	@echo "docker-run:          run the development webserver (in container)"
 
 start: run
 
