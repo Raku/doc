@@ -17,20 +17,11 @@ sub MAIN(
     Str :$exclude = ".git",                 #= Comma-seperated list of file extensions to ignore (default: .git)
     :$ignore = './util/ignored-methods.txt' #= File listing methods to ignore (default ./util/ignored-methods.txt)
 ) {
-    my \exclude = none('.', '..', $exclude.split(','));
-
-    my \type-pod-files := $source-path.ends-with('.pod6')
-    ?? ($source-path.IO,)
-    !! gather for $source-path {
-        take .IO when .IO.f && .Str.ends-with('.pod6');
-        .IO.dir(test => exclude)».&?BLOCK when .IO.d
-    }
-
-    # lazy list of (type-name, IO::PATH)
-    my \types := gather for type-pod-files».IO {
-        my $file-path = S/.*'doc/Type/'(.*)'.pod6'/$0/;
-        my $type-name = $file-path.subst(:g, '/', '::');
-        take ($type-name, .IO)
+    my \types = gather { given $source-path {
+        when !.IO.d { my $type-name = (S/.*'doc/Type/'(.*)'.pod6'/$0/).subst(:g, '/', '::');
+                      take ($type-name, .IO) };
+        # If directory, recurse – but filter out files that have basenames in $exclude
+        .dir.grep( { .basename ~~ none($exclude.split(',')».trim) })».&?BLOCK}
     }
 
     my \methods := gather for types -> ($type-name, $path) {
@@ -46,6 +37,7 @@ sub MAIN(
 
     my %ignored is Map = EVALFILE($ignore);
     my \matched-methods := gather for methods -> ($type-name, $path, @existing) {
+
         my ($in-header, $with-signature) = [Z] $path.lines.map({ MethodDoc.parse($_).made}).grep({.elems == 2});
         my Set $missing-header      = @existing (-) %ignored{$type-name} (-) $in-header;
         my Set $missing-signature   = @existing (-) %ignored{$type-name} (-) $with-signature (-) $missing-header;
