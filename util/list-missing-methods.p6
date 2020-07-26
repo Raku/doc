@@ -20,32 +20,35 @@ sub MAIN(
     :$ignore = './util/ignored-methods.txt' #= File listing methods to ignore (default ./util/ignored-methods.txt)
 ) {
     my %ignored is Map = EVALFILE($ignore);
-    my &process = {
-        when .IO ~~ :d {
-            for .dir.grep( { .basename ~~ none($exclude.split(',')».trim) }) { process($^next-path) }
+    sub process($path)  {
+        when $path.IO ~~ :d {
+            flat (lazy $path.dir.grep({ .basename ~~ none($exclude.split(',')».trim) }).map({ process($^next-path)}));
         }
 
-        my $type-name = (S/.*'doc/Type/'(.*)'.pod6'/$0/).subst(:g, '/', '::');
+        my $type-name = (S/.*'doc/Type/'(.*)'.pod6'/$0/).subst(:g, '/', '::') with $path;
         when $type-name eq 'independent-routines' | 'Routine::WrapHandle' { #`(TODO) }
-        CATCH { default { say "problematic type «$type-name»" } }
+        CATCH { default { return "✗ $type-name – documented at  ⟨{$path.IO}⟩\nSkipped as uncheckable\n" } }
+        my @errors =[];
         my @real-methods = ::($type-name).^methods(:local).grep({
             my $name = .name;
-            # Log error for builtins like NQPRoutine that don't support the introspection we need.
-            CATCH { default { say "problematic method $name in «$type-name»" unless $name eq '<anon>';
-                              False }
-                  }
+            # Some builtins don't support the introspection we need (e.g., NQPRoutine)
+            CATCH { default { @errors.push("$name") unless $name eq '<anon>';
+                              False } }
             (.package eqv ::($type-name))
         })».name;
-        my ($in-header, $with-signature) = [Z] .IO.lines.map({ MethodDoc.parse($_).made}).grep({.elems == 2});
+        my ($in-header, $with-signature) = [Z] $path.IO.lines.map({ MethodDoc.parse($_).made}).grep({.elems == 2});
         my Set $missing-header      = @real-methods (-) %ignored{$type-name} (-) $in-header;
         my Set $missing-signature   = @real-methods (-) %ignored{$type-name} (-) $with-signature (-) $missing-header;
 
-        put "{$type-name} – documented at ⟨{.IO}⟩";
-        put "{$missing-header.elems} missing methods:";
-        put "    {$missing-header.keys.sort.join("\n    ")}\n";
-        put "{$missing-signature.elems} missing signatures:";
-        put  "    {$missing-signature.keys.sort.join("\n    ")}\n";
+        (+@errors || +$missing-header || +$missing-signature ?? "✗ " !! "✔ ")
+        ~ "{$type-name} – documented at ⟨{$path.IO}⟩\n"
+        ~ ( if +@errors {
+            "  {+@errors} methods couldn't be checked:\n    {@errors.join("\n    ")}\n" })
+        ~ ( if +$missing-header {
+            "  {+$missing-header} methods were missing:\n    {$missing-header.keys.sort.join("\n    ")}\n"})
+        ~ ( if $missing-signature {
+            "  {+$missing-signature} methods lacked signatures:\n    {$missing-signature.keys.sort.join("\n    ")}\n"})
     }
 
-    process($source-path)
+    for process($source-path) { .say };
 }
