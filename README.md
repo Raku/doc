@@ -40,20 +40,10 @@ browser to http://localhost:3000 (or 31415, as the case may be).
 * [README in Portuguese](resources/i18n/pt/README.pt.md)
 * [README in Spanish](resources/i18n/es/README.es.md)
 
-## Install p6doc
+## Install rakudoc
 
-This module is available via the Raku module ecosystem. Use:
-
-    $ zef install p6doc
-
-to install the "binaries" and make them available in your binaries
-execution path.
-
-**Note**: Please note that, due to changes in the parsing of Pod6,
-this will fail in versions of Raku older than 2018.06. Please upgrade to that
-version, or install using `--force`.
-
--------
+Please see https://github.com/raku/rakudoc for the
+command line tool for viewing the documentation
 
 ## Building the HTML documentation
 
