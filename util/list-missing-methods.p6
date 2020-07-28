@@ -35,18 +35,19 @@ sub MAIN(
         say (+.<errors> || +.<missing-header> || +.<missing-signature> ?? "✗ " !! "✔ ")
         ~ "{.<name>} – documented at ⟨{.<path>.IO}⟩\n"
         ~ ( if +.<errors> {
-                  "{+.<errors>} methods couldn't be checked:\n".indent(2)
+                  "{+.<errors>} uncheckable method:\n".&pluralize('method').indent(2)
                   ~ .<errors>.join("\n").indent(4) ~ "\n" })
         ~ ( if +.<missing-header> {
-                  "{+.<missing-header>} methods were missing:\n".indent(2)
+                  "{+.<missing-header>} missing method:\n".&pluralize('method').indent(2)
                   ~ .<missing-header>.keys.sort.join("\n").indent(4) ~ "\n" })
         ~ ( if .<missing-signature> {
-                  "{+.<missing-signature>} methods lacked signatures:\n".indent(2)
+                  ("{+.<missing-signature>} method without signature:\n"
+                      ).&pluralize('method').&pluralize('signature').indent(2)
                   ~ .<missing-signature>.keys.sort.join("\n").indent(4) ~ "\n"});
     };
 
     say qq:to/EOF/;
-         Summary of missing types: 
+         Summary of missing types:
         ===========================
          UNCHECKABLE types:   {%total<uncheckable>}
          UNCHECKABLE methods: {%total<errors>}
@@ -107,3 +108,8 @@ multi process($path, %ignored, $ --> Hash) {
 }
 
 sub max-len($pair-list --> Int) { $pair-list.max(*.key.chars).key.chars }
+
+#| Appends an 's' to the provided $noun if the closest preceeding number in $phrase is ≥ 2
+sub pluralize(Str $phrase, Str $noun --> Str) {
+    $phrase ~~ /(\d+) \D* $noun/;
+    +$0 == 1 ?? $phrase !! $phrase.subst(/$noun/, $noun ~ 's') }
