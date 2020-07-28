@@ -57,14 +57,12 @@ version, or install using `--force`.
 
 ## Building the HTML documentation
 
+Note: If you just want a copy of the build HTML site and don't want to deal
+with the build yourself, you can clone it from here: https://github.com/rakudocs/rakudocs.github.io
+
 The documentation can be rendered to static HTML pages and/or served in a local
 web site. This process involves creating a cache of precompiled
 documents, so that generation after the first time is sped up.
-
-> Building the documentation has a number of prerequisites, which is might you
-> might not want to do it yourself. However, if you need a local copy of the
-> HTML documentation, please download it by cloning
-> https://github.com/rakudocs/rakudocs.github.io
 
 These are the prerequisites you need to install to generate documentation.
 
