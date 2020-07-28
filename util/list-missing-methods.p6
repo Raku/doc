@@ -28,6 +28,7 @@ sub MAIN(
 
         %total.add('errors') for ^+.<errors>;
         %total.add('missing-header') for ^+.<missing-header>;
+        %total.add('phantom-method') for ^+.<phantom-method>;
         %missing-methods-per-type.add($a.<name>) for ^+.<missing-header>;
         for .<missing-header>.keys { %missing-methods.add($_)};
         %total.add('missing-signature') for ^+.<missing-signature>;
@@ -43,7 +44,11 @@ sub MAIN(
         ~ ( if .<missing-signature> {
                   ("{+.<missing-signature>} method without signature:\n"
                       ).&pluralize('method').&pluralize('signature').indent(2)
-                  ~ .<missing-signature>.keys.sort.join("\n").indent(4) ~ "\n"});
+                  ~ .<missing-signature>.keys.sort.join("\n").indent(4) ~ "\n"})
+        ~ ( if .<phantom-method> {
+                  ("{+.<phantom-method>} non-local method with documentation:\n"
+                      ).&pluralize('method').indent(2)
+                  ~ .<phantom-method>.keys.sort.join("\n").indent(4) ~ "\n"});
     };
 
     say qq:to/EOF/;
@@ -53,6 +58,7 @@ sub MAIN(
          UNCHECKABLE methods: {%total<errors>}
          MISSING methods:     {%total<missing-header>}
          SIGNATURE errors:    {%total<missing-signature>}
+         NON-LOCAL methods:   {%total<phantom-method>}
         EOF
 
     my $top-missing = %missing-methods.grep(*.value ≥ 10).cache;
@@ -63,7 +69,7 @@ sub MAIN(
           ~ $top-missing.sort(*.value).map({ sprintf(" %-*s    %d\n",
                                                      $top-missing.&max-len, .key,
                                                      .value)}).join
-          ~ sprintf("%s\n   %*s  %d\n\n",
+          ~ sprintf("%s\n   %*s  %d\n",
                     '-' x ($top-missing.&max-len + 8),
                     $top-missing.&max-len, "TOTAL",
                     $top-missing.map(*.value).sum) };
@@ -74,8 +80,6 @@ sub MAIN(
        ~ $top-types.map({ sprintf(" %-*s %-5d\n",
                                   $top-types.max(*.key.chars).key.chars, .key,
                                   .value)}).join;
-
-
 }
 
 
@@ -99,12 +103,9 @@ multi process($path, %ignored, $ --> Hash) {
     my ($in-header, $with-signature) = [Z] $path.IO.lines.map({ MethodDoc.parse($_).made}).grep({.elems == 2});
     my Set $missing-header      = @real-methods (-) %ignored{$type-name} (-) $in-header;
     my Set $missing-signature   = @real-methods (-) %ignored{$type-name} (-) $with-signature (-) $missing-header;
+    my Set $phantom-method      = $in-header (-) @real-methods (-) Set.new('', Any);
 
-    %(errors => @errors,
-      missing-header => $missing-header,
-      missing-signature => $missing-signature,
-      path => $path,
-      name => $type-name)
+    %( name => $type-name, :$path, :@errors, :$missing-header, :$missing-signature, :$phantom-method )
 }
 
 sub max-len($pair-list --> Int) { $pair-list.max(*.key.chars).key.chars }
