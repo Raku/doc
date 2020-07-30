@@ -108,7 +108,6 @@ to add to the configuration to make it work:
     location / {
         try_files $uri $uri/ $uri.html /404.html;
     }
-
 ```
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
