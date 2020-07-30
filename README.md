@@ -83,7 +83,7 @@ and start building process:
 You need to do this only the first time to build the cache. When there's some
 change in the source (done by yourself or pulled from the repo),
 
-    documentable update
+    make update-html
 
 will re-generate only affected pages.
 
