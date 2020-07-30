@@ -36,7 +36,7 @@ for @files -> $file {
                 | "Alice in Wonderland"
                 | "Virtual Machine"
                 | "Binary Large OBject"
-                | Unicode | ASCII
+                | Boolean | Unicode | ASCII
                 | "Normal Form " ( "C" | "D" | "KC" | "KD" )
                 | POSIX | QNX | Windows | Cygwin | Win32
                 # class names
