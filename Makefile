@@ -37,6 +37,9 @@ help:
 html: for-documentable
 	documentable start -a -v --highlight
 
+update-html:
+	documentable update
+
 init-highlights highlights/package-lock.json:
 	ATOMDIR="./highlights/atom-language-perl6";  \
 	if [ -d "$$ATOMDIR" ]; then (cd "$$ATOMDIR" && git pull); \

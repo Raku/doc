@@ -77,13 +77,13 @@ and start building process:
 
     git clone https://github.com/Raku/doc.git # clone the repo
     cd doc # move to the clone of the repo
-    make for-documentable # Generates CSS and JS, installs highlighting modules
-    documentable start -a -v --highlight # Builds cache and generates pages.
+    # Generate CSS and JS, install highlighting modules, build cache and pages
+    make html
 
 You need to do this only the first time to build the cache. When there's some
 change in the source (done by yourself or pulled from the repo),
 
-    documentable update
+    make update-html
 
 will re-generate only affected pages.
 
@@ -108,7 +108,6 @@ to add to the configuration to make it work:
     location / {
         try_files $uri $uri/ $uri.html /404.html;
     }
-
 ```
 
 This will rewrite the URLs for you. Equivalent configuration might have to be
