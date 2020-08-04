@@ -13,11 +13,14 @@ grammar MethodDoc {
     token method         { <[-'\w]>+ }
 }
 
-#| Scan one or more pod6 files for undocumented methods
+enum Summary <yes no only>;
+#| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
-    IO(Str) $source-path = './doc/Type/',   #= The file or directory to check (default: ./doc/Type)
-    Str :$exclude = ".git",                 #= Comma-seperated list of files/directories to ignore (default: .git)
-    :$ignore = './util/ignored-methods.txt' #= Path to file with methods to ignore (default ./util/ignored-methods.txt)
+    IO(Str) $src = './doc/Type/',               #= Path to the file or directory to check
+    Str :e(:$exclude)= ".git",                  #= Comma-separated list of files/directories to ignore
+    Str :d(:$display) = 'all',                  #= Comma-separated list of documentation types to display
+    Summary :s(:$summary) = yes,                #= Whether to display summary statistics
+    :i(:$ignore) = './util/ignored-methods.txt' #= Path to file with methods to skip
 ) {
     # TODO: Comment
     my %summary = %{
@@ -26,7 +29,7 @@ sub MAIN(
         over-documented  => %{ sums => BagHash.new(), types => BagHash.new() },
     }
 
-    my $output = $(process($source-path, EVALFILE($ignore), $exclude)).map( {
+    my $output = $(process($src, EVALFILE($ignore), $exclude)).map( {
         when .<uncheckable>.so {
             %summary<totals><unchecked-types>++;
             "✗ {.<type-name>} – documented at  ⟨{.<path>.IO}⟩\nSkipped as uncheckable\n";
@@ -34,24 +37,54 @@ sub MAIN(
         %summary<totals><checked-types>++;
         %summary<totals><checked-methods> += .<local-methods>.elems;
         %summary<totals><unchecked-methods> += .<uncheckable-method>.elems;
-
-        for .<under-documented>.pairs { %summary<under-documented><sums>{.key}+= .value.elems };
-        for .<over-documented>.pairs {  %summary<over-documented><sums>{.key} += .value.elems };
+        %summary<under-documented><sums>{.key} += .value.elems for .<under-documented>.pairs;
+        %summary<over-documented><sums>{.key}  += .value.elems for .<over-documented>.pairs ;
+        %summary<under-documented><methods>.add($_)            for .<under-documented><missing-header>.keys;
         %summary<under-documented><types>{.<type-name>} += .<under-documented><missing-header>.elems;
         %summary<over-documented><types>{.<type-name>}  += .<over-documented><doesn't-exist>.elems;
-        for .<under-documented><missing-header>.keys { %summary<under-documented><methods>.add($_)};
 
         (.<uncheckable-method> ∪  |.<under-documented>.values ∪ |.<over-documented>.values ?? "✗ " !! "✔ ")
          ~ "{.<type-name>} – documented at ⟨{.<path>.IO}⟩\n"
          ~ fmt-uncheckable-methods(.<uncheckable>)
-         ~ fmt-under-documented-methods(.<under-documented>)
+         ~ (if $display ~~ ('under' | 'all') { fmt-under-documented-methods(.<under-documented>) } )
          ~ fmt-over-documented-methods(.<over-documented>)
     });
+    for $output[] {
+        if $summary ~~ (yes | no) { .say }
+    }
 
-    .say for $output[];
-    say fmt-totals-summary(|%summary<totals>);
-    say fmt-under-documented-summary(|%summary<under-documented>);
-    say fmt-over-documented-summary(|%summary<over-documented>);
+    if $summary ~~ (yes | only) {
+        say fmt-totals-summary(|%summary<totals>);
+        say fmt-under-documented-summary(|%summary<under-documented>);
+        say fmt-over-documented-summary(|%summary<over-documented>);
+    }
+}
+
+sub USAGE() {
+    my &fmt-param = { $^a ~ (' ' x (20 - $^a.chars) ~ $^b.WHY ~ (with $^b.default { " [default: {.()}]"})) }
+    say qq:to/EOF/
+      Usage: $*PROGRAM-NAME [OPTION]... [SRC]
+      {&MAIN.WHY}
+
+      ARGS:
+        { &MAIN.signature.params.grep(!*.named).map({ fmt-param(.name.substr(1).uc, $_) }).join("\n")}
+
+      OPTIONS:
+        { &MAIN.signature.params.grep(*.named).map({
+              fmt-param(.named_names.reverse.map({'-' x ++$ ~ $_}).join(', '), $_);
+          }).join("\n  ")}
+
+      By default, this script displays a large amount of information for each type it
+      analyzes: all methods potentially missing documentation, all methods that are
+      potentially over-documented, and all types that were skipped (typically because
+      they are low-level types that lack the required introspective abilities). This
+      corresponds to `--display=all`.  You can pass a comma-separated list consisting of
+      any of `over`, `under`, or `skip` to view a subset of information for each type.
+
+      Additionally, this script also displays summary statistics based on all types it
+      analyzed.  To omit this summary info, use `--summary=no`; to display *only* this
+      summary info (that is, to hide all type-level info) use `--summary=only`
+      EOF
 }
 
 my &fmt-uncheckable-methods = {
@@ -77,8 +110,6 @@ my &fmt-over-documented-methods = {
 
 sub fmt-totals-summary(:$checked-types, :$unchecked-types, :$checked-methods, :$unchecked-methods --> Str) {
     qq:to/EOF/
-
-
          ##################
          #    SUMMARY     #
          ##################
@@ -96,7 +127,6 @@ sub fmt-under-documented-summary(:%sums, :%methods, :%types) {
     my $top-missing = %methods.grep(*.value ≥ 20).cache;
     my $top-types = %types.sort(*.value).tail(5).cache;
     qq:to/EOF/
-
          UNDER-DOCUMENTED:
          #################
 
@@ -126,7 +156,6 @@ sub fmt-under-documented-summary(:%sums, :%methods, :%types) {
 sub fmt-over-documented-summary(:%sums, :%types) {
     my $top-types = %types.sort(*.value).tail(5).cache;
     qq:to/EOF/
-
          OVER-DOCUMENTED:
          ################
 
@@ -134,14 +163,14 @@ sub fmt-over-documented-summary(:%sums, :%types) {
          ==============================
          non-local methods:         {%sums<non-local>}
          non-method routines:       {%sums<non-method-sub>}
-         non-existant methods:      {%sums<doesn't-exist>}
+         non-existent methods:      {%sums<doesn't-exist>}
 
          Types with the most over-documented methods:
          ============================================
-         {$top-types.map({ sprintf(" %-*s %-5d\n",
+        {$top-types.map({ sprintf(" %-*s %-5d\n",
                                    $top-types.&max-len, .key,
                                    .value)}).join}
-         EOF
+        EOF
 }
 
 
@@ -165,7 +194,7 @@ multi process($path, %ignored, $ --> Hash) {
     # Confusingly, many methods returned by ^methods(:local) are *not* local, so we filter by packaged
     my Set $local-methods = (::($type-name).^methods(:local).grep(-> $method {
         # Some builtins don't support the introspection we need, mostly ones that call ForeignCode
-        # (which inclueds NQP methods).  ForeignCode methods typically have the name `<anon>`
+        # (which includes NQP methods).  ForeignCode methods typically have the name `<anon>`
         CATCH { default { %uncheckable-method{~$method.name}++ unless $method.name eq '<anon>' } }
         try { $method.package.isa($type-name) } // $method.package ~~ ::($type-name)
     })».name).Set (-) %ignored{$type-name};
@@ -189,7 +218,8 @@ multi process($path, %ignored, $ --> Hash) {
 
 sub max-len($pair-list --> Int) { $pair-list.max(*.key.chars).key.chars }
 
-#| Appends an 's' to the provided $noun if the closest preceeding number in $phrase is ≥ 2
+#| Appends an 's' to the provided $noun if the closest preceding number in $phrase is ≥ 2
 sub pluralize(Str $phrase, Str $noun --> Str) {
     $phrase ~~ /(\d+) \D* $noun/;
-    +$0 == 1 ?? $phrase !! $phrase.subst(/$noun/, $noun ~ 's') }
+    +$0 == 1 ?? $phrase !! $phrase.subst(/$noun/, $noun ~ 's')
+}
