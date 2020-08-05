@@ -34,8 +34,7 @@ sub MAIN(
     my $output = $(process($src, EVALFILE($ignore), $exclude)).map( {
         when .<uncheckable>.so {
             %summary<totals><unchecked-types>++;
-            # TODO: Better '?'
-            "⍰ {.<type-name>} – documented at  ⟨{.<path>.IO}⟩\nSkipped as uncheckable\n";
+            "∅ {.<type-name>} – documented at  ⟨{.<path>.IO}⟩\nSkipped as uncheckable\n";
         }
        %summary.&insert-data($_);
 
