@@ -18,12 +18,18 @@ grammar MethodDoc {
 enum Summary <yes no only>;
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
-    IO(Str) $src = './doc/Type/',               #= Path to the file or directory to check
-    Str :e(:$exclude)= ".git",                  #= Comma-separated list of files/directories to ignore
-    Str :d(:$display) = 'all',                  #= Comma-separated list of documentation types to display
+    IO(Str) $src          = './doc/Type/',      #= Path to the file or directory to check
+    Str :e(:$exclude)     = ".git",             #= Comma-separated list of files/directories to ignore
+    Str :report(:$r)      = 'all',              #= Comma-separated list of documentation types to display
     Summary :s(:$summary) = yes,                #= Whether to display summary statistics
     :i(:$ignore) = './util/ignored-methods.txt' #= Path to file with methods to skip
 ) {
+    my $report = any(|$r.split(',')».trim);
+    my $allowed-report-types = <over under skip pass fail all none>;
+    when ($report ∉ $allowed-report-types).so {
+        say "Invalid --report.  Please provide a comma-seperated list of one or more of "
+          ~ $allowed-report-types.head(*-1).join(', ') ~ ", or " ~  $allowed-report-types.tail;
+    }
     # TODO: Comment
     my %summary  := Map.new(%{
         totals => Map.new(%(:0checked-types, :0unchecked-types, :0checked-methods, :0unchecked-methods )),
@@ -34,19 +40,31 @@ sub MAIN(
     my $output = $(process($src, EVALFILE($ignore), $exclude)).map( {
         when .<uncheckable>.so {
             %summary<totals><unchecked-types>++;
-            "∅ {.<type-name>} – documented at  ⟨{.<path>.IO}⟩\nSkipped as uncheckable\n";
+            (if $report ~~ ('all' | 'skip') {
+                    "\n∅ {.<type-name>} – documented at  ⟨{.<path>.IO}⟩\n  Skipped as uncheckable\n" });
         }
-       %summary.&insert-data($_);
+        %summary<totals>.&update-totals($_);
+        %summary<under-documented>.&update-under-documented($_);
+        %summary<over-documented>.&update-over-documented($_);
 
         # TODO: implement $display CSV
-        (.<uncheckable-method> ∪  |.<under-documented>.values ∪ |.<over-documented>.values ?? "✗ " !! "✔ ")
-         ~ "{.<type-name>} – documented at ⟨{.<path>.IO}⟩\n"
-         ~ fmt-uncheckable-methods(.<uncheckable>)
-         ~ (if $display ~~ ('under' | 'all') { fmt-under-documented-methods(.<under-documented>) } )
-         ~ fmt-over-documented-methods(.<over-documented>)
+        my $status = (.<uncheckable-method> ∪  |.<under-documented>.values ∪ |.<over-documented>.values
+                      ?? '✗'
+                      !! '✔');
+
+        (if (($report ~~ 'all' | 'pass')  && $status eq '✔')
+         || (($report ~~ 'all' | 'skip')  && ?.<uncheckable-method>)
+         || (($report ~~ 'all' | 'under') && ?.<under-documented>.values)
+         || (($report ~~ 'all' | 'over')  && ?.<over-documented>.values) {
+          "\n$status {.<type-name>} – documented at ⟨{.<path>.IO}⟩\n"
+         })
+
+         ~ (if $report ~~ ('all' | 'skip')  { fmt-uncheckable-methods(.<uncheckable>)})
+         ~ (if $report ~~ ('all' | 'under') { fmt-under-documented-methods(.<under-documented>)})
+         ~ (if $report ~~ ('all' | 'over')  { fmt-over-documented-methods(.<over-documented>)})
     });
     for $output[] {
-        if $summary ~~ (yes | no) { .say }
+        if $summary ~~ (yes | no) { .print }
     }
 
     if $summary ~~ (yes | only) {
@@ -56,16 +74,26 @@ sub MAIN(
     }
 }
 
-sub insert-data(%summary, $data) {
+sub update-totals(%totals, $data) {
     given $data {
-        %summary<totals><checked-types>++;
-        %summary<totals><checked-methods> += .<local-methods>.elems;
-        %summary<totals><unchecked-methods> += .<uncheckable-method>.elems;
-        %summary<under-documented><sums>{.key} += .value.elems for .<under-documented>.pairs;
-        %summary<over-documented><sums>{.key}  += .value.elems for .<over-documented>.pairs ;
-        %summary<under-documented><methods>.add($_)            for .<under-documented><missing-header>.keys;
-        %summary<under-documented><types>{.<type-name>} += .<under-documented><missing-header>.elems;
-        %summary<over-documented><types>{.<type-name>}  += .<over-documented><doesn't-exist>.elems;
+        %totals<checked-types>++;
+        %totals<checked-methods> += .<local-methods>.elems;
+        %totals<unchecked-methods> += .<uncheckable-method>.elems;
+    }
+}
+
+sub update-under-documented(%under-documented, $data) {
+    given $data {
+        %under-documented<sums>{.key} += .value.elems for .<under-documented>.pairs;
+        %under-documented<methods>.add($_)            for .<under-documented><missing-header>.keys;
+        %under-documented<types>{.<type-name>} += .<under-documented><missing-header>.elems;
+    }
+}
+
+sub update-over-documented(%over-documented, $data) {
+    given $data {
+        %over-documented<sums>{.key}  += .value.elems for .<over-documented>.pairs ;
+        %over-documented<types>{.<type-name>}  += .<over-documented><doesn't-exist>.elems;
     }
 }
 
@@ -82,7 +110,7 @@ sub USAGE() {
 
       OPTIONS:
         { &MAIN.signature.params.grep(*.named).map({
-              fmt-param(.named_names.reverse.map({'-' x ++$ ~ $_}).join(', '), $_);
+              fmt-param(.named_names.sort(*.chars).map({'-' x ++$ ~ $_}).join(', '), $_);
           }).join("\n  ")}
 
       By default, this script displays a large amount of information for each type it
