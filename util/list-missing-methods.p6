@@ -87,9 +87,8 @@ multi process-pod6($path, $?, :%ignored-types  --> List) {
         CATCH { default { $uncheckable-methods{~$method.name}++ unless $method.name eq '<anon>' } }
         try { $method.package.isa($type-name) } // $method.package ~~ ::($type-name)
     })».name  (-) %ignored-types{$type-name}) ;
-
-
     # TODO: add support for %ignored-types<GLOBAL> ^^^^^
+
     my (:@in-header, :@with-signature) :=  $path.IO.lines
                                                    .map({ MethodDoc.parse($_).made })
                                                    .grep(*.defined)
@@ -128,7 +127,6 @@ class Report {
             "{+$uncheckable} uncheckable method:\n".&pluralize('method').indent(2)
             ~ ($uncheckable.keys.sort.join("\n").indent(4) ~ "\n")})
     }
-
     multi fmt(:%over-documented) {
         my (:@non-local, :@non-method, :@doesn't-exist) := %over-documented;
         ~( if @non-local {
@@ -141,7 +139,6 @@ class Report {
              ("{+@doesn't-exist} non-existing method with documentation:\n").&pluralize('method').indent(2)
              ~ @doesn't-exist.sort.join("\n").indent(4) ~ "\n"})
     }
-
     multi fmt(:%under-documented) {
         my (:%missing-header, :%missing-signature) := %under-documented;
         ~ ( if +%missing-header {
@@ -262,7 +259,7 @@ class Summary {
         ~ (if $top-missing {
                   ~ "\nMethods missing from 20+ types:\n".indent(1)
                   ~   "===============================\n".indent(1)
-                  ~ self!fmt-top-methods( $top-missing)
+                  ~ self!fmt-top-methods($top-missing)
               })
         ~ (if $top-types.elems {
                   ~ "\nTypes with the most missing methods:\n"
@@ -324,19 +321,16 @@ class Summary {
 
     #| Dynamically format a number as both a raw number and a percent of a dynamic variable
     sub fmt-with-percent-of($num, $name) { # pretty hacky, should be a macro once Raku-AST lands
-        sprintf("%4d (%4.1f%% of $name)", $num, 100 × $num/(CALLER::OUTER::("\$*$name") || 1))
+        sprintf("%4d (%4.1f%% of $name)", $num, 100 × $num/(CALLERS::("\$*$name") || 1))
     }
-
 }
 
 #| Parses a Pod6 document and returns all methods mentioned in a header or given a signature
 grammar MethodDoc {
-    # TODO consider splitting this into two `build`
-    token TOP { [<in-header>  | <with-signature>]
-                { with $<in-header><method>      { make (in-header      => ~$_) }
-                  with $<with-signature><method> { make (with-signature => ~$_) }}}
+    token TOP { | [<in-header>     { make (in-header      => ~$<in-header><method>) }
+                | <with-signature> { make (with-signature => ~$<with-signature><method>) } ]}
 
-    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' .* }
+    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' .+ }
     token in-header      { '=head' \d? <ws> <keyword> <ws> <method> }
     token keyword        { ['method' | 'routine'] }
     token method         { <[-'\w]>+ }
