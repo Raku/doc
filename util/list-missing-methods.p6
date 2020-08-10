@@ -12,6 +12,7 @@ constant $missing_method_threshold    = 20;
 constant $overdocked_method_threshold = 20;
 constant $most_missing_list_length    = 5;
 constant $most_overdocked_list_length = 5;
+my $util_dir := $*PROGRAM.resolve.parent;
 
 #| Allowable values for --report
 subset ReportCsv  of Str:D where *.split(',')».trim ⊆ <skip pass fail err over under all none>;
@@ -20,12 +21,12 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals             ove
 
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
-    IO(Str) $input-path      = './doc/Type/',     #= Path to the file or directory to check
-    Str :e(:$exclude)        = ".git",            #= Comma-separated list of files/directories to ignore
-    ReportCsv  :report(:$r)  = 'all',             #= Comma-separated list of documentation types to display
-    SummaryCsv :summary(:$s) = 'all',             #= Whether to display summary statistics
-    Bool :h(:$help),                              #= Display this message and exit
-    :i(:$ignore) = './util/ignored-methods.txt',  #= Path to file with methods to skip
+    IO(Str) $input-path = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
+    Str :e(:$exclude)        = ".git",                   #= Comma-separated list of files/directories to ignore
+    ReportCsv  :report(:$r)  = 'all',                    #= Comma-separated list of documentation types to display
+    SummaryCsv :summary(:$s) = 'all',                    #= Whether to display summary statistics
+    Bool :h(:$help),                                     #= Display this message and exit
+    Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
     my $reports-to-print  = any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
@@ -348,7 +349,7 @@ sub USAGE() {
     # TODO: add info about meaning of output for over- and under-documented methods.
     # TODO: Update for new functionality
 
-    print do given &MAIN.signature.params {
+    print S:g/'/home/'$(%*ENV<USER>)/~/ with do given &MAIN.signature.params {
       "Usage: ./{$*PROGRAM.relative} [FLAGS]... [OPTION]... [ARG]\n"
       ~ "{&MAIN.WHY}\n\n"
       ~ (with .grep(!*.named) {
