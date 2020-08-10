@@ -22,8 +22,8 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals             ove
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
     IO(Str) $input-path = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
-    Str :e(:$exclude),                                   #= Exclude files or directories matching Regex
-    Str :O(:$only),                                      #= Include ONLY files or directories matching Regex
+    Str :exclude(:$e)  = "Metamodel",                    #= Exclude files or directories matching Regex
+    Str :only(:$o),                                      #= Include ONLY files or directories matching Regex
     ReportCsv  :report(:$r)  = 'all',                    #= Comma-separated list of documentation types to display
     SummaryCsv :summary(:$s) = 'all',                    #= Comma-separated list of summary types to display
     Bool :h(:$help),                                     #= Display this message and exit
@@ -31,10 +31,12 @@ sub MAIN(
 ) {
     when $help { USAGE }
     my $reports-to-print  = any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
-    my $summaries-to-print = any(|(S/'all'/totals,over,under/         with $s).split(',')».trim);
+    my $summaries-to-print = any(|(S/'all'/totals,over,under/            with $s).split(',')».trim);
+    my $exclude = do with $e {/<$e>/};
+    my $only    = do with $o {/<$o>/}; # avoid perf penalty of re-constructing Regex
     my $summary = Summary.new;
 
-    for $input-path.&process-pod6($exclude, $only, ignored-types => EVALFILE($ignore)).hyper.map(
+    for $input-path.&process-pod6($exclude, $only, ignored-types => EVALFILE($ignore)).map(
         -> (:%file, :%methods (:%local, :%uncheckable, :%over-documented, :%under-documented)) {
 
         when %file<no-type-found> { if $reports-to-print ~~ 'err' { Report::fmt-bad-file(%file<path>)}}
@@ -66,8 +68,8 @@ sub MAIN(
 
 #| Process a directory of Pod6 files by recursively processing each file
 multi process-pod6($path where {.IO ~~ :d}, $exclude, $only, :%ignored-types --> List) {
-    |(lazy $path.dir ==> grep( -> $file { all( (with $exclude { $file.basename !~~ /<$exclude>/ }),
-                                               (with $only    { $file.basename  ~~ /<$only>/    }),
+    |(lazy $path.dir ==> grep( -> $file { all( (with $exclude { $file.basename !~~ $exclude }),
+                                               (with $only    { $file.basename  ~~ $only }),
                                                True )})
                      ==> map({ |process-pod6($^next-path, $exclude, $only, :%ignored-types )}))
 }
@@ -83,15 +85,25 @@ multi process-pod6($path, $?, $?, :%ignored-types  --> List) {
           CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}}
     }
 
-    # TODO: do this with classify;
-    my $uncheckable-methods = SetHash.new();
-    # Confusingly, many methods returned by ^methods(:local) are *not* local, so we filter by package
-    my Set $local-methods = (::($type-name).^methods(:local).grep(-> $method {
+   (::($type-name).^methods(:local).classify(-> $method {
         # Some builtins don't support the introspection we need, mostly ones that call ForeignCode
         # (which includes NQP methods).  ForeignCode methods typically have the name `<anon>`
-        CATCH { default { $uncheckable-methods{~$method.name}++ unless $method.name eq '<anon>' } }
-        try { $method.package.isa($type-name) } // $method.package ~~ ::($type-name)
-    })».name  (-) %ignored-types{$type-name}) ;
+        # TODO: consider re-ordering based on perf considerations
+         when $method.name eq '<anon>' { 'anon' };
+         try {$method.^find_method('raku'); $method.package.^find_method('raku');};
+         when ?$! {
+             when $type-name ~~ /'Metamodel'/ { 'uncheckabe-meta'}
+             'uncheckable'}
+         when (try { $method.package.isa($type-name) } // ($method.package ~~ ::($type-name))) { 'local' }
+         when (try { $method.package.HOW.WHAT ~~ Metamodel::ParametricRoleHOW} // False)       { 'from-a-role' }
+         when (try { $method.package ~~ Any } // False)                                        { 'from-any' }
+         when (try { $method.package ~~ Mu  } // False)                                        { 'from-mu' }
+         default                                                                               { 'skip' }
+     },
+     :into( my %methods = <local uncheckable anon from-a-role from-any from-mu skip>.map({$_ => []})),
+     :as(*.name) ));
+    my $local-methods = %methods<local> (-) %ignored-types{$type-name};
+    my $uncheckable-methods = %methods<uncheckable>;
     # TODO: add support for %ignored-types<GLOBAL> ^^^^^
 
     my (:@in-header, :@with-signature) :=  $path.IO.lines
@@ -111,7 +123,7 @@ multi process-pod6($path, $?, $?, :%ignored-types  --> List) {
         "doesn't-exist"
     },
     :into( my %over-documented = doesn't-exist => [], non-local => [], non-method => [] ));
-
+    # TODO yeild info on skipped methods, Metamodel-uncheckable
     (file => Map.new((:$type-name, :$path)),
      methods => Map.new(( local            => $local-methods,
                           uncheckable      => $uncheckable-methods.Set,
@@ -168,6 +180,7 @@ class Report {
 
 #| Collects and formats summary statistics (displayed with --summary)
 class Summary {
+    # TODO: Add stats for most skipped methods
     has Map $!totals;
     has Map $!under-documented;
     has Map $!over-documented;
