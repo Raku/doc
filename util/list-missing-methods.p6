@@ -22,9 +22,10 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals             ove
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
     IO(Str) $input-path = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
-    Str :e(:$exclude)        = ".git",                   #= Comma-separated list of files/directories to ignore
+    Str :e(:$exclude),                                   #= Exclude files or directories matching Regex
+    Str :O(:$only),                                      #= Include ONLY files or directories matching Regex
     ReportCsv  :report(:$r)  = 'all',                    #= Comma-separated list of documentation types to display
-    SummaryCsv :summary(:$s) = 'all',                    #= Whether to display summary statistics
+    SummaryCsv :summary(:$s) = 'all',                    #= Comma-separated list of summary types to display
     Bool :h(:$help),                                     #= Display this message and exit
     Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
@@ -33,7 +34,7 @@ sub MAIN(
     my $summaries-to-print = any(|(S/'all'/totals,over,under/         with $s).split(',')».trim);
     my $summary = Summary.new;
 
-    for $input-path.&process-pod6($exclude, ignored-types => EVALFILE($ignore)).hyper.map(
+    for $input-path.&process-pod6($exclude, $only, ignored-types => EVALFILE($ignore)).hyper.map(
         -> (:%file, :%methods (:%local, :%uncheckable, :%over-documented, :%under-documented)) {
 
         when %file<no-type-found> { if $reports-to-print ~~ 'err' { Report::fmt-bad-file(%file<path>)}}
@@ -64,18 +65,20 @@ sub MAIN(
 }
 
 #| Process a directory of Pod6 files by recursively processing each file
-multi process-pod6($path where {.IO ~~ :d}, $exclude, :%ignored-types --> List) {
-    |(lazy $path.dir ==> grep({ .basename ~~ none($exclude.split(',')».trim) })
-                     ==> map({ |process-pod6($^next-path, $exclude, :%ignored-types )}))
+multi process-pod6($path where {.IO ~~ :d}, $exclude, $only, :%ignored-types --> List) {
+    |(lazy $path.dir ==> grep( -> $file { all( (with $exclude { $file.basename !~~ /<$exclude>/ }),
+                                               (with $only    { $file.basename  ~~ /<$only>/    }),
+                                               True )})
+                     ==> map({ |process-pod6($^next-path, $exclude, $only, :%ignored-types )}))
 }
 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
-multi process-pod6($path, $?, :%ignored-types  --> List) {
+multi process-pod6($path, $?, $?, :%ignored-types  --> List) {
     when $path !~~ /.*'doc/Type/'(.*).pod6/ { (%(file => Map.new((no-type-found => True,  :$path))), )}
     my $type-name = (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
 
-    try { ::($type-name).raku && ::($type-name).HOW.raku && ::($type-name).^methods;
+    try { ::($type-name).raku && ::($type-name).^methods;
           # if we're at a low enough level that this amount of introspection fails, skip the type
           CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}}
     }
