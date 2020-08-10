@@ -14,9 +14,9 @@ constant $most_missing_list_length    = 5;
 constant $most_overdocked_list_length = 5;
 
 #| Allowable values for --report
-subset ReportCsv  of Str:D where *.split(',')».trim ⊆ <skip pass fail over under all none>;
+subset ReportCsv  of Str:D where *.split(',')».trim ⊆ <skip pass fail err over under all none>;
 #| Allowable values for --summary
-subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals         over under all none>;
+subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals             over under all none>;
 
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
@@ -28,13 +28,14 @@ sub MAIN(
     :i(:$ignore) = './util/ignored-methods.txt',  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
-    my $reports-to-print  = any(|(S/'all'/skip,pass,fail,over,under/ with $r).split(',')».trim);
+    my $reports-to-print  = any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
     my $summaries-to-print = any(|(S/'all'/totals,over,under/         with $s).split(',')».trim);
     my $summary = Summary.new;
 
     for $input-path.&process-pod6($exclude, ignored-types => EVALFILE($ignore)).hyper.map(
         -> (:%file, :%methods (:%local, :%uncheckable, :%over-documented, :%under-documented)) {
 
+        when %file<no-type-found> { if $reports-to-print ~~ 'err' { Report::fmt-bad-file(%file<path>)}}
         when %file<uncheckable> { $summary.count-uncheckable-type;
                                   (if $reports-to-print ~~ 'skip' { Report::fmt-skipped(:%file) }) }
 
@@ -70,7 +71,7 @@ multi process-pod6($path where {.IO ~~ :d}, $exclude, :%ignored-types --> List) 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
 multi process-pod6($path, $?, :%ignored-types  --> List) {
-    # TODO: error if cannot do vvvvv
+    when $path !~~ /.*'doc/Type/'(.*).pod6/ { (%(file => Map.new((no-type-found => True,  :$path))), )}
     my $type-name = (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
 
     try { ::($type-name).raku && ::($type-name).HOW.raku && ::($type-name).^methods;
@@ -118,6 +119,9 @@ multi process-pod6($path, $?, :%ignored-types  --> List) {
 class Report {
     our sub fmt-skipped(:%file (:$type-name, :$path, *%)) {
         "\n∅ {$type-name} – documented at  ⟨{$path.IO}⟩\n  Skipped as uncheckable\n"
+    }
+    our sub fmt-bad-file($path) {
+        "\n! ERR could not process file at ⟨{$path.IO}⟩\n  Does it contain documentation for a Raku type?\n"
     }
 
     our proto fmt(|) {*}
@@ -179,6 +183,7 @@ class Summary {
 
     submethod fmt-header() {
         q:to/EOF/
+
          ##################
          #    SUMMARY     #
          ##################
@@ -208,7 +213,7 @@ class Summary {
 
               Total types processed:
               ======================
-              types detected:    $*detected
+              types detected:   {sprintf('%4d', $*detected)}
               types checked:    {$*checked.&fmt-with-percent-of('detected')}
               types skipped:    {%types<skip>.&fmt-with-percent-of('detected')}
               problems found:   {%types<fail>.&fmt-with-percent-of('checked')}
@@ -221,7 +226,7 @@ class Summary {
 
              Total methods processed:
              ========================
-             methods detected:  $*detected
+             methods detected:  {sprintf('%4d', $*detected)}
              methods checked:   {      $*checked.&fmt-with-percent-of('detected')}
              methods skipped:   { %methods<skip>.&fmt-with-percent-of('detected')}
              over-documented:   { %methods<over>.&fmt-with-percent-of('checked')}
@@ -252,7 +257,7 @@ class Summary {
 
          (Potentially) under-documented methods:
          =======================================
-         total under documented:    $*total
+         total under documented:    {sprintf('%4d', $*total)}
          missing methods:           {%sums<missing-header>.&fmt-with-percent-of('total')}
          methods with no signature: {%sums<missing-signature>.&fmt-with-percent-of('total')}
         EOF
@@ -262,8 +267,8 @@ class Summary {
                   ~ self!fmt-top-methods($top-missing)
               })
         ~ (if $top-types.elems {
-                  ~ "\nTypes with the most missing methods:\n"
-                  ~   "====================================\n"
+                  ~ "\nTypes with the most missing methods:\n".indent(1)
+                  ~   "====================================\n".indent(1)
                   ~ $top-types.map({ sprintf(" %-*s %-5d",
                                              $top-types.&max-len, .key,
                                              .value)}).join("\n") ~ "\n"})
@@ -288,7 +293,7 @@ class Summary {
 
          Total over-documented methods:
          ==============================
-         total over documented:     $*total
+         total over documented:    {sprintf('%4d', $*total)}
          non-local methods:        {%sums<non-local>.&fmt-with-percent-of('total')}
          non-method routines:      {%sums<non-method>.&fmt-with-percent-of('total')}
          non-existent methods:     {%sums<doesn't-exist>.&fmt-with-percent-of('total')}
@@ -308,7 +313,7 @@ class Summary {
     }
 
     submethod !fmt-top-methods($top-methods) {
-                  ~ $top-methods.sort(*.value).map({ sprintf(" %-*s    %d",
+                  ~ $top-methods.sort(*.value).map({ sprintf(" %-*s    %3d",
                                                              $top-methods.&max-len, .key,
                                                              .value)}).join("\n") ~ "\n"
                   ~ ('-' x ($top-methods.&max-len + 7)).indent(1) ~ "\n"
@@ -341,6 +346,7 @@ grammar MethodDoc {
 sub USAGE() {
     my &fmt-param = { $^a ~ (' ' x (20 - $^a.chars) ~ $^b.WHY ~ (with $^b.default { " [default: {.()}]"})) }
     # TODO: add info about meaning of output for over- and under-documented methods.
+    # TODO: Update for new functionality
 
     print do given &MAIN.signature.params {
       "Usage: ./{$*PROGRAM.relative} [FLAGS]... [OPTION]... [ARG]\n"
