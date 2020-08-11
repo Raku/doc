@@ -30,24 +30,24 @@ sub MAIN(
     Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
-    my $reports-to-print  = any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
-    my $summaries-to-print = any(|(S/'all'/totals,over,under/            with $s).split(',')».trim);
-    my $exclude = do with $e {/<$e>/};
-    my $only    = do with $o {/<$o>/}; # avoid perf penalty of re-constructing Regex
-    my $summary = Summary.new;
+    my $reports-to-print   := any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
+    my $summaries-to-print := any(|(S/'all'/totals,over,under/             with $s).split(',')».trim);
+    my $exclude := do with $e {/<$e>/};
+    my $only    := do with $o {/<$o>/}; # avoid perf penalty of re-constructing Regex
+    my $summary := Summary.new;
 
     for $input-path.&process-pod6($exclude, $only, ignored-types => EVALFILE($ignore)).map(
-        -> (:%file, :%methods (:%local, :%uncheckable, :%over-documented, :%under-documented)) {
-
+        -> (:%file,
+            :%methods (:%uncheckable, :%over-documented, :%under-documented, :$all-good, :$false-positives, *%),) {
         when %file<no-type-found> { if $reports-to-print ~~ 'err' { Report::fmt-bad-file(%file<path>)}}
         when %file<uncheckable> { $summary.count-uncheckable-type;
                                   (if $reports-to-print ~~ 'skip' { Report::fmt-skipped(:%file) }) }
 
-        $summary.update-totals(:%local, :%uncheckable, :%under-documented, :%over-documented);
+        $summary.update-totals(:%uncheckable, :%under-documented, :%over-documented, :$all-good);
         $summary.update-over-documented(:%over-documented,   :%file);
         $summary.update-under-documented(:%under-documented, :%file);
 
-        my $status = (%uncheckable ∪  |%under-documented.values ∪ |%over-documented.values ?? '✗' !! '✔');
+        my $status := (%uncheckable ∪  |%under-documented.values ∪ |%over-documented.values ?? '✗' !! '✔');
         (if (($reports-to-print ~~ 'pass')  && $status eq '✔')
          || (($reports-to-print ~~ 'skip')  && ?%uncheckable)
          || (($reports-to-print ~~ 'under') && ?%under-documented.values)
@@ -76,60 +76,75 @@ multi process-pod6($path where {.IO ~~ :d}, $exclude, $only, :%ignored-types -->
 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
-multi process-pod6($path, $?, $?, :%ignored-types  --> List) {
+multi process-pod6($path, $?, $?, :%ignored-types  --> List ) {
+    POST { with .[0]<methods> { # The <methods> map contains only Sets or Maps of Sets
+                 ?all(.values.map({ .isa('Set') || (.isa('Map') && ?all(.values.map({.isa('Set')})))}))}
+           else { True } }
     when $path !~~ /.*'doc/Type/'(.*).pod6/ { (%(file => Map.new((no-type-found => True,  :$path))), )}
-    my $type-name = (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
+    my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
 
-    try { ::($type-name).raku && ::($type-name).^methods;
-          # if we're at a low enough level that this amount of introspection fails, skip the type
-          CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}}
-    }
+    try {  # if we're at a low enough level that this amount of introspection fails, skip the type
+        ::($type-name).raku && ::($type-name).^methods;
+        CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}} }
 
-   (::($type-name).^methods(:local).classify(-> $method {
-        # Some builtins don't support the introspection we need, mostly ones that call ForeignCode
-        # (which includes NQP methods).  ForeignCode methods typically have the name `<anon>`
-        # TODO: consider re-ordering based on perf considerations
-         when $method.name eq '<anon>' { 'anon' };
-         try {$method.^find_method('raku'); $method.package.^find_method('raku');};
-         when ?$! {
-             when $type-name ~~ /'Metamodel'/ { 'uncheckabe-meta'}
-             'uncheckable'}
-         when (try { $method.package.isa($type-name) } // ($method.package ~~ ::($type-name))) { 'local' }
-         when (try { $method.package.HOW.WHAT ~~ Metamodel::ParametricRoleHOW} // False)       { 'from-a-role' }
-         when (try { $method.package ~~ Any } // False)                                        { 'from-any' }
-         when (try { $method.package ~~ Mu  } // False)                                        { 'from-mu' }
-         default                                                                               { 'skip' }
-     },
-     :into( my %methods = <local uncheckable anon from-a-role from-any from-mu skip>.map({$_ => []})),
-     :as(*.name) ));
-    my $local-methods = %methods<local> (-) %ignored-types{$type-name};
-    my $uncheckable-methods = %methods<uncheckable>;
+    (::($type-name).^methods(:local).classify( {classify-methods($_, $type-name, %ignored-types{"$type-name"} // ())},
+           :into( my %methods := %(<local uncheckable anon from-a-role from-any from-mu skip ignored>.map(*=> []))),
+           :as(*.name) ));
+    my ( :$local, :$anon, :$from-a-role, :$from-any, :$ignored,
+         :$from-mu, :$skip, :$uncheckable, :$uncheckable-meta ) := %methods.map({.key => .value.Set});
     # TODO: add support for %ignored-types<GLOBAL> ^^^^^
 
-    my (:@in-header, :@with-signature) :=  $path.IO.lines
-                                                   .map({ MethodDoc.parse($_).made })
-                                                   .grep(*.defined)
-                                                   .classify(*.key, :as{.value});
+    my (:@in-header, :@with-signature) :=
+            $path.IO.lines.map({ MethodDoc.parse($_).made }).grep(*.defined).classify(*.key, :as{.value});
 
-    my Set $missing-header    = $local-methods (-) Set.new(@in-header);
-    my Set $missing-signature = $local-methods (-) @with-signature (-) $missing-header;
-    (@in-header (-) $local-methods).keys.classify(-> $method {
-        # if ^find_method finds it, it's *somewhere* in the inheritance graph, just not local
-        when try {::($type-name).^find_method($method).defined} { 'non-local' }
-        # If the type matches first item in the signature, then it's a sub the type can call with .&…
-        when try { any(&::($method).candidates.map(-> $a {::($type-name) ~~ $a.signature.params.head.type}))} {
-             'non-method'
-         }
-        "doesn't-exist"
-    },
-    :into( my %over-documented = doesn't-exist => [], non-local => [], non-method => [] ));
+    my Set $missing-header    := $local (-) Set.new(@in-header);
+    my Set $missing-signature := $local (-) @with-signature (-) $missing-header;
+    (@in-header (-) $local).keys.classify(
+        -> $method {
+            # if ^find_method finds it, it's *somewhere* in the inheritance graph, just not local
+            when try {::($type-name).^find_method($method).defined} { 'non-local' }
+            # If the type matches first item in the signature, then it's a sub the type can call with .&…
+            when try { any(&::($method).candidates.map(-> $a {::($type-name) ~~ $a.signature.params.head.type}))} {
+               'non-method'
+            }
+            "doesn't-exist"
+        },
+        :into( my %over-documented := %(<doesn't-exist non-local non-method>.map(* => []))));
+    my (:$non-local, :$non-method, :$doesn't-exist) := %over-documented.kv.map(-> $k, $v { $k => $v.Set});
+
     # TODO yeild info on skipped methods, Metamodel-uncheckable
-    (file => Map.new((:$type-name, :$path)),
-     methods => Map.new(( local            => $local-methods,
-                          uncheckable      => $uncheckable-methods.Set,
-                          under-documented => Map.new((:$missing-header, :$missing-signature)),
-                          :%over-documented, ))),
+    (%( file    => %(:$type-name, :$path).Map,
+        methods => %( uncheckable      => $uncheckable,
+                      false-positives  => %(:$from-a-role, :$anon, :$from-any, :$from-mu, :$ignored).Map,
+                      under-documented => %(:$missing-header, :$missing-signature).Map,
+                      over-documented  => %(:$non-local, :$non-method, :$doesn't-exist).Map,
+                      all-good         => [(-)] $local, $uncheckable, $missing-header,
+                                                $missing-signature, |%over-documented.values)).Map,
+    )
 }
+
+#TODO doc here
+sub classify-methods(Mu $method, $type-name, List $ignored-methods) {
+    # Some builtins don't support the introspection we need, mostly ones that call ForeignCode
+    # (which includes NQP methods).  ForeignCode methods typically have the name `<anon>`
+    # TODO: consider re-ordering based on perf considerations
+    when $method.name ∈ $ignored-methods                                 { 'ignored' };
+    when $method.name eq '<anon>'                                        { 'anon' };
+    try {$method.^find_method('raku'); $method.package.^find_method('raku');};
+    when ?$! {
+        when $type-name ~~ /'Metamodel'/                                 { 'uncheckabe-meta' };
+        default                                                          { 'uncheckable' };
+    }
+
+    given $method.package {
+        when (try { .isa($type-name) } // ($_ ~~ ::($type-name)))        { 'local' }
+        when (try { .HOW.WHAT ~~ Metamodel::ParametricRoleHOW} // False) { 'from-a-role' }
+        when (try { $_ ~~ Any } // False)                                { 'from-any' }
+        when (try { $_ ~~ Mu  } // False)                                { 'from-mu' }
+        default                                                          { 'skip' }
+    }
+}
+
 
 # Formats reports for individual Types (displayed with --report)
 class Report {
@@ -148,16 +163,16 @@ class Report {
             ~ ($uncheckable.keys.sort.join("\n").indent(4) ~ "\n")})
     }
     multi fmt(:%over-documented) {
-        my (:@non-local, :@non-method, :@doesn't-exist) := %over-documented;
-        ~( if @non-local {
-             ("{+@non-local} non-local method with documentation:\n").&pluralize('method').indent(2)
-             ~ @non-local.sort.join("\n").indent(4) ~ "\n"})
-        ~( if @non-method {
-             ("{+@non-method} non-method with documentation:\n").&pluralize('non-method').indent(2)
-             ~ @non-method.sort.join("\n").indent(4) ~ "\n"})
-        ~( if @doesn't-exist {
-             ("{+@doesn't-exist} non-existing method with documentation:\n").&pluralize('method').indent(2)
-             ~ @doesn't-exist.sort.join("\n").indent(4) ~ "\n"})
+        my (:$non-local, :$non-method, :$doesn't-exist) := %over-documented;
+        ~( if $non-local {
+             ("{+$non-local} non-local method with documentation:\n").&pluralize('method').indent(2)
+             ~ $non-local.keys.sort.join("\n").indent(4) ~ "\n"})
+        ~( if $non-method {
+             ("{+$non-method} non-method with documentation:\n").&pluralize('non-method').indent(2)
+             ~ $non-method.keys.sort.join("\n").indent(4) ~ "\n"})
+        ~( if $doesn't-exist {
+             ("{+$doesn't-exist} non-existing method with documentation:\n").&pluralize('method').indent(2)
+             ~ $doesn't-exist.keys.sort.join("\n").indent(4) ~ "\n"})
     }
     multi fmt(:%under-documented) {
         my (:%missing-header, :%missing-signature) := %under-documented;
@@ -207,7 +222,7 @@ class Summary {
         EOF
     }
 
-    submethod update-totals(:%local, :%uncheckable, :%under-documented, :%over-documented) {
+    submethod update-totals(:$all-good, :%uncheckable, :%under-documented, :%over-documented) {
         %uncheckable ∪  |%under-documented.values ∪ |%over-documented.values
                 ?? $!totals<types><fail>++
                 !! $!totals<types><pass>++;
@@ -215,10 +230,8 @@ class Summary {
         given $!totals<methods> {
             .<skip>  += +%uncheckable;
             .<under> += +%under-documented.values».List.flat;
-            .<over>  +=  +%over-documented.values».List.flat;
-            .<pass>  += +%local - ( %uncheckable
-                                    + %under-documented.values».List.flat
-                                    +  %over-documented.values».List.flat );
+            .<over>  += +%over-documented.values».List.flat;
+            .<pass>  += +$all-good;
         }
     }
 
@@ -264,8 +277,11 @@ class Summary {
     submethod fmt-under-documented() {
         my (:%sums, :%times-missing-by-method, :%missing-per-type) := $!under-documented;
         my $*total = %sums<missing-header> + %sums<missing-signature>;
-        my $top-missing = %times-missing-by-method.grep(*.value ≥ $missing_method_threshold).cache;
-        my $top-types = %missing-per-type.sort(*.value).tail($most_missing_list_length).cache;
+        my $top-missing = %times-missing-by-method
+                              .grep(*.value ≥ $missing_method_threshold)
+                              .sort({.value, .key})
+                              .cache;
+        my $top-types = %missing-per-type.sort({.value, .key}).tail($most_missing_list_length).cache;
 
         qq:to/EOF/
 
@@ -294,14 +310,15 @@ class Summary {
     submethod update-over-documented(:%over-documented, :%file (:$type-name, *%)) {
         $!over-documented<sums>{.key}        += .value.elems for %over-documented.pairs;
         $!over-documented<missing-per-type>{$type-name} += +%over-documented<doesn't-exist>;
-        for %over-documented<doesn't-exist>.values -> $method {
+        for %over-documented<doesn't-exist>.keys -> $method {
             $!over-documented<times-overdocked-by-method>.add($method)};
     }
 
     submethod fmt-over-documented() {
         my (:%sums, :%missing-per-type, :%times-overdocked-by-method) := $!over-documented;
+
         my $*total = %sums<non-local> + %sums<non-method> + %sums<doesn't-exist>;
-        my $top-types = %missing-per-type.sort(*.value).tail($most_overdocked_list_length).cache;
+        my $top-types = %missing-per-type.sort({.value, .key}).tail($most_overdocked_list_length).cache;
         my $top-overdocked = %times-overdocked-by-method.grep(*.value ≥ $overdocked_method_threshold).cache;
         qq:to/EOF/
 
