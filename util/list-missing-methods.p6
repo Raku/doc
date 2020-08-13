@@ -417,10 +417,9 @@ grammar MethodDoc {
     token TOP { <doc-line> { make $<doc-line>.made }}
 
     proto rule doc-line          {*}
-    rule doc-line:sym<signature> { <.ws>['multi' ]?<keyword> <method>'('.+ { make (with-signature => ~$<method>)}}
-    rule doc-line:sym<in-header> { '=head'\d? <keyword> <method>           { make (in-header => ~$<method>)}}
-    token keyword                                                          { ['method' | 'routine'] }
-    token method                                                           { <[-'\w]>+ }
+    rule doc-line:sym<signature> { <.ws>['multi' ]?<method-decl>'('.+  { make (with-signature => ~$<method-decl>)}}
+    rule doc-line:sym<in-header> {      '=head'\d? <method-decl>       { make (in-header      => ~$<method-decl>)}}
+    token method-decl            { ['method' | 'routine'] <.ws> <(<[-'\w]>+)>}
 }
 
 
