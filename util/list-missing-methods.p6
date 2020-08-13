@@ -24,9 +24,11 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals             ove
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
     IO(Str) $input-path = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
-    # TODO: add --exclude-dir and --only-dir and change --exclude and --only to just be files
-    Str :exclude(:$e),                                   #= Exclude files or directories matching Regex
-    Str :only(:$o),                                      #= Include ONLY files or directories matching Regex
+    Str :exclude(:$e),                                   #= Exclude files matching Regex
+    Str :exclude-dir(:$E),                               #= Exclude directories matching Regex
+    Str :only(:$o),                                      #= Include ONLY files matching Regex
+    Str :only-dir(:$O),                                  #= Include ONLY files within one or more directories
+                                                         #= matching Regex
     ReportCsv  :report(:$r)  = 'all',                    #= Comma-separated list of documentation types to display
     SummaryCsv :summary(:$s) = 'all',                    #= Comma-separated list of summary types to display
     Bool :h(:$help),                                     #= Display this message and exit
@@ -35,11 +37,12 @@ sub MAIN(
     when $help { USAGE }
     my $reports-to-print   := any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
     my $summaries-to-print := any(|(S/'all'/totals,over,under/             with $s).split(',')».trim);
-    my $exclude := do with $e {/<$e>/};
-    my $only    := do with $o {/<$o>/}; # avoid perf penalty of re-constructing Regex
+    # avoid perf penalty of re-constructing Regex
+    my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
+                  only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
     my $summary := Summary.new;
 
-    for $input-path.&process-pod6($exclude, $only, ignored-types => EVALFILE($ignore)).map(
+    for $input-path.&process-pod6(:%filters, ignored-types => EVALFILE($ignore)).map(
         -> (:%file, :%methods (:%uncheckable, :%over-documented, :%under-documented, :%false-positives, *%)) {
             when %file<no-type-found> {
                 if $reports-to-print ~~ 'err'  { Report::fmt-bad-file(%file<path>)}}
@@ -70,23 +73,26 @@ sub MAIN(
     if $summaries-to-print ~~  'totals' { print $summary.fmt-totals };
     if $summaries-to-print ~~  'under'  { print $summary.fmt-under-documented };
     if $summaries-to-print ~~  'over'   { print $summary.fmt-over-documented };
+    ## TODO filter based on $summaries-to-print
     print $summary.fmt-false-positives;
 }
 
 #| Process a directory of Pod6 files by recursively processing each file
-multi process-pod6($path where {.IO ~~ :d}, $exclude, $only, :%ignored-types --> List) {
-    |(lazy $path.dir ==> grep( -> $file { all( (with $exclude { $file.basename !~~ $exclude }),
-                                               (with $only    { $file.basename  ~~ $only }),
-                                               True )})
-                     ==> map({ |process-pod6($^next-path, $exclude, $only, :%ignored-types )}))
+multi process-pod6($path where {.IO ~~ :d}, :%ignored-types,
+                   :%filters (:$exclude, :$exclude-dir, :$only, :$only-dir) --> List) {
+    |(lazy $path.dir ==> grep( -> $path {
+                             when $path ~~ :d { all((with $exclude-dir { $path.basename !~~ $_}))}
+                             all( (with $exclude     { $path.basename !~~ $_}),
+                                  (with $only        { $path.basename  ~~ $_}),
+                                  (with $only-dir    { $path.parent    ~~ $_}))})
+                     ==> map({ |process-pod6($^next-path, :%filters, :%ignored-types )}))
 }
 sub set_bag($el) { when $el.isa('Set') || $el.isa('Bag') { True }
                    when $el.isa('Map')                   { $el.values».&set_bag }
-                   default                               { False }
-                            }
+                   default                               { False } }
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
-multi process-pod6($path, $?, $?, :%ignored-types  --> List ) {
+multi process-pod6($path, :%ignored-types, *%  --> List ) {
     # Every item in .<methods> is a Set|Bag or a Map containing Set|Bag
     POST { with .[0]<methods> { ?all(.values».&set_bag) } else { True }}
 
@@ -407,8 +413,8 @@ class Summary {
 
     #| Dynamically format a number as both a raw number and a percent of a dynamic variable
     sub fmt-with-percent-of($num, *%names where *.elems == 1) {
-        my ($name, $value) := %names.head.kv;
-        sprintf("%4d (%4.1f%% of {%names.head.key})", $num, 100 × $num/%names.head.value)
+        my ($name, $value) := %names.head.kv; # Slurpy lets us pass an arbitrary 'named' arg
+        sprintf("%4d (%4.1f%% of $name)", $num, 100 × $num/$value)
     }
 }
 
