@@ -239,7 +239,7 @@ class Summary {
     }
 
     submethod fmt-false-positives() {
-        my $*total = [+] $!false-positives.values;
+        my $total = [+] $!false-positives.values;
         qq:to/EOF/
 
          OVERINCLUSIVE INTROSPECTION:
@@ -247,10 +247,10 @@ class Summary {
 
          Methods listed as :local but actually from
          ==========================================
-         ...a role            { $!false-positives<from-a-role>.&fmt-with-percent-of('total')}
-         ...Mu                { $!false-positives<from-mu>.&fmt-with-percent-of('total')}
-         ...Any               { $!false-positives<from-any>.&fmt-with-percent-of('total')}
-         ...some other type   { $!false-positives<from-other>.&fmt-with-percent-of('total')}
+         ...a role            { $!false-positives<from-a-role>.&fmt-with-percent-of(:$total)}
+         ...Mu                { $!false-positives<from-mu>.&fmt-with-percent-of(:$total)}
+         ...Any               { $!false-positives<from-any>.&fmt-with-percent-of(:$total)}
+         ...some other type   { $!false-positives<from-other>.&fmt-with-percent-of(:$total)}
         EOF
     }
 
@@ -281,33 +281,33 @@ class Summary {
 
     submethod fmt-totals() {
         my (:%types, :%methods) := $!totals;
-        do { my $*checked  = %types<pass> + %types<fail>;
-             my $*detected = %types<skip> + $*checked;
+        do { my $checked  = %types<pass> + %types<fail>;
+             my $detected = %types<skip> + $checked;
              qq:to/EOF/
 
               Total types processed:
               ======================
-              documented types detected:   {sprintf('%4d', $*detected)}
-              types checked:               {$*checked.&fmt-with-percent-of('detected')}
-              types skipped:               {%types<skip>.&fmt-with-percent-of('detected')}
-              problems found:              {%types<fail>.&fmt-with-percent-of('checked')}
-              no problems found:           {%types<pass>.&fmt-with-percent-of('checked')}
+              documented types detected:   {sprintf('%4d', $detected)}
+              types checked:               {$checked.&fmt-with-percent-of(:$detected)}
+              types skipped:               {%types<skip>.&fmt-with-percent-of(:$detected)}
+              problems found:              {%types<fail>.&fmt-with-percent-of(:$checked)}
+              no problems found:           {%types<pass>.&fmt-with-percent-of(:$checked)}
              EOF
            } ~ do {
-            my $*checked  = %methods<pass> + %methods<over> + %methods<under>;
-            my $*detected = %methods<skip> + $*checked;
+            my $checked  = %methods<pass> + %methods<over> + %methods<under>;
+            my $detected = %methods<skip> + $checked;
             qq:to/EOF/
 
              Total methods processed:
              ========================
-             documented methods detected:    { sprintf('%4d', $*detected)}
-             unprocessable methods skipped:  { (%methods<skip>).&fmt-with-percent-of('detected')}
-             explicitly ignored methods:     { %methods<ignored>.&fmt-with-percent-of('detected')}
-             methods checked:                { $*checked.&fmt-with-percent-of('detected')}
-             over-documented methods:        { %methods<over>.&fmt-with-percent-of('checked')}
-             under-documented methods:       { %methods<under>.&fmt-with-percent-of('checked')}
+             documented methods detected:    { sprintf('%4d', $detected)}
+             unprocessable methods skipped:  { (%methods<skip>).&fmt-with-percent-of(:$detected)}
+             explicitly ignored methods:     { %methods<ignored>.&fmt-with-percent-of(:$detected)}
+             methods checked:                { $checked.&fmt-with-percent-of(:$detected)}
+             over-documented methods:        { %methods<over>.&fmt-with-percent-of(:$checked)}
+             under-documented methods:       { %methods<under>.&fmt-with-percent-of(:$checked)}
              false-positives skipped:        { %methods<false-positives>}
-             problem-free methods:           { %methods<pass>.&fmt-with-percent-of('checked')}
+             problem-free methods:           { %methods<pass>.&fmt-with-percent-of(:$checked)}
             EOF
         }
     }
@@ -322,7 +322,7 @@ class Summary {
 
     submethod fmt-under-documented() {
         my (:%sums, :%times-missing-by-method, :%missing-per-type) := $!under-documented;
-        my $*total = %sums<missing-header> + %sums<missing-signature>;
+        my $total = %sums<missing-header> + %sums<missing-signature>;
         my $top-missing = %times-missing-by-method
                               .grep(*.value ≥ $missing_method_threshold)
                               .sort({.value, .key})
@@ -336,14 +336,14 @@ class Summary {
 
          (Potentially) under-documented methods:
          =======================================
-         total under documented:    {sprintf('%4d', $*total)}
-         missing methods:           {%sums<missing-header>.&fmt-with-percent-of('total')}
-         methods with no signature: {%sums<missing-signature>.&fmt-with-percent-of('total')}
+         total under documented:    {sprintf('%4d', $total)}
+         missing methods:           {%sums<missing-header>.&fmt-with-percent-of(:$total)}
+         methods with no signature: {%sums<missing-signature>.&fmt-with-percent-of(:$total)}
         EOF
         ~ (if $top-missing {
                   ~ "\nMethods missing from 20+ types:\n".indent(1)
                   ~   "===============================\n".indent(1)
-                  ~ self!fmt-top-methods($top-missing)
+                  ~ self!fmt-top-methods($top-missing, $total)
               })
         ~ (if $top-types.elems {
                   ~ "\nTypes with the most missing methods:\n".indent(1)
@@ -363,7 +363,7 @@ class Summary {
     submethod fmt-over-documented() {
         my (:%sums, :%missing-per-type, :%times-overdocked-by-method) := $!over-documented;
 
-        my $*total = %sums<non-local> + %sums<non-method> + %sums<doesn't-exist>;
+        my $total = %sums<non-local> + %sums<non-method> + %sums<doesn't-exist>;
         my $top-types = %missing-per-type.sort({.value, .key}).tail($most_overdocked_list_length).cache;
         my $top-overdocked = %times-overdocked-by-method.grep(*.value ≥ $overdocked_method_threshold).cache;
         qq:to/EOF/
@@ -373,10 +373,10 @@ class Summary {
 
          Total over-documented methods:
          ==============================
-         total over documented:    {sprintf('%4d', $*total)}
-         non-local methods:        {%sums<non-local>.&fmt-with-percent-of('total')}
-         non-method routines:      {%sums<non-method>.&fmt-with-percent-of('total')}
-         non-existent methods:     {%sums<doesn't-exist>.&fmt-with-percent-of('total')}
+         total over documented:    {sprintf('%4d', $total)}
+         non-local methods:        {%sums<non-local>.&fmt-with-percent-of(:$total)}
+         non-method routines:      {%sums<non-method>.&fmt-with-percent-of(:$total)}
+         non-existent methods:     {%sums<doesn't-exist>.&fmt-with-percent-of(:$total)}
         EOF
         ~ (if $top-overdocked {
                   ~ "\nOverdocumented methods in 20+ types:\n".indent(1)
@@ -393,22 +393,22 @@ class Summary {
     }
 
 
-    submethod !fmt-top-methods($top-methods) {
+    submethod !fmt-top-methods($top-methods, $total) {
                   ~ $top-methods.sort(*.value).map({ sprintf(" %-*s    %3d",
                                                              $top-methods.&max-len, .key,
                                                              .value)}).join("\n") ~ "\n"
                   ~ ('-' x ($top-methods.&max-len + 7)).indent(1) ~ "\n"
                   ~ "TOTAL".indent($top-methods.&max-len - 1)
-                  ~ $top-methods.map(*.value).sum.&fmt-with-percent-of('total') ~ "\n"
+                  ~ $top-methods.map(*.value).sum.&fmt-with-percent-of(:$total) ~ "\n"
     }
 
     #| Returns the length of the longest key in a list of pairs
     sub max-len(List $pairs --> Int) { $pairs.max(*.key.chars).key.chars }
 
     #| Dynamically format a number as both a raw number and a percent of a dynamic variable
-    sub fmt-with-percent-of($num, $name) { # pretty hacky, should be a macro once Raku-AST lands
-        #TODO: FixMe using a named slurpy `*%h`
-        sprintf("%4d (%4.1f%% of $name)", $num, 100 × $num/(CALLERS::("\$*$name") || 1))
+    sub fmt-with-percent-of($num, *%names where *.elems == 1) {
+        my ($name, $value) := %names.head.kv;
+        sprintf("%4d (%4.1f%% of {%names.head.key})", $num, 100 × $num/%names.head.value)
     }
 }
 
