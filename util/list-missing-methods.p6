@@ -87,14 +87,11 @@ multi process-pod6($path where {.IO ~~ :d}, :%ignored-types,
                                   (with $only-dir    { $path.parent    ~~ $_}))})
                      ==> map({ |process-pod6($^next-path, :%filters, :%ignored-types )}))
 }
-sub set_bag($el) { when $el.isa('Set') || $el.isa('Bag') { True }
-                   when $el.isa('Map')                   { $el.values».&set_bag }
-                   default                               { False } }
+
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
 multi process-pod6($path, :%ignored-types, *%  --> List ) {
-    # Every item in .<methods> is a Set|Bag or a Map containing Set|Bag
-    POST { with .[0]<methods> { ?all(.values».&set_bag) } else { True }}
+    POST { with .[0]<methods> { $_ ~~ Set | Bag | Map } else { True }}
 
     when $path !~~ /.*'doc/Type/'(.*).pod6/ { (%(file => Map.new((no-type-found => True,  :$path))), )}
     my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
