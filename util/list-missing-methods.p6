@@ -414,14 +414,13 @@ class Summary {
 
 #| Parses a Pod6 document and returns all methods mentioned in a header or given a signature
 grammar MethodDoc {
-    token TOP { | [<in-header>     { make (in-header      => ~$<in-header><method>) }
-                | <with-signature> { make (with-signature => ~$<with-signature><method>) } ]}
+    token TOP { <doc-line> { make $<doc-line>.made }}
 
-    token with-signature { <ws> ['multi' <ws>]? <keyword> <ws> <method> '(' .+ }
-    token in-header      { '=head' \d? <ws> <keyword> <ws> <method> }
-    token keyword        { ['method' | 'routine'] }
-    ## TODO use `sym` to simplify
-    token method         { <[-'\w]>+ }
+    proto rule doc-line          {*}
+    rule doc-line:sym<signature> { <.ws>['multi' ]?<keyword> <method>'('.+ { make (with-signature => ~$<method>)}}
+    rule doc-line:sym<in-header> { '=head'\d? <keyword> <method>           { make (in-header => ~$<method>)}}
+    token keyword                                                          { ['method' | 'routine'] }
+    token method                                                           { <[-'\w]>+ }
 }
 
 
