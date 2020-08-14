@@ -7,20 +7,14 @@ class Summary     {...}
 class Report      {...}
 grammar MethodDoc {...}
 
-# TODO consider adding priority based on ^can or ^roles
-
-# Hard-coded constants that change Summary output.  (Could be user-configurable if wanted)
-constant $missing_method_threshold    = 20;
-constant $overdocked_method_threshold = 20;
-constant $most_missing_list_length    = 5;
-constant $most_overdocked_list_length = 5;
 my $util_dir := $*PROGRAM.resolve.parent;
+constant $report_opts   = (<s skip>, <p pass>, <f fail>, <e err>, <o over>, <u under>, <a all>, <n none>);
+constant $summary_opts  = (<t totals>, <i introspect>,            <o over>, <u under>, <a all>, <n none>);
 
-## TODO: Should these allow for short args?
 #| Allowable values for --report
-subset ReportCsv  of Str:D where *.split(',')».trim ⊆ <skip pass fail err over under all none>;
+subset ReportCsv  of Str:D where *.split(',')».trim ⊆ ($report_opts.flat);
 #| Allowable values for --summary
-subset SummaryCsv of Str:D where *.split(',')».trim ⊆ <totals introspect  over under all none>;
+subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
 
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
@@ -36,8 +30,12 @@ sub MAIN(
     Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
-    my $reports-to-print   := any(|(S/'all'/skip,pass,fail,err,over,under/ with $r).split(',')».trim);
-    my $summaries-to-print := any(|(S/'all'/totals,over,under,introspect/  with $s).split(',')».trim);
+    # normalize long & short options for --summary & --report
+    my $reports   =  $report_opts.map(-> ($short, $l) {if  $short | $l ∈  $r.split(',')».trim { $l }}).cache;
+    my $summaries = $summary_opts.map(-> ($short, $l) {if  $short | $l ∈  $s.split(',')».trim { $l }}).cache;
+    my $reports-to-print   := any('all' ∈ $reports   ??  $report_opts[^(*-1)]»[1] !! |$reports);
+    my $summaries-to-print := any('all' ∈ $summaries ?? $summary_opts[^(*-1)]»[1] !! |$summaries);
+
     # avoid perf penalty of re-constructing Regex
     my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
                   only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
@@ -223,9 +221,14 @@ class Summary {
     has Map $!introspection;
 
 
-    my $line-length = 40;
-    my $head = '#' x $line-length;
-    my $subhead = '=' x $line-length;
+    # Hard-coded constants that change Summary output.  (Could be user-configurable if wanted)
+    constant $missing_method_threshold    = 20;
+    constant $overdocked_method_threshold = 20;
+    constant $most_missing_list_length    = 5;
+    constant $most_overdocked_list_length = 5;
+    constant $line-length = 40;
+    constant $head = '#' x $line-length;
+    constant $subhead = '=' x $line-length;
     my &center = { .lines.map({' ' x ($line-length - .chars) ÷ 2 ~ $_}).join("\n")}
 
 
@@ -430,8 +433,6 @@ class Summary {
             ('-' x $line-length  ~ "\n").indent(1)
             ~ ' ' x $line-length + 1 - $txt.chars - $num-len ~ $txt ~ sprintf('%*d', $num-len, $num)}
     }
-
-
 }
 
 #| Parses a Pod6 document and returns all methods mentioned in a header or given a signature
