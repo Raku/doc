@@ -18,7 +18,7 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
 
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
-    IO(Str) $input-path = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
+    IO(Str) $input-path where *.e = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
     Str :exclude(:$e),                                   #= Exclude files matching Regex
     Str :exclude-dir(:$E),                               #= Exclude directories matching Regex
     Str :only(:$o),                                      #= Include ONLY files matching Regex
@@ -30,6 +30,7 @@ sub MAIN(
     Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
+#    when $input-path.IO.absolute !~~ /.*'doc/Type/'/ {note  Report::fmt-bad-file($input-path)};
     # normalize long & short options for --summary & --report
     my $reports   =  $report_opts.map(-> ($short, $l) {if  $short | $l ∈  $r.split(',')».trim { $l }}).cache;
     my $summaries = $summary_opts.map(-> ($short, $l) {if  $short | $l ∈  $s.split(',')».trim { $l }}).cache;
@@ -39,6 +40,9 @@ sub MAIN(
     # avoid perf penalty of re-constructing Regex
     my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
                   only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
+    CATCH { when X::Syntax::Regex::SolitaryQuantifier | X::Syntax::Regex::Adverb {
+                  note "invalid Regex '{$e//$E//$o//$O}' {.message}\n"
+                  ~ "Use ./{$*PROGRAM.relative} --help for usage info"}}
     my $summary := Summary.new;
 
     for $input-path.&process-pod6(:%filters, ignored-types => EVALFILE($ignore)).map(
@@ -90,8 +94,7 @@ multi process-pod6($path where {.IO ~~ :d}, :%ignored-types,
 #| the documented methods against the methods visible via introspection
 multi process-pod6($path, :%ignored-types, *%  --> List ) {
     POST { with .[0]<methods> { $_ ~~ Set | Bag | Map } else { True }}
-
-    when $path !~~ /.*'doc/Type/'(.*).pod6/ { (%(file => Map.new((no-type-found => True,  :$path))), )}
+    when $path !~~ /'doc/Type/'.*.pod6/ { return (%(file => Map.new((no-type-found => True,  :$path))), )}
     my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
 
     # if we're at a low enough level that this amount of introspection fails, skip the type
@@ -481,17 +484,24 @@ sub USAGE() {
 }
 
 #| Provide error messages that inform the user what unsupported parameter they passed
-sub GENERATE-USAGE(&main, |capture) {
-    my $last-invalid; my $cap = capture;
-    while $cap !~~ &main.signature {
-        $last-invalid = $cap.pairs.tail;
-        $cap = $cap.hash ?? \(|$cap.list, |$cap.hash.head(*-1).hash )
-                         !! \(|$cap.list.head(*-1).list);
+sub GENERATE-USAGE(&main, |c) {
+    my $default-txt = "\nUse ./{$*PROGRAM.relative} --help for usage info";
+    when +c.list > 1 { "Too many positional arguments passed: {c.list}\n"
+                       ~ "Did you mean to pass an option?  Use '='" ~ $default-txt }
+    my $last-invalid = c.list.pairs.head; my $h = c.hash;
+    while $h !~~ &main.signature {
+        $last-invalid = $h.pairs.tail;
+        $h =  \(|$h.hash.head(*-1).hash);
     }
+    sub fmt-allowed($opts) { $opts.split(' ').flat.join('|')}
+    sub with-dash($txt) { ($txt.chars > 1 ?? '--' !! '-') ~ $txt }
     (given $last-invalid {
-         when .key ~~ Int    { "Unrecongnized positional argument '{$last-invalid.value}'" }
-         when .value ~~ Bool { "Unrecongnized flag '{$last-invalid.key}'" }
-         default             { "Invalid option '{$last-invalid.key}={$last-invalid.value}'" }
-    })
-    ~ "\nUse ./{$*PROGRAM.relative} --help for usage info"
+         when .key ~~ Int
+              && !.value.IO.e       { "Cannot open INPUT-PATH '{.value}'"}
+         when .key ~~ Int           { "Unrecongnized positional argument '{.value}'" }
+         when .value ~~ Bool        { "Unrecongnized flag '{.key.&with-dash}'" }
+         when .key eq 'r'|'report'  { "Invalid value for '--report'.  Valid values: {$report_opts.&fmt-allowed}"}
+         when .key eq 's'|'summary' { "Invalid value for '--summary'.  Valid values: {$summary_opts.&fmt-allowed}"}
+         default                    { "Invalid option '{.key.&with-dash}={.value}'" }
+    }) ~ $default-txt
 }
