@@ -30,7 +30,6 @@ sub MAIN(
     Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
 ) {
     when $help { USAGE }
-#    when $input-path.IO.absolute !~~ /.*'doc/Type/'/ {note  Report::fmt-bad-file($input-path)};
     # normalize long & short options for --summary & --report
     my $reports   =  $report_opts.map(-> ($short, $l) {if  $short | $l ∈  $r.split(',')».trim { $l }}).cache;
     my $summaries = $summary_opts.map(-> ($short, $l) {if  $short | $l ∈  $s.split(',')».trim { $l }}).cache;
@@ -413,7 +412,10 @@ class Summary {
     #| Format a number as a percent of a pair's value, and label it with the key's name
     sub fmt-with-percent-of($num, *%names where *.elems == 1) {
         my $name = S:g/'-'/ / with %names.head.key;
-        "%4d (%4.1f%% of $name)".sprintf($num, 100 × $num/%names.head.value)
+        given %names.head.value -> $val {
+            when $val > 0 { "%4d (%4.1f%% of $name)".sprintf($num, 100 × $num/$val) }
+            default       { "%4d".sprintf($num) }
+        }
     }
 
     #| Recursivly total a Map consisiting consisting of Maps of Ints (cf. Bag.total)
