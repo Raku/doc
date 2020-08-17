@@ -95,13 +95,14 @@ multi process-pod6($path, :%ignored-types, *%  --> List ) {
     POST { with .[0]<methods> { $_ ~~ Set | Bag | Map } else { True }}
     when $path !~~ /'doc/Type/'.*.pod6/ { return (%(file => Map.new((no-type-found => True,  :$path))), )}
     my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
+    my $ignored-methods := %ignored-types{"$type-name", 'GLOBAL'}.map(|*).grep(Any:D).List;
 
     # if we're at a low enough level that this amount of introspection fails, skip the type
     try { ::($type-name).^methods;
           CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}} }
 
     my %methods := (::($type-name).^methods(:local).classify(
-                          {classify-method($_, $type-name, %ignored-types{"$type-name"} // ());},
+                          {classify-method($_, $type-name, $ignored-methods);},
                           :into( %(<local ignored other-missing-introspection native-code
                                     from-a-role from-any from-mu from-other>.map(*=> []))),
                           :as(*.name) ));
