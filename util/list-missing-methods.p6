@@ -45,7 +45,7 @@ sub MAIN(
     my $summary := Summary.new;
 
     for $input-path.&process-pod6(:%filters, ignored-types => EVALFILE($ignore)).map(
-        -> (:%file, :%methods (:%uncheckable, :%over-documented, :%under-documented, :%introspection, *%)) {
+        -> (:%file, :%methods (:%over-documented, :%under-documented, :%introspection, *%)) {
             when %file<no-type-found> {
                 if $reports-to-print ~~ 'err'  { Report::fmt-bad-file(%file<path>)}}
             when %file<uncheckable> {
@@ -59,13 +59,13 @@ sub MAIN(
             my $status := [∪] (|%methods)».values ?? '✗' !! '✔';
 
             (if (($reports-to-print ~~ 'pass')  && $status eq '✔')
-             || (($reports-to-print ~~ 'skip')  && ?%uncheckable.values».List.flat)
+             || (($reports-to-print ~~ 'skip')  && ?%introspection<missing>.values».List.flat)
              || (($reports-to-print ~~ 'under') && ?%under-documented.values».List.flat)
              || (($reports-to-print ~~ 'over')  &&  ?%over-documented.values».List.flat) {
                     "\n$status {%file<type-name>} – documented at ⟨%file<path>.IO}⟩\n"
             })
 
-            ~ (if $reports-to-print ~~ ('skip')  { Report::fmt(:%uncheckable) })
+            ~ (if $reports-to-print ~~ ('skip')  { Report::fmt(:missing-introspection(%introspection<missing>)) })
             ~ (if $reports-to-print ~~ ('under') { Report::fmt(:%under-documented) })
             ~ (if $reports-to-print ~~ ('over')  { Report::fmt(:%over-documented) });
         }
@@ -122,9 +122,7 @@ multi process-pod6($path, :%ignored-types, *%  --> List ) {
     List.new(Map.new(
         ( file    => Map.new((:$type-name, :$path)),
           methods => Map.new(
-              ## TODO: Cut 'uncheckable' as a duplicate of <introspection><missing>?
-              ( uncheckable      => Map.new((:$other-missing-introspection, :$native-code)),
-                ignored          => $ignored,
+              ( ignored          => $ignored,
                 introspection    => Map.new(
                     ( over-inclusive => Map.new((:$from-a-role, :$from-any,
                                                  :$from-mu, :$from-other)),
@@ -176,7 +174,7 @@ class Report {
 
     our proto fmt(|) {*}
 
-    multi fmt(:uncheckable($_)) {
+    multi fmt(:missing-introspection($_)) {
         ~( if .<other-missing-introspection> {
             "{+.<other-missing-introspection>} method without introspection:\n".&pluralize('method').indent(2)
             ~ (.<other-missing-introspection>.keys.sort.join("\n").indent(4) ~ "\n")})
