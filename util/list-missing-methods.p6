@@ -1,13 +1,11 @@
 #! /usr/bin/env raku
 use v6;
-use Telemetry;
-use Test;
+use Telemetry; # used so we can check these docs
+# stubs
+role Result{...}; role Ok{...}; role Err{...}; role ErrKind{...}; role UncheckableType {...}
+role NoTypeFound{...}; class Report{...}; class Summary{...}; grammar MethodDoc {...}
 
-class Summary     {...}
-class Report      {...}
-grammar MethodDoc {...}
-
-my $util_dir := $*PROGRAM.resolve.parent;
+my $doc_dir := $*PROGRAM.resolve.parent(2);
 constant $report_opts   = (<s skip>, <p pass>, <f fail>, <e err>, <o over>, <u under>, <a all>, <n none>);
 constant $summary_opts  = (<t totals>, <i introspect>,            <o over>, <u under>, <a all>, <n none>);
 
@@ -16,47 +14,55 @@ subset ReportCsv  of Str:D where *.split(',')».trim ⊆ ($report_opts.flat);
 #| Allowable values for --summary
 subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
 
+## TODO: Check for unnecessary assignment (instead of binding)
+## TODO: spellcheck
+
 #| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
 sub MAIN(
-    IO(Str) $input-path where *.e = "{$util_dir.parent}/doc/Type", #= Path to the file or directory to check
-    Str :exclude(:$e),                                   #= Exclude files matching Regex
-    Str :exclude-dir(:$E),                               #= Exclude directories matching Regex
-    Str :only(:$o),                                      #= Include ONLY files matching Regex
-    Str :only-dir(:$O),                                  #= Include ONLY files within one or more directories
-                                                         #= matching Regex
-    ReportCsv  :report(:$r)  = 'all',                    #= Comma-separated list of documentation types to display
-    SummaryCsv :summary(:$s) = 'all',                    #= Comma-separated list of summary types to display
-    Bool :h(:$help),                                     #= Display this message and exit
-    Str :i(:$ignore) = "$util_dir/ignored-methods.txt",  #= Path to file with methods to skip
-) {
+    IO(Str) $input-path where *.e = "{$doc_dir}/doc/Type",  #= Path to the file or directory to check
+    Str :exclude(:$e),                                      #= Exclude files matching Regex
+    Str :exclude-dir(:$E),                                  #= Exclude directories matching Regex
+    Str :only(:$o),                                         #= Include ONLY files matching Regex
+    Str :only-dir(:$O),                                     #= Include ONLY files within one or more directories
+                                                            #= matching Regex
+    ReportCsv  :report(:$r)  = 'all',                       #= Comma-separated list of documentation types to display
+    SummaryCsv :summary(:$s) = 'all',                       #= Comma-separated list of summary types to display
+    Bool :h(:$help),                                        #= Display this message and exit
+    Str :i(:$ignore) = "$doc_dir/util/ignored-methods.txt", #= Path to file with methods to skip
+) { # Exit early for --help or invalid usage not handled by typechecking
     when $help { USAGE }
-    # normalize long & short options for --summary & --report
-    my $reports   =  $report_opts.map(-> ($short, $l) {if  $short | $l ∈  $r.split(',')».trim { $l }}).cache;
-    my $summaries = $summary_opts.map(-> ($short, $l) {if  $short | $l ∈  $s.split(',')».trim { $l }}).cache;
-    my $reports-to-print   := any('all' ∈ $reports   ??  $report_opts[^(*-1)]»[1] !! |$reports);
-    my $summaries-to-print := any('all' ∈ $summaries ?? $summary_opts[^(*-1)]»[1] !! |$summaries);
-
-    # avoid perf penalty of re-constructing Regex
-    my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
-                  only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
     CATCH { when X::Syntax::Regex::SolitaryQuantifier | X::Syntax::Regex::Adverb {
                   note "invalid Regex '{$e//$E//$o//$O}' {.message}\n"
                   ~ "Use ./{$*PROGRAM.relative} --help for usage info"}}
+    # Setup
+    my $reports-to-print   := $r.&normilize-options($report_opts);
+    my $summaries-to-print := $s.&normilize-options($summary_opts);
+    # avoid perf penalty of re-constructing Regex
+    my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
+                  only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
     my $summary := Summary.new;
 
+    # Main program execution -- parse each file, and print reports as we go
     for $input-path.&process-pod6(:%filters, ignored-types => EVALFILE($ignore)).map(
-        -> (:%file, :%methods (:%over-documented, :%under-documented, :%introspection, *%)) {
-            when %file<no-type-found> {
-                if $reports-to-print ~~ 'err'  { Report::fmt-bad-file(%file<path>)}}
-            when %file<uncheckable> {
-                $summary.update-totals(:uncheckable-type);
-                if $reports-to-print ~~ 'skip' { Report::fmt-skipped(:%file) }}
+        -> Result $_ --> Str {
+            when Err { given .kind {
+                when NoTypeFound     { if $reports-to-print ~~ 'err'  { Report::fmt($_)} }
+                when UncheckableType { $summary.update-totals(:uncheckable-type);
+                                       if $reports-to-print ~~ 'skip' { Report::fmt($_)} }
+                default { X::Syntax::Missing.new(what => "error case {.kind.gist}").throw}
+            }}
+            my (:%file, :%methods (:%over-documented, :%under-documented, :%introspection, *%)) := .unwrap;
+
             $summary.update-totals(|%methods);
             $summary.update-over-documented(:%over-documented,   :%file);
             $summary.update-under-documented(:%under-documented, :%file);
             $summary.update-introspection(:%introspection);
 
-            my $status := [∪] (|%methods)».values ?? '✗' !! '✔';
+            my $status := (given [∪] |(%over-documented<>:v), |(%under-documented<>:v) -> $problem-methods {
+                when $problem-methods ∪ (%introspection<missing>:v) ~~ ∅         { '✔' }
+                when $problem-methods ~~ ∅ && (%introspection<missing>:v) !~~ ∅  { '∅' }
+                default                                                          { '✗' }
+            });
 
             (if (($reports-to-print ~~ 'pass')  && $status eq '✔')
              || (($reports-to-print ~~ 'skip')  && ?%introspection<missing>.values».List.flat)
@@ -71,48 +77,65 @@ sub MAIN(
         }
     ) { .print };
 
+    # Only print summaries after printing reports
     if $summaries-to-print !~~ 'none'       { print $summary.fmt-header };
-    if $summaries-to-print ~~  'totals'     { print $summary.fmt-totals };
-    if $summaries-to-print ~~  'under'      { print $summary.fmt-under-documented };
-    if $summaries-to-print ~~  'over'       { print $summary.fmt-over-documented };
-    if $summaries-to-print ~~  'introspect' { print $summary.fmt-introspection;}
+    if $summaries-to-print  ~~ 'totals'     { print $summary.fmt-totals };
+    if $summaries-to-print  ~~ 'under'      { print $summary.fmt-under-documented };
+    if $summaries-to-print  ~~ 'over'       { print $summary.fmt-over-documented };
+    if $summaries-to-print  ~~ 'introspect' { print $summary.fmt-introspection;}
 }
 
+#| Process either a Pod6 file or a directory of Pod6 files
+proto process-pod6(|) { given {*} { .WHAT ~~ List ?? $_ !! ($_,).List} };
+
 #| Process a directory of Pod6 files by recursively processing each file
-multi process-pod6($path where {.IO ~~ :d}, :%ignored-types,
+multi process-pod6($path where *.IO.d, :%ignored-types,
                    :%filters (:$exclude, :$exclude-dir, :$only, :$only-dir) --> List) {
     |(lazy $path.dir ==> grep( -> $path {
-                             when $path ~~ :d { all((with $exclude-dir { $path.basename !~~ $_}))}
-                             all( (with $exclude     { $path.basename !~~ $_}),
-                                  (with $only        { $path.basename  ~~ $_}),
-                                  (with $only-dir    { $path.parent    ~~ $_}))})
-                     ==> map({ |process-pod6($^next-path, :%filters, :%ignored-types )}))
+                             when $path ~~ :d { all( (with $exclude-dir { $path.basename !~~ $_}))}
+                             default          { all( (with $exclude     { $path.basename !~~ $_}),
+                                                     (with $only        { $path.basename  ~~ $_}),
+                                                     (with $only-dir    { $path.parent    ~~ $_}))}})
+                     ==> map({|process-pod6($^next-path, :%ignored-types, :%filters)}))
 }
+
 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
-multi process-pod6($path, :%ignored-types, *%  --> List ) {
-    POST { with .[0]<methods> { $_ ~~ Set | Bag | Map } else { True }}
-    when $path !~~ /'doc/Type/'.*.pod6/ { return (%(file => Map.new((no-type-found => True,  :$path))), )}
+multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
+    POST {{ # Must return either an error or a methods Map with only Set|Bag leaf values
+        when Ok { given .unwrap<methods> {
+            when Set|Bag { True }
+            when Map     { ?all($_.values.map(&?BLOCK))}
+            default      { note "Expected Set|Bag but got {.WHAT.gist}"; False } } }
+        default { True }
+    }}
+
+    when $path !~~ /'doc/Type/'.*.pod6/ { return NoTypeFound.new(:$path)}
     my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
     my $ignored-methods := %ignored-types{"$type-name", 'GLOBAL'}.map(|*).grep(Any:D).List;
 
     # if we're at a low enough level that this amount of introspection fails, skip the type
     try { ::($type-name).^methods;
-          CATCH { default { return (%(file => Map.new((uncheckable => True, :$type-name, :$path))), )}} }
+          CATCH { default { return UncheckableType.new(:$path, :$type-name)}} }
 
-    my %methods := (::($type-name).^methods(:local).classify(
-                          {classify-method($_, $type-name, $ignored-methods);},
-                          :into( %(<local ignored other-missing-introspection native-code
-                                    from-a-role from-any from-mu from-other>.map(*=> []))),
-                          :as(*.name) ));
-    my ( :$local, :$from-a-role, :$from-any, :$ignored, :$from-mu,
-         :$from-other, :$other-missing-introspection, *% ) := %methods.map({.key => .value.Set});
-    my $native-code := Bag.new(%methods<native-code><>);
-    # TODO: add support for %ignored-types<GLOBAL> ^^^^^
-
+    # Methods from the doc
     my (:@in-header, :@with-signature) :=
             $path.IO.lines.map({ MethodDoc.parse($_).made }).grep(*.defined).classify(*.key, :as{.value});
+
+    # Methods from introspection
+    my %methods := (::($type-name).^methods(:local).classify(
+                          # despite the name, not all :local methods are local, so we classify
+                          {classify-method($_, $type-name, $ignored-methods);},
+                          :into( %(<local ignored other-missing-introspection native-code
+                                    from-a-role from-any from-mu from-other>.map(*=>[]))),
+                          :as(*.name) ));
+    my ( :$local, :$from-a-role, :$from-any, :$ignored, :$native-code,
+         :$from-mu, :$from-other, :$other-missing-introspection, *%roles) := %methods.map({.key => .value.Set});
+    # TODO: Get count from %roles, and consider showing top Role errors
+    $native-code := Bag.new(%methods<native-code><>);
+
+    # Comparison between the two
     my Set $missing-header    := $local (-) Set.new(@in-header);
     my Set $missing-signature := $local (-) @with-signature (-) $missing-header;
     my %over-documented       := (@in-header (-) $local).keys.classify(
@@ -120,21 +143,20 @@ multi process-pod6($path, :%ignored-types, *%  --> List ) {
         :into(%(<doesn't-exist non-local non-method>.map(* => []))));
     my (:$non-local, :$non-method, :$doesn't-exist) := %over-documented.kv.map(-> $k, $v { $k => $v.Set});
 
-    List.new(Map.new(
-        ( file    => Map.new((:$type-name, :$path)),
-          methods => Map.new(
-              ( ignored          => $ignored,
-                introspection    => Map.new(
-                    ( over-inclusive => Map.new((:$from-a-role, :$from-any,
-                                                 :$from-mu, :$from-other)),
-                      missing        => Map.new((:$native-code, :$other-missing-introspection)))),
-                under-documented => Map.new((:$missing-header, :$missing-signature)),
-                over-documented  => Map.new((:$non-local, :$non-method, :$doesn't-exist)),
-                all-good         => [(-)] $local, $other-missing-introspection, $native-code, $missing-header,
-                                             $missing-signature, |%over-documented.values)))))
+    ok(Map.new(( file    => Map.new((:$type-name, :$path)),
+                 methods => Map.new(
+                     ( ignored          => $ignored,
+                       introspection    => Map.new(
+                           ( over-inclusive => Map.new((from-a-role => set(),
+                                                        :$from-any, :$from-mu, :$from-other)),
+                             missing        => Map.new((:$native-code, :$other-missing-introspection)))),
+                       under-documented => Map.new((:$missing-header, :$missing-signature)),
+                       over-documented  => Map.new((:$non-local, :$non-method, :$doesn't-exist)),
+                       all-good         => [(-)] $local, $other-missing-introspection, $native-code, $missing-header,
+                                                 $missing-signature, |%over-documented.values)))))
 }
 
-#TODO doc here
+#| Classifies Methods by whether they are local to a Type based on Raku's introspection (or explicitly ignored)
 sub classify-method(Mu $method, $type-name, List $ignored-methods) {
     when $method.name ∈ $ignored-methods                  { 'ignored' };
     # Some builtins don't support the introspection we need, mostly ones that call ForeignCode
@@ -145,13 +167,15 @@ sub classify-method(Mu $method, $type-name, List $ignored-methods) {
 
     # we treat a multi method as local if any of it's variants are in the Type's package
     my $packages = (?$method.candidates ?? $method.candidates !! $method).map(*.package).cache;
-    when ?any($packages.map({ try .isa($type-name)}))     { 'local'}
-    when ?any($packages.map({ try $_ ~~ ::($type-name)})) { 'local'}
-    when  any($packages) ~~ any(::($type-name).^roles)    { 'from-a-role' }
-    # For low level types, === won't work, so use string comparison
-    when  $packages.head.^name eq 'Any'                   { 'from-any' }
-    when  $packages.head.^name eq 'Mu'                    { 'from-mu' }
-    default                                               { 'from-other' }
+    when ?any($packages.map({ try .isa($type-name)}))      { 'local'}
+    when ?any($packages.map({ try $_ ~~ ::($type-name)}))  { 'local'}
+    # For low level types, === won't work, so use string comparison of name
+    my $package-names := try {$packages<>.map(*.^name).List} // ();
+    my $type's-roles := try {::($type-name).^roles.map(*.^name).List} // ();
+    when any($package-names) eq any($type's-roles) { ($type's-roles ∩ $package-names).pick }
+    when any($package-names) eq 'Any'                      { 'from-any' }
+    when any($package-names) eq 'Mu'                       { 'from-mu' }
+    default                                                { 'from-other' }
 }
 
 sub classify-documented(Mu $method, $type-name) {
@@ -166,16 +190,16 @@ sub classify-documented(Mu $method, $type-name) {
 
 # Formats reports for individual Types (displayed with --report)
 class Report {
-    our sub fmt-skipped(:%file (:$type-name, :$path, *%)) {
-        "\n∅ {$type-name} – documented at  ⟨{$path.IO}⟩\n  Skipped as uncheckable\n"
-    }
-    our sub fmt-bad-file($path) {
-        "\n! ERR could not process file at ⟨{$path.IO}⟩\n  Does it contain documentation for a Raku type?\n"
-    }
-
     our proto fmt(|) {*}
+    multi fmt(UncheckableType $e --> Str) {
+        "\n∅ {$e.type-name} – documented at  ⟨{$e.path.IO}⟩\n  Skipped as uncheckable\n"
+    }
 
-    multi fmt(:missing-introspection($_)) {
+    multi fmt(NoTypeFound $e --> Str) {
+        "\n! ERR could not process file at ⟨{$e.path.IO}⟩\n  Does it contain documentation for a Raku type?\n"
+    }
+
+    multi fmt(:missing-introspection($_) --> Str) {
         ~( if .<other-missing-introspection> {
             "{+.<other-missing-introspection>} method without introspection:\n".&pluralize('method').indent(2)
             ~ (.<other-missing-introspection>.keys.sort.join("\n").indent(4) ~ "\n")})
@@ -183,7 +207,7 @@ class Report {
             "{+.<native-code>} method implemented in native-code/NQP:\n".&pluralize('method').indent(2)
             ~ (.<native-code>.keys.sort.join("\n").indent(4) ~ "\n")})
     }
-    multi fmt(:%over-documented (:$non-local, :$non-method, :$doesn't-exist)) {
+    multi fmt(:%over-documented (:$non-local, :$non-method, :$doesn't-exist) --> Str) {
         ~( if $non-local {
             "{+$non-local} non-local method with documentation:\n".&pluralize('method').indent(2)
             ~ $non-local.keys.sort.join("\n").indent(4) ~ "\n"})
@@ -194,7 +218,7 @@ class Report {
             "{+$doesn't-exist} non-existing method with documentation:\n".&pluralize('method').indent(2)
             ~ $doesn't-exist.keys.sort.join("\n").indent(4) ~ "\n"})
     }
-    multi fmt(:%under-documented (:%missing-header, :%missing-signature)) {
+    multi fmt(:%under-documented (:%missing-header, :%missing-signature) --> Str) {
         ~ ( if +%missing-header {
              "{+%missing-header} missing method:\n".&pluralize('method').indent(2)
              ~ %missing-header.keys.sort.join("\n").indent(4) ~ "\n" })
@@ -255,8 +279,8 @@ class Summary {
     multi submethod update-totals(:$uncheckable-type where *.so) { $!totals<types><skip>++ }
 
     multi submethod update-totals(:$ignored, :$all-good, :%under-documented, :%over-documented, :%uncheckable) {
-        my $problem-methods = [∪] (%uncheckable,  %under-documented,  %over-documented)».values;
-        +$problem-methods ?? $!totals<types><fail>++ !! $!totals<types><pass>++;
+        my $problem-methods = [∪] ((%uncheckable,  %under-documented,  %over-documented)».values.map(|*));
+        $problem-methods ~~ ∅ ?? $!totals<types><pass>++ !! $!totals<types><fail>++;
         given $!totals<methods> {
             .<ignored> += +$ignored;
             .<pass>    += +$all-good;
@@ -436,6 +460,13 @@ class Summary {
     }
 }
 
+
+sub normilize-options($given, $allowed) {
+    $allowed.map(-> ($short, $l) { if  $short | $l ∈  $given.split(',')».trim { $l }}).cache
+    ==> { any('all' ∈ $_ ??  $allowed[^(*-1)]»[1] !! |$_) }()
+}
+
+
 #| Parses a Pod6 document and returns all methods mentioned in a header or given a signature
 grammar MethodDoc {
     token TOP { <doc-line> { make $<doc-line>.made }}
@@ -505,4 +536,28 @@ sub GENERATE-USAGE(&main, |c) {
          when .key eq 's'|'summary' { "Invalid value for '--summary'.  Valid values: {$summary_opts.&fmt-allowed}"}
          default                    { "Invalid option '{.key.&with-dash}={.value}'" }
     }) ~ $default-txt
+}
+
+
+
+## TODO: Document as algebraic data type
+role Result is export { method unwrap() {...} };
+role Ok[::T] does Result is export {
+    has T $!inner;
+    submethod BUILD(:$inner) { $!inner = $inner}
+    method unwrap() {$!inner}
+};
+sub ok($v) is export { Ok[$v.WHAT].new(inner => $v) }
+role ErrKind {...}
+role Err does Result is export {
+    has ErrKind $.kind;
+    method unwrap() { fail(X::TypeCheck.new(expected => Ok, got => self))}
+}
+role ErrKind does Err { method kind() { self }}
+role UncheckableType does ErrKind is export {
+    has $.path;
+    has $.type-name;
+}
+role NoTypeFound does ErrKind is export {
+    has $.path;
 }
