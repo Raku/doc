@@ -42,7 +42,7 @@ sub MAIN(
     # avoid perf penalty of re-constructing Regex
     my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
                   only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
-    my %ignored-types is Map = parse-ignore-file($ignore);
+    my %ignored-types is Map = validate-ignore-file($ignore);
     my $summary := Summary.new;
 
     # Main program execution -- parse each file, and print reports as we go
@@ -572,12 +572,19 @@ sub normilize-options(Str $given, List $allowed --> Junction ) {
 }
 
 #| Create a Map from the specified file, or exit with an appropriate error message
-sub parse-ignore-file(Str $ignore --> Map){
+sub validate-ignore-file(Str $ignore --> Map){
     when $ignore eq '' { note 'Not using ignored-methods file'; % }
     when !$ignore.IO.r { note "No ignored-methods file found.  Not ignoring any methods."; % }
-    with try EVALFILE($ignore) { $_ }
-    else { note "Could not parse $ignore as a Raku Hash. Got error:\n{$!.gist.indent(4)}";
-           exit 1};
+    CATCH { default { note "Could not parse $ignore as a Raku Hash. Got error:\n{$!.gist.indent(4)}"; exit 1};}
+    given EVALFILE($ignore) {
+        constant $err_msg = "The file specified with --ignore must provide a Map";
+        when $_ !~~ Map { note "$err_msg, not a {.^name}."; exit 1};
+        .values.grep(* !~~ List) ==> {
+            when ?$_ { note "$err_msg with List values, but $_ is a {.head.WHAT.gist}"; exit 1}}();
+        .values».values.flat.grep(* !~~ Str) ==> {
+            when ?$_ { note "$err_msg with Lists of Strs as values, but $_ is a {.head.WHAT.gist}"; exit 1}}();
+        default { $_ }
+    }
 };
 
 # Result as an algegraic data type (specifically, a sum type)
