@@ -6,8 +6,8 @@ role Result{...}; role Ok{...}; role Err{...}; role ErrKind{...}; role Uncheckab
 role NoTypeFound{...}; class Report{...}; class Summary{...}; grammar MethodDoc {...}
 
 my $doc_dir := $*PROGRAM.resolve.parent(2);
-constant $report_opts   = (<s skip>, <p pass>, <f fail>, <e err>, <o over>, <u under>, <a all>, <n none>);
-constant $summary_opts  = (<t totals>, <i introspect>,            <o over>, <u under>, <a all>, <n none>);
+constant $report_opts   = (<a all>, <n none>, <u under>, <o over>, <i introspect>, <p pass>, <f fail>, <e err>);
+constant $summary_opts  = (<a all>, <n none>, <u under>, <o over>, <i introspect>, <t totals>);
 
 #| Allowable values for --report
 subset ReportCsv  of Str:D where *.split(',')».trim ⊆ ($report_opts.flat);
@@ -16,29 +16,27 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
 #| Type to require an argument to be True
 subset Flag of Bool:D where :so;
 
-## TODO: Check for unnecessary assignment (instead of binding)
-## TODO: spellcheck
-
-#| Scan a pod6 file or directory of pod6 files for over- and under-documented methods
+#| Scan a pod6 file or directory of pod6 files for under-documented & over-documented methods
 sub MAIN(
-    IO(Str) $input-path where *.e = "{$doc_dir}/doc/Type",  #= Path to the file or directory to check
-    Str :exclude(:$e),                                      #= Exclude files matching Regex
-    Str :exclude-dir(:$E),                                  #= Exclude directories matching Regex
-    Str :only(:$o),                                         #= Include ONLY files matching Regex
-    Str :only-dir(:$O),                                     #= Include ONLY files within one or more directories
+    IO(Str) $input-path where *.e="{$doc_dir}/doc/Type",    #= Path to the file or directory to check
+    ReportCsv  :report(:$r)='all',                          #= Comma-separated list of documentation types to display
+    SummaryCsv :summary(:$s)='all',                         #= Comma-separated list of summary types to display
+    Flag :$h,                                               #= Display short usage information and exit
+    Flag :$help,                                            #= Display long usage information and exit
+    Str  :i(:$ignore)="$doc_dir/util/ignored-methods.txt",  #= Path to file with methods to skip
+    Str  :exclude(:$e),                                     #= Exclude files matching Regex
+    Str  :exclude-dir(:$E),                                 #= Exclude directories matching Regex
+    Str  :only(:$o),                                        #= Include ONLY files matching Regex
+    Str  :only-dir(:$O),                                    #= Include ONLY files within one or more directories
                                                             #= matching Regex
-    ReportCsv  :report(:$r)  = 'all',                       #= Comma-separated list of documentation types to display
-    SummaryCsv :summary(:$s) = 'all',                       #= Comma-separated list of summary types to display
-    Flag :h(:$help),                                        #= Display this message and exit
-    Str  :i(:$ignore) = "$doc_dir/util/ignored-methods.txt", #= Path to file with methods to skip
 ) { # Exit early for --help or invalid usage not handled by typechecking
-    when $help { USAGE }
+    when $h { short-usage}; when $help { long-usage }
     CATCH { when X::Syntax::Regex::SolitaryQuantifier | X::Syntax::Regex::Adverb {
                   note "invalid Regex '{$e//$E//$o//$O}' {.message}\n"
                   ~ "Use ./{$*PROGRAM.relative} --help for usage info"}}
     # Setup
-    my $reports-to-print   := $r.&normilize-options($report_opts);
-    my $summaries-to-print := $s.&normilize-options($summary_opts);
+    my $reports-to-print   := $r.&normalize-options($report_opts);
+    my $summaries-to-print := $s.&normalize-options($summary_opts);
     # avoid perf penalty of re-constructing Regex
     my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
                   only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
@@ -51,7 +49,7 @@ sub MAIN(
             when Err { given .kind {
                 when NoTypeFound     { if $reports-to-print ~~ 'err'  { Report::fmt($_)} }
                 when UncheckableType { $summary.update(:uncheckable-type);
-                                       if $reports-to-print ~~ 'skip' { Report::fmt($_)} }
+                                       if $reports-to-print ~~ 'introspect' { Report::fmt($_)} }
                 default { X::Syntax::Missing.new(what => "error case {.kind.gist}").throw}
             }}
             my (:%file, :%methods (:%over-documented, :%under-documented, :%introspection, *%)) := .unwrap;
@@ -68,15 +66,15 @@ sub MAIN(
             });
 
             (if (($reports-to-print ~~ 'pass')  && $status eq '✔')
-             || (($reports-to-print ~~ 'skip')  && ?%introspection<missing>.values».List.flat)
+             || (($reports-to-print ~~ 'introspect')  && ?%introspection<missing>.values».List.flat)
              || (($reports-to-print ~~ 'under') && ?%under-documented.values».List.flat)
              || (($reports-to-print ~~ 'over')  &&  ?%over-documented.values».List.flat) {
                     "\n$status {%file<type-name>} – documented at ⟨%file<path>.IO}⟩\n"
             })
 
-            ~ (if $reports-to-print ~~ ('skip')  { Report::fmt(:missing-introspection(%introspection<missing>)) })
-            ~ (if $reports-to-print ~~ ('under') { Report::fmt(:%under-documented) })
-            ~ (if $reports-to-print ~~ ('over')  { Report::fmt(:%over-documented) });
+            ~ (if $reports-to-print ~~ 'under'      { Report::fmt(:%under-documented) })
+            ~ (if $reports-to-print ~~ 'over'       { Report::fmt(:%over-documented) })
+            ~ (if $reports-to-print ~~ 'introspect' { Report::fmt(:missing-introspection(%introspection<missing>)) });
         }
     ) { .print };
 
@@ -115,7 +113,7 @@ multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
 
     when $path !~~ /'doc/Type/'.*.pod6/ { return NoTypeFound.new(:$path)}
     my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
-    my $ignored-methods := %ignored-types{"$type-name", 'GLOBAL'}.map(|*).grep(Any:D).List;
+    my $ignored-methods := %ignored-types{"$type-name", 'ALL_TYPES'}.map(|*).grep(Any:D).List;
 
     # if we're at a low enough level that this amount of introspection fails, skip the type
     try { ::($type-name).^methods;
@@ -271,7 +269,7 @@ class Summary {
     constant $subhead                     = '=' x $line_length;
 
     submethod BUILD() {
-        # Maps with scallar values gives interior mutiablity but guarentees we can't typo keys
+        # Maps with scalar values gives interior mutability but guarantees we can't typo keys
         $!totals := Map.new(
             ( types   => Map.new((skip => $=0, pass => $=0, fail => $=0)),
               methods => Map.new(
@@ -289,7 +287,6 @@ class Summary {
               times-overdocked-by-method => BagHash.new()));
         $!over-inclusive-introspection := Map.new(( from-a-role => BagHash.new(), from-any => $=0,
                                                     from-mu => $=0, from-other => $=0, anon => $=0 ));
-
     }
 
     #| Update the running totals based on new data
@@ -472,7 +469,7 @@ class Summary {
         }
     }
 
-    #| Recursivly total a Map with Int|Baggy leaf nodes (cf. Bag.total)
+    #| Recursively total a Map with Int|Baggy leaf nodes (cf. Bag.total)
     sub total($item where Int|Map|Baggy) is nodal {
         given $item { when Int { $_ }
                       when Baggy { $_.total }
@@ -505,13 +502,90 @@ grammar MethodDoc {
     token method-decl            { ['method' | 'routine'] <.ws> <(<[-'\w]>+)>}
 }
 
+#| Display short usage instructions
+sub short-usage() {
+    USAGE;
+    print qq:to/EOF/
+
+      This script scans Pod6 documentation files and finds under-documented methods, over-documented
+      methods, and methods with introspection issues.  Use the --help flag for more detailed usage
+      information.
+
+      EOF
+
+
+}
+
+#| Display detailed usage instructions (including full lists of allowed options)
+sub long-usage() {
+    sub fmt-allowed($opts) { $opts.split(' ').flat.join('|')}
+    USAGE;
+    print qq:to/EOF/
+
+      This script scans Pod6 documentation files, compares the information in those files
+      to information from Raku's internal introspection, and displays a large amount of
+      information in three broad categories:
+
+      1. Under-documented methods: methods that are implemented on a type, but that are
+         not documented.  Because Raku's introspection can be a bit over-inclusive about
+         what it considers to be a local method, this category only includes methods that
+         are both local (according to Raku) _and_ implemented in a package with the same
+         name as the type.  Separately, this category also includes methods that are
+         documented but that lack signatures in their documentation.
+      2. Over-documented methods: methods that are _not_ local to a type, but that are
+         documented as though they were.  (This most often occurs when a method is
+         implemented on a closely related role.)
+      3. Methods with introspection issues: methods where either Raku does not provide us
+         with enough information to determine whether they are correctly documented, or
+         where Raku claims the method is local to a type but where it does not appear to
+         actually local.  The first category is mostly low-level types, such as those
+         implemented in NQP.
+
+      For all three categories, this script displays info in two ways: First, as a series
+      of «Reports» for all scanned types, one at a time.  You can control the generation
+      of reports with the --report|-r option, which accepts a comma-separated string of
+      the following values:
+          {$report_opts.&fmt-allowed}
+      'all' hides shows all reports; 'none' hides them all; 'under', 'over', and
+      'introspect' show just the category described above; 'pass' shows reports with no
+      issue (in any category); 'fail' shows all non-passing reports; and 'err' lists files
+      that could not be scanned.
+
+      Second, this script also displays «Summary» information about all scanned types.
+      You can control the generation of summary info with the -s|--summary option, which
+      accepts a comma-separated string of the following values:
+          {$summary_opts.&fmt-allowed}
+      'all', 'none', 'under', 'over', and 'introspect' behave just as in the --report
+      option.  'totals' displays aggregate information applicable to all categories, such
+      as the total number of files scanned.
+
+      With default settings, this script provides a large amount of information.  To help
+      you manage this information, the script provides several ways to manage its output
+      (in addition to limiting output categories with -r or -s).  First, you can scan
+      fewer types, by specifying an individual file or sub-directory as the INPUT-PATH
+      argument.  Alternatively, you can provide a Regex to the --exclude or --exclude-dir
+      options to exclude individual files or entire directories from your search.
+      (Excluding the Metamodel directory, for example, will significantly reduce the
+      number of types without introspection information).  You can perform the inverse
+      operation, limiting the script to files/directories that match a Regex, with the
+      --only and --only-dir options respectively.
+
+      Finally, you can manually list methods to exclude from scanning in an ignore-methods
+      file; you can direct the script to the location of that file with the --ignore
+      option.  This file should consist of a Raku Map with Str keys and values that are
+      Lists of Strs.  Specifically, each key should be the name of a type, or the special
+      key ALL_TYPES; the value should be a list of methods that should be excluded from
+      that type (or from all types).
+
+      EOF
+}
+
 #| Provide dynamic usage info, including default values assigned in MAIN
 sub USAGE() {
     my &fmt-param = { $^a ~ (' ' x (20 - $^a.chars) ~ $^b.WHY ~ (with $^b.default { " [default: {.()}]"})) }
-    # TODO: add info about meaning of output for over- and under-documented methods.
-    # TODO: Update for new functionality
 
-    print S:g/'/home/'$(%*ENV<USER>)/~/ with do given &MAIN.signature.params {
+    # print CLI parameters, grouped by arg/flag/opt and alphabetized within each group
+    print S:g/'/home/'$(%*ENV<USER>)/~/ with do given &MAIN.signature.params.sort(*.name.fc).cache {
       "Usage: ./{$*PROGRAM.relative} [FLAGS]... [OPTION]... [ARG]\n"
       ~ "{&MAIN.WHY}\n\n"
       ~ (with .grep(!*.named) {
@@ -520,25 +594,13 @@ sub USAGE() {
       ~ (with .grep({.named && .type ~~ Bool}) {
           "FLAGS:\n"
           ~ .map({
-              fmt-param(.named_names.sort(*.chars).map({'-' x ++$ ~ $_}).join(', '), $_);
-             }).join("\n  ").indent(2) ~ "\n\n"})
+              fmt-param(.named_names.sort(*.chars).map({'-' x (1 + (.chars > 1))  ~ $_}).join(', '), $_);
+             }).join("\n").indent(2) ~ "\n\n"})
       ~ (with .grep({.named && .type !~~ Bool}) {
                 "OPTIONS:\n"
                 ~ .map({
               fmt-param(.named_names.sort(*.chars).map({'-' x ++$ ~ $_}).join(', '), $_);
-          }).join("\n").indent(2) ~ "\n\n"})
-      ~ qq:to/EOF/
-      By default, this script displays a large amount of information for each type it
-      analyzes: all methods potentially missing documentation, all methods that are
-      potentially over-documented, and all types that were skipped (typically because
-      they are low-level types that lack the required introspective abilities). This
-      corresponds to `--display=all`.  You can pass a comma-separated list consisting of
-      any of `over`, `under`, or `skip` to view a subset of information for each type.
-
-      Additionally, this script also displays summary statistics based on all types it
-      analyzed.  To omit this summary info, use `--summary=no`; to display *only* this
-      summary info (that is, to hide all type-level info) use `--summary=only`
-      EOF
+          }).join("\n").indent(2) ~ "\n"})
     }
 }
 
@@ -557,18 +619,18 @@ sub GENERATE-USAGE(&main, |c) {
     (given $last-invalid {
          when .key ~~ Int
               && !.value.IO.e       { "Cannot open INPUT-PATH '{.value}'"}
-         when .key ~~ Int           { "Unrecongnized positional argument '{.value}'" }
-         when .value ~~ Bool        { "Unrecongnized flag '{.key.&with-dash}'" }
+         when .key ~~ Int           { "Unrecognized positional argument '{.value}'" }
+         when .value ~~ Bool        { "Unrecognized flag '{.key.&with-dash}'" }
          when .key eq 'r'|'report'  { "Invalid value for '--report'.  Valid values: {$report_opts.&fmt-allowed}"}
          when .key eq 's'|'summary' { "Invalid value for '--summary'.  Valid values: {$summary_opts.&fmt-allowed}"}
          default                    { "Invalid option '{.key.&with-dash}={.value}'" }
     }) ~ $default-txt
 }
 
-#| Convert a comma-seperated Str of short and/or long options into a Junction of long options
-sub normilize-options(Str $given, List $allowed --> Junction ) {
+#| Convert a comma-separated Str of short and/or long options into a Junction of long options
+sub normalize-options(Str $given, List $allowed --> Junction ) {
     $allowed.map(-> ($short, $l) { if  $short | $l ∈  $given.split(',')».trim { $l }}).cache
-    ==> { any('all' ∈ $_ ??  $allowed[^(*-1)]»[1] !! |$_) }()
+    ==> { any('all' ∈ $_ ??  $allowed.grep({$_ !~~ <n none>})»[1] !! |$_) }()
 }
 
 #| Create a Map from the specified file, or exit with an appropriate error message
@@ -587,14 +649,14 @@ sub validate-ignore-file(Str $ignore --> Map){
     }
 };
 
-# Result as an algegraic data type (specifically, a sum type)
+# Result as an algebraic data type (specifically, a sum type)
 #     Inspired by Rust's Result type and
 #     https://wimvanderbauwhede.github.io/articles/roles-as-adts-in-raku/
 
-#| The result of a faliable operation, which will be Ok|Err
+#| The result of a fallible operation, which will be Ok|Err
 role Result { method unwrap() {...} };
 
-#| A sucessful Result that can be unwrapped
+#| A successful Result that can be unwrapped
 role Ok[::T] does Result {
     has T $!inner;
     submethod BUILD(Mu :$inner) { $!inner = $inner}
@@ -604,7 +666,7 @@ role Ok[::T] does Result {
 #| Construct a new Result[Ok]
 sub ok(Mu $v --> Ok) { Ok[$v.WHAT].new(inner => $v) }
 
-#| An unsucessfull Result; attempting to unwrap it throws an exception
+#| An unsuccessfully Result; attempting to unwrap it throws an exception
 role Err does Result {
     has ErrKind $.kind;
     method unwrap() {
@@ -620,7 +682,7 @@ role ErrKind does Err {
     method raku() { $!name }
 }
 
-#| Error: The type lacked fundemental introspection methods, and could not be checked
+#| Error: The type lacked fundamental introspection methods, and could not be checked
 role UncheckableType does ErrKind {
     has $.path;
     has $.type-name;
