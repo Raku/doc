@@ -13,6 +13,8 @@ constant $summary_opts  = (<t totals>, <i introspect>,            <o over>, <u u
 subset ReportCsv  of Str:D where *.split(',')».trim ⊆ ($report_opts.flat);
 #| Allowable values for --summary
 subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
+#| Type to require an argument to be True
+subset Flag of Bool:D where :so;
 
 ## TODO: Check for unnecessary assignment (instead of binding)
 ## TODO: spellcheck
@@ -27,8 +29,8 @@ sub MAIN(
                                                             #= matching Regex
     ReportCsv  :report(:$r)  = 'all',                       #= Comma-separated list of documentation types to display
     SummaryCsv :summary(:$s) = 'all',                       #= Comma-separated list of summary types to display
-    Bool :h(:$help),                                        #= Display this message and exit
-    Str :i(:$ignore) = "$doc_dir/util/ignored-methods.txt", #= Path to file with methods to skip
+    Flag :h(:$help),                                        #= Display this message and exit
+    Str  :i(:$ignore) = "$doc_dir/util/ignored-methods.txt", #= Path to file with methods to skip
 ) { # Exit early for --help or invalid usage not handled by typechecking
     when $help { USAGE }
     CATCH { when X::Syntax::Regex::SolitaryQuantifier | X::Syntax::Regex::Adverb {
@@ -47,16 +49,16 @@ sub MAIN(
         -> Result $_ --> Str {
             when Err { given .kind {
                 when NoTypeFound     { if $reports-to-print ~~ 'err'  { Report::fmt($_)} }
-                when UncheckableType { $summary.update-totals(:uncheckable-type);
+                when UncheckableType { $summary.update(:uncheckable-type);
                                        if $reports-to-print ~~ 'skip' { Report::fmt($_)} }
                 default { X::Syntax::Missing.new(what => "error case {.kind.gist}").throw}
             }}
             my (:%file, :%methods (:%over-documented, :%under-documented, :%introspection, *%)) := .unwrap;
 
-            $summary.update-totals(|%methods);
-            $summary.update-over-documented(:%over-documented,   :%file);
-            $summary.update-under-documented(:%under-documented, :%file);
-            $summary.update-introspection(:%introspection);
+            $summary.update(:totals, |%methods)
+                    .update(:%over-documented,   :%file)
+                    .update(:%under-documented, :%file)
+                    .update(:%introspection);
 
             my $status := (given [∪] |(%over-documented<>:v), |(%under-documented<>:v) -> $problem-methods {
                 when $problem-methods ∪ (%introspection<missing>:v) ~~ ∅         { '✔' }
@@ -78,11 +80,11 @@ sub MAIN(
     ) { .print };
 
     # Only print summaries after printing reports
-    if $summaries-to-print !~~ 'none'       { print $summary.fmt-header };
-    if $summaries-to-print  ~~ 'totals'     { print $summary.fmt-totals };
-    if $summaries-to-print  ~~ 'under'      { print $summary.fmt-under-documented };
-    if $summaries-to-print  ~~ 'over'       { print $summary.fmt-over-documented };
-    if $summaries-to-print  ~~ 'introspect' { print $summary.fmt-introspection;}
+    if $summaries-to-print !~~ 'none'       { print $summary.fmt(:header)};
+    if $summaries-to-print  ~~ 'totals'     { print $summary.fmt(:totals) };
+    if $summaries-to-print  ~~ 'under'      { print $summary.fmt(:under-documented)};
+    if $summaries-to-print  ~~ 'over'       { print $summary.fmt(:over-documented)};
+    if $summaries-to-print  ~~ 'introspect' { print $summary.fmt(:introspection)};
 }
 
 #| Process either a Pod6 file or a directory of Pod6 files
@@ -98,7 +100,6 @@ multi process-pod6($path where *.IO.d, :%ignored-types,
                                                      (with $only-dir    { $path.parent    ~~ $_}))}})
                      ==> map({|process-pod6($^next-path, :%ignored-types, :%filters)}))
 }
-
 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
@@ -127,12 +128,11 @@ multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
     my %methods := (::($type-name).^methods(:local).classify(
                           # despite the name, not all :local methods are local, so we classify
                           {classify-method($_, $type-name, $ignored-methods);},
-                          :into( %(<local ignored other-missing-introspection native-code
+                          :into( %(<local ignored nqp-routine native-code other-missing-introspection
                                     from-a-role from-any from-mu from-other>.map(*=>[]))),
                           :as(*.name) ));
-    my ( :$local, :$from-a-role, :$from-any, :$ignored, :$native-code,
-         :$from-mu, :$from-other, :$other-missing-introspection, *%roles) := %methods.map({.key => .value.Set});
-    # TODO: Get count from %roles, and consider showing top Role errors
+    my (:$local, :$ignored, :$nqp-routine, :$native-code, :$other-missing-introspection,
+        :$from-a-role, :$from-any, :$from-mu, :$from-other, *%roles ) := %methods.map({.key => .value.Set});
     $native-code := Bag.new(%methods<native-code><>);
 
     # Comparison between the two
@@ -140,20 +140,20 @@ multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
     my Set $missing-signature := $local (-) @with-signature (-) $missing-header;
     my %over-documented       := (@in-header (-) $local).keys.classify(
         {classify-documented($_, $type-name)},
-        :into(%(<doesn't-exist non-local non-method>.map(* => []))));
-    my (:$non-local, :$non-method, :$doesn't-exist) := %over-documented.kv.map(-> $k, $v { $k => $v.Set});
+        :into(%(<doesn't-exist non-local non-method>.map(*=>[]))));
+    my (:$non-local, :$non-method, :$doesn't-exist) := %over-documented.kv.map({ $^k => $^v.Set});
 
     ok(Map.new(( file    => Map.new((:$type-name, :$path)),
                  methods => Map.new(
-                     ( ignored          => $ignored,
-                       introspection    => Map.new(
-                           ( over-inclusive => Map.new((from-a-role => set(),
-                                                        :$from-any, :$from-mu, :$from-other)),
-                             missing        => Map.new((:$native-code, :$other-missing-introspection)))),
-                       under-documented => Map.new((:$missing-header, :$missing-signature)),
-                       over-documented  => Map.new((:$non-local, :$non-method, :$doesn't-exist)),
-                       all-good         => [(-)] $local, $other-missing-introspection, $native-code, $missing-header,
-                                                 $missing-signature, |%over-documented.values)))))
+                     (ignored       => $ignored,
+                      introspection => Map.new((over-inclusive => Map.new((from-a-role => %roles.Bag, :$from-mu,
+                                                                           :$from-any, :$from-other)),
+                                                 missing        => Map.new((:$native-code, :$nqp-routine,
+                                                                            :$other-missing-introspection)))),
+                      under-documented => Map.new((:$missing-header, :$missing-signature)),
+                      over-documented  => Map.new((:$non-local, :$non-method, :$doesn't-exist)),
+                      all-good         => [(-)] $local, $other-missing-introspection, $missing-header,
+                                                $native-code, $missing-signature, |%over-documented.values)))))
 }
 
 #| Classifies Methods by whether they are local to a Type based on Raku's introspection (or explicitly ignored)
@@ -163,21 +163,25 @@ sub classify-method(Mu $method, $type-name, List $ignored-methods) {
     # (which includes NQP methods).  ForeignCode methods typically have the name `<anon>`
     when $method.name eq '<anon>'                         { 'native-code' };
     CATCH {  when X::Method::NotFound {
+                  when .typename eq 'NQPRoutine'          { return 'nqp-routine' }
                   when .method ~~ 'roles' | 'candidates'  { return 'other-missing-introspection' } } }
 
     # we treat a multi method as local if any of it's variants are in the Type's package
     my $packages = (?$method.candidates ?? $method.candidates !! $method).map(*.package).cache;
     when ?any($packages.map({ try .isa($type-name)}))      { 'local'}
     when ?any($packages.map({ try $_ ~~ ::($type-name)}))  { 'local'}
-    # For low level types, === won't work, so use string comparison of name
+    # For low level types, === won't work, so use string comparison of ^name
     my $package-names := try {$packages<>.map(*.^name).List} // ();
     my $type's-roles := try {::($type-name).^roles.map(*.^name).List} // ();
-    when any($package-names) eq any($type's-roles) { ($type's-roles ∩ $package-names).pick }
+    when any($package-names) eq any($type's-roles) {
+        $package-names.grep({ $_ ∈ $type's-roles}).head
+    }
     when any($package-names) eq 'Any'                      { 'from-any' }
     when any($package-names) eq 'Mu'                       { 'from-mu' }
     default                                                { 'from-other' }
 }
 
+#| Classifies Methods by whether they are inherited, a non-method Sub, or just don't exist
 sub classify-documented(Mu $method, $type-name) {
     # if ^find_method finds it, it's *somewhere* in the inheritance graph, just not local
     when try {::($type-name).^find_method($method).defined} { 'non-local' }
@@ -188,25 +192,36 @@ sub classify-documented(Mu $method, $type-name) {
     "doesn't-exist"
 },
 
-# Formats reports for individual Types (displayed with --report)
+#| Namespace for report-printing functionality
 class Report {
+    #| Formats reports for individual Types (displayed with --report)
     our proto fmt(|) {*}
+
+    #| Skipped type
     multi fmt(UncheckableType $e --> Str) {
         "\n∅ {$e.type-name} – documented at  ⟨{$e.path.IO}⟩\n  Skipped as uncheckable\n"
     }
 
+    #| Unreadable type
     multi fmt(NoTypeFound $e --> Str) {
         "\n! ERR could not process file at ⟨{$e.path.IO}⟩\n  Does it contain documentation for a Raku type?\n"
     }
 
+    #| Methods that can't be introspected
     multi fmt(:missing-introspection($_) --> Str) {
+        ~( if .<nqp-routine> {
+            "{+.<nqp-routine>} method implemented in Not Quite Perl:\n".&pluralize('method').indent(2)
+            ~ (.<nqp-routine>.keys.sort.join("\n").indent(4) ~ "\n")})
+        ~( if .<native-code> {
+            "{+.<native-code>} method implemented in native-code:\n".&pluralize('method').indent(2)
+            ~ (.<native-code>.keys.sort.join("\n").indent(4) ~ "\n")})
         ~( if .<other-missing-introspection> {
             "{+.<other-missing-introspection>} method without introspection:\n".&pluralize('method').indent(2)
             ~ (.<other-missing-introspection>.keys.sort.join("\n").indent(4) ~ "\n")})
-        ~( if .<native-code> {
-            "{+.<native-code>} method implemented in native-code/NQP:\n".&pluralize('method').indent(2)
-            ~ (.<native-code>.keys.sort.join("\n").indent(4) ~ "\n")})
+
     }
+
+    #| Non-local Methods that are documented (but shouldn't be)
     multi fmt(:%over-documented (:$non-local, :$non-method, :$doesn't-exist) --> Str) {
         ~( if $non-local {
             "{+$non-local} non-local method with documentation:\n".&pluralize('method').indent(2)
@@ -218,6 +233,8 @@ class Report {
             "{+$doesn't-exist} non-existing method with documentation:\n".&pluralize('method').indent(2)
             ~ $doesn't-exist.keys.sort.join("\n").indent(4) ~ "\n"})
     }
+
+    #| Local Methods that should be documented (but aren't)
     multi fmt(:%under-documented (:%missing-header, :%missing-signature) --> Str) {
         ~ ( if +%missing-header {
              "{+%missing-header} missing method:\n".&pluralize('method').indent(2)
@@ -233,7 +250,6 @@ class Report {
         $phrase ~~ /(\d+) \D* $noun/;
         +$0 == 1 ?? $phrase !! $phrase.subst(/$noun/, $noun ~ 's')
     }
-
 }
 
 #| Collects and formats summary statistics (displayed with --summary)
@@ -246,11 +262,12 @@ class Summary {
     # Hard-coded constants that change Summary output.  (Could be user-configurable if wanted)
     constant $missing_method_threshold    = 20;
     constant $overdocked_method_threshold = 20;
-    constant $most_missing_list_length    = 5;
-    constant $most_overdocked_list_length = 5;
-    constant $line-length                 = 40;
-    constant $head                        = '#' x $line-length;
-    constant $subhead                     = '=' x $line-length;
+    constant $top_missing_list_length    = 5;
+    constant $top_overdocked_list_length = 5;
+    constant $top_roles_list_length       = 5;
+    constant $line_length                 = 40;
+    constant $head                        = '#' x $line_length;
+    constant $subhead                     = '=' x $line_length;
 
     submethod BUILD() {
         # Maps with scallar values gives interior mutiablity but guarentees we can't typo keys
@@ -259,35 +276,64 @@ class Summary {
               methods => Map.new(
                   ( pass                  => $=0,
                     ignored               => $=0,
-                    under-documented      => Map.new((missing-header => $=0, missing-signature => $=0)),
-                    over-documented       => Map.new((doesn't-exist => $=0, non-method => $=0, non-local => $=0)),
-                    missing-introspection => Map.new((native-code => $=0, other-missing-introspection => $=0)),
-                                 ))));
+                    under-documented      => Map.new(( missing-header => $=0, missing-signature => $=0 )),
+                    over-documented       => Map.new(( doesn't-exist => $=0, non-method => $=0, non-local => $=0 )),
+                    missing-introspection => Map.new(( native-code => $=0, nqp-routine => $=0,
+                                                       other-missing-introspection => $=0 )) ))));
         $!under-documented := Map.new(
             ( missing-per-type           => BagHash.new(),
               times-missing-by-method    => BagHash.new()));
         $!over-documented  := Map.new(
             ( missing-per-type           => BagHash.new(),
               times-overdocked-by-method => BagHash.new()));
-        $!over-inclusive-introspection := Map.new(( from-a-role => $=0, from-any => $=0,
+        $!over-inclusive-introspection := Map.new(( from-a-role => BagHash.new(), from-any => $=0,
                                                     from-mu => $=0, from-other => $=0, anon => $=0 ));
 
     }
 
-    submethod fmt-header() { fmt-head('SUMMARY').&center ~ "\n" }
-
-    multi submethod update-totals(:$uncheckable-type where *.so) { $!totals<types><skip>++ }
-
-    multi submethod update-totals(:$ignored, :$all-good, :%under-documented, :%over-documented, :%uncheckable) {
+    #| Update the running totals based on new data
+    proto update(|) {*}
+    multi submethod update(Flag :uncheckable-type($)!) {
+        $!totals<types><skip>++;
+        self
+    }
+    multi submethod update(:$totals!, :$ignored, :$all-good, :%under-documented, :%over-documented, :%uncheckable) {
         my $problem-methods = [∪] ((%uncheckable,  %under-documented,  %over-documented)».values.map(|*));
         $problem-methods ~~ ∅ ?? $!totals<types><pass>++ !! $!totals<types><fail>++;
         given $!totals<methods> {
             .<ignored> += +$ignored;
             .<pass>    += +$all-good;
         }
+        self
+    }
+    multi submethod update(:%under-documented!, :%file (:$type-name, *%)) {
+        $!under-documented<missing-per-type>{$type-name}       += +%under-documented<missing-header>;
+        $!totals<methods><under-documented><missing-header>    += +%under-documented<missing-header>;
+        $!totals<methods><under-documented><missing-signature> += +%under-documented<missing-signature>;
+        for %under-documented<missing-header>.keys { $!under-documented<times-missing-by-method>.add($_)};
+        self
+    }
+    multi submethod update(:%over-documented!, :%file (:$type-name, *%)) {
+        $!totals<methods><over-documented>{.key}        += .value.elems for %over-documented.pairs;
+        $!over-documented<missing-per-type>{$type-name} += +%over-documented<doesn't-exist>;
+        for %over-documented<doesn't-exist>.keys { $!over-documented<times-overdocked-by-method>.add($_) };
+        self
+    }
+    multi submethod update(:introspection($_)) {
+        for .<missing>.kv { $!totals<methods><missing-introspection>{$^key} += +$^value};
+        for .<over-inclusive>.kv -> $k, $v {
+            when $k eq 'from-a-role' { $!over-inclusive-introspection<from-a-role>.add($v.kxxv); }
+            default                  { $!over-inclusive-introspection{$k} += +$v}
+        };
+        self
     }
 
-    submethod fmt-totals() {
+    #| Format summary statistics (as governed by --summary)
+    proto fmt(|) {*};
+    multi submethod fmt(Flag :header($)! --> Str) {
+        fmt-head('SUMMARY').&center ~ "\n"
+    }
+    multi submethod fmt(Flag :totals($)! --> Str) {
         (given $!totals<types> {
             my ($detected, $checked) := (.&total, .&total - .<skip>);
             qq:to/EOF/
@@ -309,36 +355,27 @@ class Summary {
              $subhead
              documented methods detected:        { '%4d'.sprintf($detected)}
              explicitly ignored methods:         { .<ignored>.&fmt-with-percent-of(:$detected)}
-             unprocessable methods skipped:      { .<missing-introspection>.&total.&fmt-with-percent-of(:$detected)}
+             non-introspectable methods skipped: { .<missing-introspection>.&total.&fmt-with-percent-of(:$detected)}
              methods checked:                    { $checked.&fmt-with-percent-of(:$detected)}
              over-documented methods:            { .<over-documented>.&total.&fmt-with-percent-of(:$checked)}
              under-documented methods:           { .<under-documented>.&total.&fmt-with-percent-of(:$checked)}
-             introspection issue detected:       { '%4d'.sprintf([+] .<missing-introspection>.&total,
-                                                                     $!over-inclusive-introspection.&total)}
              problem-free methods:               { .<pass>.&fmt-with-percent-of(:$checked)}
+             overinclusive introspection issues: { '%4d'.sprintf($!over-inclusive-introspection.&total)}
             EOF
         })
     }
-
-    submethod update-under-documented(:%under-documented, :%file (:$type-name, *%)) {
-        $!under-documented<missing-per-type>{$type-name}       += +%under-documented<missing-header>;
-        $!totals<methods><under-documented><missing-header>    += +%under-documented<missing-header>;
-        $!totals<methods><under-documented><missing-signature> += +%under-documented<missing-signature>;
-        for %under-documented<missing-header>.keys { $!under-documented<times-missing-by-method>.add($_)};
-    }
-
-    submethod fmt-under-documented() {
+    multi submethod fmt(Flag :under-documented($)! --> Str) {
         my (:%times-missing-by-method, :%missing-per-type) := $!under-documented;
         my $total = $!totals<methods><under-documented>.&total;
         my $top-missing = %times-missing-by-method
                               .grep(*.value ≥ $missing_method_threshold)
                               .sort({.value, .key})
                               .cache;
-        my $top-types = %missing-per-type.sort({.value, .key}).tail($most_missing_list_length).cache;
+        my $top-types = %missing-per-type.sort({.value, .key}).tail($top_missing_list_length).cache;
 
         (given $!totals<methods><under-documented> { qq:to/EOF/
 
-        { 'UNDER-DOCUMENTED:'.&fmt-head.&center }
+        { 'UNDER-DOCUMENTED'.&fmt-head.&center }
 
          { '(Potentially) under-documented methods:'.&center }
          { $subhead }
@@ -350,29 +387,22 @@ class Summary {
         ~ (if $top-missing {
                   ~ " \n{'Methods missing from 20+ types:'.&center}\n"
                   ~ " $subhead\n"
-                  ~ fmt-top-methods($top-missing) ~ "\n"
+                  ~ fmt-top-list($top-missing) ~ "\n"
               })
         ~ (if $top-types.elems {
-                  ~ " \n{'Types with most missing methods:'.&center}\n"
+                  ~ " \n{"Top $top_missing_list_length types with missing methods:".&center}\n"
                   ~ " $subhead\n"
-                  ~ fmt-top-methods($top-types)}) ~ "\n"
+                  ~ fmt-top-list($top-types)}) ~ "\n"
     }
-
-    submethod update-over-documented(:%over-documented, :%file (:$type-name, *%)) {
-        $!totals<methods><over-documented>{.key}        += .value.elems for %over-documented.pairs;
-        $!over-documented<missing-per-type>{$type-name} += +%over-documented<doesn't-exist>;
-        for %over-documented<doesn't-exist>.keys { $!over-documented<times-overdocked-by-method>.add($_) };
-    }
-
-    submethod fmt-over-documented() {
+    multi submethod fmt(Flag :over-documented($)! --> Str) {
         my (:%sums, :%missing-per-type, :%times-overdocked-by-method) := $!over-documented;
         my $total = $!totals<methods><over-documented>.&total;
-        my $top-types = %missing-per-type.sort({.value, .key}).tail($most_overdocked_list_length).cache;
+        my $top-types = %missing-per-type.sort({.value, .key}).tail($top_overdocked_list_length).cache;
         my $top-overdocked = %times-overdocked-by-method.grep(*.value ≥ $overdocked_method_threshold).cache;
 
         ( given $!totals<methods><over-documented> { qq:to/EOF/
 
-        { 'OVER-DOCUMENTED:'.&fmt-head.&center }
+        { 'OVER-DOCUMENTED'.&fmt-head.&center }
 
          { 'Total over-documented methods:'.&center }
          $subhead
@@ -385,46 +415,46 @@ class Summary {
         ~ (if $top-overdocked {
                   ~ "\n {'Overdocumented methods in 20+ types:'.&center}\n"
                   ~ " {$subhead}\n"
-                  ~ fmt-top-methods($top-overdocked) ~ "\n"
+                  ~ fmt-top-list($top-overdocked) ~ "\n"
               })
         ~ (if $top-types.elems ≥ 3 {
-                  ~ "\n {'Types with most over-documented methods:'.&center}\n"
+                  ~ "\n {"Top $top_overdocked_list_length types with over-documented methods:".&center}\n"
                   ~ " $subhead\n"
-                  ~ fmt-top-methods($top-types) ~ "\n" })
+                  ~ fmt-top-list($top-types) ~ "\n" })
     }
-
-    submethod update-introspection(:introspection($_)) {
-        for .<missing>.kv { $!totals<methods><missing-introspection>{$^key} += +$^value};
-        for .<over-inclusive>.kv { $!over-inclusive-introspection{$^key} += +$^value};
-    }
-
-    submethod fmt-introspection() {
+    multi submethod fmt(Flag :introspection($)! --> Str) {
         my $over-inclusive := $!over-inclusive-introspection;
         my $missing := $!totals<methods><missing-introspection>;
+        my $top-roles := $over-inclusive<from-a-role>.sort(*.values).tail($top_roles_list_length).List;
         qq:to/EOF/
 
-        {'INTROSPECTION ISSUES:'.&fmt-head.&center}
+        {'INTROSPECTION ISSUES'.&fmt-head.&center}
 
          {'Methods without needed introspection:'.&center}
          $subhead
          NativeCall methods:                 {'%4d'.sprintf($missing<native-code>)}
+         Not Quite Perl methods:             {'%4d'.sprintf($missing<nqp-routine>)}
          Other non-introspecable methods:    {'%4d'.sprintf($missing<other-missing-introspection>)}
         {fmt-sum($missing.values.sum)}
 
-         {'local methods actually from:'.&center}
+         {"'local' methods actually from:".&center}
          $subhead
-         ...a role                           { '%4d'.sprintf($over-inclusive<from-a-role>)}
-         ...Any                              { '%4d'.sprintf($over-inclusive<from-any>)}
-         ...Mu                               { '%4d'.sprintf($over-inclusive<from-mu>)}
-         ...some other type                  { '%4d'.sprintf($over-inclusive<from-other>)}
+         ...a role:                          { '%4d'.sprintf($over-inclusive<from-a-role>)}
+         ...Any:                             { '%4d'.sprintf($over-inclusive<from-any>)}
+         ...Mu:                              { '%4d'.sprintf($over-inclusive<from-mu>)}
+         ...some other type:                 { '%4d'.sprintf($over-inclusive<from-other>)}
         {fmt-sum($over-inclusive.values.sum)}
         EOF
+        ~ (if $top-roles.elems ≥ 3 {
+                  ~ "\n {"Top $top_roles_list_length roles providing 'local' methods:".&center}\n"
+                  ~ " $subhead\n"
+                  ~ fmt-top-list($top-roles) ~ "\n" })
     }
 
     #| Format list of methods with their counts aligned to the right
-    sub fmt-top-methods(List $top-methods) {
+    sub fmt-top-list(List $top-methods) {
         ~ ($top-methods.sort(*.value)
-                       .map({ " %-*s%3d".sprintf(($line-length - 3), .key, .value)})
+                       .map({ " %-*s%3d".sprintf(($line_length - 3), .key, .value)})
                        .join("\n") ~ "\n")
         ~ fmt-sum($top-methods.map(*.value).sum ~ "\n")
     }
@@ -441,31 +471,28 @@ class Summary {
         }
     }
 
-    #| Recursivly total a Map consisiting consisting of Maps of Ints (cf. Bag.total)
-    sub total($item where Int|Map) is nodal {
+    #| Recursivly total a Map with Int|Baggy leaf nodes (cf. Bag.total)
+    sub total($item where Int|Map|Baggy) is nodal {
         given $item { when Int { $_ }
+                      when Baggy { $_.total }
                       when Map { [+] .values».&total}}
     }
 
-    sub center($txt) { $txt.lines.map({' ' x ($line-length - .chars) ÷ 2 ~ $_}).join("\n")}
+    #| Center a line of text according to $line_length constant
+    sub center($txt) { $txt.lines.map({' ' x ($line_length - .chars) ÷ 2 ~ $_}).join("\n")}
 
+    #| Format a header by boxing it with `#` characters
     sub fmt-head($txt) { my $mid = $txt.lines.map({"#    {$_}    #"}).join("\n");
                          given '#' x $mid.lines.map(&chars).sum {($_, $mid, $_).join("\n")}
     }
 
+    #| Format a sum by printing a line of `-` characters, and then the right-aligned sum
     sub fmt-sum($num) {
         given 'TOTAL', 5 -> ($txt, $num-len ){
-            ('-' x $line-length  ~ "\n").indent(1)
-            ~ ' ' x $line-length + 1 - $txt.chars - $num-len ~ $txt ~ '%*d'.sprintf($num-len, $num)}
+            ('-' x $line_length  ~ "\n").indent(1)
+            ~ ' ' x $line_length + 1 - $txt.chars - $num-len ~ $txt ~ '%*d'.sprintf($num-len, $num)}
     }
 }
-
-
-sub normilize-options($given, $allowed) {
-    $allowed.map(-> ($short, $l) { if  $short | $l ∈  $given.split(',')».trim { $l }}).cache
-    ==> { any('all' ∈ $_ ??  $allowed[^(*-1)]»[1] !! |$_) }()
-}
-
 
 #| Parses a Pod6 document and returns all methods mentioned in a header or given a signature
 grammar MethodDoc {
@@ -476,7 +503,6 @@ grammar MethodDoc {
     rule doc-line:sym<in-header> {      '=head'\d? <method-decl>       { make (in-header      => ~$<method-decl>)}}
     token method-decl            { ['method' | 'routine'] <.ws> <(<[-'\w]>+)>}
 }
-
 
 #| Provide dynamic usage info, including default values assigned in MAIN
 sub USAGE() {
@@ -538,26 +564,52 @@ sub GENERATE-USAGE(&main, |c) {
     }) ~ $default-txt
 }
 
-
-
-## TODO: Document as algebraic data type
-role Result is export { method unwrap() {...} };
-role Ok[::T] does Result is export {
-    has T $!inner;
-    submethod BUILD(:$inner) { $!inner = $inner}
-    method unwrap() {$!inner}
-};
-sub ok($v) is export { Ok[$v.WHAT].new(inner => $v) }
-role ErrKind {...}
-role Err does Result is export {
-    has ErrKind $.kind;
-    method unwrap() { fail(X::TypeCheck.new(expected => Ok, got => self))}
+#| Convert a comma-seperated Str of short and/or long options into a Junction of long options
+sub normilize-options(Str $given, List $allowed --> Junction ) {
+    $allowed.map(-> ($short, $l) { if  $short | $l ∈  $given.split(',')».trim { $l }}).cache
+    ==> { any('all' ∈ $_ ??  $allowed[^(*-1)]»[1] !! |$_) }()
 }
-role ErrKind does Err { method kind() { self }}
-role UncheckableType does ErrKind is export {
+
+# Result as an algegraic data type (specifically, a sum type)
+#     Inspired by Rust's Result type and
+#     https://wimvanderbauwhede.github.io/articles/roles-as-adts-in-raku/
+
+#| The result of a faliable operation, which will be Ok|Err
+role Result { method unwrap() {...} };
+
+#| A sucessful Result that can be unwrapped
+role Ok[::T] does Result {
+    has T $!inner;
+    submethod BUILD(Mu :$inner) { $!inner = $inner}
+    method unwrap() { $!inner }
+};
+
+#| Construct a new Result[Ok]
+sub ok(Mu $v --> Ok) { Ok[$v.WHAT].new(inner => $v) }
+
+#| An unsucessfull Result; attempting to unwrap it throws an exception
+role Err does Result {
+    has ErrKind $.kind;
+    method unwrap() {
+        self.^set_name('Err');
+        note self.^roles[0].^candidates[0].WHY; # The WHY for the role, not the punned class
+        fail(X::TypeCheck.new(operation => 'Result.unwrap()', expected => Ok, got => self))}
+}
+
+#| The helper role that every custom error type should do
+role ErrKind does Err {
+    method kind() { self }
+    has $!name = self.^name;
+    method raku() { $!name }
+}
+
+#| Error: The type lacked fundemental introspection methods, and could not be checked
+role UncheckableType does ErrKind {
     has $.path;
     has $.type-name;
 }
-role NoTypeFound does ErrKind is export {
+
+#| Error: No Type was detected at the provided path
+role NoTypeFound does ErrKind {
     has $.path;
 }
