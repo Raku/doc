@@ -42,10 +42,11 @@ sub MAIN(
     # avoid perf penalty of re-constructing Regex
     my %filters = exclude => do with $e { /<$e>/ }, exclude-dir => do with $E { /<$E>/ },
                   only    => do with $o { /<$o>/ }, only-dir    => do with $O { /<$O>/ };
+    my %ignored-types is Map = parse-ignore-file($ignore);
     my $summary := Summary.new;
 
     # Main program execution -- parse each file, and print reports as we go
-    for $input-path.&process-pod6(:%filters, ignored-types => EVALFILE($ignore)).map(
+    for $input-path.&process-pod6(:%filters, :%ignored-types).map(
         -> Result $_ --> Str {
             when Err { given .kind {
                 when NoTypeFound     { if $reports-to-print ~~ 'err'  { Report::fmt($_)} }
@@ -569,6 +570,15 @@ sub normilize-options(Str $given, List $allowed --> Junction ) {
     $allowed.map(-> ($short, $l) { if  $short | $l ∈  $given.split(',')».trim { $l }}).cache
     ==> { any('all' ∈ $_ ??  $allowed[^(*-1)]»[1] !! |$_) }()
 }
+
+#| Create a Map from the specified file, or exit with an appropriate error message
+sub parse-ignore-file(Str $ignore --> Map){
+    when $ignore eq '' { note 'Not using ignored-methods file'; % }
+    when !$ignore.IO.r { note "No ignored-methods file found.  Not ignoring any methods."; % }
+    with try EVALFILE($ignore) { $_ }
+    else { note "Could not parse $ignore as a Raku Hash. Got error:\n{$!.gist.indent(4)}";
+           exit 1};
+};
 
 # Result as an algegraic data type (specifically, a sum type)
 #     Inspired by Rust's Result type and
