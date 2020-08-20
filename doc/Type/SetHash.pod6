@@ -20,22 +20,53 @@ say $fruits.elems;      # OUTPUT: «3␤»
 say $fruits.keys.sort;  # OUTPUT: «apple orange peach␤»
 =end code
 
-C<SetHash>es can be treated as object hashes using the C<{ }> postcircumfix
-operator, which returns the value C<True> for keys that are elements of the set,
-and C<False> for keys that aren't. Assigning a value that boolifies to C<True>
-or C<False>, respectively, can be used to add or remove a set element:
+Just like C<Set>s, C<SetHash>es can be treated as object hashes using the C<{ }>
+postcircumfix operator, which returns the value C<True> for keys that are
+elements of the set, and C<False> for keys that aren't.
 
 =begin code
 my $fruits = <peach apple orange apple apple>.SetHash;
 
 say $fruits<apple>;     # OUTPUT: «True␤»
 say $fruits<kiwi>;      # OUTPUT: «False␤»
+=end code
+
+Unlike C<Set>s, C<SetHash>es are mutable.  You can add an item or list of items
+to the C<SetHash> with the C<set> method and can remove an item or list of items
+with the C<unset> method:
+
+=begin code
+my $fruits = <peach>.SetHash;
+$fruits.set('apple');
+say $fruits;            # OUTPUT: «SetHash(apple peach)␤»
+
+$fruits.unset('peach');
+say $fruits;            # OUTPUT: «SetHash(apple)␤»
+
+$fruits.set(<kiwi banana apple>);
+say $fruits;            # OUTPUT: «SetHash(apple banana kiwi)␤»
+
+$fruits.unset(<apple banana kiwi>);
+say $fruits;            # OUTPUT: «SetHash()␤»
+=end code
+
+Be careful not to confuse the C<set> method, which adds an item to a C<SetHash>
+with the C<Set> method, which converts the mutable C<SetHash> into an immutable
+C<Set>.
+
+As an alternative to using the C<set> and C<unset> methods, you can also add or
+remove set elements by assigning a value that boolifies to C<True> or C<False>,
+respectively:
+
+=begin code
+my $fruits = <peach apple orange>.SetHash;
 
 $fruits<apple kiwi> = False, True;
 say $fruits.keys.sort;  # OUTPUT: «kiwi orange peach␤»
 =end code
 
-Here is a convenient shorthand idiom for adding and removing SetHash elements:
+Here is a convenient shorthand idiom for adding and removing SetHash elements
+using assignment:
 
 =begin code
 my SetHash $fruits .= new;
@@ -132,6 +163,188 @@ say $a ∩ $b;  # OUTPUT: «SetHash(2)␤»
 say $a ⊖ $b;  # OUTPUT: «SetHash(1 3 4)␤»
 say $a ∪ $b;  # OUTPUT: «SetHash(1 2 3 4)␤»
 =end code
+
+=head1 Methods
+
+=head2 method clone
+
+Defined as:
+
+    method clone(SetHash:D: --> SetHash:D)
+
+Returns a shallow copy of the C<SetHash>.
+
+=head2 method grab
+
+Defined as:
+
+    multi method grab(SetHash:D: --> Any)
+    multi method grab(SetHash:D: $count --> Seq)
+    multi method grab(SetHash:D: Callable:D $calculate --> Seq)
+    multi method grab(SetHash:D: Whatever --> Seq)
+
+Removes a randomly selected key or keys from the C<SetHash> and
+returns the removed key or a C<Seq> of the removed keys.  If called
+with no arguments, it removes and returns a single key; otherwise, the
+argument will be evaluated as a number to determine the number of keys
+to remove and all removed keys will be returned in a C<Seq> (even if
+only one or zero keys are removed).  If called with C<*>, C<grab>
+removes and returns all keys in the C<SetHash>.
+
+=head2 method grabpairs
+
+Defined as:
+
+    multi method grabpairs(SetHash:D: --> Pair)
+    multi method grabpairs(SetHash:D: $count --> Seq)
+    multi method grabpairs(SetHash:D: Callable:D $calculate --> Seq)
+    multi method grabpairs(SetHash:D: Whatever --> Seq)
+
+Removes a randomly selected key or keys from the C<SetHash> and
+returns a C<Pair> or a C<Seq> of C<Pair>s.  In both cases, the key of
+each C<Pair> will correspond to a key removed from the C<SetHash> and
+the value of each C<Pair> will be 1.  If called with no arguments, it
+removes a single key and returns a single C<Pair>; otherwise, the
+argument will be evaluated as a number to determine the number of keys
+to remove and C<Pair>s constructed from all removed keys will be
+returned in a C<Seq> (even if only one or zero keys are removed).  If
+called with C<*>, C<grab> removes (and returns C<Pair>s constructed
+from) all keys in the C<SetHash>.
+
+=head2 method iterator
+
+Defined as:
+
+    method iterator(SetHash:D:)
+
+Constructs a new C<SetHash::Iterate> from the C<SetHash>.  An
+C<SetHash::Iterate> is a private Class that C<does> the
+L«C<Iterator>|/type/Iterator» role, which provides various iteration
+methods.  Users should not generally need to call the C<iterator>
+method directly unless implementing new iteration methods; rather,
+they should use existing iteration methods that internally call
+C<iterator>.
+
+=head2 method kv
+
+Defined as:
+
+    multi method kv(SetHash:D: --> Seq)
+
+Returns a C<Seq> of the C<SetHash>'s keys alternating with C<True>.
+
+    SetHash.new(1, 2, 3).kv.say       # OUTPUT: «(3 True 1 True 2 True)␤»
+
+=head2 method set
+
+Defined as:
+
+    method set(SetHash:D: \to-set --> Nil)
+
+When given a key or L<iterable collection|/type/Iterator> of keys,
+C<set> adds all provided keys to the C<SetHash>.
+
+=head2 method unset
+
+Defined as:
+
+    method unset(SetHash:D: \to-unset --> Nil)
+
+When given a key or L<iterable collection|/type/Iterator> of keys,
+C<set> removes all provided keys from the C<SetHash>.
+
+=head2 method values
+
+    multi method values(SetHash:D: --> Seq)
+
+Returns a C<Seq> consisting of C<True> repeated a number of times
+equal to the number of keys in the C<SetHash>.
+
+=head2 method Baggy
+
+Defined as:
+
+    multi method Baggy(SetHash:U: --> BagHash:U)
+    multi method Baggy(SetHash:D: --> BagHash:D)
+
+Coerces a C<SetHash> into a L«C<BagHash>|/type/BagHash» with the same keys as the
+C<SetHash> and all values initially set to 1.
+
+=head2 method Mixy
+
+Defined as:
+
+    multi method Mixy(SetHash:U: --> MixHash:U)
+    multi method Mixy(SetHash:D: --> MixHash:D)
+
+Coerces a C<SetHash> into a L«C<MixHash>|/type/MixHash» with the same keys as the
+C<SetHash> and all values initially set to 1.
+
+=head2 method Set
+
+Defined as:
+
+    multi method Set(SetHash:D: --> Set:D)
+
+Coerces a C<SetHash> into a L«C<Set>|/type/Set» that is identical
+other than removing the mutability of the C<SetHash>.
+
+=head2 method SetHash
+
+Defined as:
+
+    multi method SetHash(SetHash:D: --> SetHash:D)
+
+Returns the initial C<SetHash> without modification (that is, it is a no-op).
+
+=head2 method Setty
+
+Defined as:
+
+    multi method Setty(SetHash:D: --> SetHash:D)
+    multi method Setty(SetHash:U: --> SetHash:U)
+
+Returns the initial C<SetHash> or C<SetHash> type object without
+modification (that is, it is a no-op).
+
+=head2 method AT-KEY
+
+Defined as:
+
+    multi method AT-KEY(SetHash:D: \k --> Bool)
+
+Returns a C<Bool> (when called with a single key) or a C<List> of
+C<Bool>s (when called with a C<List> of keys) that indicate whether
+the provided key or keys are present in the C<Set>.  This method is
+automatically called by indexing with L<C«postcircumfix { }»
+|/routine/{ }#(Operators)_postcircumfix_{_}>.
+
+=head2 method DELETE-KEY
+
+Defined as:
+
+    multi method DELETE-KEY(SetHash:D: \k --> Bool)
+
+Deletes a key or list of keys from the C<SetHash>.  Returns a C<Bool>
+(when called with a single key) or a C<List> of C<Bool>s (when called
+with a C<List> of keys) that indicate whether the provided key or keys
+were present in the C<Set>.  This method is what L<C«postcircumfix { }»
+|/routine/{ }#(Operators)_postcircumfix_{_}> calls when invoked
+like C<$set-hash<k>:delete>.
+
+=head2 method STORE
+
+Defined as:
+
+    multi method STORE(SetHash:D: *@pairs --> SetHash:D)
+    multi method STORE(SetHash:D: \objects, \bools --> SetHash:D)
+
+This method I<overwrites> the existing keys stored in the C<SetHash>
+with the new keys provided.  The new keys should be provided in one of
+three ways: as C<Pairs> (the key will be stored if the value is
+truthy), as a C<List> of keys followed by a C<List> of values (the key
+will be stored if the value at the matching position is truthy), or a
+C<List> of keys (all of which will be stored).
 
 =head1 See Also
 
