@@ -64,7 +64,7 @@ my @jobs = @files.race.map: -> $file {
     for $input-file.IO.slurp.lines -> $line {
         my Bool $is-code = $line.starts-with(' ');
 
-        my $processed =  '^' ~ $line.subst("\\t", ' ', :g).subst("\\n", ' ', :g) ~ "\n";
+        my $processed =  '^' ~ $line.subst(/ \S <( '\\' <[tn]> )>/ , ' ', :g) ~ "\n";
 
         $code ~= $processed if $is-code;
         $text ~= $processed unless $is-code;
