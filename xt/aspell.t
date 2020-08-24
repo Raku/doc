@@ -3,7 +3,7 @@
 use v6;
 use Test;
 
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Pod::Cache;
 use Test-Files;
 
@@ -38,78 +38,79 @@ if $proc.exitcode {
 # generate a combined words file
 # a header is required, but is supplied by words.pws
 
-my $dict = open "xt/aspell.pws", :w;
-$dict.say("xt/words.pws".IO.slurp.chomp);
-$dict.say("xt/code.pws".IO.slurp.chomp);
+my $dict = $*PROGRAM.parent.child("aspell.pws").open(:w);
+$dict.say($*PROGRAM.parent.child("words.pws").IO.slurp.chomp);
+$dict.say($*PROGRAM.parent.child("code.pws").IO.slurp.chomp);
 $dict.close;
 
 my %output;
 
-my $jobs = supply {
-    for @files -> $file {
-        # We use either the raw markdown or the rendered/cached Pod.
-        my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
+my $lock = Lock.new;
 
-        # split the input file into a block of code and a block of text
-        # anything with a leading space is considered code, and we just
-        # concat all the code and text into one block of each per file
+my @jobs = @files.race.map: -> $file {
+    # We use either the raw markdown or the rendered/cached Pod.
+    my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
 
-        my Str $code;
-        my Str $text;
+    # split the input file into a block of code and a block of text
+    # anything with a leading space is considered code, and we just
+    # concat all the code and text into one block of each per file
 
-        # Process the text so that aspell understands it.
-        # Every line starts with a ^
-        # turn \n and \t into spaces to avoid \nFoo being read as "nFoo" by aspell
-        for $input-file.IO.slurp.lines -> $line {
-            my Bool $is-code = $line.starts-with(' ');
+    my Str $code;
+    my Str $text;
 
-            my $processed =  '^' ~ $line.subst("\\t", ' ', :g).subst("\\n", ' ', :g) ~ "\n";
+    # Process the text so that aspell understands it.
+    # Every line starts with a ^
+    # turn \n and \t into spaces to avoid \nFoo being read as "nFoo" by aspell
+    for $input-file.IO.slurp.lines -> $line {
+        my Bool $is-code = $line.starts-with(' ');
 
-            $code ~= $processed if $is-code;
-            $text ~= $processed unless $is-code;
+        my $processed =  '^' ~ $line.subst("\\t", ' ', :g).subst("\\n", ' ', :g) ~ "\n";
+
+        $code ~= $processed if $is-code;
+        $text ~= $processed unless $is-code;
+    }
+
+    for <code text> -> $type {
+        # Restrict dictionary used based on block type
+        my ($dict, $body);
+        if $type eq "code" {
+            $body = $code;
+            $dict = $*PROGRAM.parent.child("aspell.pws").absolute;
+        } else {
+            $body = $text;
+            $dict = $*PROGRAM.parent.child("words.pws").absolute;
         }
 
-        for <code text> -> $type {
-            # Restrict dictionary used based on block type
-            my ($dict, $body);
-            if $type eq "code" {
-                $body = $code;
-                $dict = "./xt/aspell.pws";
-            } else {
-                $body = $text;
-                $dict = "./xt/words.pws";
+        react {
+            my $proc = Proc::Async.new(:w, ['aspell', '-a', '-l', 'en_US', '--ignore-case', "--extra-dicts=$dict", '--mode=url']);
+
+            whenever $proc.stdout.lines {
+                $lock.protect: {
+                    %output{$file}{$type}<output> = (%output{$file}{$type}<output> // '') ~ $_ ~ "\n";
+                }
             }
 
-            my $proc = Proc::Async.new(:w, ['aspell', '-a', '-l', 'en_US', '--ignore-case', "--extra-dicts=$dict", '--mode=url']);
-            %output{$file}{$type}="";
-            $proc.stdout.tap(-> $buf { %output{$file}{$type} = %output{$file}{$type} ~ $buf });
-            $proc.stderr.tap(-> $buf {});
-            my $promise = $proc.start;
+            whenever $proc.start {
+                done;
+            }
 
-            $proc.say("!");
-            $proc.say($body);
-            $proc.close-stdin;
-            emit([$promise, $file, $type]);
+            whenever $proc.print: "!\n$body\n" {
+                $proc.close-stdin;
+            }
         }
     }
 }
 
-$jobs.tap( -> $job {
-    my ($promise, $file, $type) = |$job;
-    await $promise;
-
-    my $tasks = $promise.result;
-
-    my $count;
-    for %output{$file}{$type}.lines -> $line {
-        FIRST next; # dump first line
-        next if $line eq '';
-        diag $line;
-        $count++;
+for %output.keys.sort -> $file {
+    for %output{$file}.keys -> $type {
+        my $spelling-error-count = 0;
+        for %output{$file}{$type}<output>.lines.tail(*-1) -> $line {
+            next if $line eq '';
+            diag $line;
+            $spelling-error-count++;
+        }
+        ok !$spelling-error-count, "$file ($type) has $spelling-error-count spelling errors";
     }
-
-    my $so-many  = $count // "no";
-    ok !$count, "$file ($type) has $so-many spelling errors";
-});
+}
 
 # vim: expandtab shiftwidth=4 ft=perl6
