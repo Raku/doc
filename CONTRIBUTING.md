@@ -251,7 +251,7 @@ downloading the latest Rakudo Star release from
 installed Rakudo Star package, it should already be there. Feel free to
 use any other module installer for the modules needed (see below).
 
-To install any prerequistes for this module, use:
+To install any prerequisites for this module, use:
 
     $ zef install --deps-only .
 
