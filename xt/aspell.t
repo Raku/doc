@@ -55,8 +55,8 @@ my @jobs = @files.race.map: -> $file {
     # anything with a leading space is considered code, and we just
     # concat all the code and text into one block of each per file
 
-    my Str $code;
-    my Str $text;
+    my Str $code = '';
+    my Str $text = '';
 
     # Process the text so that aspell understands it.
     # Every line starts with a ^
