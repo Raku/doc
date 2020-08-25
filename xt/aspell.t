@@ -19,8 +19,8 @@ that are only allowed in code (variable names, some output, etc.).
 
 If the test fails, you can make it pass again by changing the
 text (fixing the spelling issue), or adding the new word to
-C<xt/words.pws> (if it's a word, a class/method name, known
-program name, etc.), or to C<xt/code.pws> (if it's a fragment of
+C<xt/pws/words.pws> (if it's a word, a class/method name, known
+program name, etc.), or to C<xt/pws/code.pws> (if it's a fragment of
 text that is part of a code example)
 
 =end overview
@@ -38,9 +38,9 @@ if $proc.exitcode {
 # generate a combined words file
 # a header is required, but is supplied by words.pws
 
-my $dict = $*PROGRAM.parent.child("aspell.pws").open(:w);
-$dict.say($*PROGRAM.parent.child("words.pws").IO.slurp.chomp);
-$dict.say($*PROGRAM.parent.child("code.pws").IO.slurp.chomp);
+my $dict = $*PROGRAM.parent.child("pws/aspell.pws").open(:w);
+$dict.say($*PROGRAM.parent.child("pws/words.pws").IO.slurp.chomp);
+$dict.say($*PROGRAM.parent.child("pws/code.pws").IO.slurp.chomp);
 $dict.close;
 
 my %output;
@@ -75,10 +75,10 @@ my $lock = Lock.new;
         my ($dict, $body);
         if $type eq "code" {
             $body = $code;
-            $dict = $*PROGRAM.parent.child("aspell.pws").absolute;
+            $dict = $*PROGRAM.parent.child("pws/aspell.pws").absolute;
         } else {
             $body = $text;
-            $dict = $*PROGRAM.parent.child("words.pws").absolute;
+            $dict = $*PROGRAM.parent.child("pws/words.pws").absolute;
         }
 
         react {

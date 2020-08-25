@@ -15,23 +15,23 @@ Avoid duplicates, verify header, lowercase, sorting.
 
 plan 6;
 
-my @words = $*PROGRAM.parent.child('words.pws').IO.lines;
-my @code = $*PROGRAM.parent.child('code.pws').IO.lines;
+my @words = $*PROGRAM.parent.child('pws/words.pws').IO.lines;
+my @code = $*PROGRAM.parent.child('pws/code.pws').IO.lines;
 
 my $header = @words.shift;
 
-is($header, 'personal_ws-1.1 en 0 utf-8', "header on xt/words.pws is correct");
+is($header, 'personal_ws-1.1 en 0 utf-8', "header on xt/pws/words.pws is correct");
 
 sub sorted(@lexicon) {
     return [&&] @lexicon.rotor(2 => -1).map({$_[0] lt $_[1]})
 }
 
-ok(sorted(@words), "xt/words.pws is sorted");
-ok(sorted(@code), "xt/code.pws is sorted");
+ok(sorted(@words), "xt/pws/words.pws is sorted");
+ok(sorted(@code), "xt/pws/code.pws is sorted");
 
 my @dupes = @words.Set ∩ @code.Set;
 
-is(~@dupes, "", "No duplicates between xt/words.pws and xt/code.pws");
+is(~@dupes, "", "No duplicates between xt/pws/words.pws and xt/pws/code.pws");
 
 # are all the words lower case?
 # (ignore some unicode that aspell doesn't case fold as well as we do.
@@ -40,10 +40,10 @@ sub get-uppers(@lexicon) {
 }
 
 my $uppers = get-uppers(@words);
-is($uppers.elems, 0, "all words in xt/words.pws are lowercase");
+is($uppers.elems, 0, "all words in xt/pws/words.pws are lowercase");
 diag $uppers if $uppers.elems;
 
 $uppers = get-uppers(@code);
-is($uppers.elems, 0, "all words in xt/code.pws are lowercase");
+is($uppers.elems, 0, "all words in xt/pws/code.pws are lowercase");
 diag $uppers if $uppers.elems;
 
