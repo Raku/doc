@@ -4,64 +4,77 @@
 # * Bug fixes in the spell checker have removed the need
 #   to check certain words.
 # * Edits to the docs themselves no longer use some words.
-
+#
+# set UTIL_CLEAN_SPELL_REGEX environment variable to
+# only check words that match
+# that regex. This test can be slow, this gives
+# us an easy way to chunk the test runs.
+#
+# Try to be clever and only test files that match the word,
+# even if it's a partial match to speed up the testing.
+#
 # Trust but verify: make sure you rerun the entire spell check
 # after letting this program update the .pws files
 
 use File::Temp;
 
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Test-Files;
 use Pod::Cache;
 
+my $regex = %*ENV<UTIL_CLEAN_SPELL_REGEX> // ".";
+
+# Check the same files as xt/aspell.t does by default...
 my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
+# ... but use pre-generated/rendered Pod6 files for our quick search.
 @files = @files.map({
     $_.ends-with('.pod6') ?? Pod::Cache.cache-file($_) !! $_;
 });
 
-my %killed;
-
-sub erase-word($file, @words, $word="") {
-    my ($tmp_fname, $tmp_io) = tempfile;
-    for @words -> $i {
-        next if $i eq $word;
-        next if %killed{$i}:exists;
-        $tmp_io.say($i);
-    }
-    $tmp_io.close;
-    run('mv', $tmp_fname, $file);
-}
-
 for <xt/pws/words.pws xt/pws/code.pws> -> $dict {
-    my @words = $dict.IO.lines;
-    for @words -> $word {
+    for $dict.IO.lines -> $word {
+        next unless $word ~~ /<$regex>/;
+        next if $word eq "personal_ws-1.1 en 0 utf-8";
         note "Testing $dict / $word ";
-        my $keep = True;
 
-        my $proc = Proc::Async.new( 'grep', '-li', $word, |@files);
-        my $output = "";
-        $proc.stdout.tap(-> $buf { $output ~= $buf });
-        my $promise = await $proc.start;
+        my $proc = run( 'grep', '-li', $word, |@files, :out);
+        my $output = $proc.out.slurp;
 
-        if +$promise.status {
-            say "Can't find $dict/$word anywhere, kill it.";
-            $keep = False;
+        # remove word, keep pointer to backup lexicon
+        my $backup = erase-word($dict, $word);
+
+        if $output eq '' {
+            note "\tnot found, removing.";
         } else {
-            # Remove the one word we're testing from the file.
-            erase-word($dict, @words, $word);
-            my @raw-files = $output.lines.map({ $_.subst('.pod-cache/', '') });
-            my $proc = run( 'xt/aspell.t', |@raw-files );
+            my @min-files = $output.lines;
+            note "\tfound in {+@min-files} files, testing.";
+            my $proc = run( 'xt/aspell.t', |@min-files, :out, :err);
             if $proc.exitcode == 0 {
-                say "aspell test passed";
-                $keep = False;
+                note "\taspell test passed, removing word";
             } else {
-                say "aspell test failed, keep it";
+                note "\taspell test failed, keeping word";
+                run('mv', $backup, $dict);
             }
         }
-        %killed{$word} = True unless $keep;
     }
-    erase-word($dict, @words);
 }
 
-dd %killed;
+sub erase-word($dict, $word) {
+    # Create a temp copy of the lexicon that doesn't contain the word
+    my ($tmp_fname, $tmp_io) = tempfile;
+    for $dict.IO.lines -> $i {
+        $tmp_io.say($i) unless $i eq $word;
+    }
+    $tmp_io.close;
+
+    # backup the dictionary file
+    my ($backup_fname, $bkp_io) = tempfile;
+    run('cp', $dict, $backup_fname);
+
+    # try the updated copy
+    run('mv', $tmp_fname, $dict);
+
+    # return a link to the last good copy of the file in case caller needs to restore it.
+    return $backup_fname;
+}
