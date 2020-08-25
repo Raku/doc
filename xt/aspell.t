@@ -49,7 +49,7 @@ my $lock = Lock.new;
 
 @files.race.map: -> $file {
     # We use either the raw markdown or the rendered/cached Pod.
-    my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
+    my $input-file = $file.ends-with('.pod6') && !$file.contains('pod-cache') ?? Pod::Cache.cache-file($file) !! $file;
 
     # split the input file into a block of code and a block of text
     # anything with a leading space is considered code, and we just
