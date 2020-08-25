@@ -2,7 +2,7 @@
 
 use Test;
 
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Pod::Convenience;
 use Test-Files;
 

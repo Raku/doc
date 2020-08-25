@@ -12,7 +12,7 @@ use v6;
 use Test;
 use File::Temp;
 
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Pod::Convenience;
 use Test-Files;
 

@@ -10,7 +10,7 @@ Eliminates as false positives URLs that are output, or those that are included i
 
 use v6;
 use Test;
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Test-Files;
 use Pod::To::HTML;
 use MONKEY-SEE-NO-EVAL;

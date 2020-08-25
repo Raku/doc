@@ -2,7 +2,7 @@
 
 use v6;
 use Test;
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Test-Files;
 
 # Every .pod6 file in the Type directory.

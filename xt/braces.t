@@ -3,7 +3,7 @@
 use v6;
 use Test;
 
-use lib 'lib';
+use lib $*PROGRAM.parent(2).child('lib');
 use Pod::Cache;
 use Test-Files;
 

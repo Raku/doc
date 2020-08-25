@@ -3,9 +3,7 @@
 use v6;
 use Test;
 
-use lib 'lib';
-use Pod::Cache;
-use Test-Files;
+use lib $*PROGRAM.parent(2).child('lib');
 
 =begin overview
 
@@ -17,8 +15,8 @@ Avoid duplicates, verify header, lowercase, sorting.
 
 plan 6;
 
-my @words = "xt/words.pws".IO.lines;
-my @code =  "xt/code.pws".IO.lines;
+my @words = $*PROGRAM.parent.child('words.pws').IO.lines;
+my @code = $*PROGRAM.parent.child('code.pws').IO.lines;
 
 my $header = @words.shift;
 
