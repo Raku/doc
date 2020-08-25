@@ -47,7 +47,7 @@ my %output;
 
 my $lock = Lock.new;
 
-my @jobs = @files.race.map: -> $file {
+@files.race.map: -> $file {
     # We use either the raw markdown or the rendered/cached Pod.
     my $input-file = $file.ends-with('.pod6') ?? Pod::Cache.cache-file($file) !! $file;
 

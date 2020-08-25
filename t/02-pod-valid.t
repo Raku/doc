@@ -13,42 +13,43 @@ Ensure any text that isn't a code example is valid C<Pod6>.
 
 =end overview
 
-my $max-jobs = %*ENV<TEST_THREADS> // 2;
-
-my @files-pod = Test-Files.pods;
-plan +@files-pod;
+my @files = Test-Files.pods;
+plan +@files;
 
 my %data;
-test-files( @files-pod ); #Splits in two batches to avoid some errors.
+my $lock = Lock.new;
 
-sub test-it($job) {
-    my $file = $job.command[*-1];
-    ok !$job.exitcode && !%data{$file}, "$file has clean POD6"
-}
+my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
 
-sub test-files( @files ) {
-    my @jobs;
-    %data{@files} = 0 xx @files;
-    for @files -> $file {
-        my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
-        $p.stdout.tap: {;};
-        $p.stderr.tap: {
-            %*ENV<P6_DOC_TEST_VERBOSE>
-            and diag qq:to/EOF/;
-There's been this error in file: $file
-$_
-EOF
-            %data{$file} = 1;
+@files.race.map: -> $file {
+    react {
+        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '--doc', $file]);
+
+        whenever $proc.stdout.lines {
+            ; #discard
         }
-        push @jobs: $p.start;
-        if +@jobs > $max-jobs {
-            test-it(await @jobs.shift);
+
+        whenever $proc.stderr.lines {
+            # An error occurred
+            $verbose and diag("$file error: $_");
+            $lock.protect: {
+                %data{$file} = False;
+            };
+        }
+
+        whenever $proc.start {
+            $lock.protect: {
+                if %data{$file}:!exists {
+                    %data{$file} = !.exitcode;  # 0 = True, anything else False
+                }
+            };
+            done;
         }
     }
-
-    # In case there's something left to run.
-    for @jobs.map: {await $_} -> $r { test-it($r) }
 }
 
+for %data.keys.sort -> $file {
+    ok %data{$file}, "$file has clean Pod6";
+}
 
 # vim: expandtab shiftwidth=4 ft=perl6

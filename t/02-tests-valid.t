@@ -13,45 +13,49 @@ Ensure any test file, including author tests, have clean syntax and POD
 
 =end overview
 
-my $max-jobs = %*ENV<TEST_THREADS> // 2;
+my @files = Test-Files.files.grep({$_.ends-with: '.t'});
 
-my @files-t = Test-Files.files.grep({$_.ends-with: '.t'});
-if @files-t {
-    plan +@files-t;
+if @files {
+    plan +@files;
 } else {
     plan :skip-all<No test files specified>
 }
 
 my %data;
-test-files( @files-t );
+my $lock = Lock.new;
 
-sub test-it($job) {
-    my $file = $job.command[*-1];
-    ok !$job.exitcode && !%data{$file}, "$file POD6 and syntax check out"
-}
+my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
 
-sub test-files( @files ) {
-    my @jobs;
-    %data{@files} = 0 xx @files;
-    for @files -> $file {
-        my $p =  Proc::Async.new($*EXECUTABLE-NAME, '--c', $file);
-        $p.stdout.tap: {;};
-        $p.stderr.tap: {
-            %*ENV<P6_DOC_TEST_VERBOSE>
-            and diag qq:to/EOF/;
-There's been this error in file: $file
-$_
-EOF
-            %data{$file} = 1;
+@files.race.map: -> $file {
+    react {
+        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '-c', $file]);
+
+        whenever $proc.stdout.lines {
+            ; #discard
         }
-        push @jobs: $p.start;
-        if +@jobs > $max-jobs {
-            test-it(await @jobs.shift);
+
+        whenever $proc.stderr.lines {
+            # An error occurred
+            $verbose and diag("$file error: $_");
+            $lock.protect: {
+                %data{$file} = False;
+            };
+        }
+
+        whenever $proc.start {
+        diag $file;
+            $lock.protect: {
+                if %data{$file}:!exists {
+                    %data{$file} = !.exitcode;  # 0 = True, anything else False
+                }
+            };
+            done;
         }
     }
+}
 
-    # In case there's something left to run.
-    for @jobs.map: {await $_} -> $r { test-it($r) }
+for %data.keys.sort -> $file {
+    ok %data{$file}, "$file Pod6 and syntax check out";
 }
 
 
