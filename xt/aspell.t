@@ -27,7 +27,7 @@ text that is part of a code example)
 
 my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
-plan +@files *2;
+plan +@files * 2;
 
 my $proc = shell('aspell -v');
 if $proc.exitcode {
@@ -86,7 +86,7 @@ my @jobs = @files.race.map: -> $file {
 
             whenever $proc.stdout.lines {
                 $lock.protect: {
-                    %output{$file}{$type}<output> = (%output{$file}{$type}<output> // '') ~ $_ ~ "\n";
+                    %output{$file}{$type}<output> ~= "$_\n";
                 }
             }
 
@@ -105,7 +105,7 @@ for %output.keys.sort -> $file {
     for %output{$file}.keys -> $type {
         my $spelling-error-count = 0;
         for %output{$file}{$type}<output>.lines.tail(*-1) -> $line {
-            next if $line eq '';
+            next unless $line;
             diag $line;
             $spelling-error-count++;
         }

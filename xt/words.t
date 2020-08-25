@@ -38,7 +38,7 @@ is(~@dupes, "", "No duplicates between xt/words.pws and xt/code.pws");
 # are all the words lower case?
 # (ignore some unicode that aspell doesn't case fold as well as we do.
 sub get-uppers(@lexicon) {
-    @lexicon.grep({.lc ne $_}).grep({ ! $_.contains('Þ')})
+    @lexicon.grep({ .lc ne $_ }).grep({ ! $_.contains('Þ') })
 }
 
 my $uppers = get-uppers(@words);
