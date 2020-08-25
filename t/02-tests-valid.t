@@ -24,7 +24,7 @@ if @files {
 my %data;
 my $lock = Lock.new;
 
-my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
+my $verbose = %*ENV<P6_DOC_TEST_VERBOSE> // False;
 
 @files.race.map: -> $file {
     react {
@@ -43,7 +43,6 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
         }
 
         whenever $proc.start {
-        diag $file;
             $lock.protect: {
                 if %data{$file}:!exists {
                     %data{$file} = !.exitcode;  # 0 = True, anything else False
