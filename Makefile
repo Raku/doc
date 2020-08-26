@@ -38,7 +38,7 @@ html: for-documentable
 	documentable start -a -v --highlight
 
 update-html:
-	documentable update
+	documentable update --highlight
 
 init-highlights highlights/package-lock.json:
 	ATOMDIR="./highlights/atom-language-perl6";  \
