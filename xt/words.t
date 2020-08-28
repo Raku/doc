@@ -20,7 +20,7 @@ my @code = $*PROGRAM.parent.child('pws/code.pws').IO.lines;
 
 my $header = @words.shift;
 
-is($header, 'personal_ws-1.1 en 0 utf-8', "header on xt/pws/words.pws is correct");
+ok($header ~~  / 'personal_ws-1.1 en ' \d+  ' utf-8' /, "header on xt/pws/words.pws is correct");
 
 sub sorted(@lexicon) {
     return [&&] @lexicon.rotor(2 => -1).map({$_[0] lt $_[1]})
