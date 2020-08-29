@@ -9,17 +9,19 @@ else
 SELINUX_OPT          :=
 endif
 
-.PHONY: html init-highlights assets \
+.PHONY: html init-highlights assets bigpage epub \
 	test xtest ctest help run clean-html clean-images \
 	clean-search clean test-links push \
 	clean-cache \
 	docker-image docker-test docker-xtest docker-ctest docker-testall docker-run
 
 help:
-	@echo "Usage: make [html|test|xtest|ctest]"
+	@echo "Usage: make [html|epub|bigpage|test|xtest|ctest]"
 	@echo ""
 	@echo "Options:"
 	@echo "   html:             generate the HTML documentation"
+	@echo "   epub:             generate EPUB documentation (html/raku.epub)"
+	@echo "bigpage:             generate HTML documentation in one large file (html/raku.html)"
 	@echo "   assets:           generate CSS/JS assets"
 	@echo "init-highlights:     install prereqs for highlights (runs as part of 'make html')"
 	@echo "   test:             run the test suite"
@@ -50,6 +52,12 @@ assets assets/assetpack.db:
 	./app.pl assets
 
 for-documentable: highlights/package-lock.json assets/assetpack.db
+
+bigpage:
+	pod2onepage --html -v --source-path=./doc --exclude=404.pod6 > html/raku.html
+
+epub: bigpage
+	pandoc html/raku.html -o raku.epub
 
 # Common tests that are run by travis with every commit
 test:
