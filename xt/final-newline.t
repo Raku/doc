@@ -23,9 +23,7 @@ my @files = Test-Files.files\
 plan +@files;
 
 for @files -> $file {
-    my $ok = True;
-    my $last-char = $file.IO.slurp.substr(*-1);
-    ok $last-char eq "\n", "$file must end in a newline";
+    ok $file.IO.slurp.substr(*-1) eq "\n", "$file must end in a newline";
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
