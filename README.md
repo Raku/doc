@@ -98,7 +98,7 @@ This will serve the documentation in port 3000.
 ## Building the EPUB and/or the "single big page HTML" documentation
 
 The documentation can also be generated in the EPUB format as well as the
-"single big page HTML" format. Please note that some features (eg. inherited
+"single big page HTML" format. Please note that some features (e.g. inherited
 methods and type graph in the Types section, or syntax highlighting of the code
 examples) are not (yet) available in these formats.
 
