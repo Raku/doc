@@ -95,6 +95,35 @@ based on Mojolicious using
 
 This will serve the documentation in port 3000.
 
+## Building the EPUB and/or the "single big page HTML" documentation
+
+The documentation can also be generated in the EPUB format as well as the
+"single big page HTML" format. Please note that some features (eg. inherited
+methods and type graph in the Types section, or syntax highlighting of the code
+examples) are not (yet) available in these formats.
+
+These are the prerequisites you need to install:
+
+* Pod::To::BigPage 0.5.2 or later
+* Pandoc (EPUB only)
+
+You can follow these instructions to install them on Ubuntu or Debian:
+
+    zef install "Pod::To::BigPage:ver<0.5.2+>"
+    sudo apt install pandoc     # only if you want to generate EPUB
+
+Now that you have the dependencies installed, clone this repository and
+generate the EPUB or "single big page HTML" documentation:
+
+    git clone https://github.com/Raku/doc.git # clone this repo
+    cd doc      # enter the cloned repo
+    make epub           # for the EPUB format,
+                        # for the "single big page HTML" format use `make bigpage` instead
+
+The generated EPUB output you will find in the `raku.epub` file in the root of
+the repository and the generated "single big page HTML" output in
+`html/raku.html`.
+
 ## nginx configuration
 
 Latest version of the generated documentation consists only of static
