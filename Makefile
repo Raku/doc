@@ -36,7 +36,7 @@ help:
 	@echo "docker-testall:      run all tests (in container)"
 	@echo "docker-run:          run the development webserver (in container)"
 
-html: for-documentable bigpage
+html: for-documentable
 	documentable start -a -v --highlight
 
 update-html:
