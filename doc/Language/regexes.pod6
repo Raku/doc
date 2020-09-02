@@ -1862,6 +1862,37 @@ The order of the regex capture is original:
     say $0; # OUTPUT: «｢c｣␤»
     say $1; # OUTPUT: «｢b｣␤»
 
+=head1 X«Recursive Regexes|regex,recursive;regex,tilde tilde;regex,~~;regex,<~~>»
+
+You can use C«<~~>» to recursively invoke the current Regex from within the
+Regex.  This can be extremely helpful for matching nested data structures.  For
+example, consider this Regex:
+
+    / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
+
+This says "match B<either> an open parentheses, followed by zero or more
+non-parentheses characters, followed by a close parentheses B<or> an open
+parentheses followed by zero or more non-parentheses characters, followed by
+I<another match for this Regex>, followed by zero or more non-parentheses
+characters, followed by a close parentheses."  This Regex allows you to match
+arbitrarily many nested parentheses, as show below:
+
+     my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
+     say 'text' ~~ $paren;                            # OUTPUT: «Nil␤»
+     say '(1 + 1) = 2' ~~ $paren;                     # OUTPUT: «｢(1 + 1)｣␤»
+     say '(1 + (2 × 3)) = 7' ~~ $paren;               # OUTPUT: «｢(1 + (2 × 3))｣␤»
+     say '((5 + 2) × 6) = 42 (the answer)' ~~ $paren  # OUTPUT: «｢((5 + 2) × 6)｣␤»
+
+Note that the last expression shown above does I<not> match all the
+way to the final C<)>, as would have happened with C</'('.*')'/>, nor
+does it match only to the first C<)>.  Instead, it correctly matches
+to the close parentheses paired with the first opening parentheses, an
+effect that is very difficult to duplicate without recursive regexes.
+
+When using recursive regexes (as with any other recursive data
+structure) you should be careful to avoid infinite recursion, which
+will cause your program to hang or crash.
+
 =head1 X<Subrules|declarator,regex>
 
 Just like you can put pieces of code into subroutines, you can also put
