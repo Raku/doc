@@ -61,7 +61,7 @@ for @files -> $file {
             # sentence case: all lowercase, titlecase for first
             # character except for cases where the first word is a
             # uncapitalized name of a program
-            if $title !~~ $title.lc.tc and $title !~~ /^ p6doc / {
+            if $title !~~ $title.lc.tc and $title !~~ /^ rakudoc / {
                 @lines.push($line-no);
                 @examples.push($line);
             }
