@@ -1,3 +1,5 @@
+#!/usr/bin/env raku
+
 use Test;
 use Telemetry; # so we can check it
 grammar TypeDocumentation {...}

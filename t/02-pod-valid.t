@@ -1,4 +1,4 @@
-#!/usr/bin/env perl6
+#!/usr/bin/env raku
 
 use v6;
 use lib $*PROGRAM.parent(2).child('lib');
