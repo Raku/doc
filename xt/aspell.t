@@ -13,8 +13,27 @@ Spell check all the pod and most markdown files in the documentation directory.
 Ignore case, and provide a repo-specific list of approved words,
 which include technical jargon, method and class names, etc.
 
-Split the lexicons for descriptive text and code, allowing us to specify "words"
-that are only allowed in code (variable names, some output, etc.).
+To run this test, you'll need to install aspell and the English dictionary package.
+
+On Mac OS X, you can install aspell using macports (https://macports.org/).
+
+=begin code
+$ sudo port install aspell
+$ sudo port install aspell-dict-en
+=end code
+
+On Linux, both aspell and the C<en> dictionary should be available in your
+distribution's package manager and may already be installed.  However, depending
+on your distribution, you may need to update to aspell's C<en> dictionary to a
+more recent version than the one available through your package manager. (The
+2019.10.06 version is known to work).  You can download up-to-date dictionary
+files directly from aspell at
+L<https://ftp.gnu.org/gnu/aspell/dict/0index.html>; the downloaded archive will
+include installation instructions.
+
+This test uses separate lexicons for descriptive text and code, allowing us to
+specify "words" that are only allowed in code (variable names, some output,
+etc.).
 
 If the test fails, you can make it pass again by changing the
 text (fixing the spelling issue), or adding the new word to
