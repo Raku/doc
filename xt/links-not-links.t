@@ -2,9 +2,15 @@
 
 =begin overview
 
-Avoid I<bare> URLs that are not links; URLs should go inside C<L<>> clauses, even if they have no text to link to.
+Avoid I<bare> URLs that are not links; URLs should go inside C<L<>> clauses,
+even if they have no text to link to.
 
-Eliminates as false positives URLs that are output, or those that are included in some IRC log file. URLs in code might still show up as false positive.
+Eliminates as false positives URLs that are output, or those that are
+included in some IRC log file. URLs in code might still show up as false
+positive.
+
+Needs to install independently Pod::To::HTML, which is used only for this
+specific test.
 
 =end overview
 
