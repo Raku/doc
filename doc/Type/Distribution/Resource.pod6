@@ -17,6 +17,107 @@ Externally, every one of these resources behaves as an C<IO::Path>, and it
 shares many of the same methods; however, it's really I<not> an C<IO::Path>
 and thus cannot be smartmatched to it.
 
+This variable will work with the current repository chain structure, and will
+give you the right way to get to the resource independently of it being
+installed or not; however, you shouldn't rely on these values maintaining
+consistency across implementations. You will be able to access the resource
+via its handle no matter what. in this example:
+
+=begin code :solo
+unit class Resourceable;
+
+method gimme(::?CLASS:U: ) {
+    %?RESOURCES;
+}
+=end code
+
+with this C<META6.json>:
+
+=begin code :lang<json>
+{
+  "provides": {
+    "Resourceable": "lib/Resourceable.pm6"
+  },
+  "license": "github:JJ",
+  "description": "Testing how Distribution::Resource(s) work",
+  "perl": "6.*",
+  "auth": "Write me!",
+  "version": "0.0.1",
+    "resources": [
+	"libraries/whatever",
+	"data/swim.csv"
+    ],
+  "meta-version": "0",
+  "name": "Resourceable"
+}
+=end code
+
+you see that there are the two kinds of resources available: regular ones,
+and those starting with C<libraries>, whose actual value (and handle)
+returned will depend on the operating system it's operating. If we access it
+through this script (placed in C<bin/>):
+
+=begin code :skip-test<Needs Resourceable>
+use Resourceable;
+
+for <libraries/whatever data/swim.csv> -> $resource {
+    with Resourceable.gimme{$resource} {
+       .say;
+       say "-" x 10, ">";
+       ( .repo-name, .repo, .dist-id, .key )».say;
+    }
+}
+=end code
+
+run directly from the source directory, like this:
+
+=for code :lang<text>
+# raku -Ilib bin/show-resources.raku
+"/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/resources/libraries/libwhatever.so".IO
+---------->
+(Str)
+file#/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/lib
+/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/lib:ver<*>:auth<>:api<*>
+libraries/whatever
+"/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/resources/data/swim.csv".IO
+---------->
+(Str)
+file#/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/lib
+/home/jmerelo/progs/perl6/my-perl6-examples/test-resources/lib:ver<*>:auth<>:api<*>
+data/swim.csv
+
+However, if we install the distribution and run the installed script, what we
+will get is
+
+=for code :lang<text>
+"/home/jmerelo/.rakudobrew/versions/moar-2020.05/install/share/perl6/site/resources/7127AA0E7F43E87DF309570E813E46A6E2C4D0B2.so".IO
+---------->
+site
+(Str)
+1F8F9C004D7E952B297F30420DA07B354B3F2AA7
+libraries/whatever
+"/home/jmerelo/.rakudobrew/versions/moar-2020.05/install/share/perl6/site/resources/D357F3E46256CB0DACD8975033D1CC7A17B4CF9F.csv".IO
+---------->
+site
+(Str)
+1F8F9C004D7E952B297F30420DA07B354B3F2AA7
+data/swim.csv
+
+The main difference, as it can be observed, is that "local" distributions
+have a defined value for C<repo>, while "installed" distributions have a
+defined value for C<repo-name>. C<dist-id> is going to be different depending
+on the type of distribution, and in any case C<.key> will return the name of
+the resources seudo-hash key.
+
+Please note also that accessing the resource via its key will return a handle
+on the resource, which gists to a C<IO::Path> but is, in fact, a
+C<Distribution::Resource> object. Looking again at the "regular" resources,
+the path it translates to will be the same as the one declared in
+C<resources> in META6.json, but it will change for "library" resources
+converting it to the canonical library name corresponding to the value, in
+the first case C<libwhatever.so>, in the second, a hashed name with the
+canonical Linux extension, .so.
+
 =head1 Methods
 
 
