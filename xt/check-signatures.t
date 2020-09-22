@@ -2,6 +2,17 @@
 
 use Test;
 use Telemetry; # so we can check it
+
+use lib $*PROGRAM.parent(2).child('lib');
+use Test-Files;
+
+=begin pod
+By default, we test all files in 'doc/Type'.  You can specify different files to
+test by passing them as arguments to the test.
+=end pod
+
+my @doc-files = Test-Files.pods.grep(*.starts-with('doc/Type'));
+
 grammar TypeDocumentation {...}
 
 =begin SYNOPSIS
@@ -44,6 +55,7 @@ directory; you can specify an alternate path with the RAKUDO_SRC environmental
 variable.  If we can't find a directory or can't use git to check out the correct
 version of the code, we'll skip all tests.
 =end pod
+
 my $rakudo-src-dir = %*ENV<RAKUDO_SRC> // $*PROGRAM.parent(3).add('rakudo');
 when !$rakudo-src-dir.IO.e {
     plan(:skip-all( "To run check-signatures, please specify the path to the Rakudo git repository "
@@ -54,16 +66,6 @@ given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     when .elems == 1 { run (|<git checkout>, |("tags/{.[0]}")), :out, :err}
     when .elems == 3 { run «git checkout {.[2].substr(1..*)}», :out, :err }
 }
-
-=begin pod
-By default, we test all files in 'doc/Type'.  You can specify different files to
-test by passing them as arguments to the test.
-=end pod
-my @doc-files = @*ARGS
-    ?? @*ARGS.map({ $*PROGRAM.parent(2).add($_)})
-    !! gather { for $*PROGRAM.parent(2).add('doc/Type') {
-                    take .IO when .IO.f; .IO.dir».&?BLOCK when .IO.d;
-}};
 
 my token signature { '('[ <-[()]>* <~~> <-[()]>* ]* ')' | '(' <-[()]>* ')' }
 
