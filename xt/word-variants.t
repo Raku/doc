@@ -28,6 +28,7 @@ my %variants = %(
     shorthand  => 'short [\s+|\-] hand',
     sigiled => 'sigilled',
     smartmatch => 'smart  [\s+|\-] match',
+    subdirectory => 'sub \- directory',
     zero-width => 'zero \s+ width<!before \' joiner\'><!before \' no-break space\'>',
 );
 
