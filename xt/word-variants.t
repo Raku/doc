@@ -12,24 +12,24 @@ Make sure certain words are normalized by checking regular expressions.
 
 my @files = Test-Files.pods;
 
-my %variants = %( filehandle => 'file [\s+|\-] handle',
-                  filesystem => 'file [\s+|\-] system',
-                  runtime    => 'run [\s+|\-] time',
-                  shorthand  => 'short [\s+|\-] hand',
-                  lookahead  => 'look \- ahead',
-                  lookbehind => 'look [\s+|\-] behind',
-                  smartmatch => 'smart  [\s+|\-] match',
-                  zero-width => 'zero \s+ width<!before \' joiner\'><!before \' no-break space\'>',
-                  NYI        => 'niy',
-                  meta      => '<!after [ method || \$ || \- || \" ] \s*> meta
+my %variants = %(
+    filehandle => 'file [\s+|\-] handle',
+    filesystem => 'file [\s+|\-] system',
+    lookahead  => 'look \- ahead',
+    lookbehind => 'look [\s+|\-] behind',
+    meta      => '<!after [ method || \$ || \- || \" ] \s*> meta
 [\s+|\-]
 <<',
-                  precompil => 'pre \- compil',
-                  semicolon => 'semi [\s+|\-] colon',
-                  metadata  => 'meta [\s+|\+] data',
-                  sigiled => 'sigilled',
-               );
-# zero-width in particular has several unicode documentation variants we allow
+    metadata  => 'meta [\s+|\+] data',
+    NYI        => 'niy',
+    precompil => 'pre \- compil',
+    runtime    => 'run [\s+|\-] time',
+    semicolon => 'semi [\s+|\-] colon',
+    shorthand  => 'short [\s+|\-] hand',
+    sigiled => 'sigilled',
+    smartmatch => 'smart  [\s+|\-] match',
+    zero-width => 'zero \s+ width<!before \' joiner\'><!before \' no-break space\'>',
+);
 
 plan +@files;
 
