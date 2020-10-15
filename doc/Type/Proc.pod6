@@ -57,6 +57,34 @@ L«C<.slurp-rest>|/routine/slurp-rest» instead.
 
 Use L<Proc::Async|/type/Proc::Async> for non-blocking operations.
 
+
+=head1 Potential Deadlocks
+
+If you run an external program with C<:out> and C<:err> (so
+capturing standard output and standard error separately), a deadlock
+can occur, for example in the following scenario:
+
+=item Your Raku script reads from the program's standard output until
+the End of File (EOF) marker).
+=item The external program writes to its standard error stream.
+=item The external program runs into the standard error's buffer limit.
+=item Your Raku script blocks, waiting for input on the output stream, while
+the external program blocks until its standard error buffer is being drained.
+
+You can avoid this by using C<:merge> to join the external program's
+standard output and error streams, so that you only need to read from
+one pipe. Of course, this presupposes that you do not need separate access
+to the two streams. If you do, the only save approach is to use
+L<Proc::Async>.
+
+A similar deadlock can occur when you call an external program with
+both the C<:in> option (to open a pipe to its standard input) and
+one of the C<:out>, C<:err> or C<:merge> options. In this scenario,
+it can happen that your Raku script blocks reading from the external
+program's output while it waits for input, and vice versa.
+
+In this scenario, switching to L<Proc::Async> is the most robust solution.
+
 =head1 Methods
 
 =head2 routine new
