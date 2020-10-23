@@ -760,91 +760,50 @@ say "y: ", $p.y;
 C<Mu.new> calls method L<bless|/routine/bless> on its invocant, passing all
 the named L<arguments|/language/functions#Arguments>. C<bless> creates the new
 object, and then walks all subclasses in reverse method resolution order
-(i.e. from L<Mu|/type/Mu> to most derived classes) and in each class checks for
-the existence of a method named C<BUILD>. If the method exists, the
-method is called with all the named arguments from the C<new> method. If
-not, the public attributes from this class are initialized from named
-arguments of the same name. In either case, if neither C<BUILD> nor the
-default mechanism has initialized the attribute, default values are
-applied. This means that C<BUILD> may change an attribute, but it does
-not have access to the contents of the attribute declared as its
-default; these are available only during C<TWEAK> (see below), which can
-'see' the contents of an attribute initialized in the declaration of the
-class.
+(i.e. from L<Mu|/type/Mu> to most derived classes). In each class C<bless>
+executes the following steps in the order given here:
 
+=item It checks for the existence of a method named C<BUILD>. If the method
+exists, the method is called with all the named arguments it received (from the
+C<new> method).
+
+=item If no C<BUILD> method was found, the public attributes from this class
+are initialized from named arguments of the same name.
+
+=begin item
+All attributes that have not been touched in any of the previous steps have
+their default values applied:
+
+C<has $.attribute = 'default value';>
+=end item
+
+=begin item
 X<|TWEAK>
-After the C<BUILD> methods have been called for a class, methods named
-C<TWEAK> are called for that class, if they exist, again with all the
-named arguments that were passed to C<new>. See an example of its use below.
+C<TWEAK> is called should it exist. It will receive the same arguments
+C<BUILD> receives.
+=end item
 
-Due to the default behavior of C<BUILD> and C<TWEAK> submethods, named
-arguments to the constructor C<new> derived from C<Mu> can
+This object construction scheme has several implications:
+
+=begin item
+Named arguments to the default C<new> constructor (inherited from C<Mu>) can
 correspond directly to public attributes of any of the classes in the method
 resolution order, or to any named parameter of any C<BUILD> or C<TWEAK>
 submethod.
+=end item
 
-This object construction scheme has several implications for customized
-constructors. First, custom C<BUILD> methods should always be submethods,
-otherwise they break attribute initialization in subclasses. Second,
-C<BUILD> submethods can be used to run custom code at object construction
-time. They can also be used for creating aliases for attribute
-initialization:
+=begin item
+Custom C<BUILD> methods should always be submethods, otherwise they are
+inherited to subclasses and prevent default attribute initialization (item two
+in the above list) should the subclass not have its own C<BUILD> method.
+=end item
 
-=begin code
-class EncodedBuffer {
-    has $.enc;
-    has $.data;
-
-    submethod BUILD(:encoding(:$enc), :$data) {
-        $!enc  :=  $enc;
-        $!data := $data;
-    }
-}
-my $b1 = EncodedBuffer.new( encoding => 'UTF-8', data => [64, 65] );
-my $b2 = EncodedBuffer.new( enc      => 'UTF-8', data => [64, 65] );
-#  both enc and encoding are allowed now
-=end code
-
-Since passing arguments to a routine binds the arguments to the parameters,
-a separate binding step is unnecessary if the attribute is used as a
-parameter. Hence the example above could also have been written as:
-
-=begin code :preamble<has $!enc; has $!data>
-submethod BUILD(:encoding(:$!enc), :$!data) {
-    # nothing to do here anymore, the signature binding
-    # does all the work for us.
-}
-=end code
-
-However, be careful when using this auto-binding of attributes
-when the attribute may have special type requirements, such as an C<:$!id>
-that must be a positive integer. Remember, default values will be assigned
-unless you specifically take care of this attribute, and that
-default value will be C<Any>, which would cause a type error.
-
-The third implication is that if you want a constructor that accepts
-positional arguments, you must write your own C<new> method:
-
-=begin code
-class Point {
-    has $.x;
-    has $.y;
-    method new($x, $y) {
-        self.bless(:$x, :$y);
-    }
-}
-=end code
-
-However this is considered poor practice, because it makes correct
-initialization of objects from subclasses harder.
-
-Another thing to note is that the name C<new> is not special in Raku. It is
-merely a common convention, one that is followed quite thoroughly in
-L<most Raku classes|/routine/new>. You can call C<bless> from any method at
-all, or use C<CREATE> to fiddle around with low-level workings.
-
-The C<TWEAK> submethod allows you to check things or modify attributes after
-object construction:
+=begin item
+C<BUILD> may set an attribute, but it does not have access to the contents of
+the attribute declared as its default as they are only applied later.
+C<TWEAK> on the other hand is called after default values have been
+applied and will thus find the attributes initialized. So it can be used to
+check things or modify attributes after object construction:
 
 =begin code
 class RectangleWithCachedArea {
@@ -858,6 +817,176 @@ class RectangleWithCachedArea {
 say RectangleWithCachedArea.new( x2 => 5, x1 => 1, y2 => 1, y1 => 0).area;
 # OUTPUT: «4␤»
 =end code
+=end item
+
+=begin item
+Since passing arguments to a routine binds the arguments to the parameters,
+one can simplify BUILD methods by using the attribute as a parameter.
+
+A class using ordinary binding in the C<BUILD> method:
+=begin code
+class Point {
+    has $.x;
+    has $.y;
+
+    submethod BUILD(:$x, :$y) {
+        $!x := $x;
+        $!y := $y;
+    }
+}
+my $p1 = Point.new( x => 10, y => 5 );
+=end code
+
+The following C<BUILD> method is equivalent to the above:
+=begin code :preamble<has $!enc; has $!data>
+submethod BUILD(:$!x, :$!y) {
+    # Nothing to do here anymore, the signature binding
+    # does all the work for us.
+}
+=end code
+=end item
+
+=begin item
+In order to use default values together with a `BUILD()` method one can't use
+parameter binding of attributes, as that will always touch the attribute and
+thus prevent the automatic assignment of default values (step three in the
+above list). Instead one would need to conditionally assign the value:
+
+=begin code
+class A {
+    has $.attr = 'default';
+    submethod BUILD(:$attr) {
+        $!attr = $attr if defined $attr;
+    }
+}
+say A.new(attr => 'passed').raku;
+say A.new().raku;
+# OUTPUT: «A.new(attr => "passed")␤»
+# OUTPUT: «A.new(attr => "default")␤»
+=end code
+
+It's simpler to set a default value of the `BUILD` parameter instead though:
+
+=begin code
+class A {
+    has $.attr;
+    submethod BUILD(:$!attr = 'default') {}
+}
+=end code
+=end item
+
+=begin item
+Be careful when using parameter binding of attributes when the attribute has a
+special type requirement such as an C<Int> type. If C<new> is called without
+this parameter, then a default of C<Any> will be assigned, which will cause a
+type error. The easy fix is to add a default value to the C<BUILD> parameter.
+
+=begin code
+class A {
+    has Int $.attr;
+    submethod BUILD(:$!attr = 0) {}
+}
+say A.new(attr => 1).raku;
+say A.new().raku;
+# OUTPUT: «A.new(attr => 1)␤»
+# OUTPUT: «A.new(attr => 0)␤»
+=end code
+=end item
+
+=begin item
+C<BUILD> allows to create aliases for attribute initialization:
+
+=begin code
+class EncodedBuffer {
+    has $.enc;
+    has $.data;
+
+    submethod BUILD(:encoding(:$!enc), :$!data) { }
+}
+my $b1 = EncodedBuffer.new( encoding => 'UTF-8', data => [64, 65] );
+my $b2 = EncodedBuffer.new( enc      => 'UTF-8', data => [64, 65] );
+#  both enc and encoding are allowed now
+=end code
+=end item
+
+=begin item
+Note that the name C<new> is not special in Raku. It is merely a common
+convention, one that is followed quite thoroughly in
+L<most Raku classes|/routine/new>. You can call C<bless> from any method, or
+use C<CREATE> to fiddle around with low-level workings.
+=end item
+
+=begin item
+If you want a constructor that accepts positional arguments, you must write
+your own C<new> method:
+
+=begin code
+class Point {
+    has $.x;
+    has $.y;
+    method new($x, $y) {
+        self.bless(:$x, :$y);
+    }
+}
+=end code
+
+Do note, however, that C<new> is a normal method and not involved in any of the
+construction process of C<bless>. So any logic placed in the C<new> method will
+not be called when using a different C<new> method or a C<new> of a subclass.
+
+=begin code
+class Vector {
+    has $.x;
+    has $.y;
+    has $.length;
+    method new($x, $y) {
+        self.bless(:$x, :$y, length => sqrt($x**2 * $y**2));
+    }
+}
+
+class NamedVector is Vector {
+    has $.name;
+    method new($name, $x, $y) {
+        self.bless(:$name, :$x, :$y);
+    }
+}
+
+my $v = Vector.new: 2, 3;
+say $v.length; # OUTPUT: «6␤»
+
+my $f = NamedVector.new: 'Francis', 3, 5;
+say $f.length; # OUTPUT: «(Any)␤»
+=end code
+
+=end item
+
+Here is an example where we I<enrich> the C<Str> class with an
+auto-incrementing ID:
+
+=begin code
+class Str-with-ID is Str {
+    my $counter = 0;
+    has Int $.ID  is rw = 0;
+
+    multi method new( $str ) {
+        self.bless( value => $str );
+    }
+    submethod BUILD( :$!ID = $counter++ ) {}
+}
+
+say Str-with-ID.new("1.1,2e2").ID;                  # OUTPUT: «0␤»
+my $enriched-str = Str-with-ID.new("3,4");
+say "$enriched-str, {$enriched-str.^name}, {$enriched-str.ID}";
+# OUTPUT: «3,4, Str-with-ID, 1␤»
+=end code
+
+We create a custom C<new> since we want to be able to be able to initialize
+our new class with a bare string. C<bless> will call C<Str.BUILD> which will
+I<capture> the value it's looking for, the pair C«value => $str» and
+initialize itself. But we have to also initialize the properties of the
+subclass, which is why within C<BUILD> we initialize C<$.ID>. As seen in the
+output, the objects will be correctly initialized with an ID and can be used
+just like a normal C<Str>.
 
 =head2 Object cloning
 

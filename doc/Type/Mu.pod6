@@ -337,92 +337,11 @@ class Point {
 my $p = Point.new(-1, 1);
 =end code
 
-In this case we are declaring C<new> as a C<multi method> so that we can still
-use the default constructor like this: C«Point.new( x => 3, y => 8 )». In this
-case we are declaring this C<new> method simply to avoid the extra syntax of
-using pairs when creating the object. C<self.bless> returns the object, which is
-in turn returned by C<new>.
-
-However, in general, implementing a customized C<new> method might not be the best
-way of initializing a class, even more so if the default constructor is
-disabled, since it can make it harder to correctly initialize the class from a
-subclass. For instance, in the above example, the C<new> implementation takes
-two positional arguments that must be passed from the subclass to the superclass
-in the exact order. That is not a real problem if it's documented, but take
-into account C<bless> will eventually be calling C<BUILD>
-in the class that is being instantiated. This might result in some unwanted
-problems, like having to create a C<BUILD> submethod to serve it correctly:
-
-=begin code
-class Point {
-    has Int $.x;
-    has Int $.y;
-    multi method new($x, $y) {
-        self.bless(:$x, :$y);
-    }
-}
-
-class Point-with-ID is Point {
-    has Int $.ID  is rw = 0;
-
-    submethod BUILD( *%args ) {
-        say %args;                # OUTPUT: «{x => 1, y => 2}␤»
-        for self.^attributes -> $attr {
-            if $attr.Str ~~ /ID/ {
-                $attr.set_value( self, "*" ~ %args<x> ~ "-" ~ %args<y> ) ;
-            }
-        }
-    }
-}
-
-my $p = Point-with-ID.new(1,2);
-say $p.raku;
-# OUTPUT: «Point-with-ID.new(ID => "*1-2", x => 1, y => 2)␤»
-=end code
-
-In this code, C<bless>, called within C<Point.new>, is eventually calling
-C<BUILD> with the same parameters. We have to create a convoluted way of using
-the C<$.ID> attribute using the metaobject protocol so that we can instantiate
-it and thus serve that C<new> constructor, which can be called on
-C<Point-with-ID> since it is a subclass.
-
-We might have to use something similar if we want to instantiate superclasses.
-C<bless> will help us with that, since it is calling across all the hierarchy:
-
-=begin code
-class Str-with-ID is Str {
-    my $.counter = 0;
-    has Int $.ID  is rw = 0;
-
-    multi method new( $str ) {
-        self.bless( value => $str, ID => $.counter++ );
-    }
-
-    submethod BUILD( *%args ) {
-        for self.^attributes -> $attr {
-            if $attr.Str ~~ /ID/ {
-                $attr.set_value( self, %args<ID> ) ;
-            }
-        }
-    }
-}
-
-say Str-with-ID.new("1.1,2e2").ID;                  # OUTPUT: «0␤»
-my $enriched-str = Str-with-ID.new("3,4");
-say "$enriched-str, {$enriched-str.^name}, {$enriched-str.ID}";
-# OUTPUT: «3,4, Str-with-ID, 1␤»
-=end code
-
-We are I<enriching> C<Str> with an auto-incrementing ID. We create a C<new>
-since we want to initialize it with a string and, besides, we need to
-instantiate the superclass. We do so using C<bless> from within C<new>. C<bless>
-is going to call C<Str.BUILD>. It will *capture* the value it's looking for, the
-pair C<value => $str> and initialize itself. But we have to initialize also the
-properties of the subclass, which is why within C<BUILD> we use the previously
-explained method to initialize C<$.ID> with the value that is in the C<%args>
-variable. As shown in the output, the objects will be correctly initialized with
-its ID, and will correctly behave as C<Str>, converting themselves in just the
-string in the C<say> statement, and including the C<ID> property as required.
+In this example we are declaring this C<new> method to avoid the extra syntax
+of using pairs when creating the object. C<self.bless> returns the object,
+which is in turn returned by C<new>. C<new> is declared as a C<multi method> so
+that we can still use the default constructor like this:
+C«Point.new( x => 3, y => 8 )».
 
 For more details see
 L<the documentation on object construction|/language/objects#Object_construction>.
