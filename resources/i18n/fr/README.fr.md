@@ -56,9 +56,9 @@ Pour installez les dépendances exécutez la commande suivante dans le répertoi
 
     $ zef --deps-only install .
 
-Si vous utilisez [`rakudobrew`](https://github.com/tadzik/rakudobrew), exécutez également la commande suivante afin de mettre à jour les `shims` pour les exécutables installés:
+Si vous utilisez [`rakubrew`](https://rakubrew.org/) en mode `shim`, exécutez également la commande suivante afin de mettre à jour les `shims` pour les exécutables installés:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 En plus des dépendances Raku, vous devez avoir `graphviz` installé, que vous pouvez installer avec la commande:
 

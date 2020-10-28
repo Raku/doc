@@ -60,11 +60,11 @@ nella directory ove si è fatto il checkout del repository:
 
     $ zef --deps-only install .
 
-Se si sta usando [`rakudobrew`](https://github.com/tadzik/rakudobrew),
+Se si sta usando [`rakubrew`](https://rakubrew.org/) in modalità `shim`,
 è necessario anche eseguire il seguente comando in modo da aggiornare gli "shims"
 per gli eseguibili installati:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 Oltre alle dipendenze specifiche di  Raku, è necessario anche avere installato `graphviz`,
 che su sistemi Debian può essere installato con il seguente comando

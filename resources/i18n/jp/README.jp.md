@@ -43,9 +43,9 @@
 
     $ zef --deps-only install .
 
-[`rakudobrew`](https://github.com/tadzik/rakudobrew)を使用している場合は、次のコマンドも実行してください:
+[`rakubrew`](https://rakubrew.org/)を使用している場合は、次のコマンドも実行してください:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 Rakuの依存関係に加えて、 `graphiviz` がインストールしてある必要があります。
 Debian環境なら下記のコマンドでインストールすることができます:
