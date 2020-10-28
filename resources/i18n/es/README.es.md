@@ -55,9 +55,9 @@ Instala las dependencias ejecutando lo siguiente en el directorio correspondient
 
     $ zef --deps-only install .
 
-Si usas [`rakudobrew`](https://github.com/tadzik/rakudobrew), ejecuta también:
+Si usas [`rakubrew`](https://rakubrew.org/) în modul `shim`, ejecuta también:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 para actualizar los correctores de compatibilidad de los ejecutables instalados.
 

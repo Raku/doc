@@ -58,9 +58,9 @@ Instale as dependências executando o siguinte no directório onde estão as fon
 
     $ zef --deps-only install .
 
-[`rakudobrew`](https://github.com/tadzik/rakudobrew), precisa que seja executado tabém:
+[`rakubrew`](https://rakubrew.org/), precisa que seja executado tabém:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 para atualizar os links de compatibilidade de executáveis.
 

@@ -60,12 +60,10 @@ Installiere die Abhängigkeiten durch ausführen von
 
 in deinem Checkout-Verzeichnis.
 
-Falls du [`rakudobrew`](https://github.com/tadzik/rakudobrew)
-verwendest, führe den folgenden Befehl aus, um die
-Kompatibilitäts-Anpassungen an den installierten ausführbaren Dateien
-zu aktualisieren:
+Falls du [`rakubrew`](https://rakubrew.org/) im `shim` Modus verwendest, führe
+den folgenden Befehl aus, um neu installierte Scripte verfügbar zu machen:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 Zusätzlich zu den Raku Abhängigkeiten musst du `graphviz`
 installiert haben. Unter Debian kannst du dies tun mit

@@ -54,10 +54,10 @@ Installeer de benodigde dependencies door het volgende commando uit te voeren in
 
     $ zef --deps-only install .
 
-Als je gebruik maakt van [`rakudobrew`](https://github.com/tadzik/rakudobrew) heb je ook
+Als je gebruik maakt van [`rakubrew`](https://rakubrew.org/) in `shim`-modus heb je ook
 het volgende commando nodig om de shims voor de geïnstalleerde programma's te updaten:
 
-    $ rakudobrew rehash
+    $ rakubrew rehash
 
 Naast de Raku dependencies dien je ook 'graphviz' geïnstalleerd te hebben; op Debian kun
 je dit bewerkstelligen met het commando:
