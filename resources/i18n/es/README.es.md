@@ -55,7 +55,7 @@ Instala las dependencias ejecutando lo siguiente en el directorio correspondient
 
     $ zef --deps-only install .
 
-Si usas [`rakubrew`](https://rakubrew.org/) în modul `shim`, ejecuta también:
+Si usas [`rakubrew`](https://rakubrew.org/) en modo `shim`, ejecuta también:
 
     $ rakubrew rehash
 
