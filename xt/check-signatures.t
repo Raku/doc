@@ -25,6 +25,11 @@ the signature does not automatically cause the test to fail: some differences in
 signature (such as different names for positional parameters) represent
 different implementation choices rather than an error in the docs.
 
+NOTE: when you specify a rakudo source directory using the RAKUDO_SRC environment
+variable, this script will attempt to test a specific version by using git checkout
+to switch that checkout to a specific version during the test, and run
+"git checkout -" at the end to reset the state.
+
 To ensure that implementation details don't cause failing tests, we check only
 for certain discrepancies that are guaranteed to indicate a
 substantive/non-implementation detail mismatch between Rakudo and the docs.
@@ -47,19 +52,9 @@ the function always does return that type)
 
 =end SYNOPSIS
 
-=begin pod
-To check against the Rakudo source code, we need to know have a path to a
-directory containing a git repository with the source code.  By default, this
-test looks for a repository in the same directory that contains the 'docs'
-directory; you can specify an alternate path with the RAKUDO_SRC environmental
-variable.  If we can't find a directory or can't use git to check out the correct
-version of the code, we'll skip all tests.
-=end pod
-
-my $rakudo-src-dir = %*ENV<RAKUDO_SRC> // $*PROGRAM.parent(3).add('rakudo');
-when !$rakudo-src-dir.IO.e {
-    plan(:skip-all( "To run check-signatures, please specify the path to the Rakudo git repository "
-                     ~ "with the RAKUDO_SRC environmental variable" )) }
+my $error = "To run check-signatures, please specify the path to the Rakudo git checkout with the RAKUDO_SRC environment variable";
+my $rakudo-src-dir = %*ENV<RAKUDO_SRC> // plan(:skip-all( $error ));
+when !$rakudo-src-dir.IO.d { plan(:skip-all( $error )) }
 when ?(run <git --version>, :out, :err).exitcode { plan(:skip-all( "check-signatures requires git"))}
 given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     chdir $rakudo-src-dir;
