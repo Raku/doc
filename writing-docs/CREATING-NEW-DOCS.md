@@ -17,6 +17,12 @@
 
         =end pod
 
+You can use
+ 
+    TEST_FILES="files changed but not pushed" make xtest
+
+To validate these and other conventions before committing.
+
 ### Valid example:
 
 ```
