@@ -26,7 +26,7 @@ for @files -> $file {
             # proper names, macros, acronyms, and other exceptions
             $title ~~ s:g/ <|w> (
                 I
-                | Raku | Perl 6 | Pod6 | P6 | C3 | NQP
+                | Raku | Rakudo | Perl 6 | Pod6 | P6 | C3 | NQP
                 | AST | EVAL | PRE | POST | CLI | MOP
                 | TITLE | SUBTITLE | "MONKEY-TYPING"
                 | API | TCP | UDP | FAQ
