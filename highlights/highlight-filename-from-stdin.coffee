@@ -4,8 +4,15 @@ Highlights = require 'highlights'
 fs = require 'fs'
 path = require 'path'
 highlighter = new Highlights()
+modPath = require.resolve('./atom-language-perl6/package.json')
 highlighter.requireGrammarsSync
-  modulePath: require.resolve('./atom-language-perl6/package.json')
+  modulePath: modPath
+
+rakuGrammarPath = path.join(path.dirname(modPath), 'grammars', 'raku.cson')
+if fs.existsSync(rakuGrammarPath)
+    rakuScopeName = 'source.raku'
+else
+    rakuScopeName = 'source.perl6fe'
 
 stdin = process.openStdin()
 stdin.setEncoding 'utf8'
@@ -27,7 +34,7 @@ process_file = (given_path) ->
     if read_err
       console.error read_err
     else
-      highlighter.highlight (fileContents: file_str, scopeName: 'source.perl6fe'), (hl_err, html) ->
+      highlighter.highlight (fileContents: file_str, scopeName: rakuScopeName), (hl_err, html) ->
         if hl_err
           console.error hl_err
         else
