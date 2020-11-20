@@ -69,7 +69,10 @@ for @doc-files -> $file {
     when $file !~~ /'doc/Type/'[(\w+)'/'?]+'.pod6'/ { skip "'{$file.basename}' doesn't document a type" }
     my $type-name = S/'doc/Type/'[(\w+)'/'?]+'.pod6'/$0.join('::')/ with $file;
     my $type = ::($type-name);
-    CATCH { default { skip "$type-name lacks required introspection" } }
+    CATCH { default {
+        my $name = $type-name // $file;
+        skip "$name lacks required introspection";
+    }}
     TypeDocumentation.parse($file.IO.slurp);
 
     subtest "check $type-name methods", {
