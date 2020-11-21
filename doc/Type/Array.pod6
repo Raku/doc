@@ -22,16 +22,16 @@ called on multi-dimensional arrays.
 Exactly the same as L«C<List.gist>|/type/List#method_gist»,
 except using square brackets for surrounding delimiters.
 
-=head2 routine pop
+=head2 method pop
 
 Defined as:
 
-    multi sub    pop(Array:D )
-    multi method pop(Array:D:)
+    method pop(Array:D:) is nodal
 
-Removes and returns the last item from the array.  Fails for an empty array.
+Removes and returns the last item from the array.  Fails if the array is empty.
 
-Example:
+Like many C<Array> methods, method C<pop> may be called via the corresponding
+L<subroutine|/language/independent-routines#sub_pop>. For example:
 
     my @foo = <a b>; # a b
     @foo.pop;        # b
@@ -40,15 +40,23 @@ Example:
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::Cannot::Empty: Cannot pop from an empty Array␤»
 
-=head2 routine push
+=head2 method push
 
 Defined as:
 
-    multi sub    push(Array:D, **@values --> Array:D)
-    multi method push(Array:D: **@values --> Array:D)
+    multi method push(Array:D: Slip \value --> Array:D)
+    multi method push(Array:D: \value --> Array:D)
+    multi method push(Array:D: **@values is raw --> Array:D)
 
-Adds the C<@values> to the end of the array, and returns the modified array.
-Throws for lazy arrays.
+A subclass that just wants to accept the same arguments as C<Array> can override
+L<all candidates|/routine/push> with a single:
+
+    method push(::?CLASS:D: **@values is raw --> ::?CLASS:D)
+
+The C<Array> class adds the values in the argument list to the end of the array,
+and returns the modified array. If any argument is a C<Slip>, method C<push>
+will add the values produced by the argument's L<iterator|/routine/iterator>.
+It throws if the invocant array or a C<Slip> L<is lazy|/routine/is-lazy>.
 
 Example:
 
@@ -65,35 +73,36 @@ an array or list as the thing to push, it becomes one additional element:
     say @a.elems;               # OUTPUT: «4␤»
     say @a[3].join;             # OUTPUT: «def␤»
 
-Only if you supply multiple values as separate arguments to C<push> are
-multiple values added to the array:
+Multiple values are added to the array only if you supply them as separate
+arguments or in a L<slip|/type/Slip>:
 
    my @a = '1';
-   my @b = <a b>;
+   say @a.push: 'a', 'b';       # OUTPUT: «[1 a b]␤»
    my @c = <E F>;
-   @a.push: @b, @c;
-   say @a.elems;                # OUTPUT: «3␤»
+   say @a.push: @c.Slip;        # OUTPUT: «[1 a b E F]␤»
 
-See L<routine append|#routine_append> for when you want to append multiple
-values that are stored in a single array.
+See L<method append|#method_append> if you want to append multiple values that
+are produced by a single non-slipping C<Iterable>.
 
-=head2 routine append
+=head2 method append
 
 Defined as
 
-    sub append(\array, |elems)
-    multi method append(Array:D: \values)
-    multi method append(Array:D: **@values is raw)
+    multi method append(Array:D: \value --> Array:D)
+    multi method append(Array:D: **@values is raw --> Array:D)
 
-Appends the argument list to the array passed as the first argument.  This
-modifies the array in-place.  Returns the modified array. Throws for lazy
-arrays.
+A subclass that just wants to accept the same arguments as C<Array> can override
+L<all candidates|/routine/append> with a single:
 
-The difference from method C<push> is that if you append a B<single> array
-or list argument, C<append> will flatten that array / list, whereas C<push>
-appends the list / array as just a single element.
+    method append(::?CLASS:D: +values --> ::?CLASS:D)
 
-Example:
+The C<Array> class adds the provided values to the end of the array, and returns
+the modified array. It throws if the invocant array or an argument that
+requires flattening L<is lazy|/routine/is-lazy>.
+
+The difference with method L<method push|#method_push> is that if you append a
+B<single> non-L<itemized|/language/mop#VAR> C<Iterable>, C<append> will try to
+flatten it. For example:
 
     my @a = <a b c>;
     my @b = <d e f>;
@@ -160,14 +169,13 @@ my @a = <a 2 c>;
 say @a.flat.^name; OUTPUT: «Seq␤»
 
 
-=head2 routine shift
+=head2 method shift
 
 Defined as:
 
-    multi sub    shift(Array:D )
-    multi method shift(Array:D:)
+    method shift(Array:D:) is nodal
 
-Removes and returns the first item from the array.  Fails for an empty arrays.
+Removes and returns the first item from the array.  Fails if the array is empty.
 
 Example:
 
