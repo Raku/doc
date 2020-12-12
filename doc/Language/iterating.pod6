@@ -4,136 +4,321 @@
 
 =SUBTITLE Functionalities available for visiting all items in a complex data structure
 
-=head1 The C<Iterator> and C<Iterable> roles
+Similar to other many programming languages, Raku makes a fine distinction among
+the terms I<iteration>, I<iterable>, and I<iterator>. Familiarizing yourself
+with them is key for understanding the Raku constructs that implement these
+concepts:
 
-Raku is a functional language, but functions need something to hold on to when
-working on complex data structures. In particular, they need a uniform interface
-that can be applied to all data structures in the same way. One of these kind of
-interfaces is provided by the L<Iterator|/type/Iterator> and
-L<Iterable|/type/Iterable> roles.
+=item An B<iteration> is a mechanism by which a block of code is executed repeatedly.
 
-The C<Iterable> role is relatively simple. It provides a stub for the
-C<iterator> method, which is the one actually used by statements such as C<for>.
-C<for> will call C<.iterator> on the variable it precedes, and then run a block
-once for every item. Other methods, such as array assignment, will make the
-C<Iterable> class behave in the same way.
+=item An B<iterable> is an object that produce an iterator.
+
+=item An B<iterator> is an object that performs an iteration. In other words, an
+iterator knows how to compute the next value during an iteration.
+
+Thus, an B<iterator> contains the state that moves as it works through the
+available values. On the contrary, an B<iterable> is the originating container
+that has no need to contain the state corresponding to the process of iteration.
+
+Raku provides support for both iterables and iterators via the
+L<C<Iterable>|/type/Iterable> and L<C<Iterator>|/type/Iterator> roles.
+
+=head1 The C<Iterable> role
+
+The L<C<Iterable>|/type/Iterable> role is relatively simple and it requires that
+the composed class provides an C<iterator> method, which must return
+an L<C<Iterator>|/type/Iterator> object. The L<C<iterator>|/type/Iterable#method_iterator>
+method is the construct actually used by statements such as C<for>, which
+invokes C<iterator> on the variable it precedes, and then run a block once for
+every item. Similarly other statements, such as array assignment, will make the
+C<Iterable>-composed class behave in the same way.
+
+Any object that can return an C<Iterator> is an iterable. Most container types
+in Raku conform to the C<Iterable> API. To check if a type object or instance
+object composes the C<Iterable> role, and thus implement the
+C<iterator> method, you can use the L<C<does>|/type/Mu#routine_does> method.
+
+=begin code
+say Seq.does(Iterable)  # OUTPUT: «True␤»
+say List.does(Iterable) # OUTPUT: «True␤»
+say Map.does(Iterable)  # OUTPUT: «True␤»
+
+say Str.does(Iterable)  # OUTPUT: «False␤»
+say Int.does(Iterable)  # OUTPUT: «False␤»
+=end code
+
+The following example illustrates the composition of the C<Iterable> role
+into a user-defined C<DNA> class, and the required implementation of the
+C<iterator> method:
 
 =begin code
 class DNA does Iterable {
     has $.chain;
-    method new ($chain where {
-                       $chain ~~ /^^ <[ACGT]>+ $$ / and
-                       $chain.chars %% 3 } ) {
-        self.bless( :$chain );
+    
+    method new(Str $chain where { .match(/^^ <[ACGT]>+ $$/) && .chars %% 3 }) {
+        self.bless(:$chain);
     }
 
-    method iterator(DNA:D:){ $.chain.comb.rotor(3).iterator }
-};
-
-my @longer-chain =  DNA.new('ACGTACGTT');
-say @longer-chain.raku;
-# OUTPUT: «[("A", "C", "G"), ("T", "A", "C"), ("G", "T", "T")]␤»
-
-say  @longer-chain».join("").join("|"); #OUTPUT: «ACG|TAC|GTT␤»
+    method iterator(DNA:D:) { 
+        $.chain.split('', :skip-empty).rotor(3).iterator
+    }
+}
 =end code
 
-In this example, which is an extension of the L<example in C<Iterable> that
-shows how C<for> calls C<.iterator>|/type/Iterable>, the C<iterator> method will
-be called in the appropriate context only when the created object is assigned to
-a L<Positional|/type/Positional> variable, C<@longer-chain>; this variable is an
-L<Array|/type/Array> and we operate on it as such in the last example.
+The C<$.chain.split('', :skip-empty).rotor(3).iterator> statement in the
+C<iterator> method simply splits the DNA strand by the empty string, and group
+the resulting values into lists of trinucleotides. The final result is a
+L<C<Seq>|/type/Seq>, which itself implements the C<Iterable> role and has an
+C<iterator> method that we end up invoking on it.
 
-The (maybe a bit confusingly named) C<Iterator> role is a bit more complex than
-C<Iterable>. First, it provides a constant, C<IterationEnd>. Then, it also
-provides a series of L<methods|/type/Iterator#Methods> such as C<.pull-one>,
-which allows for a finer operation of iteration in several contexts: adding or
-eliminating items, or skipping over them to access other items. In fact, the
-role provides a default implementation for all the other methods, so the only
-one that has to be defined is precisely C<pull-one>, of which only a stub is
-provided by the role. While C<Iterable> provides the high-level interface loops
-will be working with, C<Iterator> provides the lower-level functions that will
-be called in every iteration of the loop. Let's extend the previous example with
-this role.
+Instance objects of the C<DNA> class can be iterated over with C<for>, C<map>,
+C<grep>, and array assignment, in the same manner as objects of iterable types,
+such as L<C<Seq>|/type/Seq>, L<C<List>|/type/List> and L<C<Array>|/type/Array>,
+can.
+
+=begin code :skip-test<compile time error; undeclared name>
+my \dna = DNA.new('ACGTACGTTACT');
+
+.join.say for dna;
+# OUTPUT: «ACG␤TAC␤GTT␤ACT»
+
+my @longer-chain = DNA.new('ACGTACGTTACT');
+say @longer-chain.raku;
+# OUTPUT: «[("A", "C", "G"), ("T", "A", "C"), ("G", "T", "T"), ("A", "C", "T")]␤»
+=end code
+
+=head1 The C<Iterator> role
+
+The L<C<Iterator>|/type/Iterator> role is a bit more complex than C<Iterable>.
+An C<Iterator> object must have at least a L<C<pull-one>|/type/Iterator#method_pull-one>
+method that returns either a sentinel value
+L<C<IterationEnd>|/type/Iterator#index-entry-IterationEnd> or the value
+extracted from the collection during the iteration. 
+
+In addition to C<pull-one>, the C<Iterator> role provides a
+L<series of methods|/type/Iterator#Methods>, which allows for a finer operation
+of iteration in several contexts: adding or eliminating items, or skipping over
+them to access other items. However, the role provides a default implementation
+for all the other methods, so the only one that has to be defined is precisely
+C<pull-one>, of which only a stub is provided by the role. 
+
+While C<Iterable> provides the high-level interface loops will be working with,
+C<Iterator> provides the lower-level functions that will be called in every
+iteration of the loop. 
+
+Let's extend the C<DNA> class with this role. The demands for our iterable
+C<DNA> class are simple enough, however to motivate the discussion of the C<Iterator>
+role, we'll step it up a notch. When iterating over a C<DNA> instance object, we
+want the reverse of any codon whose index is divisible by 2, and a rotated version
+of any codon whose index is divisible by 3. Whenever the codon's index is both
+divisible by 2 and 3, the case for divisible by 2 takes precedence. Otherwise,
+return the codon as-is.
+
+Here we need lower-level functions that will be called in every iteration
+of the loop and will make those decisions for us. Thus, we need to provide
+our own user-defined iterator:
+
+=begin code
+class DNA does Iterable {
+    has $.chain;
+
+    method new(Str $chain where { .match(/^^ <[ACGT]>+ $$/) && .chars %% 3 }) {
+        self.bless(:$chain);
+    }
+
+    my class DNAIterator does Iterator {
+        has $.dna is required;
+        has $!index = 0;
+
+        method pull-one(--> Mu){
+            return IterationEnd unless 3 * $!index < $!dna.chain.chars;
+            
+            my $codon = do given $!dna.chain.comb.rotor(3)[$!index] {
+                when $!index %% 2 { $_.reverse }
+                when $!index %% 3 { $_.tail, |$_.head(2) }
+                default           { $_ }
+            }
+
+            $!index += 1;
+            return $codon.list;
+        }
+    }
+
+    method iterator(DNA:D:) {
+        DNAIterator.new: dna => self
+    }
+}
+=end code
+
+In the updated example above, we create our own C<DNAIterator> by composing the
+C<Iterator> role into it and implementing the C<pull-one> method. We've
+L<C<my>|/language/variables#The_my_declarator>-declared C<DNAIterator> within
+C<DNA>, however the C<DNA> class is almost unchanged, aside from the fact we replaced
+the body of C<iterator> with an instance object of the new iterator initialized
+to the C<DNA> class (hence C«dna => self»).
+
+Running an example:
+
+=begin code :skip-test<compile time error; undeclared name>
+my @dna = DNA.new('ACGTACGTTACTTGCACCGTT');
+
+for @dna.kv -> \k, \codon {
+    printf("%-5s\t%s\n", k, codon.join)
+} 
+# OUTPUT:
+# 0       GCA
+# 1       TAC
+# 2       TTG
+# 3       TAC
+# 4       CGT
+# 5       ACC
+# 6       TTG
+=end code
+
+=head1 Composing both the C<Iterable> and C<Iterator> roles
+
+Both the C<Iterable> and C<Iterator> roles can be composed into a single
+class, and their required methods implemented:
 
 =begin code
 class DNA does Iterable does Iterator {
     has $.chain;
-    has Int $!index = 0;
+    has $!index = 0;
 
-    method new ($chain where {
-                       $chain ~~ /^^ <[ACGT]>+ $$ / and
-                       $chain.chars %% 3 } ) {
-        self.bless( :$chain );
+    method new(Str $chain where { .match(/^^ <[ACGT]>+ $$/) && .chars %% 3 }) {
+        self.bless(:$chain);
     }
 
-    method iterator( ){ self }
-    method pull-one( --> Mu){
-        if $!index < $.chain.chars {
-            my $codon = $.chain.comb.rotor(3)[$!index div 3];
-            $!index += 3;
-            return $codon;
-        } else {
-            return IterationEnd;
+    method iterator(DNA:D:) { self }
+    method pull-one(--> Mu) {
+        return IterationEnd unless 3 * $!index < $!chain.chars;
+
+        my $codon = do given $!chain.comb.rotor(3)[$!index] {
+            when $!index %% 2 { $_.reverse }
+            when $!index %% 3 { $_.tail, |$_.head(2) }
+            default           { $_ }
         }
-    }
-};
 
-my $a := DNA.new('GAATCC');
-.say for $a; # OUTPUT: «(G A A)␤(T C C)␤»
+        $!index += 1;
+        return $codon.list;
+    }
+}
 =end code
 
-We declare a C<DNA> class which does the two roles, C<Iterator> and C<Iterable>;
-the class will include a string that will be constrained to have a length that
-is a multiple of 3 and composed only of ACGT.
+There are two main differences between this implementation and the
+implementation from the previous section:
 
-Let us look at the
-C<pull-one> method. This one is going to be called every time a new iteration
-occurs, so it must keep the state of the last one. An C<$.index> attribute will
-hold that state across invocations; C<pull-one> will check if the end of the
-chain has been reached and will return the C<IterationEnd> constant provided by
-the role. Implementing this low-level interface, in fact, simplifies the
-implementation of the C<Iterable> interface. Now the iterator will be the object
-itself, since we can call C<pull-one> on it to access every member in turn;
-C<.iterator> will thus return just C<self>; this is possible since the object
-will be, at the same time, C<Iterable> and C<Iterator>.
+=item The C<iterator> method returns a single instance of the class per instance
+object. In the previous section, the C<iterator> method returns a brand new
+C<DNAIterator> object on demand per instance object. 
 
-This need not always be the case, and in most cases C<.iterator> will have to
+=item The class itself is an iterator. Unlike iterables that are I<stateless>,
+iterators are I<stateful> (i.e., once an item has been consumed from them, it's
+gone), an instance object of the class will return the same iterator (i.e., the
+class itself) which won't produce more values once they've been consumed. One
+way to mitigate this is to let an array consume the instance object's values,
+and then use that array as needed. Another alternative is to reset C<$!index> to
+0 once all the values are consumed, however this would violate the iterator
+protocol.
+
+=begin code :skip-test<compile time error; undeclared name>
+my \dna = DNA.new('ACGTACGTT');
+
+say dna.map(*.join).join('|'); # OUTPUT: «GCA|TAC|TTG␤»
+say dna.map(*.join).join('|'); # OUTPUT: «␤»
+=end code
+
+Keeping the aforementioned caveats in mind, implementing this low-level
+interface simplifies the implementation of the C<Iterable> interface. Now the
+iterator will be the object itself, since we can invoke C<pull-one> on it to
+access every member in turn; C<iterator> will thus return just C<self>, which is
+possible since the object will be both an C<Iterable> and an C<Iterator>.
+
+This need not always be the case, and in most cases C<iterator> will have to
 build an iterator type to be returned (that will, for instance, keep track of
 the iteration state, which we are doing now in the main class), such as we did
-in the previous example; however, this example shows the minimal code needed to
-build a class that fulfills the iterator and iterable roles.
+in the previous section; however, this example shows the minimal code needed to
+build a class that fulfills both the iterator and iterable roles.
+
+=head1 Manual iteration
+
+Iterating constructs, such as C<for> loops, use iterators to iterate through
+collections. However, the programmer can also request values from an iterator
+one at a time without the aid of any iterating construct.
+
+You can get an iterator from any iterable, and you can use an iterator to manually
+loop over the iterable it came from. Thus, the way to manually iterate through an
+iterable is to get a hold of an iterator object by invoking the C<iterator> method
+and call the C<pull-one> method on said iterator to request a new item until
+C<IterationEnd> is returned. 
+
+=begin code
+my @languages = <perl python haskell ruby>;
+my $iter = @languages.iterator;
+
+say $iter.pull-one; #=> «perl␤» 
+say $iter.pull-one; #=> «python␤» 
+say $iter.pull-one; #=> «haskell␤» 
+say $iter.pull-one; #=> «ruby␤» 
+say $iter.pull-one; #=> «IterationEnd␤» 
+=end code
+
+After all the iterator's values are consumed, the returned value is the constant
+C<IterationEnd>. Once C<IterationEnd> has been generated, it's forbidden to make
+attempts to fetch more data, and behavior for doing so is undefined. The only
+valid use of the sentinel value C<IterationEnd> in a program is identity
+comparison (using L<C<=:=>|/routine/=:=>) with the result of a method in the
+iterator API. Any other behavior is undefined and implementation dependent.
+
+Thus, the manual iteration can be rewritten as a loop:
+
+=begin code
+my @languages = <perl python haskell ruby>;
+
+my $iter = @languages.iterator;
+loop {
+    my \value = $iter.pull-one;
+    last if value =:= IterationEnd;
+    say value;
+}
+=end code
+
+Since C<IterationEnd> is a constant, it's important that the variable we compare
+against it be bound, and not assigned. Hence, the use of the sigilless variable
+C<value> in the previous example.
 
 =head1 How to iterate: contextualizing and topic variables
 
-C<for> and other loops place the item produced in every iteration into the
+Loops, such as C<for>, place the item produced in every iteration into the
 L<topic variable C<$_>|/language/variables#index-entry-topic_variable>, or
 capture them into the variables that are declared along with the block. These
 variables can be directly used inside the loop, without needing to declare them,
 by using the
 L<C<^> twigil|/syntax/$CIRCUMFLEX_ACCENT#(Traps_to_avoid)_twigil_^>.
 
-Implicit iteration occurs when using the L<sequence operator|/language/operators#index-entry-..._operators>.
+Implicit iteration occurs when using the L<sequence operator|/language/operators#index-entry-..._operators>:
 
-    say 1,1,1, { $^a²+2*$^b+$^c } … * > 300; # OUTPUT: «(1 1 1 4 7 16 46 127 475)
+    say 1,1,1, { $^a² + 2*$^b + $^c } … * > 300; # OUTPUT: «(1 1 1 4 7 16 46 127 475)
 
 The generating block is being run once while the condition to finish the
 sequence, in this case the term being bigger than 300, is not met. This has the
-side effect of running a loop, but also creating a list that is output.
+side effect of both running a loop and creating a list.
 
-This can be done more systematically through the use of the L<C<gather/take>
-blocks|/syntax/gather take>, which are a different kind of iterating construct
-that instead of running in sink context, returns an item every iteration. This
+This can be done more systematically through the use of
+L<C<gather/take> blocks|/syntax/gather take>, which are a different kind of
+iterating construct that instead of running in sink context, returns an item
+every iteration. This
 L<Advent Calendar tutorial|https://perl6advent.wordpress.com/2009/12/23/day-23-lazy-fruits-from-the-gather-of-eden/>
-explains use cases for this kind of loops; in fact, gather is not so much a
+explains use cases for this kind of loops; in fact, C<gather> is not so much a
 looping construct, but a statement prefix that collects the items produced by
 C<take> and creates a list out of them.
 
-=head1 C<Classic> loops and why we do not like them
+=head1 Classical loops and why we do not like them
 
-Classic C<for> loops, with a loop variable being incremented, can be done in
-Raku through the L<C<loop> keyword|/language/control#loop>. Other
-L<repeat|/language/control#repeat/while,_repeat/until> and
-L<while|/language/control#while,_until> loops are also possible.
+Classical C<for> loops, with a loop variable being incremented, can be done in
+Raku through the L<C<loop> keyword|/language/control#loop>. Other loops, such
+as L<repeat|/language/control#repeat/while,_repeat/until> and
+L<while|/language/control#while,_until>, are also possible.
 
 However, in general, they are discouraged. Raku is a functional and concurrent
 language; when coding in Raku, you should look at loops in a functional way:
@@ -146,7 +331,8 @@ If you feel more comfortable with your good old loops, the language allows you
 to use them. However, it is considered better practice in Raku to try and use, whenever
 possible, functional and concurrent iterating constructs.
 
-I<Note:> Since version 6.d loops can produce a list of values from the values of last statements.
+I<Note:> Since version 6.d loops can produce a list of values from the values of
+last statements.
 =end pod
 
 # vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
