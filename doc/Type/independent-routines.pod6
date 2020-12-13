@@ -13,17 +13,20 @@ Defined as:
 
 =begin code :method
 proto sub EVAL($code where Blob|Cool|Callable, Str() :$lang = 'Raku',
-                PseudoStash :$context, *%n)
+                PseudoStash :$context, Str() :$filename, Bool() :$check, *%_)
 =end code
 =begin code :method
 multi sub EVAL($code, Str :$lang where { ($lang // '') eq 'Perl5' },
-                PseudoStash :$context)
+                PseudoStash :$context, Str() :$filename, :$check)
 =end code
 
-This routine coerces L<Cool|/type/Cool> C<$code> to L<Str|/type/Str>. If
+This routine executes at runtime a fragment of code, C<$code>, of a given language,
+C<$lang>, which defaults to C<Raku>.
+
+It coerces L<Cool|/type/Cool> C<$code> to L<Str|/type/Str>. If
 C<$code> is a L<Blob|/type/Blob>, it'll be processed using the same encoding as
 the C<$lang> compiler would: for C<Raku> C<$lang>, uses C<utf-8>; for C<Perl5>,
-processes using the same rules as C<perl>.
+processes using the same rules as Perl.
 
 This works as-is with a literal string parameter. More complex input,
 such as a variable or string with embedded code, is illegal by default.
@@ -93,19 +96,39 @@ EVAL "use v5.20; say 'Hello from perl!'", :lang<Perl5>;
 You need to have L<C<Inline::Perl5>|https://github.com/niner/Inline-Perl5> for
 this to work correctly.
 
+More languages may be supported with additional
+modules which may be found from the
+L<Raku Modules Directory|https://modules.raku.org/search/?q=inline>.
+
+If the optional  C<$filename> parameter is given, the
+L«C<$?FILE>|/language/variables#index-entry-$%3FFILE» variable is set to
+its value. Otherwise C<$?FILE> is set to a unique and generated file name.
+
+=for code
+use MONKEY-SEE-NO-EVAL;
+EVAL 'say $?FILE';                              # OUTPUT: «/tmp/EVAL_0␤»
+EVAL 'say $?FILE', filename => '/my-eval-code'; # OUTPUT: «/my-eval-code␤»
+
+If the optional C<$check> parameter is C<True>, C<$code>
+is processed by the C<$lang> compiler but is not actually
+run.  For C<Raku>, L«C<BEGIN>|/language/phasers#BEGIN», and
+L«C<CHECK>|/language/phasers#CHECK» blocks are run. The C<EVAL> routine
+then returns C<Nil> if compilation was successful, otherwise an exception
+is thrown.
+
 =head2 sub EVALFILE
 
 Defined as:
 
-    sub EVALFILE($filename where Blob|Cool, :$lang = 'Raku')
+    sub EVALFILE($filename where Blob|Cool, :$lang = 'Raku', :$check)
 
 Slurps the specified file and evaluates it. Behaves the same way as
-C<EVAL> with regard to L<Blob|/type/Blob> decoding, scoping, and the C<$lang>
-parameter. Evaluates to the value produced by the final statement in the
-file.
+C<EVAL> with regard to L<Blob|/type/Blob> decoding, scoping, the C<$lang>
+parameter and the C<$check> parameter. Evaluates to the value produced
+by the final statement in the file when C<$check> is not C<True>.
 
 =for code
-EVALFILE "foo.p6";
+EVALFILE "foo.raku";
 
 =head2 sub mkdir
 
