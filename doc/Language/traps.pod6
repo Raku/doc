@@ -1771,14 +1771,24 @@ say foo rand; # OUTPUT: «Type check failed in binding to parameter '<anon>'; ex
 =head2 Using regexes within grammar's actions
 
 =begin code
+# Define a grammar
 grammar will-fail {
     token TOP {^ <word> $}
     token word { \w+ }
 }
 
+# Define an action class
 class will-fail-actions {
-    method TOP ($/) { my $foo = ~$/; say $foo ~~ /foo/;  }
+    method TOP ($/) {      # <- note the $/ in the signature, which is readonly
+        my $foo = ~$/;
+        say $foo ~~ /foo/; # <- the regex tries to assign the result to $/ and will fail
+    }
 }
+
+# Try to parse something...
+will-fail.parse('word', :actions(will-fail-actions));
+CATCH { default { put .^name, ': ', .Str } };
+# OUTPUT: «X::AdHoc: Cannot assign to a readonly variable or a value␤»
 =end code
 
 Will fail with C<Cannot assign to a readonly variable ($/) or a value>
