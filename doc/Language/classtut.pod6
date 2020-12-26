@@ -484,12 +484,96 @@ X<|FQN>
 
 Just like attributes, methods can also be private. Private methods are declared
 with a prefixed exclamation mark. They are called with C<self!>
-followed by the method's name. To call a private method of another class the
-calling class has to be trusted by the called class. A trust relationship is
-declared with C<trusts> and the class to be trusted must already be declared.
-Calling a private method of another class requires an instance of that class
-and the fully qualified name (FQN) of the method. Trust also allows access to
-private attributes.
+followed by the method's name. In the following implementation of a C<Region>
+class, methods C<population-info> and C<densely-populated> are private methods,
+while the rest are public ones:
+
+=begin code
+class Region {
+    has $.name;
+    has $.population;
+    has $.area-size;
+    has $.continent;
+    has $.high-population-density;
+
+    method info {
+        say "Name: $!name";
+        say self!population-info;
+    }
+
+    method more-densely-populated(Region:D $r) {
+        my $result = self.population-density > $r.population-density ?? 'more' !! 'less';
+        say "!name is $result densely populated than $r..name.";
+    }
+
+    method population-density {
+        ($!population / $!area-size).round(0.01)
+    }
+
+    method can-be-crowded {
+        self!densely-populated
+        ?? "$!name can be crowdy."
+        !! "There is enough space in $!name."
+    }
+
+    method !population-info(--> Str:D) {
+        "$!population people live here."
+    }
+
+    method !densely-populated(--> Bool:D) {
+        self.population-density > $!high-population-density
+    }
+}
+
+my constant city-hpd = 3_000;
+
+my $wroclaw = Region.new(
+    :name<Wrocław>,
+    :population(638_000),
+    :area-size(293),
+    :continent<Europe>,
+    :high-population-density(city-hpd)
+);
+=end code
+
+Regular methods can be introspected with C<.^methods> and resolved with
+C<.^find-method>.
+
+=begin code :skip-test<compile time error>
+given $wroclaw {
+    say .^methods.first(2);               # OUTPUT: «(info more-densely-populated)␤»
+    say .^find_method('info');            # OUTPUT: «info»
+    say .^find_method('population-info'); # OUTPUT: «(Mu)»
+}
+=end code
+
+Since public and private methods don't use the same APIs, we cannot inquire
+about private methods using the same meta-methods. Private methods have their own
+namespace and have a different declaration syntax (C<method !>). Furthermore
+they're not virtual, and thus missing ones are detected at compile time. In
+order to support that in the meta-space, private methods are stored separately,
+added via L<C<.^add_private_method>|/routine/add_private_method>, introspected
+with L<C<.^private_methods>|/routine/private_methods> and resolved by
+L<C<.^find_private_method>|/routine/find_private_method>.
+
+=begin code :skip-test<compile time error>
+given $wroclaw {
+    say .^private_methods;                        # OUTPUT: «(population-info densely-populated)␤»
+    say .^find_private_method('population-info'); # OUTPUT: «population-info»
+}
+=end code
+
+Unlike in some languages where C<private> is an accessibility modifier on a method,
+in Raku "private methods" and "methods" are quite different things - that is to
+say, it's better to read "private method" as a compound noun rather than an
+adjective describing a noun.
+
+To call a private method of another class, the caller has to be trusted by the
+callee. A trust relationship is declared with
+L<C<trusts>|/language/typesystem#trait_trusts> and the class to be trusted must
+already be declared. Calling a private method of another class requires an
+instance of that class and the fully qualified name (FQN) of the method. A trust
+relationship also allows access to private attributes.
 
 =begin code
 class B {...}
