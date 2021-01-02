@@ -83,7 +83,7 @@ in a given situation, please try to follow these guidelines.
 When generating output in examples intended to be read by a user, use 'say'.
 Additionally, add a comment showing the intended output, e.g.:
 
-    say 3.^name; #OUTPUT: «Int␤»
+    say 3.^name; # OUTPUT: «Int␤»
 
 For examples where a particular format is required, or exact data is expected
 (e.g., for something sent over a network connection), prefer 'put'.
