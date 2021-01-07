@@ -10,6 +10,10 @@ are considered to be code, but you can use the `=for code` directive, or a
 combination of `=begin code` and `=end code` to better control which
 blocks are considered.
 
+When using a `=for code` directive or a `=begin code`/`=end code`
+combination, the code block does not need to be indented and should not
+be for a better aligned result.
+
 ## Testing Examples
 
 The file `xt/examples-compilation.t` will test the code from all the
@@ -32,7 +36,7 @@ finesse it.
 We're just testing Raku here: to skip another language, use `:lang`
 
     =begin code :lang<tcl>
-        puts "this is not Perl"
+    puts "this is not Perl"
     =end code
 
 For plain text use `:lang<text>`
@@ -43,7 +47,7 @@ One of the checks is to dissuade using `.WHAT` in tests; However, in rare
 cases that is the explicit point of the test, so you can allow it with ok-test:
 
     =begin code :ok-test<WHAT>
-        say 42.WHAT;
+    say 42.WHAT;
     =end
 
 ### Allow dd
@@ -53,7 +57,7 @@ shouldn't use it unless they are explicitly trying to show how it works.
 You can allow it with ok-test:
 
     =begin code :ok-test<dd>
-        dd 42;
+    dd 42;
     =end
 
 ### Allow .perl
@@ -63,7 +67,7 @@ method should be used instead.
 If needed you can allow the use of the `perl` method with ok-test:
 
     =begin code :ok-test<perl>
-        say {:42a}.perl;
+    say {:42a}.perl;
     =end
 
 ### Methods
@@ -74,10 +78,10 @@ Multi-line method signatures are much harder to detect, so if you have a
 method body that spans lines, use the `:method` tag:
 
     =begin code :method
-        method arg (
-            Bool $one,
-            Bool $two
-        )
+    method arg (
+        Bool $one,
+        Bool $two
+    )
     =end code
 
 This helps keep the method detection logic in the test code simple.
@@ -92,11 +96,11 @@ defined in that snippet; you don't want to have to have a full working
 example in the code.
 
     =begin code :preamble<no strict;>
-        $x = pi;
+    $x = pi;
     =end code
 
     =begin code :preamble<my $x; sub frob {...};>
-        $x = frob();
+    $x = frob();
     =end code
 
 Note that when running the code, it's compiled inside an anonymous class.
@@ -121,5 +125,5 @@ resort, and many examples might be amenable to using one of the
 previous annotations.
 
     =begin code :skip-test<compile time error>
-        if 1 "missing a block";
+    if 1 "missing a block";
     =end code
