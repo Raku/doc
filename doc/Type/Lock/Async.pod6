@@ -107,30 +107,30 @@ protect the code we want to protect. Modifying an Array I<simultaneously>
 from different in the second example is not safe and leads to memory errors.
 
 =begin code :preamble<my @writers>
-    # Compute how many prime numbers there are in first 10 000 of them
-    # using 50 threads
-    my @primes = 0 .. 10_000;
-    my @results;
-    my @threads;
+# Compute how many prime numbers there are in first 10 000 of them
+# using 50 threads
+my @primes = 0 .. 10_000;
+my @results;
+my @threads;
 
-    # Right: $lock is instantiated outside the portion of the
-    # code that will get threaded and be in need of protection,
-    # so all threads share the lock
-    my $lock = Lock::Async.new;
-    for ^50 -> $thread {
-        @threads.push: start {
-            $lock.protect: {
-                my $from = $thread * 200;
-                my $to = ($thread + 1) * 200;
-                @results.append: @primes[$from..$to].map(*.is-prime);
-            }
+# Right: $lock is instantiated outside the portion of the
+# code that will get threaded and be in need of protection,
+# so all threads share the lock
+my $lock = Lock::Async.new;
+for ^50 -> $thread {
+    @threads.push: start {
+        $lock.protect: {
+            my $from = $thread * 200;
+            my $to = ($thread + 1) * 200;
+            @results.append: @primes[$from..$to].map(*.is-prime);
         }
     }
+}
 
-    # await for all threads to finish calculation
-    await Promise.allof(@writers);
-    # say how many prime numbers we found
-    say "We found " ~ @results.grep(*.value).elems ~ " prime numbers";
+# await for all threads to finish calculation
+await Promise.allof(@writers);
+# say how many prime numbers we found
+say "We found " ~ @results.grep(*.value).elems ~ " prime numbers";
 =end code
 
 The example below demonstrates the wrong approach: without proper locking
@@ -138,19 +138,19 @@ this code will work most of the time, but occasionally will result
 in bogus error messages or low-level memory errors:
 
 =begin code :preamble<my @threads;my @results; my @primes>
-    # !!! WRONG !!! Lock::Async is instantiated inside threaded area,
-    # so all the 20 threads use 20 different locks, not syncing with
-    # each other
-    for ^50 -> $thread {
-        @threads.push: start {
-            my $lock = Lock::Async.new;
-            $lock.protect: {
-                my $from = $thread * 200;
-                my $to = ($thread + 1) * 200;
-                @results.append: @primes[$from..$to].map(*.is-prime);
-            }
+# !!! WRONG !!! Lock::Async is instantiated inside threaded area,
+# so all the 20 threads use 20 different locks, not syncing with
+# each other
+for ^50 -> $thread {
+    @threads.push: start {
+        my $lock = Lock::Async.new;
+        $lock.protect: {
+            my $from = $thread * 200;
+            my $to = ($thread + 1) * 200;
+            @results.append: @primes[$from..$to].map(*.is-prime);
         }
     }
+}
 =end code
 
 =head2 method protect-or-queue-on-recursion
