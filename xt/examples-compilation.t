@@ -29,6 +29,8 @@ do hide $*ERR, but some of these are emitted from parts of
 the compiler that only know about the low level handle, not the
 Perl 6 level one.
 
+Error if leading whitespace is present in the code block.
+
 =end SYNOPSIS
 
 plan +my @files = Test-Files.pods;
@@ -41,6 +43,13 @@ for @files -> $file {
 }
 
 sub test-example ($eg) {
+    my @lines-all = $eg<contents>.lines;
+    my @lines-ws  = @lines-all.grep(/^ \s /);
+
+    if @lines-ws eq @lines-all {
+        flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» has extra leading whitespace';
+        next;
+    }
     # #1355 - don't like .WHAT in examples
     if ! $eg<ok-test>.contains('WHAT') && $eg<contents>.contains('.WHAT') {
         flunk "$eg<file> chunk starting with «" ~ starts-with($eg<contents>) ~ '» uses .WHAT: try .^name instead';
