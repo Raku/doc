@@ -56,6 +56,8 @@ my $error = "To run check-signatures, please specify the path to the Rakudo git 
 my $rakudo-src-dir = %*ENV<RAKUDO_SRC> // plan(:skip-all( $error ));
 when !$rakudo-src-dir.IO.d { plan(:skip-all( $error )) }
 when ?(run <git --version>, :out, :err).exitcode { plan(:skip-all( "check-signatures requires git"))}
+my $doc-dir = $*CWD;
+
 given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     chdir $rakudo-src-dir;
     when .elems == 1 { run (|<git checkout>, |("tags/{.[0]}")), :out, :err}
@@ -73,7 +75,7 @@ for @doc-files -> $file {
         my $name = $type-name // $file;
         skip "$name lacks required introspection";
     }}
-    TypeDocumentation.parse($file.IO.slurp);
+    TypeDocumentation.parse("$doc-dir/$file".IO.slurp);
 
     subtest "check $type-name methods", {
         plan +$<method>;
