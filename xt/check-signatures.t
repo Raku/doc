@@ -50,6 +50,11 @@ not (the inverse situation -- where we specify a return constraint that Rakudo
 does not -- would not necessarily represent an error in the docs so long as
 the function always does return that type)
 
+You may also wish to review certain skipped results: they may point
+to mistakes in the documentation - one example is methods that are
+defined on a role instead of a class - it will show up as skips but
+points to a need to move the documentation for that method.
+
 =end SYNOPSIS
 
 my $error = "To run check-signatures, please specify the path to the Rakudo git checkout with the RAKUDO_SRC environment variable";
