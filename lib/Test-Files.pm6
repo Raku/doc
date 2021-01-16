@@ -12,7 +12,7 @@ method files() {
             @files = qx<git ls-files>.lines;
         }
     }
-    return @files;
+    return @files.sort;
 }
 
 method pods() {
