@@ -524,6 +524,65 @@ The directories in the C<RAKULIB> path will be searched for modules when
 Raku C<need>s, C<use>s or C<require>s them. Directories that start with a
 dot are ignored and symlinks are followed.
 
+=head1 Testing modules
+
+Once a module (for illustration C<MyMainModule>) has been written, 
+the basic test (eg., in t/01-sanity.t) it needs to pass is 
+
+    use-ok 'MyMainModule';
+    
+There is an important feature to B<Raku> modules that are distributed, namely
+the presence of a C<META6.json> file in the root of the directory. See below
+for more about C<META6.json>. 
+
+When testing, it is possible to use C<prove6>, the B<Raku> version of C<prove>, eg.
+
+    prove6 -I.
+    
+This should be run in the root directory of the Module, and it will run all the tests in 
+the C<t/> sub-directory. The parameter B<-I.>, rather than B<-Ilib>,
+is significant because then the compiler will inspect the C<META6.json> file in the root
+directory of C<MyMainModule>. 
+
+If you are just beginning to develop the module, and you have not decided what to call it
+or where to place the code (perhaps splitting it into several C<*.rakumod> files),
+but assuming all the module files are under the C<lib/> directory, then it is possible to use
+
+   prove6 -Ilib
+
+This is deceptive. A module may pass all the tests you have set, and you are able to release it,
+but if the Module does not pass all tests
+with C<-I.> then in the future, the module cannot be installed as a dependent module by C<zef>,
+which will test the module using B<-I.> and not C<-Ilib>.
+
+It is also highly recommended to use the C<Test::META> C<meta-ok> test, which verifies the validity of 
+the C<META6.json> file. If you wish to add a module
+to the C<Ecosystem>, then this test will be applied to the Module.
+
+Since C<meta-ok> only needs to be tested by the developer/maintainer of a module, it can either
+be made dependent on an Environment variable, eg., in C<t/99-author-test.t> there is the following code
+=begin code
+use Test;
+
+plan 1;
+
+if ?%*ENV<AUTHOR_TESTING> {
+    require Test::META <&meta-ok>;
+    meta-ok;
+    done-testing;
+} else {
+    skip-rest "Skipping author test";
+    exit;
+}
+=end code
+    
+Then when testing the module by the developer, use
+
+    AUTHOR_TEST=1 prove6 -I.
+    
+An alternative is to place the C<meta-ok> test within extended tests and place them in another directory, eg.
+C</xt>. Since C<prove6> looks at C<t/>, any tests in C</xt> will not be run by default.
+
 =head1 Distributing modules
 
 If you've written a Raku module and would like to share it with the
