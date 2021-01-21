@@ -524,43 +524,85 @@ The directories in the C<RAKULIB> path will be searched for modules when
 Raku C<need>s, C<use>s or C<require>s them. Directories that start with a
 dot are ignored and symlinks are followed.
 
-=head1 Testing modules
+=head1 Testing modules and a distribution
 
-Once a module (for illustration C<MyMainModule>) has been written, 
-the basic test (eg., in t/01-sanity.t) it needs to pass is 
+It is important in this section to repeat the note at the beginning of this document, namely that
+there is a difference between a B<Raku> C<distribution>, which approximates a I<module> in other languages, 
+and a B<Raku> 
+L<module declaration|https://docs.raku.org/language/syntax#index-entry-declarator_unit-declarator_module-declarator_package-Package,_Module,_Class,_Role,_and_Grammar_declaration>.
+The reason for this is that a single file may contain a number of C<class>, C<module>, C<role> etc declarations, or
+these declarations may be spread between different files. In addition, when a C<distribution> is published (see 
+L<Distributing modules>) it may be necessary to provide access to other resources, such as callable utilities.
 
-    use-ok 'MyMainModule';
+B<Raku> also allows for a single distribution to provide multiple C<compunit>s that can be I<use'd> (or I<require'd> etc).
+The information
+about a distribution is contained in the C<META6.json> file in the distribution's root directory. See below
+for more about C<META6.json>. Each entity that the B<distribution> allows to be I<use'd> (or I<require'd> etc), 
+also called a C<compunit>, is 
+placed in the C<provides> section of the C<META6.json> (as specified below). 
+
+It should also be noted that when 
+writing the C<depends> section of the C<META6.json> file, it is the name of the B<distribution> that is listed,
+not the name of the C<compunit> that is desired. Although, for very many entities, the name of the I<distribution>
+and the name of the I<compunit> are the same.
+
+Given this arrangement, the B<rakudo> compiler, or package manager, such as B<zef>, can obtain all the information
+needed about each C<compunit> from a C<META6.json> file in a directory.
+
+This also means that a testing program such as B<Perl>'s C<prove> or the B<Raku> equivalent 
+L<prove6|https://modules.raku.org/dist/App::Prove6:cpan:LEONT> can be run in the root directory of the B<distribution>
+as, eg.,
+
+    prove -e 'raku -I.'
     
-There is an important feature to B<Raku> modules that are distributed, namely
-the presence of a C<META6.json> file in the root of the directory. See below
-for more about C<META6.json>. 
-
-When testing, it is possible to use C<prove6>, the B<Raku> version of C<prove>, eg.
+or 
 
     prove6 -I.
     
-This should be run in the root directory of the Module, and it will run all the tests in 
-the C<t/> sub-directory. The parameter B<-I.>, rather than B<-Ilib>,
-is significant because then the compiler will inspect the C<META6.json> file in the root
-directory of C<MyMainModule>. 
+In both cases, the testing program looks for a directory C<t/> and runs the test programs there (see L<Testing>).'
 
-If you are just beginning to develop the module, and you have not decided what to call it
+The parameter B<-I.>, rather than B<-Ilib>, in the examples above
+is significant because then the compiler will inspect the C<META6.json> file in the root
+directory of the B<distribution>. 
+
+If you are just beginning to develop a module (or series of modules), and you have not decided what to call
 or where to place the code (perhaps splitting it into several C<*.rakumod> files),
 but assuming all the module files are under the C<lib/> directory, then it is possible to use
 
    prove6 -Ilib
 
-This is deceptive. A module may pass all the tests you have set, and you are able to release it,
-but if the Module does not pass all tests
-with C<-I.> then in the future, the module cannot be installed as a dependent module by C<zef>,
+This is deceptive. A distribution may pass all the tests you have set, and you may be able to release it,
+but the distribution (and the modules/classes/roles it contains) cannot be automatically installed. 
+For example, if the distribiton as a dependent module by C<zef>,
 which will test the module using B<-I.> and not C<-Ilib>.
 
-It is also highly recommended to use the C<Test::META> C<meta-ok> test, which verifies the validity of 
-the C<META6.json> file. If you wish to add a module
-to the C<Ecosystem>, then this test will be applied to the Module.
+The most basic test that should be run for each C<compunit> that is defined for the distribution is
 
-Since C<meta-ok> only needs to be tested by the developer/maintainer of a module, it can either
-be made dependent on an Environment variable, eg., in C<t/99-author-test.t> there is the following code
+    use-ok 'MyModule';
+    
+assuming inside C<META6.json> there is a line such as 
+
+    depends: [ "MyModule": "lib/MyModule.rakumod" ],
+
+It is also highly recommended to use the C<Test::META> C<meta-ok> test, which verifies the validity of 
+the C<META6.json> file. If you wish to add a distribution (module)
+to the C<Ecosystem>, then this test will be applied to the distribution.
+
+Since C<meta-ok> only needs to be tested by the developer/maintainer of a module, 
+it can be within a set of extended tests in another directory, eg.
+C</xt>. This is because C<prove6>, for example, only runs the tests in C<t/> by default. Then to 
+run the extended tests:
+
+    prove6 -I. xt/
+
+Indeed it is becoming common practice by B<Raku> community developers to place the extensive
+testing of a distribution in C<xt/> and to put minimal I<sanity> tests in C<t/>. 
+Extensive testing is essential for development and quality control, but
+it can slow down the installation of popular distributions.
+
+An alternative to placing the C<meta-ok> test in an extended test directory, but to ensure 
+that it is only run when a developer or maintainer wants to, is to make the test
+dependent on an environment variable, eg., in C<t/99-author-test.t> there is the following code
 =begin code
 use Test;
 
@@ -580,8 +622,7 @@ Then when testing the module by the developer, use
 
     AUTHOR_TEST=1 prove6 -I.
     
-An alternative is to place the C<meta-ok> test within extended tests and place them in another directory, eg.
-C</xt>. Since C<prove6> looks at C<t/>, any tests in C</xt> will not be run by default.
+
 
 =head1 Distributing modules
 
