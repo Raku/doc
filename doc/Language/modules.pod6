@@ -527,89 +527,95 @@ dot are ignored and symlinks are followed.
 =head1 Testing modules and a distribution
 
 It is important in this section to repeat the note at the beginning of this document, namely that
-there is a difference between a B<Raku> C<distribution>, which approximates a I<module> in other languages, 
-and a B<Raku> 
+there is a difference between a B<Raku> C<distribution>, which approximates a I<module> in other languages,
+and a B<Raku>
 L<module declaration|https://docs.raku.org/language/syntax#index-entry-declarator_unit-declarator_module-declarator_package-Package,_Module,_Class,_Role,_and_Grammar_declaration>.
 The reason for this is that a single file may contain a number of C<class>, C<module>, C<role> etc declarations, or
-these declarations may be spread between different files. In addition, when a C<distribution> is published (see 
+these declarations may be spread between different files. In addition, when a C<distribution> is published (see
 L<Distributing modules>) it may be necessary to provide access to other resources, such as callable utilities.
 
-B<Raku> also allows for a single distribution to provide multiple C<compunit>s that can be I<use'd> (or I<require'd> etc).
+B<Raku> also allows for a single distribution to provide multiple C<compunit>s that can be C<use>d (or C<require>d etc).
 The information
 about a distribution is contained in the C<META6.json> file in the distribution's root directory. See below
-for more about C<META6.json>. Each entity that the B<distribution> allows to be I<use'd> (or I<require'd> etc), 
-also called a C<compunit>, is 
-placed in the C<provides> section of the C<META6.json> (as specified below). 
+for more about C<META6.json>. Each entity that the B<distribution> allows to be C<use>d (or C<require>d etc),
+also called a C<compunit>, is
+placed in the C<provides> section of the C<META6.json> (as specified below).
 
-It should also be noted that when 
+It should also be noted that when
 writing the C<depends> section of the C<META6.json> file, it is the name of the B<distribution> that is listed,
 not the name of the C<compunit> that is desired. Although, for very many entities, the name of the I<distribution>
 and the name of the I<compunit> are the same. Another global effect of the C<depends> list in a distribution made
-available to the Ecosystem, is that package managers, eg. C<zef>, can look for C<compunit> names in all 
-distributions available. 
+available to the Ecosystem, is that package managers, e.g. C<zef>, can look for C<compunit> names in all
+distributions available.
 
 Given this arrangement, the B<rakudo> compiler, or a package manager such as B<zef>, can obtain all the information
 needed about each C<compunit> from a C<META6.json> file in a directory.
 
-This also means that a testing program such as B<Perl>'s C<prove> or the B<Raku> equivalent 
+This also means that a testing program such as B<Perl>'s C<prove> or the B<Raku> equivalent
 L<prove6|https://modules.raku.org/dist/App::Prove6:cpan:LEONT> can be run in the root directory of the B<distribution>
-as, eg.,
+as, e.g.,
 
-    prove -e 'raku -I.'
-    
-or 
+=for code :lang<shell>
+prove -e 'raku -I.'
 
-    prove6 -I.
-    
+or
+
+=for code :lang<shell>
+prove6 -I.
+
 In both cases, the testing program looks for a directory C<t/> and runs the test programs there (see L<Testing>).'
 
 The parameter B<-I.>, rather than B<-Ilib>, in the examples above
 is significant because then the compiler will inspect the C<META6.json> file in the root
-directory of the B<distribution>. 
+directory of the B<distribution>.
 
 If you are just beginning to develop a module (or series of modules), and you have not decided what to call
 or where to place the code (perhaps splitting it into several C<*.rakumod> files),
 but assuming all the module files are under the C<lib/> directory, then it is possible to use
 
-   prove6 -Ilib
+=for code :lang<shell>
+prove6 -Ilib
 
 This is deceptive. A distribution may pass all the tests based on local files, and it may pass release steps,
-but the distribution (and the modules/classes/roles it contains) may not be automatically installed. 
+but the distribution (and the modules/classes/roles it contains) may not be automatically installed.
 To give a common example, but not the only way this problem can manifest itself,
 if the distribution is listed in the C<depends> section of another distribution, and
-a user is trying to install the other distribion using C<zef> (or a package manager using the same
-testing regime), perhaps using a CLI command C<zef install --deps-only .>, then C<zef> arranges for 
+a user is trying to install the other distribution using C<zef> (or a package manager using the same
+testing regime), perhaps using a CLI command C<zef install --deps-only .>, then C<zef> arranges for
 the tests of the dependent modules based on
 B<-I.> and not C<-Ilib>. This will lead to B<rakudo> errors complaining about the absence of named
 B<compunits> unless the B<META6.json> file is correct.
 
 The most basic test that should be run for each C<compunit> that is defined for the distribution is
 
-    use-ok 'MyModule';
-    
-assuming inside C<META6.json> there is a line such as 
+=for code :preamble<use Test>
+use-ok 'MyModule';
 
-    depends: [ "MyModule": "lib/MyModule.rakumod" ],
+assuming inside C<META6.json> there is a line such as
 
-It is also highly recommended to use the C<Test::META> C<meta-ok> test, which verifies the validity of 
+=for code :lang<json>
+depends: [ "MyModule": "lib/MyModule.rakumod" ],
+
+It is also highly recommended to use the C<Test::META> C<meta-ok> test, which verifies the validity of
 the C<META6.json> file. If you wish to add a distribution (module)
 to the C<Ecosystem>, then this test will be applied to the distribution.
 
-Since C<meta-ok> only needs to be tested by the developer/maintainer of a module, 
-it can be within a set of extended tests in another directory, eg.
-C</xt>. This is because C<prove6>, for example, only runs the tests in C<t/> by default. Then to 
+Since C<meta-ok> only needs to be tested by the developer/maintainer of a module,
+it can be within a set of extended tests in another directory, e.g.
+C</xt>. This is because C<prove6>, for example, only runs the tests in C<t/> by default. Then to
 run the extended tests:
 
-    prove6 -I. xt/
+=for code :lang<shell>
+prove6 -I. xt/
 
 Indeed it is becoming common practice by B<Raku> community developers to place the extensive
-testing of a distribution in C<xt/> and to put minimal I<sanity> tests in C<t/>. 
+testing of a distribution in C<xt/> and to put minimal I<sanity> tests in C<t/>.
 Extensive testing is essential for development and quality control, but
 it can slow down the installation of popular distributions.
 
-An alternative to placing the C<meta-ok> test in an extended test directory, but to ensure 
+An alternative to placing the C<meta-ok> test in an extended test directory, but to ensure
 that it is only run when a developer or maintainer wants to, is to make the test
-dependent on an environment variable, eg., in C<t/99-author-test.t> there is the following code
+dependent on an environment variable, e.g., in C<t/99-author-test.t> there is the following code
 =begin code
 use Test;
 
@@ -624,12 +630,11 @@ if ?%*ENV<AUTHOR_TESTING> {
     exit;
 }
 =end code
-    
+
 Then when testing the module by the developer, use
 
+=for code :lang<shell>
     AUTHOR_TEST=1 prove6 -I.
-    
-
 
 =head1 Distributing modules
 
