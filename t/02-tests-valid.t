@@ -12,7 +12,7 @@ Ensure any test file, including author tests, have clean syntax and POD
 
 =end overview
 
-my @files = Test-Files.files.grep({$_.ends-with: '.t'});
+my @files = Test-Files.tests;
 
 if @files {
     plan +@files;
