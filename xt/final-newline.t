@@ -19,7 +19,11 @@ my @files = Test-Files.files\
     .grep({! $_.ends-with: '.svg'})\
     .grep({! $_.ends-with: '.ico'});
 
-plan +@files;
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No relevant files specified>;
+}
 
 for @files -> $file {
     ok $file.IO.slurp.substr(*-1) eq "\n", "$file must end in a newline";
