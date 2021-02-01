@@ -113,7 +113,7 @@ sub pod-lower-headings(@content, :$to = 1) is export {
     @new-content;
 }
 
-my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent.child("precompiled")));
+my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent(3).child(".pod-precomp")));
 my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
 
 sub extract-pod(IO() $file) is export {
