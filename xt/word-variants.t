@@ -34,7 +34,9 @@ my %variants = %(
 
 plan +@files;
 
-for @files.sort -> $file {
+my %result;
+
+for @files.race -> $file {
     my $ok = True;
     my $row = 0;
     my @bad;
@@ -45,11 +47,18 @@ for @files.sort -> $file {
             @bad.push: "«$/» found. We prefer ｢$word｣";
         }
     }
+    %result{$file} = [$ok, @bad];
+}
+
+for %result.keys.sort -> $file {
     my $result = $file;
+    my $ok = %result{$file}[0];
+    my @bad = %result{$file}[1];
     if !$ok {
-        $result ~= " {@bad.join: ', '}): Certain words should be normalized. ";
+       $result ~= " {@bad.join: ', '}): Certain words should be normalized. ";
     }
-    ok $ok, "$result" ;
+    ok $ok, $result;
+    
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
