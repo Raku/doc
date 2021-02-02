@@ -17,9 +17,7 @@ my %variants = %(
     filesystem => 'file [\s+|\-] system',
     lookahead  => 'look \- ahead',
     lookbehind => 'look [\s+|\-] behind',
-    meta      => '<!after [ method || \$ || \- || \" ] \s*> meta
-[\s+|\-]
-<<',
+    meta      => '<!after [ method || \$ || \- || \" ] \s*> meta [\s+|\-] << <!before ok >> >',
     metadata  => 'meta [\s+|\+] data',
     NYI        => 'niy',
     precompil => 'pre \- compil',
@@ -58,7 +56,6 @@ for %result.keys.sort -> $file {
        $result ~= " {@bad.join: ', '}): Certain words should be normalized. ";
     }
     ok $ok, $result;
-    
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6
