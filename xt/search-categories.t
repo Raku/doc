@@ -21,9 +21,9 @@ constant @categories = 'Types', 'Modules', 'Subroutines',
 'Raku', 'Variables', 'Reference',
 'Language', 'Programs', 'Foreign', 'Tutorial';
 
-plan +my @files = Test-Files.pods;
+plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
 
-for @files[0..3] -> $file {
+for @files[^10] -> $file {
     subtest $file => {
         plan 2 * +my @examples = refs($file);
         test-ref $_ for @examples;
