@@ -46,12 +46,8 @@ example below:
 # Example taken from
 # https://medium.freecodecamp.org/a-short-overview-of-object-oriented-software-design-c7aa0a622c83
 class Hero {
-    has @!inventory;
+    has @!inventory is built;
     has Str $.name;
-    submethod BUILD( :$name, :@inventory ) {
-        $!name = $name;
-        @!inventory = @inventory
-    }
 
     method act {
         return @!inventory.pick;
@@ -64,7 +60,7 @@ say $hero.act;
 
 In this case, we I<encapsulate> the private attribute C<@!inventory>; but
 private instance variables cannot be set by the default constructor, which is
-why we add a C<BUILD> submethod that takes care of that.
+why we add the C<is built> trait to allow just that.
 
 The following, more elaborate example, shows how a dependency handler might look
 in Raku.  It showcases custom constructors, private and public attributes,
@@ -73,17 +69,14 @@ not a lot of code, and yet the result is interesting and useful.
 
 =begin code
 class Task {
-    has      &!callback;
-    has Task @!dependencies;
+    has      &!callback     is built;
+    has Task @!dependencies is built;
     has Bool $.done;
 
     # Normally doesn't need to be written
     method new(&callback, *@dependencies) {
         return self.bless(:&callback, :@dependencies);
     }
-
-    # BUILD is the equivalent of a constructor in other languages
-    submethod BUILD(:&!callback, :@!dependencies) { }
 
     method add-dependency(Task $dependency) {
         push @!dependencies, $dependency;
@@ -112,12 +105,8 @@ my $eat =
 $eat.perform();
 =end code
 
-In this case, C<BUILD> is needed since we have overridden the default
-C<new> constructor. C<bless> is eventually invoking it with the two named
-arguments that correspond to the two properties without a default value. With
-its signature, C<BUILD> converts the two positionals to the two attributes,
-C<&!callback> and C<@!dependencies>, and returns the object (or turns it in to
-the next phase, C<TWEAK>, if available).
+C<bless> is eventually invoking it with the two named
+arguments that correspond to the two properties without a default value.
 
 Declaring C<new> as a C<method> and not as a C<multi method> prevents us
 from using the default constructor; this implicit constructor uses the
@@ -362,9 +351,8 @@ say $Str-with-ID::hierarchy-counter;       # OUTPUT: «4␤»
 
 In this case, using C<new> might be the easiest way to initialize the C<$.ID>
 field and increment the value of the counter at the same time. C<new>, through
-C<bless>, will invoke the default C<BUILD>, assigning the values to their
-properties correctly. You can obtain the same effect using C<TWEAK>, which is
-considered a better practice by Raku experts. Please check L<the section on
+C<bless>, will invoke the default C<TWEAK>, assigning the values to their
+properties correctly. Please check L<the section on
 submethods|/language/classtut#index-entry-OOP> for an alternative example on how
 to do this. Since C<TWEAK> is called in every object instantiation, it's
 incremented twice when creating objects of class C<Str-with-ID-and-tag>; this is
