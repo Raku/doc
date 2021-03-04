@@ -13,26 +13,29 @@ use Test-Files;
 
 =end SYNOPSIS
 
-
 constant @categories = 'Types', 'Modules', 'Subroutines',
-'Methods', 'Terms', 'Operators',
-'Adverbs', 'Traits', 'Phasers',
-'Syntax', 'Regex', 'Control flow',
-'Raku', 'Variables', 'Reference',
-'Language', 'Programs', 'Foreign', 'Tutorial';
+                       'Methods', 'Terms',
+                       'Adverbs', 'Traits', 'Phasers', 'Asynchronous Phasers',
+                       'Syntax', 'Regexes', 'Control flow',
+                       'Pragmas',
+                       'Variables', 'Reference', 'Language',
+                       'Operators',
+                       'Listop operators', 'Infix operators',
+                       'Metaoperators', 'Postfix operators', 'Prefix operators',
+                       'Circumfix operators', 'Postcircumfix operators',
+                       'Programs', 'Foreign', 'Tutorial';
 
 plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
 
-for @files[^10] -> $file {
+for @files -> $file {
     subtest $file => {
-        plan 2 * +my @examples = refs($file);
+        my @examples = refs($file);
         test-ref $_ for @examples;
     }
 }
 
 sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
-
     for $contents<> -> $item {
         is $item.elems, 2, "Correct dimension for a search anchor '$contents.Str()' $ref<file>";
         ok $item[0] (elem) @categories, 'It has correct category';
@@ -40,21 +43,14 @@ sub test-ref ($ref) {
 }
 
 sub refs (IO() $file) {
-    my $count;
     my @chunks = extract-pod($file).contents;
     gather while @chunks {
         my $chunk = @chunks.pop;
         if $chunk ~~ Pod::FormattingCode && $chunk.type eq 'X' {
-
-            take %(
-                'contents',  $chunk.meta.flat,
-                'file',      $file
-            );
+            take %( contents => $chunk.meta.flat, :$file );
         }
         else {
-            if $chunk.^can('contents') {
-                @chunks.push(|$chunk.contents)
-            }
+            @chunks.push(|$chunk.contents) if $chunk.^can('contents');
         }
     }
 }
