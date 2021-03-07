@@ -20,7 +20,7 @@ constant @categories = 'Types', 'Modules', 'Subroutines',
                        'Pragmas',
                        'Variables', 'Reference', 'Language',
                        'Operators',
-                       'Listop operators', 'Infix operators',
+                       'List operators', 'Infix operators',
                        'Metaoperators', 'Postfix operators', 'Prefix operators',
                        'Circumfix operators', 'Postcircumfix operators',
                        'Programs', 'Foreign', 'Tutorial';
