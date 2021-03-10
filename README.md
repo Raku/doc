@@ -8,10 +8,6 @@ at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
 actually updated more frequently).
 This is currently the recommended way to consume the documentation.
 
-This documentation is updated frequently to a GitHub mirror
-https://rakudocs.github.io but that might be out of sync with the
-official one.
-
 ## Docker container
 
 This documentation is also published as
