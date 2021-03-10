@@ -38,7 +38,7 @@ browser to http://localhost:3000 (or 31415, as the case may be).
 
 ## Install rakudoc
 
-Please see https://github.com/raku/rakudoc for the
+Please see https://github.com/Raku/rakudoc for the
 command line tool for viewing the documentation
 
 ## Building the HTML documentation
