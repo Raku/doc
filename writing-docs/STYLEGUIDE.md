@@ -1,6 +1,6 @@
 # Style guide
 
-Please follow these style rules when contributing to the documentation
+Please follow these style rules when contributing to the documentation.
 
 ## Text
 
@@ -197,7 +197,7 @@ roast test suite)
   the first and latest version the documented feature is available.
 
 Future considerations along this line include: documenting things that
-are Rakudo specific (like "dd"), and documenting which versions of the
+are Rakudo specific (like ```dd```), and documenting which versions of the
 spec items are available in.
 
 ## Use of HTML
