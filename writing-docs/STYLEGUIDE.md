@@ -205,8 +205,8 @@ spec items are available in.
 Generally, Pod6 should be more than enough for any
 documentation. However, if you need to embed HTML into the
 documentation after thinking about it twice, bear in mind that we support
-the current and previous major releases of Chrome, Firefox, Internet
-Explorer (Edge), and Safari. Please test layout changes. Lacking
+the current and previous major releases of Chrome, Firefox, Edge,
+and Safari. Please test layout changes. Lacking
 actual browsers to test in, you can use
 [browsershots.org](http://browsershots.org) or
 [browserstack.com](http://browserstack.com). Ensure the layout looks
