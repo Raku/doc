@@ -119,7 +119,7 @@ term in the documentation and stick to the form that is used the most
 
 ### Use present tense when talking about Perl features
 
-Perl 5 is still an active language, therefore instead of "In Perl
+Perl 5 is still an active language, therefore instead of "In Perl
 this was used for ..., but in Raku ..."  use a form like "In Perl
 this is used for ..., but in Raku ..."  ('was' has been made a
 present 'is').
