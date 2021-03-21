@@ -964,35 +964,48 @@ optional named parameter will contain a C<True> value when the method is called
 on the object for the first time. It should return the invocant.
 
 =begin code
+role Logger { method log( Str $msg) {…}}
+
+class ConsoLogger does Logger { method log ( Str $msg ) { "❢ $msg".say }}
+
 class DNA {
     has $.chain is rw;
+    has Logger $!logger;
 
-    method STORE ($chain where {
-                         $chain ~~ /^^ <[ACGT]>+ $$ / and
-                         $chain.chars %% 3
-                     }, :$INITIALIZE --> DNA) {
-        if $INITIALIZE {
-            self = DNA.new( chain => $chain )
-        } else {
-            self.chain = $chain;
-            self
-        }
+    submethod BUILD( :$chain, :$logger = ConsoLogger.new() ) {}
+
+    method STORE (Str $chain where {
+			 /^^ <[ACGT]>+ $$ / and
+			 .chars %% 3
+		     } ,
+		       :$INITIALIZE --> DNA) {
+	if ($INITIALIZE) {
+	    $!logger = ConsoLogger.new();
+	    $!logger.log( "Initialized" );
+	}
+
+        self.chain  = $chain;
+	$!logger.log("Change value to $chain" );
+	self
     }
 
-    method Str(::?CLASS:D:) { return $.chain.comb.rotor(3) }
+    method Str(::?CLASS:D:) { return $!chain.comb.rotor(3).map( *.join("")).join("|") }
 };
 
-my @string is DNA = 'GAATCC';
-say @string.Str;    # OUTPUT: «((G A A) (T C C))␤»
-@string = 'ACGTCG';
-say @string.Str;    # OUTPUT: «((A C G) (T C G))␤»
+my @string is DNA = 'GAATCC';    # OUTPUT: «❢ Initialized␤❢ Change value to GAATCC␤»
+say ~@string;                    # OUTPUT: «GAA|TCC␤»
+@string = 'ACGTCG';              # OUTPUT: «❢ Change value to ACGTCG␤»
+say  ~@string;                   # OUTPUT: «ACG|TCG␤»
 =end code
 
 This code takes into account the value of C<$INITIALIZE>, which is set to
 C<True> only if we are assigning a value to a variable declared using the C<is>
-syntax for the first time. The C<STORE> method should set the C<self> variable
+syntax for the first time; for instance, as in this case, we might need to
+initialize any injected dependency. The C<STORE> method should set the C<self>
+variable
 and return it in all cases, including when the variable has already been
-initialized.
+initialized; however, only in the first case we need to initialize the logger
+we are using in this example.
 
 =head2 Methods to implement for associative subscripting
 
