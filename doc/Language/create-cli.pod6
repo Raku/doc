@@ -171,6 +171,76 @@ Usage:
     --verbose         required verbosity
 =end code
 
+From release 2021.03, values to single named arguments can be separated by
+spaces too. Consider a C<demo> program with the following source:
+
+    subset name of Any where Str|True;
+    subset port of Str;
+    multi MAIN(
+        $file,
+        name :$profile,    #= Write profile information to a file
+        port :$debug-port, #= Listen for debugger connections on the specified port
+        Bool :v($verbose), #= Display verbose output
+
+    ) {}
+    multi MAIN("--process-files", *@images) {}
+
+This program generates the following usage message:
+
+=begin code :lang<text>
+Usage:
+  demo [--profile[=name]] [--debug-port=<port>] [-v] <file>
+  demo --process-files [<images> ...]
+
+    --profile[=name]       Write profile information to a file
+    --debug-port=<port>    Listen for debugger connections on the specified port
+    -v                     Display verbose output
+=end code
+
+The following are valid ways to call C<demo>:
+
+=for code :lang<text>
+demo --profile ~/foo
+demo --profile=/tmp/bar ~/foo
+demo --debug-port 4242 ~/foo
+demo --debug-port=4242 ~/foo
+demo -v ~/foo
+demo --process-files *.jpg
+
+These, however, are not valid
+
+=for code :lang<text>
+demo --profile /tmp/bar ~/foo
+demo --debug-port ~/foo
+
+The first is invalid because C</tmp/bar> and C<~/foo> are both parsed as
+positional arguments, which means C<demo> was called with too many
+positional arguments.  The second is invalid because C<~/foo> is parsed
+as an argument to C<--debug-port>, and thus C<demo> lacks the required
+positional argument.
+
+Here's how it works; with Raku distinguishing between three types of options:
+
+=item Boolean options (like C<-v>), which I<never> take an argument; they
+   are ether present or absent.
+=item Options with a mandatory argument (like C<--debug-port>), which
+   always take an argument.  If you give them an argument with C<=>,
+   they will use that; if not, they'll take the following argument.
+=item Options with an optional argument (like C<--profile>), which are
+   valid both with and without an argument.  You can I<only> give these
+   arguments an option with the C<=> syntax; if there is a space after
+   the option, that means it was called without an argument.
+
+And here's the signature that produces each type of argument:
+
+=item Boolean options: A L<C<Bool>|/type/Bool> type constraint.
+= Options with a mandatory argument: A type that does not L<C<
+.ACCEPT>|/routine/ACCEPTS> a C<Bool>.
+=item Options with an optional argument: A type that C<.ACCEPTS> a
+   C<True> (because passing an option without an argument is equivalent
+   to passing C<True>)
+
+
 As any other subroutine, C<MAIN> can define
 L<aliases|/type/Signature#index-entry-argument_aliases> for its named parameters.
 
