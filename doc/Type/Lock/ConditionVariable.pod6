@@ -1,0 +1,67 @@
+=begin pod :kind("Type") :subkind("class") :category("domain-specific")
+
+=TITLE class Lock::ConditionVariable
+
+=SUBTITLE Condition variables used in locks
+
+    class Lock::ConditionVariable {}
+
+Condition variables are used in L<C<Lock>s|/type/Lock> to wait for a
+particular condition to become true. You will normally not create one from
+scratch, but call L<C<Lock.condition>|/type/Lock#method_condition> to acquire
+one on a particular C<Lock>.
+
+=head1 Methods
+
+=head2 method wait
+
+Defined as:
+
+    multi method wait( --> Nil )
+    multi method wait( &predicate --> Nil )
+
+Without any predicate, it waits on the condition variable itself; with a
+predicate, waits until the code returns a truish value.
+
+=begin code
+{
+    my $times = 100;
+    my $tried;
+    my $failed;
+    for ^$times {
+        my $l = Lock.new;
+        my $c = $l.condition;
+        my $now1;
+        my $now2;
+        my $counter = 0;
+        my $t1 = Thread.start({
+            $l.protect({
+                $c.wait( { $counter != 0 } );
+                $now1 = now;
+            });
+        });
+
+        my $t2 = Thread.start({
+            $l.protect({
+                $counter++;
+                $c.signal();
+            });
+        });
+
+        $t1.join();
+        $now2 = now;
+        $t2.join();
+
+        $tried++;
+        last if $failed = ( !$now1.defined or $now1 > $now2 );
+    }
+}
+=end code
+
+The condition we obtain from the C<$l> lock is awaited using a predicate, in
+this case, check if the counter is still zero. When it takes another value,
+the program flow continues in the next instruction.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
