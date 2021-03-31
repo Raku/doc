@@ -67,7 +67,42 @@ Defined as:
     method signal()
 
 If and only if there are any threads that have previously waited on the
-condition variable, it unblocks at least one of them.
+condition variable, it unblocks at least one of them. Let's see how it works
+in this example:
+
+=begin code
+constant ITEMS = 100;
+for 1..15 -> $iter {
+    my $lock = Lock.new;
+    my $cond = $lock.condition;
+    my $todo = 0;
+    my $done = 0;
+    my @in = 1..ITEMS;
+    my @out = 0 xx ITEMS;
+
+    for 1..ITEMS -> $i {
+        my $in = $i;
+        my $out := @out[$i];
+        Thread.start( {
+                    $out = $in * 10;
+                    $lock.protect( {
+                        $done++;
+                        $cond.signal if $done == $todo;
+                    } );
+        } );
+        $todo++;
+    }
+    $lock.protect( {
+        $cond.wait({  $done == $todo } );
+    });
+    say @out;
+}
+=end code
+
+We are repeating 15 times the same operation: start 100 threads, every one of
+which modify a single element in an array. We C<protect> the modification of
+a global variable, C<$done>, and use C<signal> to wake a up another thread to
+do its thing. This outputs the first elements of the generated arrays.
 
 =end pod
 
