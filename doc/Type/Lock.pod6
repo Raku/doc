@@ -163,22 +163,55 @@ Defined as:
 
     method condition(Lock:D: --> Lock::ConditionVariable)
 
-Returns a condition variable. Compare
+Returns a L<condition variable as a C<Lock::ConditionVariable>
+object|/type/Lock::ConditionVariable>.
+Compare
 L<https://web.stanford.edu/~ouster/cgi-bin/cs140-spring14/lecture.php?topic=locks> or
 L<https://en.wikipedia.org/wiki/Monitor_%28synchronization%29> for background.
 
     my $l = Lock.new;
     $l.condition;
 
-=head2 method signal
+You should use a condition over a lock when you want an interaction with it
+that is a bit more complex than simply acquiring or releasing the lock.
 
-Defined as:
+=begin code
+constant ITEMS = 100;
+my $lock = Lock.new;
+my $cond = $lock.condition;
+my $todo = 0;
+my $done = 0;
+my @in = 1..ITEMS;
+my @out = 0 xx ITEMS;
 
-    method signal()
+loop ( my $i = 0; $i < @in; $i++ ) {
+    my $in := @in[$i];
+    my $out := @out[$i];
+    Thread.start( {
+      my $partial = $in² +1;
+      if $partial.is-prime {
+          $out = $partial but "Prime";
+      } else {
+          $out = $partial;
+      }
+      $lock.protect( {
+         $done++;
+         $cond.signal if $done == $todo;
+      } );
+    } );
+    $todo++;
+}
+$lock.protect( {
+    $cond.wait({  $done == $todo } );
+});
 
-If and only if there are any threads that have previously waited on the
-condition variable, it unblocks at least one of them.
+say @out.map: { $_.^roles > 2 ?? $_.Num ~ "*" !! $_ };
+# OUTPUT: «2* 5* 10 17* 26 37* 50 65 82 101* … »
+=end code
 
+In this case, we use the condition variable C<$cond> to wait until all
+numbers have been generated and checked and also to C<.signal> to another
+thread to wake up when the particular thread is done.
 
 =end pod
 
