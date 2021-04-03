@@ -97,7 +97,7 @@ argument. Creates an empty C<Seq> if called with no argument.
 
 =head2 method iterator
 
-    method iterator(Seq:D: --> Iterator:D)
+    method iterator(Seq:D:)
 
 If the C<Seq> is not cached, returns the underlying iterator and marks
 the invocant as consumed. If called on an already consumed sequence,
@@ -107,11 +107,20 @@ Otherwise returns an iterator over the cached list.
 
 =head2 method is-lazy
 
-    method is-lazy(Seq:D: --> Bool:D)
+    method is-lazy(Seq:D:)
 
 Returns C<True> if and only if the underlying iterator or cached list
 considers itself lazy. If called on an already consumed sequence, throws
 an error of type L<X::Seq::Consumed|/type/X::Seq::Consumed>.
+
+=head2 method Seq
+
+Defined as
+
+     multi method Seq(Seq:D:)
+
+Clones the object.
+
 
 =head2 method Capture
 
@@ -134,24 +143,25 @@ L<fails|/routine/fail> with L<X::Cannot::Lazy|/type/X::Cannot::Lazy>.
 
 =head2 method from-loop
 
-    multi method from-loop(&body --> Seq:D)
-    multi method from-loop(&body, &cond, :$repeat --> Seq:D)
-    multi method from-loop(&body, &cond, &afterward --> Seq:D)
+    multi method from-loop(&body, :$label)
+    multi method from-loop(&body, &cond, :$repeat!, :$label)
+    multi method from-loop(&body, &cond, :$label)
+    multi method from-loop(&body, &cond, &afterwards, :$label)
 
 These methods create new C<Seq>-based callbacks.
 
-The first form produces an infinite C<Seq> by calling C<&body> each time a new
+In general, it produces an infinite C<Seq> by calling C<&body> each time a new
 element is requested, using the return value from C<&body> as the item. This
 emulates (or implements) a C<loop { body }> construct.
 
-The second form calls C<&cond> before each call to C<&body>, and terminates
+When the multi includes C<&cond>, it's invoked before each call to
+C<&body>, and terminates
 the sequence if C<&cond> returns a false value. If C<$repeat> is set to a true
 value, the first call to C<&cond> is omitted, and C<&body> called right away.
 This emulates (or implements) C<while cond { body }> and
 C<repeat { body } while cond> loops.
 
-The third form enables C-style looping by calling a third callback,
-C<&afterward>, after each call to C<&body>.
+If present, C<&afterward> will be called after each call to C<&body>.
 
 =head2 method sink
 
