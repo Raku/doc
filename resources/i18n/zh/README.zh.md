@@ -3,15 +3,13 @@
 [![Build Status](https://travis-ci.org/Raku/doc.svg?branch=master)](https://travis-ci.org/Raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/Raku/doc) [![CircleCI](https://circleci.com/gh/Raku/doc.svg?style=shield)](https://circleci.com/gh/Raku/doc/tree/master)
 
 本文档的 HTML 版本位于 [https://docs.raku.org/](https://docs.raku.org/) 和
-[`rakudocs.github.io`](https://rakudocs.github.io) （后者实际上更新更频繁）。
+[`rakudocs.github.io`](https://rakudocs.github.io) （后者更新更频繁）。
 目前推荐使用这种方式来访问文档。
-
-本仓库还提供命令行工具 `p6doc` 用于阅读文档（见下）。
 
 ## Docker 镜像
 
 官方文档的 Docker 镜像地址为 [`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc) 。
-这个镜像包含了一份 Web 版本的文档，对应的端口为 3000。你可以这样运行这个镜像：
+这个镜像包含了文档的一份副本，对应的端口为 3000。你可以这样运行这个镜像：
 
     docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
 
@@ -19,7 +17,7 @@
 
     docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
 
-现在，可以通过浏览器访问 http://localhost:3000 （或者 31415 端口，视情况而定）。
+现在，可以通过浏览器访问 http://localhost:3000（或者 31415 端口，视情况而定）。
 
 ## 其他语言版本的 README
 
@@ -32,90 +30,86 @@
 * [葡萄牙文版 README](../pt/README.pt.md)
 * [西班牙文版 README](../es/README.es.md)
 
-## 安装 p6doc
+## 安装 rakudoc
 
-本模块可通过 Raku 模块生态系统获得。使用命令
-
-    $ zef install p6doc
-
-安装可执行文件并添加到执行路径（PATH）中。
-
-**注意**: 由于 Pod6 的解析规则改变，在 2018.06 之前的版本将无法通过测试从而无法安装，你可以选择升级到最新的版本或使用 `zef install --force p6doc` 来解决这个问题。无法通过测试并不影响 p6doc 的使用。
-
-## 使用 p6doc
-
-把 `rakudo` 添加到 `PATH` 中后，可以使用命令
-
-    $ ./bin/p6doc Str
-
-查看 `Str` 类的文档；或者使用命令
-
-    $ ./bin/p6doc Str.split
-
-查看 `Str` 类中的 `split` 方法。如果你已经使用 `zef` 安装了 `p6doc`，那么可以省略 `./bin`。你也可以使用命令
-
-    $ p6doc -f slurp
-
-浏览标准函数的文档（在这种情况下实际上会返回多个结果，你可以分别查看）。命令的响应可能会花点时间，这取决于磁盘的速度和 Rakudo 的版本。
-
--------
+请查看 https://github.com/Raku/rakudoc 来了解在命令行查看文档的工具。
 
 ## 构建 HTML 文档
 
-本文档可以渲染为静态 HTML 页面并/或在本地网站服务。
-此过程涉及创建预编译文档的缓存，以便加快之后的生成速度。
+注意：如果你只是想要一份 HTML 站点的副本，而不想自己处理构建，你可以从这里克隆：https://github.com/rakudocs/rakudocs.github.io。
 
-> 建立文档有许多先决条件，你可能并不想亲自做。
-> 不过，如果你需要 HTML 文档的本地副本，请通过克隆 https://github.com/rakudocs/rakudocs.github.io 进行下载。
+本文档可以渲染为静态 HTML 页面和/或在本地网站服务。此过程涉及创建预编译文档的缓存，以便加快之后的生成速度。
 
-以下是生成文档需要安装的先决条件：
+你需要安装以下这些才能生成文档：
 
 * perl 5.20 或更新。
 * node 10 或更新。
-* graphviz 。
-* [Documentable](https://github.com/Raku/Documentable) 。
+* graphviz。
+* [Documentable](https://github.com/Raku/Documentable)。
 
-请按照以下说明（在 Ubuntu 中）进行安装
+在 Ubuntu 中，请按照以下说明进行安装：
 
     sudo apt install perl graphviz # 默认情况下，18.04 中未安装 perl
     curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     sudo apt-get install -y nodejs
     cpanm --installdeps .
-    zef install Documentable
+    zef install --deps-only . ; # 在这个检出内运行
 
-> 你可以用任何方式安装 perl 和 node ，包括使用版本管理器，只要它们可以从命令行运行即可。
+> 你可以用任何方式安装 perl 和 node，包括使用版本管理器，只要它们可以从命令行运行即可。
 
-这应该安装了所有的必备条件，现在你可以 clone 本存储库并开始构建：
+这应该安装了所有依赖，现在你可以克隆本存储库并开始构建：
 
-    git clone https://github.com/Raku/doc.git # clone 存储库
-    cd doc # 移动到本存储库的副本
-    make for-documentable # 生成 CSS 和 JS 并安装高亮模块
-    documentable start -a -v --highlight # 构建缓存并生成页面
+    git clone https://github.com/Raku/doc.git # 克隆存储库
+    cd doc # 进入克隆的存储库
+    # 生成 CSS 和 JS，安装高亮模块并构建缓存和页面
+    make html
 
 只有在第一次构建缓存时才需要这样做。当源代码发生变化（由你自己完成或从本存储库中拉取）后，运行
 
-    documentable update
+    make update-html
 
 将只会重新生成有变化的页面。
 
-文档将在 `html` 子目录中生成。你可以使用任何静态Web服务器指向该目录，也可以使用基于 Mojolicious 的开发服务器，运行
+文档将在 `html` 子目录中生成。你可以使用任何静态 Web 服务器指向该目录，也可以使用基于 Mojolicious 的开发服务器，运行
 
     make run
 
 这会在 3000 端口服务文档。
 
+## 生成 EPUB 和/或“单页 HTML”文档
+
+本文档也可以生成 EPUB 格式以及“单页 HTML”格式。请注意，有些功能（如类型部分中继承的方法和类型图，以及代码示例的语法高亮）在这些格式中（暂时）不可用。
+
+你需要安装以下这些：
+
+* Pod::To::BigPage 0.5.2 或更新。
+* Pandoc（仅 EPUB）。
+
+在 Ubuntu 或 Debian 上，你可以按照以下说明安装：
+
+    zef install "Pod::To::BigPage:ver<0.5.2+>"
+    sudo apt install pandoc     # 如果你想生成 EPUB
+
+现在你已经安装了依赖关系，克隆这个仓库，并生成 EPUB 或“单页 HTML”文档。
+
+    git clone https://github.com/Raku/doc.git # 克隆存储库
+    cd doc      # 进入克隆的存储库
+    make epub           # 生成 EPUB 格式，
+                        # 对于“单页 HTML”格式，使用 `make bigpage`
+
+生成的 EPUB 位于存储库根目录下，名为 `raku.epub`，生成的“单页 HTML”在 `html/raku.html`。
+
 ## nginx 配置
 
-生成的文档的最新版本仅包含静态 HTML 页面。所有页面都以 `.html` 结尾；不过大多数内部链接不使用该后缀。大多数Web服务器（例如，服务 GitHub 页面的服务器）都会自动为你添加它。裸服务器不会。你需要向配置中添加这些以使其工作：
+生成的文档的最新版本仅包含静态 HTML 页面。所有页面都以 `.html` 结尾；不过大多数内部链接不使用该后缀。大多数 Web 服务器（例如，服务 GitHub 页面的服务器）都会自动为你添加它。裸服务器不会。你需要向配置中添加这些以使其工作：
 
 ```
     location / {
         try_files $uri $uri/ $uri.html /404.html;
     }
-
 ```
 
-这将为你重定向 URL 。可能需要在其他服务器应用中做出同样的配置。
+这将为你重定向 URL。可能需要在其他服务器应用中做出同样的配置。
 
 ---------
 
@@ -125,32 +119,30 @@ Raku 不是小语言，为它做文档并维护这些文档需要付出很大的
 
 以下是一些帮助我们的方式：
 
- * 添加缺少的 class ，role ，method 或 operator 的文档
- * 为现有文档添加使用示例
- * 校对与更正文档
- * 通过 GitHub 的 issue 系统报告缺少的文档
- * 在本仓库下执行 `git grep TODO`，使用实际文档替换 TODO
+ * 添加缺少的 class，role，method 或 operator 的文档。
+ * 为现有文档添加使用示例。
+ * 校对与更正文档。
+ * 通过 GitHub 的 issue 系统报告缺少的文档。
+ * 在本存储库下执行 `git grep TODO`，并用实际文档替换 TODO。
 
-[Issues 页面](https://github.com/Raku/doc/issues)列出了当前的 issue 和已知的缺失文档。[CONTRIBUTING 文档](../../../CONTRIBUTING.md)简要地说明了如何开始贡献文档。
+[Issues 页面](https://github.com/Raku/doc/issues)列出了当前的 issue 和已知缺失的文档。[CONTRIBUTING 文档](../../../CONTRIBUTING.md)简要描述了如何开始贡献文档。
 
 --------
 
 ## 注记：
 
-**Q:** 为什么不把文档内嵌到 Rakudo 的核心开发文件中？
+**Q:** 为什么不把文档内嵌到 Rakudo 的核心开发文件中？<br />
+**A:** 有以下几点：
 
-**A:** 起码有以下几点：
-
-  1. 这份文档与 Raku 的一份特定的语言标准相关联，
+  1. 这份文档与 Raku 的特定版本的语言标准相关联，
      而不是跟某个 Raku 的具体实现相绑定。
   2. 处理内嵌的 Pod 的功能还不太稳定，使用单独的文档仓库
-     有利于避免运行时错误。
+     可以避免潜在的运行时错误。
   3. 一个 Raku GitHub 账号下的单独的仓库能吸引更多
-     潜在的贡献和编辑。
+     潜在的贡献者。
 
-**Q:** 编写文档时我应该包括父类和 role 的方法吗？
-
-**A:** 不用。HTML 版本的文档自动包括了这些方法，`p6doc` 脚本也会自动处理这些。
+**Q:** 编写文档时我应该包括父类和 role 的方法吗？<br />
+**A:** 不用。HTML 版本的文档自动包括了这些方法。
 
 --------
 
@@ -174,16 +166,16 @@ Raku 不是小语言，为它做文档并维护这些文档需要付出很大的
 
 现在暂时是手动更新。这大概需要改进。
 
-# 协议
+# 许可证
 
-本仓库代码使用 Perl 基金会发布的 Artistic License 2.0 协议，可以在 [LICENSE](../../../LICENSE) 文件中查看完整的内容。
+本仓库代码使用 Perl 基金会发布的 Artistic License 2.0 协议，你可以在 [LICENSE](../../../LICENSE) 文件中查看完整的内容。
 
 本仓库可能包括使用其他协议的第三方代码，这些文件在它们的首部注明了版权和协议。目前包括：
 
-* jQuery 与 jQuery UI 库： Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
-* [jQuery Cookie 插件](https://github.com/js-cookie/js-cookie):
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
+* jQuery 与 jQuery UI 库：Copyright 2015 jQuery Foundation and other contributors；[MIT License](http://creativecommons.org/licenses/MIT)
+* [jQuery Cookie 插件](https://github.com/js-cookie/js-cookie)：
+  Copyright 2006, 2015 Klaus Hartl & Fagner Brack；
   [MIT License](http://creativecommons.org/licenses/MIT)
-* 来自 Stack Overflow 的示例 [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* 来自 Stack Overflow 的示例； [MIT License](http://creativecommons.org/licenses/MIT) ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * 来自 https://github.com/christianbach/tablesorter 的表格排序插件；
   [MIT License](http://creativecommons.org/licenses/MIT)
