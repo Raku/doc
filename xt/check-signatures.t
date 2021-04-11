@@ -30,6 +30,10 @@ variable, this script will attempt to test a specific version by using git check
 to switch that checkout to a specific version during the test, and run
 "git checkout -" at the end to reset the state.
 
+NOTE: This test uses introspection from the running copy of rakudo to find
+information in the source code. If you are running a different version of raku
+then the RAKUDO_SRC directory, it may be unable to find certain method definitions.
+
 To ensure that implementation details don't cause failing tests, we check only
 for certain discrepancies that are guaranteed to indicate a
 substantive/non-implementation detail mismatch between Rakudo and the docs.
