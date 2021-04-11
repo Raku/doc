@@ -17,7 +17,7 @@
 
     docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
 
-现在，可以通过浏览器访问 http://localhost:3000（或者 31415 端口，视情况而定）。
+现在，可以通过浏览器访问 http://localhost:3000 （或者 31415 端口，视情况而定）。
 
 ## 其他语言版本的 README
 
