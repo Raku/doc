@@ -36,7 +36,7 @@
 
 ## 构建 HTML 文档
 
-注意：如果你只是想要一份 HTML 站点的副本，而不想自己处理构建，你可以从这里克隆：https://github.com/rakudocs/rakudocs.github.io。
+注意：如果你只是想要一份 HTML 站点的副本，而不想自己处理构建，你可以从这里克隆：[`https://github.com/rakudocs/rakudocs.github.io`](https://github.com/rakudocs/rakudocs.github.io)。
 
 本文档可以渲染为静态 HTML 页面和/或在本地网站服务。此过程涉及创建预编译文档的缓存，以便加快之后的生成速度。
 
