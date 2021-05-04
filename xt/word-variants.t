@@ -30,6 +30,7 @@ my %variants = %(
     shorthand  => rx:i/ << short [\s+|\-] hand /,
     sigiled => rx:i/ << sigilled /,
     smartmatch => rx:i/ << smart  [\s+|\-] match /,
+    subdirectories => rx:i/ << sub \- directories /,
     subdirectory => rx:i/ << sub \- directory /,
     zero-width => rx:i/ << zero \s+ width<!before ' joiner'><!before ' no-break space'> /,
 );
