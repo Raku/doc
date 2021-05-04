@@ -57,7 +57,7 @@ for %result.keys.sort -> $file {
     my $ok = %result{$file}[0];
     my @bad = %result{$file}[1];
     if !$ok {
-       $result ~= " {@bad.join: ', '}): Certain words should be normalized. ";
+       $result ~= " {@bad.join: ', '}: Certain words should be normalized.";
     }
     ok $ok, $result;
 }
