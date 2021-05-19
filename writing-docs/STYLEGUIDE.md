@@ -188,7 +188,7 @@ roast test suite)
 
 * If something is visible to users of Raku and is in roast: document it.
 * If something is visible to users of Raku and is not in roast:
-  check with the dev team (#raku-dev on freenode) - This might need
+  check with the dev team (#raku-dev on libera.chat) - This might need
   have a test added (and therefore docs), or it might need to be
   hidden so users cannot see it. In general, documentation of
   implementation-specific features should be avoided; however, if
