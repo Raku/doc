@@ -6,7 +6,7 @@ to this repository. It will help the organization of the hackathon if
 you follow these rules when participating in it.
 
 1. Always work against an [issue](https://github.com/Raku/doc/issues). If you find some typo or any other kind of error for which an issue does not exist, please create one.
-2. Always work on assigned issues. Assignments get echoed in the [`raku` IRC channel](https://webchat.freenode.net/?channels=#raku), so everyone knows someone is working on that.
+2. Always work on assigned issues. Assignments get echoed in the [`raku` IRC channel](https://kiwiirc.com/client/irc.libera.chat/#raku), so everyone knows someone is working on that.
 3. You can only assign issues to contributors, so if someone who is
    not a contributor asks to be assigned something, please assign it
    to yourself (provided you are a contributor) and do an `@` mention with the nick of the actual
