@@ -1,5 +1,13 @@
 unit module Pod::Convenience;
 
+=begin overview
+
+Provide an C<extract-pod> sub which returns an object containing all the pod
+elements from a given file.
+
+=end overview
+
+
 my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent(3).child(".pod-precomp")));
 my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
 

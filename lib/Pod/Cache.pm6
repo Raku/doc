@@ -1,7 +1,11 @@
 unit class Pod::Cache;
 
-# Given a filename, generate a cached, rendered version of the POD
-# in that file as text.
+=begin overview
+
+Given a filename, generate a cached, rendered text version of the POD
+in that file.
+
+=end overview
 
 method cache-file(Str $file --> Str) {
     my $outfile = '.pod-cache/' ~ $file;
