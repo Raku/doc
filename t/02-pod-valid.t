@@ -37,6 +37,7 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
         }
 
         whenever $proc.start {
+            $verbose and diag("processing $file");
             $lock.protect: {
                 if %data{$file}:!exists {
                     %data{$file} = !.exitcode;  # 0 = True, anything else False
