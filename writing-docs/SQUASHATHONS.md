@@ -18,4 +18,4 @@ you follow these rules when participating in it.
    other ones till the end of the day (so that others can start with
    something easy too). If you are already experienced, don't be
    afraid to tackle other, more difficult, issues, starting with
-   [the oldest](https://github.com/Raku/doc/issues?page=8&q=is%3Aissue+is%3Aopen).
+   [the oldest](https://github.com/Raku/doc/issues?q=is%3Aissue+is%3Aopen+sort%3Acreated-asc).
