@@ -34,7 +34,8 @@ finesse it.
 
 ### Other languages
 
-We're just testing Raku here: to skip another language, use `:lang`
+We're just testing Raku here: to mark as another language, use `:lang`,
+and this will avoid testing:
 
     =begin code :lang<tcl>
     puts "this is not Perl"
