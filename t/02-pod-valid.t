@@ -22,7 +22,7 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
 
 @files.race.map: -> $file {
     react {
-        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '--doc', $file]);
+        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '-c', '--doc', $file]);
 
         whenever $proc.stdout.lines {
             ; #discard
