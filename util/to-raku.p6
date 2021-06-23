@@ -1,11 +1,9 @@
 #!/usr/bin/env raku
-use v6;
+
 use lib 'lib';
 use Test-Files;
 
-
 my $degree = %*ENV<UTIL_THREADS> // 2;
-
 
 multi sub replace-perl6(Str $file) {
     my $content = my $original-content = slurp $file;

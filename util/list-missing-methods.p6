@@ -1,5 +1,5 @@
 #! /usr/bin/env raku
-use v6;
+
 use Telemetry; # used so we can check these docs
 # stubs
 role Result{...}; role Ok{...}; role Err{...}; role ErrKind{...}; role UncheckableType {...}

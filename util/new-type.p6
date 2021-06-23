@@ -1,7 +1,5 @@
 #!/usr/bin/env raku
 
-use v6;
-
 sub MAIN($typename, :$kind='class') {
     my @path-chunks =  $typename.split('::');
     my $filename = @path-chunks.pop ~ '.pod6';
