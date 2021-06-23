@@ -93,9 +93,9 @@ questions come up in the process feel free to ask in
 [#raku IRC channel](https://raku.org/community/irc).
 
 If the documentation for a type does not exist, create the skeleton of the doc
-with the helper tool `util/new-type.p6`. Say you want to create `MyFunnyRole`:
+with the helper tool `util/new-type.raku`. Say you want to create `MyFunnyRole`:
 
-    $ perl6 util/new-type.p6 --kind=role MyFunnyRole
+    $ raku util/new-type.raku --kind=role MyFunnyRole
 
 Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
 
@@ -163,7 +163,7 @@ See [Writing and Testing Examples](writing-docs/EXAMPLES.md)
 ## Testing method completeness
 
 To get a list of methods that are found via introspection but not found in any
-Pod6 file under `doc/Type/`, use `util/list-missing-methods.p6`. It takes a
+Pod6 file under `doc/Type/`, use `util/list-missing-methods.raku`. It takes a
 directory or filepath as argument and limits the listing to the given file or
 any Pod6 files found. All methods listed in `util/ignored-methods.txt` are
 ignored.
