@@ -1,4 +1,8 @@
 #!/bin/bash -
+
+# This script is run by the step 'Run tests' in the GitHub workflow "test"
+# See .github/workflows/test.yml
+
 set -ex
 set -o pipefail
 
