@@ -18,7 +18,6 @@ method cache-file(Str $file --> Str) {
     # The empty check helps in cases where the cache creation died for some reason
 
     if $in-time > $out-time || $output-io.s == 0 {
-       note "Caching $file";
        mkdir $output-io.dirname;
        my $outfile = $output-io.open(:w);
        LEAVE $outfile.close;
