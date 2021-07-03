@@ -424,51 +424,54 @@ passed, the module no longer exports default symbols. You may still import them
 explicitly by passing C<:DEFAULT> to C<use> along with your positional
 parameters.
 
-    =begin code
-    # lib/MyModule
+=begin code
+# lib/MyModule
 
-    class MyModule::Class {}
+class MyModule::Class {}
 
-    sub EXPORT($short_name?) {
-        %(
-          do $short_name => MyModule::Class if $short_name
-        )
-    }
+sub EXPORT($short_name?) {
+    Map.new: do $short_name => MyModule::Class if $short_name
+}
 
-    sub always is export(:MANDATORY) { say "works" }
+sub always is export(:MANDATORY) { say "works" }
 
-    #import with :ALL or :DEFAULT to get
-    sub shy is export { say "you found me!" }
-    =end code
+#import with :ALL or :DEFAULT to get
+sub shy is export { say "you found me!" }
+=end code
 
-    =begin code :skip-test<needs dummy module>
-    # main.raku
-    use lib 'lib';
-    use MyModule 'foo';
-    say foo.new(); # OUTPUT: «MyModule::Class.new␤»
+Used from this main program
 
-    always();      # OK   - is imported
-    shy();         # FAIL - won't be imported
-    =end code
+=begin code :skip-test<needs dummy module>
+# main.raku
+use lib 'lib';
+use MyModule 'foo';
+say foo.new(); # OUTPUT: «MyModule::Class.new␤»
 
-You can combine C<EXPORT> with type captures for interesting
-effect. This example creates a C<?> postfix which will only work on
-L<Cool|/type/Cool>s.
+always();      # OK   - is imported
+shy();         # FAIL - «shy used at line 8. Did you mean 'say'?»
+=end code
 
-    =begin code
-    # lib/MakeQuestionable.rakumod
-    sub EXPORT(::Questionable) {
-        my multi postfix:<?>(Questionable $_) { .so };
-        %(
-          '&postfix:<?>' => &postfix:<?>,
-        )
-    }
-    =end code
+You can combine C<EXPORT> with type captures for interesting effect. This
+example creates a C<?> postfix which will only work on L<Cool|/type/Cool>s;
+please note that, by using C<$_> as an argument, we don't need to use a
+variable in the routine body and use just C<.so>, acting by default on the
+topic variable.
 
-    =begin code :skip-test<needs dummy module>
-    use MakeQuestionable Cool;
-    say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
-    =end code
+=begin code
+# lib/MakeQuestionable.rakumod
+sub EXPORT(::Questionable) {
+    my multi postfix:<?>(Questionable $_) { .so };
+    Map.new: '&postfix:<?>' => &postfix:<?>,
+}
+=end code
+
+Which is used from here:
+
+=begin code :skip-test<needs dummy module>
+use lib 'lib';
+use MakeQuestionable Cool;
+say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
+=end code
 
 =head2 Introspection
 
