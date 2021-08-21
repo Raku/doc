@@ -1,5 +1,9 @@
 #!/usr/bin/env raku
 
+# If the documentation for a type does not exist, create the skeleton of the doc
+# $ raku util/new-type.raku --kind=role Some::Role
+# this creates the file doc/Type/Some/Role.pod6
+
 sub MAIN($typename, :$kind='class') {
     my @path-chunks =  $typename.split('::');
     my $filename = @path-chunks.pop ~ '.pod6';
@@ -12,8 +16,13 @@ sub MAIN($typename, :$kind='class') {
     }
 
     $path ~= "/$filename";
+    if $path.IO ~~ :e {
+	say "The file $path already exists.";
+	exit 1;
+    }
+    my $fh = open $path, :x;
 
-    spurt $path.IO, Q:q:to/HEADER/;
+    spurt $fh, Q:s:to/HEADER/;
         =begin pod
 
         =TITLE $kind $typename
@@ -25,7 +34,7 @@ sub MAIN($typename, :$kind='class') {
         Synopsis goes here
 
         HEADER
-    spurt $path.IO, Q:c:to/BODY/;
+    spurt $fh, Q:c:to/BODY/;
 
         =head1 Methods
 
@@ -39,7 +48,7 @@ sub MAIN($typename, :$kind='class') {
 
         # vim: expandtab shiftwidth=4 ft=perl6
         BODY
-
+    $fh.close;
     say "'$path' written";
     say "(remember to 'git add $path')";
 }
