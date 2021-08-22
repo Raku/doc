@@ -130,10 +130,49 @@ context|/language/contexts#Item_context> for more information.
 Same as you can define object and class methods (which do not have access to
 the instance variables), you can define metaclass methods, which will work on
 the metaclass. These are conventionally defined by a caret (C<^>) at the
-front of the method identifier. These metaclass methods will return a type
-object.
+front of the method identifier. These metaclass methods might return a type
+object or a simple object; in general, they are only conventionally related
+to the metaobject protocol and are, otherwise, simple methods with a peculiar
+syntax.
 
+These methods will get called with the type name as first argument, but this
+needs to be declared explicitly.
 
+=for code
+class Foo {
+    method ^bar( Mu \foo) {
+	    foo.^set_name( foo.^name ~ "[þ]" );
+    }
+}
+my $foo = Foo.new();
+say $foo.^name; # OUTPUT: «Foo␤»
+Foo.^bar();
+say $foo.^name; # OUTPUT: «Foo[þ]␤»
+
+This metaclass method will, via invoking class metamethods, change the name
+of the class it's been declared. Since this has been acting on the metaclass,
+any new object of the same class will receive the same name; invoking C<say Foo
+.new().^name> will return the same value. As it can be seen, the metaclass
+method is
+invoked with no arguments; C<\foo> will, in this case, become the C<Foo> when
+invoked.
+
+The metaclass methods can receive as many arguments as you want.
+
+=for code
+class Foo {
+    method ^bar( Mu \foo, Str $addenda) {
+	    foo.^set_name( foo.^name ~ $addenda );
+    }
+}
+Foo.new().^bar(  "[baz]" );
+my $foo = Foo.new();
+say $foo.^name;  # OUTPUT: «Foo[baz]␤»
+
+Again, implicitly, the method call will furnish the first argument, which is
+the type object. Since they are metaclass methods, you can invoke them on a
+class (as above) or on an object (as below). The result will be exactly the
+same.
 
 =head1 Structure of the metaobject system
 
