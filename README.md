@@ -25,7 +25,7 @@ or
     docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
 
 in case you want it published somewhere else. You can direct your
-browser to http://localhost:3000 (or 31415, as the case may be).
+browser to `http://localhost:3000` (or 31415, as the case may be).
 
 ## README in other languages
 
