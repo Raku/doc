@@ -17,8 +17,8 @@ sub MAIN($typename, :$kind='class') {
 
     $path ~= "/$filename";
     if $path.IO ~~ :e {
-	say "The file $path already exists.";
-	exit 1;
+        say "The file $path already exists.";
+        exit 1;
     }
     my $fh = open $path, :x;
 
