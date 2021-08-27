@@ -88,7 +88,7 @@ sub test-example ($eg) {
             # We wait until none of them is encountered before adding '{}'.
             # Cases that are not covered by the heuristic and which contain
             # nothing but a method declaration can use :method instead.
-            $in-signature ?|= $line.trim.starts-with(any(<multi method proto only sub>))
+            $in-signature ?|= $line.trim ~~ / ^ ('multi'|'method'|'submethod'|'proto'|'only'|'sub') >> /
                            && not $eg<method>;
             if $in-signature && !$line.trim.ends-with(any(« } , ( »)) {
                $code ~= " \{}";
