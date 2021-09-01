@@ -6,7 +6,9 @@ use Test-Files;
 
 =begin overview
 
-Exercise Test-Files command line
+Exercise Test-Files command line.
+
+L<xt/lib-test-files.t> invokes this script and its results are reported out through that C<.t> file
 
 =end overview
 
