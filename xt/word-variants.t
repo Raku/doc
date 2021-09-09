@@ -12,11 +12,13 @@ Make sure certain words are normalized by checking regular expressions.
 
 my @files = Test-Files.pods;
 
+# Keys are the preferred variant, values are regex to complain about
 my %variants = %(
     # no lowercase 'boolean', unless it is followed by some selected
     # characters as it might be included in a code snippet,
     # see for example doc/Language/js-nutshell.pod6
     Boolean    => rx/ << boolean <!before \s* <[ \= \< \> \{ \} ]> > /,
+    "call site" => rx/ <<'call' '-'? 'site'>>/, 
     filehandle => rx:i/ << file [\s+|\-] handle /,
     filesystem => rx:i/ << file [\s+|\-] system /,
     lookahead  => rx:i/ << look \- ahead /,
