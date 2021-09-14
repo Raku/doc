@@ -84,105 +84,6 @@ CATCH { default { put .^name, ': ', .Str } }
 For information on variables without sigils, see
 L<sigilless variables|#Sigilless_variables>.
 
-=head2 Item and list assignment
-
-There are two types of variable assignment, I<item assignment> and I<list
-assignment>.
-
-An item assignment copies a single value from the right-hand side into a Scalar
-variable on the left. An assignment to anything other than a simple Scalar
-variable is parsed as a list assignment. A list assignment leaves the choice of
-what the assignment operation entails to the variable on the left. For example,
-L<Array|/type/Array> variables (C<@> sigil) empty themselves on list assignment,
-and then iteratively copy all values from the right-hand side into themselves as
-elements.
-
-The two types of assignment both use the equal sign C<=> as their operator and
-are both right associative, but differ in operator precedence: item assignment
-has a higher precedence level (level: Item assignment) than list assignment
-(level: List prefix). In situations in which a comma-separated list of elements
-is assigned, these precedences should in particular be contrasted with that of
-the comma operator C<,> which sits in between. So without any list-delimiting
-parentheses (or other construct to hold the list's elements together), item
-assignment will only assign the first element of the specified list, and not the
-full list.
-
-In an assignment expression the context of the left-hand side determines whether
-an C<=> means item or list assignment. As mentioned, item assignment is
-restricted to simple Scalar variables. Accordingly, assignment to a Scalar
-container (scalar-context) triggers item assignment, unless the Scalar is
-explicitly put in list-context by surrounding parentheses C<( )>:
-
-    my $a;
-    $a = 1,2,3;        # item assignment to Scalar
-    say $a;            # OUTPUT: «1␤» ( '=' has higher precedence than ',' )
-
-    my $b = 1,2,3;     # item assignment to Scalar (same as preceding example)
-    say $b;            # OUTPUT: «1␤»
-
-    my $c;
-    ($c) = 4,5,6;      # list assignment to Scalar; '( )' is list-contextualizer
-    say $c;            # OUTPUT:  «(4,5,6)␤»
-
-    (my $d) = 4,5,6;   # list assignment to Scalar (same as preceding example)
-    say $d;            # OUTPUT:  «(4,5,6)␤»
-
-Assignment to a List container (list-context) always triggers list assignment:
-
-    my @e;
-    @e = 7,8,9;                    # list assignment to Array
-    say @e;                        # OUTPUT:  «[7,8,9]␤»
-
-    my $f;
-    ($f,) = 7,8,9;                 # list assignment to List with one element
-    say $f;                        # OUTPUT:  «7␤»
-    say ( ($f,) ).VAR.^name;       # OUTPUT:  «List␤»
-
-    # ATTENTION: special declaration syntax!
-    my ($g) = 7,8,9;               # list assignment to List with one element
-    say $g;                        # OUTPUT:  «7␤»
-    say ( ($g) ).VAR.^name         # OUTPUT:  «List␤»
-
-The last two examples above are simple I<destructuring assignments> that select
-the first item of the right-hand side list. See for a more elaborate discussion
-of destructuring assignments in the context of variable declarations the section
-on L<declaring a list of variables with lexical or package
-scope|/language/variables#index-entry-declaring_a_list_of_variables>.
-
-Chained assignments are parsed having regard to the precedence of the assignment
-operators and, where applicable, their right associativity. For instance, in the
-example below there is one chained assignment statement comprising two
-assignment operators. The assignment to C<@array> is a list assignment having a
-lower precedence than the item assignment to the Scalar variable C<$num>. The
-assignment expression involving the item assignment to the Scalar variable
-C<$num> is thus evaluated first. It returns the assigned value C<42>, which in
-turn forms part of the List C<(42, "str")> constructed by the comma operator
-that also has a higher precedence than the list assignment. Finally, the
-List C<(42, "str")> is list-assigned to C<@array>:
-
-    my @array;
-    @array = my $num = 42, "str";   # parsed as @array = ( (my $num = 42), "str )
-    say @array.raku;                # OUTPUT: «[42, "str"]␤» (an Array)
-    say $num.raku;                  # OUTPUT: «42␤» (a Num)
-
-Here's a variant:
-
-    my ( @foo, $bar );
-    @foo = ($bar) = 42, "str";       # parsed as @foo = ( $bar = (42, "str") )
-    say $bar.raku;                   # OUTPUT: «$(42, "str")␤» (a List)#
-    say @foo.raku;                   # OUTPUT: «[(42, "str"),]␤» (an Array)
-
-In this case, the list contextualizer C<( )> puts C<$bar> in a list context, and
-thus triggers a list assignment to the Scalar variable C<$bar>. This means that
-there are two chained list assignments, both having a lower precedence than the
-comma operator C<,> that constructs the List C<(42, "str")>. Due to their right
-associativity, the list assignment expression that is evaluated first is the
-assignment to C<$bar>, which returns the assigned value C<$(42, "str")>, i.e. a
-Scalar containing a two-element List. This value is in turn list-assigned to
-C<@array>, such that it becomes a Array with a single element, namely a List.
-
-See L<operators|/language/operators> for more details on precedence and
-associativity.
 
 =head2 Sigilless variables
 X<|\ (sigilless variables)>
@@ -498,6 +399,212 @@ augment slang Regex {  # derive from $~Regex and then modify $~Regex
 }
 =end code
 
+
+=head1 Item assignment, list assignment, and destructuring assignment
+
+There are three types of variable assignment, I<item assignment>, I<list
+assignment>, and I<destructuring assignment>.
+
+An item assignment copies a single value from the right-hand side into a Scalar
+variable on the left.  For example:
+
+    my $a;
+    $a = 1; # Item assignment of an Int to a Scalar in $a;
+    say $a; say $a.VAR.^name; # OUTPUT: «1␤Scalar␤»
+
+    my $b = (1, 2, 3); # Item assignment of a List to a Scalar in $a;
+    say $b; say $b.VAR.^name; # OUTPUT: «(1 2 3)␤Scalar␤»
+
+Any assignment with anything other than a simple Scalar variable to the left
+of the C<=> operator is a list assignment. This includes a Scalar variable wrapped
+in parentheses, such as C<my ($a)>
+
+The effect of a list assignment is determined by the variable(s) and sigil(s) to
+the left of the C<=> (the "left hand side").  Specifically, a variable with a
+C<$> sigil or without a sigil takes one value from the right hand side and
+stores it in a Scalar; a C<@>-sigiled variable takes all remaining variables
+from the right hand side and copies them into a L<Positional|/type/Positional>
+(usually an C<Array>); and a C<%>-sigiled variable takes all remaining values on
+the right hand side and copies them into an L<Associative|/type/Associative>
+(usually a C<Hash>).  If those values are C<Pairs>, then the C<Pair>'s key and
+value will become the C<Hash>'s key and value. If the right-hand-side values are
+anything other than C<Pair>s, then the C<%>-sigiled variable will take
+alternating values as keys and values.  Here are some examples:
+
+
+    my ($a) = (1, 2, 3);      # list assignment to a Scalar;
+    say $a; say $a.VAR.^name; # OUTPUT:  «1␤Scalar␤»
+
+    my @b = (1, 2, 3);        # list assignment to a Positional
+    say @b;                   # OUTPUT:  «[1 2 3]␤»
+
+    my ($c, $d, %e) = (1, 2, :k(3)); # list assignment to two Scalars and a Positional
+    say $c; say $d; say %e;          # OUTPUT:  «1␤2␤{k => 3}]␤»
+
+    # If there are fewer values than LHS variables, some will get Any
+    my ($f, $g, $h, $i) = (1, 2, 3); # list assignment to four Scalars
+    say $f; say $g; say $h; say $i;  # OUTPUT:  «1␤2␤3␤(Any)␤»
+
+    # @-sigiled variables take all remaining values
+    my ($j, @k, $l) = (1, 2, 3);
+    say $j; say @k; say $l;      # OUTPUT:  «1␤[2 3]␤(Any)␤»
+
+    # so do %-sigiled variables
+    my ($m, %n, $o) = (1, 2, 3);
+    say $m; say %n; say $o;      # OUTPUT:  «1␤{2 => 3}␤(Any)␤»
+
+    # if a %-sigiled variable can't construct a Hash, you get an error
+    try my ($q, %r) = (1, 2);
+    say $!;
+    # OUTPUT: «Odd number of elements found where hash initializer expected:␤
+    #          Only saw: 2»
+
+
+Both item assignment and list assignment use the equal sign (C<=>) as their
+operator and are both right associative, but differ in L<operator
+precedence|/language/operators#Operator_precedence>: item assignment has a higher
+precedence level (level: Item assignment) than list assignment (level: List
+prefix).
+
+This distinction can matter when your right hand side contains a comma-separated
+list of elements because item assignment has tighter precedence than the comma
+operator C<,> while list assignment has a looser precedence.  Note, however, that
+this won't matter if you use parentheses on the left hand side, which remove the
+need to consider precedence.
+
+    my $a = 1, 2, 3; # item assignment; higher precedence than ,
+    say $a;          # OUTPUT: «1␤»
+
+    my @b = 1, 2, 3; # list assignment; lower precedence than ,
+    say @b;          # OUTPUT: «[1 2 3]␤»
+
+    my ($c) = 1, 2, 3; # list assignment; lower precedence than , but using ( )
+    say $c;            # OUTPUT:  «1␤»
+
+    # rare but valid syntax
+    (my $d) = 1, 2, 3; # list assignment; lower precedence than ,
+    say $d;            # OUTPUT: «(1 2 3)␤»
+
+    # an initial ( also lets you add a , which stops @ and % from taking all values
+    (my (@e, $f, $g),) = 1, 2, 3;
+    say @e; say $f; say $g;       # OUTPUT: «[1]␤2␤3»
+
+The precedence of the list and item assignment also matters for chained
+assignments. For instance, in the example below there is one chained assignment
+statement comprising two assignment operators. The assignment to C<@array> is a
+list assignment having a lower precedence than the item assignment to the Scalar
+variable C<$num>. The assignment expression involving the item assignment to the
+Scalar variable C<$num> is thus evaluated first. It returns the assigned value
+C<42>, which in turn forms part of the List C<(42, "str")> constructed by the
+comma operator that also has a higher precedence than the list
+assignment. Finally, the List C<(42, "str")> is list-assigned to C<@array>:
+
+    #`[this statement:] my @array = my $num = 42, "str";
+    # is parsed as      my @array = ( (my $num = 42), "str" )
+    say @array.raku;    # OUTPUT: «[42, "str"]␤» (an Array)
+    say $num.raku;      # OUTPUT: «42␤» (an Int)
+
+Here's a variant:
+
+    #`[this:]      my @foo = (my $bar) = 42, "str";
+    # parsed as:   my @foo = ( $bar = (42, "str") )
+    say $bar.raku;      # OUTPUT: «$(42, "str")␤» (a List)#
+    say @foo.raku;      # OUTPUT: «[(42, "str"),]␤» (an Array)
+
+In this case, the list contextualizer C<( )> puts C<$bar> in a list context, and
+thus triggers a list assignment to the Scalar variable C<$bar>. This means that
+there are two chained list assignments, both having a lower precedence than the
+comma operator C<,> that constructs the List C<(42, "str")>. Due to their right
+associativity, the list assignment expression that is evaluated first is the
+assignment to C<$bar>, which returns the assigned value C<$(42, "str")>, i.e. a
+Scalar containing a two-element List. This value is in turn list-assigned to
+C<@array>, such that it becomes a Array with a single element, namely a List.
+
+See L<operators|/language/operators> for more details on precedence and
+associativity.  For a more elaborate discussion of list assignment in the
+context of variable declarations, see the section on L<declaring a list of
+variables with lexical or package
+scope|/language/variables#index-entry-declaring_a_list_of_variables>.
+
+With list assignment, you can have multiple groups of variables on the left hand
+side and multiple groups of values on the right hand side – but the groupings on
+the left hand side do not impact the assignments.
+
+    #`[this line is] (my ($a, $b), my $c) = (1, (2, 3), 4);
+    # the same as:    my ($a, $b, $c)     = (1, (2, 3), 4);
+    say $a; say $b; say $c;         # OUTPUT: «1␤(2, 3)␤4␤»
+
+In order for the groupings on the left to matter, you need Raku's third method of
+assignment, destructuring assignment.
+
+
+=head2 Destructuring assignment
+
+Destructuring assignment allows you to destructure a (potentially nested) group
+of values on the right hand side into a (potentially nested) group of variables
+on the right hand side. Like list assignment, you trigger destructuring
+assignment by having anything other than a Scalar on the left hand side, but
+then follow the LHS by C<:=> rather than C<=>.  Using C<:=> causes the right
+hand side values to be destructured into the LHS variables using the same syntax
+that is used for L<destructuring
+arguments|/type/Signature#Destructuring_arguments> in function signatures.
+
+Some examples:
+
+    # Positionals destructure into their elements
+    my ($a, ($b, $c)) := (1, (2, 3)); # Destructuring two nested Lists
+    say $a; say $b; say $c;           # OUTPUT: «1␤2␤3␤»
+
+    # Associatives destructure into their keys
+    my (:$d, :$e) := {:d(1), :e(2)};
+    say $d; say $e;                   # OUTPUT: «1␤2␤»
+
+    # Objects destructure into their Capture method (by default, public attributes)
+    my class Foo { has $.f; has $.g }
+    my (:$f, :$g) := Foo.new(:f(1), :g(2));
+    say $f; say $g;                   # OUTPUT: «1␤2␤»
+
+Just as list assignment uses the same operator as item assignment, destructuring
+assignment uses the same characters as the L<Binding|/language/containers#Binding>
+operator, C<:=>.  Nevertheless, destructuring assignment is I<assignment>, and
+still creates Scalars rather than binding directly.
+
+    my ($a, ($b, $c)) := (1, (2, 3));
+    say $a.VAR.^name;                 # OUTPUT: «Scalar␤»
+
+However, unlike list and item assignment, the variables created through
+destructuring assignment are, by default, read only:
+
+    my ($a, ($b, $c)) := (1, (2, 3));
+    try $a = 42;
+    say $!;      # OUTPUT: «Cannot assign to a readonly variable or a value␤»
+
+This is exactly the same behavior you get by default with a function's
+parameters and, as in that case, you can opt out of that default by using the
+L<is rw|/type/Signature#index-entry-trait_is_rw> trait and passing a writable
+value on the right hand side;
+
+    my ($a) := (1,);
+    try $a = 42;
+    say $!;      # OUTPUT: «Cannot assign to a readonly variable or a value␤»
+
+    my ($b is rw) := (1,);
+    try $b = 42;
+    say $!;      # OUTPUT: «Parameter '$b' expects a writable container (variable) as an argument,␤
+                 #          but got '1' (Int) as a value without a container.␤»
+
+    my ($c is rw) := ($=1,);
+    $c = 0;
+    say $c;      # OUTPUT: «0␤»
+
+Destructuring assignment also allows you to use more complex signatures, such as
+slurpies and default values.
+
+    my ($a, ($b, $c, $d = 9), *@e) := (1, (2, 3), 4, 5);
+    say $a; say $b; say $c; say $d; say @e;              # OUTPUT: «1␤2␤3␤9␤[4 5]␤»
+
+
+
 X<|supersede>
 =head1 Variable declarators and scope
 
@@ -624,17 +731,16 @@ and C<our> require variables to be placed into parentheses:
     my  (@a,  $s,  %h);   # same as my @a; my $s; my %h;
     our (@aa, $ss, %hh);  # same as our @aa; our $ss; our %hh;
 
-This can be used in conjunction with X«destructuring assignment». Any
-assignment to such a list will take the number of elements provided in the left
-list and assign corresponding values from the right list to them. Any missing
-elements are left will result in undefined values according to the type of the
-variables.
+This can be used in conjunction with X«list assignment». Any assignment to such
+a list will take the number of elements provided in the left list and assign
+corresponding values from the right list to them. Any missing elements are left
+will result in undefined values according to the type of the variables.
 
     my (Str $a, Str $b, Int $c) = <a b>;
     say [$a, $b, $c].raku;
     # OUTPUT: «["a", "b", Int]␤»
 
-To destructure a list into a single value, create a list literal with one
+To use list assignment with a single value, create a list literal with one
 element by using C<($var,)>. When used with a variable declarator, providing
 parentheses around a single variable is sufficient.
 
