@@ -18,7 +18,7 @@ my %variants = %(
     # characters as it might be included in a code snippet,
     # see for example doc/Language/js-nutshell.pod6
     Boolean    => rx/ << boolean <!before \s* <[ \= \< \> \{ \} ]> > /,
-    "call site" => rx/ <<'call' '-'? 'site'>>/, 
+    "call site" => rx/ <<'call' '-'? 'site'>>/,
     filehandle => rx:i/ << file [\s+|\-] handle /,
     filesystem => rx:i/ << file [\s+|\-] system /,
     lookahead  => rx:i/ << look \- ahead /,
