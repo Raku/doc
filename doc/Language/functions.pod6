@@ -270,8 +270,9 @@ signatures. When the routine is called by name, the runtime environment
 determines the proper I<candidate> and invokes it.
 
 Each candidate is declared with the C<multi> keyword. Dispatch happens
-depending on the number (L<arity|/type/Code#method_arity>), type
-and name of arguments. Consider the following example:
+depending on the number (L<arity|/type/Code#method_arity>); type
+and name of arguments; and under some circumstances the order of the 
+multi definitions. Consider the following example:
 
 =begin code
 # version 1
@@ -345,7 +346,9 @@ for the L<Signature|/type/Signature#Type_constraints> class.
     say as-json( 10.3 );                        # OUTPUT: «10.3␤»
     say as-json( [ True, 10.3, False, 24 ] );   # OUTPUT: «[true, 10.3, false, 24]␤»
 
-
+For some signature differences (notably when using a where clause or a subset) 
+the order of definition of the multi methods or subs is used, evaluating 
+each possibility in turn.  See L<multi resolution by order of definition> below for examples.
 
 C<multi> without any specific routine type always defaults to a C<sub>, but you
 can use it on methods as well. The candidates are all the multi methods of the
@@ -509,7 +512,7 @@ $x.handle('Claire', 'John');
 # with more than one value
 # after value is ｢Claire is looking askance at John｣
 
-=head2 X<only|declarator>
+=head3 X<only|declarator>
 
 The C<only> keyword preceding C<sub> or C<method> indicates that it will be the
 only function with that name that inhabits a given namespace.
@@ -539,6 +542,74 @@ at /tmp/only-redeclaration.p6:3
 
 Anonymous sub cannot be declared C<only>. C<only sub {}> will throw an error of
 type, surprisingly, C<X::Anon::Multi>.
+
+
+=head3 multi resolution by order of definition
+
+When the breakdown by parameter type is not enough to find an unamiguous
+match, there are some different tie breakers that may be evaluated in order
+of declaration of the methods or subs: these include where clauses and
+subsets, named parameters, and signature unpacks.
+
+In this code example, two multi subs are distinguished only by where clauses
+where there's one ambiguous case that might pass either of them, the value 4.
+In this case, which ever multi sub is defined first wins:
+
+=begin code
+{
+  multi sub check_range ( Int $n where {$_ > 3} ) {
+      return "over 3";
+  };
+  multi sub check_range ( Int $n where {$_ < 5} ) {
+      return "under 5";
+  };
+  say check_range(4);  # OUTPUT: over 3
+}
+{
+  multi sub check_range ( Int $n where {$_ < 5} ) {
+      return "under 5";
+  };
+  multi sub check_range ( Int $n where {$_ > 3} ) {
+      return "over 3";
+  };
+  say check_range(4);  # OUTPUT: under 5
+}
+=end code
+
+In the following example, three subsets are used to restrict strings to
+certain allowed values, where there are overlaps between all three:
+
+=begin code
+subset Monster  of Str where { $_ eq any( <godzilla gammera ghidora> ) };
+subset Hero     of Str where { $_ eq any( <godzilla ultraman inframan> ) };
+subset Knockoff of Str where { $_ eq any( <gammera inframan thorndike> ) };
+
+{
+    multi sub speak (Monster $name) {
+        say "The monster, $name roars!";
+    }
+    multi sub speak (Hero $name) {
+        say "The hero, $name shouts!";
+    }
+    multi sub speak (Knockoff $name) {
+        say "The knockoff, $name, slinks away...";
+    }
+    speak('godzilla');     # OUTPUT: The monster, godzilla roars!                    
+    speak('gammera');      # OUTPUT: The monster, gammera roars!                     
+    speak('inframan');     # OUTPUT: The hero, inframan shouts!                      
+}
+=end code
+
+Note that here 'godzilla' is treated as Monster, not as Hero, because the
+Monster multi comes first; and neither 'gammera' or 'inframan' are treated
+as Knockoff, because that multi comes last.
+
+It should be noted that the order of definition is the order in which Raku
+sees them, which might not be easy to discern if, for example, the multi
+subs were imported from different modules.  As the organization of a code
+base becomes more complex, object classes may scale better than using
+subsets as types, as in this example.
+
 
 =head1 Conventions and idioms
 
