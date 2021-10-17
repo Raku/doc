@@ -1200,78 +1200,62 @@ Routines that manipulate arrays and other containers.
 
 Defined as:
 
-    multi sub pop(@a)
+    multi sub pop(@container)
 
-Calls method L<C<pop>|/routine/pop> on the container, which is supposed to
-remove and return the last element, or fail if the container is empty.
+Calls method C<pop> on the C<Positional> container. That method is supposed to
+remove and return the last element, or return a L<C<Failure>|/type/Failure> if
+the container is empty.
 
-See the documentation of the L<C<Array> method|/type/Array#method_pop> for an
-example.
+See the documentation of the L<C<Array> method|/routine/pop#(Array)_method_pop>
+for an example.
 
 =head2 sub shift
 
 Defined as:
 
-    multi sub shift(@a)
+    multi sub shift(@container)
 
-Calls method C<shift> on the Positional container. This method, on
-mutable Positional containers that actually implement it (such as
-L<C<Array>s|/routine/shift#(Array)_method_shift> or
-L<C<Buf>s|/routine/shift#(Buf)_method_shift>, removes
-and return the first element, or fails if the container is empty.
+Calls method C<shift> on the C<Positional> container. That method, on
+a mutable container that actually implements it (such as an
+L<C<Array>|/routine/shift#(Array)_method_shift> or a
+L<C<Buf>|/routine/shift#(Buf)_method_shift>), is supposed to remove
+and return the first element, or return a L<C<Failure>|/type/Failure> if the
+container is empty.
 
 Example:
 
-    say shift [1,2]; # OUTPUT: «1␤»
-
-Trying to C<shift> past the end will return a L<C<Failure>|/type/Failure>
-
 =for code
-my  @a of Int = [1];
-shift @a;
-shift @a;
-# ERROR: «Cannot shift from an empty Array[Int]␤»
+my @a of Int = [1];
+say shift @a; # OUTPUT: «1␤»
+say shift @a; # ERROR: «Cannot shift from an empty Array[Int]␤»
 
 =head2 sub push
 
 Defined as:
 
-    multi sub push(\a, \b)
-    multi sub push(\a, **@b)
+    multi sub push(\container, **@values is raw)
 
-Probably best thought of as a simple:
-
-    sub push(\a, **@b)
-
-Calls method L<C<push>|/routine/push> on container C<a> which is supposed to
-add C<b> or the values in C<|@b> to the end of an array. If C<b> is a C<Slip>,
-the container is supposed to add the values produced by
-L<C<b.iterator>|/routine/iterator>.
-
-See the documentation of the L<C<Hash> method|/type/Hash#method_push> for an
-example where the subroutine form is useful.
+Calls method C<push> on the container, which is supposed to add the provided
+values to the end of the container or parts thereof. See the documentation of
+the L<C<Hash> method|/routine/push#(Hash)_method_push> for an example where
+indirection via this subroutine can be helpful.
 
 =head2 sub append
 
 Defined as:
 
-    multi sub append(\a, \b)
-    multi sub append(\a, **@b)
+    multi sub append(\container, +values)
 
-Probably best thought of as a simple:
-
-    sub append(\a, +b)
-
-Calls method L<C<append>|/routine/append> on container C<a> which is supposed to
-add C<b> or the values in C<@b> to the end of a container. In contrast with
-L<sub C<push>|#routine_push>, the container method is supposed to always add the
-values produced by the L<iterator|/routine/iterator> if called with a B<single>
+Calls method C<append> on the container, which is supposed to add the provided
+values to the end of the container or parts thereof. Unlike method C<push>,
+method C<append> is supposed to add the values produced by the argument's
+L<iterator|/routine/iterator> if called with a B<single> non-slipping
 C<Iterable> that is not inside a C<Scalar> container.
 
-An example of where this subroutine may be useful is when appending to the
-values of a C<Hash>. Whereas L<method append|/type/Hash#method_append> will
-silently ignore literal pairs that are interpreted as named arguments, sub
-C<append> will throw:
+Indirection via this subroutine can be helpful when appending to the values of a
+C<Hash>. Whereas L<method C<append>|/routine/append#(Hash)_method_append> will
+silently ignore literal pairs that are interpreted as named arguments, the
+subroutine will throw:
 
     my %h = i => 0;
     append %h, i => (1, 42);
