@@ -1200,7 +1200,7 @@ Routines that manipulate arrays and other containers.
 
 Defined as:
 
-    multi sub pop(@container)
+    multi sub pop(@container) is raw
 
 Calls method C<pop> on the C<Positional> container. That method is supposed to
 remove and return the last element, or return a L<C<Failure>|/type/Failure> if
@@ -1213,7 +1213,7 @@ for an example.
 
 Defined as:
 
-    multi sub shift(@container)
+    multi sub shift(@container) is raw
 
 Calls method C<shift> on the C<Positional> container. That method, on
 a mutable container that actually implements it (such as an
@@ -1234,26 +1234,49 @@ say shift @a; # ERROR: «Cannot shift from an empty Array[Int]␤»
 Defined as:
 
     multi sub push(\container, **@values is raw)
+    multi sub push(\container, \arg)
 
 Calls method C<push> on the container, which is supposed to add the provided
 values to the end of the container or parts thereof. See the documentation of
 the L<C<Hash> method|/routine/push#(Hash)_method_push> for an example where
 indirection via this subroutine can be helpful.
 
+The C<push> method of the container is supposed to flatten all arguments of type
+C<Slip>. Therefore, if you want to implement a conforming method for a new
+container type, it should behave as if its signature was just:
+
+    multi method push(::?CLASS:D: **@values --> ::?CLASS:D)
+
+Autovivification to an instance of the new type is L<provided by the default
+base class|/routine/append#(Any)_method_append> if the new type implements the
+C<Positional> role. If the new type is not C<Positional>, autovivification can
+be implemented by an additional multi method with a signature like
+
+    multi method push(::?CLASS:U: **@values --> ::?CLASS:D)
+
 =head2 sub append
 
 Defined as:
 
-    multi sub append(\container, +values)
+    multi sub append(\container, **@values is raw)
+    multi sub append(\container, \arg)
 
 Calls method C<append> on the container, which is supposed to add the provided
 values to the end of the container or parts thereof. Unlike method C<push>,
-method C<append> is supposed to add the values produced by the argument's
-L<iterator|/routine/iterator> if called with a B<single> non-slipping
-C<Iterable> that is not inside a C<Scalar> container.
+method C<append> should follow the L<single argument
+rule|/language/functions#Slurpy_conventions>. So if you want to implement a
+conforming method C<append> for a new container type, it should behave as if its
+signature was just:
 
-Indirection via this subroutine can be helpful when appending to the values of a
-C<Hash>. Whereas L<method C<append>|/routine/append#(Hash)_method_append> will
+    multi method append(::?CLASS:D: +values --> ::?CLASS:D)
+
+Similar to L<routine C<push>|/routine/push#(Independent_routines)_sub_push>, you
+may need to add a multi method if you want to support autovivification:
+
+    multi method append(::?CLASS:U: +values --> ::?CLASS:D)
+
+The subroutine form of C<append> can be helpful when appending to the values of
+a C<Hash>. Whereas L<method C<append>|/routine/append#(Hash)_method_append> will
 silently ignore literal pairs that are interpreted as named arguments, the
 subroutine will throw:
 
