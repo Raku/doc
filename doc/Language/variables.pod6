@@ -1093,33 +1093,43 @@ short.
 
 =head2 Pre-defined lexical variables
 
-There are three special variables that are available in every block:
+There are three special variables that are always available:
 
 =begin table
 
-    Variable    Meaning
+    Variable    Meaning            Scope
 
-    $_          topic variable
-    $/          regex match
-    $!          exceptions
+    $_          topic variable     every block
+    $/          regex match        every sub / method
+    $!          exceptions         every sub / method
 
 =end table
 
 X<|topic variable>
 =head3 The C<$_> variable
 
-C<$_> is the topic variable. It's the default parameter for blocks that do not
-have an explicit signature, so constructs like C<for @array { ... }> and C<given
-$var { ... }> bind the value or values of the variable to C<$_> by invoking the
-block.
+C<$_> is the topic variable.  A fresh one is created in every B<block>.
+It's also the default parameter for blocks that do not have an explicit
+signature, so constructs like C<for @array { ... }> and C<given $var
+{ ... }> bind the value or values of the variable to C<$_> by invoking
+the block.
 
-    for <a b c> { say $_ }  # sets $_ to 'a', 'b' and 'c' in turn
+    for <a b c> { say $_ }  # binds $_ to 'a', 'b' and 'c' in turn
     say $_ for <a b c>;     # same, even though it's not a block
-    given 'a'   { say $_ }  # sets $_ to 'a'
+    given 'a'   { say $_ }  # binds $_ to 'a'
     say $_ given 'a';       # same, even though it's not a block
 
-C<CATCH> blocks set C<$_> to the exception that was caught. The C<~~>
-smartmatch operator sets C<$_> on the right-hand side expression to the
+Because C<$_> is bound to the value of the iteration, you can also
+assign to C<$_> if it is bound to something assignable.
+
+    my @numbers = ^5;   # 0 through 4
+    $_++ for @numbers;  # increment all elements of @numbers
+    say @numbers;
+
+    # OUTPUT: «1 2 3 4 5␤»
+
+C<CATCH> blocks bind C<$_> to the exception that was caught. The C<~~>
+smartmatch operator binds C<$_> on the right-hand side expression to the
 value of the left-hand side.
 
 Calling a method on C<$_> can be shortened by leaving off the variable name:
@@ -1142,8 +1152,8 @@ work on C<$_>:
 X<|match variable>
 =head3 The C<$/> variable
 
-C<$/> is the match variable. It stores the result of the last
-L<Regex|/language/regexes>
+C<$/> is the match variable.  A fresh one is created in every B<sub>
+and B<method>.  It is set to the result of the last L<Regex|/language/regexes>
 match and so usually contains objects of type L<Match|/type/Match>.
 
     'abc 12' ~~ /\w+/;  # sets $/ to a Match object
@@ -1233,12 +1243,31 @@ parentheses).
 
 This behavior has been deprecated as of the 6.d version.
 
+=head4 Thread-safety issues
+
+Because C<$/> is only defined per B<sub> / B<method>, you are in fact
+re-using the same C<$/> when you do matching in a loop.  In a single
+threaded program, this is not an issue.  However, if you're going to
+use C<hyper> or C<race> to have multiple threads do matching in
+parallel, the sharing of the "outer" C<$/> becomes an issue, because
+then it is being shared B<between> threads!  Fortunately, the solution
+is very simple: define your own C<$/> inside the scope where you are
+doing the matching.  For example, taking a source of text, running
+a regex on it, and map that to a hash using parallel execution:
+
+    my %mapped = @source.race.map: {
+        my $/;  # need one in this block to prevent racing issues
+        m/foo (.*?) bar (.*)/;  # matches on $_, stores in $/
+        $0 => $1   # short for $/[0] / $/[1]
+    }
+
 X<|error variable>
 =head3 The C<$!> variable
 
-C<$!> is the error variable. If a C<try> block or statement prefix catches
+C<$!> is the error variable.  A fresh one is created in every B<sub>
+and B<method>.  If a C<try> block or statement prefix catches
 an exception, that exception is stored in C<$!>. If no exception was caught,
-C<$!> is set to the C<Any> type object.
+C<$!> is set to C<Nil>.
 
 Note that C<CATCH> blocks I<do not> set C<$!>. Rather, they set C<$_> inside
 the block to the caught exception.
