@@ -483,13 +483,74 @@ X<|FQN>
 =head2 Private methods
 
 Just like attributes, methods can also be private. Private methods are declared
-with a prefixed exclamation mark. They are called with C<self!>
-followed by the method's name. To call a private method of another class the
-calling class has to be trusted by the called class. A trust relationship is
-declared with C<trusts> and the class to be trusted must already be declared.
-Calling a private method of another class requires an instance of that class
-and the fully qualified name (FQN) of the method. Trust also allows access to
-private attributes.
+with a prefixed exclamation mark. They are called with C<self!> followed by the
+method's name. In the following implementation of a C<MP3TagData> class to
+extract L<ID3v1|https://en.wikipedia.org/wiki/ID3> metadata from an mp3 file,
+methods C<parse-data>, C<can-read-format>, and C<trim-nulls> are private
+methods while the remaining ones are public methods:
+
+=begin code
+class MP3TagData {
+    has $.filename where { .IO ~~ :e };
+
+    has Str $.title   is built(False);
+    has Str $.artist  is built(False);
+    has Str $.album   is built(False);
+    has Str $.year    is built(False);
+    has Str $.comment is built(False);
+    has Int $.genre   is built(False);
+    has Int $.track   is built(False);
+    has Str $.version is built(False);
+    has Str $.type    is built(False) = 'ID3';
+
+    submethod TWEAK {
+        with $!filename.IO.open(:r, :bin) -> $fh {
+            $fh.seek(-128, SeekFromEnd);
+            my $tagdata = $fh.read(128);
+            self!parse-data: $tagdata;
+            $fh.close;
+        }
+        else {
+            warn "Failed to open file."
+        }
+    }
+
+    method !parse-data($data) {
+        if self!can-read-format($data) {
+            my $offset = $data.bytes - 128;
+
+            $!title  = self!trim-nulls: $data.subbuf($offset +  3, 30);
+            $!artist = self!trim-nulls: $data.subbuf($offset + 33, 30);
+            $!album  = self!trim-nulls: $data.subbuf($offset + 63, 30);
+            $!year   = self!trim-nulls: $data.subbuf($offset + 93,  4);
+
+            my Int $track-flag = $data.subbuf($offset + 97 + 28, 1).Int;
+            $!track            = $data.subbuf($offset + 97 + 29, 1).Int;
+
+            ($!version, $!comment) = $track-flag == 0 && $!track != 0
+                ?? ('1.1', self!trim-nulls: $data.subbuf($offset + 97, 28))
+                !! ('1.0', self!trim-nulls: $data.subbuf($offset + 97, 30));
+
+            $!genre = $data.subbuf($offset + 97 + 30, 1).Int;
+        }
+    }
+
+    method !can-read-format(Buf $data --> Bool) {
+        self!trim-nulls($data.subbuf(0..2)) eq 'TAG'
+    }
+
+    method !trim-nulls(Buf $data --> Str) {
+        $data.decode('utf-8').subst(/\x[0000]+/, '')
+    }
+}
+=end code
+
+To call a private method of another class, the caller has to be trusted by the
+callee. A trust relationship is declared with
+L<C<trusts>|/language/typesystem#trait_trusts> and the class to be trusted must
+already be declared. Calling a private method of another class requires an
+instance of that class and the fully qualified name (FQN) of the method. A trust
+relationship also allows access to private attributes.
 
 =begin code
 class B {...}
@@ -823,11 +884,11 @@ code_to_solve, known_languages, favorite_editor
 =end code
 
 The first two tests each smartmatch against a class name. If the object is
-of that class, or of an inheriting class, it returns true. So the object in
+of that class, or of an inheriting class, it returns C<True>. So the object in
 question is of class C<Employee> or one that inherits from it, but not
 C<GeekCook>.
 
-The call C<$o.^name> tells us the type of C<$o>: in this case C<Programmer>.
+The call C<$o.^name> tells us the type of C<$o>; in this case C<Programmer>.
 
 C<$o.raku> returns a string that can be executed as Raku code, and
 reproduces the original object C<$o>. While this does not work perfectly in
@@ -836,10 +897,6 @@ N<For example, closures cannot easily be reproduced this way; if you
 don't know what a closure is don't worry. Also current implementations have
 problems with dumping cyclic data structures this way, but they are expected
 to be handled correctly by C<.raku> at some point.>
-X<|^methods>
-C<$o.^methods(:local)> produces a list of L<Method|/type/Method>s that can be
-called on C<$o>. The C<:local> named argument limits the returned methods to
-those defined in the C<Programmer> class and excludes the inherited methods.
 
 The syntax of calling a method with C<.^> instead of a single dot means that
 it is actually a method call on its I<metaclass>, which is a class managing
@@ -852,6 +909,46 @@ say $o.^parents.map({ $_.^name }).join(', ');
 
 Finally C<$o.^name> calls the C<name> method on the metaobject, which
 unsurprisingly returns the class name.
+
+Given an object C<$mp3> and the C<MP3TagData>class definition from the section
+L<Private methods|/language/classtut#Private_methods>, we can inquire about its
+public methods with C<.^methods>:
+
+=begin code :skip-test<compile time error>
+my $mp3 = MP3TagData.new(filename => 'football-head.mp3');
+say $mp3.^methods(:local);
+# OUTPUT: (TWEAK filename title artist album year comment genre track version
+# type Submethod+{is-hidden-from-backtrace}.new)
+=end code
+
+X<|^methods>
+C<$mp3.^methods(:local)> produces a list of L<Method|/type/Method>s that can be
+called on C<$mp3>. The C<:local> named argument limits the returned methods to
+those defined in the C<MP3TagData> class and excludes the inherited methods;
+C<MP3TagData> inherits from no class, so providing C<:local> makes no difference.
+
+X<|classes,find_method>
+To check if a type object (or an instance object) implements a certain public
+method, use the L<C<.^find-method>|/routine/find_method> metamethod, which
+returns the method object if it exists. Otherwise, it returns L<C<Mu>|/type/Mu>.
+
+=begin code :skip-test<compile time error>
+say $mp3.^find_method('name');   # OUTPUT: «(Mu)␤»
+say $mp3.^find_method('artist'); # OUTPUT: «artist␤»
+=end code
+
+X<|classes,private_methods>
+X<|classes,find_private_methods>
+Type objects can also be introspected for its private methods. However, public
+and private methods don't use the same APIs, and thus different metamethods
+must be used: L<C<.^private_methods>|/routine/private_methods> and
+L<C<.^find_private_method>|/routine/find_private_method>.
+
+=begin code :skip-test<compile time error>
+say $mp3.^private_methods;                     # OUTPUT: «(parse-data can-read-format trim-nulls)␤»
+say $mp3.^find_private_method('parse-data');   # OUTPUT: «parse-data␤»
+say $mp3.^find_private_method('remove-nulls'); # OUTPUT: «(Mu)»
+=end code
 
 Introspection is very useful for debugging and for learning the language
 and new libraries. When a function or method returns an object you don't
