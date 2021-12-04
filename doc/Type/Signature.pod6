@@ -160,12 +160,13 @@ Type constraints can have any compile-time defined value
 =begin code
 subset Positive-integer of Int where * > 0;
 sub divisors(Positive-integer $n) { $_ if $n %% $_ for 1..$n };
+CATCH { default { put .^name, ': ', .Str; .resume } };
+
 divisors 2.5;
-# ERROR «Type check failed in binding to parameter '$n';
-# expected Positive-integer but got Rat (2.5) $n)»
+# OUTPUT: «X::TypeCheck::Binding::Parameter: Type check failed in binding to parameter '$n'; expected Positive-integer but got Rat (2.5)␤»
+
 divisors -3;
-# ERROR: «Constraint type check failed in binding to parameter '$n';
-# expected Positive-integer but got Int (-3)»
+# OUTPUT: «X::TypeCheck::Binding::Parameter: Constraint type check failed in binding to parameter '$n'; expected Positive-integer but got Int (-3)␤»
 =end code
 
 Please note that in the code above type constraints are enforced at two
@@ -256,7 +257,7 @@ against undefined values within the C<where> clause.
 
 =head3 Constraining slurpy arguments
 
-L<Slurpy arguments|#Slurpy_(A.K.A._variadic)_parameters> can not have type
+L<Slurpy arguments|#Slurpy_parameters> can not have type
 constraints. A C<where>-clause in conjunction with a L<Junction|/type/Junction>
 can be used to that effect.
 
@@ -504,8 +505,8 @@ Typed L<lambdas|/language/functions#Blocks_and_lambdas> also work with
 constrained callable parameters.
 
 =for code :preamble<sub apply {...}>
-    say apply -> Int:D \x --> Int:D { 2 * x }, 3;  # OUTPUT: «6␤»
-    say apply -> Int:D \x --> Int:D { x ** 3 }, 3; # OUTPUT: «27␤»
+say apply -> Int:D \x --> Int:D { 2 * x }, 3;  # OUTPUT: «6␤»
+say apply -> Int:D \x --> Int:D { x ** 3 }, 3; # OUTPUT: «27␤»
 
 Note that this shorthand syntax is available only for parameters with the C<&>
 sigil. For others, you need to use the long version:
@@ -648,14 +649,20 @@ directly apply string methods, such as the number of characters.
 X<|parameter,*@>
 X<|parameter,*%>
 X<|slurpy argument>
-=head2 Slurpy (A.K.A. variadic) parameters
+=head2 Slurpy parameters
 
 A function is X<variadic> if it can take a varying number of arguments; that is,
-its arity is not fixed. Therefore, optional, named, and slurpy parameters are
-variadic. An array or hash parameter can be marked as I<slurpy> by leading
-single (*) or double asterisk (**) or a leading plus (+). A slurpy parameter can
-bind to an arbitrary number of arguments (zero or more), and it will result in a
-type that is compatible with the sigil.
+its arity is not fixed. Therefore,
+L<optional|https://docs.raku.org/type/Signature#index-entry-optional_argument>,
+named, and slurpy parameters
+make routines that use them I<variadic>, and by extension are called variadic
+arguments. Here we will focus on slurpy parameters, or simply I<slurpies>.
+
+An array or hash parameter can be
+marked as I<slurpy> by leading single (*) or double asterisk (**) or a
+leading plus (+). A slurpy parameter can bind to an arbitrary number of
+arguments (zero or more), and it will result in a type that is compatible
+with the sigil.
 
 These are called "slurpy" because they slurp up any remaining arguments
 to a function, like someone slurping up noodles.
@@ -694,7 +701,8 @@ say combined-slurpy(one => 1, two => 2, 3, 4, five => 5, 6);
 # OUTPUT: «{array => [3 4 6], hash => {five => 5, one => 1, two => 2}}␤»
 =end code
 
-Note that positional parameters aren't allowed after slurpy parameters:
+Note that positional parameters aren't allowed after slurpy (or, in
+fact, after any type of variadic) parameters:
 
 =begin code :skip-test<compile time error>
 :(*@args, $last);
@@ -1081,6 +1089,7 @@ designers.
 X<|trait, is raw>
 The L<C<is raw> trait|/type/Parameter#method_raw> is automatically applied to
 parameters declared with a L<backslash|/language/variables#Sigilless_variables>
+or a L<plus sign|#Single_argument_rule_slurpy>
 as a "sigil", and may also be used to make normally sigiled parameters behave
 like these do. In the special case of slurpies, which normally produce an
 C<Array> full of C<Scalar>s as described above, C<is raw> will instead cause
@@ -1153,7 +1162,7 @@ L<Capture|/type/Capture> C<$topic>:
     42         ~~ :(Int);         # OUTPUT: «False» (Int.Capture throws)
     set(<a b>) ~~ :(:$a, :$b);    # OUTPUT: «True»
 
-Since L«C<where> clauses|/type/Signature#index-entry-where_clause_(Signature)»
+Since L«C<where> clauses|/type/Signature#index-entry-where_clause»
 are not introspectable, the method cannot determine whether two signatures
 L<ACCEPTS|/type/Signature#method_ACCEPTS> the same sort of C<where>-constrained
 parameters. Such comparisons will return C<False>. This includes signatures with
@@ -1172,7 +1181,7 @@ Throws C<X::Cannot::Capture>.
 =head1 Runtime creation of Signature objects (6.d, 2019.03 and later)
 
 =for code :preamble<role Type {}>
-Signature.new(params => (...), returns => Type, arity => 1, count => 1)
+Signature.new(params => (...), returns => Type, arity => 1, count => 1.Num)
 
 In some situations, specifically when working with the MetaObject Protocol,
 it makes sense to create C<Signature> objects programmatically.  For this
@@ -1198,6 +1207,12 @@ the C<params> parameter.
 The I<maximal> number of positional arguments which can be bound to the
 signature. Defaults to the C<arity> if not specified.  Specify C<Inf> if
 there is a slurpy positional parameter.
+
+I<Warning>: although the logical type of the C<count> parameter is integer,
+the value assigned to it must explicitly be of type C<Num>. If any other
+type is used, the C<new> method silently fails and returns an empty signature.
+The same trouble occurs when the value assigned to the C<arity> parameter is
+not of type C<Int>.
 
 =end pod
 

@@ -6,18 +6,18 @@
 
     class Lock::Async {}
 
-A C<Lock::Async> instance provides a mutual exclusion mechanism: when the
-lock is held, any other code wishing to C<lock> must wait until the holder
-calls C<unlock>, which helps against all kinds of issues resulting from
-data being read and modified simultaneously from different threads.
+A C<Lock::Async> instance provides a mutual exclusion mechanism: when the lock
+is held, any other code wishing to C<lock> must wait until the holder calls
+C<unlock> on it, which helps against all kinds of issues resulting from data
+being read and modified simultaneously from different threads.
 
 Unlike L<Lock|/type/Lock>, which provides a traditional OS-backed mutual
 exclusion mechanism, C<Lock::Async> works with the high-level concurrency
-features of Raku. The C<lock> method returns a C<Promise>, which will
-be kept when the lock is available. This C<Promise> can be used with
-non-blocking C<await>. This means that a thread from the thread pool need
-not be consumed while waiting for the C<Lock::Async> to be available,
-and the code trying to obtain the lock will be resumed once it is available.
+features of Raku. The C<lock> method returns a L<C<Promise>|/type/Promise>,
+which will be kept when the lock is available. This C<Promise> can be used with
+non-blocking C<await>. This means that a thread from the thread pool need not be
+consumed while waiting for the C<Lock::Async> to be available, and the code
+trying to obtain the lock will be resumed once it is available.
 
 The result is that it's quite possible to have many thousands of outstanding
 C<Lock::Async> lock requests, but just a small number of threads in the
@@ -107,30 +107,30 @@ protect the code we want to protect. Modifying an Array I<simultaneously>
 from different in the second example is not safe and leads to memory errors.
 
 =begin code :preamble<my @writers>
-    # Compute how many prime numbers there are in first 10 000 of them
-    # using 50 threads
-    my @primes = 0 .. 10_000;
-    my @results;
-    my @threads;
+# Compute how many prime numbers there are in first 10 000 of them
+# using 50 threads
+my @primes = 0 .. 10_000;
+my @results;
+my @threads;
 
-    # Right: $lock is instantiated outside the portion of the
-    # code that will get threaded and be in need of protection,
-    # so all threads share the lock
-    my $lock = Lock::Async.new;
-    for ^50 -> $thread {
-        @threads.push: start {
-            $lock.protect: {
-                my $from = $thread * 200;
-                my $to = ($thread + 1) * 200;
-                @results.append: @primes[$from..$to].map(*.is-prime);
-            }
+# Right: $lock is instantiated outside the portion of the
+# code that will get threaded and be in need of protection,
+# so all threads share the lock
+my $lock = Lock::Async.new;
+for ^50 -> $thread {
+    @threads.push: start {
+        $lock.protect: {
+            my $from = $thread * 200;
+            my $to = ($thread + 1) * 200;
+            @results.append: @primes[$from..$to].map(*.is-prime);
         }
     }
+}
 
-    # await for all threads to finish calculation
-    await Promise.allof(@writers);
-    # say how many prime numbers we found
-    say "We found " ~ @results.grep(*.value).elems ~ " prime numbers";
+# await for all threads to finish calculation
+await Promise.allof(@writers);
+# say how many prime numbers we found
+say "We found " ~ @results.grep(*.value).elems ~ " prime numbers";
 =end code
 
 The example below demonstrates the wrong approach: without proper locking
@@ -138,19 +138,19 @@ this code will work most of the time, but occasionally will result
 in bogus error messages or low-level memory errors:
 
 =begin code :preamble<my @threads;my @results; my @primes>
-    # !!! WRONG !!! Lock::Async is instantiated inside threaded area,
-    # so all the 20 threads use 20 different locks, not syncing with
-    # each other
-    for ^50 -> $thread {
-        @threads.push: start {
-            my $lock = Lock::Async.new;
-            $lock.protect: {
-                my $from = $thread * 200;
-                my $to = ($thread + 1) * 200;
-                @results.append: @primes[$from..$to].map(*.is-prime);
-            }
+# !!! WRONG !!! Lock::Async is instantiated inside threaded area,
+# so all the 20 threads use 20 different locks, not syncing with
+# each other
+for ^50 -> $thread {
+    @threads.push: start {
+        my $lock = Lock::Async.new;
+        $lock.protect: {
+            my $from = $thread * 200;
+            my $to = ($thread + 1) * 200;
+            @results.append: @primes[$from..$to].map(*.is-prime);
         }
     }
+}
 =end code
 
 =head2 method protect-or-queue-on-recursion
@@ -206,7 +206,7 @@ Defined as:
 Temporarily resets the Lock::Async recursion list so that it no longer includes
 the lock this method is called on and runs the given C<&code> immediately if
 the call to the method occurred in a caller chain where
-L<protect-or-queue-on-recursion|/type/Lock::Async/#method_protect-or-queue-on-recursion>
+L<protect-or-queue-on-recursion|/type/Lock::Async#method_protect-or-queue-on-recursion>
 has already been called and the lock has been placed on the recursion list.
 
     my Lock::Async $lock .= new;

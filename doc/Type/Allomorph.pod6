@@ -1,0 +1,283 @@
+=begin pod :kind("Type") :subkind("class") :category("basic")
+
+=TITLE class Allomorph
+
+=SUBTITLE Dual value number and string
+
+    class Allomorph is Str { }
+
+The C<Allomorph> class is a common parent class for Raku's
+dual value types: L«C<ComplexStr>|/type/ComplexStr»,
+L«C<IntStr>|/type/IntStr», L«C<NumStr>|/type/NumStr»,
+L«C<RatStr>|/type/RatStr».
+
+The dual value types (often referred to as
+L<allomorphs|/language/glossary#Allomorph>) allow for the representation
+of a value as both a string and a numeric type. Typically they will be
+created for you when the context is "stringy" but they can be determined
+to be numbers, such as in some L<quoting constructs|/language/quoting>:
+
+    my $c = <42+0i>;  say $c.^name; # OUTPUT: «ComplexStr␤»
+    my $i = <42>;     say $i.^name; # OUTPUT: «IntStr␤»
+    my $n = <42.1e0>; say $n.^name; # OUTPUT: «NumStr␤»
+    my $r = <42.1>;   say $r.^name; # OUTPUT: «RatStr␤»
+
+As a subclass of both a L«C<Numeric>|/type/Numeric» class and
+L«C<Str>|/type/Str», via the C<Allomorph> class, an allomorph will be
+accepted where either is expected. However, an allomorph does not share
+object identity with its C<Numeric> parent class- or C<Str>-only variants:
+
+=begin code
+my ($complex-str, $int-str, $num-str, $rat-str)
+           = < 42+0i 42 42e10 42.1 >;
+
+my (Complex $complex, Int $int, Num $num, Rat $rat)
+           =  $complex-str, $int-str, $num-str, $rat-str;  # OK!
+
+my Str @strings
+           =  $complex-str, $int-str, $num-str, $rat-str;  # OK!
+
+# ∈ operator cares about object identity
+say 42+0i ∈ < 42+0i 42 42e10 42.1 >;  # OUTPUT: «False␤»
+say 42    ∈ < 42+0i 42 42e10 42.1 >;  # OUTPUT: «False␤»
+say 42e10 ∈ < 42+0i 42 42e10 42.1 >;  # OUTPUT: «False␤»
+say 42.1  ∈ < 42+0i 42 42e10 42.1 >;  # OUTPUT: «False␤»
+=end code
+
+Please see L<the Numerics page|/language/numerics#Allomorphs> for a more
+complete description on how to work with these allomorphs.
+
+=head1 Methods
+
+=head2 method ACCEPTS
+
+    multi method ACCEPTS(Allomorph:D: Any:D \a)
+
+If the C<a> parameter is L<Numeric|/type/Numeric> (including
+another L<allomorph|/language/glossary#index-entry-Allomorph>),
+checks if invocant's L<Numeric|/type/Numeric> value
+L<ACCEPTS|/type/Numeric#method_ACCEPTS> C<a>.
+If the C<a> parameter is L<Str|/type/Str>, checks if invocant's
+L<Str|/type/Str> value L<ACCEPTS|/type/Str#method_ACCEPTS> C<a>.
+If the C<a> parameter is anything else, checks if both
+L<Numeric|/type/Numeric> and L<Str|/type/Str> values of the invocant
+C<ACCEPTS> C<a>.
+
+    say "5.0" ~~ <5>; # OUTPUT: «False␤»
+    say 5.0   ~~ <5>; # OUTPUT: «True␤»
+    say <5.0> ~~ <5>; # OUTPUT: «True␤»
+
+=head2 method Bool
+
+    multi method Bool(::?CLASS:D:)
+
+Returns C<False> if the invocant is numerically C<0>, otherwise returns
+C<True>. The C<Str> value of the invocant is not considered.
+
+B<Note>: For the C<Allomorph> subclass L«C<RatStr>|/type/RatStr» also
+see L«C<Rational.Bool>|/type/Rational#method_Bool».
+
+=head2 method chomp
+
+    method chomp(Allomorph:D:)
+
+Calls L«C<Str.chomp>|/type/Str#routine_chomp» on the invocant's
+C<Str> value.
+
+=head2 method chop
+
+    method chop(Allomorph:D: |c)
+
+Calls L«C<Str.chop>|/type/Str#routine_chop» on the invocant's
+C<Str> value.
+
+=head2 method comb
+
+    method comb(Allomorph:D: |c)
+
+Calls L«C<Str.comb>|/type/Str#routine_comb» on the invocant's
+C<Str> value.
+
+=head2 method fc
+
+    method fc(Allomorph:D:)
+
+Calls L«C<Str.fc>|/type/Str#routine_fc» on the invocant's
+C<Str> value.
+
+=head2 method flip
+
+    method flip(Allomorph:D:)
+
+Calls L«C<Str.flip>|/type/Str#routine_flip» on the invocant's
+C<Str> value.
+
+=head2 method lc
+
+    method lc(Allomorph:D:)
+
+Calls L«C<Str.lc>|/type/Str#routine_lc» on the invocant's
+C<Str> value.
+
+=head2 method pred
+
+    method pred(Allomorph:D:)
+
+Calls L«C<Numeric.pred>|/type/Numeric#method_pred» on the invocant's
+numeric value.
+
+=head2 method raku
+
+    multi method raku(Allomorph:D:)
+
+Return a representation of the object that can be used via
+L«C<EVAL>|/routine/EVAL» to reconstruct the value of the object.
+
+=head2 method samecase
+
+    method samecase(Allomorph:D: |c)
+
+Calls L«C<Str.samecase>|/type/Str#method_samecase» on the invocant's
+C<Str> value.
+
+=head2 method samemark
+
+    method samemark(Allomorph:D: |c)
+
+Calls L«C<Str.samemark>|/type/Str#routine_samemark» on the invocant's
+C<Str> value.
+
+=begin comment
+=head2 method samespace
+
+    method samespace(Allomorph:D: |c)
+
+See L<Is Str.samespace an implementation detail or not? · Issue #4318 · rakudo/rakudo · GitHub|https://github.com/rakudo/rakudo/issues/4318>
+=end comment
+
+=head2 method split
+
+    method split(Allomorph:D: |c)
+
+Calls L«C<Str.split>|/type/Str#routine_split» on the invocant's
+C<Str> value.
+
+=head2 method Str
+
+    method Str(Allomorph:D:)
+
+Returns the C<Str> value of the invocant.
+
+=head2 method subst
+
+    method subst(Allomorph:D: |c)
+
+Calls L«C<Str.subst>|/type/Str#method_subst» on the invocant's
+C<Str> value.
+
+=head2 method subst-mutate
+
+    method subst-mutate(Allomorph:D \SELF: |c)
+
+Calls L«C<Str.subst-mutate>|/type/Str#method_subst-mutate» on the
+invocant's C<Str> value.
+
+=head2 method substr
+
+    method substr(Allomorph:D: |c)
+
+Calls L«C<Str.substr>|/type/Str#method_substr» on the
+invocant's C<Str> value.
+
+=head2 method substr-rw
+
+    method substr-rw(Allomorph:D \SELF: $start = 0, $want = Whatever)
+
+Calls L«C<Str.substr-rw>|/type/Str#method_substr-rw» on the
+invocant's C<Str> value.
+
+=head2 method succ
+
+    method succ(Allomorph:D:)
+
+Calls L«C<Numeric.succ>|/type/Numeric#method_succ» on the invocant's
+numeric value.
+
+=head2 method tc
+
+    method tc(Allomorph:D:)
+
+Calls L«C<Str.tc>|/type/Str#routine_tc» on the invocant's C<Str> value.
+
+=head2 method tclc
+
+    method tclc(Allomorph:D:)
+
+Calls L«C<Str.tclc>|/type/Str#routine_tclc» on the invocant's C<Str>
+value.
+
+=head2 method trim
+
+    method trim(Allomorph:D:)
+
+Calls L«C<Str.trim>|/type/Str#method_trim» on the invocant's C<Str>
+value.
+
+=head2 method trim-leading
+
+    method trim-leading(Allomorph:D:)
+
+Calls L«C<Str.trim-leading>|/type/Str#method_trim-leading» on the
+invocant's C<Str> value.
+
+=head2 method trim-trailing
+
+    method trim-trailing(Allomorph:D:)
+
+Calls L«C<Str.trim-trailing>|/type/Str#method_trim-trailing» on the
+invocant's C<Str> value.
+
+=head2 method uc
+
+    method uc(Allomorph:D:)
+
+Calls L«C<Str.uc>|/type/Str#routine_uc» on the invocant's C<Str> value.
+
+=head2 method WHICH
+
+    multi method WHICH(Allomorph:D:)
+
+Returns an object of type L«C<ValueObjAt>|/type/ValueObjAt» which
+uniquely identifies the object.
+
+    my $f = <42.1e0>;
+    say $f.WHICH;     # OUTPUT: «NumStr|Num|42.1|Str|42.1e0␤»
+
+=head1 Operators
+
+=head2 infix cmp
+
+    multi sub infix:<cmp>(Allomorph:D $a, Allomorph:D $b)
+
+Compare two C<Allomorph> objects.  The comparison is done on the
+C<Numeric> value first and then on the C<Str> value. If you want to
+compare in a different order then you would coerce to an C<Numeric>
+or C<Str> value first:
+
+    my $f = IntStr.new(42, "smaller");
+    my $g = IntStr.new(43, "larger");
+    say $f cmp $g;          # OUTPUT: «Less␤»
+    say $f.Str cmp $g.Str;  # OUTPUT: «More␤»
+
+=head2 infix eqv
+
+    multi sub infix:<eqv>(Allomorph:D $a, Allomorph:D $b --> Bool:D)
+
+Returns C<True> if the two C<Allomorph> C<$a> and C<$b> are of the same
+type, their C<Numeric> values are L<equivalent|/routine/eqv> and their
+C<Str> values are also L<equivalent|/routine/eqv>. Returns C<False>
+otherwise.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

@@ -1,7 +1,5 @@
 #!/usr/bin/env raku
 
-use v6;
-
 my @docs = qx/git ls-files | grep "\.pod6"/.lines;
 
 for @docs -> $d {

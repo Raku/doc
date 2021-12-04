@@ -420,11 +420,11 @@ I<don't> interpolate variables. Thus
     say qx{echo "hello $world"}
 
 prints simply C<hello>. Nevertheless, if you have declared an environment
-variable before calling C<perl6>, this will be available within C<qx>, for
+variable before calling C<raku>, this will be available within C<qx>, for
 instance
 
 =begin code :skip-test<REPL>
-WORLD="there" perl6
+WORLD="there" raku
 > say qx{echo "hello $WORLD"}
 =end code
 
@@ -461,8 +461,8 @@ better ways to execute external commands.
 
 =head2 X<Heredocs: :to|quote,heredocs :to>
 
-A convenient way to write multi-line string literals are I<heredocs>, which
-let you choose the delimiter yourself:
+A convenient way to write a multi-line string literal is by using a I<heredoc>, which
+lets you choose the delimiter yourself:
 
 =begin code
 say q:to/END/;
@@ -472,7 +472,7 @@ string
 END
 =end code
 
-The contents of the heredoc always begin on the next line, so you can (and
+The contents of the I<heredoc> always begin on the next line, so you can (and
 should) finish the line.
 
 =begin code :preamble<sub my-escaping-function { $^x }>
@@ -483,7 +483,7 @@ TERMINATOR
 =end code
 
 If the terminator is indented, that amount of indention is removed from the
-string literals. Therefore this heredoc
+string literals. Therefore this I<heredoc>
 
 =begin code
 say q:to/END/;
@@ -503,7 +503,7 @@ some multi line
 
 =end code
 
-Heredocs include the newline from before the terminator.
+I<Heredocs> include the newline from before the terminator.
 
 To allow interpolation of variables use the C<qq> form, but you will then have
 to escape metacharacters C<\{> as well as C<$> if it is not the sigil for a
@@ -525,7 +525,51 @@ option {
 };
 =end code
 
-You can begin multiple Heredocs in the same line.
+Some other situations to pay attention to are innocent-looking ones
+where the text looks like a Raku expression. For example, the
+following generates an error:
+
+=begin code :lang<text>
+my $title = 'USAFA Class of 1965';
+say qq:to/HERE/;
+<a href='https://usafa-1965.org'>$title</a>
+HERE
+# Output:
+Type Str does not support associative indexing.
+  in block <unit> at here.raku line 2
+=end code
+
+The angle bracket to the right of '$title' makes it look like a hash index
+to Raku when it is actually a C<Str> variable, hence the error message.
+One solution is to enclose the scalar with curly braces which is one
+way to enter an expression in any interpolating quoting construct:
+
+=begin code :lang<text>
+say qq:to/HERE/;
+<a href='https://usafa-1965.org'>{$title}</a>
+HERE
+=end code
+
+Another option is to escape the `<` character to avoid it being parsed
+as the beginning of an indexing operator:
+
+=begin code :lang<text>
+say qq:to/HERE/;
+<a href='https://usafa-1965.org'>$title\</a>
+HERE
+=end code
+
+Because a I<heredoc> can be very long but is still interpreted by Raku
+as a single line, finding the source of an error can sometimes be
+difficult. One crude way to debug the error is by starting with the
+first visible line in the code and treating is as a I<heredoc> with
+that line only. Then, until you get an error, add each line in turn.
+(Creating a Raku program to do that is left as an exercise for the
+reader.)
+
+You can begin multiple Heredocs in the same line. If you do so, the
+second heredoc will not start until after the first heredoc has
+ended.
 
 =begin code
 my ($first, $second) = qq:to/END1/, qq:to/END2/;
@@ -537,8 +581,11 @@ my ($first, $second) = qq:to/END1/, qq:to/END2/;
    MULTILINE
    STRING
    END2
+say $first;  # OUTPUT: «FIRST␤MULTILINE␤STRING␤»
+say $second; # OUTPUT: «SECOND␤MULTILINE␤STRING␤»
 =end code
 
+X<|Unquoting>
 =head2 Unquoting
 
 Literal strings permit interpolation of embedded quoting constructs by using the

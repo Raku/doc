@@ -1,9 +1,13 @@
 #!/usr/bin/env raku
-use v6;
-use lib 'lib';
-use Perl6::TypeGraph;
 
-my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
+# This script parses the type-graph.txt file and checks
+# the existence of the corresponding pod6 file for most entries
+# skips: Metamodel and PROCESS types
+
+use lib 'lib';
+use Doc::TypeGraph;
+
+my $t = Doc::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted  -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';

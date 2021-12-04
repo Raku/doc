@@ -69,7 +69,7 @@ xtest:
 
 # Content tests
 ctest:
-	prove --exec raku -r t/07-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec raku -r t/05-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
 
 start: run
 

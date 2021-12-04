@@ -10,8 +10,8 @@
 Instances of C<IO::Handle> encapsulate a I<handle> to manipulate input/output
 resources. Usually there is no need to create directly an C<IO::Handle>
 instance, since it will be done by other roles and methods. For instance, an
-L<IO::Path|/type/IO::Path> object provides an L<open|/routine/open> method that returns an
-C<IO::Handle>:
+L<IO::Path|/type/IO::Path> object provides an L<open|/routine/open> method that
+returns an C<IO::Handle>:
 
     my $fh = '/tmp/log.txt'.IO.open;
     say $fh.^name; # OUTPUT: IO::Handle
@@ -153,7 +153,7 @@ Defined as:
 One of the attributes that can be set via C<.new> or L<open|/routine/open>. Defaults to
 C<True>. Takes a L<Bool|/type/Bool> specifying whether the line separators (as defined by
 L«C<.nl-in>|/type/IO::Handle#method_nl-in») should be removed from content when
-using L«C<.get>|/type/IO::Handle#method_get» or
+using L«C<.get>|/type/IO::Handle#routine_get» or
 L«C<.lines>|/type/IO::Handle#routine_lines» methods.
 
 =head2 routine get
@@ -208,7 +208,7 @@ even a single byte of data.
 
 =head3 Waiting for potential combiners
 
-If your handle's encoding allows combining characters to be read, perl6 will
+If your handle's encoding allows combining characters to be read, raku will
 wait for more data to be available before it provides a character. This means
 that inputting an "e" followed by a combining acute will give you an e with an
 acute rather than giving an "e" and letting the next reading function give you
@@ -305,7 +305,7 @@ ascii
 The default encoding is utf8, which undergoes normalization into Unicode B<NFC>
 (normalization form canonical). In some cases you may want to ensure no
 normalization is done; for this you can use C<utf8-c8>. Before using C<utf8-c8>
-please read L<Unicode: Filehandles and I/O|/language/unicode#File_Handles_and_I/O>
+please read L<Unicode: Filehandles and I/O|/language/unicode#Filehandles_and_I/O>
 for more information on C<utf8-c8> and B<NFC>.
 
 As of Rakudo 2018.04 L<windows-932|https://en.wikipedia.org/wiki/Code_page_932_(Microsoft_Windows)>
@@ -395,9 +395,9 @@ file position.
 
 =begin code
 say "The file contains ",
-  '50GB-file'.IO.open.lines.grep(*.contains: 'Perl').elems,
-  " lines that mention Perl";
-# OUTPUT: «The file contains 72 lines that mention Perl␤»
+  '50GB-file'.IO.open.lines.grep(*.contains: 'Raku').elems,
+  " lines that mention Raku";
+# OUTPUT: «The file contains 72 lines that mention Raku␤»
 =end code
 
 You can use C<lines> in C</proc/*> files (from the 6.d version):
@@ -405,22 +405,26 @@ You can use C<lines> in C</proc/*> files (from the 6.d version):
 =for code
 say lines( "/proc/$*PID/statm".IO ); # OUTPUT: «(58455 31863 8304 2 0 29705 0)␤»
 
+X<|File locking>
 =head2 method lock
 
 Defined as:
 
-    method lock(IO::Handle:D: Bool:D :$non-blocking = False, Bool:D :$shared = False --> True)
+=for code :method
+method lock(IO::Handle:D:
+            Bool:D :$non-blocking = False, Bool:D :$shared = False
+            --> True)
 
-Places an advisory lock on the filehandle. If C<:$non-blocking> is C<True>
-will L«C<fail>|/routine/fail» with C<X::IO::Lock> if lock could not be
-obtained, otherwise will block until the lock can be placed. If C<:$shared>
-is C<True> will place a shared (read) lock, otherwise will place an
-exclusive (write) lock. On success, returns C<True>; L«fails|/routine/fail»
-with C<X::IO::Lock> if lock cannot be placed (e.g. when trying to place
-a shared lock on a filehandle opened in write mode or trying to
+Places an advisory lock on the file the filehandle if open for. If
+C<:$non-blocking> is C<True> will L«C<fail>|/routine/fail» with C<X::IO::Lock>
+if lock could not be obtained, otherwise will block until the lock can be
+placed. If C<:$shared> is C<True> will place a shared (read) lock, otherwise
+will place an exclusive (write) lock. On success, returns C<True>;
+L«fails|/routine/fail» with C<X::IO::Lock> if lock cannot be placed (e.g. when
+trying to place a shared lock on a filehandle opened in write mode or trying to
 place an exclusive lock on a filehandle opened in read mode).
 
-You can use C<lock> again to replace an existing lock with another one.
+You can use C<.lock> again to replace an existing lock with another one.
 To remove a lock, L«C<close>|/routine/close» the filehandle or use
 L«C<unlock>|/routine/unlock».
 
@@ -432,7 +436,7 @@ L«C<unlock>|/routine/unlock».
 given "foo".IO.open(:w) {
     .lock;
     .spurt: "I ♥ Raku!";
-    .close; # closing the handle unlocks it; we could also use `unlock` method for that
+    .close; # closing the handle unlocks it; we could also use `unlock` for that
 }
 
 # Reader
@@ -449,7 +453,8 @@ Defined as:
 
     method unlock(IO::Handle:D: --> True)
 
-Removes a L«C<lock>|/routine/lock» from the filehandle.
+Removes a L«C<lock>|/routine/lock» from the filehandle. It will return
+C<True> or fail with an exception if it's not possible.
 
 =head2 routine words
 
@@ -568,7 +573,7 @@ Defined as:
 
 Formats a string based on the given format and arguments and C<.print>s the
 result into the filehandle. See
-L<sub sprintf|/type/Str#sub_sprintf> for details on
+L<sprintf|/routine/sprintf> for details on
 acceptable format directives.
 
 Attempting to call this method when the handle is
@@ -661,7 +666,7 @@ This method can be called even when the handle is not
 L<in binary mode|/type/IO::Handle#method_encoding>.
 
 =begin code
-(my $file = 'foo'.IO).spurt: 'I ♥ Perl';
+(my $file = 'foo'.IO).spurt: 'I ♥ Raku';
 given $file.open {
     say .read: 6; # OUTPUT: «Buf[uint8]:0x<49 20 e2 99 a5 20>␤»
     .close;
@@ -682,9 +687,9 @@ L<in binary mode|/type/IO::Handle#method_encoding> will result in
 C<X::IO::BinaryMode> exception being thrown.
 
 =begin code
-(my $file = 'foo'.IO).spurt: 'I ♥ Perl';
+(my $file = 'foo'.IO).spurt: 'I ♥ Raku';
 given $file.open {
-    say .readchars: 5; # OUTPUT: «I ♥ P␤»
+    say .readchars: 5; # OUTPUT: «I ♥ R␤»
     .close;
 }
 =end code
@@ -764,7 +769,7 @@ Defined as:
 
     multi method Supply(IO::Handle:D: :$size = 65536)
 
-Returns a C<Supply> that will emit the contents of the handle in chunks.
+Returns a L«C<Supply>|/type/Supply» that will emit the contents of the handle in chunks.
 The chunks will be L«C<Buf>|/type/Buf» if the handle is in binary mode
 or, if it isn't, L«C<Str>|/type/Str» decoded using same encoding as
 L«C<IO::Handle.encoding>|/routine/encoding».
@@ -1047,7 +1052,7 @@ my $output = $PROCESS::OUT;
 $PROCESS::OUT = $store;
 .say for <one two three>;
 $PROCESS::OUT = $output;
-say $store.lines(); # OUTPUT «[one␤ two␤ three␤]»
+say $store.lines(); # OUTPUT: «[one␤ two␤ three␤]»
 =end code
 
 In this example we are creating a simple C<WRITE> redirection which stores
@@ -1116,8 +1121,8 @@ class IO::Store is IO::Handle {
 my $store := IO::Store.new();
 
 $store.print( $_ ) for <one two three>;
-say $store.read(3).decode; # OUTPUT «one␤»
-say $store.read(3).decode; # OUTPUT «two␤»
+say $store.read(3).decode; # OUTPUT: «one␤»
+say $store.read(3).decode; # OUTPUT: «two␤»
 =end code
 
 In this case, we have programmed the two C<READ> and C<EOF> methods, as well as

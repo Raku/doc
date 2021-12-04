@@ -1,0 +1,109 @@
+=begin pod :kind("Type") :subkind("class") :category("domain-specific")
+
+=TITLE class Lock::ConditionVariable
+
+=SUBTITLE Condition variables used in locks
+
+    class Lock::ConditionVariable {}
+
+Condition variables are used in L<C<Lock>s|/type/Lock> to wait for a
+particular condition to become true. You will normally not create one from
+scratch, but call L<C<Lock.condition>|/type/Lock#method_condition> to acquire
+one on a particular C<Lock>.
+
+=head1 Methods
+
+=head2 method wait
+
+Defined as:
+
+    multi method wait( --> Nil )
+    multi method wait( &predicate --> Nil )
+
+Without any predicate, it waits on the condition variable itself; with a
+predicate, waits until the code returns a truish value.
+
+=begin code
+    my $times = 100;
+    my $tried;
+    my $failed;
+    for ^$times {
+        my $l = Lock.new;
+        my $c = $l.condition;
+        my $now1;
+        my $now2;
+        my $counter = 0;
+        my $t1 = Thread.start({
+            $l.protect({
+                $c.wait( { $counter != 0 } );
+                $now1 = now;
+            });
+        });
+
+        my $t2 = Thread.start({
+            $l.protect({
+                $counter++;
+                $c.signal();
+            });
+        });
+
+        $t1.join();
+        $now2 = now;
+        $t2.join();
+
+        $tried++;
+        last if $failed = ( !$now1.defined or $now1 > $now2 );
+    }
+=end code
+
+The condition we obtain from the C<$l> lock is awaited using a predicate, in
+this case, check if the counter is still zero. When it takes another value,
+the program flow continues in the next instruction.
+
+=head2 method signal
+
+Defined as:
+
+    method signal()
+
+If and only if there are any threads that have previously waited on the
+condition variable, it unblocks at least one of them. Let's see how it works
+in this example:
+
+=begin code
+constant ITEMS = 100;
+for 1..15 -> $iter {
+    my $lock = Lock.new;
+    my $cond = $lock.condition;
+    my $todo = 0;
+    my $done = 0;
+    my @in = 1..ITEMS;
+    my @out = 0 xx ITEMS;
+
+    for 1..ITEMS -> $i {
+        my $in = $i;
+        my $out := @out[$i];
+        Thread.start( {
+                    $out = $in * 10;
+                    $lock.protect( {
+                        $done++;
+                        $cond.signal if $done == $todo;
+                    } );
+        } );
+        $todo++;
+    }
+    $lock.protect( {
+        $cond.wait({  $done == $todo } );
+    });
+    say @out;
+}
+=end code
+
+We are repeating 15 times the same operation: start 100 threads, every one of
+which modify a single element in an array. We C<protect> the modification of
+a global variable, C<$done>, and use C<signal> to wake a up another thread to
+do its thing. This outputs the first elements of the generated arrays.
+
+=end pod
+
+# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6

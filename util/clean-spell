@@ -24,6 +24,9 @@ use Pod::Cache;
 
 my $regex = %*ENV<UTIL_CLEAN_SPELL_REGEX> // ".";
 
+# How many files to check at a time?
+my $at-a-time = 4;
+
 # Check the same files as xt/aspell.t does by default...
 my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 
@@ -35,10 +38,10 @@ my @files = Test-Files.documents.grep({not $_ ~~ / 'README.' .. '.md' /});
 for <xt/pws/words.pws xt/pws/code.pws> -> $dict {
     for $dict.IO.lines -> $word {
         next unless $word ~~ /<$regex>/;
-        next if $word eq "personal_ws-1.1 en 0 utf-8";
+        next if $word.starts-with('personal_ws-1.1 en');
         note "Testing $dict / $word ";
 
-        my $proc = run( 'grep', '-li', $word, |@files, :out);
+        my $proc = run( 'grep', '-wli', $word, |@files, :out);
         my $output = $proc.out.slurp;
 
         # remove word, keep pointer to backup lexicon
@@ -49,12 +52,22 @@ for <xt/pws/words.pws xt/pws/code.pws> -> $dict {
         } else {
             my @min-files = $output.lines;
             note "\tfound in {+@min-files} files, testing.";
-            my $proc = run( 'xt/aspell.t', |@min-files, :out, :err);
-            if $proc.exitcode == 0 {
+            my $all-ok = True;
+            # use rotor, but get the partial chunk first
+            # so we can fail slightly faster
+            for @min-files.reverse.rotor($at-a-time, :partial).reverse -> @test-files {
+                note "\t\t" ~ @test-files.join("\n\t\t");
+                my $proc = run( 'xt/aspell.t', |@test-files.reverse, :out, :err);
+                if $proc.exitcode != 0 {
+                    $all-ok = False;
+                    note "\taspell test failed, keeping word";
+                    run('mv', $backup, $dict);
+                    last; # no need to test other files
+                }
+            }
+            if $all-ok {
                 note "\taspell test passed, removing word";
-            } else {
-                note "\taspell test failed, keeping word";
-                run('mv', $backup, $dict);
+                # We removed the word to do the test, so just leave as is.
             }
         }
     }

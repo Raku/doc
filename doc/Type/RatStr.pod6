@@ -4,23 +4,24 @@
 
 =SUBTITLE Dual value rational number and string
 
-    class RatStr is Rat is Str {}
+    class RatStr is Allomorph is Rat {}
 
-The dual value types (often referred to as L<allomorphs|/language/glossary#Allomorph>)
-allow for the representation of a value as both a string and a numeric type. Typically
-they will be created for you when the context is "stringy" but they can be determined
-to be numbers, such as in some L<quoting constructs|/language/quoting>:
+C<RatStr> is a dual value type, a subclass of both
+L«C<Allomorph>|/type/Allomorph», hence L«C<Str>|/type/Str», and
+L«C<Rat>|/type/Rat».
 
-    my $f = <42.1>; say $f.^name; # OUTPUT: «RatStr␤»
+See L«C<Allomorph>|/type/Allomorph» for further details.
 
-As a subclass of both L«C<Rat>|/type/Rat» and L«C<Str>|/type/Str», a C<RatStr>
-will be accepted where either is expected. However, C<RatStr> does not share
-object identity with C<Rat>- or C<Str>-only variants:
+=begin code
+my $rat-str = <42.1>;
+say $rat-str.^name;       # OUTPUT: «RatStr␤»
 
-    my $rat-str = <42.1>;
-    my Rat $rat = $rat-str; # OK!
-    my Str $str = $rat-str; # OK!
-    say 42.1 ∈ <42.1  55  1>; # False; ∈ operator cares about object identity
+my Rat $rat = $rat-str;   # OK!
+my Str $str = $rat-str;   # OK!
+
+# ∈ operator cares about object identity
+say 42.1 ∈ <42.1  55  1>; # OUTPUT: «False␤»
+=end code
 
 =head1 Methods
 
@@ -34,18 +35,6 @@ directly the values can be whatever is required:
     my $f = RatStr.new(42.1, "forty two and a bit");
     say +$f; # OUTPUT: «42.1␤»
     say ~$f; # OUTPUT: «"forty two and a bit"␤»
-
-=head2 method Bool
-
-Defined as:
-
-    multi method Bool(RatStr:D: --> Bool:D)
-
-I<This method may be provided by the parent classes and not implemented in RatStr directly>.
-
-Returns C<False> if the L<numerator|/routine/numerator> of the numeric portion is C<0>, otherwise returns C<True>.
-This applies for C«< 0/0 >» zero-denominator L<RatStr|/type/RatStr> as well, despite C«?< 0/0 >.Num» being
-C<True>. String portion is not considered.
 
 =head2 method Capture
 
@@ -81,41 +70,15 @@ Defined as:
 The C<:D> variant returns the numeric portion of the invocant. The C<:U> variant issues
 a warning about using an uninitialized value in numeric context and then returns value C<0.0>.
 
-=head2 method Str
-
-Returns the string value of the C<RatStr>.
-
-=head2 method ACCEPTS
-
-Defined as:
-
-    multi method ACCEPTS(RatStr:D: Any:D $value)
-
-If C<$value> is L<Numeric|/type/Numeric> (including another
-L<allomorph|/language/glossary#index-entry-Allomorph>), checks if invocant's
-L<Numeric|/type/Numeric> part L<ACCEPTS|/type/Numeric#method_ACCEPTS> the C<$value>. If
-C<$value> is L<Str|/type/Str>, checks if invocant's L<Str|/type/Str> part
-L<ACCEPTS|/type/Str#method_ACCEPTS> the C<$value>. If value is anything else,
-checks if both L<Numeric|/type/Numeric> and L<Str|/type/Str> parts C<ACCEPTS> the C<$value>.
-
-    say <5.0> ~~ "5"; # OUTPUT: «False␤»
-    say <5.0> ~~  5 ; # OUTPUT: «True␤»
-    say <5.0> ~~ <5>; # OUTPUT: «True␤»
-
 =head1 Operators
 
-=head2 infix cmp
+=head2 infix C«===»
 
-    multi sub infix:<cmp>(RatStr:D $a, RatStr:D $b)
+    multi sub infix:<===>(RatStr:D $a, RatStr:D $b)
 
-Compare two C<RatStr> objects.  The comparison is done on the C<Rat> value first and
-then on the C<Str> value. If you want to compare in a different order then you would
-coerce to the C<Rat> or C<Str> values first:
-
-    my $f = RatStr.new(42.1, "smaller");
-    my $g = RatStr.new(43.1, "larger");
-    say $f cmp $g;          # OUTPUT: «Less␤»
-    say $f.Str cmp $g.Str;  # OUTPUT: «More␤»
+C<RatStr> Value identity operator. Returns C<True> if the C<Rat>
+values of C<$a> and C<$b> are L<identical|/routine/===> and their C<Str>
+values are also L<identical|/routine/===>. Returns C<False> otherwise.
 
 =end pod
 

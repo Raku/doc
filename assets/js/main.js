@@ -108,7 +108,7 @@ function setup_debug_mode(){
                 console.info("checking for dead links");
 
                 function report_broken_link(url) {
-                    $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://webchat.freenode.net/?channels=#raku">irc.freenode.net#raku</a></div>');
+                    $('html').find('#search').after('<div style="text-align: center;">Broken link: ' + url + ' found. Please report at <a href="https://web.libera.chat/?channel=#raku">irc.libera.chat#raku</a></div>');
                 }
 
                 var seen_link = [];

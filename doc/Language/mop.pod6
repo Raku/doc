@@ -16,11 +16,7 @@ is needed. For example:
 
 =begin code
 my $arr = [1, 2];
-sub show-type($arr) {
-    my $type = $arr.^name;
-    say $type;
-}
-show-type $arr; # OUTPUT: «Array␤»
+say $arr.^name;   # OUTPUT: «Array␤»
 =end code
 
 To get a more in-depth understanding of the metaobject for a C<class>, here is
@@ -61,8 +57,9 @@ uses such calls to metaobjects.
 
 These are introspective macros that resemble method calls.
 
-Metamethods are generally named with ALLCAPS, and it is considered good
-style to avoid creating your own methods with ALLCAPS names.  This will avoid
+Metamethods are generally named with ALLCAPS, and it is considered good style
+to avoid creating your own methods with ALLCAPS names (since they are used
+conventionally for things like L<phasers|/syntax/Phasers>. This will avoid
 conflicts with any metamethods that may appear in future versions of the
 language.
 
@@ -70,7 +67,6 @@ language.
 
 The type object of the type. This is a pseudo-method that can be overloaded
 without producing error or warning, but will be ignored.
-
 
 For example C<42.WHAT> returns the C<Int> type object.
 
@@ -100,7 +96,8 @@ objects of this type are used to build classes. The same operation on the C<&>
 sigil will return C<Perl6::Metamodel::ParametricRoleGroupHOW>. You will be
 calling this object whenever you use the C<^> syntax to access metamethods. In
 fact, the code above is equivalent to C<say (&).HOW.HOW.name(&)> which is much
-more unwieldy. L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW> is part of the Rakudo implementation, so use with caution.
+more unwieldy. L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW> is part of the
+Rakudo implementation, so use with caution.
 
 =head2 X<WHY|syntax,WHY>
 
@@ -125,25 +122,77 @@ The presence of a C<Scalar> object indicates that the object is "itemized".
     say (1, 2, 3).VAR ~~ Scalar;  # OUTPUT: «False␤»
     say $(1, 2, 3).VAR ~~ Scalar; # OUTPUT: «True␤»
 
+Please refer to the L<section on item
+context|/language/contexts#Item_context> for more information.
+
+=head1 Metaclass methods
+
+Same as you can define object and class methods (which do not have access to
+the instance variables), you can define metaclass methods, which will work on
+the metaclass. These are conventionally defined by a caret (C<^>) at the
+front of the method identifier. These metaclass methods might return a type
+object or a simple object; in general, they are only conventionally related
+to the metaobject protocol and are, otherwise, simple methods with a peculiar
+syntax.
+
+These methods will get called with the type name as first argument, but this
+needs to be declared explicitly.
+
+=for code
+class Foo {
+    method ^bar( Mu \foo) {
+        foo.^set_name( foo.^name ~ "[þ]" );
+    }
+}
+my $foo = Foo.new();
+say $foo.^name; # OUTPUT: «Foo␤»
+Foo.^bar();
+say $foo.^name; # OUTPUT: «Foo[þ]␤»
+
+This metaclass method will, via invoking class metamethods, change the name
+of the class it's been declared. Since this has been acting on the metaclass,
+any new object of the same class will receive the same name; invoking C<say Foo
+.new().^name> will return the same value. As it can be seen, the metaclass
+method is
+invoked with no arguments; C<\foo> will, in this case, become the C<Foo> when
+invoked.
+
+The metaclass methods can receive as many arguments as you want.
+
+=for code
+class Foo {
+    method ^bar( Mu \foo, Str $addenda) {
+        foo.^set_name( foo.^name ~ $addenda );
+    }
+}
+Foo.new().^bar(  "[baz]" );
+my $foo = Foo.new();
+say $foo.^name;  # OUTPUT: «Foo[baz]␤»
+
+Again, implicitly, the method call will furnish the first argument, which is
+the type object. Since they are metaclass methods, you can invoke them on a
+class (as above) or on an object (as below). The result will be exactly the
+same.
+
 =head1 Structure of the metaobject system
 
 B<Note:> this documentation largely reflects the metaobject system as
 implemented by the L<Rakudo Raku compiler|https://rakudo.org/>, since the
 L<design documents|https://design.raku.org/> are very light on details.
 
-For each type declarator keyword, such as C<class>, C<role>, C<enum>,
-C<module>, C<package>, C<grammar> or C<subset>, there is a separate metaclass in the C<Metamodel::> namespace. (Rakudo implements them in the
-C<Perl6::Metamodel::> namespace, and then maps C<Perl6::Metamodel> to
-C<Metamodel>).
+For each type declarator keyword, such as C<class>, C<role>, C<enum>, C<module>,
+C<package>, C<grammar> or C<subset>, there is a separate metaclass in the
+C<Metamodel::> namespace. (Rakudo implements them in the C<Perl6::Metamodel::>
+namespace, and then maps C<Perl6::Metamodel> to C<Metamodel>).
 
-Many of these metaclasses share common functionality. For example
-roles, grammars and classes can all contain methods and attributes, as well
-as being able to do roles.  This shared functionality is implemented in
-roles which are composed into the appropriate metaclasses. For example
-L<role Metamodel::RoleContainer|/type/Metamodel::RoleContainer> implements
-the functionality that a type can hold roles and
-L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>, which is the metaclass
-behind the C<class> keyword, does this role.
+Many of these metaclasses share common functionality. For example roles,
+grammars and classes can all contain methods and attributes, as well as being
+able to do roles.  This shared functionality is implemented in roles which are
+composed into the appropriate metaclasses. For example L<role
+Metamodel::RoleContainer|/type/Metamodel::RoleContainer> implements the
+functionality that a type can hold roles and
+L<Metamodel::ClassHOW|/type/Metamodel::ClassHOW>, which is the metaclass behind
+the C<class> keyword, does this role.
 
 Most metaclasses have a C<compose> method that you must call when you're done
 creating or modifying a metaobject. It creates method caches, validates things
@@ -175,11 +224,10 @@ be mutable. However if all types were always mutable, all reasoning about them
 would get invalidated at any modification of a type. For example the list of
 parent types and thus the result of type checking can change during that time.
 
-So to get the best of
-both worlds, there is a time when a type transitions from mutable to
-immutable. This is called I<composition>, and for syntactically declared
-types, it happens when the type declaration is fully parsed (so usually when
-the closing curly brace is parsed).
+So to get the best of both worlds, there is a time when a type transitions from
+mutable to immutable. This is called I<composition>, and for syntactically
+declared types, it happens when the type declaration is fully parsed (so usually
+when the closing curly brace is parsed).
 
 If you create types through the metaobject system directly, you must call
 C<.^compose> on them before they become fully functional.

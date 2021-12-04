@@ -1,10 +1,10 @@
 #!/usr/bin/env raku
 
 use Test;
-use Perl6::TypeGraph;
+use Doc::TypeGraph;
 use Telemetry;
 
-my $t = Perl6::TypeGraph.new-from-file('type-graph.txt');
+my $t = Doc::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted -> $type {
     next if $type.name.index('Metamodel').defined || $type.name eq 'PROCESS';

@@ -10,7 +10,7 @@ For handling points in civil time, a C<DateTime> object stores year, month,
 day, hour, minute (all L<Int|/type/Int>), second (potentially fractional) and
 a time zone.
 
-It provides methods for calculating with date and time.
+It provides methods for calculating with date (for the Gregorian calendar) and time.
 
 C<DateTime> methods are immutable; if you are tempted to modify one, create a
 modified copy instead.
@@ -56,7 +56,7 @@ multi method new(Int() $year, Int() $month, Int() $day,
                  Int() $hour, Int $minute, $second,
                  Int() :$timezone = 0, :&formatter)
 multi method new(Instant:D $i,  :$timezone=0, :&formatter)
-multi method new(Int:D $posix,  :$timezone=0, :&formatter)
+multi method new(Numeric:D $posix,  :$timezone=0, :&formatter)
 multi method new(Str:D $format, :$timezone=0, :&formatter)
 
 Creates a new C<DateTime> object. One option for creating a new DateTime object
@@ -64,7 +64,7 @@ is from the components (year, month, day, hour, ...) separately. Another is to
 pass a L<Date|/type/Date> object for the date component, and specify the time
 component-wise. Yet another is to obtain the time from an
 L<Instant|/type/Instant>, and only supply the time zone and formatter. Or
-instead of an Instant you can supply an L<Int|/type/Int> as a UNIX timestamp.
+instead of an Instant you can supply an L<Numeric|/type/Numeric> as a UNIX timestamp.
 
 You can also supply a L<Str|/type/Str> formatted in ISO 8601 timestamp
 notation or as a full L<RFC 3339|https://tools.ietf.org/html/rfc3339>
@@ -94,7 +94,7 @@ L<X::DateTime::TimezoneClash|/type/X::DateTime::TimezoneClash> is thrown.
                              1, 1, 1);   # Hour, minute, second with default time zone
     $datetime = DateTime.new(now);                       # Instant.
     # from a Unix timestamp
-    say $datetime = DateTime.new(1470853583);            # OUTPUT: «2016-08-10T18:26:23Z␤»
+    say $datetime = DateTime.new(1470853583.3);          # OUTPUT: «2016-08-10T18:26:23.300000Z␤»
     $datetime = DateTime.new("2015-01-01T03:17:30+0500") # Formatted string
 
 =head2 method now
@@ -252,83 +252,66 @@ Returns an L<Instant|/type/Instant> object based on the invocant.
 
     say DateTime.new('2015-12-24T12:23:00+0200').Instant; # OUTPUT: «Instant:1450952616␤»
 
+=head2 method day-fraction
+
+Defined as:
+
+    method day-fraction(DateTime:D: --> Real:D)
+
+Returns the instant's time as a fraction of a 24-hour day.
+
+    say DateTime.new('2021-12-24T12:23:00.43Z').day-fraction; # OUTPUT: «0.5159772␤»
+
+Notice the C<day-fraction> value is the same as the fractional part of
+the C<modified-julian-date> for the same instant.
+
+=head2 method julian-date
+
+Defined as:
+
+    method julian-date(DateTime:D: --> Real:D)
+
+Returns the L<Julian date|https://en.wikipedia.org/wiki/Julian_day> (JD) for the UTC date and time.
+
+    say DateTime.new('2021-12-24T12:23:00.43Z').julian-date; # OUTPUT: «2459573.0159772␤»
+
+The C<julian-date> starts at zero at the epoch of noon UTC on
+I<November 24, 4714 B.C.> on the L<proleptic|https://en.m.wikionary.org/wiki/proleptic> Gregorian calendar (the calendar
+in use in much of the world and in international commerce and travel). The JD
+is used in astronomy to define times of celestial objects transiting the
+Earth's Prime Meridian. For any instant, it is the sum of the number of whole days and
+the fraction of a day from that epoch to that instant.
+
+=head2 method modified-julian-date
+
+Defined as:
+
+    method modified-julian-date(DateTime:D: --> Real:D)
+
+Returns the L<Modified Julian Date|https://en.wikipedia.org/wiki/Julian_day> (MJD) for the UTC date and time.
+
+    say DateTime.new('2021-12-24T12:23:00.43Z').modified-julian-date; # OUTPUT: «59572.5159772␤»
+
+Notice the fractional part of the C<modified-julian-date> is same value as the C<day-fraction> for the same instant.
+Likewise, the integral part of the I<MJD> is the same value as the C<daycount> for the same instant since they
+reference the same epoch (November 17, 1858).
+The MJD is obtained by subtracting the constant C<2_400_000.5> from the I<Julian Date> and is used to simplify
+transformations between civil and astronomical time systems.
+
 =head2 method posix
 
 Defined as:
 
     method posix(Bool:D: $ignore-timezone = False --> Int:D)
 
-Returns the date and time as a POSIX/UNIX timestamp (seconds since the Epoch,
-1st January 1970 UTC).
+Returns the date and time as a POSIX/UNIX timestamp (integral seconds since the POSIX epoch,
+1970-01-01T00:00:00Z).
 
 If C<$ignore-timezone> is C<True>, the C<DateTime> object will be treated as if
 the time zone offset is zero.
 
 =for code
 say DateTime.new('2015-12-24T12:23:00Z').posix;       # OUTPUT: «1450959780␤»
-
-=head2 method later
-
-Defined as:
-
-    method later(DateTime:D: *%unit)
-
-Returns a DateTime object based on the current one, but with a time delta
-applied. The time delta can be passed as a named argument where the argument
-name is the unit.
-
-Unless the given unit is C<second> or C<seconds>, the given value will be
-converted to an L<Int|/type/Int>.
-
-Allowed units are C<second>, C<seconds>, C<minute>, C<minutes>, C<hour>,
-C<hours>, C<day>, C<days>, C<week>, C<weeks>, C<month>, C<months>, C<year>,
-C<years>. Please note that the plural forms can only be used with
-the C<later> and C<earlier> methods.
-
-The C<:2nd> form of colonpairs can be used as a compact and self-documenting
-way of specifying the delta:
-
-    say DateTime.new('2015-12-24T12:23:00Z').later(:2years);
-    # OUTPUT: «2017-12-24T12:23:00Z␤»
-
-Since addition of several different time units is not commutative, only one
-unit may be passed.
-
-    my $d = DateTime.new(date => Date.new('2015-02-27'));
-    say $d.later(month => 1).later(:2days);  # OUTPUT: «2015-03-29T00:00:00Z␤»
-    say $d.later(days => 2).later(:1month);  # OUTPUT: «2015-04-01T00:00:00Z␤»
-    say $d.later(days => 2).later(:month);   # same, as +True === 1
-
-If the resultant time has value C<60> for seconds, yet no leap second
-actually exists for that time, seconds will be set to C<59>:
-
-    say DateTime.new('2008-12-31T23:59:60Z').later: :1day;
-    # OUTPUT: «2009-01-01T23:59:59Z␤»
-
-Negative offsets are allowed, though L<earlier|/routine/earlier> is more
-idiomatic for that.
-
-=head2 method earlier
-
-Defined as:
-
-    method earlier(DateTime:D: *%unit)
-
-Returns a DateTime object based on the current one, but with a time delta
-towards the past applied. Unless the given unit is C<second> or C<seconds>, the
-given value will be converted to an L<Int|/type/Int>. See L<#method later> for
-usage.
-
-    my $d = DateTime.new(date => Date.new('2015-02-27'));
-    say $d.earlier(month => 1).earlier(:2days);  # OUTPUT: «2015-01-25T00:00:00Z␤»
-
-If the resultant time has value C<60> for seconds, yet no leap second
-actually exists for that time, seconds will be set to C<59>:
-
-    say DateTime.new('2008-12-31T23:59:60Z').earlier: :1day;
-    # OUTPUT: «2008-12-30T23:59:59Z␤»
-
-Negative offsets are allowed, though L<later|/routine/later> is more idiomatic for that.
 
 =head2 method truncated-to
 
@@ -428,7 +411,7 @@ C<DateTime> object or the C<Duration> between the two dates, respectively. When
 subtracting C<Duration>, time zone of the original C<DateTime> is preserved
 in the returned C<DateTime> object.
 
-    say perl DateTime.new(:2016year) - DateTime.new(:2015year):;
+    say raku DateTime.new(:2016year) - DateTime.new(:2015year):;
     # OUTPUT: «Duration.new(31536001.0)␤»
     say DateTime.new(:2016year, :3600timezone) - Duration.new(31536001.0);
     # OUTPUT: «2015-01-01T00:00:00+01:00␤»

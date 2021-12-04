@@ -22,14 +22,49 @@ on what most of the concepts related to parameters mean.
 
 =head2 method name
 
-Returns the variable name, which includes all sigils and twigils.
+Defined as:
+
+    method name(Parameter:D: --> Str:D)
+
+Returns the parameter name, which includes
+all L<sigils|/language/variables#Sigils> and
+L<twigils|/language/variables#Twigils>.
 This name is used internally when applied to code, or in a declaration
 to determine the declared the name.  This name is not necessarily
 usable by a caller – if it is, it will also appear as an
 L<alias|#method named_names>.  Often, the name will be chosen descriptively
 as a form of self-documentation.
 
-If the parameter is anonymous, C<Nil> will be returned.
+If the parameter is anonymous, an empty string will be returned.
+
+B<Note:> Before Rakudo version 2020.08 the return value for an anonymous
+parameter was C<Nil>.
+
+=for code
+my Signature $sig = :(Str $x, Bool);
+say $sig.params[0].name;                 # OUTPUT: «$x␤»
+say $sig.params[1].name;                 # OUTPUT: «␤»
+
+=head2 method usage-name
+
+Defined as:
+
+    method usage-name(Parameter:D: --> Str:D)
+
+Returns the parameter name without any
+L<sigils|/language/variables#Sigils> and
+L<twigils|/language/variables#Twigils>.
+
+If the parameter is anonymous, an empty string will be returned.
+
+B<Note:> Before Rakudo version 2020.08 the return value for an anonymous
+parameter was C<Nil>.
+
+=for code
+my Signature $sig = :(Str $x, Str @*l, Bool);
+say $sig.params[0].usage-name;           # OUTPUT: «x␤»
+say $sig.params[1].usage-name;           # OUTPUT: «l␤»
+say $sig.params[2].usage-name;           # OUTPUT: «␤»
 
 =head2 method sigil
 
@@ -39,7 +74,7 @@ Defined as:
 
 Returns a string containing the parameter's sigil, for a looser
 definition of "sigil" than what is considered part of
-the variable's C<name|method name>.  Still returns a sigil even
+the parameter's L«C<name>|#method name».  Still returns a sigil even
 if the parameter is anonymous.
 
 This "sigil" is actually an introspection used to help determine
@@ -114,7 +149,7 @@ Defined as:
     method slurpy(Parameter:D: --> Bool:D)
 
 Returns C<True> for
-L<slurpy parameters|/type/Signature#Slurpy_(A.K.A._variadic)_parameters>.
+L<slurpy parameters|/type/Signature#Slurpy_parameters>.
 
 =head2 method twigil
 
@@ -131,7 +166,7 @@ Defined as:
     method optional(Parameter:D: --> Bool:D)
 
 Returns C<True> for
-L<optional parameters|/type/Signature#Optional_and_Mandatory_Parameters>.
+L<optional parameters|/type/Signature#Optional_and_mandatory_arguments>.
 
 =head2 method raw
 
@@ -147,7 +182,7 @@ Returns C<True> for raw parameters.
             say $sig.params[$_].raw;
         }
     }
-    f(17, "4711", 42); OUTPUT: «False␤True␤True␤»
+    f(17, "4711", 42); # OUTPUT: «False␤True␤True␤»
 
 Raw parameters bind either a variable or a value passed to it, with
 no decontainerization taking place.  That means that if a variable was passed
@@ -167,7 +202,7 @@ as it is only used on the parameter.
     # OUTPUT: «X::Assignment::RO: Cannot modify an immutable Int␤»
 
 Other parameters may become raw through use of the 'C<is raw>'
-L<trait|/type/Signature#Parameter_Traits_and_Modifiers>.  These still use
+L<trait|/type/Signature#Parameter_traits_and_modifiers>.  These still use
 their sigil in code.
 
     sub f($x is raw) {
@@ -208,7 +243,7 @@ Defined as:
 
     method rw(Parameter:D: --> Bool:D)
 
-Returns C<True> for L<C<is rw>|/type/Signature#Parameter_Traits_and_Modifiers>
+Returns C<True> for L<C<is rw>|/type/Signature#Parameter_traits_and_modifiers>
 parameters.
 
     my Signature $sig = :(Str $x is rw, Bool :$is-named);
@@ -221,7 +256,7 @@ Defined as:
 
     method copy(Parameter:D: --> Bool:D)
 
-Returns C<True> for L<C<is copy>|/type/Signature#Parameter_Traits_and_Modifiers>
+Returns C<True> for L<C<is copy>|/type/Signature#Parameter_traits_and_modifiers>
 parameters.
 
     my Signature $sig = :(Str $x, Bool :$is-named is copy);
@@ -255,9 +290,21 @@ L<invocant parameter|/type/Signature#Parameter_separators>.
 
 =head2 method default
 
+Defined as:
+
+    method default(Parameter:D: --> Code:_)
+
 Returns a closure that upon invocation returns the
-L<default value|/type/Signature#Optional_and_Mandatory_Parameters> for
-this parameter, or C<Any> if no default was provided.
+L<default value|/type/Signature#Optional_and_mandatory_arguments> for
+this parameter, or C<Code> if no default was provided.
+
+B<Note:> Before Rakudo version 2020.08 the return value for a parameter
+with no default value was C<Any>.
+
+=for code
+my $sig = :($a, $b = 12);
+say $sig.params[0].default;        # OUTPUT: «(Code)␤»
+say $sig.params[1].default.();     # OUTPUT: «12␤»
 
 =head2 method type_captures
 
@@ -265,7 +312,7 @@ Defined as:
 
     method type_captures(Parameter:D: --> List:D)
 
-Returns a list of variable names of type captures associated with this
+Returns a list of variable names of L<type captures|/type/Signature#Type_captures> associated with this
 parameter.  Type captures define a type name within the attached code,
 which is an alias to the type gleaned from the argument during a call.
 
@@ -279,27 +326,53 @@ The type used may change from call to call.  Once they are defined,
 type captures can be used wherever you would use a type, even later
 in the same signature:
 
-=for code
+=begin code
 sub c(::T $x, T $y, $z) { my T $zz = $z };
 c(4, 5, 6);          # OK
-c(4, 5, "six");      # Fails when assigning to $zz, wants Int not Str
-c("four", 5, "six"); # Fails when binding $y, wants Str, not Int
+
+try c(4, 5, "six");
+given $! { .message.say };
+# OUTPUT: «Type check failed in assignment to $zz; expected Int but got Str ("six")␤»
+
+try c("four", 5, "six");
+given $! { .message.say };
+# OUTPUT: «Type check failed in binding to parameter '$y'; expected Str but got Int (5)␤»
+=end code
 
 Type captures may be used at the same time as
 L<type constraints|/type/Signature#Type_constraints>.
 
-=for code
+=begin code
 sub d(::T Numeric $x, T $y) {};
 d(4, 5);            # OK
 d(4e0, 5e0);        # OK
-d(4e0, 5);          # Fails when binding $y
-d("four", "five");  # Fails when binding $x
+
+try d(4e0, 5);
+given $! { .message.say };
+# OUTPUT: «Type check failed in binding to parameter '$y'; expected Num but got Int (5)␤»
+
+try d("four", "five");
+given $! { .message.say };
+# OUTPUT: «Type check failed in binding to parameter '$x'; expected Numeric but got Str ("four")␤»
+=end code
 
 =head2 method sub_signature
 
+Defined as:
+
+    method sub_signature(Parameter:D: --> Signature:_)
+
 If the parameter has a
-L<sub-signature|/type/Signature#Destructuring_Parameters>,
-returns a C<Signature> object for it.  Otherwise returns C<Any>.
+L<sub-signature|/type/Signature#Sub-signatures>,
+returns a C<Signature> object for it.  Otherwise returns C<Signature>.
+
+B<Note:> Before Rakudo version 2020.08 the return value for a parameter
+with no sub-signature was C<Any>.
+
+=for code
+my Signature $sig = :(@array ($first, *@rest), @other);
+say $sig.params[0].sub_signature;     # OUTPUT:«($first, *@rest)␤»
+say $sig.params[1].sub_signature;     # OUTPUT:«(Signature)␤»
 
 =head2 method prefix
 
@@ -307,20 +380,20 @@ Defined as:
 
     method prefix(Parameter:D: --> Str:D)
 
-If the parameter is L«slurpy|/type/Signature#Slurpy_(A.K.A._variadic)_parameters»,
+If the parameter is L«slurpy|/type/Signature#Slurpy_parameters»,
 returns the marker (e.g., C«*», C«**», or C«+») the parameter was declared
 with. Otherwise, returns an empty string.
 
     my Signature $flat-slurpy = :($a, *@b);
-    say $flat-slurpy.params[0].prefix; # OUTPUT:«""␤»
+    say $flat-slurpy.params[0].prefix; # OUTPUT:«␤»
     say $flat-slurpy.params[1].prefix; # OUTPUT:«*␤»
 
     my Signature $unflat-slurpy = :($a, **@b);
-    say $unflat-slurpy.params[0].prefix; # OUTPUT:«""␤»
+    say $unflat-slurpy.params[0].prefix; # OUTPUT:«␤»
     say $unflat-slurpy.params[1].prefix; # OUTPUT:«**␤»
 
     my Signature $sar-slurpy = :($a, +@b);
-    say $sar-slurpy.params[0].prefix; # OUTPUT:«""␤»
+    say $sar-slurpy.params[0].prefix; # OUTPUT:«␤»
     say $sar-slurpy.params[1].prefix; # OUTPUT:«+␤»
 
 =head2 method suffix
@@ -333,12 +406,12 @@ Returns the C«?» or C«!» marker a parameter was declared with, if any. Other
 returns the empty string.
 
     my Signature $pos-sig = :($a, $b?);
-    say $pos-sig.params[0].suffix; # OUTPUT: «""␤»
+    say $pos-sig.params[0].suffix; # OUTPUT: «␤»
     say $pos-sig.params[1].suffix; # OUTPUT: «?␤»
 
     my Signature $named-sig = :(:$a!, :$b);
     say $named-sig.params[0].suffix; # OUTPUT: «!␤»
-    say $named-sig.params[1].suffix; # OUTPUT: «""␤»
+    say $named-sig.params[1].suffix; # OUTPUT: «␤»
 
 =head1 Runtime creation of Parameter objects (6.d, 2019.03 and later)
 
@@ -351,7 +424,7 @@ with the following named parameters:
 
 =item name
 
-Optional.  The name of the variable, if any.  Can be specified in the same
+Optional.  The name of the parameter, if any.  Can be specified in the same
 way as in a C<Signature>.  So it may contain specific additional information,
 such as a sigil (C<$>, C<@>, C<%> or C<&>), a C<:> prefix to indicate a named
 parameter, a twigil (C<.> or C<!>) to indicate public / private attribute

@@ -6,12 +6,12 @@
 
     class Scalar {}
 
-A C<Scalar> is an internal indirection which is for most purposes
-invisible during ordinary use of Raku. It is the default container
-type associated with the C<$> sigil. A literal C<Scalar> may be
-placed around a literal value by enclosing the value in C<$(…)>.
-This notation will appear in the output of a C<.raku> method in
-certain places where it is important to note the presence of C<Scalar>s.
+A C<Scalar> is an internal indirection, that is, a way to refer indirectly to a
+value, which is, for most purposes, invisible during ordinary use of Raku. It is
+the default container type associated with the C<$> sigil. A literal C<Scalar>
+may be placed around any literal by enclosing the value in C<$(…)>. This
+notation will appear in the output of a C<.raku> method in certain places where
+it is important to note the presence of C<Scalar>s.
 
 When a value is assigned to a C<$>-sigiled variable, the variable will
 actually bind to a C<Scalar>, which in turn will bind to the value.
@@ -19,11 +19,21 @@ When a C<Scalar> is assigned to a C<$>-sigiled variable, the value
 bound to by that C<Scalar> will be bound to the C<Scalar> which that
 variable was bound to (a new one will be created if necessary.)
 
-In addition, C<Scalar>s delegate all method calls to the value which
-they contain. As such, C<Scalar>s are for the most part invisible.
-There is, however, one important place where C<Scalar>s have a visible
-impact: a C<Scalar> will shield its content from flattening by most
-Raku core list operations.
+In addition, C<Scalar>s delegate all method calls to the value which they
+contain. As such, C<Scalar>s are for the most part invisible. There is, however,
+one important place where C<Scalar>s have a visible impact: a C<Scalar>
+container will shield its content from
+L<flattening|/language/subscripts#index-entry-flattening_> by most Raku core list
+operations.
+
+=for code
+say |(1,2,$(3,4));       # OUTPUT: «12(3 4)␤»
+
+These C<Scalar> containers can also be created on the fly by assigning to a
+bare sigil:
+
+=for code
+say |(1,2,my $ = (3,4)); # OUTPUT: «12(3 4)␤»
 
 A C<$>-sigiled variable may be bound directly to a value with no
 intermediate C<Scalar> using the binding operator C<:=>. You can
@@ -69,11 +79,12 @@ alter the value of both variables by altering only one of them:
     $a.say;       # OUTPUT: «2␤»
 
 X<|\ (sigilless scalar)>
-SSA-style constants bind directly to their value with no
-intervening C<Scalar>, even when assignment (C<=>) is used. They may
-be forced to use a C<Scalar> by assigning a C<$>-sigiled variable
-to them, at which point, they behave entirely like C<$>-sigiled
-variables.
+Raku allows the use of constants with a
+L<static single assignment (SSA)|https://en.wikipedia.org/wiki/Static_single_assignment_form>
+style which bind directly to their value with no intervening C<Scalar>
+container, even when assignment (C<=>) is used. They may be forced to use a
+C<Scalar> by assigning a C<$>-sigiled variable to them, at which point, they
+behave entirely like C<$>-sigiled variables.
 
     my \c = 1;
     c.^name.say;             # OUTPUT: «Int␤»
@@ -201,8 +212,8 @@ never terminate.
 
 Defined as:
 
-    multi sub cas($target is rw, $expected, $value)
-    multi sub cas($target is rw, &operation)
+    multi sub cas(Mu $target is rw, Mu \expected, Mu \value)
+    multi sub cas(Mu $target is rw, &operation)
 
 Performs an atomic compare and swap of the value in the C<Scalar> C<$target>.
 The first form has semantics like:
@@ -238,7 +249,7 @@ C<STARTED>.
 The second form, taking a code object, will first do an atomic fetch of the
 current value and invoke the code object with it. It will then try to do an
 atomic compare and swap of the target, using the value passed to the code
-object as C<$expected> and the result of the code object as C<$value>. If
+object as C<expected> and the result of the code object as C<value>. If
 this fails, it will read the latest value, and retry, until a CAS operation
 succeeds.
 
@@ -258,6 +269,9 @@ manner as follows:
 
 This will reliably build up a linked list of 4000 items, with 4 nodes with
 each value ranging from 0 up to 999.
+
+B<Note>: Before Rakudo version 2020.12, C<$target>, C<expected> and
+C<value> had an L«C<Any>|/type/Any» type constraint.
 
 =head1 Operators
 

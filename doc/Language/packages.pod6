@@ -141,7 +141,7 @@ the setting's outermost scope, use C<UNIT::OUTER> instead.
 =head2 Interpolating into names
 X<|interpolating into names>
 
-X<|::()> You may L<interpolate|/language/packages#Interpolating> a string into a
+X<|::()> You may L<interpolate|https://en.wikipedia.org/wiki/String_interpolation> a string into a
 package or variable name using C<::($expr)> where you'd ordinarily put a package
 or variable name. The string is allowed to contain additional instances of
 C<::>, which will be interpreted as package nesting. You may only interpolate
@@ -256,6 +256,61 @@ starts in the C<GLOBAL> package, so "our" declarations in the mainline code
 go into that package by default. Process-wide variables live in the
 C<PROCESS> package. Most predefined globals such as C<$*UID> and C<$*PID>
 are actually process globals.
+
+=head1 Programmatic use of modules
+
+It is sometimes useful to be able to programmatically define and use modules.
+Here is a practical example.
+
+Assume we have a series of modules with the module files in a directory
+tree like this:
+
+=begin code :lang<text>
+lib/
+    TomtomMaps/
+        Example/
+            # a directory of example file modules programmatically
+            # created from the Tomtom Maps SDK
+            A01.rakumod
+            #...
+            C09.rakumod
+            #...
+=end code
+
+Module C<TomtomMaps::Example::C09> looks like this:
+
+=begin code :solo
+unit module TomtomMaps::Example::C09;
+
+# ensure you use the 'our' declarator
+our sub print-example($fh, # filehandle open for writing
+                      :$api-maps-key
+) { # do not need to export the sub
+    $fh.print: qq:to/HERE/;
+    # ... the example html file
+    HERE
+}
+=end code
+
+We can access and use the subroutines like this:
+
+=begin code :solo
+use lib 'lib';
+my $module-dir = 'TomtomMaps::Example';
+my $example    = 'C09';
+my $m          = "{$module-dir}::{$example}";
+
+# you must use the runtime 'require', not the compile-time 'use'
+require ::($m);
+
+my $fh = open "./example-{$example}.html", :w;
+my $api-maps-key = 'ghghfxnnhrgfsWE.mmn';
+
+# execute the subroutine
+&::($m)::print-example($fh, :$api-maps-key); # the map's html file is written
+
+$fh.close;
+=end code
 
 =end pod
 

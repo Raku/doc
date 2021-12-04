@@ -15,22 +15,19 @@ my @files = Test-Files.documents;
 plan +@files;
 
 for @files.sort -> $file {
-    my $ok = True;
-    my $row = 0;
-    my @bad;
-    my $content = $file.IO.slurp.lines.join("\n");
+    my $err-count = 0;
+    my $content = $file.IO.slurp;
     for $content ~~ m:g/ <!after 'implementing '> 'Perl' $<space>=(\s+) \d / -> $match {
         my $spaces = ~$match<space>;
         if $spaces.chars != 1 || $spaces.uniname ne "NO-BREAK SPACE" {
-            $ok = False;
-            @bad.push: $row;
+            $err-count++;
         }
     }
     my $error = $file;
-    if !$ok {
-        $error ~= " (line{@bad>1 ?? "s" !! ""} {@bad.join: ', '})";
+    if $err-count {
+        $error ~= " ($err-count instance{$err-count==1 ?? '' !! 's'})";
     }
-    ok $ok, "$error: Perl followed by a version should have a single non-breaking space." ;
+    ok !$err-count, "$error: Perl followed by a version should have a single non-breaking space." ;
 }
 
 # vim: expandtab shiftwidth=4 ft=perl6

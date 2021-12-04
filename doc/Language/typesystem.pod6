@@ -10,7 +10,7 @@ A type defines a new object by creating a type object that provides an
 interface to create instances of objects or to check values against. Any type
 object is a subclass of L<Any|/type/Any> or L<Mu|/type/Mu>. Introspection
 methods are provided via inheritance from those base classes and the
-introspection postfix L<.^|/language/operators#postfix_.^>. A new type is
+introspection metamethod L<.^|/language/operators#methodop_.^>. A new type is
 introduced to the current scope by one of the following type declarators at
 compile time or with the L<metaobject protocol|/language/mop> at runtime. All
 type names must be unique in their scope.
@@ -39,7 +39,7 @@ type constraint may change in this case.
 To test if an object is a type object, use
 L<smartmatch|/language/operators#index-entry-smartmatch_operator>
 against a type constrained with a
-L<type smiley|/type/Signature#Constraining_defined_and_undefined_values> or
+L<type smiley|/type/Signature#Constraining_argument_definiteness> or
 L«C<.DEFINITE>|/language/mop#index-entry-syntax_DEFINITE-DEFINITE» method:
 
 =begin code :ok-test<WHAT>
@@ -78,8 +78,8 @@ Values can become undefined at runtime via L<mixin|/language/operators#infix_but
 
 To test for definedness call C<.defined>, use
 L<//|/language/operators#infix_//>,
- L<with/without|/language/control#with,_orwith,_without> and
-L<signatures|/type/Signature#Constraining_defined_and_undefined_values>.
+ L<with/without|/language/control#with_orwith_without> and
+L<signatures|/type/Signature#Constraining_argument_definiteness>.
 
 =head3 Coercion
 
@@ -448,7 +448,6 @@ L<X::Attribute::Required|/type/X::Attribute::Required>.
 
     class Correct {
         has $.attr is required;
-        submethod BUILD (:$attr) { $!attr = $attr }
     }
     say Correct.new(attr => 42);
     # OUTPUT: «Correct.new(attr => 42)␤»
@@ -457,6 +456,15 @@ L<X::Attribute::Required|/type/X::Attribute::Required>.
         has $.attr is required;
     }
     C.new;
+    CATCH { default { say .^name => .Str } }
+    # OUTPUT: «X::Attribute::Required => The attribute '$!attr' is required, but you did not provide a value for it.␤»
+
+Note a class with a private attribute will give the same error:
+
+    class D {
+        has $!attr is required;
+    }
+    D.new;
     CATCH { default { say .^name => .Str } }
     # OUTPUT: «X::Attribute::Required => The attribute '$!attr' is required, but you did not provide a value for it.␤»
 
@@ -511,7 +519,7 @@ C<trusts>. A forward declaration of the trusted class may be required.
         trusts B;
         has $!foo;
         method !foo { return-rw $!foo }
-        method perl { "A.new(foo => $!foo)" }
+        method raku { "A.new(foo => $!foo)" }
     };
     class B {
         has A $.a .= new;
@@ -736,7 +744,7 @@ Attempting to access unicode enum keys without said syntax will result in an
 error:
 
 =for code :skip-test<example of bad code>
-say ♣ ; # OUTPUT: «(exit code 1) ===SORRY!===␤Argument to "say" seems to be    malformed…
+say ♣ ; # OUTPUT: «(exit code 1) ===SORRY!===␤Argument to "say" seems to be malformed…
 
 If no value is given C<Int> will be assumed as the values type and incremented
 by one per key starting at zero. As enum key types C<Int>, C<Num>, C<Rat> and
@@ -780,7 +788,16 @@ the keys.
     enum E <one two>;
     my @keys = E::.values;
     say @keys.map: *.raku;
-    # OUTPUT: «(E::one E::two)␤»
+    # OUTPUT: «(E::one E::two)␤» or «(E::two E::one)␤»
+
+Note that, as the output above indicates, the iteration order of enums
+is not guaranteed.  This is because the methods that "iterate over" an
+enum do not iterate I<directly> on the enum (which, after all, is not
+iterable).  Instead, these iteration methods create a C<Map> with the
+same keys and values as the enum.  Because C<Map>s provide only unordered,
+iteration the iteration methods on an enum do as well.  If you need to
+iterate an enum in order, you can sort on its C<value>, for example
+with C<E.enums.sort(*.value)>.
 
 With the use of B<()> parentheses, an enum can be defined using any
 arbitrary dynamically defined list. The list should consist of Pair
@@ -852,17 +869,8 @@ against the C<Enumeration> role.
 
 =head3 Methods
 
-=head4 method enums
-
-Defined as:
-
-    method enums()
-
-Returns the list of enum-pairs.
-
-    enum Mass ( mg => 1/1000, g => 1/1, kg => 1000/1 );
-    say Mass.enums; # OUTPUT: «{g => 1, kg => 1000, mg => 0.001}␤»
-
+See the L«C<Enumeration>|/type/Enumeration» role for available methods on
+enum types and enum-pairs.
 
 =head3 Coercion
 
@@ -903,7 +911,7 @@ For a full explanation see L<Grammars|/language/grammars>.
 =head2 C<subset>
 
 A X<C<subset>|subset> declares a new type that will re-dispatch to its base
-type. If a L<C<where>|/type/Signature#where> clause is supplied any assignment
+type. If a L<C<where>|/type/Signature#index-entry-where_clause> clause is supplied any assignment
 will be checked against the given code object.
 
     subset Positive of Int where * > -1;
@@ -919,6 +927,14 @@ Subsets can be used in signatures, e.g. by typing the output:
     # Only a List with the first element being an Int and the second a Str will pass the type check.
     a(1, "foo");  # passes
     a("foo", 1);  # fails
+
+If you skip the base type, it defaults to C<Any>. So the following two are equivalent:
+
+=for code :preamble<class A {}; class B {}>
+subset A-or-B where * ~~ A | B
+
+=for code :preamble<class A {}; class B {}>
+subset A-or-B of Any where * ~~ A | B
 
 Subsets can be anonymous, allowing inline placements where a subset is required
 but a name is neither needed nor desirable.

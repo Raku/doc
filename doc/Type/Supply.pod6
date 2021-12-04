@@ -187,7 +187,7 @@ the exception that was passed to C<quit>).
 
 =head2 method list
 
-    method list(Supply:D: --> List:D)
+    multi method list(Supply:D:)
 
 Taps the C<Supply> it is called on, and returns a lazy list that will be reified
 as the C<Supply> emits values. The list will be terminated once the C<Supply> is
@@ -371,9 +371,14 @@ C<&mapper> and emits it to the new supply.
     method batch(Supply:D: :$elems, :$seconds --> Supply:D)
 
 Creates a new supply that batches the values of the given supply by either
-the number of elements in the batch (using C<:elems>) or the maximum number of
-seconds (using the C<:seconds>) or both.  Any remaining values are emitted in
+the number of elements in the batch (using C<:elems>) or a duration
+(using C<:seconds>) or both.  Any remaining values are emitted in
 a final batch when the supply is done.
+
+B<Note>: Since Rakudo version 2020.12, the C<:seconds> parameter has
+a millisecond granularity: for example a 1 millisecond duration could
+be specified as C<:seconds(0.001)>. Before Rakudo version 2020.12,
+the C<:seconds> parameter had a second granularity.
 
 =head2 method elems
 
@@ -459,6 +464,19 @@ L«C<.head>|#method head».
     my $words = Supply.from-list(<Hello World From Raku!>);
     my $s = $words.split(/ <?upper> /, 2, :skip-empty);
     $s.tap(&say); # OUTPUT: «Hello␤World␤»
+
+=head2 method rotate
+
+    method rotate(Supply:D: $rotate = 1)
+
+Creates a supply with elements rotated to the left when C<$rotate>
+is positive or to the right otherwise, in which case the invocant is
+tapped on before a new supply is returned.
+
+    my $supply = Supply.from-list(<a b c d e>).rotate(2);
+    $supply.tap(&say); # OUTPUT: «c␤d␤e␤a␤b␤»
+
+B<Note>: Available since Rakudo 2020.06.
 
 =head2 method rotor
 
@@ -762,7 +780,7 @@ Creates a supply that only emits values from the given supply if they are
 larger than any value seen before. In other words, from a continuously
 ascending supply it will emit all the values. From a continuously descending
 supply it will only emit the first value. The optional parameter specifies
-the comparator, just as with L<Any.max|/type/Any#method_max>.
+the comparator, just as with L<Any.max|/type/Any#routine_max>.
 
 =head2 method min
 
@@ -772,7 +790,7 @@ Creates a supply that only emits values from the given supply if they are
 smaller than any value seen before.  In other words, from a continuously
 descending supply it will emit all the values.  From a continuously ascending
 supply it will only emit the first value.  The optional parameter specifies
-the comparator, just as with L<Any.min|/type/Any#method_min>.
+the comparator, just as with L<Any.min|/type/Any#routine_min>.
 
 =head2 method minmax
 
@@ -780,7 +798,7 @@ the comparator, just as with L<Any.min|/type/Any#method_min>.
 
 Creates a supply that emits a Range every time a new minimum or maximum
 values is seen from the given supply.  The optional parameter specifies
-the comparator, just as with L<Any.minmax|/type/Any#method_minmax>.
+the comparator, just as with L<Any.minmax|/type/Any#routine_minmax>.
 
 =head2 method skip
 
@@ -870,7 +888,7 @@ AAPL: 111.6
     method merge(Supply @*supplies --> Supply:D)
 
 Creates a supply to which any value seen from the given supplies, is emitted.
-The resulting supply is done Only when all given supplies are done.  Can also
+The resulting supply is done only when all given supplies are done.  Can also
 be called as a class method.
 
 =head2 method zip

@@ -9,14 +9,8 @@
 An object of this type is available via the variable C<$*SPEC> if the
 Raku interpreter is running on a Unix-like platform.
 
-The C<IO::Spec::*> classes provide low-level path operations. Unless
-you're creating your own high-level path manipulation routines, you
-don't need to use C<IO::Spec::*>. Use L«C<IO::Path>|/type/IO::Path»
-instead.
-
-Beware that no special validation is done by these classes (e.g. check
-whether path contains a null character). It is the job of higher-level
-classes, like L«C<IO::Path>|/type/IO::Path», to do that.
+About this class and its related classes also see
+L<IO::Spec|/type/IO::Spec>.
 
 =head1 Methods
 
@@ -73,7 +67,7 @@ Concatenates multiple path fragments and returns the canonical
 representation of the resultant path as a string. The C<@parts> are
 L«C<Str>|/type/Str» objects and are allowed to contain path separators.
 
-    IO::Spec::Unix.catdir(<foo/bar ber perl>).say; # OUTPUT: «foo/bar/ber/perl␤»
+    IO::Spec::Unix.catdir(<foo/bar ber raku>).say; # OUTPUT: «foo/bar/ber/raku␤»
 
 =head2 method catfile
 
@@ -87,7 +81,7 @@ Defined as:
 
 Takes two path fragments and concatenates them, adding or removing a
 path separator, if necessary. The first argument is ignored (it exists
-to maintain consistent interface with other C<IO::Spec|/type/IO::Spec> types for
+to maintain consistent interface with other L«C<IO::Spec>|/type/IO::Spec» types for
 systems that have volumes).
 
     IO::Spec::Unix.catpath($, 'some/dir', 'and/more').say;
@@ -109,16 +103,27 @@ Defined as:
 
     method curupdir()
 
-Returns a L«C<none>|/routine/none» L<Junction|/type/Junction> of strings representing
-the current directory and the "one directory up":
+Returns a L«C<Block>|/type/Block» taking an argument. This block
+returns C<True> if its argument is neither the string representing the
+current directory nor the string representing the directory one up from
+the current one.  It returns C<False> otherwise.
+This block is intended to be used with
+L<smartmatching|/language/operators#infix_~~>.
 
-=for code
-say $*SPEC.curupdir;                  # OUTPUT: «none(., ..)␤»
+=begin code
+say $*SPEC.curupdir;
+# OUTPUT: «-> str $dir { #`(Block|65335808) ... }␤»
+
 my @dirs = <. foo .. bar>;
-say @dirs.grep(* eq $*SPEC.curupdir); # OUTPUT: «(foo bar)␤»
+say @dirs.grep: { $_ ~~ $*SPEC.curupdir };
+# OUTPUT: «(foo bar)␤»
+=end code
 
 Neither C<foo> nor C<bar> are equal to the representation of the current
 or parent directory, that is why they are returned by C<grep>.
+
+B<Note>: Before Rakudo version 2020.06 a L«C<none>|/routine/none»
+L<Junction|/type/Junction> was returned instead of a C<Block>.
 
 =head2 method devnull
 
@@ -249,32 +254,34 @@ Returns string C<'/'>, representing root directory.
 
 Defined as:
 
-    method split(IO::Spec::Unix: Cool:D $path --> List:D)
+    method split(IO::Spec::Unix: Cool:D $path)
 
-Splits the given C<$path> into "volume", "dirname", and "basename" and
-returns the result as a L<List|/type/List> of three L<Pairs|/type/Pair>, in that order.
-The "volume" is always an empty string and exists for consistency with other
-L<IO::Spec|/type/IO::Spec> classes.
+Creates a L«C<IO::Path::Parts>|/type/IO::Path::Parts» for C<$path>,
+with an empty string as its C<volume> attribute's value.
 
 =begin code
 IO::Spec::Unix.split('C:/foo/bar.txt').raku.say;
-# OUTPUT: «(:volume(""), :dirname("C:/foo"), :basename("bar.txt"))␤»
+# OUTPUT: «IO::Path::Parts.new("","C:/foo","bar.txt")␤»
 
 IO::Spec::Unix.split('/foo/').raku.say;
-# OUTPUT: «(:volume(""), :dirname("/"), :basename("foo"))␤»
+# OUTPUT: «IO::Path::Parts.new("","/","foo")␤»
 
 IO::Spec::Unix.split('///').raku.say;
-# OUTPUT: «(:volume(""), :dirname("/"), :basename("/"))␤»
+# OUTPUT: «IO::Path::Parts.new("","/","/")␤»
 
 IO::Spec::Unix.split('./').raku.say;
-# OUTPUT: «(:volume(""), :dirname("."), :basename("."))␤»
+# OUTPUT: «IO::Path::Parts.new("",".",".")␤»
 
 IO::Spec::Unix.split('.').raku.say;
-# OUTPUT: «(:volume(""), :dirname("."), :basename("."))␤»
+# OUTPUT: «IO::Path::Parts.new("",".",".")␤»
 
 IO::Spec::Unix.split('').raku.say;
-# OUTPUT: «(:volume(""), :dirname(""), :basename(""))␤»
+# OUTPUT: «IO::Path::Parts.new("","","")␤»
 =end code
+
+B<Note>: Before Rakudo version 2020.06 this method split the given
+C<$path> into "volume", "dirname", and "basename" and returned the result
+as a L<List|/type/List> of three L<Pairs|/type/Pair>, in that order.
 
 =head2 method splitdir
 

@@ -23,7 +23,7 @@ Raku provides two universal subscripting interfaces:
 
 =head2 B<Positional> subscripting
 
-B<Positional> subscripting(via L<C<postcircumfix [
+B<Positional> subscripting (via L<C<postcircumfix [
 ]>|/language/operators#postcircumfix_[_]>) addresses elements of an ordered
 collection by their position. Index 0 refers to the first element, index 1 to
 the second, and so on:
@@ -33,6 +33,11 @@ the second, and so on:
     say @chores[1];  # OUTPUT: «feed dog␤»
     say @chores[2];  # OUTPUT: «wash car␤»
 
+Note that Rakudo's implementation of subscripting allows only 63 bits on
+64 bit builds. See
+L<Stack Overflow|https://stackoverflow.com/questions/61031107/do-array-indices-need-to-be-native-ints/61031617#61031617>.
+If larger subscripts are required, one may use L<Array::Sparse|https://modules.raku.org/dist/Array::Sparse>
+or alternatively, use a C<Hash> with C<Associative> subscripting (see below).
 
 =head2 B<Associative> subscripting
 
@@ -959,35 +964,63 @@ optional named parameter will contain a C<True> value when the method is called
 on the object for the first time. It should return the invocant.
 
 =begin code
-class DNA {
-    has $.chain is rw;
+role Logger { method log( Str $msg) {…}}
 
-    method STORE ($chain where {
-                         $chain ~~ /^^ <[ACGT]>+ $$ / and
-                         $chain.chars %% 3
-                     }, :$INITIALIZE --> DNA) {
-        if $INITIALIZE {
-            self = DNA.new( chain => $chain )
-        } else {
-            self.chain = $chain;
-            self
+class ConsoLogger does Logger { method log ( Str $msg ) { "❢ $msg".say }}
+
+class DNA {
+    has $.chain;
+    has Logger $!logger;
+
+    submethod BUILD( :$chain, :$logger = ConsoLogger.new() ) {}
+
+    method STORE (Str $chain where {
+            /^^ <[ACGT]>+ $$ / and
+            .chars %% 3
+        },
+        :$INITIALIZE --> DNA) {
+
+        if ($INITIALIZE) {
+            $!logger = ConsoLogger.new();
+            $!logger.log( "Initialized" );
         }
+
+        $!chain  := $chain;
+        $!logger.log("Change value to $chain" );
+        self
     }
 
-    method Str(::?CLASS:D:) { return $.chain.comb.rotor(3) }
+    method Str(::?CLASS:D:) { return $!chain.comb.rotor(3).map( *.join("")).join("|") }
 };
 
-my @string is DNA = 'GAATCC';
-say @string.Str;    # OUTPUT: «((G A A) (T C C))␤»
-@string = 'ACGTCG';
-say @string.Str;    # OUTPUT: «((A C G) (T C G))␤»
+my @string is DNA = 'GAATCC';    # OUTPUT: «❢ Initialized␤❢ Change value to GAATCC␤»
+say ~@string;                    # OUTPUT: «GAA|TCC␤»
+@string = 'ACGTCG';              # OUTPUT: «❢ Change value to ACGTCG␤»
+say  ~@string;                   # OUTPUT: «ACG|TCG␤»
 =end code
 
 This code takes into account the value of C<$INITIALIZE>, which is set to
 C<True> only if we are assigning a value to a variable declared using the C<is>
-syntax for the first time. The C<STORE> method should set the C<self> variable
-and return it in all cases, including when the variable has already been
-initialized.
+syntax for the first time; for instance, as in this case, we might need to
+initialize any injected dependency. The C<STORE> method should set the C<self>
+variable and return it in all cases, including when the variable has already
+been initialized; however, only in the first case we need to initialize the
+logger we are using in this example.
+
+The presence of the C<INITIALIZE> flag can be also used to create immutable
+data structures:
+
+=begin code
+class A {
+    has @.foo handles <Str gist raku>;
+    multi method STORE(*@!foo, :$INITIALIZE!) { }
+    multi method STORE(|) { die "Immutable" }
+}
+
+my @a is A = 1,2,3,4;
+say @a;        # OUTPUT: «[1,2,3,4]␤»
+@a = 4,5,6,7;  # dies: Immutable
+=end code
 
 =head2 Methods to implement for associative subscripting
 

@@ -30,6 +30,10 @@ variable, this script will attempt to test a specific version by using git check
 to switch that checkout to a specific version during the test, and run
 "git checkout -" at the end to reset the state.
 
+NOTE: This test uses introspection from the running copy of rakudo to find
+information in the source code. If you are running a different version of raku
+then the RAKUDO_SRC directory, it may be unable to find certain method definitions.
+
 To ensure that implementation details don't cause failing tests, we check only
 for certain discrepancies that are guaranteed to indicate a
 substantive/non-implementation detail mismatch between Rakudo and the docs.
@@ -50,12 +54,19 @@ not (the inverse situation -- where we specify a return constraint that Rakudo
 does not -- would not necessarily represent an error in the docs so long as
 the function always does return that type)
 
+You may also wish to review certain skipped results: they may point
+to mistakes in the documentation - one example is methods that are
+defined on a role instead of a class - it will show up as skips but
+points to a need to move the documentation for that method.
+
 =end SYNOPSIS
 
 my $error = "To run check-signatures, please specify the path to the Rakudo git checkout with the RAKUDO_SRC environment variable";
 my $rakudo-src-dir = %*ENV<RAKUDO_SRC> // plan(:skip-all( $error ));
 when !$rakudo-src-dir.IO.d { plan(:skip-all( $error )) }
 when ?(run <git --version>, :out, :err).exitcode { plan(:skip-all( "check-signatures requires git"))}
+my $doc-dir = $*CWD;
+
 given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     chdir $rakudo-src-dir;
     when .elems == 1 { run (|<git checkout>, |("tags/{.[0]}")), :out, :err}
@@ -69,8 +80,11 @@ for @doc-files -> $file {
     when $file !~~ /'doc/Type/'[(\w+)'/'?]+'.pod6'/ { skip "'{$file.basename}' doesn't document a type" }
     my $type-name = S/'doc/Type/'[(\w+)'/'?]+'.pod6'/$0.join('::')/ with $file;
     my $type = ::($type-name);
-    CATCH { default { skip "$type-name lacks required introspection" } }
-    TypeDocumentation.parse($file.IO.slurp);
+    CATCH { default {
+        my $name = $type-name // $file;
+        skip "$name lacks required introspection";
+    }}
+    TypeDocumentation.parse("$doc-dir/$file".IO.slurp);
 
     subtest "check $type-name methods", {
         plan +$<method>;

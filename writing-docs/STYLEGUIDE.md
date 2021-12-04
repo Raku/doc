@@ -1,6 +1,6 @@
 # Style guide
 
-Please follow these style rules when contributing to the documentation
+Please follow these style rules when contributing to the documentation.
 
 ## Text
 
@@ -83,7 +83,7 @@ in a given situation, please try to follow these guidelines.
 When generating output in examples intended to be read by a user, use 'say'.
 Additionally, add a comment showing the intended output, e.g.:
 
-    say 3.^name; #OUTPUT: «Int␤»
+    say 3.^name; # OUTPUT: «Int␤»
 
 For examples where a particular format is required, or exact data is expected
 (e.g., for something sent over a network connection), prefer 'put'.
@@ -119,7 +119,7 @@ term in the documentation and stick to the form that is used the most
 
 ### Use present tense when talking about Perl features
 
-Per5 is still an active language, therefore instead of "In Perl
+Perl 5 is still an active language, therefore instead of "In Perl
 this was used for ..., but in Raku ..."  use a form like "In Perl
 this is used for ..., but in Raku ..."  ('was' has been made a
 present 'is').
@@ -188,7 +188,7 @@ roast test suite)
 
 * If something is visible to users of Raku and is in roast: document it.
 * If something is visible to users of Raku and is not in roast:
-  check with the dev team (#raku-dev on freenode) - This might need
+  check with the dev team (#raku-dev on libera.chat) - This might need
   have a test added (and therefore docs), or it might need to be
   hidden so users cannot see it. In general, documentation of
   implementation-specific features should be avoided; however, if
@@ -197,7 +197,7 @@ roast test suite)
   the first and latest version the documented feature is available.
 
 Future considerations along this line include: documenting things that
-are Rakudo specific (like "dd"), and documenting which versions of the
+are Rakudo specific (like ```dd```), and documenting which versions of the
 spec items are available in.
 
 ## Use of HTML
@@ -205,8 +205,8 @@ spec items are available in.
 Generally, Pod6 should be more than enough for any
 documentation. However, if you need to embed HTML into the
 documentation after thinking about it twice, bear in mind that we support
-the current and previous major releases of Chrome, Firefox, Internet
-Explorer (Edge), and Safari. Please test layout changes. Lacking
+the current and previous major releases of Chrome, Firefox, Edge,
+and Safari. Please test layout changes. Lacking
 actual browsers to test in, you can use
 [browsershots.org](http://browsershots.org) or
 [browserstack.com](http://browserstack.com). Ensure the layout looks

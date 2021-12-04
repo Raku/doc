@@ -175,6 +175,73 @@ If C<$topic> is I<not> an L<Iterable|/type/Iterable>, returns the invocant if
 the invocant has no elements or its first element is a L<Match|/type/Match>
 object (this behavior powers C<m:g//> smartmatch), or C<False> otherwise.
 
+=head2 routine list
+
+Defined as:
+
+    multi sub    list(+list)
+    multi method list(List:D:)
+
+The method just returns the invocant L<self|/routine/self>. The subroutine
+adheres to the L<single argument rule|/language/functions#Slurpy_conventions>:
+if called with a single argument that is a non-L<itemized|/language/mop#VAR>
+C<Iterable> it returns a C<List> based on the argument's
+L<iterator|/routine/iterator>; otherwise it just returns the argument list.
+
+For example:
+
+    my $tuple = (1, 2);         # an itemized List
+    put $tuple.list.raku;       # OUTPUT: «(1, 2)␤»
+    put list($tuple).raku;      # OUTPUT: «($(1, 2),)␤»
+    put list(|$tuple).raku;     # OUTPUT: «(1, 2)␤»
+
+The last statement uses the L«C<prefix:<|>>|/language/operators#prefix_|»
+operator to flatten the tuple into an argument list, so it is equivalent to:
+
+    put list(1, 2).raku;        # OUTPUT: «(1, 2)␤»
+
+There are other ways to list the elements of an itemized single argument. For
+example, you can L«decontainerize|/routine/<>» the argument or use the L<C<@>
+list contextualizer|/type/Any#index-entry-@_list_contextualizer>:
+
+=begin code :preamble<my $tuple>
+put list($tuple<>).raku;    # OUTPUT: «(1, 2)␤»
+put list(@$tuple).raku;     # OUTPUT: «(1, 2)␤»
+=end code
+
+Note that converting a type object to a list may not do what you expect:
+
+    put List.list.raku;         # OUTPUT: «(List,)␤»
+
+This is because the C<.list> candidate accepting a type object as the invocant
+is provided by L<C<Any>|/routine/list#(Any)_method_list>. That candidate returns
+a list with one element: the type object self. If you're developing a collection
+type whose type object should be a valid representation of an empty collection,
+you may want to provide your own candidate for undefined invocants or override
+the C<Any:> candidates with an "only" method. For example:
+
+=begin code
+my class LinkedList {
+    has $.value;            # the value stored in this node
+    has LinkedList $.next;  # undefined if there is no next node
+
+    method values( --> Seq:D) {
+        my $node := self;
+        gather while $node {
+            take $node.value;
+            $node := $node.next;
+        }
+    }
+
+    method list( --> List:D) {
+        self.values.list;
+    }
+}
+
+my LinkedList $nodes;       # an empty linked list
+put $nodes.list.raku;       # OUTPUT: «()␤»
+=end code
+
 =head2 routine elems
 
 Defined as:
@@ -277,7 +344,7 @@ Defined as:
     method join(List:D: $separator = "")
 
 Treats the elements of the list as strings by calling
-L<C<.Str>|/type/Any#routine_Str> on each of them, interleaves them with
+L<C<.Str>|/type/Mu#method_Str> on each of them, interleaves them with
 C<$separator> and concatenates everything into a single string.
 
 Example:
@@ -366,7 +433,7 @@ Defined as:
 
     method flatmap(List:D: &code --> Seq:D)
 
-Like L«C<map>|/type/Any#method_map» iterates over the elements of the invocant
+Like L«C<map>|/type/Any#routine_map» iterates over the elements of the invocant
 list, feeding each element in turn to the code reference, and assembling the
 return values from these invocations in a result list.
 
@@ -800,15 +867,19 @@ Examples:
 
 Defined as:
 
-    multi sub    rotate(@list,  Int:D $n = 1 --> List:D)
-    multi method rotate(List:D: Int:D $n = 1 --> List:D)
+    multi sub    rotate(@list,  Int:D $n = 1 --> Seq:D)
+    multi method rotate(List:D: Int:D $n = 1 --> Seq:D)
 
-Returns the list rotated by C<$n> elements.
+Returns a L«C<Seq>|/type/Seq» with the list elements rotated to the left
+when C<$n> is positive or to the right otherwise.
 
 Examples:
 
-    <a b c d e>.rotate(2);   # <c d e a b>
-    <a b c d e>.rotate(-1);  # <e a b c d>
+    say <a b c d e>.rotate(2);   # OUTPUT: (c d e a b)
+    say <a b c d e>.rotate(-1);  # OUTPUT: (e a b c d)
+
+B<Note>: Before Rakudo version 2020.06 a new C<List> was returned instead
+of a C<Seq>.
 
 =head2 routine sort
 

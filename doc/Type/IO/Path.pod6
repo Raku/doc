@@ -158,9 +158,7 @@ Defined as:
 
     method child(IO::Path:D: Str() $childname --> IO::Path:D)
 
-Alias for L«C<.add>|/routine/add». B<NOTE:> This method has been deprecated as
-of the 6.d version, and will be removed in the future. For any new code, please
-use L«C<.add>|/routine/add»
+Alias for L«C<.add>|/routine/add».
 
 =head2 method cleanup
 
@@ -302,28 +300,29 @@ the empty string.
 
 Defined as:
 
-    method parts(IO::Path:D: --> Map:D)
+    method parts(IO::Path:D:)
 
-Returns a L<Map|/type/Map> with the keys C<volume>, C<dirname>, C<basename> whose values
-are the same as available via methods L«C<.volume>|/routine/volume»,
-L«C<.dirname>|/routine/dirname», and L«C<.basename>|/routine/basename»
-respectively.
+Returns a L«C<IO::Path::Parts>|/type/IO::Path::Parts» for the invocant.
 
-    say IO::Path::Win32.new("C:/rakudo/perl6.bat").parts.raku;
-    # OUTPUT: «Map.new((:basename("perl6.bat"),:dirname("/rakudo"),:volume("C:")))␤»
+    say IO::Path::Win32.new("C:/rakudo/raku.bat").parts.raku;
+    # OUTPUT: «IO::Path::Parts.new("C:","/rakudo","raku.bat")␤»
 
-=head2 method perl
+B<Note>: Before Rakudo version 2020.06 a L«C<Map>|/type/Map» was
+returned, with the keys C<volume>, C<dirname>, C<basename> whose values
+were the respective invocant parts.
+
+=head2 method raku
 
 Defined as:
 
-    method perl(IO::Path:D: --> Str:D)
+    method raku(IO::Path:D: --> Str:D)
 
 Returns a string that, when given passed through L«C<EVAL>|/routine/EVAL»
 gives the original invocant back.
 
-=for code :ok-test<perl>
-    "foo/bar".IO.perl.say;
-    # OUTPUT: IO::Path.new("foo/bar", :SPEC(IO::Spec::Unix), :CWD("/home/camelia"))
+=for code
+"foo/bar".IO.raku.say;
+# OUTPUT: IO::Path.new("foo/bar", :SPEC(IO::Spec::Unix), :CWD("/home/camelia"))
 
 Note that this string includes the value of the C<.CWD> attribute that is set
 to L«C<$*CWD>|/language/variables#Dynamic_variables» when the path
@@ -497,7 +496,7 @@ last part of the path does B<NOT> have to exist to C<:$completely> resolve the
 path.
 
 NOTE: Currently (April 2017) this method doesn't work correctly on all
-platforms, e.g. Windows, since it assumes POSIX semantics.
+platforms, e.g. Windows, since C<resolve> assumes POSIX semantics.
 
 =head2 routine dir
 
@@ -566,13 +565,13 @@ starting from the current directory:
 
 =for code
 my @stack = '.'.IO;
-my $perl-files = gather while @stack {
+my $raku-files = gather while @stack {
     with @stack.pop {
         when :d { @stack.append: .dir }
         .take when .extension.lc eq 'p6'
     }
 }
-.put for $perl-files[^3];
+.put for $raku-files[^3];
 
 =head2 File test operators
 
@@ -659,7 +658,7 @@ which case the reported size is dependent on the operating system. The method
 will L«C<fail>|/routine/fail» with C<X::IO::DoesNotExist> if the path points to
 a non-existent filesystem entity.
 
-    say $*EXECUTABLE.IO.s; # OUTPUT : «467␤»
+    say $*EXECUTABLE.IO.s; # OUTPUT: «467␤»
 
 =head2 method l
 
@@ -767,7 +766,7 @@ Opens the invocant and returns its L«words|/type/IO::Handle#routine_words».
 
 The behavior is equivalent to L<opening|/routine/open> the file specified by
 the invocant, forwarding the C<:$chomp>, C<:$enc>, and C<:$nl-in> arguments to
-L«C<IO::Handle.open>|/type/IO::Handle#routine_open», then calling
+L«C<IO::Handle.open>|/type/IO::Handle#method_open», then calling
 L«C<IO::Handle.words>|/type/IO::Handle#routine_words» on that handle, forwarding
 any of the remaining arguments to that method, and returning the resultant
 L<Seq|/type/Seq>.
@@ -793,7 +792,7 @@ Opens the invocant and returns its L«lines|/type/IO::Handle#routine_lines».
 
 The behavior is equivalent to L<opening|/routine/open> the file specified by
 the invocant, forwarding the C<:$chomp>, C<:$enc>, and C<:$nl-in> arguments to
-L«C<IO::Handle.open>|/type/IO::Handle#routine_open», then calling
+L«C<IO::Handle.open>|/type/IO::Handle#method_open», then calling
 L«C<IO::Handle.lines>|/type/IO::Handle#routine_lines» on that handle, forwarding
 any of the remaining arguments to that method, and returning the resultant
 L<Seq|/type/Seq>.
@@ -806,9 +805,9 @@ L«C<$limit> argument|/type/IO::Handle#routine_lines»)
 
 =begin code
 say "The file contains ",
-  '50GB-file'.IO.lines.grep(*.contains: 'Perl').elems,
-  " lines that mention Perl";
-# OUTPUT: «The file contains 72 lines that mention Perl␤»
+  '50GB-file'.IO.lines.grep(*.contains: 'Raku').elems,
+  " lines that mention Raku";
+# OUTPUT: «The file contains 72 lines that mention Raku␤»
 =end code
 
 =head2 routine slurp
@@ -828,8 +827,8 @@ Defined as:
 
     method spurt(IO::Path:D: $data, :$enc, :$append, :$createonly)
 
-Opens the file path for writing, and writes all of the C<$data> into it. File
-will be closed, afterwards. Will L«C<fail>|/routine/fail» if it cannot succeed
+Opens the path for writing, and writes all of the C<$data> into it. File
+will be closed afterwards. Will L«C<fail>|/routine/fail» if it cannot succeed
 for any reason. The C<$data> can be any L«C<Cool>|/type/Cool» type or any
 L«C<Blob>|/type/Blob» type. Arguments are as follows:
 
@@ -846,12 +845,8 @@ contents, and appending data to the end of the file.
 
 Defined as:
 
+    multi method chdir(IO::Path:D: IO $path, |c)
     multi method chdir(IO::Path:D: Str() $path, :$d = True, :$r, :$w, :$x)
-
-B<DEPRECATION NOTICE:> this method will be deprecated in C<6.d> language and
-removed in C<6.e>. Do not use it for new code. Instead, create a new path or use
-L«C<add>|/routine/add» method. For altering current working directory see
-L«C<&chdir>|/routine/chdir» and L«C<&*chdir>|/routine/&*chdir» subroutines.
 
 Contrary to the name, the C<.chdir> method does not change any directories,
 but merely concatenates the given C<$path> to the invocant and returns the
@@ -987,13 +982,19 @@ X<|symlink (method)>
 
 Defined as:
 
-    method symlink(IO::Path:D $target: IO() $link --> Bool:D)
-    sub    symlink(      IO() $target, IO() $link --> Bool:D)
+    method symlink(IO::Path:D $target: IO() $link, Bool :$absolute = True --> Bool:D)
+    sub    symlink(      IO() $target, IO() $link, Bool :$absolute = True --> Bool:D)
 
 Create a new I<symbolic> link C<$link> to existing C<$target>.
 Returns C<True> on success; L<fails|/routine/fail> with
 L<X::IO::Symlink|/type/X::IO::Symlink> if the symbolic link could not be created. If C<$target>
 does not exist, creates a dangling symbolic link.
+
+C<symlink> creates a symbolic link using an absolute path
+by default. To create a relative symlink set the C<absolute>
+parameter to C<False> e.g. C<:!absolute>. This flag was
+introduced in Rakudo version 2020.11.
+
 To create a hard link, see L«C<link>|/routine/link».
 
 B<Note:> on Windows, creation of symbolic links may require escalated

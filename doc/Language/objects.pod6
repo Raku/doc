@@ -184,6 +184,24 @@ class Journey {
 }
 =end code
 
+Alternatively, you can omit the twigil, which will still create the private
+attribute (with a C<!> twigil), and will also create an alias that binds
+the name (without the twigil) to that attribute.  Thus, you can declare the
+same class above with
+
+=begin code
+class Journey {
+    has $origin;
+    has $destination;
+    has @travelers;
+    has $notes;
+}
+=end code
+
+If you declare the class like this, you can subsequently access the attributes
+either with or without the twigil – e.g., C<$!origin> and C<$origin> refer to
+same attribute.
+
 While there is no such thing as a public (or even protected) attribute,
 there is a way to have accessor methods generated automatically: replace the
 C<!> twigil with the C<.> twigil (the C<.> should remind you of a method
@@ -553,6 +571,15 @@ CATCH { default { put .^name ~ ":\n" ~ .Str } }
 # 'FunMath'. Did you mean '!do-subtraction'?␤»
 =end code
 
+Private methods have their own namespace. They're not virtual, i.e.,
+private methods cannot be overriden within the inheriting class to provide any
+polymorphic behavior, thus missing ones are detected at compile time. Unlike
+in some languages where C<private> is
+an L<accessibility modifier|https://en.wikipedia.org/wiki/Access_modifiers> on a
+method, in Raku "private methods" and "methods" are quite different things -
+that is to say, it's better to read "private method" as a compound noun rather
+than an adjective describing a noun.
+
 Private methods are not inherited by subclasses.
 
 X<|Submethods>
@@ -651,13 +678,14 @@ $test.Parent::frob;  # calls the frob method of Parent
 X<|delegation (trait handles)>
 =head2 Delegation
 
-Delegation is a technique whereby a member of an object (the I«delegatee») is
-evaluated in the context of another original object (the I«delegator»). In other
-words, all method calls on the delegator are I«delegated» to the delegatee.
+Delegation is a technique whereby an object, the I«delegator», accepts a
+method call but has designated another object, the I«delegatee», to process the
+call in its place.  In other words, the I«delegator» publishes one or more
+of the I«delegatee»'s methods as its own.
 
 In Raku, delegation is specified by applying the L«handles|/language/typesystem#trait_handles»
 trait to an attribute. The arguments provided to the trait specify the methods
-the current object and the delegatee object will have in common. Instead of a
+the object and the I«delegatee» attribute will have in common. Instead of a
 list of method names, a C<Pair> (for renaming), a list of C<Pairs>, a C<Regex>
 or a C<Whatever> can be provided.
 
@@ -1257,8 +1285,8 @@ class B is A does M {
 
 class C is A does M { }
 
-B.new.f; # OUTPUT «I am in class B␤»
-C.new.f; # OUTPUT «I am in role M␤»
+B.new.f; # OUTPUT: «I am in class B␤»
+C.new.f; # OUTPUT: «I am in role M␤»
 =end code
 
 Note that each candidate for a multi-method is its own method. In this case,
@@ -1279,8 +1307,8 @@ role Point {
     method abs { sqrt($.x * $.x + $.y * $.y) }
     method dimensions { 2 }
 }
-say Point.new(x => 6, y => 8).abs; # OUTPUT «10␤»
-say Point.dimensions;              # OUTPUT «2␤»
+say Point.new(x => 6, y => 8).abs; # OUTPUT: «10␤»
+say Point.dimensions;              # OUTPUT: «2␤»
 =end code
 
 We call this automatic creation of classes I<punning>, and the generated class

@@ -1,16 +1,14 @@
-# Official Documentation of Raku
+# Official Documentation of Raku™
 
-[![Build Status](https://travis-ci.org/Raku/doc.svg?branch=master)](https://travis-ci.org/Raku/doc) [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0) [![Run Status](https://api.shippable.com/projects/591e99923f2f790700098a30/badge?branch=master)](https://app.shippable.com/github/Raku/doc) [![CircleCI](https://circleci.com/gh/Raku/doc.svg?style=shield)](https://circleci.com/gh/Raku/doc/tree/master)
+[![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![CircleCI](https://circleci.com/gh/Raku/doc/tree/master.svg?style=svg)](https://circleci.com/gh/Raku/doc/tree/master)
+[![test](https://github.com/Raku/doc/actions/workflows/test.yml/badge.svg)](https://github.com/Raku/doc/actions/workflows/test.yml)
 
 An HTML version of this documentation can be found
 at [https://docs.raku.org/](https://docs.raku.org/) and also
 at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
 actually updated more frequently).
 This is currently the recommended way to consume the documentation.
-
-This documentation is updated frequently to a GitHub mirror
-https://rakudocs.github.io but that might be out of sync with the
-official one.
 
 ## Docker container
 
@@ -27,11 +25,11 @@ or
     docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
 
 in case you want it published somewhere else. You can direct your
-browser to http://localhost:3000 (or 31415, as the case may be).
+browser to `http://localhost:3000` (or 31415, as the case may be).
 
 ## README in other languages
 
-* [中文（Chinese）](resources/i18n/zh/README.zh.md)
+* [README in Chinese](resources/i18n/zh/README.zh.md)
 * [README in Dutch](resources/i18n/nl/README.nl.md)
 * [README in French](resources/i18n/fr/README.fr.md)
 * [README in German](resources/i18n/de/README.de.md)
@@ -42,13 +40,13 @@ browser to http://localhost:3000 (or 31415, as the case may be).
 
 ## Install rakudoc
 
-Please see https://github.com/raku/rakudoc for the
-command line tool for viewing the documentation
+Please see https://github.com/Raku/rakudoc for the
+command line tool for viewing the documentation.
 
 ## Building the HTML documentation
 
 Note: If you just want a copy of the build HTML site and don't want to deal
-with the build yourself, you can clone it from here: https://github.com/rakudocs/rakudocs.github.io
+with the build yourself, you can clone it from here: https://github.com/rakudocs/rakudocs.github.io.
 
 The documentation can be rendered to static HTML pages and/or served in a local
 web site. This process involves creating a cache of precompiled
@@ -56,18 +54,18 @@ documents, so that generation after the first time is sped up.
 
 These are the prerequisites you need to install to generate documentation.
 
-* perl 5.20 or later
+* perl 5.20 or later.
 * node 10 or later.
 * graphviz.
 * [Documentable](https://github.com/Raku/Documentable).
 
-Please follow these instructions (in Ubuntu) to install them
+Please follow these instructions (in Ubuntu) to install them:
 
     sudo apt install perl graphviz # perl not installed by default in 18.04
     curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
     sudo apt-get install -y nodejs
     cpanm --installdeps .
-    zef install Documentable
+    zef install --deps-only . ; # from inside this checkout
 
 > You can install perl and node any way you want, including version managers, as
 > long as they're available to run from the command line.
@@ -104,8 +102,8 @@ examples) are not (yet) available in these formats.
 
 These are the prerequisites you need to install:
 
-* Pod::To::BigPage 0.5.2 or later
-* Pandoc (EPUB only)
+* Pod::To::BigPage 0.5.2 or later.
+* Pandoc (EPUB only).
 
 You can follow these instructions to install them on Ubuntu or Debian:
 
@@ -167,7 +165,7 @@ explains briefly how to get started contributing documentation.
 
 ## Some notes:
 
-**Q:** Why aren't you embedding the docs in the CORE sources?<br>
+**Q:** Why aren't you embedding the docs in the CORE sources?<br />
 **A:** Several reasons:
 
   1. This documentation is intended to be universal with
@@ -179,7 +177,7 @@ explains briefly how to get started contributing documentation.
   3. A separate repo in the Raku Github account invites
      more potential contributors and editors.
 
-**Q:** Should I include methods from superclasses or roles?<br>
+**Q:** Should I include methods from superclasses or roles?<br />
 **A:** No. The HTML version already includes methods from superclasses and
        roles.
 
@@ -219,6 +217,6 @@ files indicate the copyright and license terms at the top of the file. Currently
 * [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
   Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
   [MIT License](http://creativecommons.org/licenses/MIT)
-* Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
-* Table sorter plugin from https://github.com/christianbach/tablesorter ;
+* Examples from Stack Overflow; [MIT License](http://creativecommons.org/licenses/MIT) ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
+* Table sorter plugin from https://github.com/christianbach/tablesorter;
   [MIT License](http://creativecommons.org/licenses/MIT)

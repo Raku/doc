@@ -22,7 +22,7 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
 
 @files.race.map: -> $file {
     react {
-        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '--doc', $file]);
+        my $proc = Proc::Async.new([$*EXECUTABLE-NAME, '-c', '--doc', $file]);
 
         whenever $proc.stdout.lines {
             ; #discard
@@ -37,6 +37,7 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
         }
 
         whenever $proc.start {
+            $verbose and diag("processing $file");
             $lock.protect: {
                 if %data{$file}:!exists {
                     %data{$file} = !.exitcode;  # 0 = True, anything else False

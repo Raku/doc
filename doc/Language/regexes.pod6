@@ -84,12 +84,14 @@ of a L<comment|/language/syntax#Single-line_comments> that runs until the end of
 the line.
 =end item
 
-Secondly, the C<rx> form enables the use of
-L<regex adverbs|/language/regexes#Regex_adverbs>, which may be placed between C<rx> and the
-opening delimiter to modify the definition of the entire regex:
+Secondly, the C<rx> form allows you to insert
+L<regex adverbs|/language/regexes#Regex_adverbs> between C<rx> and the
+opening delimiter to modify the definition of the entire regex.  This is equivalent to
+inserting the adverb at the beginning of the regex, but may be clearer:
 
     rx:r:s/pattern/;            # :r (:ratchet) and :s (:sigspace) adverbs, defining
                                 # a ratcheting regex in which whitespace is significant
+    rx/:r:s pattern/;           # Same, but possibly less readable
 
 Although anonymous regexes are not, as such, I<named>, they may effectively be
 given a name by putting them inside a named variable, after which they can be
@@ -370,16 +372,16 @@ An unescaped dot C<.> in a regex matches any single character.
 
 So, these all match:
 
-    'perl' ~~ /per./;       # matches the whole string
-    'perl' ~~ / per . /;    # the same; whitespace is ignored
-    'perl' ~~ / pe.l /;     # the . matches the r
-    'speller' ~~ / pe.l/;   # the . matches the first l
+    'raku' ~~ /rak./;       # matches the whole string
+    'raku' ~~ / rak . /;    # the same; whitespace is ignored
+    'raku' ~~ / ra.u /;     # the . matches the k
+    'raker' ~~ / rak. /;    # the . matches the e
 
 while this doesn't match:
 
-    'perl' ~~ /. per /;
+    'raku' ~~ / . rak /;
 
-because there's no character to match before C<per> in the target string.
+because there's no character to match before C<rak> in the target string.
 
 Notably C<.> also matches a logical newline C<\n>:
 
@@ -392,7 +394,7 @@ Notably C<.> also matches a logical newline C<\n>:
       ;
 
     say $text ~~ / .* /;
-    # OUTPUT «｢Although I am a␤multi-line text,␤I can be matched␤with /.*/.␤｣»
+    # OUTPUT: «｢Although I am a␤multi-line text,␤I can be matched␤with /.*/.␤｣»
 
 =head1 Character classes
 
@@ -676,7 +678,7 @@ C«<:Ll+:N>» or C«<:Ll+:Number>» or C«<+ :Lowercase_Letter + :Number>».
 It's also possible to group categories and sets of categories with
 parentheses; for example:
 
-    say $0 if 'perl6' ~~ /\w+(<:Ll+:N>)/ # OUTPUT: «｢6｣␤»
+    say $0 if 'raku9' ~~ /\w+(<:Ll+:N>)/ # OUTPUT: «｢9｣␤»
 
 =head2 X«Enumerated character classes and ranges|regex,<[ ]>;regex,<-[ ]>»
 
@@ -691,6 +693,23 @@ whitespace.
     "ÀÁÂÃÄÅÆ" ~~ / <[ \x[00C0] .. \x[00C6] ]>* /;
     # Unicode named codepoint range
     "αβγ" ~~ /<[\c[GREEK SMALL LETTER ALPHA]..\c[GREEK SMALL LETTER GAMMA]]>*/;
+    # Non-alphanumeric
+    '$@%!' ~~ /<[ ! @ $ % ]>+/  # OUTPUT: «｢$@%!｣␤»
+
+As the last line above illustrates, within C«<[ ]>» you do I<not> need to
+quote or escape most non-alphanumeric characters the way you do in regex text
+outside of C«<[ ]>».  You do, however, need to escape the much smaller set of
+characters that have special meaning within C«<[ ]>», such as C<\>, C<[>, and
+C<]>.
+
+X<|escaping characters>
+To escape characters that would have some meaning inside the C«<[ ]>», precede
+the character with a C<\>.
+
+    say "[ hey ]" ~~ /<-[ \] \[ \s ]>+/; # OUTPUT: «｢hey｣␤»
+
+You do not have the option of quoting special characters inside a C«<[ ]>» –
+a C<'> just matches a literal C<'>.
 
 Within the C«< >» you can use C<+> and C<-> to add or remove multiple range
 definitions and even mix in some of the Unicode categories above. You can also
@@ -705,12 +724,6 @@ You can include Unicode properties in the list as well:
 
     /<:Zs + [\x9] - [\xA0]>/
     # Any character with "Zs" property, or a tab, but not a "no-break space"
-
-X<|escaping characters>
-You can use C<\> to escape characters that would have some meaning in the
-regular expression:
-
-    say "[ hey ]" ~~ /<-[ \] \[ \s ]>+/; # OUTPUT: «｢hey｣␤»
 
 To negate a character class, put a C<-> after the opening angle bracket:
 
@@ -850,7 +863,7 @@ ordinary and a modified quantifier:
 
 =head2 X<Preventing backtracking: C<:>|regex,:>
 
-One way to prevent L<backtracking|/language/regexes#Preventing_backtracking> is
+One way to prevent L<backtracking|/language/regexes#Backtracking> is
 through the use of the C<ratchet> adverb as described
 L<below|/language/regexes#Ratchet>. Another more fine-grained way of preventing
 backtracking in regexes is attaching a C<:> modifier to a quantifier:
@@ -1070,21 +1083,21 @@ anchoring the regex match to that position.
 
 The C<^> anchor only matches at the start of the string:
 
-    say so 'properly' ~~ /  perl/;    # OUTPUT: «True␤»
-    say so 'properly' ~~ /^ perl/;    # OUTPUT: «False␤»
-    say so 'perly'    ~~ /^ perl/;    # OUTPUT: «True␤»
-    say so 'perl'     ~~ /^ perl/;    # OUTPUT: «True␤»
+    say so 'karakul'  ~~ /  raku/;    # OUTPUT: «True␤»
+    say so 'karakul'  ~~ /^ raku/;    # OUTPUT: «False␤»
+    say so 'rakuy'    ~~ /^ raku/;    # OUTPUT: «True␤»
+    say so 'raku'     ~~ /^ raku/;    # OUTPUT: «True␤»
 
 The C<$> anchor only matches at the end of the string:
 
-    say so 'use perl' ~~ /  perl  /;   # OUTPUT: «True␤»
-    say so 'use perl' ~~ /  perl $/;   # OUTPUT: «True␤»
-    say so 'perly'    ~~ /  perl $/;   # OUTPUT: «False␤»
+    say so 'use raku' ~~ /  raku  /;   # OUTPUT: «True␤»
+    say so 'use raku' ~~ /  raku $/;   # OUTPUT: «True␤»
+    say so 'rakuy'    ~~ /  raku $/;   # OUTPUT: «False␤»
 
 You can combine both anchors:
 
-    say so 'use perl' ~~ /^ perl $/;   # OUTPUT: «False␤»
-    say so 'perl'     ~~ /^ perl $/;   # OUTPUT: «True␤»
+    say so 'use raku' ~~ /^ raku $/;   # OUTPUT: «False␤»
+    say so 'raku'     ~~ /^ raku $/;   # OUTPUT: «True␤»
 
 Keep in mind that C<^> matches the start of a B<string>, not the start of
 a B<line>. Likewise, C<$> matches the end of a B<string>, not the end of
@@ -1434,7 +1447,7 @@ which, by default, don't capture.
 If you do not need the captures, using non-capturing C<[ ... ]>
 groups provides the following benefits:
 =item  they more cleanly communicate the regex intent,
-=item  they make it easier to count the capturing groups that do mean and
+=item  they make it easier to count the capturing groups that do match, and
 =item  they make matching a bit faster.
 
 =head2 Capture numbers
@@ -2278,7 +2291,7 @@ When two adverbs are used together, they keep their colon at the front
 
     "þor is Þor" ~~ m:g:i/þ/;  # OUTPUT: «(｢þ｣ ｢Þ｣)␤»
 
-That implies that when there are two vowels together after a C<:>, they
+That implies that when there are multiple characters together after a C<:>, they
 correspond to the same adverb, as in C<:ov> or C<:P5>.
 
 =head3 X<Ignorecase|regex adverb,:ignorecase;regex adverb,:i>
@@ -2643,7 +2656,7 @@ C<s:samespace/.../.../>.
 
 =head1 Backtracking
 
-Raku defaults to I<backtracking> when evaluating regular expressions.
+Raku defaults to L<backtracking|/language/glossary#Backtracking> when evaluating regular expressions.
 Backtracking is a technique that allows the engine to try different
 matching in order to allow every part of a regular expression to succeed.
 This is costly, because it requires the engine to usually

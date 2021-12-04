@@ -6,17 +6,16 @@
 
 =head1 Creating and using modules
 
-A module is usually a source file or set of source files that expose
-Raku constructs N<Technically a module is a set of I<compunits> which are usually files
-but could come from anywhere as long as there is a I<compunit
-repository> that can provide it. See
-L<S11|https://design.raku.org/S11.html>.>.
+A module is usually a source file or set of source files that expose Raku
+constructs N<Technically a module is a set of I<compunits> which are usually
+files but could come from anywhere as long as there is a I<compunit repository>
+that can provide it. See L<S11|https://design.raku.org/S11.html>.>.
 
 Modules are typically packages (L<classes|/language/objects#Classes>,
 L<roles|/language/objects#Roles>, L<grammars|/type/Grammar>),
 L<subroutines|/language/functions>, and sometimes
-L<variables|/language/variables>. In Raku I<module> can also refer to a type
-of package declared with the C<module> keyword (see L<Module
+L<variables|/language/variables>. In Raku I<module> can also refer to a type of
+package declared with the C<module> keyword (see L<Module
 Packages|/language/module-packages> and the examples below) but here we mostly
 mean "module" as a set of source files in a namespace.
 
@@ -284,7 +283,7 @@ tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
 B<Note>: there currently is no way for the user to import a single
 object if the module author hasn't made provision for that, and it is
 not an easy task at the moment (see
-L<RT #127305|https://rt.perl.org/Public/Bug/Display.html?id=127305>).
+L<RT #127305|https://github.com/Raku/old-issue-tracker/issues/5063>).
 One way
 the author can provide such access is to give each C<export> trait its
 own unique tag. (And the tag can be the object name!). Then the user can
@@ -378,96 +377,101 @@ dynamically. For example:
     say log-of-zero;  # OUTPUT: «-Inf␤»
     =end code
 
-=head3 EXPORT
 X<|sub EXPORT>
+=head3 EXPORT
 
 You can export arbitrary symbols with an C<EXPORT> sub. C<EXPORT>
 must return a L<Map|/type/Map>, where the keys are the symbol names and
 the values are the desired values. The names should include the sigil
 (if any) for the associated type.
 
-    =begin code
-    # lib/MyModule.rakumod
+=begin code :solo
+# lib/MyModule.rakumod
 
-    class MyModule::Class { }
+class MyModule::Class { }
 
-    sub EXPORT {
-        %(
-          '$var'      => 'one',
-          '@array'    => <one two three>,
-          '%hash'     => %( one => 'two', three => 'four' ),
-          '&doit'     => sub { say 'Greetings from exported sub' },
-          'ShortName' => MyModule::Class
-        )
-    }
-    =end code
+sub EXPORT {
+    Map.new:
+      '$var'      => 'one',
+      '@array'    => <one two three>,
+      '%hash'     => %( one => 'two', three => 'four' ),
+      '&doit'     => sub { say 'Greetings from exported sub' },
+      'ShortName' => MyModule::Class
+}
+=end code
 
-    =begin code :skip-test<needs dummy module>
-    # main.raku
-    use lib 'lib';
-    use MyModule;
-    say $var;          # OUTPUT: «one␤»
-    say @array;        # OUTPUT: «(one two three)␤»
-    say %hash;         # OUTPUT: «{one => two, three => four}␤»
-    doit();            # OUTPUT: «Greetings from exported sub␤»
-    say ShortName.new; # OUTPUT: «MyModule::Class.new␤»
-    =end code
+Which is going to be used from this main file:
 
-Note, C<EXPORT> can't be declared inside a package because
-it is part of the compunit rather than the package.
+=begin code :skip-test<needs dummy module>
+# main.raku
+use lib 'lib';
+use MyModule;
+say $var;          # OUTPUT: «one␤»
+say @array;        # OUTPUT: «(one two three)␤»
+say %hash;         # OUTPUT: «{one => two, three => four}␤»
+doit();            # OUTPUT: «Greetings from exported sub␤»
+say ShortName.new; # OUTPUT: «MyModule::Class.new␤»
+=end code
 
-Whereas C<UNIT::EXPORT> packages deal with the named parameters passed
-to C<use>, the C<EXPORT> sub handles positional parameters. If you
-pass positional parameters to C<use>, they will be passed to
-C<EXPORT>. If a positional is passed, the module no longer exports
-default symbols. You may still import them explicitly by
-passing C<:DEFAULT> to C<use> along with your positional parameters.
+Please note that C<EXPORT> can't be declared inside a
+L<package|/language/packages> because it is part of the compunit rather than the
+package.
 
-    =begin code
-    # lib/MyModule
+Whereas C<UNIT::EXPORT> packages deal with the named parameters passed to
+C<use>, the C<EXPORT> sub handles positional parameters. If you pass positional
+parameters to C<use>, they will be passed to C<EXPORT>. If a positional is
+passed, the module no longer exports default symbols. You may still import them
+explicitly by passing C<:DEFAULT> to C<use> along with your positional
+parameters.
 
-    class MyModule::Class {}
+=begin code
+# lib/MyModule
 
-    sub EXPORT($short_name?) {
-        %(
-          do $short_name => MyModule::Class if $short_name
-        )
-    }
+class MyModule::Class {}
 
-    sub always is export(:MANDATORY) { say "works" }
+sub EXPORT($short_name?) {
+    Map.new: do $short_name => MyModule::Class if $short_name
+}
 
-    #import with :ALL or :DEFAULT to get
-    sub shy is export { say "you found me!" }
-    =end code
+sub always is export(:MANDATORY) { say "works" }
 
-    =begin code :skip-test<needs dummy module>
-    # main.raku
-    use lib 'lib';
-    use MyModule 'foo';
-    say foo.new(); # OUTPUT: «MyModule::Class.new␤»
+#import with :ALL or :DEFAULT to get
+sub shy is export { say "you found me!" }
+=end code
 
-    always();      # OK   - is imported
-    shy();         # FAIL - won't be imported
-    =end code
+Used from this main program
 
-You can combine C<EXPORT> with type captures for interesting
-effect. This example creates a C<?> postfix which will only work on
-L<Cool|/type/Cool>s.
+=begin code :skip-test<needs dummy module>
+# main.raku
+use lib 'lib';
+use MyModule 'foo';
+say foo.new(); # OUTPUT: «MyModule::Class.new␤»
 
-    =begin code
-    # lib/MakeQuestionable.rakumod
-    sub EXPORT(::Questionable) {
-        my multi postfix:<?>(Questionable $_) { .so };
-        %(
-          '&postfix:<?>' => &postfix:<?>,
-        )
-    }
-    =end code
+always();      # OK   - is imported
+shy();         # FAIL - «shy used at line 8. Did you mean 'say'?»
+=end code
 
-    =begin code :skip-test<needs dummy module>
-    use MakeQuestionable Cool;
-    say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
-    =end code
+You can combine C<EXPORT> with type captures for interesting effect. This
+example creates a C<?> postfix which will only work on L<Cool|/type/Cool>s;
+please note that, by using C<$_> as an argument, we don't need to use a
+variable in the routine body and use just C<.so>, acting by default on the
+topic variable.
+
+=begin code
+# lib/MakeQuestionable.rakumod
+sub EXPORT(::Questionable) {
+    my multi postfix:<?>(Questionable $_) { .so };
+    Map.new: '&postfix:<?>' => &postfix:<?>,
+}
+=end code
+
+Which is used from here:
+
+=begin code :skip-test<needs dummy module>
+use lib 'lib';
+use MakeQuestionable Cool;
+say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
+=end code
 
 =head2 Introspection
 
@@ -490,12 +494,17 @@ special export sub:
 
 =for code :solo
 unit module Bar;
-sub EXPORT { %(Foo => &say) } # WRONG!!! Sub is scoped wrong
+sub EXPORT { Map.new: Foo => &say } # WRONG!!! Sub is scoped wrong
+
+As explained in L<its definition|/language/modules#EXPORT>, C<sub EXPORT> is
+part of the I<compunit>, not the package. So this would be the right way to
+do it:
 
 =for code :solo
-sub EXPORT { %(Foo => &say) } # RIGHT!!! Sub is outside the module
+sub EXPORT { Map.new: Foo => &say } # RIGHT!!! Sub is outside the module
 unit module Bar;
 
+As explained
 =head2 Finding installed modules
 
 It is up to the module installer to know where C<compunit> expects modules to be
@@ -523,6 +532,130 @@ Note that the comma (',') is used as the directory separator.
 The directories in the C<RAKULIB> path will be searched for modules when
 Raku C<need>s, C<use>s or C<require>s them. Directories that start with a
 dot are ignored and symlinks are followed.
+
+=head1 Testing modules and a distribution
+
+It is important in this section to repeat the note at the beginning of this
+document, namely that there is a difference between a B<Raku> C<distribution>,
+which approximates a I<module> in other languages, and a B<Raku>
+L<module declaration|https://docs.raku.org/language/syntax#index-entry-declarator_unit-declarator_module-declarator_package-Package,_Module,_Class,_Role,_and_Grammar_declaration>.
+The reason for this is that a single file may contain a number of C<class>,
+C<module>, C<role> etc declarations, or these declarations may be spread between
+different files. In addition, when a C<distribution> is published (see
+L<Distributing modules|/language/modules#Distributing_modules>) it may be
+necessary to provide access to other resources, such as callable utilities.
+
+B<Raku> also allows for a single distribution to provide multiple C<compunit>s
+that can be C<use>d (or C<require>d etc). The information about a distribution
+is contained in the C<META6.json> file in the distribution's root directory. See
+below for more about C<META6.json>. Each entity that the B<distribution> allows
+to be C<use>d (or C<require>d etc), also called a C<compunit>, is placed in the
+C<provides> section of the C<META6.json> (as specified below).
+
+It should also be noted that when writing the C<depends> section of the
+C<META6.json> file, it is the name of the B<distribution> that is listed, not
+the name of the C<compunit> that is desired. Although, for very many entities,
+the name of the I<distribution> and the name of the I<compunit> are the same.
+Another global effect of the C<depends> list in a distribution made available to
+the Ecosystem, is that package managers, e.g. C<zef>, can look for C<compunit>
+names in all distributions available.
+
+Given this arrangement, the B<rakudo> compiler, or a package manager such as
+B<zef>, can obtain all the information needed about each C<compunit> from a
+C<META6.json> file in a directory.
+
+This also means that a testing program such as B<Perl>'s C<prove> or the B<Raku>
+equivalent L<prove6|https://modules.raku.org/dist/App::Prove6:cpan:LEONT> can be
+run in the root directory of the B<distribution> as, e.g.,
+
+=for code :lang<shell>
+prove -e 'raku -I.'
+
+or
+
+=for code :lang<shell>
+prove6 -I.
+
+In both cases, the testing program looks for a directory C<t/> and runs the test
+programs there (see L<Testing>).
+
+The parameter B<-I.>, rather than B<-Ilib>, in the examples above is significant
+because then the compiler will inspect the C<META6.json> file in the root
+directory of the B<distribution>.
+
+If you are just beginning to develop a module (or series of modules), and you
+have not decided what to call or where to place the code (perhaps splitting it
+into several C<*.rakumod> files), but assuming all the module files are under
+the C<lib/> directory, then it is possible to use
+
+=for code :lang<shell>
+prove6 -Ilib
+
+This is deceptive. A distribution may pass all the tests based on local files,
+and it may pass release steps, but the distribution (and the
+modules/classes/roles it contains) may not be automatically installed. To give a
+common example, but not the only way this problem can manifest itself, if the
+distribution is listed in the C<depends> section of another distribution, and a
+user is trying to install the other distribution using C<zef> (or a package
+manager using the same testing regime), perhaps using a CLI command C<zef
+install --deps-only .>, then C<zef> arranges for the tests of the dependent
+modules based on B<-I.> and not C<-Ilib>. This will lead to B<rakudo> errors
+complaining about the absence of named B<compunits> unless the B<META6.json>
+file is correct.
+
+The most basic test that should be run for each C<compunit> that is defined for
+the distribution is
+
+=for code :preamble<use Test>
+use-ok 'MyModule';
+
+assuming inside C<META6.json> there is a line such as
+
+=for code :lang<json>
+depends: [ "MyModule": "lib/MyModule.rakumod" ],
+
+It is also highly recommended to use the C<Test::META> C<meta-ok> test, which
+verifies the validity of the C<META6.json> file. If you wish to add a
+distribution (module) to the C<Ecosystem>, then this test will be applied to the
+distribution.
+
+Since C<meta-ok> only needs to be tested by the developer/maintainer of a
+module, it can be within a set of extended tests in another directory, e.g.
+C</xt>. This is because C<prove6>, for example, only runs the tests in C<t/> by
+default. Then to run the extended tests:
+
+=for code :lang<shell>
+prove6 -I. xt/
+
+Indeed it is becoming common practice by B<Raku> community developers to place
+the extensive testing of a distribution in C<xt/> and to put minimal I<sanity>
+tests in C<t/>. Extensive testing is essential for development and quality
+control, but it can slow down the installation of popular distributions.
+
+An alternative to placing the C<meta-ok> test in an extended test directory, but
+to ensure that it is only run when a developer or maintainer wants to, is to
+make the test dependent on an environment variable, e.g., in
+C<t/99-author-test.t> there is the following code
+
+=begin code
+use Test;
+
+plan 1;
+
+if ?%*ENV<AUTHOR_TESTING> {
+    require Test::META <&meta-ok>;
+    meta-ok;
+    done-testing;
+} else {
+    skip-rest "Skipping author test";
+    exit;
+}
+=end code
+
+Then when testing the module by the developer, use
+
+=for code :lang<shell>
+    AUTHOR_TEST=1 prove6 -I.
 
 =head1 Distributing modules
 
@@ -665,7 +798,7 @@ point, you might also consider adding C<CONTRIBUTORS>, C<NEWS>,
 C<TODO>, or other files.>
 
 If your module requires extra processing during installation to fully
-integrate with and use non-Perl operating system resources, you may
+integrate with and use non-Raku operating system resources, you may
 need to add a X<C<Build.pm6>|Build.pm6> file (a "build hook") to the top-level directory. It will
 be used by the C<zef> installer as the first step in the installation process.
 See the README for C<zef> for a brief example. Also see various usage scenarios in existing
@@ -740,7 +873,7 @@ distribution and that you wish to be installed; only module files that are
 explicitly included here will be installed and available with C<use> or
 C<require> in other programs. This field is mandatory.
 
-Set C<perl> version to the minimum perl version your module works with. This
+Set C<perl> version to the minimum Raku version your module works with. This
 field is mandatory. Use C<6.c> if your module is valid for Christmas release and
 newer ones, use C<6.d> if it requires, at least, the Diwali version.
 
@@ -840,7 +973,7 @@ zef install ./your-module-folder
 Note that doing so precompiles and installs your module. If you make changes to
 the source, you'll need to re-install the module.
 (See C<use lib> L<pragma|/language/pragmas#index-entry-lib__pragma>, C<-I>
-command line switch, or C<PERL6LIB> env variable, to include a path to your
+command line switch, or C<RAKULIB> env variable, to include a path to your
 module source while developing it, so you don't have to install it at all).
 
 =end item
@@ -893,6 +1026,38 @@ Those are the most common upload errors.>
 
 =end item
 
+=head2 Upload your module to zef ecosystem
+
+If you want to use the I<zef> ecosystem then you need to register your username
+using I<fez>.
+
+=item Install fez if you haven't done so already
+
+=begin code :lang<shell>
+zef install fez
+=end code
+
+=item Register your user with zef's ecosystem
+
+=begin code :lang<shell>
+fez register
+>>= Email: your@email.com
+>>= Username: username
+>>= Password:
+>>= registration successful, requesting auth key
+>>= login successful, you can now upload dists
+=end code
+
+=item Now you can upload your module!
+
+Before doing the following, ensure your C<META6.json> file's "auth" matches "zef:<username>" and then:
+
+=begin code :lang<shell>
+fez upload
+>>= Vortex::TotalPerspective:ver<0.1.2>:auth<zef:username> looks OK
+>>= Hey! You did it! Your dist will be indexed shortly
+=end code
+
 =head2 Upload your module to p6c
 
 If you want to use the I<p6c> ecosystem you need to use git for your module's
@@ -916,7 +1081,7 @@ local repository to know about your GitHub repository.
 =item Consider setting up automated testing (see L<https://docs.travis-ci.com/user/languages/perl6>).
 
 =item Create a PR (Pull Request) on L<ecosystem|https://github.com/Raku/ecosystem> adding
-your module to META.list, or ping someone on IRC (#raku at freenode) to
+your module to META.list, or ping someone on IRC (#raku at libera.chat) to
 get help having it added.
 
 =item After the pull request has been accepted, wait for an hour. If
@@ -950,12 +1115,12 @@ writing/test modules at L<Modules Extra|/language/modules-extra>
 
 To discuss module development in general, or if your module would
 fill a need in the ecosystem, naming, etc., you can use the
-L<#raku on irc.freenode.net|irc://irc.freenode.net/#raku> IRC channel.
+L<#raku on irc.libera.chat|irc://irc.libera.chat/#raku> IRC channel.
 
 To discuss toolchain specific questions, you can use the
-L<#perl6-toolchain on irc.freenode.net|irc://irc.freenode.net/#perl6-toolchain>
+L<#raku-toolchain on irc.libera.chat|irc://irc.libera.chat/#raku-toolchain>
 IRC channel. A repository to discuss tooling issues is also available at
-L<https://github.com/perl6/toolchain-bikeshed>.
+L<https://github.com/Raku/toolchain-bikeshed>.
 
 =end pod
 

@@ -112,6 +112,13 @@ what type they coerce to:
     chomp           Str
     chop            Str
     codes           Str
+    Complex         Numeric
+    FatRat          Numeric
+    Int             Numeric
+    Num             Numeric
+    Rat             Numeric
+    Real            Numeric
+    UInt            Numeric
 
 =end table
 
@@ -143,7 +150,7 @@ imaginary part negated).
 
     say (1+2i).conj;        # OUTPUT: «1-2i␤»
 
-=head2 routine EVAL
+=head2 method EVAL
 
 Defined as:
 
@@ -578,14 +585,16 @@ Returns C<NaN> if C<$base> is negative. Throws an exception if C<$base> is C<1>.
 
 Defined as:
 
-    multi sub log10(Cool(Numeric))
     multi method log10()
+    multi sub log10(Numeric $x)
+    multi sub log10(Cool    $x)
 
-Coerces the invocant (or in the sub form, the invocant) to
-L<Numeric|/type/Numeric>, and returns its
-L<Logarithm|https://en.wikipedia.org/wiki/Logarithm> to base 10, that is, a
-number that approximately produces the original number when raised to the power
-of 10. Returns C<NaN> for negative arguments and C<-Inf> for C<0>.
+Coerces the invocant (or in the sub form, the argument) to
+L<Numeric|/type/Numeric> (or uses it directly if it's already in that form), and
+returns its L<Logarithm|https://en.wikipedia.org/wiki/Logarithm> in base 10,
+that is, a number that approximately produces the original number when 10 is
+raised to its power. Returns C<NaN> for negative arguments and
+C<-Inf> for C<0>.
 
     say log10(1001);            # OUTPUT: «3.00043407747932␤»
 
@@ -594,14 +603,19 @@ of 10. Returns C<NaN> for negative arguments and C<-Inf> for C<0>.
 Defined as:
 
     multi method log2()
+    multi sub log2(Numeric $x)
+    multi sub log2(Cool    $x)
 
 Coerces the invocant to L<Numeric|/type/Numeric>, and returns its
-L<Logarithm|https://en.wikipedia.org/wiki/Logarithm> to base 2, that is, a
-number that approximately produces the original number when raised to the power
-of 2. Returns C<NaN> for negative arguments and C<-Inf> for C<0>.
+L<Logarithm|https://en.wikipedia.org/wiki/Logarithm> in base 2, that is, a
+number that approximately (due to computer precision limitations) produces the
+original number when 2 is raised to its power. Returns C<NaN> for
+negative
+arguments and C<-Inf> for C<0>.
 
     say log2(5);            # OUTPUT: «2.321928094887362␤»
     say "4".log2;           # OUTPUT: «2␤»
+    say 4.log2;             # OUTPUT: «2␤»
 
 =head2 routine exp
 
@@ -634,15 +648,17 @@ the argument (i.e. the second argument in sub form) is the angle. The angle is a
 
 Defined as:
 
-    multi sub round(Numeric(Cool))
-    multi method round(Cool:D: $unit = 1)
+    multi sub round(Numeric(Cool), $scale = 1)
+    multi method round(Cool:D: $scale = 1)
 
 Coerces the invocant (or in sub form, its argument) to L<Numeric|/type/Numeric>, and rounds it to the unit of
-C<$unit>. If C<$unit> is 1, rounds to the nearest integer.
+C<$scale>. If C<$scale> is 1, rounds to the nearest integer; an arbitrary scale will result in the closest
+multiple of that number.
 
     say 1.7.round;          # OUTPUT: «2␤»
     say 1.07.round(0.1);    # OUTPUT: «1.1␤»
     say 21.round(10);       # OUTPUT: «20␤»
+    say round(1000, 23.01)  # OUTPUT: «989.43»
 
 Always rounds B<up> if the number is at mid-point:
 
@@ -955,13 +971,13 @@ accepts everything), this title-cases each word:
 
 With a matcher:
 
-    say "have fun working on perl".wordcase(:where({ .chars > 3 }));
-                                            # Have fun Working on Perl
+    say "have fun working on raku".wordcase(:where({ .chars > 3 }));
+                                            # Have fun Working on Raku
 
 With a customer filter too:
 
-    say "have fun working on perl".wordcase(:filter(&uc), :where({ .chars > 3 }));
-                                            # HAVE fun WORKING on PERL
+    say "have fun working on raku".wordcase(:filter(&uc), :where({ .chars > 3 }));
+                                            # HAVE fun WORKING on RAKU
 
 =head2 routine samecase
 
@@ -970,18 +986,10 @@ Defined as:
     sub samecase(Cool $string, Cool $pattern)
     method samecase(Cool:D: Cool $pattern)
 
-Coerces the invocant (or in sub form, the first argument) to L<Str|/type/Str>,
-and returns a copy of C<$string> with case information for each individual
-character changed according to C<$pattern>.
+Coerces the invocant (or in sub form, the
+first argument) to L<Str|/type/Str>, and calls
+L«C<Str.samecase>|/type/Str#method_samecase» on it.
 
-B<Note>: The pattern string can contain
-three types of characters, i.e. uppercase, lowercase and caseless. For a given
-character in C<$pattern> its case information determines the case of the
-corresponding character in the result.
-
-If C<$string> is longer than
-C<$pattern>, the case information from the last character of C<$pattern> is
-applied to the remaining characters of C<$string>.
 
     say "raKu".samecase("A_a_"); # OUTPUT: «Raku␤»
     say "rAKU".samecase("Ab");   # OUTPUT: «Raku␤»
@@ -1034,13 +1042,13 @@ codepoints, and L<uniparse|/routine/uniparse> for the opposite direction.
 
     # Camelia in Unicode
     say ‘»ö«’.uniname;
-    # OUTPUT: «"RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK"␤»
+    # OUTPUT: «RIGHT-POINTING DOUBLE ANGLE QUOTATION MARK␤»
     say "Ḍ̇".uniname; # Note, doesn't show "COMBINING DOT ABOVE"
-    # OUTPUT: «"LATIN CAPITAL LETTER D WITH DOT BELOW"␤»
+    # OUTPUT: «LATIN CAPITAL LETTER D WITH DOT BELOW␤»
 
     # Find the char with the longest Unicode name.
     say (0..0x1FFFF).sort(*.uniname.chars)[*-1].chr.uniname;
-    # OUTPUT: ««ARABIC LIGATURE UIGHUR KIRGHIZ YEH WITH HAMZA ABOVE WITH ALEF MAKSURA INITIAL FORM␤»␤»
+    # OUTPUT: «BOX DRAWINGS LIGHT DIAGONAL UPPER CENTRE TO MIDDLE RIGHT AND MIDDLE LEFT TO LOWER CENTRE␤»
 
 =head2 routine uninames
 
@@ -1068,7 +1076,7 @@ See L<uniparse|/routine/uniparse> for the opposite direction.
 Defined as:
 
     multi sub unimatch(Str:D $str, |c)
-    multi unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname)
+    multi sub unimatch(Int:D $code, Stringy:D $pvalname, Stringy:D $propname = $pvalname)
 
 Checks if the given integer codepoint or the first letter of the given string
 has a unicode property equal to the value you give. If you supply the Unicode
@@ -1092,7 +1100,7 @@ Defined as:
 Coerces the invocant (or in sub form, its argument) to L<Str|/type/Str>, and
 returns it with the last character removed.
 
-    say 'perl'.chop;                        # OUTPUT: «per␤»
+    say 'raku'.chop;                        # OUTPUT: «rak␤»
 
 =head2 routine chomp
 
@@ -1126,7 +1134,7 @@ Defined as:
     multi sub substr-rw(|) is rw
 
 Coerces the invocant (or in the sub form, the first argument) to
-L<Str|/type/Str>, and calls L<Str.substr-rw|/type/Str#routine_substr-rw> with
+L<Str|/type/Str>, and calls L<Str.substr-rw|/type/Str#method_substr-rw> with
 the arguments.
 
 =head2 routine ords
@@ -1176,23 +1184,23 @@ N<I«the L<comb|/routine/comb> routine is a much better choice for many tasks th
 languages are handled by the C<split>.»>
 
 Coerces the invocant (or in the sub form, the second argument) to
-L<Str|/type/Str>, and splits it into pieces based on delimiters found in the
-string.
+L<Str|/type/Str>, splits it into pieces based on delimiters found in the
+string and returns the result as a L«C<Seq>|/type/Seq».
 
 If C<$delimiter> is a string, it is searched for literally and not treated
 as a regex. You can also provide multiple delimiters by specifying them as a
-list; mixing Cool and Regex objects is OK.
+list, which can mix C<Cool> and C<Regex> objects.
 
-    say split(';', "a;b;c").raku;               # OUTPUT: «("a", "b", "c")␤»
+    say split(';', "a;b;c").raku;               # OUTPUT: «("a", "b", "c").Seq␤»
     say split(';', "a;b;c", 2).raku;            # OUTPUT: «("a", "b;c").Seq␤»
 
-    say split(';', "a;b;c,d").raku;             # OUTPUT: «("a", "b", "c,d")␤»
-    say split(/\;/, "a;b;c,d").raku;            # OUTPUT: «("a", "b", "c,d")␤»
-    say split(/<[;,]>/, "a;b;c,d").raku;        # OUTPUT: «("a", "b", "c", "d")␤»
+    say split(';', "a;b;c,d").raku;             # OUTPUT: «("a", "b", "c,d").Seq␤»
+    say split(/\;/, "a;b;c,d").raku;            # OUTPUT: «("a", "b", "c,d").Seq␤»
+    say split(/<[;,]>/, "a;b;c,d").raku;        # OUTPUT: «("a", "b", "c", "d").Seq␤»
 
-    say split(['a', /b+/, 4], '1a2bb345').raku; # OUTPUT: «("1", "2", "3", "5")␤»
+    say split(['a', /b+/, 4], '1a2bb345').raku; # OUTPUT: «("1", "2", "3", "5").Seq␤»
 
-By default, split omits the matches, and returns a list of only those parts of
+By default, C<split> omits the matches, and returns a list of only those parts of
 the string that did not match. Specifying one of the C<:k, :v, :kv, :p> adverbs
 changes that. Think of the matches as a list that is interleaved with the
 non-matching parts.
@@ -1227,8 +1235,8 @@ to C<split>.
 Note that empty chunks are not removed from the result list.
 For that behavior, use the C<:skip-empty> named argument:
 
-    say ("f,,b,c,d".split: /","/             ).raku;  # OUTPUT: «("f", "", "b", "c", "d")␤»
-    say ("f,,b,c,d".split: /","/, :skip-empty).raku;  # OUTPUT: «("f", "b", "c", "d")␤»
+    say ("f,,b,c,d".split: /","/             ).raku;  # OUTPUT: «("f", "", "b", "c", "d").Seq␤»
+    say ("f,,b,c,d".split: /","/, :skip-empty).raku;  # OUTPUT: «("f", "b", "c", "d").Seq␤»
 
 =head2 routine lines
 
@@ -1245,8 +1253,9 @@ the list of lines.
     say "some\nmore\nlines".lines.elems;    # OUTPUT: «3␤»
 
 
-This method can be used as part of an C<IO::Path> to process a file
-line-by-line, since C<IO::Path> objects inherit from C<Cool>, e.g.:
+This method can be used as part of an L«C<IO::Path>|/type/IO::Path»
+to process a file line-by-line, since C<IO::Path> objects inherit from
+C<Cool>, e.g.:
 
 =begin code
 for 'huge-csv'.IO.lines -> $line {
@@ -1258,9 +1267,11 @@ my @lines = 'huge-csv'.IO.lines;
 =end code
 
 Without any arguments, sub C<lines> operates on
-C<$*ARGFILES>, which defaults to C<$*IN> in the absence of any filenames.
+L«C<$*ARGFILES>|/language/variables#$*ARGFILES».
 
-To modify values in place use C<is copy> to force a writable container.
+To modify values in place use L«C<is
+copy>|/type/Signature#index-entry-trait_is_copy» to force a writable
+container.
 
 =for code
 for $*IN.lines -> $_ is copy { s/(\w+)/{$0 ~ $0}/; .say }
@@ -1378,7 +1389,7 @@ a L<Str|/type/Str>, and searches for C<$needle> in the string C<$s> starting
 from C<$pos>. It returns the offset into the string where C<$needle> was
 found, and C<Nil> if it was not found.
 
-See L<the documentation in type Str|/type/Str#routine_index> for examples.
+See L<the documentation in type Str|/type/Str#method_index> for examples.
 
 =head2 routine rindex
 
@@ -1463,6 +1474,143 @@ Coerces the invocant to L<IO::Path|/type/IO::Path>.
 =for code
 .say for '.'.IO.dir;        # gives a directory listing
 
+=head2 method sprintf
+
+Defined as:
+
+    method sprintf(*@args)
+
+Returns a string according to a series L<format
+directives|/routine/sprintf#Directives> that are common in many languages;
+the object will be the format string, while the supplied arguments will be
+what's going to be formatted according to it.
+
+=for code
+"% 6s".sprintf('Þor').say; # OUTPUT: «   Þor␤»
+
+=head2 method printf
+
+Defined as:
+
+    method printf(*@args)
+
+Uses the object, as long as it is a L<format
+string|/routine/sprintf#Directives>, to format and print the arguments
+
+=for code
+"%.8f".printf(now - now ); # OUTPUT: «-0.00004118»
+
+=head2 method Complex
+
+Defined as:
+
+    multi method Complex()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.Complex>|/routine/Complex» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+1i.Complex;         # OUTPUT: «1+1i␤»
+    say π.Complex;            # OUTPUT: «3.141592653589793+0i␤»
+    say <1.3>.Complex;        # OUTPUT: «1.3+0i␤»
+    say (-4/3).Complex;       # OUTPUT: «-1.3333333333333333+0i␤»
+    say "foo".Complex.^name;  # OUTPUT: «Failure␤»
+
+=head2 method FatRat
+
+Defined as:
+
+    multi method FatRat()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.FatRat>|/routine/FatRat» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+0i.FatRat;          # OUTPUT: «1␤»
+    say 2e1.FatRat;           # OUTPUT: «20␤»
+    say 1.3.FatRat;           # OUTPUT: «1.3␤»
+    say (-4/3).FatRat;        # OUTPUT: «-1.333333␤»
+    say "foo".FatRat.^name;   # OUTPUT: «Failure␤»
+
+=head2 method Int
+
+Defined as:
+
+    multi method Int()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.Int>|/routine/Int» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+0i.Int;             # OUTPUT: «1␤»
+    say <2e1>.Int;            # OUTPUT: «20␤»
+    say 1.3.Int;              # OUTPUT: «1␤»
+    say (-4/3).Int;           # OUTPUT: «-1␤»
+    say "foo".Int.^name;      # OUTPUT: «Failure␤»
+
+=head2 method Num
+
+Defined as:
+
+    multi method Num()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.Num>|/routine/Num» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+0i.Num;             # OUTPUT: «1␤»
+    say 2e1.Num;              # OUTPUT: «20␤»
+    say (16/9)².Num;          # OUTPUT: «3.1604938271604937␤»
+    say (-4/3).Num;           # OUTPUT: «-1.3333333333333333␤»
+    say "foo".Num.^name;      # OUTPUT: «Failure␤»
+
+=head2 method Rat
+
+Defined as:
+
+    multi method Rat()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.Rat>|/routine/Rat» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+0i.Rat;                             # OUTPUT: «1␤»
+    say 2e1.Rat;                              # OUTPUT: «20␤»
+    say (-4/3).Rat;                           # OUTPUT: «-1.333333␤»
+    say "foo".Rat.^name;                      # OUTPUT: «Failure␤»
+    say (.numerator, .denominator) for π.Rat; # OUTPUT: «(355 113)␤»
+
+=head2 method Real
+
+Defined as:
+
+    multi method Real()
+
+Coerces the invocant to a L«C<Numeric>|/type/Numeric» and calls its
+L«C<.Real>|/routine/Real» method. L<Fails|/routine/fail> if the
+coercion to a C<Numeric> cannot be done.
+
+    say 1+0i.Real;            # OUTPUT: «1␤»
+    say 2e1.Real;             # OUTPUT: «20␤»
+    say 1.3.Real;             # OUTPUT: «1.3␤»
+    say (-4/3).Real;          # OUTPUT: «-1.333333␤»
+    say "foo".Real.^name;     # OUTPUT: «Failure␤»
+
+=head2 method UInt
+
+Defined as:
+
+    multi method UInt()
+
+Coerces the invocant to an L«C<Int>|/type/Int».  L<Fails|/routine/fail>
+if the coercion to an C<Int> cannot be done or if the C<Int> the invocant
+had been coerced to is negative.
+
+    say 1+0i.UInt;            # OUTPUT: «1␤»
+    say 2e1.UInt;             # OUTPUT: «20␤»
+    say 1.3.UInt;             # OUTPUT: «1␤»
+    say (-4/3).UInt.^name;    # OUTPUT: «Failure␤»
+    say "foo".UInt.^name;     # OUTPUT: «Failure␤»
 
 =end pod
 
