@@ -174,19 +174,70 @@ My favorite color is blue!
 =end code
 
 X<|\ (quoting)>
-The C<qq> form – usually written using double quotes – allows for
-interpolation of backslash sequences and variables, i.e., variables can be
-written within the string so that the content of the variable is inserted into
-the string. It is also possible to escape variables within a C<qq>-quoted
-string:
 
-=begin code :allow<B> :preamble<my $color = 'blue'>
-say B<">The B<\>$color variable contains the value '$color'B<">;
+The C<qq> form – usually written using double quotes – allows for
+interpolation of backslash escape sequences (like C<q:backslash>), all sigiled
+variables (like C<q:scalar:array:hash:function>), and any code inside C<{...}>
+(like C<q:closure>).
+
+=head3 Interpolating variables
+
+Inside a C<qq>-quoted string, you can use variables with a sigil to trigger
+interpolation of the variable's value.  Variables with the C<$> sigil are
+interpolated whenever the occur (unless escaped); that's why, in the example
+above, C<"$color"> became C<blue>.
+
+Variables with other sigils, however, only trigger interpolation when you follow
+the variable with the appropriate postfix (C<[]> for Arrays, C«<>», for Hashes,
+C<&> for Subs). This allows you to write expressions like
+C<"documentation@raku.org"> without interpolating the C<@raku> variable.
+
+To interpolate an Array (or other L<Positional|/type/Positional> variable),
+append a C<[]> to the variable name:
+
+=begin code :allow<B>
+my @neighbors = "Felix", "Danielle", "Lucinda";
+say "@neighborsB<[]> and I try our best to coexist peacefully."
 =end code
 
 =begin code :lang<text>
-The $color variable contains the value 'blue'
+Felix Danielle Lucinda and I try our best to coexist peacefully.
 =end code
+
+Alternatively, rather than using C<[]>, you can interpolate the Array by
+following it with a method call with parentheses after the method name. Thus the
+following code will work:
+
+=begin code :allow<B L> :preamble<my @neighbors = "Felix", "Danielle", "Lucinda">
+say "@neighborsB<.L<join|/routine/join>(', ')> and I try our best to coexist peacefully."
+=end code
+
+=begin code :lang<text>
+Felix, Danielle, Lucinda and I try our best to coexist peacefully.
+=end code
+
+However, C<"@example.com"> produces C<@example.com>.
+
+To call a subroutine, use the C<&>-sigil and follow the subroutine name with parentheses.
+X<|& (interpolation)>
+
+    say "uc  'word'";  # OUTPUT: «uc  'word'»␤
+    say "&uc 'word'";  # OUTPUT: «&uc 'word'»␤
+    say "&uc('word')"; # OUTPUT: «WORD»␤
+    # OUTPUT: «abcDEFghi␤»
+
+To interpolate a Hash (or other L<Associative|/type/Associative> variable), use
+the C«<>» postcircumfix operator.
+
+    my %h = :1st; say "abc%h<st>ghi";
+    # OUTPUT: «abc1ghi␤»
+
+The way C<qq> interpolates variables is the same as
+C<q:scalar:array:hash:function>.  You can use these adverbs (or their short
+forms, C<q:s:a:h:f>) to interpolate variables without enabling other C<qq>
+interpolations.
+
+=head3 Interpolating closures
 
 Another feature of C<qq> is the ability to interpolate Raku code from
 within the string, using curly braces:
@@ -202,48 +253,28 @@ This room is 4 m by 3.5 m by 3 m.
 Therefore its volume should be 42 m³!
 =end code
 
-By default, only variables with the C<$> sigil are interpolated normally.
-This way, when you write C<"documentation@raku.org">, you aren't
-interpolating the C<@raku> variable. If that's what you want to do, append
-a C<[]> to the variable name:
+This provides the same functionality as the C<q:closure>/C<q:c> quoting form.
 
-=begin code :allow<B>
-my @neighbors = "Felix", "Danielle", "Lucinda";
-say "@neighborsB<[]> and I try our best to coexist peacefully."
-=end code
+=head3 Interpolating escape codes
 
-=begin code :lang<text>
-Felix Danielle Lucinda and I try our best to coexist peacefully.
-=end code
+The C<qq> quoting form also interpolates backslash escape sequences.  Several of
+these print invisible/whitespace ASCII control codes or whitespace characters:
 
-Often a method call is more appropriate. These are allowed within C<qq>
-quotes as long as they have parentheses after the call. Thus the following
-code will work:
+=begin table :allow<L>
+Sequence    Hex Value       Character
+\0          \x0000          L<Nul|https://util.unicode.org/UnicodeJsps/character.jsp?a=0000&B1=Show>
+\a          \x0007          L<Bel|https://util.unicode.org/UnicodeJsps/character.jsp?a=0007&B1=Show>
+\b          \x0008          L<Backspace|https://util.unicode.org/UnicodeJsps/character.jsp?a=0008&B1=Show>
+\e          \x001B          L<Esc|https://util.unicode.org/UnicodeJsps/character.jsp?a=001B&B1=Show>
+\f          \x000C          L<Form Feed|https://util.unicode.org/UnicodeJsps/character.jsp?a=000C&B1=Show>
+\n          \x000A          L<Newline|https://util.unicode.org/UnicodeJsps/character.jsp?a=000A&B1=Show>
+\r          \x000D          L<Carriage Return|https://util.unicode.org/UnicodeJsps/character.jsp?a=000D&B1=Show>
+\t          \x0009          L<Tab|https://util.unicode.org/UnicodeJsps/character.jsp?a=0009&B1=Show>
+=end table
 
-=begin code :allow<B L> :preamble<my @neighbors = "Felix", "Danielle", "Lucinda">
-say "@neighborsB<.L<join|/routine/join>(', ')> and I try our best to coexist peacefully."
-=end code
-
-=begin code :lang<text>
-Felix, Danielle, Lucinda and I try our best to coexist peacefully.
-=end code
-
-However, C<"@example.com"> produces C<@example.com>.
-
-To call a subroutine, use the C<&>-sigil.
-X<|& (interpolation)>
-
-    say "abc&uc("def")ghi";
-    # OUTPUT: «abcDEFghi␤»
-
-Postcircumfix operators and therefore L<subscripts|/language/subscripts> are
-interpolated as well.
-
-    my %h = :1st; say "abc%h<st>ghi";
-    # OUTPUT: «abc1ghi␤»
-
-To enter unicode sequences, use C<\x> or C<\x[]> with the hex-code of the
-character or a list of characters.
+C<qq> also supports two multi-character escape sequences: C<\x> and C<\c>. You
+can use C<\x> or C<\x[]> with the hex-code of a Unicode character or a list of
+characters:
 
     my $s = "I \x2665 Raku!";
     say $s;
@@ -253,14 +284,34 @@ character or a list of characters.
     say $s;
     # OUTPUT: «I really ♡♥❤💕 Raku!␤»
 
-You can also use
-L«unicode names|/language/unicode#Entering_unicode_codepoints_and_codepoint_sequences»
+You can also create a Unicode character with C<\c> and that character's
+L«unicode name|/language/unicode#Entering_unicode_codepoints_and_codepoint_sequences»
 , L<named sequences|/language/unicode#Named_sequences>
-and L<name aliases|/language/unicode#Name_aliases> with L«\c[]|/language/unicode#Entering_unicode_codepoints_and_codepoint_sequences».
+or L<name alias|/language/unicode#Name_aliases>:
 
     my $s = "Camelia \c[BROKEN HEART] my \c[HEAVY BLACK HEART]!";
     say $s;
     # OUTPUT: «Camelia 💔 my ❤!␤»
+
+See the description of
+L«\c[]|/language/unicode#Entering_unicode_codepoints_and_codepoint_sequences» on
+the L<Unicode|/language/unicode> documentation page for more details.
+
+C<qq> provides the same interpolation of escape sequences as that
+provided by C<q:backslash>/C<q:b>.
+
+=head3 preventing interpolation and handling missing values
+
+You can prevent any undesired interpolation in a
+C<qq>-quoted string by escaping the sigil or other initial character:
+
+=begin code :allow<B> :preamble<my $color = 'blue'>
+say B<">The B<\>$color variable contains the value '$color'B<">;
+=end code
+
+=begin code :lang<text>
+The $color variable contains the value 'blue'
+=end code
 
 Interpolation of undefined values will raise a control exception that can be
 caught in the current block with
