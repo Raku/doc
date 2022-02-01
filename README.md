@@ -1,6 +1,7 @@
 # Official Documentation of Raku™
 
 [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
+[![CircleCI](https://circleci.com/gh/Raku/doc/tree/master.svg?style=svg)](https://circleci.com/gh/Raku/doc/tree/master)
 [![test](https://github.com/Raku/doc/actions/workflows/test.yml/badge.svg)](https://github.com/Raku/doc/actions/workflows/test.yml)
 
 An HTML version of this documentation can be found
