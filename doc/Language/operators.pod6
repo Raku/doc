@@ -25,6 +25,54 @@ question, while operators with a lower precedence are said to have a looser
 binding. In practice one may also encounter blends of terminology, such as
 statements that an operator has a tighter or looser precedence.
 
+The following table summarizes the precedence levels offered by Raku, listing
+them in order from high to low precedence. For each precedence level the table
+also indicates the associativity (discussed more below) of the operators
+assigned to that level and lists some example operators at that precedence
+level.
+
+=begin table
+
+    Precedence Level | Associativity | Examples
+    =================+===============+==========
+    Term¹            | non           | 42 3.14 "eek" qq["foo"] $x :!verbose @$array rand time now ∅
+    Method call      | left          | .meth .\+ .? .* .() .[] .{} .<> .«» .:: .= .^ .: i
+    Autoincrement    | non           | \+\+ --
+    Exponentiation   | right         | **
+    Symbolic unary   | left          | ! \+ - ~ ? \| \|\| \+^ ~^ ?^ ^
+    Dotty infix¹     | left          | .= .
+    Multiplicative   | left          | * × / ÷ % %% \+& \+< \+> ~& ~< ~> ?& div mod gcd lcm
+    Additive         | left          | \+ - − \+\| \+^ ~\| ~^ ?\| ?^
+    Replication      | left          | x xx
+    Concatenation    | list          | ~ o ∘
+    Junctive and     | list          | & (&) (.) ∩ ⊍
+    Junctive or      | list          | \| ^ (\|) (^) (\+) (-) ∪ ⊖ ⊎ ∖
+    Named unary¹     | left          | temp let
+    Structural       | non           | but does <=> leg unicmp cmp coll .. ..^ ^.. ^..^
+    Chaining         | chain         | != ≠ == ⩵ < <= ≤ > >= ≥ eq ne lt le gt ge ~~ === ⩶ eqv !eqv =~= ≅ (elem) (cont) (<) (>) (<=) (>=) (<\+) (>\+) (==) ∈ ∊ ∉ ∋ ∍ ∌ ≡ ≢ ⊂ ⊄ ⊃ ⊅ ⊆ ⊈ ⊇ ⊉ ≼ ≽
+    Tight and        | list          | &&
+    Tight or         | list          | \|\| ^^ // min max
+    Conditional¹     | right         | ?? !! ff ff^ ^ff ^ff^ fff fff^ ^fff ^fff^
+    Item assignment  | right         | = => \+= -= **= xx=
+    Loose unary      | left          | so not
+    Comma            | list          | , :
+    List infix       | list          | Z minmax X X~ X* Xeqv ... … ...^ …^ ^... ^… ^...^ ^…^
+    List prefix      | right         | print push say die map substr ... [\+] [*] any Z=
+    Loose and        | list          | and andthen notandthen
+    Loose or         | list          | or xor orelse
+    Sequencer¹       | list          | <==, ==>, <<==, ==>>
+    Terminator¹      | non           | ; {...}, unless, extra ), ], }
+
+=end table
+
+Note: for the precedence levels marked with C<¹>, there are no operator
+subroutines with that precedence level (usually because the operators at that
+precedence level are special-cased by the compiler).  This means that you cannot
+access that precedence level when setting the L<precedence of custom
+operators|language/functions#Precedence>.
+
+=head1 Operator associativity
+
 Where two operators with a same precedence level act on an operand, the
 associativity of the operators determines which subexpression/operator is
 evaluated first. For instance, in the expression C<100 / 2 * 10>, the binary
@@ -32,77 +80,61 @@ division operator C</> and the binary multiplication operator C<*> have equal
 precedence, so that the order of their evaluation is determined by their
 associativity. As the two operators are I<left associative>, operations are
 grouped from the left like this: C<(100 / 2) * 10>. The expression thus
-evaluates to C<500>, rather than to C<5>.
+evaluates to C<500>. Conversely, if C</> and C<*> had both been I<right
+associative>, the expression would have been grouped as C<100 / (2 * 10)> and
+would have evaluated to C<5>.
 
-The following table summarizes the precedence levels (column labeled C<Level>)
-offered by Raku, listing them in order from high to low precedence. For each
-precedence level the table also indicates the associativity of the operators
-assigned to that level (column labeled C<A>), and some exemplary operators
-(column labeled C<Examples>).
-
-=begin table
-
-    A | Level            |   Examples
-    ==+==================+==========
-    N | Terms            |   42 3.14 "eek" qq["foo"] $x :!verbose @$array rand time now ∅
-    L | Method postfix   |   .meth .\+ .? .* .() .[] .{} .<> .«» .:: .= .^ .:
-    N | Autoincrement    |   \+\+ --
-    R | Exponentiation   |   **
-    L | Symbolic unary   |   ! \+ - ~ ? \| \|\| \+^ ~^ ?^ ^
-    L | Dotty infix      |   .= .
-    L | Multiplicative   |   * × / ÷ % %% \+& \+< \+> ~& ~< ~> ?& div mod gcd lcm
-    L | Additive         |   \+ - − \+\| \+^ ~\| ~^ ?\| ?^
-    L | Replication      |   x xx
-    X | Concatenation    |   ~ o ∘
-    X | Junctive and     |   & (&) (.) ∩ ⊍
-    X | Junctive or      |   \| ^ (\|) (^) (\+) (-) ∪ ⊖ ⊎ ∖
-    L | Named unary      |   temp let
-    N | Structural infix |   but does <=> leg unicmp cmp coll .. ..^ ^.. ^..^
-    C | Chaining infix   |   != ≠ == ⩵ < <= ≤ > >= ≥ eq ne lt le gt ge ~~ === ⩶ eqv !eqv =~= ≅ (elem) (cont) (<) (>) (<=) (>=) (<\+) (>\+) (==) ∈ ∊ ∉ ∋ ∍ ∌ ≡ ≢ ⊂ ⊄ ⊃ ⊅ ⊆ ⊈ ⊇ ⊉ ≼ ≽
-    X | Tight and        |   &&
-    X | Tight or         |   \|\| ^^ // min max
-    R | Conditional      |   ?? !! ff ff^ ^ff ^ff^ fff fff^ ^fff ^fff^
-    R | Item assignment  |   = => \+= -= **= xx=
-    L | Loose unary      |   so not
-    X | Comma operator   |   , :
-    X | List infix       |   Z minmax X X~ X* Xeqv ... … ...^ …^ ^... ^… ^...^ ^…^
-    R | List prefix      |   print push say die map substr ... [\+] [*] any Z=
-    X | Loose and        |   and andthen notandthen
-    X | Loose or         |   or xor orelse
-    X | Sequencer        |   <==, ==>, <<==, ==>>
-    N | Terminator       |   ; {...}, unless, extra ), ], }
-
-=end table
-
-The following table further clarifies the meaning of the associativity symbols
-(C<L R N C X>) specified above in column C<A>. Using a fictitious C<!> binary
-operator symbol, it shows how each associativity affects the interpretation of
-an expression involving two such operators of equal precedence:
+The following table shows how each associativity affects the interpretation of
+an expression involving three such operators of equal precedence and the same
+associativity (using a fictitious infix C<§> operator):
 
 =begin table
 
-    A  | Assoc   | Meaning of $a ! $b ! $c
-    ===+=========+========================
-    L  | left    |  ($a ! $b) ! $c
-    R  | right   |  $a ! ($b ! $c)
-    N  | non     |  ILLEGAL
-    C  | chain   |  ($a ! $b) and ($b ! $c)
-    X  | list    |  infix:<!>($a; $b; $c)
+     Associativity | Meaning of $a § $b § $c § $d
+    ===============+========================
+     left          |  (($a § $b) § $c) § $d
+     right         |  $a § ($b § ($c § $d))
+     non           |  ILLEGAL
+     chain         |  ($a § $b) and ($b § $c) and ($c § $d)
+     list          |  infix:<§>($a, $b, $c, $d)
 
 =end table
 
-For unary operators generically represented by a C<!> symbol, the
-associativities C<L R N> lead to the following interpretations:
+Although this table only depicts infix operators, associativity also determines
+the order of evaluation for expressions with other types of operators.  For
+example, if you created an infix C<§> operator with the precedence
+C<equiv(&prefix:<~>)>, then the order of evaluation of C<~$a § $b> would depend
+on what associativity you assigned to C<§>.  If C<§> is left associative, then
+C<~$a> will be evaluated first and then passed to C<§>; if C<§> is right
+associative, then C<$a § $b> will be evaluated first and passed to C<~>.
 
-=begin table
+When two operators have the same precedence but I<different> associativity,
+determining the grouping of operands is more complicated.  However, for
+operators built in to Raku, all operators with the same precedence level also
+have the same associativity.
 
-    A  | Assoc   |  Meaning of !$a!
-    ===+=========+==========================
-    L  | left    |  (!$a)!
-    R  | right   |  !($a!)
-    N  | non     |  ILLEGAL
+=begin comment
+   Associativity for unary ops is NYI, see https://github.com/rakudo/rakudo/issues/4779
+   I'm leaving this text in a comment so that it can more easily be added back in
+   when the that support is added.
 
-=end table
+   Associativity works slightly differently for unary operators (that is, operators
+   that take only one operand such as prefix and postfix operators).  The following
+   table shows the evaluation order for a fictitious C<¶> operator given left,
+   right, or non associativity.
+
+   =begin table
+
+      Associativity   |  Meaning of ¶$a¶
+      ================+==========================
+       left           |  (¶$a)¶
+       right          |  ¶($a¶)
+       non            |  ILLEGAL
+
+   =end table
+=end comment
+
+Setting the associativity of non-infix operators is not yet implemented.
 
 In the operator descriptions below, a default associativity of I<left>
 is assumed.
