@@ -100,7 +100,10 @@ my $lock = Lock.new;
         }
 
         react {
-            my $proc = Proc::Async.new(:w, ['aspell', '-a', '-l', 'en_US', '--ignore-case', "--extra-dicts=$dict", '--mode=url']);
+            my $proc = Proc::Async.new:
+                :w,
+                ['aspell', '-a', '-l', 'en_US', '--dont-suggest',
+                 '--ignore-case', "--extra-dicts=$dict", '--mode=url'];
 
             whenever $proc.stdout.lines {
                 $lock.protect: {
@@ -121,13 +124,14 @@ my $lock = Lock.new;
 
 for %output.keys.sort -> $file {
     for %output{$file}.keys -> $type {
-        my $spelling-error-count = 0;
-        for %output{$file}{$type}<output>.lines.tail(*-1) -> $line {
-            next unless $line;
-            diag $line;
-            $spelling-error-count++;
-        }
-        ok !$spelling-error-count, "$file ($type) has $spelling-error-count spelling errors";
+        my $spelling-errors =
+            %output{$file}{$type}<output>.lines.tail(*-1).map: -> $line {
+                $line ?? $line.words[1] !! Empty
+            }
+
+        nok $spelling-errors, "$file ($type) has {+$spelling-errors} spelling errors";
+        if $spelling-errors -> $_  {
+            diag join("\n", 'Errors:', '='x 7, |$_).indent: 4 }
     }
 }
 
