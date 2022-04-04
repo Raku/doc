@@ -532,41 +532,28 @@ of the parameters are dependent C<Task> instances. The constructor captures
 these into the C<@dependencies> slurpy array and passes them as named
 parameters to C<bless> (note that C<:&callback> uses the name of the
 variable – minus the sigil – as the name of the parameter).
+One should refrain from putting logic other than reformulating the parameters in the constructor, because
+constructor methods are not recursively called for parent classes. This is different from e.g. Java.
 
-X<|Tutorial,BUILD>
-Private attributes really are private. This means that C<bless> is not
-allowed to bind things to C<&!callback> and C<@!dependencies> directly. To
-do this, we override the C<BUILD> submethod, which is called on the brand
-new object by C<bless>:
+Declaring C<new> as a C<method> and not as a C<multi method> prevents access to the default constructor.
++So if you intend to keep the default constructor available, use C<multi method new>.
 
-=begin code :preamble<has &.callback; has @.dependencies;>
-submethod BUILD(:&!callback, :@!dependencies) { }
-=end code
+=head2 X<C<TWEAK>|Tutorial,TWEAK>
 
-Since C<BUILD> runs in the context of the newly created C<Task> object, it
-is allowed to manipulate those private attributes. The trick here is that
-the private attributes (C<&!callback> and C<@!dependencies>) are being used
-as the bind targets for C<BUILD>'s parameters. Zero-boilerplate
-initialization! See L<objects|/language/objects#Object_construction> for
-more information.
+After C<bless> has initialized the classes attributes from the passed values, it will in turn call C<TWEAK>
+for each class in the inheritance hierarchy.
+C<TWEAK> gets passed all the arguments passed to bless.
+This is where custom initialization logic should go.
 
-The C<BUILD> method is responsible for initializing all attributes and must
-also handle default values:
+Remember to always make C<TWEAK> a C<submethod> and not a normal C<method>. If in a class hierarchy a class contains a C<TWEAK> method (declared as a C<method> instead of a C<submethod>) that method is inherited to its subclass and will thus be called twice during construction of the subclass!
 
-=begin code
-has &!callback;
-has @!dependencies;
-has Bool ($.done, $.ready);
-submethod BUILD(
-        :&!callback,
-        :@!dependencies,
-        :$!done = False,
-        :$!ready = not @!dependencies,
-    ) { }
-=end code
+=head2 X<C<BUILD>|Tutorial,BUILD>
 
-See L<Object Construction|/language/objects#Object_construction> for more
-options to influence object construction and attribute initialization.
+It is possible to disable the automatic attribute initialization and perform the initialization of
+attributes oneself. To do so one needs to write a custom C<BUILD> submethod. There are several edge cases one
+needs to be aware of and take into account though. This is detailed in the
+L<Object Construction Reference|/language/objects#Object_construction>. Because of the difficulty of using
+C<BUILD>, it is recommended to only make use of it when none of the other approaches described above suffices.
 
 X<|Tutorial,submethod DESTROY>
 =head1 X<Destruction|Tutorial,DESTROY>
