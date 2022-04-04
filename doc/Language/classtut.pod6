@@ -273,22 +273,22 @@ on how this works on the whole class.
 X<|Tutorial,class variables>
 =head1 Class variables
 
-A class declaration can also include I<class variables>, which are variables
+A class declaration can also include I<class variables>, declared with C<my> or C<our>, which are variables
 whose value is shared by all instances, and can be used for things like
-counting the number of instantiations or any other shared state.
-Class variables use the same syntax as the rest of the attributes, but are
-declared as C<my> or C<our>, both will be shared by subclasses.
+counting the number of instantiations or any other shared state. So I<class variables> act similar to
+I<static> variables known from other programming languages.
+They look the same as normal (non class) lexical variables (and in fact they are the same):
 
 =begin code
 class Str-with-ID is Str {
     my  $counter = 0;
-    our $hierarchy-counter = 0;
+    our $our-counter = 0;
     has Str $.string;
     has Int $.ID is built(False);
 
     submethod TWEAK() {
         $counter++;
-        $hierarchy-counter++;
+        $our-counter++;
         $!ID = $counter;
     }
 
@@ -301,18 +301,18 @@ class Str-with-ID-and-tag is Str-with-ID {
 say Str-with-ID.new(string => 'First').ID;  # OUTPUT: «1␤»
 say Str-with-ID.new(string => 'Second').ID; # OUTPUT: «2␤»
 say Str-with-ID-and-tag.new( string => 'Third', tag => 'Ordinal' ).ID; # OUTPUT: «3␤»
-say $Str-with-ID::hierarchy-counter;       # OUTPUT: «3␤»
+say $Str-with-ID::our-counter;        # OUTPUT: «3␤»
 =end code
 
-C<my> and C<our> are both I<class hierarchy> variables that are shared by all subclasses of
-C<Str-with-ID>. Additionally, class variables declared with package scope (C<our>) are
-visible via their fully qualified name (FQN), while lexically scoped class
-variables are "private".
+I<Class variables> are shared by all subclasses, in this case
+C<Str-with-ID-and-tag>. Additionally, when the package scope C<our> declarator
+is used, the variable is visible via their fully qualified name (FQN), while
+lexically scoped C<my> variables are "private". This is the exact behavior that
+C<my> and C<our> also show in non class context.
 
-=head1 Static fields?
-
-Raku has no B<static> keyword. Nevertheless, any class may declare anything
-that a module can, so making a scoped variable sounds like a good idea.
+X<|static>
+I<Class variables> act similar to I<static> variables in many other programming
+languages.
 
 =begin code
 class Singleton {
@@ -325,28 +325,25 @@ class Singleton {
 }
 =end code
 
-Class attributes defined by L<my|/syntax/my> or L<our|/syntax/our> may also be
-initialized when being declared, however we are implementing the Singleton
-pattern here and the object must be created during its first use. It is not 100%
-possible to predict the moment when attribute initialization will be executed,
-because it can take place during compilation, runtime or both, especially when
-importing the class using the L<use|/syntax/use> keyword.
+In this implementation of the I<Singleton> pattern a I<class variable> is used
+to save the instance.
 
-=begin code :preamble<class Foo {}; sub some_complicated_subroutine {}>
+=begin code>
 class HaveStaticAttr {
-    my Foo $.foo = some_complicated_subroutine;
+    my Int $.foo = 5;
 }
 =end code
 
 Class attributes may also be declared with a secondary sigil – in a similar
 manner to instance attributes – that will generate read-only accessors if the
 attribute is to be public.
+Default values behave as expected and are assigned only once.
 
 =head1 Methods
 
 X<|Tutorial,methods>
 
-While attributes give objects state, methods give objects behaviors. Let's
+While attributes give objects state, methods give objects behaviors. Back to our C<Task> example. Let's
 ignore the C<new> method temporarily; it's a special type of method.
 Consider the second method, C<add-dependency>, which adds a new task to a
 task's dependency list:
