@@ -1777,11 +1777,62 @@ It is accessible only inside of MAIN sub.
 These variables affect the behavior of certain functions, and in some cases its
 value can be changed during runtime.
 
+X<|$*DEFAULT-READ-ELEMS>
+=head4 C<$*DEFAULT-READ-ELEMS>
+
+Affects the number of bytes read by default by
+L<C<IO::Handle.read>|/type/IO::Handle#method_read>. Its default value is 65536.
+
 X<|$*COLLATION>
 =head4 C<$*COLLATION>
 
 This is a L<Collation|/type/Collation> object that can be used to
 configure Unicode collation levels.
+
+X<|$*RAT-OVERFLOW>
+=head4 C<$*RAT-OVERFLOW>
+
+Available since release 2022.02.
+
+Using Rats by itself is fine, until you run out of precision.  The
+$*RAT-OVERFLOW dynamic variable specifies the behaviour that should be
+executed when a C<Rat> overflows its precision. By default, it is set to
+C<Num>, meaning it will revert to using (lossy) floating point.
+
+You can also set it to C<FatRat>, which will cause automatic upgrade
+to C<FatRat> as soon as a C<Rat> runs out of precision. You can also
+specify C<Failure> (to have it fail), C<Exception> (to have it throw
+an exception) or C<CX::Warn> (to have it warn on downgrading to C<Num>).
+
+To activate this globally to upgrade to C<FatRat>:
+
+=begin code
+INIT $*RAT-OVERFLOW = FatRat;
+=end code
+
+To activate this only for a lexical scope:
+
+=begin code
+my $*RAT-OVERFLOW = FatRat;
+=end code
+
+How does that work? The $*RAT-OVERFLOW variable is supposed to contain
+a class or instance on which the C<UPGRADE-RAT> method will be called
+when a Rat overflows. So you can introduce your own behaviour by
+creating a class with an C<UPGRADE-RAT> method in it.
+
+Such a method should accept two integer values: one for the numerator
+and one for the denominator.  For example (not entirely serious) would
+be to convert teh resulting value to C<Inf> if really great, or C<0>
+if really small:
+
+=begin code
+class ZeroOrInf {
+    method UPGRADE-RAT(Int $nu, Int $de) {
+        $nu > $de ?? Inf !! 0
+    }
+}
+=end code
 
 X<|$*TOLERANCE>
 =head4 C<$*TOLERANCE>
@@ -1789,12 +1840,6 @@ X<|$*TOLERANCE>
 Variable used by the L<C<=~=>|/routine/=~=> operator, and any operations that
 depend on it, to decide if two values are approximately equal. Defaults to
 C<1e-15>.
-
-X<|$*DEFAULT-READ-ELEMS>
-=head4 C<$*DEFAULT-READ-ELEMS>
-
-Affects the number of bytes read by default by
-L<C<IO::Handle.read>|/type/IO::Handle#method_read>. Its default value is 65536.
 
 =head1 Naming conventions
 
