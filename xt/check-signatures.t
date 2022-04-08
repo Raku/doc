@@ -75,6 +75,11 @@ given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
 
 my token signature { '('[ <-[()]>* <~~> <-[()]>* ]* ')' | '(' <-[()]>* ')' }
 
+if @doc-files.elems == 0 {
+    plan(:skip-all("No type documentation files specified"));
+    exit;
+}
+
 plan +@doc-files;
 for @doc-files -> $file {
     when $file !~~ /'doc/Type/'[(\w+)'/'?]+'.pod6'/ { skip "'{$file.basename}' doesn't document a type" }
