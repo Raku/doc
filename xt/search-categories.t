@@ -9,7 +9,9 @@ use Test-Files;
 
 =begin SYNOPSIS
 
-
+Verify that any X references in the documentation use one of the specific
+whitelisted categories in this file. This helps the search function on the
+site be cohesive and more useful for the end user.
 
 =end SYNOPSIS
 
