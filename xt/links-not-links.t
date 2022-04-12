@@ -26,6 +26,10 @@ my @files = Test-Files.pods.grep(* ~~ /Type | Language/);
 plan +@files;
 
 for @files -> $file {
+    if $file.ends-with('/Language/pod.pod6') {
+        skip('bug #4053');
+        next;
+    }
     my @lines;
     my Int $line-no = 1;
     my @links = $file.IO.lines.grep( * ~~ / https?\: /)
