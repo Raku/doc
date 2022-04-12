@@ -15,17 +15,19 @@ site be cohesive and more useful for the end user.
 
 =end SYNOPSIS
 
-constant @categories = 'Types', 'Modules', 'Subroutines',
-                       'Methods', 'Terms',
-                       'Adverbs', 'Traits', 'Phasers', 'Asynchronous Phasers',
-                       'Syntax', 'Regexes', 'Control flow',
-                       'Pragmas',
-                       'Variables', 'Reference', 'Language',
-                       'Operators',
-                       'List operators', 'Infix operators',
-                       'Metaoperators', 'Postfix operators', 'Prefix operators',
-                       'Circumfix operators', 'Postcircumfix operators',
-                       'Programs', 'Foreign', 'Tutorial';
+constant @categories = <<
+    Types Modules Subroutines
+    Methods Terms
+    Adverbs Traits Phasers "Asynchronous Phasers"
+    Syntax Regexes "Control flow"
+    Pragmas
+    Variables Reference Language
+    Operators
+    "List operators" "Infix operators"
+    Metaoperators "Postfix operators" "Prefix operators"
+    "Circumfix operators" "Postcircumfix operators"
+    Programs Foreign Tutorial
+>>;
 
 plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
 
@@ -39,7 +41,7 @@ for @files -> $file {
 sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
-        is $item.elems, 2, "Correct dimension for a search anchor '$contents.Str()' $ref<file>";
+        is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
         ok $item[0] (elem) @categories, "「$item[0]」 is a valid category";
     }
 }
