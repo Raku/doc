@@ -38,7 +38,7 @@ sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
         is $item.elems, 2, "Correct dimension for a search anchor '$contents.Str()' $ref<file>";
-        ok $item[0] (elem) @categories, 'It has correct category';
+        ok $item[0] (elem) @categories, "「$item[0]」 is a valid category";
     }
 }
 
