@@ -69,8 +69,14 @@ my $doc-dir = $*CWD;
 
 given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     chdir $rakudo-src-dir;
-    when .elems == 1 { run (|<git checkout>, |("tags/{.[0]}")), :out, :err}
-    when .elems == 3 { run «git checkout {.[2].substr(1..*)}», :out, :err }
+    when .elems == 1 {
+        my $checkout = run (|<git checkout>, |("tags/{ .[0] }")), :out, :err;
+        my $checkout-error = $checkout.err.slurp(:close);
+        if $checkout-error {
+            die "Error checking out tag from source, $checkout-error";
+        }
+    }
+    when .elems == 3 { run «git checkout { .[2].substr(1 ..*) }», :out, :err }
 }
 
 my token signature { '('[ <-[()]>* <~~> <-[()]>* ]* ')' | '(' <-[()]>* ')' }
