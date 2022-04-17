@@ -25,12 +25,13 @@ the signature does not automatically cause the test to fail: some differences in
 signature (such as different names for positional parameters) represent
 different implementation choices rather than an error in the docs.
 
-NOTE: when you specify a rakudo source directory using the RAKUDO_SRC environment
+I<NOTE>: when you specify a rakudo source directory using the RAKUDO_SRC
+environment
 variable, this script will attempt to test a specific version by using git checkout
 to switch that checkout to a specific version during the test, and run
 "git checkout -" at the end to reset the state.
 
-NOTE: This test uses introspection from the running copy of rakudo to find
+I<NOTE>: This test uses introspection from the running copy of Rakudo to find
 information in the source code. If you are running a different version of raku
 then the RAKUDO_SRC directory, it may be unable to find certain method definitions.
 
@@ -38,9 +39,8 @@ To ensure that implementation details don't cause failing tests, we check only
 for certain discrepancies that are guaranteed to indicate a
 substantive/non-implementation detail mismatch between Rakudo and the docs.
 
-Currently, we only test for one category of discrepancies:
-
-=item Methods that are defined with a specific invocant in Rakudo but not in the
+Currently, we only test for one category of discrepancies: Methods that are
+defined with a specific invocant in Rakudo but not in the
 docs (this helpfully also catches the situation where a documentation signature
 was I<intended> to have an invocant, but where someone forgot to end the
 invocant with a C<:>)
