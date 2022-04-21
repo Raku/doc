@@ -26,15 +26,14 @@ my @files = Test-Files.pods.grep(* ~~ /Type | Language/);
 plan +@files;
 
 for @files -> $file {
-    if $file.ends-with('/Language/pod.pod6') {
-        skip('bug #4053');
-        next;
-    }
     my @lines;
     my Int $line-no = 1;
+    # say $file.IO.lines.grep( * ~~ / https?\: /)
+    #        .grep( * !~~ /review\:\s+ | "wget" | ^\# | \#\s+OUTPUT /  ).raku;
     my @links = $file.IO.lines.grep( * ~~ / https?\: /)
       .grep( * !~~ /review\:\s+/) # eliminate review lines from IRC logs
       .grep( * !~~ /wget/)
+      .grep( * !~~ /disclaimer\.txt/)
       .grep( * !~~ /^\#/)
       .grep( * !~~ /\#\s+OUTPUT/);       # eliminates output lines
     my @links-not-links;
