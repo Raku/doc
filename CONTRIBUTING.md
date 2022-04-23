@@ -77,10 +77,6 @@ section, and filename, you can add the document by following these steps:
   ensure it adheres to the conventions in
   [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md).
 
-+ create an entry for your new document in the Language directory's
-  [00-POD6-CONTROL](doc/Language/00-POD6-CONTROL) file following
-  the instructions there.
-
 ## Documenting types
 
 The Pod6 documentation of types is located in the `doc/Type` directory and
