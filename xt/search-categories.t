@@ -15,19 +15,11 @@ site be cohesive and more useful for the end user.
 
 =end SYNOPSIS
 
-constant @categories = <<
-    Types Modules Subroutines
-    Methods Terms
-    Adverbs Traits Phasers "Asynchronous Phasers"
-    Syntax Regexes "Control flow"
-    Pragmas
-    Variables Reference Language
-    Operators
-    "List operators" "Infix operators"
-    Metaoperators "Postfix operators" "Prefix operators"
-    "Circumfix operators" "Postcircumfix operators"
-    Programs "Other languages" Tutorial
->>;
+# Use list of allowed categories from documentations
+my @categories = 'writing-docs/INDEXING.md'.IO.lines\
+    .grep(*.starts-with('* `'))\
+    .map({$_ ~~ / '* `' (<-[`]>*)/; ~$0})\
+    .sort;
 
 plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
 
@@ -42,7 +34,7 @@ sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
         is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
-        ok $item[0] (elem) @categories, "「$item[0]」 is a valid category";
+        ok $item[0] (elem) @categories, "「$item[0]」is a valid category";
     }
 }
 
