@@ -11,13 +11,19 @@ implement search function on the website hosting the rendered documentation.
 
 An index item is created using the Pod formatting code `X` in these formats:
 
-    # the `text` is rendered, an item with text `item` under the category `category`
-    # is added to the index
     X<text|category,item>
-    # can index more than one item
     X<text|category1,item1;category2,item2;...>
-    # can omit text, nothing is rendered, but an index item will be created
     X<|category,item>
+
+For the first example, the `text` text is rendered,
+an item with text `item` under the category `category` is added to the index.
+
+Note it also creates a page anchor in the current website implementation.
+
+The second example demonstrates how the `;` separator can be used to
+index more than a single item, and the third item has no text rendered,
+but an invisible anchor (e.g. for the HTML version) is created that can be used
+to navigate to via URL.
 
 Valid examples are:
 
