@@ -26,7 +26,7 @@ constant @categories = <<
     "List operators" "Infix operators"
     Metaoperators "Postfix operators" "Prefix operators"
     "Circumfix operators" "Postcircumfix operators"
-    Programs Foreign Tutorial
+    Programs "Other languages" Tutorial
 >>;
 
 plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
