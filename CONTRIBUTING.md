@@ -19,6 +19,7 @@ in the [#raku IRC channel](https://raku.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Writing code examples](#writing-code-examples)
+- [Indexing content](#indexing-content)
 - [Adding a new Language document](#adding-a-new-language-document)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
@@ -65,6 +66,11 @@ in the [#raku IRC channel](https://raku.org/community/irc).
 
 See [EXAMPLES.md](writing-docs/EXAMPLES.md) for detailed information on the options
 available when writing code examples in the documentation.
+
+## Indexing content
+
+See [INDEXING.md](writing-docs/INDEXING.md) for detailed information on how
+indexing of terms and locations in the documentation works.
 
 ## Adding a new Language document
 
@@ -170,11 +176,6 @@ On the right side of the footer you can find [Debug: off]. Click it and reload
 the page to activate debug mode. The state of debug mode will be remembered by
 `window.sessionStorage` and will not survive a browser restart or opening the
 docs in a new tab.
-
-### Invisible index anchors
-
-You can create index entries and invisible anchors with `X<|thing,category>`.
-To make them visible activate debug mode.
 
 ### Broken links
 
