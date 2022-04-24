@@ -19,6 +19,7 @@ in the [#raku IRC channel](https://raku.org/community/irc).
 # TABLE OF CONTENTS
 - [General principles](#general-principles)
 - [Writing code examples](#writing-code-examples)
+- [Indexing content](#indexing-content)
 - [Adding a new Language document](#adding-a-new-language-document)
 - [Documenting types](#documenting-types)
 - [Writing and Testing Examples](#writing-and-testing-examples)
@@ -65,6 +66,11 @@ in the [#raku IRC channel](https://raku.org/community/irc).
 
 See [EXAMPLES.md](writing-docs/EXAMPLES.md) for detailed information on the options
 available when writing code examples in the documentation.
+
+## Indexing content
+
+See [INDEXING.md](writing-docs/INDEXING.md) for detailed information on how
+indexing of terms and locations in the documentation works.
 
 ## Adding a new Language document
 
@@ -174,68 +180,6 @@ On the right side of the footer you can find [Debug: off]. Click it and reload
 the page to activate debug mode. The state of debug mode will be remembered by
 `window.sessionStorage` and will not survive a browser restart or opening the
 docs in a new tab.
-
-### Search indexing rules
-
-Bits of the content can be indexed for quick navigation.
-
-An index item is created using the Pod formatting code `X` in those formats:
-
-    # the `text` is rendered, an item with text `item` under the category `category`
-    # is added to the index
-    X<text|category,item>
-    # can index more than one item
-    X<text|category1,item1;category2,item2;...>
-    # can omit text, nothing is rendered, but an index item will be created
-    X<|category,item>
-
-Valid examples are:
-
-    X<|Syntax,does>
-    X<|Language,\ (container binding)>
-    X<Subroutines|Syntax,sub>
-    X<|Variables,$*PID>
-    X<Automatic signatures|Variables,@_;Variables,%_>
-    X<Typing|Language,typed array;Syntax,[ ] (typed array)>
-    X<Attributes|Language,Attribute;Other languages,Property;Other languages,Member;Other languages,Slot>
-
-To avoid cluttering of index item categories, only a number of categories is allowed to specify,
-so when indexing new items be sure to use one of the:
-
-* `Types` (used for reference of Raku types)
-* `Modules` (used for built-in modules in Raku)
-* `Routines` (a common category for something existing as a method and a subroutine)
-* `Subroutines` (used for reference of Raku subroutines)
-* `Methods`(used for reference of Raku methods)
-* `Terms` (used for reference of Raku terms)
-* `Adverbs` (used for reference of Raku adverbs)
-* `Traits` (used for reference of Raku traits)
-* `Phasers` (used for reference of Raku phasers)
-* `Asynchronous Phasers` (used for reference of Raku asyncronous phasers)
-* `Pragmas` (used for reference of Raku pragmas)
-* `Variables` (used for reference of Raku special variables)
-* `Control flow` (used for terms related to control flow)
-* `Regexes` (used for terms related to regexes)
-* `Operators` (used for cases of operators not fitting for other operator categories, for example operators like `s///`, hyper, method call operators etc.)
-* `Listop operators` (used for listop ops)
-* `Infix operators` (used for infix ops)
-* `Metaoperators` (used for meta ops)
-* `Postfix operators` (used for postfix ops)
-* `Prefix operators` (used for prefix ops)
-* `Circumfix operators` (used for circumfix ops)
-* `Postcircumfix operators` (used for postcircumfix ops)
-* `Tutorial` (used for indexing explanation of some item in a tutorial-like manner rather than pure reference)
-* `Other languages` (used for terms from other languages and migration guides)
-* `Syntax` (used for indexing various language syntax constructs not fitting into other categories (syntax))
-* `Language` (used for indexing reference-like explanation of various language concepts (semantics), for example, `hash slice` or `Unquoting`)
-* `Programs` (legacy, program writing-related topics) # to be decided
-* `Reference` (used for indexing various names not directly coming from Raku or other languages, for example, `opcode` or `MoarVM`)
-
-If you see an item mis-categorized, please give it some love or open a ticket if you are not sure where
-an item fits best.
-
-Other than explicit creation, headers (`=head` elements of Pod) of certain format get an anchor automatically,
-say `=head routine sin` creates an index item categorized as `Subroutines` automatically.
 
 ### Broken links
 
