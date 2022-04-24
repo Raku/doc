@@ -49,7 +49,7 @@ so when indexing new items be sure to use one of:
 * `Adverbs` (reference of Raku adverbs)
 * `Traits` (reference of Raku traits)
 * `Phasers` (reference of Raku phasers)
-* `Asynchronous Phasers` (reference of Raku asyncronous phasers)
+* `Asynchronous Phasers` (reference of Raku asynchronous phasers)
 * `Pragmas` (reference of Raku pragmas)
 * `Variables` (reference of Raku special variables)
 * `Control flow` (terms related to control flow)
@@ -69,7 +69,7 @@ so when indexing new items be sure to use one of:
 * `Programs` (legacy, program writing-related topics) # to be decided
 * `Reference` (indexing various concepts and names not directly coming from Raku or other languages, for example, `opcode` or `MoarVM`)
 
-If you see an item mis-categorized, please give it some love or open a ticket if you are not sure where
+If you see an item miscategorized, please give it some love or open a ticket if you are not sure where
 it fits best.
 
 Other than explicit creation, headers (`=head` elements of Pod) of certain format get an anchor automatically,
