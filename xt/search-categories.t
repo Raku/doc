@@ -21,7 +21,9 @@ my @categories = 'writing-docs/INDEXING.md'.IO.lines\
     .map({$_ ~~ / '* `' (<-[`]>*)/; ~$0})\
     .sort;
 
-plan +my @files = Test-Files.pods.grep({ not $_.contains('about')});
+plan +(my @files = Test-Files.pods.grep({ not $_.contains('about')})) + 1;
+
+my %*used-categories;
 
 for @files -> $file {
     subtest $file => {
@@ -30,11 +32,19 @@ for @files -> $file {
     }
 }
 
+subtest "Category usage" => {
+    for @categories -> $category {
+        ok %*used-categories{$category}:exists, "Category「$category」is used in documentation";
+    }
+}
+
 sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
+        my $category = $item[0];
         is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
-        ok $item[0] (elem) @categories, "「$item[0]」is a valid category";
+        ok $item[0] (elem) @categories, "「$category」is a valid category";
+        %*used-categories{$category}++;
     }
 }
 
