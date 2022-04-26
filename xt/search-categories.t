@@ -43,8 +43,10 @@ sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
         my $category = $item[0];
+        my $subject  = $item[1];
         is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
-        ok $item[0] (elem) @categories, "「$category」is a valid category";
+        ok $category (elem) @categories, "「$category」is a valid category";
+        nok $subject.starts-with(' '), "「$subject」should not start with a space";
         %*used-categories{$category}++;
     }
 }
