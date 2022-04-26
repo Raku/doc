@@ -32,6 +32,7 @@ for @files -> $file {
     }
 }
 
+# Note: if run on a subset of files, this will report false positives
 subtest "Category usage" => {
     for @categories -> $category {
         ok %*used-categories{$category}:exists, "Category「$category」is used in documentation";
