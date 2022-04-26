@@ -49,7 +49,7 @@ so when indexing new items be sure to use one of:
 * `Adverbs` (reference of Raku adverbs)
 * `Traits` (reference of Raku traits)
 * `Phasers` (reference of Raku phasers)
-* `Asynchronous Phasers` (reference of Raku asynchronous phasers)
+* `Asynchronous phasers` (reference of Raku asynchronous phasers)
 * `Pragmas` (reference of Raku pragmas)
 * `Variables` (reference of Raku special variables)
 * `Control flow` (terms related to control flow)
