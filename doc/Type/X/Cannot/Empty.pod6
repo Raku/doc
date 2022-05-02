@@ -6,8 +6,40 @@
 
     class X::Cannot::Empty is Exception { }
 
-Error thrown (or wrapped in a C<Failure>) when inappropriately using an empty
-collection.
+Error, typically wrapped in a L<Failure|/type/Failure>, when inappropriately
+using an empty collection.
+
+For example, the following stack implementation fails when trying to pop a value
+from an empty stack. Sink context causes the returned C<Failure> to throw.
+
+=begin code
+class Stack {
+    my class Node {
+        has $.value;
+        has Node $.next;
+    }
+    has Node $!next;
+
+    method push($value) {
+        $!next .= new(:$value, :$!next);
+        self;
+    }
+
+    method pop() {
+        fail X::Cannot::Empty.new(:action<pop>, :what(self.^name))
+         unless $!next;
+
+        my $value = $!next.value;
+        $!next .= next;
+        $value;
+    }
+}
+
+my $stack = Stack.new.push(42);
+say $stack.pop; # OUTPUT: «42␤»
+try $stack.pop;
+say $!.message; # OUTPUT: «Cannot pop from an empty Stack␤»
+=end code
 
 =head1 Methods
 
