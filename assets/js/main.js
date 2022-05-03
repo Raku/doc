@@ -8,11 +8,13 @@ $(function(){
 
 function setup_tables() {
     $('.pod-table').each(function() {
+        console.log(  $(this).find('thead th:first-child'     );
+        console.log( $(this).find('thead th:first-child + th');
         if ($(this).find('thead').length
          && $(this).find('tr').length > 10
          && ! ( // don't sort operators precedence table
-              $(this).find('thead th:first-child'     ).text() == 'A'
-           && $(this).find('thead th:first-child + th').text() == 'Level'
+              $(this).find('thead th:first-child'     ).text() == 'Precedence Level'
+           && $(this).find('thead th:first-child + th').text() == 'Associativity'
          )) $(this).tablesorter({sortList: [[0,0]]})
     })
 }
