@@ -50,8 +50,6 @@ in the [#raku IRC channel](https://raku.org/community/irc).
 * Be explicit about routine signatures. If a method accepts an `*%args`,
   but treats some of them specially, list them separately.
 * Check out [the styleguide](writing-docs/STYLEGUIDE.md) for further guidance.
-* If you are participating in one of the monthly squashathons,
-  [please read this guide](writing-docs/SQUASHATHONS.md).
 
 ## Documenting versions
 
