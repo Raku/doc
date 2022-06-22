@@ -42,7 +42,6 @@ so when indexing new items be sure to use one of:
 
 * `Types` (reference of Raku types)
 * `Modules` (built-in modules in Raku)
-* `Routines` (a common category for something existing as a method and a subroutine)
 * `Subroutines` (reference of Raku subroutines)
 * `Methods`(reference of Raku methods)
 * `Terms` (reference of Raku terms)
