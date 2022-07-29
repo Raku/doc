@@ -8,7 +8,7 @@ elements from a given file.
 =end overview
 
 
-my $precomp-store = CompUnit::PrecompilationStore::File.new(:prefix($?FILE.IO.parent(3).child(".pod-precomp")));
+my $precomp-store = CompUnit::PrecompilationStore::FileSystem.new(:prefix($?FILE.IO.parent(3).child(".pod-precomp")));
 my $precomp = CompUnit::PrecompilationRepository::Default.new(store => $precomp-store);
 
 sub extract-pod(IO() $file) is export {
