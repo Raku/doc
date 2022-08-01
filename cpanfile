@@ -8,6 +8,6 @@ requires      'JavaScript::Minifier::XS'         => '0.11';
 requires      'Mojo::File'                       => '0';
 requires      'Mojolicious'                      => '== 7.31';
 requires      'Mojolicious::Lite'                => '0';
-requires      'Mojolicious::Plugin::AssetPack'   => '1.42';
+requires      'Mojolicious::Plugin::AssetPack'   => '>= 1.42, <= 2.11';
 requires      'strict'                           => '0';
 requires      'warnings'                         => '0';
