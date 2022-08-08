@@ -13,7 +13,7 @@ To avoid issues with a mismatch on source or compilation testing.
 
 plan 1;
 
-my $min = v2022.06;
+my $min = v2022.07;
 
 my $actual = $*RAKU.compiler.version;
 
