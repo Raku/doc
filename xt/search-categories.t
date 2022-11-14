@@ -42,7 +42,7 @@ if Test-Files.all-files {
     skip "Can't check category usage when testing subset of files", 1;
 }
 
-sub test-ref ($ref) {
+sub test-ref ($ref) is test-assertion {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
         my $category = $item[0];
