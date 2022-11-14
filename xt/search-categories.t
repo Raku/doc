@@ -45,9 +45,10 @@ if Test-Files.all-files {
 sub test-ref ($ref) is test-assertion {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
+        is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
+        next unless $item.elems == 2;
         my $category = $item[0];
         my $subject  = $item[1];
-        is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
         ok $category (elem) @categories, "「$category」is a valid category";
         nok $subject.starts-with(' '), "「$subject」should not start with a space";
         %*used-categories{$category}++;
