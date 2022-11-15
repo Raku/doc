@@ -42,7 +42,7 @@ if Test-Files.all-files {
     skip "Can't check category usage when testing subset of files", 1;
 }
 
-sub test-ref ($ref) is test-assertion {
+sub test-ref ($ref) {
     my $contents = $ref<contents>.cache;
     for $contents<> -> $item {
         is $item.elems, 2, "Correct dimension (2) for a search anchor '$contents.Str()' $ref<file>";
