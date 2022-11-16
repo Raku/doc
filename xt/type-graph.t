@@ -24,5 +24,3 @@ for $t.sorted -> $type {
 }
 
 done-testing;
-
-# vim: expandtab shiftwidth=4 ft=perl6

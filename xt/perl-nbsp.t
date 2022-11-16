@@ -29,5 +29,3 @@ for @files.sort -> $file {
     }
     ok !$err-count, "$error: Perl followed by a version should have a single non-breaking space." ;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

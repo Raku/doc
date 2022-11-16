@@ -45,4 +45,3 @@ diag $uppers if $uppers.elems;
 $uppers = get-uppers(@code);
 is($uppers.elems, 0, "all words in xt/pws/code.pws are lowercase");
 diag $uppers if $uppers.elems;
-

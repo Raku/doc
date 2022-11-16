@@ -71,5 +71,3 @@ for @files -> $file {
         test-it($file.IO.slurp, $file);
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

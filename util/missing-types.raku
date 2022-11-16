@@ -19,5 +19,3 @@ for $t.sorted  -> $type {
     printf "%-40s not found in documentation\n", $type.name() unless $filename.IO.e;
     CATCH { default { } }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

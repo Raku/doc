@@ -34,5 +34,3 @@ for @files -> $file {
     $error ~= " (line $row)" if !$ok;
     ok $ok, "$error: Must not have any trailing whitespace.";
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

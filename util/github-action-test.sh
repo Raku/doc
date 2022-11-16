@@ -24,5 +24,3 @@ docker run -t \
   "${TEST_IMAGE}" \
   P6_DOC_TEST_VERBOSE=${P6_DOC_TEST_VERBOSE} \
   prove6 "$@"
-
-# vim: ts=2 sts=2 sw=2 expandtab ft=sh:

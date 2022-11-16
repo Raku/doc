@@ -67,4 +67,3 @@ is Test-Files.files, 'doc/Type/Mu.pod6', 'TEST_FILES 3 skip missing files, keep 
 is Test-Files.pods, 'doc/Type/Mu.pod6', 'TEST_FILES 3 skip missing files, keep existing type match';
 is Test-Files.documents, 'doc/Type/Mu.pod6', 'TEST_FILES 3 skip missing files, keep existing type match';
 is Test-Files.tests, '', 'TEST_FILES 3 skip missing files, bad type';
-

@@ -134,5 +134,3 @@ for %output.keys.sort -> $file {
             diag join("\n", 'Errors:', '='x 7, |$_).indent: 4 }
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

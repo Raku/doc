@@ -57,5 +57,3 @@ method documents() {
 method tests() {
     return $.files.grep({$_.ends-with: '.t'})
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

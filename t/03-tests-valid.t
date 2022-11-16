@@ -55,6 +55,3 @@ my $verbose = %*ENV<P6_DOC_TEST_VERBOSE> // False;
 for %data.keys.sort -> $file {
     ok %data{$file}, "$file Pod6 and syntax check out";
 }
-
-
-# vim: expandtab shiftwidth=4 ft=perl6

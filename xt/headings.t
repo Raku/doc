@@ -73,5 +73,3 @@ for @files -> $file {
         pass "$file capitalises headings consistently ";
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

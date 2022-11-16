@@ -28,5 +28,3 @@ for @files -> $file {
         pass "$file has no tabs";
     }
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

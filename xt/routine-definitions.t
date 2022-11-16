@@ -138,5 +138,3 @@ sub walk($arg) {
 sub starts-with (Str $str) {
     $str.substr(0,20).trim
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6

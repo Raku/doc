@@ -64,5 +64,3 @@ for %result.keys.sort -> $file {
     }
     ok $ok, $result;
 }
-
-# vim: expandtab shiftwidth=4 ft=perl6
