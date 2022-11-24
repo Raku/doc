@@ -17,7 +17,7 @@ the changes to the C<doc/> directory and commit the updated files.
 
 # Return a list of skippable positions in this file.
 sub get-skips($file) {
-    say "    Calculating skips";
+    say "$file: Calculating skips";
     my @skips;
     # $line-no is 0-based
     for $file.IO.slurp.lines.kv -> $line-no, $line {
@@ -52,7 +52,7 @@ sub remove-skip($file, $skip-pos, :$solo=False) {
                 }
                 $test-io.print: "\n";
             } else {
-                say "Unexpected error occurred";
+                say "$file: Unexpected error occurred";
                 dd $test-file, $pos, $skip-pos, $line;
             }
         } else {
@@ -64,19 +64,19 @@ sub remove-skip($file, $skip-pos, :$solo=False) {
     return $test-file;
 }
 
-for Test-Files.pods -> $file {
-    say "PROCESSING: $file";
+Test-Files.pods.race(:batch(1)).map: -> $file {
+    say "$file: PROCESSING";
 
     my @skips = get-skips($file);
 
     if !@skips {
-        say "    no :skip-test present";
+        say "$file: no :skip-test present";
         next;
     }
 
     # Make sure the file runs without error as is.
     if !run-ok($file) {
-        say "    does not pass in its current state";
+        say "$file: does not pass in its current state";
         next;
     }
     my $skip-pos = 0;
@@ -87,26 +87,26 @@ for Test-Files.pods -> $file {
         my $skip-line = @skips[$skip-pos];
         my $working-file = remove-skip($good-file, $skip-line);
 
-        say "    Trying to unskip at {$skip-line+1}";
+        say "$file: trying to unskip at {$skip-line+1}";
 
         if run-ok($working-file) {
-            say "    :skip-test not needed";
+            say "$file: :skip-test not needed";
             # Point to this new good copy as our good version
             $good-file = $working-file;
             @skips = get-skips($good-file);
             # Leave skip-pos where it was, as that position has been removed.
         } else {
             # If that didn't work, test it with :solo
-            say "    Trying to :solo at {$skip-line+1}";
+            say "$file: Trying to :solo at {$skip-line+1}";
             $working-file = remove-skip($good-file, $skip-line, :solo);
             if run-ok($working-file) {
-                say "    :skip-test switched to :solo";
+                say "$file: :skip-test switched to :solo";
                 # Point to this new good copy as our good version
                 $good-file = $working-file;
                 @skips = get-skips($good-file);
                 # Leave skip-pos where it was, as that position has been removed.
             } else {
-                say "    :skip-test still required";
+                say "$file: :skip-test still required";
                 # If that didn't work, then we try the next position
                 $skip-pos++;
             }
