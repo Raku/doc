@@ -24,6 +24,22 @@ of just one method called C<why>:
     CATCH { default { put .^name, ': ', .Str } };
     # OUTPUT: «X::Method::NotFound: Method 'list' not found for invocant of class 'why oh why?'␤»
 
+Every metaobject has the capacity to hold a parameterization cache. This is
+distinct from the C<parameterize> metamethod backing parameterization syntax.
+For example, a package can be parametric in this low-level sense:
+
+    package Cache {
+        our sub parameterize(+args) is raw {
+            Metamodel::Primitives.parameterize_type: $?PACKAGE, args
+        }
+
+        sub noop(Mu, Mu \args) is raw {
+            args
+        }
+
+        BEGIN Metamodel::Primitives.set_parameterizer: $?PACKAGE, &noop;
+    }
+
 =head1 Methods
 
 =head2 method create_type
@@ -92,5 +108,45 @@ L<special arrangements|https://github.com/rakudo/rakudo/issues/3414#issuecomment
     method is_type(Mu \obj, Mu \type --> Bool:D)
 
 Type-checks C<obj> against C<type>
+
+=head2 method set_parameterizer
+
+    method set_parameterizer(Mu \obj, &parameterizer --> Nil)
+
+Initializes the parameterization cache for a metaobject. This incorporates the
+C<&parameterize> routine to produce parameterizations to be cached. This is
+assumed to carry a signature compatible with C<:(Mu $root, List:D $args)>,
+C<$root> being the base metaobject for the parameterization, C<$args> being the
+type arguments' object buffer.
+
+=head2 method parameterize_type
+
+    method parameterize_type(Mu \obj, +parameters --> Mu)
+
+Parameterizes a metaobject prepared by C<set_parameterizer> with C<parameters>.
+The resulting metaobject is cached by literal object comparisons with C<=:=>
+for each element of C<parameters>. I<Containers tend to invalidate any match>.
+
+=head2 method type_parameterized
+
+    method type_parameterized(Mu \obj --> Mu)
+
+Returns the base metaobject from a parameterization given its resulting C<obj>.
+Returns C<Mu> if none was ever performed.
+
+=head2 method type_parameters
+
+    method type_parameters(Mu \obj --> List:D)
+
+Returns the type arguments' object buffer from a parameterization given its
+resulting C<obj>. Dies if none was ever performed.
+
+=head2 method type_parameter_at
+
+    method type_parameter_at(Mu \obj, Int:D \idx --> Mu) is raw
+
+Returns a particular object from a parameterization given its resulting C<obj>
+and an index, skipping the C<List>-building step of C<type_parameters>. Dies if
+none was ever performed.
 
 =end pod
