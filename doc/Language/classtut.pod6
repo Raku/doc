@@ -930,4 +930,79 @@ class instances; in this case, the class method uses the alembic symbol, and the
 instance method, defined below it, aggregates the data we have on the cook to show
 it in a narrative way.
 
+=head2 A practical introspection example
+
+When one creates a new class, it is sometimes useful to have
+informative (and safe) introspection accessible more easily as a
+public method. For example, the following class is used to hold
+attributes for a record row in a CSV spreadsheet with a header row
+defining its field (attribute) names.
+
+=begin code
+unit class CSV-Record;
+#| Field names and values for a CSV row
+has $last;
+has $first;
+#...more fields (attributes)...
+
+method fields(--> List) {
+    #| Return a list of the the attribute names (fields)
+    #| of the class instance
+    my @attributes = self.^attributes;
+    my @names;
+    for @attributes -> $a {
+        my $name = $a.name;
+        # The name is prefixed by its sigil and twigil
+        # which we don't want
+        $name ~~ s/\S\S//;
+        @names.push: $name;
+    }
+    @names
+}
+
+method values(--> List) {
+    #| Return a list of the values for the attributes
+    #| of the class instance
+    my @attributes = self.^attributes;
+    my @values;
+    for @attributes -> $a {
+        # Syntax is not obvious
+        my $value = $a.get_value: self;
+        @values.push: $value;
+    }
+    @values
+}
+=end code
+
+We use it with a simple CSV file with contents:
+
+=begin code
+last,   first #...more fields...
+Wall,   Larry
+Conway, Damian
+=end code
+
+Load the first record and show its contents:
+
+=begin code
+my $record = CSV-Record.new: :$last, :$first;
+say $record.fields.raku; # OUTPUT: «["last", "first"]␤»
+say $record.values.raku; # OUTPUT: «["Wall", "Larry"]␤»
+=end code
+
+Note that practically we would have designed the class so that it has
+the C<fields> list as a constant since its values are the same for all
+class objects:
+
+=begin code
+constant @fields = <last first>;
+method fields(--> List) {
+    @fields
+}
+=end code
+
+Downsides of using the introspective method for attribute names
+include slightly more processing time and power and the probable need
+to remove the sigil and twigil for public presentation.
+
 =end pod
