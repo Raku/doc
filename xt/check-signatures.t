@@ -157,10 +157,8 @@ grammar TypeDocumentation {
 
     token method { ^^ '=head2 method' \N* \n
                    \n
-                   <def>?
                    <signature-line>
                  }
-    token def   { 'Defined as:' \n \n }
     token other-line { ^^ \N* \n }
 
     token signature-line { <.ws><multi>? <declarator> <.ws> <name> <signature> \n}
