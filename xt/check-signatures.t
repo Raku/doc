@@ -72,7 +72,7 @@ given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     when .elems == 1 {
         my $checkout = run (|<git checkout>, |("tags/{ .[0] }")), :out, :err;
         my $checkout-error = $checkout.err.slurp(:close);
-        if $checkout-error {
+        if $checkout.exitcode != 0 {
             die "Error checking out tag from source, $checkout-error";
         }
     }
