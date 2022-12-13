@@ -63,7 +63,7 @@ $dict.close;
 
 my %output;
 
-my $lock = Lock.new;
+my $lock = Lock::Async.new;
 
 @files.race.map: -> $file {
     # We use either the raw markdown or the rendered/cached Pod.
