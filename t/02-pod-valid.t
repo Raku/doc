@@ -16,7 +16,7 @@ my @files = Test-Files.pods;
 plan +@files;
 
 my %data;
-my $lock = Lock.new;
+my $lock = Lock::Async.new;
 
 my $verbose = %*ENV<P6_DOC_TEST_VERBOSE>;
 

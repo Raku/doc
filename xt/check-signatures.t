@@ -72,7 +72,7 @@ given $*RAKU.compiler.verbose-config<Raku><version>.split('-') {
     when .elems == 1 {
         my $checkout = run (|<git checkout>, |("tags/{ .[0] }")), :out, :err;
         my $checkout-error = $checkout.err.slurp(:close);
-        if $checkout-error {
+        if $checkout.exitcode != 0 {
             die "Error checking out tag from source, $checkout-error";
         }
     }
@@ -157,10 +157,8 @@ grammar TypeDocumentation {
 
     token method { ^^ '=head2 method' \N* \n
                    \n
-                   <def>?
                    <signature-line>
                  }
-    token def   { 'Defined as:' \n \n }
     token other-line { ^^ \N* \n }
 
     token signature-line { <.ws><multi>? <declarator> <.ws> <name> <signature> \n}

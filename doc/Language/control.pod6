@@ -150,7 +150,7 @@ parenthesize a statement if it is the last thing in an expression:
 
 =head1 X<start|Control flow,start>
 
-The simplest way to run a block B<asynchronously> is by writing C<start>
+The simplest way to run a statement or block B<asynchronously> is by writing C<start>
 before it:
 
 =for code
@@ -159,8 +159,8 @@ say "working";
 # working, done
 
 Note that you need a space between the C<start> and the block. In the example
-above, the C<start> block is in sink context, since it's not assigned to a
-variable. From version 6.d, these kind of blocks have an exception handler
+above, the C<start> block is in sink context since it's not assigned to a
+variable. From version 6.d, these sunk blocks have an exception handler
 attached:
 
 =for code :skip-test<Illustrates exception>
@@ -184,15 +184,14 @@ returned promise. So:
 If the code inside the block has not finished, the call to C<.result> will
 wait until it is done.
 
-A C<start> may also be used on a bare statement (without curly braces).
-This is mainly useful when calling a subroutine / method on an object
-is the only thing to do asynchronously.
+A C<start> used on a bare statement is useful when the only thing to do
+asynchronously is a subroutine or method:
 
     sub get42 { 42 }
     my $promise = start get42;
     say $promise.result; # OUTPUT: «42␤»
 
-Note that code executed this way does not have access to the special
+Note that start code does not have access to the special
 variables L«C<$!>|/syntax/$!» and L«C<$/>|/syntax/$$SOLIDUS» of its outer
 block, but receives new ones, so every asynchronous task has its
 per-task state.
@@ -764,11 +763,18 @@ control exception thrown by C<take>, causing it to error out.
 
 =head1 X<supply/emit|Control flow,supply emit>
 
-Emits the invocant into the enclosing
+The keyword C<supply> creates a L<Supply object|/type/Supply> which is an
+L<on-demand supply|/language/concurrency#index-entry-supply_(on-demand)>
+that you can tap. It pairs with C<emit>, which can be used anywhere from within
+C<supply> prefixed code.
+
+Using the L<C<emit method>|type/Mu#/emit> or the
+L<C<emit routine>|/language/independent-routines#sub_emit> passes the invocant
+to the enclosing
 L<supply|/language/concurrency#index-entry-supply_(on-demand)>:
 
     my $supply = supply {
-        emit $_ for "foo", 42, .5;
+        .emit for "foo", 42, .5;
     }
     $supply.tap: {
         say "received {.^name} ($_)";
@@ -778,6 +784,8 @@ L<supply|/language/concurrency#index-entry-supply_(on-demand)>:
     # received Str (foo)
     # received Int (42)
     # received Rat (0.5)
+
+See also: L<C<tap>|/routine/tap> and L<C<Supplier>|/type/Supplier>.
 
 X<|Other languages,switch (given)>
 X<|Other languages,case statements (given)>
@@ -1139,11 +1147,12 @@ thrown instead of being returned as a C<Failure>.
 
 =head1 X<once|Control flow,once>
 
-A block prefix with C<once> will be executed exactly once, even if placed
-inside a loop or a recursive routine.
+A block or statement prefixed with C<once> will be executed exactly once,
+even if placed inside a loop or a recursive routine.
 
-    my $guard = 3;
+    my $guard;
     loop {
+        once $guard = 3;
         last if $guard-- <= 0;
         once { put 'once' };
         print 'many'
@@ -1156,22 +1165,6 @@ This works per "clone" of the containing code object, so:
 Note that this is B<not> a thread-safe construct when the same clone of the same
 block is run by multiple threads. Also remember that methods only have one
 clone per class, not per object.
-
-=head1 X<quietly|Control flow,quietly>
-
-A C<quietly> block will suppress all warnings generated in it.
-
-    quietly { warn 'kaput!' };
-    warn 'still kaput!';
-    # OUTPUT: «still kaput! [...]␤»
-
-Any warning generated from any routine called from within the block will also be
-suppressed:
-
-    sub told-you { warn 'hey...' };
-    quietly { told-you; warn 'kaput!' };
-    warn 'Only telling you now!'
-    # OUTPUT: «Only telling you now!␤ [...] ␤»
 
 
 =head1 LABELs

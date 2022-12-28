@@ -80,16 +80,18 @@ don't care.
 
 =head2 X<C<quietly>|Syntax,quietly (statement prefix)>
 
-As a statement prefix, C<quietly> suppresses all warnings produced by the
-statement it precedes.
+As a prefix, C<quietly> suppresses all runtime warnings produced by the
+block or statement it precedes.
 
 =for code
 sub marine() {};
 quietly say ~&marine; # OUTPUT: «marine␤»
+sub told-you { warn 'hey...' };
+quietly { told-you; warn 'kaput!' };
+warn 'Telling you now!';  # OUTPUT: «Telling you now!␤ [...] ␤»
 
 Calling L<C<.Str> on C<code> produces a warning|/type/Code#method_Str>.
-Preceding the statement with C<quietly > will just produce the output, the name
-of the routine.
+Preceding the code with C<quietly> will just produce the output without warning.
 
 =head2 X<C<try>|Syntax,try (statement prefix)>
 
@@ -149,38 +151,6 @@ for 1..^10 {
 In this case, we will know that the number has been found only when the
 C<try> block is not catching an exception.
 
-=head2 X<C<once>|Syntax,once (statement prefix)>
-
-Within a loop, runs the prefixed statement only once.
-
-=for code
-my $counter;
-my $result = do for ^5 { once $counter = 0; $counter++ };
-say $result; # OUTPUT: «(0 1 2 3 4)␤»
-
-=head2 X<C<start>|Syntax,start (statement prefix)>
-
-As a statement prefix, C<start> behaves in the same way as L<in front of a
-block|/language/control#start>, that is, it runs the statement
-asynchronously, and returns a promise.
-
-=begin code
-proto sub fact( Int ) {*}
-multi sub fact( 1 --> 1 ) {}
-multi sub fact( $x ) {  $x * fact( $x-1 ) }
-
-my @promises = gather {
-    for <3 4> {
-        take start fact( 10 ** $_ );
-    }
-}
-
-say await @promises;
-=end code
-
-The L<C<Promise>s|/type/Promise> created by start are gathered in an array,
-which returns the result of the operation once the promises have been fulfilled.
-
 =head2 X<C<react>|Syntax,react (statement prefix)>
 
 C<react> can be used in concurrent programs to create blocks of code that run
@@ -205,34 +175,5 @@ await @sums;
 
 In this case C<react> prefixes C<whenever>, which makes a long sum with every
 number read from a channel.
-
-=head2 X<C<supply>|Syntax,supply (statement prefix)>
-
-The keyword C<supply> creates
-L<on-demand supplies|/language/concurrency#index-entry-supply_(on-demand)>
-that you can tap. It pairs with C<emit>, which can be used anywhere from within
-a C<supply> prefixed statement.
-
-=begin code
-my &cards = ->  {
-    my @cards = 1..10 X~ <♠ ♥ ♦ ♣>;
-    emit($_) for @cards.pick(@cards.elems);
-}
-my $supply = supply cards;
-
-$supply.tap( -> $v { say "Drawing: $v" });
-$supply.tap( -> $v { say "Drawing: $v" }, done => { say "No more cards" });
-# OUTPUT:
-# [...]
-# Drawing: 1♥
-# Drawing: 7♥
-# Drawing: 9♥
-# No more cards
-=end code
-
-In this example, C<supply> acts as prefix of the previously defined C<cards>
-routine. It would very well be defined as a block, but giving it a name in this
-case might increase legibility or simply give the responsibility of defining it
-to other module.
 
 =end pod
