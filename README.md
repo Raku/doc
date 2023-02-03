@@ -9,23 +9,6 @@ at [https://docs.raku.org/](https://docs.raku.org/).
 
 This is currently the recommended way to consume the documentation.
 
-## Docker container
-
-This documentation is also published as
-the
-[`jjmerelo/perl6-doc`](https://hub.docker.com/r/jjmerelo/perl6-doc) Docker
-container. It includes a copy of the web published on port 3000, so you
-can run it with:
-
-    docker run --rm -it -p 3000:3000 jjmerelo/perl6-doc
-
-or
-
-    docker run --rm -it -p 31415:3000 jjmerelo/perl6-doc
-
-in case you want it published somewhere else. You can direct your
-browser to `http://localhost:3000` (or 31415, as the case may be).
-
 ## README in other languages
 
 * [README in Chinese](resources/i18n/zh/README.zh.md)
