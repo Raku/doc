@@ -45,102 +45,8 @@ command line tool for viewing the documentation.
 
 ## Building the HTML documentation
 
-Note: If you just want a copy of the build HTML site and don't want to deal
-with the build yourself, you can clone it from here: https://github.com/rakudocs/rakudocs.github.io.
-
-The documentation can be rendered to static HTML pages and/or served in a local
-web site. This process involves creating a cache of precompiled
-documents, so that generation after the first time is sped up.
-
-These are the prerequisites you need to install to generate documentation.
-
-* perl 5.20 or later.
-* node 10 or later.
-* graphviz.
-* [Documentable](https://github.com/Raku/Documentable).
-
-Please follow these instructions (in Ubuntu) to install them:
-
-    sudo apt install perl graphviz # perl not installed by default in 18.04
-    curl -sL https://deb.nodesource.com/setup_12.x | sudo -E bash -
-    sudo apt-get install -y nodejs
-    cpanm --installdeps .
-    zef install --deps-only . ; # from inside this checkout
-
-> You can install perl and node any way you want, including version managers, as
-> long as they're available to run from the command line.
-
-This should install all needed requisites, now you can clone this repository
-and start building process:
-
-    git clone https://github.com/Raku/doc.git # clone the repo
-    cd doc # move to the clone of the repo
-    # Generate CSS and JS, install highlighting modules, build cache and pages
-    make html
-
-You need to do this only the first time to build the cache. When there's some
-change in the source (done by yourself or pulled from the repo),
-
-    make update-html
-
-will re-generate only affected pages.
-
-Documentation will be generated in the `html` subdirectory. You can use it
-pointing any static web server at that directory, or use the development server
-based on Mojolicious using
-
-    make run
-
-This will serve the documentation in port 3000.
-
-## Building the EPUB and/or the "single big page HTML" documentation
-
-The documentation can also be generated in the EPUB format as well as the
-"single big page HTML" format. Please note that some features (e.g. inherited
-methods and type graph in the Types section, or syntax highlighting of the code
-examples) are not (yet) available in these formats.
-
-These are the prerequisites you need to install:
-
-* Pod::To::BigPage 0.5.2 or later.
-* Pandoc (EPUB only).
-
-You can follow these instructions to install them on Ubuntu or Debian:
-
-    zef install "Pod::To::BigPage:ver<0.5.2+>"
-    sudo apt install pandoc     # only if you want to generate EPUB
-
-Now that you have the dependencies installed, clone this repository and
-generate the EPUB or "single big page HTML" documentation:
-
-    git clone https://github.com/Raku/doc.git # clone this repo
-    cd doc      # enter the cloned repo
-    make epub           # for the EPUB format,
-                        # for the "single big page HTML" format use `make bigpage` instead
-
-The generated EPUB output you will find in the `raku.epub` file in the root of
-the repository and the generated "single big page HTML" output in
-`html/raku.html`.
-
-## nginx configuration
-
-Latest version of the generated documentation consists only of static
-HTML pages. All pages are generated with `.html` at the end; however,
-most internal links don't use that suffix. Most web servers (for
-instance, the one that serves with GitHub pages) will add it
-automatically for you. A bare server will not. This is what you have
-to add to the configuration to make it work:
-
-```
-    location / {
-        try_files $uri $uri/ $uri.html /404.html;
-    }
-```
-
-This will rewrite the URLs for you. Equivalent configuration might have to be
-made in other server applications.
-
----------
+Building the website from the raw documentation is done using the tooling
+at https://github.com/Raku/doc-website
 
 ## Help Wanted!
 
@@ -199,10 +105,6 @@ explains briefly how to get started contributing documentation.
 - `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
 Helpful when debugging failing test suite.
 - `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
-
-# UPDATES
-
-Updates are done for the time being by hand. This probably needs improvement.
 
 # LICENSE
 
