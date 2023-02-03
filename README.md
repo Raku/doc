@@ -5,9 +5,8 @@
 [![test](https://github.com/Raku/doc/actions/workflows/test.yml/badge.svg)](https://github.com/Raku/doc/actions/workflows/test.yml)
 
 An HTML version of this documentation can be found
-at [https://docs.raku.org/](https://docs.raku.org/) and also
-at [`rakudocs.github.io`](https://rakudocs.github.io) (which is
-actually updated more frequently).
+at [https://docs.raku.org/](https://docs.raku.org/).
+
 This is currently the recommended way to consume the documentation.
 
 ## Docker container
