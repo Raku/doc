@@ -26,6 +26,7 @@ my %variants = %(
     meta      => rx:i/ << <!after [ method || \$ || \- || \" ] \s*> meta [\s+|\-] << <!before ok >> > /,
     metadata  => rx:i/ << meta [\s+|\+] data /,
     NYI        => rx:i/ << niy /,
+    parameterization => rx:i/ << parametrization >> /,
     precompil => rx:i/ << pre \- compil /,
     runtime    => rx:i/ << run [\s+|\-] time /,
     semicolon => rx:i/ << semi [\s+|\-] colon /,
