@@ -148,8 +148,8 @@ travis build. Even edits made via the GitHub editor should pass this test.
 
 The repo should also pass `make xtest` most of the time - this includes
 tests about whitespace and spelling that might be difficult to get right
-on an initial commit, and shouldn't be considered to break the build. If
-you're contributing a patch or pull request, please make sure this passes.
+on an initial commit, and shouldn't be considered to break the build. However,
+if you're contributing a patch or pull request, this must pass.
 
 If you have local modifications and want to insure they pass xtest before
 committing, you can use this command to test only modified files:
@@ -188,19 +188,13 @@ to display heading numbers.
 
 ## Reporting bugs
 
-Report issues at https://github.com/Raku/doc/issues. You can
-use
-[labels when tagging tickets](https://github.com/Raku/doc/labels),
-among which these are probably the most common:
+Report issues with the content on [github](https://github.com/Raku/doc/issues).
+This includes missing or incorrect documentation, as well as information about
+versioning (e.g. "method foo" only available in raku v6.d).
 
-* [`docs`](https://github.com/Raku/doc/labels/docs)   - missing or
-  incorrect documentation;
-  use [`NOTSPECCED`](https://github.com/Raku/doc/labels/NOTSPECCED)
-  instead, if this is for a feature present in a compiler, but not in
-  the Raku test suite.
-* [`search`](https://github.com/Raku/doc/labels/search) - the search
-  component, either for items that are on the site but not searchable,
-  or for the search functionality itself.
+For issues with the website functionality (as opposed to the content), for
+examples issues with search,
+please report on [doc-website](https://github.com/Raku/doc-website/issues).
 
 ## Contributing pull requests
 
@@ -208,134 +202,23 @@ If you would like to contribute documentation or other bug fixes, please use
 [GitHub's pull requests (PRs)](https://github.com/Raku/doc/pulls). For a complete
 recipe for a new PR contributor, check [this PR guide](https://github.com/tbrowder/tidbits/blob/master/Contributing-PRs.md).
 
-## Building the documentation
-
-Assuming that you have already forked and cloned the
-[Raku/doc](https://github.com/Raku/doc) repository, one of the first things
-you probably want to do is to build the documentation on your local
-computer. To do this you will need:
-
-  - Raku (e.g., the Rakudo Raku implementation)
-  - zef (the installer for third party Raku modules)
-  - `Pod::To::HTML` (Raku module for converting Pod6 objects to HTML)
-  - [graphviz](http://www.graphviz.org/) (`sudo apt-get install graphviz` on Debian/Ubuntu)
-  - [Mojolicious](https://metacpan.org/pod/Mojolicious)
-    (optional; a Perl web framework; it allows you to run a web
-    app locally to display the docs)
-  - [SASS](http://sass-lang.com/) Compiler
-  - [highlights](https://github.com/perl6/atom-language-perl6) (optional; requires
-    `nodejs`, `npm`, and at least GCC-4.8 on Linux to be installed. Running `make` will set everything up for you.)
-    - Debian instructions:
-      - Get more modern nodejs than in package manager: `curl -sL https://deb.nodesource.com/setup_6.x | sudo -E bash -`
-      - Run `make init-highlights` to initialize highlights
-      - If that still isn't working try running `npm install node-gyp -g` and try running make command again
-
 ### Dependency installation
 
-#### Rakudo
+#### Raku
 
-You need Raku installed. You can install the Rakudo Raku compiler by
-downloading the latest Rakudo Star release from
-[rakudo.org/downloads/star/](http://rakudo.org/downloads/star/).
-
-> For best results, you will need to install one of the latest versions, > 2018.11 if possible. It's not guaranteed to work with other versions, and in any case the produced documentation will not look the same.
+See [rakudo.org](https://rakudo.org/downloads) for Raku installation information.
 
 #### Zef
-
-[Zef](https://modules.raku.org/repo/zef) is a Raku module installer. If you
-installed Rakudo Star package, it should already be there. Feel free to
-use any other module installer for the modules needed (see below).
 
 To install any prerequisites for this module, use:
 
     $ zef install --deps-only .
 
-#### Mojolicious / Web Server
+See [zef](https://github.com/ugexe/zef) for any questions on zef.
 
-This is a Perl web framework which is used to run the included
-web application that displays the HTML documentation in a web browser. It's
-no required for development, as the site is static and you can serve it using
-any other webserver.
+### Test the documentation
 
-The app *does* automatically convert the SASS file to CSS, so it's handy to
-use for that as well.
-
-Mojolicious is written in Perl, so assuming that you use
-[`cpanm`](https://metacpan.org/pod/App::cpanminus),
-install this now:
-
-    $ cpanm -vn Mojolicious
-
-#### SASS Compiler
-
-To build the styles, you need to have a SASS compiler. You can either install
-the `sass` command
-
-    $ sudo apt-get install ruby-sass
-
-or the [CSS::Sass Perl module](https://modules.raku.org/repo/CSS::Sass)
-
-    $ cpanm -vn CSS::Sass Mojolicious::Plugin::AssetPack
-
-The SASS files are compiled when you run `make html`, or `make sass`, or
-start the development webserver (`./app-start`).
-
-### Build and view the documentation
-
-The **Makefile** has a lot of targets to help with building and testing the doc website
-and its presented documentation.  Use this command to see them:
+The [Makefile] has a lot of targets to help with testing the documentation
+Use this command to see them:
 
     $ make help
-
-To actually build the documentation all you now need to do is run:
-
-    $ make html
-
-This takes a while, but be patient!
-
-After the build has completed, you can start the web application which will
-render the HTML documentation on a web server on your build host:
-
-    $ make run
-
-Now point your web browser to http://localhost:3000 to view the
-documentation.
-
-#### Using Docker to build and view the documentation
-
-You can skip all the above and just build and view documentation with these
-simple commands (if you have docker already installed):
-
-    $ docker build -t perl6-doc .
-    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc
-
-This will build the documentation for you by default and it will take some time,
-but for subsequent use you may want to skip build part if nothing has been changed:
-
-    $ docker run -p 3000:3000 -it -v `pwd`:/Raku/doc perl6-doc ./app-start
-
-Now point your web browser to http://localhost:3000 to view the documentation.
-
-Alternatively, you can use make to build and run your container. To build the image:
-
-    $ make docker-image
-
-To build the HTML documentation:
-
-    $ make docker-htmlify
-
-To run the development web server for viewing documentation (on port 3000):
-
-    $ make docker-run
-
-Note that while this requires less typing, some assumptions will be made for
-you regarding the name of the resulting image, the port the content is available
-over, etc. If you want, you can override these default values.
-
-For instance, if you want the local documentation to be available over port 5001
-of the host, pass the following to make when running:
-
-    $ make docker-run DOCKER_HOST_PORT=5001
-
-Now the documentation will be available on the host at http://localhost:5001.
-Please see the Makefile for a list of available options.
