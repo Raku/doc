@@ -2,7 +2,7 @@
 
 Your patches to `Raku/doc` are very welcome, and if you want to
 help,
-[please read this guide](https://dev.to/jj/squashing-perl-6-documentation-bugs-one-at-a-time-4ojn) as
+[please read this guide](https://docs.raku.org/.) as
 well as the detailed instructions below.
 
 This document describes how to get started and helps to provide documentation
