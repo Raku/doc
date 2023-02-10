@@ -2,7 +2,7 @@
 
 Your patches to `Raku/doc` are very welcome, and if you want to
 help,
-[please read this guide](https://docs.raku.org/.) as
+[please read this guide](https://github.com/Raku/doc/wiki) as
 well as the detailed instructions below.
 
 This document describes how to get started and helps to provide documentation
