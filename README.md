@@ -94,13 +94,7 @@ The code in this repository is available under the Artistic License 2.0
 as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
 text.
 
-This repository also contains code authored by third parties that may be licensed under a different license. Such
+This repository may also contain examples authored by third parties that may be licensed under a different license. Such
 files indicate the copyright and license terms at the top of the file. Currently these include:
 
-* jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
-* [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
-  [MIT License](http://creativecommons.org/licenses/MIT)
 * Examples from Stack Overflow; [MIT License](http://creativecommons.org/licenses/MIT) ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
-* Table sorter plugin from https://github.com/christianbach/tablesorter;
-  [MIT License](http://creativecommons.org/licenses/MIT)
