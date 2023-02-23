@@ -3,7 +3,7 @@
 # global array defined in the BEGIN block at the end:
 my @bracket-chars;
 
-my $f = "brackets.pod6";
+my $f = "../doc/Language/brackets.pod6";
 if !@*ARGS {
     say qq:to/HERE/;
     Usage: {$*PROGRAM.IO.basename} go | reorder
@@ -30,7 +30,7 @@ my $lb = '|';
 my $rb = '|';
 
 if $reorder {
-    $f = "brackets-reordered.pod6";
+    $f = "../doc/Language/brackets-reordered.pod6";
 }
 
 if $lb ~~ /'|'/ {
@@ -158,9 +158,13 @@ sub write-brackets-pod6-file(:$f, :$lb?, :$rb?, :$reorder?) {
         last if !$di;
     }
 
-    $fh.say: "=end table";
-    $fh.say: "\n=end pod";
-    $fh.say: "\n# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6";
+    $fh.print: qq:to/HERE/;
+    =end table
+    Z<This file was created by program '/util/{$*PROGRAM.IO.basename}'>
+    \n=end pod
+    \n# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
+    HERE
+
     $fh.close;
 }
 
