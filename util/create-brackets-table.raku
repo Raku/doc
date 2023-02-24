@@ -147,10 +147,12 @@ sub write-brackets-pod6-file(:$f, :$lb?, :$rb?, :$reorder?) {
         last;
         =end comment
 
-        # first pair
+        my @row = ($ap, $bp, $ax, $bx, $cp, $dp, $cx, $dx);
         $fh.print: "$ap | $bp | $ax | $bx | ";
         # second pair
-        $fh.say:   "$cp | $dp | $cx | $dx";
+        $fh.print:   "$cp | $dp | $cx |";
+        $fh.say: $dx.chars ?? " $dx" !! '';
+
         # underline first pair
         $fh.print: "--------+---------+---------+---------+";
         # underline second pair
