@@ -3,7 +3,8 @@
 # global array defined in the BEGIN block at the end:
 my @bracket-chars;
 
-my $f = "../doc/Language/brackets.pod6";
+my $f = $*PROGRAM.parent(2).child('doc').child('Language').child('brackets.pod6');
+
 if !@*ARGS {
     say qq:to/HERE/;
     Usage: {$*PROGRAM.IO.basename} go | reorder
