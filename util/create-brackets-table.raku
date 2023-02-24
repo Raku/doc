@@ -162,7 +162,6 @@ sub write-brackets-pod6-file(:$f, :$lb?, :$rb?, :$reorder?) {
     =end table
     Z<This file was created by program '/util/{$*PROGRAM.IO.basename}'>
     \n=end pod
-    \n# vim: expandtab softtabstop=4 shiftwidth=4 ft=perl6
     HERE
 
     $fh.close;
