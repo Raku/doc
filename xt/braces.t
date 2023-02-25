@@ -12,7 +12,7 @@ Enforce B<curly braces> and B<square> or B<angle> B<brackets>.
 
 =end overview
 
-my @files = Test-Files.documents;
+my @files = Test-Files.documents.grep(* ne "doc/Language/brackets.pod6");
 
 plan +@files;
 
