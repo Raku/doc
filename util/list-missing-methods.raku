@@ -16,7 +16,7 @@ subset SummaryCsv of Str:D where *.split(',')».trim ⊆ ($summary_opts.flat);
 #| Type to require an argument to be True
 subset Flag of Bool:D where :so;
 
-#| Scan a pod6 file or directory of pod6 files for under-documented & over-documented methods
+#| Scan a rakudoc file or directory of rakudoc files for under-documented & over-documented methods
 sub MAIN(
     IO(Str) $input-path where *.e="{$doc_dir}/doc/Type",    #= Path to the file or directory to check
     ReportCsv  :report(:$r)='all',                          #= Comma-separated list of documentation types to display
@@ -44,7 +44,7 @@ sub MAIN(
     my $summary := Summary.new;
 
     # Main program execution -- parse each file, and print reports as we go
-    for $input-path.&process-pod6(:%filters, :%ignored-types).map(
+    for $input-path.&process-rakudoc(:%filters, :%ignored-types).map(
         -> Result $_ --> Str {
             when Err { given .kind {
                 when NoTypeFound     { if $reports-to-print ~~ 'err'  { Report::fmt($_)} }
@@ -87,22 +87,22 @@ sub MAIN(
 }
 
 #| Process either a Pod6 file or a directory of Pod6 files
-proto process-pod6(|) { given {*} { .WHAT ~~ List ?? $_ !! ($_,).List} };
+proto process-rakudoc(|) { given {*} { .WHAT ~~ List ?? $_ !! ($_,).List} };
 
 #| Process a directory of Pod6 files by recursively processing each file
-multi process-pod6($path where *.IO.d, :%ignored-types,
+multi process-rakudoc($path where *.IO.d, :%ignored-types,
                    :%filters (:$exclude, :$exclude-dir, :$only, :$only-dir) --> List) {
     |(lazy $path.dir ==> grep( -> $path {
                              when $path ~~ :d { all( (with $exclude-dir { $path.basename !~~ $_}))}
                              default          { all( (with $exclude     { $path.basename !~~ $_}),
                                                      (with $only        { $path.basename  ~~ $_}),
                                                      (with $only-dir    { $path.parent    ~~ $_}))}})
-                     ==> map({|process-pod6($^next-path, :%ignored-types, :%filters)}))
+                     ==> map({|process-rakudoc($^next-path, :%ignored-types, :%filters)}))
 }
 
 #| Process a Pod6 file by parsing with the MethodDoc grammar and then comparing
 #| the documented methods against the methods visible via introspection
-multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
+multi process-rakudoc($path where *.IO.f, :%ignored-types, *% --> Result) {
     POST {{ # Must return either an error or a methods Map with only Set|Bag leaf values
         when Ok { given .unwrap<methods> {
             when Set|Bag { True }
@@ -111,8 +111,8 @@ multi process-pod6($path where *.IO.f, :%ignored-types, *% --> Result) {
         default { True }
     }}
 
-    when $path !~~ /'doc/Type/'.*.pod6/ { return NoTypeFound.new(:$path)}
-    my $type-name := (S/.*'doc/Type/'(.*).pod6/$0/).subst(:g, '/', '::') with $path;
+    when $path !~~ /'doc/Type/'.*.rakudoc/ { return NoTypeFound.new(:$path)}
+    my $type-name := (S/.*'doc/Type/'(.*).rakudoc/$0/).subst(:g, '/', '::') with $path;
     my $ignored-methods := %ignored-types{"$type-name", 'ALL_TYPES'}.map(|*).grep(Any:D).List;
 
     # if we're at a low enough level that this amount of introspection fails, skip the type

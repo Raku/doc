@@ -1,6 +1,6 @@
 #!/usr/bin/env raku
 
-my @docs = qx/git ls-files | grep "\.pod6"/.lines;
+my @docs = qx/git ls-files | grep "\.rakudoc"/.lines;
 
 for @docs -> $d {
     my $repo-path =  S[doc] = '/raku/doc/blob/master/doc' with $d;
@@ -14,7 +14,7 @@ for @docs -> $d {
         }
     }
 
-    $web-path .= trans( [ "Language",  "Programs", ".pod6" ] =>
+    $web-path .= trans( [ "Language",  "Programs", ".rakudoc" ] =>
                         [ "language",  "programs", "" ] );
     say "* [ ] $doc-name [file]($repo-path), [generated]($web-path)";
 }

@@ -3,7 +3,7 @@
 # global array defined in the BEGIN block at the end:
 my @bracket-chars;
 
-my $f = $*PROGRAM.parent(2).child('doc').child('Language').child('brackets.pod6');
+my $f = $*PROGRAM.parent(2).child('doc').child('Language').child('brackets.rakudoc');
 
 if !@*ARGS {
     say qq:to/HERE/;
@@ -31,7 +31,7 @@ my $lb = '|';
 my $rb = '|';
 
 if $reorder {
-    $f = "../doc/Language/brackets-reordered.pod6";
+    $f = "../doc/Language/brackets-reordered.rakudoc";
 }
 
 if $lb ~~ /'|'/ {
@@ -39,7 +39,7 @@ if $lb ~~ /'|'/ {
     $lb = '\\|';
     $rb = $lb
 }
-write-brackets-pod6-file :$f, :$lb, :$rb, :$reorder;
+write-brackets-rakudoc-file :$f, :$lb, :$rb, :$reorder;
 @ofils.append: $f;
 
 say "Normal end.";
@@ -47,7 +47,7 @@ my $s = @ofils.elems > 1 ?? 's' !! '';
 say "See output file$s:";
 say "  $_" for @ofils;
 
-sub write-brackets-pod6-file(:$f, :$lb?, :$rb?, :$reorder?) {
+sub write-brackets-rakudoc-file(:$f, :$lb?, :$rb?, :$reorder?) {
 
     my $fh = open $f, :w;
 

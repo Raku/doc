@@ -12,4 +12,4 @@
 # verify recent work.
 
 
-TEST_FILES="$(git log --name-status | awk '/^M.*\.(pod6|md|t)$/ {print $2}' | head -40 | sort -u)" make xtest "$@"
+TEST_FILES="$(git log --name-status | awk '/^M.*\.(rakudoc|md|t)$/ {print $2}' | head -40 | sort -u)" make xtest "$@"
