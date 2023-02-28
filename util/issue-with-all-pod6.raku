@@ -12,9 +12,6 @@ for @docs -> $d {
             $doc-name = @fragments[1].trans( ['/'] => ['::'] ).split(".")[0];
             $web-path = @fragments[0] ~ "/type/" ~ $doc-name;
         }
-        when "https://docs.perl6.org/HomePage.pod6" {
-            $web-path = "https://docs.perl6.org/"
-        }
     }
 
     $web-path .= trans( [ "Language",  "Programs", ".pod6" ] =>
