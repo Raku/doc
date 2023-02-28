@@ -55,5 +55,5 @@ method documents() {
     Filtered list of C<files> to return only test files.
 )
 method tests() {
-    return $.files.grep({$_.ends-with: '.t'})
+    return $.files.grep({$_.ends-with: '.rakutest'})
 }

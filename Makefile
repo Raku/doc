@@ -9,17 +9,17 @@ help:
 	@echo "  ctest:             run minimal tests"
 	@echo "   push:             run the basic test suite and git push"
 
-# Common tests that are run by travis with every commit
+# Common tests - also run by CI
 test:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t; else prove -e raku t; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove --ext=rakutest -j ${TEST_JOBS} -e raku t; else prove --ext=rakutest -e raku t; fi
 
-# Extended tests
+# Extended tests - should be run by authors before committing
 xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove -j ${TEST_JOBS} -e raku t xt; else prove -e raku t xt; fi
+	if [ "${TEST_JOBS}" != "" ]; then prove --ext=rakutest -j ${TEST_JOBS} -e raku t xt; else prove --ext=rakutest -e raku t xt; fi
 
-# Content tests
+# Content tests - quick fast content check
 ctest:
-	prove --exec raku -r t/05-tabs.t xt/perl-nbsp.t  xt/trailing-whitespace.t
+	prove --exec raku -r t/05-tabs.rakutest xt/perl-nbsp.rakutest  xt/trailing-whitespace.rakutest
 
 push: test
 	git pull --rebase && git push
