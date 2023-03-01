@@ -1,5 +1,12 @@
 #!/usr/bin/env raku
 
+=begin overview
+
+Run this script to correct files to use no break spaces when
+xt/perl-nbsp.rakutest fails.
+
+=end overview
+
 use lib 'lib';
 use Test-Files;
 
