@@ -2029,4 +2029,59 @@ my @a = <1 2 3>;
 say @a.grep( 2 ~~ *.Int ); # OUTPUT: «(2)␤»
 =end code
 
+=head1 Libraries
+
+=head2 Filesystem repositories
+
+Adding large directories to the library search path can negatively impact
+module load time, even when the module being loaded doesn't reside in any of
+the added paths.  This is because the compiler needs to traverse and checksum
+all relevant files in the tree before loading the requested module.
+
+There are three common ways to add directories to the search path:
+
+=item Providing a switch to Raku on the command line: C<$ raku -Idir>
+
+=item Setting an environment variable: C<$ env RAKULIB=dir raku>
+
+=item Using the C<lib> L<pragma|/language/pragmas#lib> (i.e. C<use lib 'dir'>)
+
+Performance penalties are evident when I<any> of these methods are used to add
+an especially large or deeply nested directory.  For example, adding
+C</usr/lib> to the search path on a typical Unix machine has a perceptible
+performance impact when loading a module,
+
+    $ time raku -e 'use Test'
+    real    0m0.511s
+    user    0m0.554s
+    sys     0m0.118s
+
+    # no penalty, since we don't load anything:
+    $ time raku -I/usr/lib -e ''
+    real    0m0.247s
+    user    0m0.254s
+    sys     0m0.066s
+
+    $ time raku -I/usr/lib -e 'use Test'
+    real    0m6.344s
+    user    0m6.232s
+    sys     0m0.356s
+
+    $ time raku -e 'use lib "/usr/lib"; use Test'
+    real    0m6.555s
+    user    0m6.445s
+    sys     0m0.326s
+
+    $ time env RAKULIB=/usr/lib raku -e 'use Test'
+    real    0m6.479s
+    user    0m6.368s
+    sys     0m0.383s
+
+Note that the increased run time occurs even when requesting modules that were
+already installed elsewhere (C<Test> is provided as part of Rakudo but
+C</usr/lib> was nevertheless scanned before loading it).
+
+The best way to avoid this trap is to install modules that reside in large
+trees and omit those directories from the search path altogether.
+
 =end pod
