@@ -176,16 +176,24 @@ sub get-brackets(:$grammar-file, :$refresh!, :$debug! --> List) {
     my $f = $grammar-file;
 
     if $refresh or not $f.IO.r {
-        my $ua = HTTP::UserAgent.new;
-        $ua.timeout = 10;
-        my $api-uri  = "https://raw.githubusercontent.com/Raku/nqp/main/src/HLL/Grammar.nqp";
-        my $response = $ua.get($api-uri);
-        if $response.is-success {
-            spurt $f, $response.content;
+        # See if there is a local checkout of NQP
+        my $end-path = "/src/HLL/Grammar.nqp";
+        if %*ENV<NQP_HOME>:exists {
+            $f = %*ENV<NQP_HOME> ~ $end-path;
         }
+        # Otherwise, get it from Github
         else {
-            # TODO determine desired failure response
-            die $response.status-line;
+            my $ua = HTTP::UserAgent.new;
+            $ua.timeout = 10;
+            my $uri = "https://raw.githubusercontent.com/Raku/nqp/main" ~ $end-path;
+            my $response = $ua.get($uri);
+            if $response.is-success {
+                spurt $f, $response.content;
+            }
+            else {
+                # TODO determine desired failure response
+                die $response.status-line;
+            }
         }
     }
 
