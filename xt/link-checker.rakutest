@@ -1,0 +1,79 @@
+#!/usr/bin/env raku
+
+=begin overview
+
+Check any L<> references for validity.
+
+=end overview
+
+use Test;
+use lib $*PROGRAM.parent(2).child('lib');
+
+use Test-Files;
+use Pod::Convenience;
+
+my @files = Test-Files.pods;
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No rakudoc files specified>
+}
+
+sub is-valid-link($links) {
+    for @$links -> $link {
+        if $link.starts-with('/') {
+            if $link.contains('.html') {
+                fail "$link contains .html";
+            }
+            if $link eq "/" {
+                pass "$link exists (generated)";
+                return;
+            }
+            if $link ~~ / '/language/independent-routines' '#'? / {
+                pass "$link exists (generated)";
+                return;
+            }
+        
+            # This may be overeager, is needed for Types
+            my $original = $link.subst('::','/', :g);
+        
+            # We don't handle fragments yet
+            $original ~~ s/ '#' .* //;
+        
+            # split into components, uppercase directory
+            my @path = $original.split('/')[1..*];
+            next if @path[0] eq 'routine' | 'syntax'; # these are not primary sources, skip for now
+        
+            @path[0] = @path[0].tc; # Should check if it was already uppercased and fail if so.
+        
+            # Look in doc/ folder for this rakudoc file.
+            @path.unshift: 'doc';
+            my $path = @path.join('/') ~ '.pod6';
+        
+            ok $path.IO.e, "$link exists (primary)";
+        }
+    }
+}
+
+sub walk-content($x) {
+    for $x.contents -> $contents {
+        next unless $contents;
+        for @$contents -> $item {
+            if $item ~~ Pod::FormattingCode and $item.type eq 'L' {
+                is-valid-link($item.meta);
+            } elsif $item !~~ Str {
+                walk-content($item);
+            }
+        }
+    }
+}
+
+for @files -> $file {
+    my @chunks = extract-pod($file).contents;
+
+    # This emits pass or flunk for each local L<> found.
+    subtest $file => {
+        walk-content($_) for @chunks;
+    }
+}
