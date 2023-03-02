@@ -14,6 +14,9 @@ if !@*ARGS {
     The HLL::Grammar.nqp file as source is updated if it
     is not found in /util or the 'refresh' option is used.
 
+    You may also define NQP_SRC to use another copy of NQP.
+    Ensure that path definition ends at 'nqp' as the checked
+    out copy, e.g., 'NQP_ SRC=/some/path/nqp'.
     HERE
     exit;
 }
@@ -180,6 +183,9 @@ sub get-brackets(:$grammar-file, :$refresh!, :$debug! --> List) {
         my $end-path = "/src/HLL/Grammar.nqp";
         if %*ENV<NQP_HOME>:exists {
             $f = %*ENV<NQP_HOME> ~ $end-path;
+        }
+        elsif %*ENV<NQP_SRC>:exists {
+            $f = %*ENV<NQP_SRC> ~ $end-path;
         }
         # Otherwise, get it from Github
         else {
