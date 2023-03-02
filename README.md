@@ -57,8 +57,7 @@ explains briefly how to get started contributing documentation.
 **A:** Several reasons:
 
   1. This documentation is intended to be universal with
-     respect to a given version of the specification,
-     and not necessarily tied to any specific Raku
+     respect to the specification, and not tied to any specific
      implementation.
   2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
