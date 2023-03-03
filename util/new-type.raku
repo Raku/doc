@@ -46,7 +46,6 @@ sub MAIN($typename, :$kind='class') {
 
         =end pod
 
-        # vim: expandtab shiftwidth=4 ft=perl6
         BODY
     $fh.close;
     say "'$path' written";
