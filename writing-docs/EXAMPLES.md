@@ -22,7 +22,7 @@ examples. This file is run as part of `make xtest`.
 
 To test specific files (recommended), pass them as options on the command
 line to the test file, or set the environment variable TEST_FILES to
-a space separated list. 
+a space separated list.
 
 Note that method signatures are also compiled. They have an implied block
 added to insure valid compilation.
