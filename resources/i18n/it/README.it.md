@@ -152,9 +152,9 @@ spiega brevemente come iniziare a contribuire alla documentazione.
 
 # Variabili di ambiente
 
-- `P6_DOC_TEST_VERBOSE` impostata a un valore true consente di visualizare messaggi "verbose"
+- `RAKU_DOC_TEST_VERBOSE` impostata a un valore true consente di visualizare messaggi "verbose"
 durante l'esecuzione di una test-suite. E' utile per debuggare test che falliscono.
-- `P6_DOC_TEST_FUDGE` considera i frammenti di codice con `skip-test` come dei TODO quando esegue il test `xt/examples-compilation.t`.
+- `RAKU_DOC_TEST_FUDGE` considera i frammenti di codice con `skip-test` come dei TODO quando esegue il test `xt/examples-compilation.t`.
 
 # Licenza
 

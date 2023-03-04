@@ -126,8 +126,8 @@ Rakuは小さな言語ではありません。したがって、この言語の�
 
 # 環境変数
 
-- `P6_DOC_TEST_VERBOSE` をtrueにするとテストの実行中に詳細なメッセージを表示することができます。実行に失敗したデストをデバッグするときに便利です。
-- `P6_DOC_TEST_FUDGE` は `xt/examples-compilation.t` において、`skip-test` なコードを TODO として実行するようにします。
+- `RAKU_DOC_TEST_VERBOSE` をtrueにするとテストの実行中に詳細なメッセージを表示することができます。実行に失敗したデストをデバッグするときに便利です。
+- `RAKU_DOC_TEST_FUDGE` は `xt/examples-compilation.t` において、`skip-test` なコードを TODO として実行するようにします。
 
 # LICENSE
 

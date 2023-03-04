@@ -145,9 +145,9 @@ beknopt uit hoe je desgewenst kunt beginnen bij te dragen aan de documentatie.
 
 # Omgevingsvariabelen
 
-- Geef `P6_DOC_TEST_VERBOSE` een `true`-waarde om gedurende het doorlopen van de test suite uitvoerige meldingen weer te geven.
+- Geef `RAKU_DOC_TEST_VERBOSE` een `true`-waarde om gedurende het doorlopen van de test suite uitvoerige meldingen weer te geven.
 Dit is behulpzaam tijdens het debuggen van de test suite.
-- `P6_DOC_TEST_FUDGE` zet `skip-test` codevoorbeelden om in TODO in `xt/examples-compilation.t` test.
+- `RAKU_DOC_TEST_FUDGE` zet `skip-test` codevoorbeelden om in TODO in `xt/examples-compilation.t` test.
 
 # LICENTIE
 

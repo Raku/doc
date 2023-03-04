@@ -159,8 +159,8 @@ Raku 不是小语言，为它做文档并维护这些文档需要付出很大的
 
 # 环境变量
 
-- 设置 `P6_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，这在调试不通过的测试时很有帮助。
-- 设置 `P6_DOC_TEST_FUDGE` 将在 `xt/examples-compilation.t` 测试中把标记为 `skip-test` 的代码实例当做 TODO 处理。
+- 设置 `RAKU_DOC_TEST_VERBOSE` 为真值以在运行测试时输出详细信息，这在调试不通过的测试时很有帮助。
+- 设置 `RAKU_DOC_TEST_FUDGE` 将在 `xt/examples-compilation.t` 测试中把标记为 `skip-test` 的代码实例当做 TODO 处理。
 
 # 更新
 

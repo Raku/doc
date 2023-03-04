@@ -138,9 +138,9 @@ Algumas maneira de nos ajudar:
 
 # ENV VARS
 
-- `P6_DOC_TEST_VERBOSE` como `true` para mostrar mensajens durante a execução do conjunto de testes. Prático para depurar testes
+- `RAKU_DOC_TEST_VERBOSE` como `true` para mostrar mensajens durante a execução do conjunto de testes. Prático para depurar testes
 que falham.
-- `P6_DOC_TEST_FUDGE` muda testes `skip-test` para TODO no teste `xt/examples-compilation.t`.
+- `RAKU_DOC_TEST_FUDGE` muda testes `skip-test` para TODO no teste `xt/examples-compilation.t`.
 
 # LICENÇA
 
