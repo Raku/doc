@@ -132,8 +132,8 @@ Algunas maneras en las que puedes ayudarnos:
 
 # ENV VARS
 
-- Poner `P6_DOC_TEST_VERBOSE` a `true` para mostrar mensajes durante la ejecución del conjunto de tests. Práctico para depurar un test suite que falla.
-- `P6_DOC_TEST_FUDGE` cambia los ejemplos de código `skip-test` a TODO en el test `xt/examples-compilation.t`.
+- Poner `RAKU_DOC_TEST_VERBOSE` a `true` para mostrar mensajes durante la ejecución del conjunto de tests. Práctico para depurar un test suite que falla.
+- `RAKU_DOC_TEST_FUDGE` cambia los ejemplos de código `skip-test` a TODO en el test `xt/examples-compilation.t`.
 
 # LICENCIA
 

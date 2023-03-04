@@ -166,5 +166,5 @@ relative to the indentation of the POD6 directives.
 
 ##  Environment Variables
 
-* set `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
-* `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
+* set `RAKU_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
+* `RAKU_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.

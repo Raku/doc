@@ -128,8 +128,8 @@ Le document [CONTRIBUTING](CONTRIBUTING.md) explique comment vous pouvez commenc
 
 # Variables d'environnement
 
-- Mettre `P6_DOC_TEST_VERBOSE` à `true` pour afficher des messages pendant l'exécution de l'ensemble des tests. Ceci est utile lors du débogage de la suite de tests défaillante.
-- `P6_DOC_TEST_FUDGE` modifie les échantillons de code `skip-test` comme TODO dans le test `xt/examples-compilation.t`.
+- Mettre `RAKU_DOC_TEST_VERBOSE` à `true` pour afficher des messages pendant l'exécution de l'ensemble des tests. Ceci est utile lors du débogage de la suite de tests défaillante.
+- `RAKU_DOC_TEST_FUDGE` modifie les échantillons de code `skip-test` comme TODO dans le test `xt/examples-compilation.t`.
 
 # LICENCE
 

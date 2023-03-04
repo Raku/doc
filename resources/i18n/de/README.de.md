@@ -159,9 +159,9 @@ kurz wie du beginnen kannst, zur Dokumentation beizutrage.
 
 # ENV VARS
 
-- Setze `P6_DOC_TEST_VERBOSE` auf einen `true` Wert, um ausführliche Meldungen während eines Runs der Test-Suite anzuzeigen.
+- Setze `RAKU_DOC_TEST_VERBOSE` auf einen `true` Wert, um ausführliche Meldungen während eines Runs der Test-Suite anzuzeigen.
 Dies ist nützlich, um fehlgeschlagene Tests zu korrigieren.
-- `P6_DOC_TEST_FUDGE` wandelt `skip-test` Code Beispiele in TODO um im `xt/examples-compilation.t` Test.
+- `RAKU_DOC_TEST_FUDGE` wandelt `skip-test` Code Beispiele in TODO um im `xt/examples-compilation.t` Test.
 
 # LIZENZ
 

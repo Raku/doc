@@ -7,7 +7,7 @@ set -ex
 set -o pipefail
 
 : ${TEST_IMAGE:=docker.io/jjmerelo/perl6-doccer:latest}
-: ${P6_DOC_TEST_VERBOSE:=1}
+: ${RAKU_DOC_TEST_VERBOSE:=1}
 
 # this default value allows one to run a command like
 # ./util/github-action-test.sh
@@ -22,5 +22,5 @@ docker run -t \
   -v "${GITHUB_WORKSPACE}":/test:Z \
   --entrypoint env \
   "${TEST_IMAGE}" \
-  P6_DOC_TEST_VERBOSE=${P6_DOC_TEST_VERBOSE} \
+  RAKU_DOC_TEST_VERBOSE=${RAKU_DOC_TEST_VERBOSE} \
   prove6 "$@"
