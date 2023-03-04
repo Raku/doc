@@ -30,6 +30,14 @@ added to insure valid compilation.
 Care is taken to wrap the sample code in enough boilerplate so that no
 runtime code is executed, and that a class is available if needed.
 
+Note: because we are considering each POD code block independently,
+there is no guarantee that a partial snippet will itself be compilable.
+For this reason, it's fine to use `preamble` (see below) to give each
+block enough information to compile. For pedagogical reasons, it's
+OK to break what would otherwise be a large block of code into smaller
+chunks and discuss each one separately - we still want to do our best
+to compile these individual chunks.
+
 ## Skipping or finessing tests
 
 While our goal is to test every example of Raku in the repository, some
