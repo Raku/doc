@@ -1,13 +1,13 @@
 # Official Documentation of Raku™
 
 [![artistic](https://img.shields.io/badge/license-Artistic%202.0-blue.svg?style=flat)](https://opensource.org/licenses/Artistic-2.0)
-[![CircleCI](https://circleci.com/gh/Raku/doc/tree/master.svg?style=svg)](https://circleci.com/gh/Raku/doc/tree/master)
 [![test](https://github.com/Raku/doc/actions/workflows/test.yml/badge.svg)](https://github.com/Raku/doc/actions/workflows/test.yml)
 
 An HTML version of this documentation can be found
 at [https://docs.raku.org/](https://docs.raku.org/).
 
-This is currently the recommended way to consume the documentation.
+This is currently the recommended way to consume the documentation. The tooling
+to build and run this site is [available on github](https://github.com/Raku/doc-website).
 
 ## README in other languages
 
@@ -20,41 +20,11 @@ This is currently the recommended way to consume the documentation.
 * [README in Portuguese](resources/i18n/pt/README.pt.md)
 * [README in Spanish](resources/i18n/es/README.es.md)
 
-## Install rakudoc
-
-Please see https://github.com/Raku/rakudoc for the
-command line tool for viewing the documentation.
-
-## Building the HTML documentation
-
-Building the website from the raw documentation is done using the tooling
-at https://github.com/Raku/doc-website
-
 ## Help Wanted!
 
-Raku is not a small language, and documenting it and maintaining that
-documentation takes a lot of effort. Any help is appreciated.
+[Interested in contributing?](writing-docs/README.md)
 
-Here are some ways to help us:
-
- * Add missing documentation for classes, roles, methods or operators.
- * Add usage examples to existing documentation.
- * Proofread and correct the documentation.
- * Tell us about missing documentation by opening issues on Github.
- * Do a `git grep TODO` in this repository, and replace the TODO items by
-   actual documentation.
-
-[Issues page](https://github.com/Raku/doc/issues) has a list of current issues and
-documentation parts that are known to be missing
-and [the CONTRIBUTING document](CONTRIBUTING.md)
-explains briefly how to get started contributing documentation.
-
---------
-
-## Some notes:
-
-**Q:** Why aren't you embedding the docs in the CORE sources?<br />
-**A:** Several reasons:
+## Why aren't the docs embedded in the compiler source?
 
   1. This documentation is intended to be universal with
      respect to the specification, and not tied to any specific
@@ -64,11 +34,9 @@ explains briefly how to get started contributing documentation.
   3. A separate repo in the Raku Github account invites
      more potential contributors and editors.
 
-**Q:** Should I include methods from superclasses or roles?<br />
-**A:** No. The HTML version already includes methods from superclasses and
-       roles.
+## rakudoc
 
---------
+There is a [CLI](https://github.com/Raku/rakudoc) for viewing Raku documentation.
 
 ## Vision
 
@@ -78,14 +46,6 @@ explains briefly how to get started contributing documentation.
 > Raku programmer.
 >
 >    -- moritz
-
---------
-
-# ENV VARS
-
-- `P6_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
-Helpful when debugging failing test suite.
-- `P6_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
 
 # LICENSE
 
