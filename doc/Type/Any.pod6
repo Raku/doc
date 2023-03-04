@@ -1415,8 +1415,6 @@ Non-C<Int> values of C<$batch> will be coerced to Int:
 
     say (3..9).rotor(3+⅓); # OUTPUT: «((3 4 5) (6 7 8))␤»
 
-
-
 Please see also L<C<list.rotor>|/type/List#method_rotor> for examples applied to
 lists.
 
@@ -1432,5 +1430,41 @@ one by one, or 0 if the list is empty.
 say 3.sum;   # OUTPUT: «3␤»
 
 It will fail if any of the elements cannot be converted to a number.
+
+=head2 routine snitch
+
+    multi sub snitch(\snitchee)
+    multi sub snitch(&snitcher, \snitchee)
+    method snitch(\snitchee: &snitcher = &note)
+
+Available as of 6.e language version (early implementation exists in Rakudo
+compiler 2022.12+).
+
+The C<snitch> method / subroutine is a debugging / logging tool that will
+always return any invocant / argument given unchanged.
+
+By default, it will L<note|/routine/note> the invocant / argument, but
+this can be overridden by specifying a C<Callable> that is expected to
+take the invocant / argument as its only argument.
+
+    (my $a = 42).snitch = 666; say $a;  # OUTPUT: «42␤666␤»
+    (1..5).snitch;                      # OUTPUT: «1..5␤»
+    (1..5).Seq.snitch;                  # OUTPUT: «(1 2 3 4 5)␤»
+    (1..5).Seq.snitch(&dd);             # OUTPUT: «(1, 2, 3, 4, 5).Seq␤»
+    (1..5).map(*+1).snitch;             # OUTPUT: «(2 3 4 5 6)␤»
+    say (1..3).Seq.snitch.map(*+2);     # OUTPUT: «(1 2 3)␤(3 4 5)␤»
+
+The same, using the feed operator:
+
+    (1..3).Seq ==> snitch() ==> map(*+2) ==> say();  # OUTPUT: «(1 2 3)␤(3 4 5)␤»
+
+Using a custom logger:
+
+=begin code :lang<raku>
+    my @snitched;
+    my @result = (1..3).Seq.snitch({ @snitched.push($_) }).map(*+2);
+    say @snitched;  # OUTPUT: «[(1 2 3)]␤»
+    say @result;    # OUTPUT: «[3 4 5]␤»
+=end code
 
 =end pod
