@@ -1,7 +1,7 @@
 #!/usr/bin/env raku
 
 # This script parses the type-graph.txt file and checks
-# the existence of the corresponding pod6 file for most entries
+# the existence of the corresponding rakudoc file for most entries
 # skips: Metamodel and PROCESS types
 
 use lib 'lib';
@@ -15,7 +15,7 @@ for $t.sorted  -> $type {
     printf "%-40s not defined in this Perl\n", $type.name()
         if $actual === Any and $type.name ne "Any" | "Failure" | "Nil";
     next unless $actual.^name eq $type.name;
-    my $filename = 'doc/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.pod6';
+    my $filename = 'doc/Type/' ~ $type.name.subst(:g, '::', '/') ~ '.rakudoc';
     printf "%-40s not found in documentation\n", $type.name() unless $filename.IO.e;
     CATCH { default { } }
 }

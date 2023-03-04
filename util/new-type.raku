@@ -2,11 +2,11 @@
 
 # If the documentation for a type does not exist, create the skeleton of the doc
 # $ raku util/new-type.raku --kind=role Some::Role
-# this creates the file doc/Type/Some/Role.pod6
+# this creates the file doc/Type/Some/Role.rakudoc
 
 sub MAIN($typename, :$kind='class') {
     my @path-chunks =  $typename.split('::');
-    my $filename = @path-chunks.pop ~ '.pod6';
+    my $filename = @path-chunks.pop ~ '.rakudoc';
     my $path = 'doc/Type';
     for @path-chunks -> $c {
         $path ~= "/$c";

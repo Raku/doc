@@ -41,7 +41,7 @@ sub run-ok($file) {
 }
 
 sub remove-skip($file, $skip-pos, :$solo=False) {
-    my ($test-file, $test-io) = tempfile(:suffix<.pod6>, :!unlink);
+    my ($test-file, $test-io) = tempfile(:suffix<.rakudoc>, :!unlink);
 
     for $file.IO.slurp.lines.kv -> $pos, $line  {
         if $pos == $skip-pos {

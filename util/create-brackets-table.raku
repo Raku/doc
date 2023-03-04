@@ -33,7 +33,7 @@ for @*ARGS {
 # The output table file:
 my $repopath = $*PROGRAM.IO.absolute.IO.parent(2);
 my $fdir1 = $repopath ~ "/doc/Language";
-my $f1    = "$fdir1/brackets.pod6";
+my $f1    = "$fdir1/brackets.rakudoc";
 
 # The local copy of HLL::Grammar.nqp:
 my $fdir2 = $repopath ~ "/util";
@@ -50,13 +50,13 @@ if $debug {
 # file at https://github.com/Raku/nqp/src/HLL/Grammar.nqp.
 my @bracket-chars = get-brackets :grammar-file($f2), :$refresh, :$debug;
 
-write-brackets-pod6-file :table-file($f1), :@bracket-chars, :$debug;
+write-brackets-rakudoc-file :table-file($f1), :@bracket-chars, :$debug;
 
 say "Normal end.";
 my $of = $f1.IO.relative;
 say "See output file '$of'";
 
-sub write-brackets-pod6-file(:$table-file, :@bracket-chars!, :$reorder?, :$debug?) {
+sub write-brackets-rakudoc-file(:$table-file, :@bracket-chars!, :$reorder?, :$debug?) {
 
     # The pipe bracket is used to enclose the char pairs in the table.
     # They must be escaped for use on doc site
