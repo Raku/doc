@@ -27,11 +27,19 @@ sub is-valid-c($contents) {
 }
 
 sub walk-content($x) {
+    my $trailing-ok = False;
     for $x.contents -> $contents {
         next unless $contents;
         for @$contents -> $item {
+            if $item ~~ Pod::FormattingCode and $item.type eq 'Z' {
+                if $item.contents.lc ~~ 'ignore-code-ws' {
+                  # skip the validity check for the next C<>
+                  $trailing-ok = True;
+                }
+            }
             if $item ~~ Pod::FormattingCode and $item.type eq 'C' {
-                is-valid-c($item.contents);
+                is-valid-c($item.contents) unless $trailing-ok;
+                $trailing-ok = False;
             } elsif $item !~~ Str {
                 walk-content($item);
             }
