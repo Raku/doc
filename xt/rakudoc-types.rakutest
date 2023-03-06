@@ -1,0 +1,142 @@
+#!/usr/bin/env raku
+
+=begin overview
+
+When referring to items that are types, the required format is:
+
+   L<C<Thing>|/type/Thing>
+
+Any other formatting code that refers to a type will fail the test; any C<>
+that isn't inside of an L<> will fail, and any L<> that doesn't have a C<>
+will fail. Links may end with an optional #id.
+
+Exceptions:
+
+=item Referring to a type on its own page should only use C<>.
+=item It's OK to refer to a routine page with the same name instead.
+
+=end overview
+
+use Test;
+use lib $*PROGRAM.parent(2).child('lib');
+
+use Test-Files;
+use Pod::Convenience;
+
+my @files = Test-Files.pods;
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No rakudoc files specified>
+}
+
+# TODO: Renders #tags oddly.
+sub render-node($node) {
+    my $type = $node.contents.join('');
+    my $result = $node.type ~ '<' ~ $type;
+    if $node.type eq 'L' {
+        $result ~= '|' ~ $node.meta.join('');
+    }
+    $result ~= '>';
+
+    $result;
+}
+
+# given a slashy type, see if that file exists on disk
+# To work on case-insensitive file systems, we grep the dir listing
+# rather than check a preconstructed path.
+
+sub file-exists($type) {
+    next if $type.fc eq 'raku'|'perl'; # Too common
+
+    my @parts = $type.split('/');
+
+
+    my $path = "doc/Type".IO;
+    while @parts {
+       my $part = @parts.shift;
+       $part ~= '.rakudoc' unless @parts.elems;
+       return False unless $path.dir.grep(*.basename eq $part);
+       $path = $path.child($part);
+    }
+    return True;
+}
+
+sub is-valid-type($node, $parent, $file) {
+    # only care about I<>, C<>, L<>, etc.
+    return unless $node ~~ Pod::FormattingCode;
+    return if $node.type eq 'X'; # These are OK as is, and not user-visible
+
+    # Does this match a documented type?
+    my $type = $node.contents.join('');
+    my $type-slash = $type.subst('::', '/', :g);
+    my $type-colon = $type.subst('/', '::', :g);
+
+    return unless file-exists($type-slash);
+
+    if $file eq "doc/Type/$type-slash.rakudoc" {
+        # We are on the same page as this type. Don't link it, only C<> it.
+        if $node.type ne 'C' or $type ne $type-colon {
+            flunk "{render-node($node)} should be C<$type-colon> - self reference";
+        } elsif $parent ~~  Pod::FormattingCode {
+            flunk "{$parent.type}<{render-node($node)}> should be C<$type> - bad parent FormattingCode - self reference";
+        } else {
+            pass "{render-node($node)} OK  - self reference";
+        }
+        return;
+    }
+
+    # Might be nested but we only report on the innermost here.
+    if $node.type ne 'C' {
+        flunk "{render-node($node)} should be L<C<$type>|/type/$type-colon>";
+        return;
+    }
+
+    # Probably in a paragraph
+    if $parent === Nil or ! ($parent ~~  Pod::FormattingCode) {
+        flunk "{render-node($node)} should be L<C<$type>|/type/$type-colon>";
+        return;
+    }
+
+    # Wrapped, but not in an L<>
+    if $parent.type ne 'L' {
+        flunk "$parent.type<{render-node($node)}> should be L<C<$type>|/type/$type-colon> - bad parent FormattingCode";
+        return;
+    }
+
+    my $meta = $parent.meta.join('');
+    if $meta eq "/type/$type-colon" or
+       $meta.starts-with: "/type/{$type-colon}#" {
+        # \o/
+        pass "L<{render-node($node)}|$meta>";
+    } else {
+        if $meta.starts-with('/routine/') {
+            # Is this pointing to an routine page? /routine is generated, so we cannot verify
+            # the existence of an actual file; trust if present.
+            pass "L<{render-node($node)}|$meta> - routine";
+        } else {
+            # Wrapped in an L<> with wrong URL
+            flunk "L<{render-node($node)}|$meta> should be L<C<$type>|/type/$type-colon> - bad link";
+        }
+    }
+}
+
+sub walk-content($item, $parent, $file) {
+    is-valid-type($item, $parent, $file);
+
+    next unless $item.can('contents');
+    for @($item.contents) -> $child {
+        walk-content($child, $item, $file);
+    }
+}
+
+# Walk through pod on each file.
+for @files -> $file {
+    my @chunks = extract-pod($file).contents;
+
+    # This emits pass or flunk for each local L<> found.
+    subtest $file => {
+        walk-content($_, Nil, $file) for @chunks;
+    }
+}
