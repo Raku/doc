@@ -1,0 +1,62 @@
+#!/usr/bin/env raku
+
+=begin overview
+
+It's possible for users to forget to add a formatting code when
+wrapping something in angle brackets:
+
+    This was supposed to be <bold>.
+
+This is valid pod, but in practices, these dangling <>'s often indicate an error.
+Complain whenever we find them, except for infix:<> and prefix:<>
+
+=end overview
+
+use Test;
+use lib $*PROGRAM.parent(2).child('lib');
+
+use Test-Files;
+use Pod::Convenience;
+
+my @files = Test-Files.pods;
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No rakudoc files specified>
+}
+
+sub is-valid-text($node) {
+    # Should be ok to look at only literal strings that get passed
+    if $node ~~ Str {
+        if $node ~~ / $<bracketed>=['<' .*? '>'] / {
+            return if ~$/<bracketed>.contains("prefix:<" | "infix:<" );
+            flunk ~$/<bracketed> ~ " is likely missing a formatting code";
+        }
+    }
+
+}
+
+sub walk-content($item) {
+    if !(
+        $item ~~ Pod::Block::Code or
+        $item ~~ Pod::Block::Comment or
+        $item ~~ Pod::FormattingCode
+    ) {
+        is-valid-text($item);
+        next unless $item.can('contents');
+        for @($item.contents) -> $child {
+            walk-content($child);
+        }
+    }
+}
+
+# Walk through pod on each file.
+for @files -> $file {
+    my @chunks = extract-pod($file).contents;
+
+    # This emits pass or flunk for each local L<> found.
+    subtest $file => {
+        walk-content($_) for @chunks;
+    }
+}
