@@ -33,10 +33,15 @@ runtime code is executed, and that a class is available if needed.
 Note: because we are considering each POD code block independently,
 there is no guarantee that a partial snippet will itself be compilable.
 For this reason, it's fine to use `preamble` (see below) to give each
-block enough information to compile. For pedagogical reasons, it's
+block enough information to compile.
+
+For pedagogical reasons, it's
 OK to break what would otherwise be a large block of code into smaller
 chunks and discuss each one separately - we still want to do our best
-to compile these individual chunks.
+to compile these individual chunks. However, avoid this practice across
+methods on a Type/ page, which an be split up to show only a single method.
+Even on a Language/ page, avoid continuing an example for more than a
+page or so.
 
 ## Skipping or finessing tests
 
