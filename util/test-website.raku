@@ -1,5 +1,15 @@
 #!/usr/bin/env raku
 
+=begin comment
+
+This script clones the website repository (or updates the clone if it already exists)
+and then runs the xtest suite against those rakudoc files.
+
+To create a PR for doc-website, one will have to create a branch in the checkout
+manually and push manually once the tests pass.
+
+=end comment
+
 my $dir = "doc-website".IO;
 
 if $dir.d {
