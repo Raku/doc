@@ -5,6 +5,8 @@
 
 An HTML version of this documentation can be found
 at [https://docs.raku.org/](https://docs.raku.org/).
+That site is updated from the main branch here
+frequently (but not continuously).
 
 This is currently the recommended way to consume the documentation. The tooling
 to build and run this site is [available on github](https://github.com/Raku/doc-website).
