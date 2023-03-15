@@ -49,7 +49,7 @@ There is a [CLI](https://github.com/Raku/rakudoc) for viewing Raku documentation
 
 # LICENSE
 
-The code in this repository is available under the Artistic License 2.0
+The documentation and code in this repository is available under the Artistic License 2.0
 as published by The Perl Foundation. See the [LICENSE](LICENSE) file for the full
 text.
 
