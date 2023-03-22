@@ -15,20 +15,21 @@ Here are some ways to contribute:
 
 [Issues page](https://github.com/Raku/doc/issues) has a list of current issues and
 documentation parts that are known to be missing
-and [the CONTRIBUTING document](CONTRIBUTING.md)
+and [the CONTRIBUTING document](../CONTRIBUTING.md)
 explains briefly how to get started contributing documentation.
 
 # Other docs
 
 For specific topics, please see:
-   * [CREATING-NEW-DOCS.md]
-   * [EXAMPLES.md]
-   * [INDEXING.md]
-   * [STYLEGUIDE.md]
+
+   * [CREATING-NEW-DOCS.md](CREATING-NEW-DOCS.md)
+   * [EXAMPLES.md](EXAMPLES.md)
+   * [INDEXING.md](INDEXING.md)
+   * [STYLEGUIDE.md](STYLEGUIDE.md)
 
 # Pull Requests
 
 The preferred mechanism for submitting content is [pull requests](https://github.com/Raku/doc/pulls).
 
-When submitting a PR, please ensure that you've run `make xtest` for any modified files. See [Testing.md]
+When submitting a PR, please ensure that you've run `make xtest` for any modified files. See [Testing.md](Testing.md)
 for more details.
