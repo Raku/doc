@@ -41,11 +41,20 @@ sub is-valid-link($links) {
             # We don't handle fragments yet
             $original ~~ s/ '#' .* //;
 
-            # split into components, uppercase directory
+            # split into components
             my @path = $original.split('/')[1..*];
             next if @path[0] eq 'routine' | 'syntax'; # these are not primary sources, skip for now
 
-            @path[0] = @path[0].tc; # Should check if it was already uppercased and fail if so.
+            # Path elements in links should be lower case
+            my $local-path = @path[0];
+
+            if $local-path.fc ne $local-path {
+                flunk "$link should be lower case";
+                next;
+            }
+
+            # Folders are title-cased on disk
+            @path[0] = @path[0].tc;
 
             # Look in doc/ folder for this rakudoc file.
             @path.unshift: 'doc';
@@ -61,6 +70,10 @@ sub walk-content($x) {
         next unless $contents;
         for @$contents -> $item {
             if $item ~~ Pod::FormattingCode and $item.type eq 'L' {
+                # L<X> has an empty meta but renders as if it were L<X|X>, explicitly set this
+                unless $item.meta {
+                    $item.meta = $item.contents.join;
+                }
                 is-valid-link($item.meta);
             } elsif $item !~~ Str {
                 walk-content($item);
