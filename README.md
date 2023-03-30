@@ -13,14 +13,14 @@ to build and run this site is [available on github](https://github.com/Raku/doc-
 
 ## README in other languages
 
-  [Chinese](resources/i18n/zh/README.zh.md)
-| [Dutch](resources/i18n/nl/README.nl.md)
-| [French](resources/i18n/fr/README.fr.md)
-| [German](resources/i18n/de/README.de.md)
-| [Italian](resources/i18n/it/README.it.md)
-| [Japanese](resources/i18n/jp/README.jp.md)
-| [Portuguese](resources/i18n/pt/README.pt.md)
-| [Spanish](resources/i18n/es/README.es.md)
+  [日本語](resources/i18n/jp/README.jp.md)
+| [普通话](resources/i18n/zh/README.zh.md)
+| [Deutsche](resources/i18n/de/README.de.md)
+| [español](resources/i18n/es/README.es.md)
+| [français](resources/i18n/fr/README.fr.md)
+| [italiano](resources/i18n/it/README.it.md)
+| [nederlands](resources/i18n/nl/README.nl.md)
+| [Português](resources/i18n/pt/README.pt.md)
 
 ## Help Wanted!
 
