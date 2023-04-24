@@ -816,6 +816,330 @@ mutable one.
 
 # TBD
 
+=head1 Buffers
+
+NodeJS handles raw binary data with the classes C<Buffer> and C<Blob>, while Raku
+does so with the roles L<C<Buf>|/type/Buf> and L<C<Blob>|/type/Blob>, which are
+mutable and immutable buffers respectively. In Raku, a `Buf` composes a `Blob`
+so all `Blob` methods are available to `Buf` objects.
+
+The following table summarizes the similarities and differences between buffer
+constructs in NodeJS and Raku:
+
+=begin table
+       Class/Role  | NodeJS      | Raku
+    ===============+=============+===========
+    `Buffer`/`Buf` | Fixed-length sequence of bytes (No methods such as `push`, `pop`, etc.) | Sequence of bytes that can grow or shrink dynamically. You can use methods such as `push`, `pop`, etc.
+                   | Iterable using the `for..of` syntax                                     | It can be iterated over using a looping construct.
+                   | Each byte can be updated using array indexing, e.g., `buf[i]++`.        | Same as NodeJS.
+    `Blob`         | Fixed-length sequence of bytes (No methods such as `push`, `pop`, etc.) | Same as NodeJS.
+                   | It's not iterable.                                                      | It can be iterated over using a looping construct.
+                   | Each byte is immutable.                                                 | Same as NodeJS.
+=end table
+
+=head2 Creating buffers
+
+In NodeJS, there are a few ways to create a new buffer. You can use the static
+method C<Buffer.alloc> to allocate a buffer of C<n> bytes of zero, unless the
+C<fill> argument is provided.
+
+=begin code :lang<javascript>
+const zeroBuf = Buffer.alloc(8);
+const charBuf = Buffer.alloc(8, 97, 'utf-8');
+console.log(zeroBuf); // OUTPUT: «<Buffer 00 00 00 00 00 00 00 00>␤»
+console.log(charBuf); // OUTPUT: «<Buffer 61 61 61 61 61 61 61 61>␤»
+=end code
+
+In Raku, you can use the L<C<allocate>|/routine/allocate> method:
+
+=begin code :lang<raku>
+my $zero-blob = Blob.allocate(8);
+my $char-blob = Blob.allocate(8, 97);
+say $zero-blob; # OUTPUT: «Blob:0x<00 00 00 00 00 00 00 00>␤»
+say $char-blob; # OUTPUT: «Blob:0x<61 61 61 61 61 61 61 61>␤»
+
+my $zero-buf = Buf.allocate(8);
+my $char-buf = Buf.allocate(8, 97;
+say $zero-buf; # OUTPUT: «Buf:0x<00 00 00 00 00 00 00 00>␤»
+say $char-buf; # OUTPUT: «Buf:0x<61 61 61 61 61 61 61 61>␤»
+=end code
+
+You can also initialize a buffer to the contents of an array of integers:
+
+=begin code :lang<javascript>
+const buf = Buffer.from([ 114, 97, 107, 117 ]);
+console.log(buf); // OUTPUT: «<Buffer 72 61 6b 75>␤»
+=end code
+
+In Raku, you can do the same by using the L<C<new>|/type/Blob#method_new>
+constructor:
+
+=begin code :lang<raku>
+my $blob = Blob.new(114, 97, 107, 117);
+say $blob; # OUTPUT: «Blob:0x<72 61 6B 75>␤»
+
+my $buf = Buf.new(114, 97, 107, 117);
+say $buf; # OUTPUT: «Buf:0x<72 61 6B 75>␤»
+=end code
+
+Similarly, you can initialize a buffer to the binary encoding of a string using
+the C<from> method:
+
+=begin code :lang<javascript>
+const buf = Buffer.from('NodeJS & Raku', 'utf-8');
+console.log(buf); // OUTPUT: «<Buffer 4e 6f 64 65 4a 53 20 26 20 52 61 6b 75>␤»
+=end code
+
+In Raku, you call the L<C<encode>/routine/encode> method on a string which
+returns a C<Blob>:
+
+=begin code :lang<raku>
+my $blob = "NodeJS & Raku".encode('utf-8');
+say $blob; # OUTPUT: «utf8:0x<4E 6F 64 65 4A 53 20 26 20 52 61 6B 75>␤»
+=end code
+
+B<Note:> In Raku, you must encode a character explicitly when passing its blob
+to a buffer-related method.
+
+To decode a binary encoding of a string, you call the C<toString> method on the
+buffer:
+
+=begin code :lang<javascript>
+const buf = Buffer.from([ 114, 97, 107, 117 ]);
+console.log(buf.toString('utf-8')); // OUTPUT: «raku␤»
+=end code
+
+In Raku, you call the L<C<decode>/routine/decode> method on the buffer:
+
+=begin code :lang<raku>
+my $blob = Blob.new(114, 97, 107, 117);
+say $blob.decode('utf-8'); # OUTPUT: «raku␤»
+=end code
+
+=head2 Writing to a buffer
+
+In NodeJS, you write to a buffer using the C<write> method:
+
+=begin code :lang<javascript>
+const buf = Buffer.alloc(16);
+buf.write('Hello', 0, 'utf-8');
+console.log(buf); // OUTPUT: «<Buffer 48 65 6c 6c 6f 00 00 00 00 00 00 00 00 00 00 00>␤»
+buf.write(' world!', 5, 'utf-8');
+console.log(buf); // OUTPUT: «<Buffer 48 65 6c 6c 6f 20 77 6f 72 6c 64 21 00 00 00 00>␤»
+=end code
+
+In Raku, there's not a C<write> method. However you can use the
+L<C<splice>|/type/Buf#method_splice> method to overwrite elements of a buffer
+with other elements:
+
+=begin code :lang<raku>
+my $buf = Buf.allocate(16);
+$buf.splice(0, 5, 'Hello'.encode('utf-8'));
+say $buf; # OUTPUT: «Buf:0x<48 65 6C 6C 6F 00 00 00 00 00 00 00 00 00 00 00>␤»
+$buf.splice(5, 7, ' world!'.encode('utf-8'));
+say $buf; # OUTPUT: «Buf:0x<48 65 6C 6C 6F 20 77 6F 72 6C 64 21 00 00 00 00>␤»
+=end code
+
+=head2 Reading from a buffer
+
+There are many ways to access data in a buffer, from accessing individual bytes
+to extracting the entire content to decoding its contents.
+
+=begin code :lang<javascript>
+const buf = Buffer.from('Hello', 'utf-8');
+console.log(buf[0]); // OUTPUT: «72␤»
+=end code
+
+In Raku, you can also index bytes of a buffer with
+L<C<[]>|/language/operators#postcircumfix_[_]>:
+
+=begin code :lang<raku>
+my $blob = 'Hello'.encode('utf-8');
+say $blob[0]; # OUTPUT: «72␤»
+=end code
+
+In NodeJS the most common way to retrieve all data from a buffer is with the
+C<toString> method (assuming the buffer is encoded as text):
+
+=begin code :lang<javascript>
+const buf = Buffer.from('Hello');
+const buf = Buffer.alloc(16);
+buf.write('Hello world', 0, 'utf-8');
+console.log(buf.toString('utf-8')); // OUTPUT: «Hello world!\u0000t␤»
+=end code
+
+We can provide an offset and a length to C<toString> to only read the relevant
+bytes from the buffer:
+
+=begin code :lang<javascript>
+console.log(buf.toString('utf-8', 0, 12)); // OUTPUT: «Hello world!␤»
+=end code
+
+In Raku, you can do the same using the C<decode> method:
+
+=begin code :lang<raku>
+my $buf = Buf.allocate(16);
+$buf.splice(0, 12, 'Hello world'.encode('utf-8'));;
+say $buf.decode('utf-8').raku; # OUTPUT: «Hello world!\0\0\0\0>␤»
+=end code
+
+However, you cannot both slice and decode a buffer with C<decode>. Instead you
+can use L<C<subbuf>> to extract the relevant part from the invocant buffer and
+then C<decode> the returned buffer:
+
+=begin code :lang<raku>
+say $buf.subbuf(0, 12).decode('utf-8').raku; # OUTPUT: «Hello world!>␤»
+=end code
+
+=head2 More useful methods
+
+=head3 C<Buffer.isBuffer>
+
+In NodeJS, you can check if an object is a buffer using the C<isBuffer> method:
+
+=begin code :lang<javascript>
+const buf = Buffer.from('hello');
+console.log(Buffer.isBuffer(buf)); // OUTPUT: «true␤»
+=end code
+
+In Raku, you can smartmatch against either C<Blob> or C<Buf> (remember that
+C<Buf> composes C<Blob>):
+
+=begin code :lang<raku>
+my $blob = 'hello'.encode();
+my $buf = Buf.allocate(4);
+say $blob ~~ Blob; # OUTPUT: «True␤»
+say $blob ~~ Buf;  # OUTPUT: «False␤»
+say $buf ~~ Buf;   # OUTPUT: «True␤»
+say $buf ~~ Blob;  # OUTPUT: «True␤»
+=end code
+
+=head3 C<Buffer.byteLength>
+
+To check the number of bytes required to encode a string, you can use
+C<Buffer.byteLength>:
+
+=begin code :lang<javascript>
+const camelia = '🦋';
+console.log(Buffer.byteLength(camelia)); // OUTPUT: «4␤»
+=end code
+
+In Raku, you can use the L<C<bytes>|/routine/bytes> method:
+
+=begin code :lang<raku>
+my $camelia = '🦋';
+say $camelia.encode.bytes; # OUTPUT: «4␤»
+=end code
+
+B<NOTE:> The number of bytes isn't the same as the string's length. This is
+because many characters require more bytes to be encoded than what their
+lengths let on.
+
+=head3 C<length>
+
+In NodeJS, you use the C<length> method to determine how much memory is
+allocated by a buffer. This is not the same as the size of the buffer's
+contents.
+
+=begin code :lang<javascript>
+const buf = Buffer.alloc(16);
+buf.write('🦋');
+console.log(buf.length); // OUTPUT: «16␤»
+=end code
+
+In Raku, you can use the L<C<elems>|/routine/elems> method:
+
+=begin code :lang<raku>
+const buf = Buffer.alloc(16);
+my $buf = Buf.allocate(16);
+$buf.splice(0, '🦋'.encode.bytes, '🦋'.encode('utf-8'));
+say $buf.elems; # OUTPUT: «16␤»
+=end code
+
+=head3 C<copy>
+
+You use the C<copy> method to copy the contents of one buffer onto another. 
+
+=begin code :lang<javascript>
+const target = Buffer.alloc(24);
+const source = Buffer.from('🦋', 'utf-8');
+target.write('Happy birthday! ', 'utf-8');
+source.copy(target, 16);
+console.log(target.toString('utf-8', 0, 20)); // OUTPUT: «Happy birthday! 🦋␤»
+=end code
+
+There's no C<copy> method in Raku, however you can use the C<splice> method for
+the same result:
+
+=begin code :lang<raku>
+my $target = Buf.allocate(24);
+my $encoded-string = 'Happy birthday! '.encode('utf-8');
+$target.splice(0, $encoded-string.bytes, $encoded-string);
+my $source = '🦋'.encode('utf-8');
+$target.splice(16, $source.bytes, $source);
+say $target.subbuf(0, 20).decode('utf-8'); # OUTPUT: «Happy birthday! 🦋␤»
+=end code
+
+=head3 C<slice>
+
+You can slice a subset of a buffer using the C<slice> method, which returns a
+reference to the subset of the memory space. Thus modifying the slice will also
+modify the original buffer.
+
+=begin code :lang<javascript>
+// setup
+const target = Buffer.alloc(24);
+const source = Buffer.from('🦋', 'utf-8');
+target.write('Happy birthday! ', 'utf-8');
+source.copy(target, 16);
+
+// slicing off buffer
+const animal = target.slice(16, 20);
+animal.write('🐪');
+console.log(animal.toString('utf-8'); // OUTPUT: «🐪␤»
+
+console.log(target.toString('utf-8', 0, 20)); // OUTPUT: «Happy birthday! 🐪␤»
+=end code
+
+Here we sliced off C<target> and stored the resulting buffer in C<animal>, which
+we ultimately modified. This resulted on C<target> being modified.
+
+In Raku, you can use the L<C<subbuf>|/routine/subbuf> method:
+
+=begin code :lang<raku>
+# setup
+my $target = Buf.allocate(24);
+my $encoded-string = 'Happy birthday! '.encode('utf-8');
+$target.splice(0, $encoded-string.bytes, $encoded-string);
+my $source = '🦋'.encode('utf-8');
+$target.splice(16, $source.bytes, $source);
+
+# slicing off buffer
+my $animal = $target.subbuf(16, 20);
+$animal.splice(0, $animal.bytes, '🐪'.encode('utf-8'));
+say $animal.decode; # OUTPUT: «🐪␤»
+
+say $target.subbuf(0, 20).decode('utf-8'); # OUTPUT: «Happy birthday! 🦋␤»
+=end code
+
+However, unlike NodeJS's C<slice> method, C<subbuf> returns a brand new buffer.
+To get a hold of a writable reference to a subset of a buffer, use
+L<C<subbuf-rw>|/routine/subbuf-rw>:
+
+=begin code :lang<raku>
+# setup
+my $target = Buf.allocate(24);
+my $encoded-string = 'Happy birthday! '.encode('utf-8');
+$target.splice(0, $encoded-string.bytes, $encoded-string);
+my $source = '🦋'.encode('utf-8');
+$target.splice(16, $source.bytes, $source);
+
+# slicing off buffer
+$target.subbuf-rw(16, 4) = '🐪'.encode('utf-8');
+
+say $target.subbuf(0, 20).decode('utf-8'); # OUTPUT: «Happy birthday! 🐪␤»
+=end code
+
 =head1 The networking API
 
 =head2 Net
