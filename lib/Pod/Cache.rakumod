@@ -3,7 +3,7 @@ unit class Pod::Cache;
 =begin overview
 
 Given a filename, generate a cached, rendered text version of the POD
-in that file.
+in that file. Return the C<IO> of the cached file.
 
 =end overview
 
