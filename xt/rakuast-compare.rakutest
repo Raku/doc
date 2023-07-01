@@ -1,0 +1,46 @@
+#!/usr/bin/env raku
+
+use Test;
+use lib $*PROGRAM.parent(2).child('lib');
+use Test-Files;
+
+=begin overview
+
+For all raku docs, compare output from RAKUAST and old --doc
+
+=end overview
+
+my @files = Test-Files.pods;
+
+%*ENV<RAKUDO_AST_DOCS> ??
+    plan +@files !! 
+    plan(:skip-all( "Set RAKUDO_AST_DOCS to run this test" ));
+
+for @files -> $file {
+
+    %*ENV<RAKUDO_RAKUAST>="";
+    my $old = "";
+    my $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+    $job.stdout.tap(-> $buf {$old ~= $buf});
+    $job.stderr.tap({;});
+
+    my $has-error = ! await $job.start;
+    if $has-error {
+       flunk "Error occurred caching $file old school";
+       next;
+    }
+
+    %*ENV<RAKUDO_RAKUAST>="1";
+    my $new = "";
+    $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
+    $job.stdout.tap(-> $buf {$new ~= $buf});
+    $job.stderr.tap({;});
+
+    $has-error = ! await $job.start;
+    if $has-error {
+        flunk "Error occurred caching $file new school";
+        next;
+    }
+    
+    ok $old eq $new, "$file contents match";
+}
