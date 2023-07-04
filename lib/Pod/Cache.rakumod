@@ -22,6 +22,8 @@ method cache-file(Str $file --> Str) {
        my $outfile = $output-io.open(:w);
        LEAVE $outfile.close;
        $outfile.lock;
+
+       %*ENV<RAKUDO_RAKUAST>="1"; # Activate AST mode
        my $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
        $job.stdout.tap(-> $buf {$outfile.print: $buf});
 
