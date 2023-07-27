@@ -15,7 +15,129 @@ language versions it is only available when specifying:
 
     use experimental :rakuast;
 
+=head2 Object introspection
+
+C<RakuAST::Doc::Block> objects are typically created when parsing
+Raku Programming Language code that has C<RakuDoc> markers in it.
+So most developers will only need to know how to introspect the
+objects created.
+
+=head3 method type
+
+    say "type = $block.type()";
+
+Returns the type of the block.
+
+=head3 method level
+
+    say "level = $block.level()";
+
+Returns a string associated with the level.  If the level is B<0>, then
+it will return an empty string.  Otherwise it will return the
+stringification of the integer value.
+
+=head3 method config
+
+    say "allows: $_"
+      with $block.config<allow> andthen .literalize;
+
+Returns the C<Map> with any configuration.  Note that you can get
+any constant values by calling the C<.literalize> method on them.
+See also C<resolved-config>.
+
+=head3 method resolved-config
+
+    say "allows: $_" with $block.resolved-config<allow>;
+
+Returns the C<Map> with any configuration, with the values already
+resolved to "normal" Raku objects.  See also C<config>.
+
+Is available by default if the object was created by the Raku
+grammar.  If the object was created "manually", then the
+C<literalize-config> method must be called once first.
+
+=head3 method paragraphs
+
+    for $block.paragraphs {
+        say $_;
+    }
+
+Returns a C<List> of the paragraphs.  Note that each element can
+either be a string, a C<RakuAST::Doc::Paragraph> or another
+C<RakuAST::Doc::Block> object.
+
+=head3 method delimited
+
+    with $block {
+        say "=begin $_.type" if .block;
+    }
+
+Returns a C<Bool> indicating the block is a delimited block (aka
+with a C<=begin> and a C<=end>.
+
+=head3 method for
+
+    with $block {
+        say "=for $_.type" if .for;
+    }
+
+Returns a C<Bool> indicating the block is an extended block (aka
+with just a C<=for>.
+
+=head3 method abbreviated
+
+    with $block {
+        say "=$_.type" if .abbreviated;
+    }
+
+Returns a C<Bool> indicating the block is an abbreviated block
+(aka with just C<=> followed by the type, e.g. C<=foo>).
+
+=head3 method directive
+
+    with $block {
+        say "=$_.type" if .directive;
+    }
+
+Returns a C<Bool> indicating the block is a RakuDoc directive
+(aka with just C<=> followed by the type, e.g. C<=row>).
+
+=head3 method allowed-markup
+
+    my %*OK := $block.allowed-markup;
+    say "B markup is allowed" if %*OK<B>;
+
+Returns a special purpose C<Map> that can be checked to see whether
+a given markup type is allowed in the block, assuming C<RakuDoc>
+semantics.  Usually C<bound> to a dynamic variable, so it can be
+accessible for rendering all inner C<RakuAST::Doc::Markup> objects.
+
+Three types of C<Map>s can be returned:
+=item a real C<Map> from the C<:allow> configuration
+=item a subclass of C<Map> that returns C<True> for all uppercase letters
+=item a subclass of C<Map> that always returns C<False>
+
+=head3 method Str
+
+    put $block;  # bar␤
+
+Returns the string for the paragraphs of the block, with any
+markup also stringified.
+
+=head3 method raku
+
+   # method .gist falls back to .raku
+   say $block;  # RakuAST::Doc::Block.new(...
+
+Returns the string that is needed for the creation of the block
+using C<RakuAST> calls.
+
 =head1 Object creation
+
+One seldomly creates C<RakuAST::Doc::Block> objects directly.  This
+documentation is intended for those few people who'd like to devise
+their own way of programmatically building a C<RakuAST::Doc::Block>
+object.
 
 =head2 method new
 
@@ -81,9 +203,10 @@ consist of 0 or more spaces.  Defaults to the empty string.
 =head3 :paragraphs
 
 The actual content of the block, specified as a C<Positional>.
-Each element can either be a string or aC<RakuAST::Doc::Paragraph>
-object.  In the case of a string, it is assumed that the C<:margin>
-has already been removed from each line in the string.
+Each element can either be a string, aC<RakuAST::Doc::Paragraph>
+or another C<RakuAST::Doc::Block> object.  In the case of a string,
+it is assumed that the C<:margin> has already been removed from each
+line in the string.
 
 =head3 :for, :abbreviated, :directive
 
@@ -196,116 +319,5 @@ puts the result in C<resolved-config>.
 If the object was created from the Raku grammar, then there is
 no need to call this method ever, as it will have been called
 as part of the C<CHECK> phaser checks already.
-
-=head2 Object introspection
-
-=head3 method type
-
-    say "type = $block.type()";
-
-Returns the type of the block.
-
-=head3 method level
-
-    say "level = $block.level()";
-
-Returns a string associated with the level.  If the level is B<0>, then
-it will return an empty string.  Otherwise it will return the
-stringification of the integer value.
-
-=head3 method config
-
-    say "allows: $_"
-      with $block.config<allow> andthen .literalize;
-
-Returns the C<Map> with any configuration.  Note that you can get
-any constant values by calling the C<.literalize> method on them.
-See also C<resolved-config>.
-
-=head3 method resolved-config
-
-    say "allows: $_" with $block.resolved-config<allow>;
-
-Returns the C<Map> with any configuration, with the values already
-resolved to "normal" Raku objects.  See also C<config>.
-
-Is available by default if the object was created by the Raku
-grammar.  If the object was created "manually", then the
-C<literalize-config> method must be called once first.
-
-=head3 method paragraphs
-
-    for $block.paragraphs {
-        say $_;
-    }
-
-Returns a C<List> of the paragraphs.  Note that each element can
-either be a string or a C<RakuAST::Doc::Paragraph> object.
-
-=head3 method delimited
-
-    with $block {
-        say "=begin $_.type" if .block;
-    }
-
-Returns a C<Bool> indicating the block is a delimited block (aka
-with a C<=begin> and a C<=end>.
-
-=head3 method for
-
-    with $block {
-        say "=for $_.type" if .for;
-    }
-
-Returns a C<Bool> indicating the block is an extended block (aka
-with just a C<=for>.
-
-=head3 method abbreviated
-
-    with $block {
-        say "=$_.type" if .abbreviated;
-    }
-
-Returns a C<Bool> indicating the block is an abbreviated block
-(aka with just C<=> followed by the type, e.g. C<=foo>).
-
-=head3 method directive
-
-    with $block {
-        say "=$_.type" if .directive;
-    }
-
-Returns a C<Bool> indicating the block is a RakuDoc directive
-(aka with just C<=> followed by the type, e.g. C<=row>).
-
-=head3 method allowed-markup
-
-    my %*OK := $block.allowed-markup;
-    say "B markup is allowed" if %*OK<B>;
-
-Returns a special purpose C<Map> that can be checked to see whether
-a given markup type is allowed in the block, assuming C<RakuDoc>
-semantics.  Usually C<bound> to a dynamic variable, so it can be
-accessible for rendering all inner C<RakuAST::Doc::Markup> objects.
-
-Three types of C<Map>s can be returned:
-=item a real C<Map> from the C<:allow> configuration
-=item a subclass of C<Map> that returns C<True> for all uppercase letters
-=item a subclass of C<Map> that always returns C<False>
-
-=head3 method Str
-
-    put $block;  # bar␤
-
-Returns the string for the paragraphs of the block, with any
-markup also stringified.
-
-=head3 method raku
-
-   # method .gist falls back to .raku
-   say $block;  # RakuAST::Doc::Block.new(...
-
-Returns the string that is needed for the creation of the block
-using C<RakuAST> calls.
 
 =end pod
