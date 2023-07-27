@@ -1,0 +1,158 @@
+=begin pod :kind("Type") :subkind("package") :category("basic")
+
+=TITLE package RakuAST::Doc
+
+=SUBTITLE Namespace for holding RakuDoc related classes
+
+    package RakuAST::Doc { }
+
+The C<RakuAST::Doc> package serves as a common namespace for all
+classes that provide RakuDoc functionality.
+
+Support for C<RakuAST> functionality is available in language version
+C<6.e+> and was added in Rakudo compiler release 2023.02.  In earlier
+language versions it is only available when specifying:
+
+    use experimental :rakuast;
+
+=head1 Classes
+
+Relations between the C<RakuAST::Doc::> classes:
+
+    RakuAST::Doc::Block
+     \- paragraphs
+         |- string
+         |- RakuAST::Doc::Paragraph
+         |   \- atoms
+         |       |- string
+         |       \- RakuAST::Doc::Markup
+         |           \- atoms
+         |               |- string
+         |               \- RakuAST::Doc::Markup
+         \- RakuAST::Doc::Block
+
+Note that this structure is recursive with regards to the
+C<RakuAST::Doc::Block> object (which can occur as an element
+of the paragraphs of a C<RakuAST::Doc::Block>), and the
+C<RakuAST::Doc::Markup> object (which can occur as an element
+of the atoms of a C<RakuAST::Doc::Markup>).
+
+=head2 class RakuAST::Doc::Block
+
+The C<RakuAST::Doc::Block> object contains the information about a block
+of C<RakuDoc>.  It has a type ("foo" in the case of C<=begin foo>)
+and it has zero or more paragraphs.  Each paragraph may consist
+of a string (which implies there is no extra markup in there) or
+a C<RakuAST::Doc::Paragraph> object, or another C<RakuAST::Doc::Block>
+in the case of C<RakuDoc> blocks embedding other blocks.
+
+A C<RakuAST::Doc::Block> typically occurs in C<RakuAST::StatementList>
+objects when it is the result of parsing Raku Programming Language
+code, or C<RakuDoc> documentation.
+
+=head2 class RakuAST::Doc::Paragraph
+
+The C<RakuAST::Doc::Paragraph> object contains the information about
+the atoms that constitute the paragraph.  Each atom may be either a
+string or a C<RakuAST::Doc::Markup> object.
+
+=head2 class RakuAST::Doc::Markup
+
+The C<RakuAST::Doc::Markup> object contains the information about
+a markup atom, and itself contains a list of atoms.  Each atom may
+be either a string or a C<RakuAST::Doc::Markup> object in the case
+of embedded markup.
+
+=head2 EXAMPLE
+
+This small piece of RakuDoc:
+
+=begin code
+=begin rakudoc
+This is an L<B<example>|https://example.com>>.
+=end rakudoc
+=end code
+
+is represented in C<RakuAST::Doc::> objects like this:
+
+  RakuAST::Doc::Block.new(
+    type       => "rakudoc",
+    paragraphs => (
+      RakuAST::Doc::Paragraph.new(
+        "This is an ",
+        RakuAST::Doc::Markup.new(
+          letter => "L",
+          opener => "<",
+          closer => ">",
+          atoms  => (
+            RakuAST::Doc::Markup.new(
+              letter => "B",
+              opener => "<",
+              closer => ">",
+              atoms  => (
+                "example",
+              )
+            ),
+          ),
+          meta   => (
+            "https://example.com",
+          )
+        ),
+        ">.\n"
+      ),
+    )
+  );
+
+=head2 class RakuAST::Doc::Declarator
+
+The C<RakUAST::Doc::Declarator> object contains the leading and
+trailing documentation of a C<RakuAST> object doing the
+C<RakuAST::Doc::DeclaratorTarget> role.
+
+=head2 role RakuAST::Doc::DeclaratorTarget
+
+The C<RakuAST::Doc::DeclaratorTarget> role is done by C<RakuAST>
+objects that allow leading and/or trailing documentation when
+used in Raku source code.
+
+=head2 EXAMPLE
+
+Raku code with leading and trailing declarator doc:
+
+=begin code
+#| important variable
+my $foo;  #= really!
+=end code
+
+is represented like this:
+
+  RakuAST::VarDeclaration::Simple.new(
+    sigil       => "\$",
+    desigilname => RakuAST::Name.from-identifier("foo")
+  ).declarator-docs(
+    leading  => (
+      "important variable\n",
+    ),
+    trailing => (
+      "really!\n",
+    )
+  );
+
+Note that the representation is B<not> showing the actual
+C<RakuAST::Doc::Declarator> object.  This is hidden in the
+C<.declarator-docs> call.
+
+This is needed to create a single-statement representation
+of the target object (in this case the
+C<RakuAST::VarDeclaration::Simple> object) and its associated
+C<RakuAST::Doc::Declarator> object.
+
+That is because objects doing the C<RakuAST::Doc::DeclaratorTarget>
+refer to the associated C<RakuAST::Doc::Declarator> object in
+the C<.WHY> method.  But conversely, the C<RakuAST::Doc::Declarator>
+object refers to its subject with the C<.WHEREFORE> method.  So
+there's a chicken-and-egg problem, which was solved by introducing
+the C<.declarator-docs> method on objects doing the
+C<RakuAST::Doc::DeclaratorTarget> role.
+
+=end pod
