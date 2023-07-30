@@ -77,7 +77,7 @@ channel and/or the [issues for this repository](https://github.com/Raku/doc/issu
 before you proceed further. After you get consensus on a title, subtitle,
 section, and filename, you can add the document by following these steps:
 
-+ create a **filename.pod6** file in the **doc/Language** directory and
++ create a **filename.rakudoc** file in the **doc/Language** directory and
   ensure it adheres to the conventions in
   [CREATING-NEW-DOCS.md](writing-docs/CREATING-NEW-DOCS.md).
 
@@ -97,9 +97,9 @@ with the helper tool `util/new-type.raku`. Say you want to create `MyFunnyRole`:
 
     $ raku util/new-type.raku --kind=role MyFunnyRole
 
-Fill the documentation file `doc/Type/MyFunnyRole.pod6` like this:
+Fill the documentation file `doc/Type/MyFunnyRole.rakudoc` like this:
 
-```perl6
+```raku
 =TITLE role MyFunnyRole
 
 =SUBTITLE Sentence or half-sentence about what it does
@@ -131,7 +131,7 @@ comment `Z<>`.
 
 When providing a code example result or output, use this style:
 
-```perl6
+```raku
 # For the result of an expression.
 1 + 2;     # RESULT: «3»
 # For the output.
@@ -182,7 +182,7 @@ to display heading numbers.
 
 Report issues with the content on [github](https://github.com/Raku/doc/issues).
 This includes missing or incorrect documentation, as well as information about
-versioning (e.g. "method foo" only available in raku v6.d).
+versioning (e.g., "method foo" only available in raku v6.d).
 
 For issues with the website functionality (as opposed to the content), for
 examples issues with search,
