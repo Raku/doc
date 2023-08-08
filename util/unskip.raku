@@ -27,7 +27,7 @@ sub get-skips($file) {
     return @skips;
 }
 
-my $test-script = 'xt/examples-compilation.t';
+my $test-script = 'xt/examples-compilation.rakutest';
 
 # Can this file pass the examples compilation test?
 sub run-ok($file) {
