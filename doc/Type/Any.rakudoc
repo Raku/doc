@@ -504,51 +504,80 @@ L«C<.list>|/routine/list» method, and then to a L<Supply|/type/Supply>.
 
 =head2 routine min
 
-    multi method min()
-    multi method min(&by)
-    multi sub min(+args, :&by!)
-    multi sub min(+args)
+    multi method min(&by?, :$k, :$v, :$kv, :$p )
+    multi sub min(+args, :&by, :$k, :$v, :$kv, :$p)
 
-Coerces the invocant to L<Iterable|/type/Iterable> and returns the numerically
-smallest element; in the case of C<Hash>es, it returns the C<Pair> with the
-lowest value.
+Coerces the invocant to L<Iterable|/type/Iterable> and returns the smallest
+element using L<cmp|/routine/cmp> semantics; in the case of C<Map>s and
+C<Hash>es, it returns the C<Pair> with the B<lowest> value.
 
-If a L<Callable|/type/Callable> positional argument is provided, each value is
-passed into the filter, and its return value is compared instead of the original
-value. The original value is still the one returned from C<min>.
+A L<Callable|/type/Callable> positional argument can be given to the
+C<method> form.  If that C<Callable> accepts a single argument, then it
+will be used to convert the values to be sorted B<before> doing comparisons.
+The original value is still the one returned from C<min>.
 
-In C<sub> form, the invocant is passed as an argument and a comparison C<Callable>
-can be specified with the named argument C<:by>.
+If that C<Callable> accepts two arguments, it will be used as the
+comparator instead of C<cmp>.
 
-    say (1,7,3).min();              # OUTPUT:«1␤»
-    say (1,7,3).min({1/$_});        # OUTPUT:«7␤»
+In C<sub> form, the invocant is passed as an argument and any C<Callable>
+must be specified with the named argument C<:by>.
+
+    say (1,7,3).min();              # OUTPUT: «1␤»
+    say (1,7,3).min({1/$_});        # OUTPUT: «7␤»
     say min(1,7,3);                 # OUTPUT: «1␤»
     say min(1,7,3,:by( { 1/$_ } )); # OUTPUT: «7␤»
     min( %(a => 3, b=> 7 ) ).say ;  # OUTPUT: «a => 3␤»
 
+As of the 2023.08 Rakudo compiler release, B<additional> named arguments
+can be specified to get B<all> possible information related to the lowest
+value.  Whenever any of these named arguments is specified, the returned
+value will B<always> be a C<List>.
+
+=item :k
+
+Returns a C<List> with the indices of the lowest values found.
+
+=item :v
+
+Returns a C<List> with the actual values of the lowest values found.  In
+the case of a C<Map> or C<Hash>, these would the C<Pair>s.
+
+=item :kv
+
+Returns a C<List> with the index and the value alternating.
+
+=item :p
+
+Returns a C<List> of C<Pair>s in which the key is the index value, and
+the value is the actual lowest value (which in the case of a C<Map> or a
+C<Hash> would be a C<Pair>).
+
+    say <a b c a>.min(:k);  # OUTPUT:«(0 3)␤»
+    say <a b c a>.min(:v);  # OUTPUT:«(a a)␤»
+    say <a b c a>.min(:kv); # OUTPUT:«(0 a 3 a)␤»
+    say <a b c a>.min(:p);  # OUTPUT:«(0 => a 3 => a)␤»
 
 =head2 routine max
 
-    multi method max()
-    multi method max(&by)
-    multi sub max(+args, :&by!)
-    multi sub max(+args)
+    multi method max(&by?, :$k, :$v, :$kv, :$p )
+    multi sub max(+args, :&by, :$k, :$v, :$kv, :$p)
 
-Coerces the invocant to L<Iterable|/type/Iterable> and returns the numerically
-largest element; in the case of C<Hash>es, the C<Pair> with the highest value.
+The interface of the C<max> method / routine is the same as the one of
+L<min|#routine min>.  But instead of the lowest value, it will return the
+B<highest> value, obviously.
 
-If a L<Callable|/type/Callable> positional argument is provided, each value is
-passed into the filter, and the return value is compared instead of the original
-value. The original value is still the one returned from C<max>.
-
-In C<sub> form, the invocant is passed as an argument and a comparison C<Callable>
-can be specified with the named argument C<:by>.
-
-    say (1,7,3).max();                # OUTPUT:«7␤»
-    say (1,7,3).max({1/$_});          # OUTPUT:«1␤»
+    say (1,7,3).max();                # OUTPUT: «7␤»
+    say (1,7,3).max({1/$_});          # OUTPUT: «1␤»
     say max(1,7,3,:by( { 1/$_ } ));   # OUTPUT: «1␤»
     say max(1,7,3);                   # OUTPUT: «7␤»
     max( %(a => 'B', b=> 'C' ) ).say; # OUTPUT: «b => C␤»
+
+As of the 2023.08 Rakudo compiler release:
+
+    say <a b c c>.max(:k);  # OUTPUT:«(2 3)␤»
+    say <a b c c>.max(:v);  # OUTPUT:«(c c)␤»
+    say <a b c c>.max(:kv); # OUTPUT:«(2 c 3 c)␤»
+    say <a b c c>.max(:p);  # OUTPUT:«(2 => c 3 => c)␤»
 
 =head2 routine minmax
 
