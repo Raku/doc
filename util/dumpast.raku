@@ -4,5 +4,5 @@
 
 unit sub MAIN($file);
 
-dd $file.IO.slurp.AST.rakudoc
+.say for $file.IO.slurp.AST.rakudoc
 
