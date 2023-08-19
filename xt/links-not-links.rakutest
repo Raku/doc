@@ -2,16 +2,16 @@
 
 =begin overview
 
-Avoid I<bare> URLs that are not links; URLs should go inside C<L<>> clauses,
-even if they have no text to link to.
+Avoid I<bare> URLs that are not links; URLs should go inside C<L<>> markup.
 
 =end overview
 
-use Test;
-use lib $*PROGRAM.parent(2).child('lib');
+use experimental :rakuast;
 
+use Test;
+
+use lib $*PROGRAM.parent(2).child('lib');
 use Test-Files;
-use Pod::Convenience;
 
 my @files = Test-Files.pods;
 
@@ -21,31 +21,37 @@ if @files {
     plan :skip-all<No rakudoc files specified>
 }
 
-sub walk-content($x) {
-    next if $x ~~ Pod::Block::Code;    # Code blocks OK
-    next if $x ~~ Pod::Block::Comment; # Comments not user-facing
-    next if $x ~~ Pod::Block::Table;   # ... code-ish
-    try next if $x.type eq 'L';        # L<> is where the links are supposed to be!
-    for $x.contents -> $contents {
-        next unless $contents;
-        for @$contents -> $item {
-            if $item ~~ Str {
-                if $item ~~ / $<url>=[ 'http' 's'? '://' <-[/]>* '/'? ] /  {
-                    flunk "[$x.type] $/<url>";
-                }
-            } else {
-                walk-content($item);
+sub walk($node) {
+    my @children;
+    if $node ~~ RakuAST::Doc::Paragraph {
+        @children = $node.atoms;
+    } elsif $node ~~ RakuAST::Doc::Block {
+        return if $node.type eq 'code'|'implicit-code'|'comment'|'table';
+        @children = $node.paragraphs;
+    } elsif $node ~~ RakuAST::Doc::Markup {
+        return if $node.letter eq 'L';
+        @children = $node.atoms;
+    } else {
+        # If this hits, need to adapt test
+        flunk "new node type: $node.^name";
+    }
+
+    for @children -> $child {
+        if $child ~~ Str {
+            if $child ~~ / $<url>=[ 'http' 's'? '://' <-[/]>* '/'? ] / {
+                flunk "URL found: $<url>";
             }
+        } else {
+            walk($child);
         }
     }
 }
 
 for @files -> $file {
-    my @chunks = extract-pod($file).contents;
-
-    # This emits flunks for any non-safe URLS found.
-    # a test with no passing or failing subtests is a pass.
+    %*ENV<RAKUDO_RAKUAST>=1;
     subtest $file => {
-        walk-content($_) for @chunks;
+        for $file.IO.slurp.AST.rakudoc -> $pod {
+            walk($pod);
+        }
     }
 }
