@@ -1316,7 +1316,7 @@ L<C<line>|/type/CallFrame#method_line> methods, respectively.
 
 =head3 C<%?RESOURCES>
 
-C<%?RESOURCES> is a compile-time variable available to the code of a
+C<%?RESOURCES> is a B<compile-time> variable available to the code of a
 L<Distribution|/type/Distribution>.
 
 It contains a hash that provides compile and runtime access to files
@@ -1324,7 +1324,7 @@ associated with the Distribution of the current compilation unit. This hash
 is used to access a special storage for C<Distribution>-wide static files
 (such as examples of configuration files, templates or data files).
 
-Files available via this variable need to be placed under C<resources>
+Files available via this variable need to be placed under the Distribution's C<resources>
 directory:
 
 =begin code :lang<text>
@@ -1340,7 +1340,7 @@ Module-Foo/
 =end code
 
 Additionally, a relative path (starting from the root resources directory of a
-distribution) to a file is specified under C<"resources"> field in the
+distribution) to a file must be specified under C<"resources"> field in the
 C<META6.json> file:
 
 =begin code :lang<json>
@@ -1350,7 +1350,7 @@ C<META6.json> file:
 =end code
 
 X<|Variables,%?RESOURCES>
-Every resource file is added to an installed Distribution and is
+Every resource file is added to an B<installed> Distribution and is
 accessible using a C<Hash>-like access to C<%?RESOURCES>, returning a
 C<Distribution::Resources> object:
 
@@ -1369,6 +1369,30 @@ instance of the C<Distribution::Resources> type, so do not expect to see
 all available resource files in a distribution by printing or by using other
 ways to inspect its value. Instead, use the API described above to
 access particular files.
+
+Since the C<%?RESOURCES> variable is only accessible as a compiled object,
+it requires a special effort to access it during testing or other run-time 
+use. One way to do that is to create a routine in the C<lib> directory to
+return its value:
+
+=begin code
+unit module MyLib;
+sub my-resources is export {
+    %?RESOURCES
+}
+=end code
+
+Then create a test file, say, C<t/resources.t> with contents:
+
+=begin code
+use Test;
+use MyLib;
+
+my $resources = my-resources;
+isa-ok $resources, Hash;
+=end code
+
+The contents of the compile-time hash are thus exposed to the run-time code.
 
 =head3 Introspection compile-time variables
 
