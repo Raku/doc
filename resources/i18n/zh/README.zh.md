@@ -172,10 +172,6 @@ Raku 不是小语言，为它做文档并维护这些文档需要付出很大的
 
 本仓库可能包括使用其他协议的第三方代码，这些文件在它们的首部注明了版权和协议。目前包括：
 
-* jQuery 与 jQuery UI 库：Copyright 2015 jQuery Foundation and other contributors；[MIT License](http://creativecommons.org/licenses/MIT)
-* [jQuery Cookie 插件](https://github.com/js-cookie/js-cookie)：
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack；
-  [MIT License](http://creativecommons.org/licenses/MIT)
 * 来自 Stack Overflow 的示例； [MIT License](http://creativecommons.org/licenses/MIT) ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * 来自 https://github.com/christianbach/tablesorter 的表格排序插件；
   [MIT License](http://creativecommons.org/licenses/MIT)

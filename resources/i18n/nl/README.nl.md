@@ -157,10 +157,6 @@ Perl Foundation. Zie het [LICENSE](LICENSE) bestand voor de volledige tekst.
 Deze repository bevat ook code die is geschreven door derde partijen en die onder een afwijkende licentie beschikbaar is gemaakt.
 De betreffende bestanden vermelden het auteursrecht en de licentievoorwaarden aan het begin. Momenteel omvat deze categorie bestanden:
 
-* jQuery and jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
-* [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
-  [MIT License](http://creativecommons.org/licenses/MIT)
 * Examples from Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)

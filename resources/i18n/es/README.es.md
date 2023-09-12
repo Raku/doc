@@ -141,10 +141,6 @@ El código en este repositorio está disponible bajo la Artistic License 2.0 com
 
 Este repositorio también contiene código de terceros que podría tener otra licencia, en cuyo caso indican al principio de los mismos el copyright y sus términos de licencia. Actualmente incluyen:
 
-* librerías jQuery y jQuery UI: Copyright 2015 jQuery Foundation y otros contribuidores; [Licencia MIT](http://creativecommons.org/licenses/MIT)
-* [plugin jQuery Cookie](https://github.com/js-cookie/js-cookie):
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
-  [MIT License](http://creativecommons.org/licenses/MIT)
 * Ejemplos de StackOverflow [Licencia MIT](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin from https://github.com/christianbach/tablesorter ;
   [Licencia MIT](http://creativecommons.org/licenses/MIT)

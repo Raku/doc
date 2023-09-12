@@ -164,10 +164,6 @@ Si veda il file [LICENSE](LICENSE) per l'intero contenuto della licenza.
 
 Questo repository contiene anche codice scritto da autori terzi che potrebbe essere concesso con una licenza differente. Tali files indicano il copyright e i termini di licenza all'inizio del file stesso. Attualmente tali file includono:
 
-* jQuery e jQuery UI libraries: Copyright 2015 jQuery Foundation and other contributors; [MIT License](http://creativecommons.org/licenses/MIT)
-* [jQuery Cookie plugin](https://github.com/js-cookie/js-cookie):
-  Copyright 2006, 2015 Klaus Hartl & Fagner Brack;
-  [MIT License](http://creativecommons.org/licenses/MIT)
 * Esempi da Stack Overflow [MIT License](http://creativecommons.org/licenses/MIT); ([ref #1](http://stackoverflow.com/a/43669837/215487) for [1f7cc4e](https://github.com/Raku/doc/commit/1f7cc4efa0da38b5a9bf544c9b13cc335f87f7f6))
 * Table sorter plugin da https://github.com/christianbach/tablesorter ;
   [MIT License](http://creativecommons.org/licenses/MIT)
