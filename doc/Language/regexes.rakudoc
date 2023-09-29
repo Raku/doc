@@ -2693,6 +2693,8 @@ eat up as much as possible in the first match and then
 adjust going backwards in order to ensure all regular expression parts
 have a chance to match.
 
+=head2 Understanding backtracking
+
 In order to better understand backtracking, consider the following example:
 
 =begin code
@@ -2900,6 +2902,91 @@ Capture 1 =  database!
 This demonstrates that disabling backtracking does not mean disabling possible
 multiple iterations of the matching engine, but rather disabling the backward
 matching tuning.
+
+=head2 Backtracking control
+
+Raku offers several tools for controlling backtracking.  First, you can use the
+C<:ratchet> regex adverb to turn ratcheting on (or C<:!ratchet> to turn it off).
+See L<backtracking|/language/regexes#Ratchet> for details.  Note that, as with
+all regex adverbs, you can limit the scope of C<:ratchet> using square
+brackets.  Thus, in the following code, backtracking is enabled for the first
+quantifier (C<\S+>), disabled for the second quantifier (C<\s+>), and re-enabled
+for the third (C<\d+>).
+
+=begin code
+'A  42' ~~  rx/\S+ [:r \s+ [:!r \d+ ] ] . /  # OUTPUT: «｢A  42｣␤»
+=end code
+
+C<:ratchet> is enabled by default in C<token>s and C<rule>s; see
+L<grammars|language/grammars> for more details.
+
+Raku also offers three regex metacharacters to control backtracking at for an
+individual atom.
+
+=head3 X<Disable backtracking: C<:>|Regexes,:;Regexes,disable backtracking>
+
+The C<:> metacharacter disables backtracking for the previous atom.  Thus,
+C</ .*: a/> does not match C<"  a"> because the C<.*> matches the entire string,
+leaving nothing for the C<a> to match without backtracking.
+
+=head3 X<Enable greedy backtracking: C<:!>|Regexes,:!;Regexes,greedy backtracking>
+
+The C<:!> metacharacter enables greedy backtracking for the previous atom – that
+is, provides the backtracking behavior that's used when C<:ratchet> is not in
+effect.  C<:!> is closely related to the C<!> L<greedy quantifier
+modifier|language/regexes#Greedy_versus_frugal_quantifiers:_?>; however – unlike
+C<!>, which can only be used after a quantifier – C<:!> can be used after any
+atom.  For example, C<:!> can be used after an alternation:
+
+=begin code
+'abcd' ~~ /:ratchet [ab | abc]   cd/;  # OUTPUT: «Nil␤»
+'abcd' ~~ /:ratchet [ab | abc]:! cd/;  # OUTPUT: «｢abcd｣␤»
+=end code
+
+=head3 X<Enable frugal backtracking: C<:?>|Regexes,:?;Regexes,frugal backtracking>
+
+The C<:?> metacharacter works exactly like C<:!>, except that it enables frugal
+backtracking.  It is thus closely related to C<?> L<frugal quantifier
+modifier|language/regexes#Greedy_versus_frugal_quantifiers:_?>; again,
+however C<:?> can be used after non-quantifier atoms.  This includes contexts in
+which C<?> would be the L<zero or one|language/regex#Zero_or_one:_?> quantifier
+(instead of providing backtracking control):
+
+=begin code
+my regex numbers { \d* }
+
+'4247' ~~ /:ratchet <numbers>?  47/;  # OUTPUT: «Nil␤»
+'4247' ~~ /:ratchet <numbers>:? 47/;  # OUTPUT: «｢4247｣␤»
+=end code
+
+=head2 A note on backtracking with sub-regexes
+
+C<:>, C<:!>, and C<:?> control the backtracking behavior in their current regex
+– that is, they cause an atom to behave as though C<:ratchet> were set
+differently in the current regex.  However, neither these metacharacters nor
+C<:!ratchet> can cause a non-backtracking sub-regex (including rules or tokens) to
+backtrack; the sub-regex has already failed to backtrack.  On the other hand,
+they I<can> prevent the sub-regex from backtracking.  To expand on our previous
+example:
+
+
+=begin code
+my regex numbers { \d* }
+
+# By default <numbers> backtracks
+'4247' ~~ / <numbers>  47/;  # OUTPUT: «｢4247｣␤»
+# : can disable backtracking over <numbers>
+'4247' ~~ / <numbers>: 47/;  # OUTPUT: «Nil␤»
+
+my regex numbers-ratchet {:ratchet \d* }
+
+# <numbers-ratchet> never backtracks
+'4247' ~~ /   <numbers-ratchet>   47/;  # OUTPUT: «Nil␤»
+# :! can't make it
+'4247' ~~ /   <numbers-ratchet>:! 47/;  # OUTPUT: «Nil␤»
+# Neither can setting :!ratchet
+'4247' ~~ /:!r <numbers-ratchet>  47/;  # OUTPUT: «Nil␤»
+=end code
 
 
 =head1 C<$/> changes each time a regular expression is matched
