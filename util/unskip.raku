@@ -13,6 +13,9 @@ that fails, with the C<:solo> attribute; If either of these work,
 the file is modified in place, allowing the developer to inspect
 the changes to the C<doc/> directory and commit the updated files.
 
+As with C<xt/> tests, you can limit the files checked with the
+C<TEST_FILES> environment variable or by passing the named files as arguments
+
 =end overview
 
 # Return a list of skippable positions in this file.
