@@ -21,6 +21,8 @@ method all-files() {
     Otherwise, if the C<TEST_FILES> environment variable is set to
     a space-separated list of files, use that. Any files specified
     this way that don't exist are silently removed.
+
+    Always skip our C<Build.rakumod>, as it's designed to blow up.
 )
 method files() {
     my @files;
@@ -34,21 +36,25 @@ method files() {
             @files = qx<git ls-files>.lines;
         }
     }
-    return @files.sort;
+    return @files.grep(* ne "Build.rakumod").sort;
 }
 
 #|(
     Filtered list of C<files> to return only Pod files.
 )
 method pods() {
-    return $.files.grep({$_.ends-with: '.raku'|'.rakudoc'|'.rakutest'|'.rakumod'})
+    return $.files\
+        .grep({$_.ends-with: '.raku'|'.rakudoc'|'.rakutest'|'.rakumod'})\
+        .grep(* ne "Build.rakumod");
 }
 
 #|(
     Filtered list of C<files> to return only Pod files and markdown.
 )
 method documents() {
-    return $.files.grep({$_.ends-with: '.raku'|'.rakudoc'|'.md'|'.rakutest'|'.rakumod'})
+    return $.files\
+        .grep({$_.ends-with: '.raku'|'.rakudoc'|'.md'|'.rakutest'|'.rakumod'})\
+        .grep(* ne "Build.rakumod");
 }
 
 #|(
