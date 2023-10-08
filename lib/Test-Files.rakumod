@@ -18,7 +18,7 @@ method all-files() {
 
     If files were passed on the command line, use those.
 
-    Otherwise, if the C<TEST_FILES> environmental variable is set to
+    Otherwise, if the C<TEST_FILES> environment variable is set to
     a space-separated list of files, use that. Any files specified
     this way that don't exist are silently removed.
 )
