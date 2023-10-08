@@ -12,11 +12,12 @@ L<xt/lib-test-files.t> invokes this script and its results are reported out thro
 
 =end overview
 
+say 'files';
 say Test-Files.files().join(',');
-say '---';
+say 'pods';
 say Test-Files.pods().join(',');
-say '---';
+say 'docs';
 say Test-Files.documents().join(',');
-say '---';
+say 'tests';
 say Test-Files.tests().join(',');
 say '---';

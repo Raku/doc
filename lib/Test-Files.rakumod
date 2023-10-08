@@ -41,14 +41,14 @@ method files() {
     Filtered list of C<files> to return only Pod files.
 )
 method pods() {
-    return $.files.grep({$_.ends-with: '.rakudoc'})
+    return $.files.grep({$_.ends-with: '.raku'|'.rakudoc'|'.rakutest'|'.rakumod'})
 }
 
 #|(
     Filtered list of C<files> to return only Pod files and markdown.
 )
 method documents() {
-    return $.files.grep({$_.ends-with: '.rakudoc' or $_.ends-with: '.md'})
+    return $.files.grep({$_.ends-with: '.raku'|'.rakudoc'|'.md'|'.rakutest'|'.rakumod'})
 }
 
 #|(
