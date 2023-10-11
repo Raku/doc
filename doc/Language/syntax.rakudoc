@@ -857,18 +857,136 @@ See L<Variable Declarators and
 Scope|/language/variables#Variable_declarators_and_scope>
 for more details on other scopes (C<our>, C<has>).
 
-=head3 Subroutine declaration
+=head3 Callable declarations
 
-    # The signature is optional
-    sub foo { say "Hello!" }
+Raku provides syntax for multiple L<C<Callable>|type/Callable> code objects
+(that is, code objects that can be invoked, such as subroutines). Specifically,
+Raku provides syntax for subroutines (both single- and multiple-dispatch), code
+blocks, and methods (again, both single- and multiple-dispatch).
 
-    sub say-hello($to-whom) { say "Hello $to-whom!" }
+=head4 Subroutine declaration
 
-You can also assign subroutines to variables.
+Subroutines are created with the keyword C<sub> followed by an optional
+name, an optional signature and a code block. Subroutines are lexically
+scoped, so if a name is specified at the declaration time, the same name
+can be used in the lexical scope to invoke the subroutine. A subroutine
+is an instance of type L<Sub|/type/Sub> and can be assigned to any
+container.
 
-    my &f = sub { say "Hello!" } # Un-named sub
-    my &f = -> { say "Hello!" }  # Lambda style syntax. The & sigil indicates the variable holds a function
-    my $f = -> { say "Hello!" }  # Functions can also be put into scalars
+    sub {}
+    # The minimal legal subroutine declaration
+
+    sub say-hello1 { say "Hello!" }
+    # A subroutine with a name
+
+    sub say-hello2(Str $to-whom) { say "Hello $to-whom!" }
+    # A subroutine with a name and a signature
+
+You can assign subroutines to variables.
+
+    my &greet0 = sub { say "Hello!" }            # Unnamed sub assigned to &greet0
+    my &greet1 = sub say-hello1 { say "Hello!" } # Named sub assigned to &greet1
+
+
+=head4 Multiple-dispatch subroutine declaration
+
+Subroutines can be declared as a C<multi> – that is, as a subroutine that with
+multiple candidates, each with a different signature.  A multiple dispatch
+subroutine is created almost exactly like a single-dispatch subroutine: with the
+keyword C<multi>, optionally followed by the keyword C<sub>, followed by an
+optional name, an optional signature, and a code block. See
+L<Multi-dispatch|/language/functions#Multi-dispatch> for details.
+
+The two single-dispatch subroutines C<greet0> and C<greet1> (defined above)
+could be combined into a single C<greet> multi as follows:
+
+    multi sub greet { say "Hello!" }
+    #     ^^^ optional
+    multi greet($name) { say "Hello $name!" }
+
+You may optionally precede C<multi> declarations with a
+L<C<proto>|language/functions#proto> declarations; C<proto>s declare a signature
+that any call must conform to before being dispatched to candidates.  For
+example, this C<proto> requires that all candidates take at least one positional
+parameter:
+
+    proto at-least1($, |) {*}
+    multi at-least1($first)          { note $first }
+    multi at-least1($first, $second) { note "got two" }
+    multi at-least1($first, :$named) { note "got named" }
+
+    # The following is legal to *declare* but can never be called
+    multi at-least1 { note "Got none"}
+
+
+=head4 Block declaration
+
+L<C<Block>|/type/Block>s are invocable code objects similar to subroutines but
+intended for small-scale code reuse.  Blocks are created by a code block inside
+of C<{ }> curly braces, optionally preceded by C«->» followed by a signature (or
+C«<->» followed by a signature for L<rw (aka,
+read-write)|type/Routine#trait_is_rw> blocks).  If no signature is provided,
+Blocks can accept parameters implicitly by using placeholder variables with the
+L<C<^> twigil|language/variables#The_^_twigil> and the L<C:>
+twigil|language/variables#The_:_twigil>.  Blocks with neither an explicit nor
+implicit signature have a default signature of C<$_>.
+
+
+    my &greet0 = { say "Hello!" }     # Block stored in &greet0
+    my &greet1 = { say "Hello $_!" }  # Block with default signature
+    my &greet2 = -> $to-whom { say "Hello $to-whom!" }  # Block with explicit signature
+    my &greet3 = { say "Hello $^to-whom!" }             # Block with implicit positional
+    my &greet4 = { say "Hello $:to-whom!" }             # Block with implicit named
+
+    my &add1-in-place = <-> $a { ++$a }                 # Block with rw signature
+
+
+Although doing so is less idiomatic, Blocks may also be stored in scalar variables
+
+    my $greet = { say "Hello!" }
+
+=head4 Method declaration
+
+L<Method|/type/Method>s are a callable code object invoked against a specific
+object (called the method's "invocant").  Outside of a class declaration,
+methods are declared by the C<method> keyword, followed by a signature, followed
+by a code block.  Within the method signature, the method's invocant is followed
+by a C<:> instead of the C<,> that normally separates arguments.  Methods
+declared outside of a class must be stored in a variable to be used.
+
+    my &m = method ($invocant: $arg1, $arg2) { note }
+
+This syntax is unusual – typically, methods are declared inside a class.  In
+this context, method declaration more closely resembles subroutine declaration:
+methods are declared by the keyword C<method> followed by a name, followed by an
+optional signature, followed by a code block.  Methods defined inside a class,
+have that class as their default invocant but can override that default (for
+example, to L<constrain the invocant's
+definiteness|language/signatures#Constraining_argument_definiteness>).
+
+    class Greeter {
+       method greet($to-whom)           { say "Hello $to-whom!" }
+       method defined-greet(Greeter:D:) { say "Hello!" }
+    }
+
+For more details on methods, see L<Methods|/language/classtut#Methods>.
+
+=head4 Multiple-dispatch method declaration
+
+Inside of a class, you can declare multiple-dispatch methods with syntax that's
+very similar to the syntax for multiple-dispatch subroutines.  As with C<multi>
+subroutines, you can also declare a C<proto> for multiple-dispatch methods.
+
+
+    class Greeter {
+          multi method greet           { say "Hello!" }
+          multi method greet($to-whom) { say "Hello $to-whom!" }
+
+          proto method at-least1($, |)   {*}
+          multi method at-least1($first) { note $first }
+          # The following is legal to *declare* but can never be called
+          multi method at-least1         { note "Got none"}
+    }
 
 =head3 X<C<Package>, C<Module>, C<Class>, C<Role>, and C<Grammar> declaration|Syntax,unit;Syntax,module;Syntax,package>
 
@@ -896,78 +1014,159 @@ unit module M;
 # ... stuff goes here instead of in {}'s
 =end code
 
-=head3 Multi-dispatch declaration
 
-See also L<Multi-dispatch|/language/functions#Multi-dispatch>.
+=head1 Invoking code objects
 
-Subroutines can be declared with multiple signatures.
+Raku provides standard syntax for invoking subroutines/blocks and for invoking
+methods.  Additionally, Raku provides alternate syntax to invoke subroutines
+with method-like syntax and to invoke methods with subroutine-like syntax
 
-    multi sub foo() { say "Hello!" }
-    multi sub foo($name) { say "Hello $name!" }
+=head2 Invoking subroutines or blocks
 
-Inside of a class, you can also declare multi-dispatch methods.
+Lexically declared subroutines and subroutine/blocks assigned to C<&>-sigiled
+variables can be invoked by their name followed by their arguments (optionally
+enclosed in C<(…)>).  Alternatively, their name may be preceded by the C<&>
+sigil but, in that case, the C<(…)> surrounding the function's arguments is
+mandatory but may be preceded by an optional C<.>. (An C<&>-sigiled variable
+without C<(…)> refers to the function as an object – that is, without invoking
+it). Thus, all of the following call the function C<foo> with no arguments:
 
-    multi method greet { }
-    multi method greet(Str $name) { }
 
-=head1 Subroutine calls
-
-Subroutines are created with the keyword C<sub> followed by an optional
-name, an optional signature and a code block. Subroutines are lexically
-scoped, so if a name is specified at the declaration time, the same name
-can be used in the lexical scope to invoke the subroutine. A subroutine
-is an instance of type L<Sub|/type/Sub> and can be assigned to any
-container.
-
-    =begin code :preamble<sub foo {}; my &f = &foo>
-    foo;   # Invoke the function foo with no arguments
-    foo(); # Invoke the function foo with no arguments
-    &f();  # Invoke &f, which contains a function
-    &f.(); # Same as above, needed to make the following work
-    my @functions = ({say 1}, {say 2}, {say 3});
-    @functions>>.(); # hyper method call operator
+    =begin code :preamble<sub foo {};>
+    foo;
+    foo();
+    &foo();
+    &foo.();
     =end code
 
-When declared within a class, a subroutine is named "method": methods
-are subroutines invoked against an object (i.e., a class instance).
-Within a method the special variable C<self> contains the object
-instance (see L<Methods|/language/classtut#Methods>).
+If a subroutine or block is assigned to a C<$>-sigiled variable, then it can
+B<only> be invoked using parentheses:
 
-=begin code :preamble<class Person {
-    has Int $.age;
-    has Str $.name;
-    method set-name-age( $!name, $!age ) {}
+    my $foo = sub { note }
+    $foo();
+    $foo.();
+
+For more information on invoking subroutines/blocks, see L<functions|/language/functions>.
+
+=head2 Invoking methods
+
+A method defined in a class is invoked on an instance of that class by
+referring to the class followed by a C<.> followed by the method name.  Invoking
+the method without arguments doesn't require parentheses.  To supply arguments,
+you must either surround them in C<(…)> or follow the method name with a C<:>.
+The following code shows the syntax described above:
+
+=begin code
+class Person {
+    has $.age = 0;
+    has Str $.name = "Anon";
+
+    multi method greet        { say "Hello, $.name()!" }
+    multi method greet($name) { say "Hello, $name!" }
 };
-my Person $person .= new;
->
-# Method invocation. Object (instance) is $person, method is set-name-age
-$person.set-name-age('jane', 98);   # Most common way
-$person.set-name-age: 'jane', 98;   # Precedence drop
-set-name-age($person: 'jane', 98);  # Invocant marker
-set-name-age $person: 'jane', 98;   # Indirect invocation
+my $person = Person.new(:name<Jane>, :age(98));
+
+$person.greet;   # Calls greet method with 0 args
+$person.greet(); # Calls greet method with 0 args
+$person.greet('Nushi'); # Calls greet method with 1 arg
+$person.greet: 'Nushi'; # Calls greet method with 1 arg
 =end code
 
-For more information, see L<functions|/language/functions>.
+=head3 Invoking methods with : (precedence drop)
 
-=head2 Precedence drop
+Note that the syntax in the final line results in the method treating the
+remainder of the statement as its argument list.  (Or, said differently, it
+drops the precedence of the method call; for that reason, the C<:> used here is
+sometimes called the "precedence drop").  The following code illustrates the
+consequences of that change:
 
-In the case of method invocation (i.e., when invoking a subroutine
-against a class instance) it is possible to apply the C<precedence
-drop>, identified by a colon C<:> just after the method name and before
-the argument list. The argument list takes precedence over the method
-call, that on the other hand "drops" its precedence. In order to better
-understand consider the following simple example (extra spaces have been
-added just to align method calls):
 
-    =begin code
+=begin code
     my $band = 'Foo Fighters';
-    say $band.substr( 0, 3 ) .substr( 0, 1 ); # F
-    say $band.substr: 0, 3   .substr( 0, 1 ); # Foo
-    =end code
+    say $band.substr( 0, 3 ).uc; # OUTPUT: «FOO␤»
+    say $band.substr: 0, 3  .uc; # OUTPUT: «Foo␤»
 
-In the second method call the rightmost C<substr> is applied to "3" and
-not to the result of the leftmost C<substr>, which on the other hand
-yields precedence to the rightmost one.
+=end code
+
+The final line isn't equivalent to the one above it; instead, it's the same as
+C<$band.substr(0, 3.uc> – likely not what was intended here.  That's because in
+the second method call the C<uc> method is called on "3" and not to the result
+of the leftmost C<substr>; in other words, the C<substr> method yields
+precedence to the C<uc> method.
+
+=head3 Invoking methods on the topic
+
+If a method is called without an invocant (that is, with nothing to the left of
+the C<.>), then it will use the current L<topic
+variable|language/variables#The_$__variable> as its invocant.  For example:
+
+    given 'Foo Fighters' {
+       say .substr: 0, 3;  # OUTPUT: «Foo␤»
+    }
+
+
+=head2 Method-like function calls & function-like method calls
+
+Subroutines can be invoked with method-like syntax – that is, you can call a
+function on an object followed by a dot in much the same way that you can call a
+method (including by optionally using a C<:>).  The only limitation is that you
+I<must> precede the function name with an C<&>.  For example:
+
+    sub greet($name, :$excited = True) {
+        say "Hello $name" ~ ($excited ?? '!' !! '.')
+    }
+    greet "Maria";    # OUTPUT: «Hello Maria!␤»
+    "Maria".&greet;   # OUTPUT: «Hello Maria!␤»
+    "Maria".&greet(); # OUTPUT: «Hello Maria!␤»
+    given "Maria" { .&greet } # OUTPUT: «Hello Maria!␤»
+
+    "Maria".&greet(:!excited); # OUTPUT: «Hello Maria.␤»
+    "Maria".&greet: :!excited; # OUTPUT: «Hello Maria.␤»
+
+Similarly, methods may be invoked with function-like syntax – that is, you can
+call a method by providing the method name first followed by the method's
+arguments (including its invocant).  To do so, simply supply the invocant as the
+first argument followed by a C<:>.
+
+    class Person {
+        has Str $.name;
+
+        multi method greet        { say "Hello, $.name()!" }
+        multi method greet($name) { say "Hello, $name!" }
+    };
+    my $person = Person.new(:name<Ruòxī>, :age(11));
+
+    greet $person:;         # same as $person.greet;
+    greet Person: 'Yasmin'; # same as Person.greet('Yasmin');
+
+Due to the presence of method-like function syntax and function-like method
+syntax, it is especially important to be clear on whether a given syntactic form
+calls a method or a subroutine.  This detail can be easy to neglect, especially
+because in many cases Raku provides a method and a subroutine of the same name.
+
+For instance, the following simple example produces the same output for both
+function and method calls.
+
+    say 42;  # Subroutine call
+    42.&say; # Still a subroutine call
+    42.say;  # Method call
+    say 42:; # Also a method call
+
+However, even when both a subroutine and a method exist, calling the correct one
+can make a large difference.  To see this in action, consider C<map>, which
+exists as both a subroutine and a method but where the method expects its
+arguments in a different order:
+
+    my @list = 1..9;
+    sub add1($a) { $a + 1 }
+
+    map &add1, @list; # Sub call; expects list last
+    map @list: &add1; # Method call; expects function last
+
+    @list.map(&add1);  # Method call; expects function last
+    &add1.&map(@list); # Sub call; expects list last
+
+
 
 =head1 Operators
 
