@@ -43,7 +43,15 @@ Try to avoid absolute URLs.
 
     L<foo|/routine/foo>
 
-Works well instead.
+Works well instead. Specifically for types, follow this convention:
+
+    L<C<SomeClass>|/type/SomeClass>
+
+when referring to a type from another page, and
+
+    C<SomeClass>
+
+on its own page.
 
 If you have to use the full URL in the docs or elsewhere, ensure the
 subdomain is `docs` and the protocol is `https://` (as in
