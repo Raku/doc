@@ -7,6 +7,10 @@
 use lib 'lib';
 use Doc::TypeGraph;
 
+# These are core but not loaded by default.
+use Telemetry;
+use Test;
+
 my $t = Doc::TypeGraph.new-from-file('type-graph.txt');
 
 for $t.sorted  -> $type {
