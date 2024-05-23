@@ -269,4 +269,107 @@ the subtleties of Raku in order to avoid pitfalls when working with the MOP,
 and can't expect the same L<"do what I mean"|/language/glossary#DWIM>
 convenience that ordinary Raku code offers.
 
+=head1 Archetypes
+
+Typically, when multiple kinds of types share a property, it is
+implemented with a metarole to be mixed into their metaclasses. However,
+not all common properties of types can be implemented as mixins. Certain
+properties are common to various kinds of types, but do not share enough
+behavior to be possible to implement as mixins. These properties are
+known as I<archetypes>.
+
+HOWs should provide a C<archetypes> metamethod that takes no arguments
+and returns a C<Metamodel::Archetypes> instance. This is used by the
+compiler to determine what archetypes are supported by metaobjects.
+The rest of this section will cover how each of the archetypes that
+exist in Rakudo work.
+
+X<|Language,Parameterization>
+
+=head2 parametric
+
+Parametric types are incomplete types that may have an arbitrary number
+of type parameters. Here, type parameters refer to parameters of the
+type itself; these may be any object that a signature allows you to
+include, not just types alone. When parameterized with type arguments,
+parametric types will produce a more complete type of some sort.
+
+If a HOW supports parameterization, it should have the C<parametric>
+archetype and must provide a C<parameterize> metamethod. The
+C<parameterize> metamethod must accept a metaobject and may accept
+any number of type parameters as arguments, returning a metaobject.
+For example, a C<parameterize> metamethod that allows a type to be
+parameterized with any type arguments may have this signature:
+
+    method parameterize(Mu $obj is raw, |parameters --> Mu)
+
+=head3 Parametric classes and grammars
+
+Because of how the parametric archetype is implemented, it's possible
+for classes and grammars to be augmented with support for
+parameterization by giving them a C<parameterize> metamethod, despite
+the type not having the C<parametric> archetype. This can be useful in
+cases where the features of roles make them inappropriate to use for a
+parametric type.
+
+One scenario where parametric classes and grammars are useful is when
+parameterizations of a type should override or add multiple dispatch
+candidates to existing methods or regexes on the original parametric
+type. This is the case with parameterizations of types like
+L<C<Array>|/type/Array> and L<C<Hash>|/type/Hash>, which may optionally be
+parameterized to mix in more type-safe versions of their methods that
+work with instances' values directly. In Rakudo, these are implemented
+as parametric classes using the metamethods provided by
+L<C<Metamodel::Mixins>|/type/Metamodel::Mixins> and
+L<C<Metamodel::Naming>|/type/Metamodel::Naming> to create a mixin of the
+metaobject given and reset its name before returning it. This technique
+can be used to write extensible grammars when used in combination with
+multi tokens, for instance:
+
+=begin code
+grammar Bot::Grammar {
+    token TOP { <topic> || .+ }
+
+    proto token topic {*}
+    multi token topic:sym<command> { <command> <.ws> <command-args> }
+
+    token command      { '$' <!ws>+ }
+    token command-args { <!ws>+ % <.ws> }
+
+    method ^parameterize(::?CLASS:U $this is raw, +roles) {
+        my Str:D $name   = self.name: $this;
+        my Mu    $mixin := $this.^mixin: |roles;
+        $mixin.^set_name: [~] $name, '[', roles.map(*.^name).join(','), ']';
+        $mixin
+    }
+}
+
+role Greetings[Str:D $name] {
+    multi token topic:sym<greeting> { ^ [ 'hi' | 'hello' | 'hey' | 'sup' ] <.ws> $name }
+}
+
+my constant GreetBot = Bot::Grammar[Greetings['GreetBot']];
+GreetBot.parse: 'sup GreetBot';
+say ~$/; # OUTPUT: «sup GreetBot␤»
+=end code
+
+Parametric classes can also be used to simulate support for
+parameterization on other kinds. For instance, the
+L<Failable|https://modules.raku.org/dist/Failable:cpan:KAIEPI> ecosystem
+module is a parametric class that produces a subset upon
+parameterization. While the module itself does some caching to ensure no
+more type objects are made than what's necessary, a more basic version
+of it can be implemented like so:
+
+=begin code
+class Failable {
+    method ^parameterize(Failable:U $this is raw, Mu $obj is raw --> Mu) {
+        Metamodel::SubsetHOW.new_type:
+            name       => $this.^name ~ '[' ~ $obj.^name ~ ']',
+            refinee    => Metamodel::Primitives.is_type($obj, Any) ?? Any !! Mu,
+            refinement => $obj | Failure
+    }
+}
+=end code
+
 =end pod
