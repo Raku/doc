@@ -20,10 +20,13 @@ if @files {
     plan :skip-all<No rakudoc files specified>
 }
 
+my %bad-links = BagHash.new;
+
 sub is-valid-link($links) {
     for @$links -> $link {
         if $link.starts-with('/') {
             if $link.contains('.html') {
+                %bad-links{$link}++;
                 flunk "$link contains .html";
             }
             if $link eq "/" {
@@ -61,6 +64,7 @@ sub is-valid-link($links) {
             my $local-path = @path[0];
 
             if $local-path.fc ne $local-path {
+                %bad-links{$link}++;
                 flunk "$link should be lower case";
                 next;
             }
@@ -72,7 +76,9 @@ sub is-valid-link($links) {
             @path.unshift: 'doc';
             my $path = @path.join('/');
 
-            ok ($path.IO.d or ($path ~ '.rakudoc').IO.e), "$link exists (primary)";
+            my $ok = ?($path.IO.d or ($path ~ '.rakudoc').IO.e);
+            ok $ok, "$link exists (primary)";
+            %bad-links{$link}++ unless $ok;
         }
     }
 }
@@ -101,4 +107,10 @@ for @files -> $file {
     subtest $file => {
         walk-content($_) for @chunks;
     }
+}
+
+diag "Listing by link" if %bad-links;
+
+for %bad-links.kv -> $k, $v {
+    diag "[$v] $k";
 }
