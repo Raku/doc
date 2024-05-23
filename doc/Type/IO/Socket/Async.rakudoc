@@ -14,21 +14,24 @@ listens on port 3333:
 
 =begin code
 react {
-    whenever IO::Socket::Async.listen('0.0.0.0', 3333) -> $conn {
-        whenever $conn.Supply.lines -> $line {
-            $conn.print: qq:heredoc/END/;
-                HTTP/1.1 200 OK
-                Content-Type: text/html; charset=UTF-8
-                Content-Encoding: UTF-8
+    whenever IO::Socket::Async.listen('0.0.0.0', 8080) -> $conn {
+        await $conn.print: qq:heredoc/END/;
+            HTTP/1.1 200 OK
+            Content-Type: text/html; charset=UTF-8
+            Content-Encoding: UTF-8
 
-                <html>
-                <body>
-                    <h1>Hello World!</h1>
-                    <p>{ $line }</p>
-                </body>
-                </html>
-                END
-            $conn.close;
+            <html>
+            <body>
+                <h1>Incoming request:</h1>
+            <pre>
+            END
+        whenever $conn.Supply.lines -> $line {
+            $conn.say: $line;
+            if $line ~~ "" {
+                await $conn.print: "</pre></body></html>";
+                $conn.close;
+            }
+            LAST { say "closed connection"; }
         }
     }
     CATCH {
