@@ -7,13 +7,17 @@ use File::Temp;
 
 =begin overview
 
-For all raku docs, compare output from RAKUAST and old --doc.
+For all raku docs, compare output from RAKUAST and old --doc ignoring whitespace diffs.
 
 To see the changes between current and new rendering as a diff, run as:
 
     RAKUDO_AST_DOCS=v xt/rakuast-compare.rakutest
 
-And optionally specify a single file to restrict the output
+And optionally specify a single file to restrict the output.
+
+To perform a strict check respecting whitespace:
+
+    RAKUDO_AST_WS=1 xt/rakuast-compare.rakutest
 
 =end overview
 
@@ -46,12 +50,21 @@ for @files -> $file {
         next;
     }
 
+    unless %*ENV<RAKUDO_AST_WS> {
+        # Ignore whitespace differences
+        $old ~~ s:g/\s+/ /;
+        $new ~~ s:g/\s+/ /;
+    }
     ok $old eq $new, "$file contents match";
     if %*ENV<RAKUDO_AST_DOCS>:exists && %*ENV<RAKUDO_AST_DOCS> eq "v" {
         my ($old_fname, $old_io) = tempfile;
         $old_io.spurt: $old;
         my ($new_fname, $new_io) = tempfile;
         $new_io.spurt: $new;
-        run('diff', '-u', $old_fname, $new_fname);
+        if %*ENV<RAKUDO_AST_WS> {
+            run('diff', '-u', $old_fname, $new_fname);
+        } else {
+            run('diff', '-u', '-w', $old_fname, $new_fname);
+        }
     }
 }
