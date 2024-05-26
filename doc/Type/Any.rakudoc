@@ -718,9 +718,15 @@ method called on it.
 =head2 method are
 
     multi method are(Any:)
+    multi method are(Any: Any $type)
 
-Returns the strictest type (or role) to which B<all> elements of the list
-will smartmatch.  Returns L<C<Nil>|/type/Nil> on an empty list.
+The argumentless version available as of release 2022.02 of the Rakudo
+compiler.  The version with the type argument is in the 6.e language version
+(early implementation exists in Rakudo compiler 2024.05+).
+
+If called without arguments, returns the strictest type (or role) to which
+B<all> elements of the list will smartmatch.  Returns L<C<Nil>|/type/Nil>
+on an empty list.
 
     say (1,2,3).are;        # OUTPUT: «(Int)␤»
     say <a b c>.are;        # OUTPUT: «(Str)␤»
@@ -736,14 +742,29 @@ Scalar values are interpreted as a single element list.
     say Int.are;            # OUTPUT: «(Int)␤»
 
 Hashes will be interpreted as a list of pairs, and as such will always
-produce the L<C<Pair>|/type/Pair> type object.  Use the C<.keys> or C<.values> method
-to get the strictest type of the keys or the values of a hash.
+produce the L<C<Pair>|/type/Pair> type object.  Use the C<.keys> or
+C<.values> method to get the strictest type of the keys or the values of
+a hash.
 
     my %h = a => 42, b => "bar";
     say %h.keys.are;        # OUTPUT: «(Str)␤»
     say %h.values.are;      # OUTPUT: «(Cool)␤»
 
-Available as of release 2022.02 of the Rakudo compiler.
+If called with a type argument, will check if all types in the invocant
+smartmatch with the given type.  If so, returns C<True>.  If any of the
+smartmatches fails, returns a C<Failure> 
+
+    say (1,2,3).are(Int);         # OUTPUT: «True␤»
+    say <a b c>.are(Str);         # OUTPUT: «True␤»
+    say <42 666>.are(Int);        # OUTPUT: «True␤»
+    say <42 666>.are(Str);        # OUTPUT: «True␤»
+    say (42,666e0).are(Real);     # OUTPUT: «True␤»
+    say (42,i).are(Numeric);      # OUTPUT: «True␤»
+    say ("a",42,3.14).are(Cool);  # OUTPUT: «True␤»
+    say ().are;                   # OUTPUT: «True␤»
+
+    Int.are(Str);      # OUTPUT: «Expected 'Str' but got 'Int'␤»
+    (1,2,3).are(Str);  # OUTPUT: «Expected 'Str' but got 'Int' in element 0␤»
 
 =head2 method prepend
 
