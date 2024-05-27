@@ -24,12 +24,19 @@ $ zef install --deps-only --exclude="dot" --/test .
 ## CI
 
 Every commit should run a basic set of tests with `make xtest`. As of Feb 2023, we
-are updating our CI, so this is currently disabled.
+are updating our CI, so this is currently disabled. C<NOTE> The author tests in `xt/`
+are not currently passing. If this causes difficulty, please submit the PR wth
+failing tests and someone will still review it.
 
 You can run the basic tests against a subset of files with
 
 ```
 $ TEST_FILES="doc/Language/faq.pod6 doc/Type/Complex.pod6" make test
+```
+
+Or against everything that you haven't committed yet:
+```
+$ TEST_FILES=$(git ls-files --modified) make xtest
 ```
 
 ## PR
