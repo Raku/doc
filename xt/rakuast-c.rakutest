@@ -1,0 +1,69 @@
+#!/usr/bin/env raku
+
+=begin overview
+
+Verify any C<C<>> tags have no internal trailing whitespace.
+To explicitly allow it, prepend the C<C<>> with a
+C<Z<ignore-code-ws>> comment, needed in rare cases.
+
+=end overview
+
+use experimental :rakuast;
+
+use Test;
+
+use lib $*PROGRAM.parent(2).child('lib');
+use Test-Files;
+
+my @files = Test-Files.pods;
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No rakudoc files specified>
+}
+
+my $*TRAILING-C-WHITESPACE-OK = False;
+
+sub walk($node) {
+    my @children;
+    if $node ~~ RakuAST::Doc::Paragraph {
+        @children = $node.atoms;
+    } elsif $node ~~ RakuAST::Doc::Block {
+        return if $node.type eq 'code'|'implicit-code'|'comment'|'table';
+        @children = $node.paragraphs;
+    } elsif $node ~~ RakuAST::Doc::Markup {
+        if $node.letter eq 'Z' and $node.atoms[0] eq 'ignore-code-ws' {
+            $*TRAILING-C-WHITESPACE-OK = True;
+        }
+        elsif $node.letter eq 'C' {
+            my $content = ~$node.atoms;
+            if $*TRAILING-C-WHITESPACE-OK {
+                pass "Allowed trailing space on $node";
+            } else {
+                ok $content eq $content.trim-trailing, $node;
+            }
+            $*TRAILING-C-WHITESPACE-OK = False;
+        } else {
+            @children = $node.atoms;
+        }
+    } else {
+        # If this hits, need to adapt test
+        flunk "new node type: $node.^name";
+    }
+
+    for @children -> $child {
+        next if $child ~~ Str;
+
+        walk($child);
+    }
+}
+
+for @files -> $file {
+    %*ENV<RAKUDO_RAKUAST>=1;
+    subtest $file => {
+        for $file.IO.slurp.AST.rakudoc -> $pod {
+            walk($pod);
+        }
+    }
+}
