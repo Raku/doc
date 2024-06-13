@@ -2,9 +2,18 @@
 
 =begin overview
 
+Validate, in a single pass, several characteristics of our
+Rakudoc sources using RakuAST.
+
+=head1 C<C>
+
 Verify any C<C<>> tags have no internal trailing whitespace.
 To explicitly allow it, prepend the C<C<>> with a
 C<Z<ignore-code-ws>> comment, needed in rare cases.
+
+=head1 Links
+
+All URLS should appear inside C<L<>> tags, not in raw text.
 
 =end overview
 
@@ -24,6 +33,7 @@ if @files {
 }
 
 my $*TRAILING-C-WHITESPACE-OK = False;
+my $*INSIDE-LINK = False;
 
 sub walk($node) {
     my @children;
@@ -33,6 +43,9 @@ sub walk($node) {
         return if $node.type eq 'code'|'implicit-code'|'comment'|'table';
         @children = $node.paragraphs;
     } elsif $node ~~ RakuAST::Doc::Markup {
+        if $node.letter eq 'L' {
+            $*INSIDE-LINK = True;
+        }
         if $node.letter eq 'Z' and $node.atoms[0] eq 'ignore-code-ws' {
             $*TRAILING-C-WHITESPACE-OK = True;
         }
@@ -53,10 +66,17 @@ sub walk($node) {
     }
 
     for @children -> $child {
-        next if $child ~~ Str;
-
-        walk($child);
+        if $child ~~ Str {
+            if ! $*INSIDE-LINK {
+                if $child ~~ / $<url>=[ 'http' 's'? '://' <-[/]>* '/'? ] / {
+                    flunk "URL found: $<url>";
+                }
+            }
+        } else {
+            walk($child);
+        }
     }
+    $*INSIDE-LINK = False;
 }
 
 for @files -> $file {
