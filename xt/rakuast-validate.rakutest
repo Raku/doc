@@ -15,6 +15,16 @@ C<Z<ignore-code-ws>> comment, needed in rare cases.
 
 All URLS should appear inside C<L<>> tags, not in raw text.
 
+=head1 brackets
+
+Authors may forget to add a formatting code when
+wrapping something in angle brackets:
+
+    This was supposed to be <bold>.
+
+This is valid pod, but in practice, these dangling <>'s often indicate an error.
+Complain whenever we find them, except for infix:<> and prefix:<>
+
 =end overview
 
 use experimental :rakuast;
@@ -71,6 +81,10 @@ sub walk($node) {
                 if $child ~~ / $<url>=[ 'http' 's'? '://' <-[/]>* '/'? ] / {
                     flunk "URL found: $<url>";
                 }
+            }
+            if $child ~~ / $<bracketed>=['<' .*? '>'] / {
+                next if $child.contains("prefix:<" | "infix:<" );
+                flunk ~$/<bracketed> ~ " is likely missing a formatting code";
             }
         } else {
             walk($child);
