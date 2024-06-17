@@ -5,6 +5,8 @@ unit class Pod::Cache;
 Given a filename, generate a cached, rendered text version of the POD
 in that file. Return the C<IO> of the cached file.
 
+Use the new RakuAST generation as it's speedier (and more likely to be correct).
+
 =end overview
 
 method cache-file(Str $file --> Str) {
