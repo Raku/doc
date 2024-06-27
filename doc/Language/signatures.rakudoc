@@ -986,6 +986,59 @@ $sig1 = :($goal, $accuracy = $goal / 100);
 $sig2 = :(:$excludes = ['.', '..']);        # a new Array for every call
 =end code
 
+U<Was an argument passed for a parameter?>
+
+Table showing checks of whether an argument was passed for a given parameter:
+
+=begin table
+ Parameter kind | Example | Comment | Check for no arg passed
+ ============================================================
+ L<Slurpy|https://docs.raku.org/language/signatures#Slurpy_parameters>|`*@array`|Don't check using `.defined`|`if not @array`
+ Required|C<$foo>|Can't be omitted|(not applicable)
+ Optional|C<@bar = default>¹|Pick, and check, a suitable default¹|C<if @bar === default {...}>¹
+=end table
+
+A parameter with a default is always I<optional>, so there is no need to mark it with a C<?> or the C<is optional> trait.
+
+Footnotes:
+
+¹A suitable default is an Object that has a distinct identity, as may be checked by the L<C<WHICH>|https://docs.raku.org/type/Mu#method_WHICH> method. 
+Then you can use the C<=:=> L<container identity operator|https://docs.raku.org/language/operators#infix_=:=> in the body of the routine to check 
+whether this exact default was bound to the parameter.
+
+Example with a positional parameter:
+=begin code
+my constant PositionalAt = Positional.new;
+
+sub a (@list = PositionalAt) { say @list =:= PositionalAt }
+a;              #True 
+a [1,2,3];      #False
+=end code
+
+Example with some scalar parameters:
+=begin code
+my constant AnyAt = Any.new; 
+
+sub b ($x=AnyAt, :$y=AnyAt) { say $x =:= AnyAt, $y =:= AnyAt }
+b 1;            #FalseTrue 
+b 1,:2y;        #FalseFalse
+=end code
+
+If your parameters are typed, then the L<type smileys|https://docs.raku.org/language/glossary#Type_smiley> can be used with 
+L<C<multi>|https://docs.raku.org/language/functions#Multi-dispatch>s like this:
+
+=begin code
+multi sub c (Int:U $z)  { say 'Undefined' }
+multi sub c (Int:D $z)  { say 'Defined'   }   
+multi sub c (Int   $z?) { say 'Omitted'   }   
+c;              #Omitted 
+c (Int);        #Undefined 
+c 42;           #Defined
+=end code
+
+The examples use names like C<TypeclassAt> to reflect that the C<.WHICH> test returns an object of type C<ObjAt>, 
+you are free to make up you own names.
+
 =head1 Dynamic variables
 
 L<Dynamic variables|/language/variables#The_*_twigil> are allowed in signatures
