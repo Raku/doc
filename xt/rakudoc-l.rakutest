@@ -85,11 +85,20 @@ sub is-valid-link($links) {
             my $ok = ?($path.IO.d or ($path ~ '.rakudoc').IO.e);
             ok $ok, "$link exists (primary)";
             %bad-links{$link}++ unless $ok;
+        } elsif $link.starts-with: '#' {
+            next; # don't check in-page anchors
+        } elsif $link.starts-with: 'irc:' {
+            next; # don't vaidate IRC
         } else {
-            my @valid-protocols = <http https irc>;
-            next if $link.starts-with: '#'; # don't check in-page anchors
-            next if $link.starts-with(any(@valid-protocols) ~ '://');
+            my @valid-protocols = <http https>;
+            if $link.starts-with(any(@valid-protocols) ~ '://') {
+                use HTTP::Tiny;
+                my $response = HTTP::Tiny.new.get: $link;
+                ok($response<success>, "HTTP $response<status> $link");
+                next;
+            }
 
+            # fallthrough
             %bad-links{$link}++;
             flunk("relative link or bad protocol: $link");
         }
