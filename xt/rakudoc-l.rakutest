@@ -96,6 +96,11 @@ sub is-valid-link($links) {
             if $link.starts-with(any(@valid-protocols) ~ '://') {
                 my $response = await $ua.get: $link;
                 CATCH {
+                    when X::Cro::HTTP2::GoAway {
+                        # race condition? try again.
+                        sleep 1;
+                        redo;
+                    }
                     when X::Cro::HTTP::Error {
                         if .response.status == 429 {
                             my $retry-after = .response.header('retry-after');
