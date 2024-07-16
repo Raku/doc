@@ -11,6 +11,7 @@ use lib $*PROGRAM.parent(2).child('lib');
 
 use Test-Files;
 use Pod::Convenience;
+use Cro::HTTP::Client;
 
 my @files = Test-Files.pods;
 
@@ -20,6 +21,7 @@ if @files {
     plan :skip-all<No rakudoc files specified>
 }
 
+my $ua = Cro::HTTP::Client.new;
 
 sub is-valid-display($content) {
     if $content.starts-with('#') {
@@ -92,9 +94,24 @@ sub is-valid-link($links) {
         } else {
             my @valid-protocols = <http https>;
             if $link.starts-with(any(@valid-protocols) ~ '://') {
-                use HTTP::Tiny;
-                my $response = HTTP::Tiny.new.get: $link;
-                ok($response<success>, "HTTP $response<status> $link");
+                my $response = await $ua.get: $link;
+                CATCH {
+                    when X::Cro::HTTP::Error {
+                        if .response.status == 429 {
+                            my $retry-after = .response.header('retry-after');
+                            sleep $retry-after;
+                            redo;
+                        } else {
+                            flunk "HTTP {.response.status} $link";
+                        }
+                    }
+                    default {
+                        diag .^name;
+                        flunk "HTTP Unknown error: $link";
+                    }
+                    next;
+                }
+                pass "HTTP {$response.status} $link";
                 next;
             }
 
