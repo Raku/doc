@@ -39,6 +39,11 @@ Or against everything that you haven't committed yet:
 $ TEST_FILES=$(git ls-files --modified) make xtest
 ```
 
+## NETWORK_TESTING
+
+Some tests make network connections to verify data; if this environment variable is not
+set, those tests will be skipped.
+
 ## PR
 
 Every pull request should pass the full set of tests with `make xtest`
