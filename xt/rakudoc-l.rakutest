@@ -97,17 +97,23 @@ sub is-valid-link($links) {
             my @valid-protocols = <http https>;
             if $link.starts-with(any(@valid-protocols) ~ '://') {
                 next unless $network-testing;
+
                 # Skip known incorrect URLS that are just for examples
                 next if $link eq "http://www.MegaGigaTeraPetaCorp.com/std/disclaimer.txt";
+                # Skip known problematic URLs (403 via Cro, fine via browser)
+                next if $link eq "https://dev.mysql.com/downloads/repo/apt/";
+
                 my $response = await $ua.get: $link;
                 CATCH {
                     when X::Cro::HTTP2::GoAway {
                         # race condition? try again.
+                        diag "HTTP GoAway $link";
                         sleep 1;
                         redo;
                     }
                     when X::Cro::HTTP::Error {
                         if .response.status == 429 {
+                            diag "HTTP 429 $link";
                             my $retry-after = .response.header('retry-after');
                             sleep $retry-after;
                             redo;
@@ -119,7 +125,7 @@ sub is-valid-link($links) {
                     }
                     default {
                         %bad-links{$link}++;
-                        flunk "HTTP Unknown error: $link";
+                        flunk "HTTP ({$_.message}): $link";
                         next;
                     }
                     next;
