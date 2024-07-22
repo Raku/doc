@@ -1018,6 +1018,58 @@ dispatch, or it could be the inner routine from a C<wrap>.
 Fortunately, we have a series of re-dispatching tools that help us to make
 it easy.
 
+=head2 The Next Tools
+
+The table below represents the next tools in relation to three attributes:
+
+=item1 B<Returns:> "Yes" means that it returns, and the code will continue from
+that point.  "No" means that it never returns to this function -- it's as 
+though the call has a built-in "return".  
+
+=item1 B<Arguments:> Specifically, whether the arguments from the current
+function are reused in the call, or whether you need to specify some 
+arguments.  In the case of C<nextcallee>, there are no arguments needed, 
+because they're instead passed to the return value when it's called.  
+
+=item1 B<Referee:> This is the method that will be called by the tool (the 
+reciprocal of "referer").  It can be one of:
+
+=item2 B<next:> The next item in the chain
+
+=item2 B<self:> It will call itself again, as in recursion
+
+=item2 B<preset:> It will call the item that was saved by C<nextcallee>
+
+=begin table
+
+                     | Returns | Arguments | Referee*
+    =================+=========+===========+========
+    nextsame         | No      | Reuse     | next
+    nextwith         | No      | Specify   | next
+    callsame         | Yes     | Reuse     | next
+    callwith         | Yes     | Specify   | next
+    nextcallee       | Yes     | None      | next
+    samewith         | Yes     | Specify   | self
+    nextcallee's rv* | Yes     | Specify   | preset
+
+=end table
+* C<nextcallee>'s rv is the tool returned from calling C<nextcallee>, which 
+itself can be called.  
+
+From the above we learn:
+
+=item C<with> always means that the arguments need to be specified -- this 
+one is consistent.  
+
+=item C<same> at word end means the arguments of the currently running 
+function will automatically be reused when calling the referee.  Note that 
+C<samewith>, despite containing "same", doesn't mean that the arguments will 
+be reused.  That's because the "same" here refers to the Referee -- the 
+function is calling the same method as itself, not the next in the call stack.  
+
+=item C<next> means that it won't return, except for C<nextcallee>, which does 
+return
+
 =head2 X<sub callsame|Subroutines,callsame>
 
 C<callsame> calls the next matching candidate with the same arguments that were
@@ -1168,7 +1220,7 @@ say (factorial 10); # OUTPUT: «36288000␤»
 =head2 X<sub nextcallee|Subroutines,nextcallee>
 
 Redispatch may be required to call a block that is not the current scope what
-provides C<nextsame> and friends with the problem to referring to the wrong
+provides C<nextwith> and friends with the problem to referring to the wrong
 scope. Use C<nextcallee> to capture the right candidate and call it at the
 desired time.
 
@@ -1195,6 +1247,14 @@ The L<C<Int>|/type/Int> candidate takes the C<nextcallee> and then fires up a L<
 to be executed in parallel, after some timeout, and then returns. We can't use
 C<nextsame> here, because it'd be trying to C<nextsame> the Promise's block
 instead of our original routine.
+
+Note that, despite its name, the C<nextcallee> function is like:
+
+=item C<callwith>/C<nextwith>, in that it takes parameters
+
+=item C<callwith>/C<callsame>, in that it returns; the call to C<nextcallee> returns 
+a reference, and the call to the reference also returns (unlike 
+C<nextwith>/C<nextsame>, which don't return)
 
 =head2 X<Wrapped routines|Language,wrapped routines>
 
