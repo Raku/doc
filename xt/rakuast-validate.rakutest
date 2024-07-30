@@ -47,12 +47,16 @@ my $*INSIDE-LINK = False;
 
 sub walk($node) {
     my @children;
+    my $check-empty-tags = True;
+
     if $node ~~ RakuAST::Doc::Paragraph {
         @children = $node.atoms;
     } elsif $node ~~ RakuAST::Doc::Block {
         return if $node.type eq 'code'|'implicit-code'|'comment'|'table';
         @children = $node.paragraphs;
     } elsif $node ~~ RakuAST::Doc::Markup {
+        $check-empty-tags = False;
+
         if $node.letter eq 'L' {
             $*INSIDE-LINK = True;
         }
@@ -82,7 +86,7 @@ sub walk($node) {
                     flunk "URL found: $<url>";
                 }
             }
-            if $child ~~ / $<bracketed>=['<' .*? '>'] / {
+            if $check-empty-tags && $child ~~ / $<bracketed>=['<' .*? '>'] / {
                 next if $child.contains("prefix:<" | "infix:<" );
                 flunk ~$/<bracketed> ~ " is likely missing a formatting code";
             }
