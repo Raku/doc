@@ -8,7 +8,7 @@ use Test-Files;
 
 =begin overview
 
-Only use "an" with appropriate words.
+Appropriately use "a" and "an".
 
 =end overview
 
@@ -24,50 +24,55 @@ sub test-it(Str $output, Str $file) {
     subtest $file => {
         # Look at every two words together...
         for $output.words.rotor(2 => -1) -> ($an, $other) {
-            # ... if the first one is "an" 
-            next unless $an.lc eq 'an';
+            # ... if the first one is "a" or "an"
+            next unless $an.lc eq 'an'|'a';
 
             # Assume we should be using 'a'
-            my $ok = False;
+            my $wanted = "a";
 
             # In all cases, ignore a trailing . that is part of the word
             my $word = $other.ends-with('.') ?? $other.chop !! $other;
 
             # Process items where we care about the punctuation
             if $word.starts-with('X::' | '@') {
-                $ok = True;
+                $wanted = "an";
             } elsif $word eq '=' | '&' {
-                $ok = True;
+                $wanted = "an";
             }
 
             # Strip out any remaining punctuation to look at alpha/digits
             $word = $word.subst(:g, /<-alpha -digit>+/, " ").words[0] // '';
 
             # Still have to check?
-            if !$ok {
+            if $wanted eq "a" {
                 # Words that are empty or Nil at this point should be failed
                 if $word.DEFINITE and $word ne "" {
                     # Allow all vowels
                     if $word.lc.starts-with(any(<a e i o u>)) {
-                        $ok = True;
-                        # Except for words that start with a hard "u"
-                        if $word eq 'usage' {
-                            $ok = False;
+                        $wanted = "an";
+                        # Except for words that start with a consonant sound
+                        if $word.lc eq
+                            'once' | 'one' | 'uc' | 'ucfirst' | 'udp' | 'ui' | 'unary' | 'uni' |
+                            'unicode' | 'uniform' | 'uniprops' | 'unique' | 'unit' | 'unitcheck' |
+                            'universally'| 'unix' | 'uri' | 'url' | 'usable' | 'usage' | 'use' |
+                            'useful' | 'used' | 'user' | 'usual' | 'usually' | 'utc' | 'utf8'
+                            {
+                            $wanted = "a";
                         }
                     }
     
                     # Allow some single characters that start with vowel sounds
                     if $word.lc eq any <m l n x> {
-                        $ok = True;
+                        $wanted = "an";
                     }
     
                     # Allow some words that have a consonant but use a vowel sound
                     if $word.lc eq any(<mp3 hour lc lcfirst nfc nfd nfkc nfkd nqp html rvalue lvalue>) {
-                        $ok = True;
+                        $wanted = "an";
                     }
                 }
             }
-            ok $ok, "an $other [$word]";
+            is $an.lc, $wanted, "$an $other";
         }
     }
 }
