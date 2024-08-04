@@ -39,7 +39,7 @@ For pedagogical reasons, it's
 OK to break what would otherwise be a large block of code into smaller
 chunks and discuss each one separately - we still want to do our best
 to compile these individual chunks. However, avoid this practice across
-methods on a Type/ page, which an be split up to show only a single method.
+methods on a Type/ page, which can be split up to show only a single method.
 Even on a Language/ page, avoid continuing an example for more than a
 page or so.
 
