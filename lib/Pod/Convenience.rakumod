@@ -2,7 +2,7 @@ unit module Pod::Convenience;
 
 =begin overview
 
-Provide an C<extract-pod> sub which returns an object containing all the pod
+Provide C<&extract-pod> which returns an object containing all the pod
 elements from a given file.
 
 =end overview
