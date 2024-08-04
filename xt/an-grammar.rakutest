@@ -1,0 +1,77 @@
+#!/usr/bin/env raku
+
+use Test;
+
+use lib $*PROGRAM.parent(2).child('lib');
+use Pod::Cache;
+use Test-Files;
+
+=begin overview
+
+Only use "an" with appropriate words.
+
+=end overview
+
+my @files = Test-Files.files.grep(* ne 'LICENSE' | 'CREDITS' | 'xt/an-grammar.rakutest');
+
+plan +@files;
+
+sub test-it(Str $output, Str $file) {
+    if $file.contains('/i18n/') {
+        skip("$file is not english");
+        next;
+    }
+    subtest $file => {
+        # Look at every two words together...
+        for $output.words.rotor(2 => -1) -> ($an, $other) {
+            # ... if the first one is "an" 
+            next unless $an.lc eq 'an';
+
+            # Assume we should be using 'a'
+            my $ok = False;
+
+            # In all cases, ignore a trailing . that is part of the word
+            my $word = $other.ends-with('.') ?? $other.chop !! $other;
+
+            # Process items where we care about the punctuation
+            if $word.starts-with('X::' | '@') {
+                $ok = True;
+            } elsif $word eq '=' | '&' {
+                $ok = True;
+            }
+
+            # Strip out any remaining punctuation to look at alpha/digits
+            $word = $word.subst(:g, /<-alpha -digit>+/, " ").words[0] // '';
+
+            # Still have to check?
+            if !$ok {
+                # Words that are empty or Nil at this point should be failed
+                if $word.DEFINITE and $word ne "" {
+                    # Allow all vowels
+                    if $word.lc.starts-with(any(<a e i o u>)) {
+                        $ok = True;
+                    }
+    
+                    # Allow some single characters that start with vowel sounds
+                    if $word.lc eq any <m l n x> {
+                        $ok = True;
+                    }
+    
+                    # Allow some words that have a consonant but use a vowel sound
+                    if $word.lc eq any(<mp3 hour lc lcfirst nfc nfd nfkc nfkd nqp html rvalue lvalue>) {
+                        $ok = True;
+                    }
+                }
+            }
+            ok $ok, "an $other [$word]";
+        }
+    }
+}
+
+for @files -> $file {
+    if $file.ends-with('.rakudoc') {
+        test-it(Pod::Cache.cache-file($file).IO.slurp, $file)
+    } else {
+        test-it($file.IO.slurp, $file);
+    }
+}
