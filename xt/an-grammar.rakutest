@@ -27,6 +27,16 @@ sub test-it(Str $output, Str $file) {
             # ... if the first one is "a" or "an"
             next unless $an.lc eq 'an'|'a';
 
+            # This is probably code
+            next if $other eq '=>' | '=' | '($a)' | '$.a';
+            next if $other.starts-with('X<hash' | 'e)');
+
+            # A is probably a variable in this context
+            next if $other.lc eq 'is' | 'and' | 'or' | 'into' | 'if' | 'as' | 'o';
+
+            # Too much trouble to reword example/table
+            next if $other eq 'Extract' | 'expects';
+
             # Assume we should be using 'a'
             my $wanted = "a";
 
@@ -34,7 +44,7 @@ sub test-it(Str $output, Str $file) {
             my $word = $other.ends-with('.') ?? $other.chop !! $other;
 
             # Process items where we care about the punctuation
-            if $word.starts-with('X::' | '@') {
+            if $word.starts-with('X::' | '@' | '&' ) {
                 $wanted = "an";
             } elsif $word eq '=' | '&' {
                 $wanted = "an";
@@ -42,6 +52,9 @@ sub test-it(Str $output, Str $file) {
 
             # Strip out any remaining punctuation to look at alpha/digits
             $word = $word.subst(:g, /<-alpha -digit>+/, " ").words[0] // '';
+
+            # Probably code example
+            next if $word eq 'A' and $an eq 'A';
 
             # Still have to check?
             if $wanted eq "a" {
@@ -65,6 +78,11 @@ sub test-it(Str $output, Str $file) {
                     # Allow some single characters that start with vowel sounds
                     if $word.lc eq any <m l n x> {
                         $wanted = "an";
+
+                        # Special case for \n, which is either "newline" or "backslash n"
+                        if $other.lc eq '\n' {
+                            $wanted = "a";
+                        }
                     }
     
                     # Allow some words that have a consonant but use a vowel sound
