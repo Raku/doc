@@ -63,6 +63,44 @@ and check the exitcode.
         say 'something went wrong';
     }
 
+=head2 Example with shell
+
+Suppose there is a utility that will takes input from STDIN and outputs to STDOUT, but there
+isn't yet a Raku wrapper. For this example, lets use L<sass|https://sass-lang.com/documentation/cli/dart-sass/>,
+which preprocesses a more convenient form of CSS called SCSS into standard CSS. In a terminal the utility would
+be used as
+    sass --stdin
+
+We want to convert multiple strings of SCSS into CSS. The code below only converts one string and captures the output
+into a variable, but it should be obvious how to adapt this into a loop.
+=begin code
+    #| process with utility, first check it exists in the environment
+    my $proc = shell( <<sass --version>>, :out, :merge);
+    exit note 'Cannot run sass' unless $proc.out.slurp(:close) ~~ / \d \. \d+ /;
+
+    # set up the process for stdin. Note it only needs setting up once.
+    $proc = shell( <<sass --stdin --style=compressed>>, :in, :err, :out );
+
+    # later
+    # start loop here for multiple SCSS strings
+    my $scss = q:to/SCSS/;
+        div.rendered-formula {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            img.logo {
+                align-self: center;
+            }
+        }
+        SCSS
+    # now pipe the SCSS string into the process as STDIN (remembering to close the pipe)
+    $proc.in.spurt($scss,:close);
+    # extract the output or the error
+    my $error  = $_ with $proc.err.slurp(:close);
+    my $output = $_ with $proc.out.slurp(:close);
+
+    # end loop here
+=end code
 =head1 The L<C<Proc::Async>|/type/Proc::Async> object
 
 When you need more control over the communication with and from another process,
