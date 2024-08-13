@@ -9,7 +9,12 @@ Use the new RakuAST generation as it's speedier (and more likely to be correct).
 
 =end overview
 
+
 method cache-file(Str $file --> Str) {
+
+    # We only cache rakudoc files.
+    return $file if ! $file.ends-with('.rakudoc');
+
     my $outfile = '.pod-cache/' ~ $file;
     my $output-io = $outfile.IO;
 
