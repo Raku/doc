@@ -11,7 +11,8 @@ frequently (but not continuously).
 This is currently the recommended way to consume the documentation. The tooling
 to build and run this site is [available on github](https://github.com/Raku/doc-website).
 
-This repository is not intended to be installed as a module.
+This repository is not intended to be installed as a module. When running tests or
+scripts locally, you may need to set ``RAKULIB=.``
 
 ## README in other languages
 
