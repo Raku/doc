@@ -16,7 +16,7 @@ my $header = @word.shift;
 
 my $word-out = $word-io.open(:w);
 $word-out.say: $header;
-$word-out.say: @word.sort.join("\n");
+$word-out.say: @word.sort.unique.join("\n");
 
 my $code-out = $code-io.open(:w);
-$code-out.say: @code.sort.join("\n");
+$code-out.say: @code.sort.unique.join("\n");
