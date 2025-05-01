@@ -1,0 +1,460 @@
+=begin pod :kind("Language") :subkind("modules") :category("tutorial")
+
+=TITLE Making Modules: The Configuration and Structure
+
+=SUBTITLE How to structure and configure Raku modules for distribution
+
+=head1 Preparing the module
+
+For a module to work in any of the ecosystems, it needs to follow a certain
+structure.
+
+We strongly suggest that you use some of the
+L<Module builder and authoring tools|/language/distributions/tools>
+that are available.
+
+=head1 Quick Overview using C<fez>
+
+To create a skeleton, run the commands:
+
+=begin code :lang<text>
+fez init MyNew::Module
+
+# Will create the following:
+# MyNew--Module/
+# ├── lib
+# │   └── MyNew
+# │       └── Module.rakumod
+# ├── META6.json
+# └── t
+#     └── 00-use.rakutest
+=end code
+
+If you need to add new modules, classes, resources, build-depends, or depends you may use the following (respectively,
+these resources will automatically be added to META6.json):
+
+=begin code :lang<text>
+fez module My::New::Module
+fez module --class My::New::Module
+fez resource xyz
+fez depends --build Build::Dependency
+fez depends Runtime::Dependency
+=end code
+
+=head1 Full Explanation
+
+Even if you're intending to use fez or an equivalent (and you should), the
+following can be useful reading before releasing a module, so that, as you
+develop your module, you will be aware of the requirements and customs
+regarding how a module is structured.
+
+The META6.json file specifies the various metadata of your project and
+their uses; this has various sections that align with the filesystem of
+your module, so the following sections will step through the filesystem
+and the META6.json file in parallel; some sections belong only to one
+or the other, but many belong to both.  The filesystem items will be
+referred to as C<file> or C<directory>, and the META6.json sections
+will be referred to as a C<key> or a C<section>.
+
+=head2 The module root directory and META6.json file
+
+The attributes in this file are analyzed by the
+L<C<META6>|https://github.com/jonathanstowe/META6> class. They are divided into
+optional, mandatory and I<customary>. Mandatory are the ones you need to insert
+into your file, and customary are those used by the current Raku ecosystem and
+possibly displayed on the module page if it's published, but you have no
+obligation to use it.
+
+Create a project directory named after your module. For
+    example, if your module is C<Vortex::TotalPerspective>, then create a
+    project directory named C<Vortex-TotalPerspective>.
+
+Make your project directory look like this:
+
+=begin code :lang<text>
+Vortex-TotalPerspective/
+├── META6.json
+├── LICENSE
+├── README.md
+├── lib
+│   └── Vortex
+│       └── TotalPerspective.rakumod
+└── bin
+│    └── vortex
+└── t
+    └── basic.rakutest
+=end code
+
+Make your X<C<META6.json>|Reference,META6.json> file look something like this:
+
+=begin code :allow<R> :lang<javascript>
+{
+    "name" : "Vortex::TotalPerspective",
+    "description" : "Wonderful simulation to get some perspective.",
+    "source-url" : "git://github.com/R<you>/Vortex-TotalPerspective.git"
+    "auth" : "github:SomeAuthor",
+    "authors" : [ "R<Your Name>" ],
+    "tags": [
+      "Vortex", "Total", "Perspective"
+    ],
+    "depends" : [ ],
+    "build-depends" : [ ],
+    "test-depends" : [ ],
+    "license" : "Artistic-2.0",
+
+    "version" : "0.0.1",
+    "api"  : "1",
+    "raku" : "6.c",
+
+    "provides" : {
+        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.rakumod"
+    },
+    "resources" : [ ],
+}
+=end code
+
+There are more fields described in the
+L<C<META> design documents|https://github.com/Raku/old-design-docs/blob/master/S22-package-format.pod#META6.json>,
+but not all of these are
+implemented by existing package managers. Hence you should stick to the fields
+described in the above example block to ensure compatibility with existing
+package managers such as C<zef>. You can also check
+L<Moritz Lenz's repository of all modules for examples|https://github.com/moritz/perl6-all-modules/search?l=JSON&q=META6.json&type=>,
+but bear in mind that some of them might use fields, such as C<source-type>
+above, which are currently ignored.
+
+=head3 The C<name> key
+
+The C<name> key is compulsory, and C<zef> will fail if you do not include it.
+Even if you have created a META6.json file just to express the dependencies
+for a series of scripts, this section must be included.
+
+=head3 The C<description> key
+
+The C<description> field is also mandatory, and includes a short
+description of the module.
+
+=head3 The C<source-url> key
+
+C<source-url> indicates the URL of the repository where the module is
+developed; this is one of the customary modules if you are going to publish it
+in the module ecosystem. The current module ecosystem will link this URL from
+the project description. N<Some old modules also provide a C<source-type> field,
+which was used to indicate the kind of source control system, generally C<git>,
+which can be used to download the module. However, this field is nowadays
+ignored by C<zef> and the rest of the tools.>
+
+See also the C<auth> section, below.
+
+=head3 The C<auth> and C<authors> sections
+
+The C<authors> section includes a list of all the module authors. In
+the case there is only one author, a single element list must be
+supplied. This field is optional.
+
+The C<auth> section identifies the author in GitHub or other repository
+hosting site, such as Bitbucket or GitLab. This field is I<customary>,
+since it's used to identify the author in the ecosystem, and opens the
+possibility of having modules with the same name and different authors.
+
+=head3 The C<tags> section
+
+The C<tags> section is also optional. It is used to describe
+the module in the Raku ecosystem.
+
+=head3 The C<depends>, C<build-depends>, and C<test-depends> sections
+
+The C<depends>, C<build-depends>, and C<test-depends> sections include different modules that
+are used in those phases of the of installation. All are optional, but
+if present must contain the required modules for those
+phases. These dependencies might optionally use
+L<C<Version>|/type/Version> specification strings; C<zef> will check for the
+presence and versions of these modules and install or upgrade them if needed.
+
+=for code :lang<JSON>
+//...
+"depends": [
+       "URI",
+       "File::Temp",
+       "JSON::Fast",
+       "Pod::To::BigPage:ver<0.5.0+>",
+       "Pod::To::HTML:ver<0.6.1+>",
+       "OO::Monitors",
+       "File::Find",
+       "Test::META"
+],
+//...
+
+Additionally, C<depends> can be either an array as above or a hash that uses two
+keys, C<runtime> and C<build>, whose function should be self-descriptive, and
+which are used, for instance,
+L<in C<Inline::Python>|https://github.com/niner/Inline-Python/blob/master/META6.json>:
+
+=for code :lang<JSON>
+//...
+"depends" : {
+        "build": {
+            "requires": [
+                "Distribution::Builder::MakeFromJSON",
+                {
+                    "from" : "bin",
+                    "name" : {
+                        "by-distro.name" : {
+                            "macosx" : "python2.7-config",
+                            "debian" : "python2.7-config",
+                            "" : "python2-config"
+                        }
+                    }
+                }
+            ]
+        },
+        "runtime": {
+            "requires": [
+                "python2.7:from<native>"
+            ]
+        }
+}, // ...
+
+In general, the array form will be more than enough for most cases.
+
+=head3 The C<README.md> file
+
+The C<README.md> file is a
+L<markdown-formatted|https://help.github.com/articles/markdown-basics/>
+text file, which will later be automatically rendered as HTML by GitHub/GitLab for modules kept
+in those ecosystems or by L<raku.land|https://raku.land> website for modules
+kept on L<CPAN|/language/faq#index-entry-CPAN_(FAQ)>.
+
+=head3 The C<LICENSE> file and key
+
+=item Regarding the C<LICENSE> file, if you have no other preference,
+you might just use the same one that Rakudo Raku uses. Just
+copy/paste the raw form of L<its license|https://github.com/rakudo/rakudo/blob/master/LICENSE>
+into your own C<LICENSE> file.
+
+=item The license field in META6.json
+should be one of the standardized names listed here:
+L<https://spdx.org/licenses/>. In the case of the B<Artistic 2.0> license, which
+    is what many of our ecosystem modules use, its identifier is
+    C<Artistic-2.0>. Having standardized identifiers make it easy for humans
+    and computers alike to know which license was actually used by looking at
+    the metadata!
+
+=item If you can't find your license on C<spdx.org> or you use your own license,
+you should put the license's name in the license field. For more details see
+L<https://github.com/Raku/old-design-docs/blob/master/S22-package-format.pod#license>.
+
+=head2 The versioning keys
+
+=head3 The C<version> key
+
+For choosing a version numbering scheme, try and use "major.minor.patch" (see
+L<the spec on versioning|https://github.com/Raku/old-design-docs/blob/master/S11-modules.pod#Versioning> for
+further details). This will go into the C<version> key of C<META6.json>. This
+field is optional, but used by installation to match against installed version,
+if one exists.
+
+=head3 The C<api> key
+
+Optionally, you can set an C<api> field. Incrementing this indicates
+that the interface provided by your module is not backwards compatible
+with a previous version. You can use it if you want to adhere to
+L<Semantic Versioning|https://semver.org>. A best practice is to simply
+keep the C<api> field to the same value as your major version number. A
+dependency can then depend on your module by including an C<:api> part,
+which will ensure backwards incompatible releases will not be pulled in.
+
+=head3 The C<raku> key
+
+Set C<raku> version to the minimum Raku version your module works with. This
+field is mandatory. Use C<6.c> if your module is valid for Christmas release and
+newer ones, use C<6.d> if it requires, at least the Diwali version.
+
+=head2 The C<provides> section and the C<lib> directory
+
+If your project contains other modules that help the main module do
+its job, they should go in your lib directory like so:
+
+=begin code :lang<text>
+lib
+└── Vortex
+    ├── TotalPerspective.rakumod
+    └── TotalPerspective
+        ├── FairyCake.rakumod
+        └── Gargravarr.rakumod
+=end code
+
+In the C<provides> section, include all the namespaces provided by your
+distribution and that you wish to be installed; only module files that are
+explicitly included here will be installed and available with C<use> or
+C<require> in other programs. This field is mandatory.
+
+In the C<provides> object (object in the JSON sense), the key is the module
+name, the value is the path from the module root to the file in the lib/
+directory.
+
+=head2 The C<bin> directory
+
+Programs and scripts that you need in the C<$PATH> for execution need
+to be included in the C<bin> directory; these will be copied to whatever
+directory your installed Rakudo distribution has allotted for executables;
+typically this will be C</path/to/installation/share/perl6/site/bin/>, a folder
+that should be available in C<$PATH>. I<Note: the perl6 path component predates the
+language name change.>
+
+=head2 The C<resources> directory and section
+
+The C<resources> section is optional, but if present, should contain a list
+of the files in your C<resources> directory that you wish to be installed.
+These will be installed with hashed names alongside your library files.
+
+If you have any additional files (such as templates or a dynamic
+library) that you wish to have installed so you can access them at
+runtime, they should be placed in a C<resources> subdirectory of your project, e.g.:
+
+=begin code :lang<text>
+resources
+└── templates
+        └── default-template.mustache
+=end code
+
+The file must then be referenced in C<META6.json> (see below for more on
+C<META6.json>) so that the distribution path can be provided to the program.
+
+=begin code :lang<javascript>
+{
+    "name" : "Vortex::TotalPerspective",
+    "provides" : {
+        "Vortex::TotalPerspective" : "lib/Vortex/TotalPerspective.rakumod"
+    },
+    "resources": [ "templates/default-template.mustache"]
+}
+=end code
+
+The additional file can then be accessed inside module code; see the section
+on the %?RESOURCES variable, below.
+
+=head3 X<The C<$?DISTRIBUTION> variable|Modules,%?DISTRIBUTION>
+
+The C<L<$?DISTRIBUTION|syntax/$?DISTRIBUTION>> variable
+is only populated within files listed in the C<provides>
+section (usually those in the C<lib> directory).  If you
+want to use it outside that (i.e. in your tests), you'll
+need to provide a C<Routine> that returns it.
+
+=head3 X<The C<%?RESOURCES> variable|Modules,%?RESOURCES>
+
+Note the
+example here is returning a L<C<Distribution::Resource>|/type/Distribution::Resource> object. It should
+B<not> be considered as a path to an object in the filesystem.
+
+=begin code
+my $template-text = %?RESOURCES<templates/default-template.mustache>.slurp;
+=end code
+
+B<Note>: Accessing these files via C<%?RESOURCES> is B<not>
+getting their installed locations or an L<C<IO>|/type/IO> class: You are accessing a L<C<Distribution::Resource>|/type/Distribution::Resource>.
+object indexed on the name provided.  It's important to be careful in
+how you use these to avoid embedding the filename at compile-time
+which might be different than the location the file is in at runtime.
+
+The C<L<$?RESOURCES|syntax/$?RESOURCES>> variable
+is only populated within files listed in the C<provides>
+section (usually those in the C<lib> directory).  If you
+want to use it outside that (i.e. in your tests), you'll
+need to provide a C<Routine> that returns it.
+
+An example of how to use this might be:
+
+=begin code
+sub     MyModule-resources(*@resources) is export(:tests) {
+        for @resources -> $resource-filename {
+                my $resource = %?RESOURCES{$resource-filename};
+                # Just some error-checking code
+                if $resource !~~ Distribution::Resource {
+                        note "Could not find resource '$resource-filename' in distribution";
+                        say qx{ls -laF ; ls -laF resources ; cat META6.json};
+                        say "Resource is: " ~ $resource.raku;
+                        say "Resource keys are: " ~ %?RESOURCES.keys.raku;
+                }
+        }
+
+        return %?RESOURCES;
+}
+=end code
+
+...and then to use it in your code:
+
+=begin code
+use     TOP :tests :DEFAULT;    # Note that the :tests here matches the "is export" above
+
+my $resource-name = 'templates/default-template.mustache';
+my $resources = MyModule-resources($resource-name);
+my $resource = $resources{$resource-name};
+my $file_handle = $resource.open();
+=end code
+
+The above will produce quite a bit of debugging output if
+the resource isn't found (but will continue regardless).
+This can be handy when running in a remote location, such
+as a GitHub action.
+
+=head2 The C<t> directory, and testing your module
+
+If you don't yet have any tests, you can leave out the C<t>
+directory and C<basic.rakutest> file for now. For more information on how to write
+tests (for now), you might have a look at how other modules use
+L<C<Test>|/type/Test>.
+
+The L<C<Test::META> module| https://github.com/jonathanstowe/Test-META/> can
+help
+you check the correctness of the META6.json file; this module will check for all
+the mandatory fields and that the type used for all of them is correct.
+
+If you want to test your module you can use the following command to install the
+module directly from the module folder you just created.
+
+=begin code :lang<shell>
+zef install ./your-module-folder
+=end code
+
+Note that doing so precompiles and installs your module. If you make changes to
+the source, you'll need to re-install the module.
+(See C<use lib> L<pragma|/language/pragmas#lib>, C<-I>
+command line switch, or C<RAKULIB> environment variable, to include a path to your
+module source while developing it, so you don't have to install it at all).
+
+See also the C<test-depends> section, above.
+
+=head2 Documenting your modules
+
+To document your modules, use L<Raku Pod|/language/pod> markup inside them.
+Module documentation is most appreciated and will be especially important once
+the Raku module directory (or some other site) begins rendering Pod docs as
+HTML for easy browsing. If you have extra docs (in addition to the Pod docs in
+your module(s)), create a C<doc> directory for them. Follow the same folder
+structure as the C<lib> directory like so:
+
+=begin code :lang<text>
+doc
+└── Vortex
+    └── TotalPerspective.rakudoc
+=end code
+N<Note, described above is a minimal project directory. If your project
+contains scripts that you'd like distributed along with your module(s),
+put them in a C<bin> directory. If you'd like a graphical logo to
+appear next to your module at the module directory, create a
+C<logotype> directory and put into it a C<logo_32x32.png> file. At some
+point, you might also consider adding C<CONTRIBUTORS>, C<NEWS>,
+C<TODO>, or other files.>
+
+=head2 Build hooks
+
+If your module requires extra processing during installation to fully
+integrate with and use non-Raku operating system resources, you may
+need to add a X<C<Build.rakumod>|Reference,Build.rakumod> file (a "build hook") to the top-level directory. It will
+be used by the C<zef> installer as the first step in the installation process.
+See the README for C<zef> for a brief example. Also see various usage scenarios in existing
+ecosystem modules such as C<zef> itself.
+
+=end pod
