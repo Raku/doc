@@ -1,5 +1,10 @@
 .PHONY: test xtest push help
 
+# Common tests - also run by CI
+test: testlist := t
+# Extended tests - should be run by authors before committing
+xtest: testlist := t xt
+
 help:
 	@echo "Usage: make [test|xtest|push]"
 	@echo ""
@@ -8,13 +13,13 @@ help:
 	@echo "  xtest:             run all tests"
 	@echo "   push:             run the basic test suite and git push"
 
-# Common tests - also run by CI
-test:
-	if [ "${TEST_JOBS}" != "" ]; then prove --ext=rakutest -j ${TEST_JOBS} -e raku t; else prove --ext=rakutest -e raku t; fi
-
-# Extended tests - should be run by authors before committing
-xtest:
-	if [ "${TEST_JOBS}" != "" ]; then prove --ext=rakutest -j ${TEST_JOBS} -e raku t xt; else prove --ext=rakutest -e raku t xt; fi
+# Actually run the tests
+test xtest:
+ifeq ("${TEST_JOBS}", "")
+	RAKULIB=lib prove --ext=rakutest -e raku $(testlist)
+else
+	RAKULIB=lib prove --ext=rakutest -j ${TEST_JOBS} -e raku $(testlist)
+endif
 
 push: test
 	git pull --rebase && git push
