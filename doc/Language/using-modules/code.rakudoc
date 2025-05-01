@@ -1,0 +1,450 @@
+=begin pod :kind("Language") :subkind("modules") :category("tutorial")
+
+=TITLE Using Modules: The Code
+
+=SUBTITLE How to use Raku modules in your code
+
+=head1 X<Loading and basic importing|Language,compunit>
+
+Loading a module makes the packages in the same namespace declared
+within available in the file scope of the loader. Importing from a
+module makes the symbols exported available in the lexical scope of
+the importing statement.
+
+=head2 X<C<need>|Syntax,need>
+
+C<need> loads a C<compunit> at compile time.
+
+=for code :skip-test<needs dummy module>
+need MyModule;
+
+Any packages in the namespace defined within will also be available.
+
+=begin code :solo
+# MyModule.rakumod
+unit module MyModule;
+
+class Class {}
+=end code
+
+C<MyModule::Class> will be defined when C<MyModule> is loaded, and you can use
+it directly employing its fully qualified name (FQN). Classes and other types
+defined that way are not automatically exported; you will need to explicitly
+export it if you want to use it by its short name:
+
+=begin code :solo
+# MyModule.rakumod
+unit module MyModule;
+
+class Class is export {}
+=end code
+
+And then
+
+=begin code :skip-test<needs dummy module>
+use MyModule;
+
+my $class = Class.new();
+say $class.raku;
+=end code
+
+=head2 X<C<use>|Syntax,use>
+
+C<use> loads and then imports from a compunit at compile time. It will look for
+files that end in C<.rakumod>. See L<here|/language/using-modules/finding-installing#Finding_installed_modules>
+for where the runtime will look for modules.
+
+=for code :skip-test<needs dummy module>
+use MyModule;
+
+This is equivalent to:
+
+=begin code :skip-test<needs dummy module>
+need MyModule;
+import MyModule;
+=end code
+
+See also
+L<selective importing|/language/using-modules/code#Exporting_and_selective_importing>
+to restrict what you import.
+
+=head2 X<C<require>|Syntax,require>
+
+C<require> loads a compunit and imports definite symbols at runtime.
+
+    say "loading MyModule";
+    require MyModule;
+
+The compunit name can be in a runtime variable if you put it inside an
+indirect lookup.
+
+    my $name = 'MyModule';
+    require ::($name);
+
+The symbols provided by the loaded module will not be imported into the
+current scope. You may use
+L<dynamic lookup|/language/packages#index-entry-::()> or
+L<dynamic subsets|/language/typesystem#subset> to use them by providing
+the fully qualified name of a symbol, for instance:
+
+    require ::("Test");
+    my &mmk = ::("Test::EXPORT::DEFAULT::&ok");
+    mmk('oi‽'); # OUTPUT: «ok 1 - ␤»
+
+The FQN of C<ok> is C<Test::EXPORT::DEFAULT::&ok>. We are aliasing it to
+C<mmk> so that we can use that symbol provided by L<C<Test>|/type/Test> in the current
+scope.
+
+To import symbols you must define them at compile time. B<NOTE:>
+C<require> is lexically scoped:
+
+    sub do-something {
+       require MyModule <&something>;
+       say ::('MyModule'); # MyModule symbol exists here
+       something() # &something will be defined here
+    }
+    say ::('MyModule'); # This will NOT contain the MyModule symbol
+    do-something();
+    # &something will not be defined here
+
+If C<MyModule> doesn't export C<&something> then C<require> will fail.
+
+A C<require> with compile-time symbol will install a placeholder
+C<package> that will be updated to the loaded module, class, or package.
+Note that the placeholder will be kept, B<even if require failed to load
+the module.> This means that checking if a module loaded like this is
+wrong:
+
+    # *** WRONG: ***
+    try require Foo;
+    if ::('Foo') ~~ Failure { say "Failed to load Foo!"; }
+    # *** WRONG: ***
+
+As the compile-time installed package causes C<::('Foo')> to never be
+a L<C<Failure>|/type/Failure>. The correct way is:
+
+    # Use return value to test whether loading succeeded:
+    (try require Foo) === Nil and say "Failed to load Foo!";
+
+    # Or use a runtime symbol lookup with require, to avoid compile-time
+    # package installation:
+    try require ::('Foo');
+    if ::('Foo') ~~ Failure {
+        say "Failed to load Foo!";
+    }
+
+In the current (6.d) version of the language, C<require>d symbols are no longer
+transitively exposed, which means that you need to import symbols from the
+module they were originally declared, not from the module where they have
+been imported.
+
+=head2 Lexical module loading
+
+Raku takes great care to avoid global state, i.e. whatever you do in
+your module, it should not affect other code. For instance, that's why
+subroutine definitions are lexically (C<my>) scoped by default. If you want
+others to see them, you need to explicitly make them C«our» scoped or export
+them.
+
+Classes are exported by default on the assumption that loading a module will not
+be of much use when you cannot access the classes it contains. Loaded classes
+are thus registered only in the scope which loaded them in the first place
+N<This change was introduced in late 2016. If you are using versions older than
+this, behavior will be different>. This means that we will have to C<use> a
+class in every scope in which we actually employ it.
+
+=for code :skip-test<needs dummy module>
+use Foo;           # Foo has "use Bar" somewhere.
+use Bar;
+my $foo = Foo.new;
+my $bar = Bar.new;
+
+=head2 Exporting and selective importing
+
+=head3 is export
+
+Packages, subroutines, variables, constants, and enums are exported by marking
+them with the L<is export|/routine/is export> trait (also note the tags available for indicating
+authors and versions).
+
+    =begin code :solo
+    unit module MyModule:ver<1.0.3>:auth<John Hancock (jhancock@example.com)>;
+    our $var is export = 3;
+    sub foo is export { ... };
+    constant FOO is export = "foobar";
+    enum FooBar is export <one two three>;
+
+    # for multi methods, if you declare a proto you
+    # only need to mark the proto with is export
+    proto quux(Str $x, |) is export { * };
+    multi quux(Str $x) { ... };
+    multi quux(Str $x, $y) { ... };
+
+    # for multi methods, you only need to mark one with is export
+    # but the code is most consistent if all are marked
+    multi quux(Str $x) is export { ... };
+    multi quux(Str $x, $y) is export { ... };
+
+    # Packages like classes can be exported too
+    class MyClass is export {};
+
+    # If a subpackage is in the namespace of the current package
+    # it doesn't need to be explicitly exported
+    class MyModule::MyClass {};
+    =end code
+
+As with all traits, if applied to a routine, C«is export» should appear after
+any argument list.
+
+    =begin code
+    sub foo(Str $string) is export { ... }
+    =end code
+
+You can pass named parameters to C<is export> to group symbols for exporting
+so that the importer can pick and choose. There are three predefined
+tags: C<ALL>, C<DEFAULT> and C<MANDATORY>.
+
+    =begin code :solo
+    # lib/MyModule.rakumod
+    unit module MyModule;
+    sub bag        is export             { ... }
+    # objects with tag ':MANDATORY' are always exported
+    sub pants      is export(:MANDATORY) { ... }
+    sub sunglasses is export(:day)       { ... }
+    sub torch      is export(:night)     { ... }
+    sub underpants is export(:ALL)       { ... }
+    =end code
+
+    =begin code :skip-test<needs dummy module>
+    # main.raku
+    use lib 'lib';
+    use MyModule;          # bag, pants
+    use MyModule :DEFAULT; # the same
+    use MyModule :day;     # pants, sunglasses
+    use MyModule :night;   # pants, torch
+    use MyModule :ALL;     # bag, pants, sunglasses, torch, underpants
+    =end code
+
+B<Note>: there currently is no way for the user to import a single
+object if the module author hasn't made provision for that, and it is
+not an easy task at the moment (see
+L<RT #127305|https://github.com/Raku/old-issue-tracker/issues/5063>).
+One way
+the author can provide such access is to give each C<export> trait its
+own unique tag. (And the tag can be the object name!). Then the user can
+either (1) import all objects:
+
+=begin code :skip-test<needs dummy module>
+use Foo :ALL;
+=end code
+
+or (2) import one or more objects selectively:
+
+    =begin code :skip-test<needs dummy module>
+    use Foo :bar, :s5;
+    =end code
+
+Notes:
+
+1. The C<:MANDATORY> tag on an exported sub ensures it will be exported
+no matter whether the using program adds any tag or not.
+
+2. All exported subs without an explicit tag are implicitly C<:DEFAULT>.
+
+3. The space after the module name and before the tag is mandatory.
+
+4. Multiple import tags may be used (separated by commas).  For example:
+
+    =begin code :skip-test<needs dummy module>
+    # main.raku
+    use lib 'lib';
+    use MyModule :day, :night; # pants, sunglasses, torch
+    =end code
+
+5. Multiple tags may be used in the C<export> trait, but they must
+   all be separated by either commas, or whitespace, but not both.
+
+   =begin code
+   sub foo() is export(:foo :s2 :net) {}
+   sub bar() is export(:bar, :s3, :some) {}
+   =end code
+
+=head3 UNIT::EXPORT::*
+
+Beneath the surface, C<is export> is adding the symbols to a C<UNIT>
+scoped package in the C<EXPORT> namespace. For example, C<is
+export(:FOO)> will add the target to the C<UNIT::EXPORT::FOO>
+package. This is what Raku is really using to decide what to import.
+
+    =begin code :solo
+    unit module MyModule;
+
+    sub foo is export { ... }
+    sub bar is export(:other) { ... }
+    =end code
+
+Is the same as:
+
+    =begin code :solo
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+        our sub foo { ... }
+    }
+
+    my package EXPORT::other {
+        our sub bar { ... }
+    }
+    =end code
+
+For most purposes, C<is export> is sufficient but the C<EXPORT>
+packages are useful when you want to produce the exported symbols
+dynamically. For example:
+
+    =begin code :solo
+    # lib/MyModule.rakumod
+    unit module MyModule;
+
+    my package EXPORT::DEFAULT {
+       for <zero one two three four>.kv -> $number, $name {
+          for <sqrt log> -> $func {
+             OUR::{'&' ~ $func ~ '-of-' ~ $name } := sub { $number."$func"() };
+          }
+       }
+    }
+    =end code
+
+    =begin code :skip-test<needs dummy module>
+    # main.raku
+    use MyModule;
+    say sqrt-of-four; # OUTPUT: «2␤»
+    say log-of-zero;  # OUTPUT: «-Inf␤»
+    =end code
+
+=head3 X<EXPORT|Subroutines,sub EXPORT>
+
+You can export arbitrary symbols with an C<EXPORT> sub. C<EXPORT>
+must return a L<C<Map>|/type/Map>, where the keys are the symbol names and
+the values are the desired values. The names should include the sigil
+(if any) for the associated type.
+
+=begin code
+# lib/MyModule.rakumod
+
+class MyModule::Class { }
+
+sub EXPORT {
+    Map.new:
+      '$var'      => 'one',
+      '@array'    => <one two three>,
+      '%hash'     => %( one => 'two', three => 'four' ),
+      '&doit'     => sub { say 'Greetings from exported sub' },
+      'ShortName' => MyModule::Class
+}
+=end code
+
+Which is going to be used from this main file:
+
+=begin code :skip-test<needs dummy module>
+# main.raku
+use lib 'lib';
+use MyModule;
+say $var;          # OUTPUT: «one␤»
+say @array;        # OUTPUT: «(one two three)␤»
+say %hash;         # OUTPUT: «{one => two, three => four}␤»
+doit();            # OUTPUT: «Greetings from exported sub␤»
+say ShortName.new; # OUTPUT: «MyModule::Class.new␤»
+=end code
+
+Please note that C<EXPORT> can't be declared inside a
+L<package|/language/packages> because it is part of the compunit rather than the
+package.
+
+Whereas C<UNIT::EXPORT> packages deal with the named parameters passed to
+C<use>, the C<EXPORT> sub handles positional parameters. If you pass positional
+parameters to C<use>, they will be passed to C<EXPORT>. If a positional is
+passed, the module no longer exports default symbols. You may still import them
+explicitly by passing C<:DEFAULT> to C<use> along with your positional
+parameters.
+
+=begin code
+# lib/MyModule
+
+class MyModule::Class {}
+
+sub EXPORT($short_name?) {
+    Map.new: do $short_name => MyModule::Class if $short_name
+}
+
+sub always is export(:MANDATORY) { say "works" }
+
+#import with :ALL or :DEFAULT to get
+sub shy is export { say "you found me!" }
+=end code
+
+Used from this main program
+
+=begin code :skip-test<needs dummy module>
+# main.raku
+use lib 'lib';
+use MyModule 'foo';
+say foo.new(); # OUTPUT: «MyModule::Class.new␤»
+
+always();      # OK   - is imported
+shy();         # FAIL - «shy used at line 8. Did you mean 'say'?»
+=end code
+
+You can combine C<EXPORT> with type captures for interesting effect. This
+example creates a C<?> postfix which will only work on L<C<Cool>|/type/Cool>s;
+please note that, by using C<$_> as an argument, we don't need to use a
+variable in the routine body and use just C<.so>, acting by default on the
+topic variable.
+
+=begin code
+# lib/MakeQuestionable.rakumod
+sub EXPORT(::Questionable) {
+    my multi postfix:<?>(Questionable $_) { .so };
+    Map.new: '&postfix:<?>' => &postfix:<?>,
+}
+=end code
+
+Which is used from here:
+
+=begin code :skip-test<needs dummy module>
+use lib 'lib';
+use MakeQuestionable Cool;
+say ( 0?, 1?, {}?, %( a => "b" )? ).join(' '); # OUTPUT: «False True False True␤»
+=end code
+
+=head2 Introspection
+
+To list exported symbols of a module first query the export tags supported by
+the module.
+
+    use URI::Escape;
+    say URI::Escape::EXPORT::.keys;
+    # OUTPUT: «(DEFAULT ALL)␤»
+
+Then use the tag you like and pick the symbol by its name.
+
+    say URI::Escape::EXPORT::DEFAULT::.keys;
+    # OUTPUT: «(&uri-escape &uri-unescape &uri_escape &uri_unescape)␤»
+    my &escape-uri = URI::Escape::EXPORT::DEFAULT::<&uri_escape>;
+
+Be careful I<not> to put C<sub EXPORT> after L«C<unit> declarator|/syntax/unit».
+If you do so, it'll become just a sub inside your package, rather than the
+special export sub:
+
+=for code :solo
+unit module Bar;
+sub EXPORT { Map.new: Foo => &say } # WRONG!!! Sub is scoped wrong
+
+As explained in L<its definition|/language/using-modules/code#EXPORT>, C<sub EXPORT> is
+part of the I<compunit>, not the package. So this would be the right way to
+do it:
+
+=for code :solo
+sub EXPORT { Map.new: Foo => &say } # RIGHT!!! Sub is outside the module
+unit module Bar;
+
+=end pod
