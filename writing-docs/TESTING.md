@@ -24,7 +24,7 @@ $ zef install --deps-only --exclude="dot" --/test .
 ## CI
 
 Every commit should run a basic set of tests with `make xtest`. As of Feb 2023, we
-are updating our CI, so this is currently disabled. C<NOTE> The author tests in `xt/`
+are updating our CI, so this is currently disabled. **NOTE** The author tests in `xt/`
 are not currently passing. If this causes difficulty, please submit the PR with
 failing tests and someone will still review it.
 
