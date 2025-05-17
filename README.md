@@ -36,7 +36,7 @@ scripts locally, you may need to set ``RAKULIB=.``
      implementation.
   2. Implementations' handling of embedded Pod is still
      a bit uneven; this avoids potential runtime impacts.
-  3. A separate repo in the Raku Github account invites
+  3. This separate repo in the Raku Github account invites
      more potential contributors and editors.
 
 ## rakudoc
