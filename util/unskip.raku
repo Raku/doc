@@ -3,7 +3,7 @@
 use File::Temp;
 
 use lib 'lib';
-use Test-Files;
+use RakuDoc::Test::Files;
 
 =begin overview
 
@@ -103,7 +103,7 @@ sub remove-solo($file, $skip-pos) {
     return $test-file;
 }
 
-Test-Files.pods.race(:batch(1)).map: -> $file {
+RakuDoc::Test::Files.pods.race(:batch(1)).map: -> $file {
     say "$file: PROCESSING";
 
     my @tries = get-tries($file);

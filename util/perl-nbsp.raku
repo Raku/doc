@@ -8,7 +8,7 @@ xt/perl-nbsp.rakutest fails.
 =end overview
 
 use lib 'lib';
-use Test-Files;
+use RakuDoc::Test::Files;
 
 enum Syntax <CodeDoc TextDoc>;
 
