@@ -25,5 +25,5 @@ docker run -t \
   "${TEST_IMAGE}" \
   RAKU_DOC_TEST_VERBOSE=${RAKU_DOC_TEST_VERBOSE} \
   RAKULIB=. \
-  TEST_FILES=${TEST_FILES} \
+  TEST_FILES="${TEST_FILES}" \
   prove6 "$@"
