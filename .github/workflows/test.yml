@@ -14,9 +14,18 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v3
-
+        with:
+          fetch-depth: ${{ github.event_name == 'pull_request' && 2 || 0 }}
+      - name: Get changed files
+        id: changed-files
+        run: |
+            if ${{ github.event_name == 'pull_request' }}; then
+                echo "changed_files=$(git diff --name-only -r HEAD^1 HEAD | xargs)" >> $GITHUB_OUTPUT
+            else
+                echo "changed_files=$(git diff --name-only ${{ github.event.before }} ${{ github.event.after }} | xargs)" >> $GITHUB_OUTPUT
+            fi
       - name: Run tests
         run: ./util/github-action-test.sh t
         env:
           TEST_IMAGE: docker.io/coke/rakudo-docs-test
-          TEST_FILES: ${{ steps.changed-files.outputs.all_changed_files }}
+          TEST_FILES: ${{ steps.changed-files.outputs.changed_files }}
