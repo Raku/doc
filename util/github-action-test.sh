@@ -6,7 +6,7 @@
 set -ex
 set -o pipefail
 
-: ${TEST_IMAGE:=docker.io/jjmerelo/perl6-doccer:latest}
+: ${TEST_IMAGE:=docker.io/coke/rakudo-docs-test:latest}
 : ${RAKU_DOC_TEST_VERBOSE:=1}
 
 # this default value allows one to run a command like
