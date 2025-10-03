@@ -20,7 +20,9 @@ fi
 
 docker run -t \
   -v "${GITHUB_WORKSPACE}":/test:Z \
+  -w "/test" \
   --entrypoint env \
   "${TEST_IMAGE}" \
   RAKU_DOC_TEST_VERBOSE=${RAKU_DOC_TEST_VERBOSE} \
+  RAKULIB=. \
   prove6 "$@"
