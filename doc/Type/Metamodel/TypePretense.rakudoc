@@ -1,0 +1,75 @@
+=begin pod :kind<Type> :subkind<role> :category<metamodel>
+
+=TITLE role Metamodel::TypePretense
+
+=SUBTITLE Metarole for type pretenses
+
+    role Metamodel::TypePretense { }
+
+I<Warning>: this role is part of the Rakudo implementation, and is not
+a part of the language specification.
+
+Any role will type-check as L<C<Mu>|/type/Mu>, L<C<Any>|/type/Any>, and L<C<Cool>|/type/Cool>, but don't
+actually have these classes as parents:
+
+=begin code
+class Class { }
+role  Role  { }
+
+say Role ~~ Mu;   # OUTPUT: «True␤»
+say Role ~~ Any;  # OUTPUT: «True␤»
+say Role ~~ Cool; # OUTPUT: «True␤»
+
+say Class.^parents(:all).map(*.^name);     # OUTPUT: «(Any Mu)␤»
+say Role.^pun.^parents(:all).map(*.^name); # OUTPUT: «()␤»
+=end code
+
+C<Metamodel::TypePretense> is the metarole that's responsible for this
+behavior. Using the metamethods this provides, types can C<pretend to
+be> other types, i.e. types can type-check as other types. This can be
+useful when implementing types that should not store parent types
+through
+L<C<Metamodel::MultipleInheritance>|/type/Metamodel::MultipleInheritance>,
+but should still type-check like other types somehow.
+
+All this metarole does is provide an interface for storing type objects
+in a HOW and provide a default C<type_check> method that allows types to
+type-check as the types they're pretending to be if no other
+type-checking behavior for it exists; any other behavior related to type
+pretenses are left up to the metaclasses that do this metarole to
+implement themselves.
+
+Because type pretenses are a property of the metaclass for a HOW, not
+HOWs themselves, the C<pretend_to_be> and C<pretending_to_be>
+metamethods this metarole provides must be invoked directly through a
+metaclass or HOW, not with C<.^> syntax:
+
+=for code :preamble<role Role { }>
+say Role.HOW.pretending_to_be.map(*.^name); # OUTPUT: «(Cool Any Mu)»
+
+This metarole is commonly used in combination with
+L<C<Metamodel::MethodDelegation>|/type/Metamodel::MethodDelegation>.
+
+=head1 Methods
+
+=head2 method pretend_to_be
+
+    method pretend_to_be(@types)
+
+Makes all types for a type of HOW pretend to be any of the type objects
+in C<@types>.
+
+=head2 method pretending_to_be
+
+    method pretending_to_be()
+
+Returns the type objects this type of HOW is pretending to be.
+
+=head2 method type_check
+
+    method type_check($obj, $checkee)
+
+If C<$checkee> is the same object as C<$obj> or is of any of the types
+C<$obj> is pretending to be, returns C<1>, otherwise returns C<0>.
+
+=end pod
