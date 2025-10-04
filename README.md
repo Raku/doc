@@ -18,7 +18,7 @@ scripts locally, you may need to set ``RAKULIB=.``
 
   [日本語](resources/i18n/jp/README.jp.md)
 | [普通话](resources/i18n/zh/README.zh.md)
-| [Deutsche](resources/i18n/de/README.de.md)
+| [Deutsch](resources/i18n/de/README.de.md)
 | [español](resources/i18n/es/README.es.md)
 | [français](resources/i18n/fr/README.fr.md)
 | [italiano](resources/i18n/it/README.it.md)
