@@ -1,4 +1,4 @@
-### A new (or existing) pod6 document currently must adhere to the following conventions:
+### A new (or existing) rakudoc document currently must adhere to the following conventions:
 
 1. it must be valid Raku pod
 2. the first non-comment or non-empty line must be:

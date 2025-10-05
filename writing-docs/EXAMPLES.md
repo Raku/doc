@@ -8,7 +8,7 @@ documentation with some example.
 Please use code blocks to highlight example code; any indented blocks
 are considered to be code, but you can specify the `=for code` directive, or a
 combination of `=begin code` and `=end code` to better control which
-blocks are considered. The POD6 directives also allow you to set
+blocks are considered. The rakudoc directives also allow you to set
 attributes for a block of code.
 
 When using a `=for code` directive or a `=begin code`/`=end code`
@@ -155,7 +155,7 @@ styles.
 ## Indented text
 
 4-space indented text is formatted as a code block. The indent is *not*
-part of the displayed code. It's not possible to add any POD6
+part of the displayed code. It's not possible to add any rakudoc
 directives on this style.
 
 ## =for code
@@ -167,7 +167,7 @@ is indented.
 ## =begin code / =end code
 
 The enclosed text is treated as code. The indentation level is
-relative to the indentation of the POD6 directives.
+relative to the indentation of the rakudoc directives.
 
 ##  Environment Variables
 

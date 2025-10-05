@@ -2,7 +2,7 @@
 
 ### Synopsis
 
-A term or a location in a Pod6 document can be indexed so that it is
+A term or a location in a rakudoc document can be indexed so that it is
 possible to create a named reference pointing to it. This can be used
 to generate a reference in the rendered version of the documentation or
 implement search function on the website hosting the rendered documentation.

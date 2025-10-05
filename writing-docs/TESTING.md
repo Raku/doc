@@ -31,7 +31,7 @@ failing tests and someone will still review it.
 You can run the basic tests against a subset of files with
 
 ```
-$ TEST_FILES="doc/Language/faq.pod6 doc/Type/Complex.pod6" make test
+$ TEST_FILES="doc/Language/faq.rakudoc doc/Type/Complex.rakudoc" make test
 ```
 
 Or against everything that you haven't committed yet:
@@ -57,7 +57,7 @@ $ util/test-modified.sh
 Or to run specific files regardless of their git status:
 
 ```
-$ TEST_FILES="doc/Language/faq.pod6 doc/Type/Complex.pod6" make xtest
+$ TEST_FILES="doc/Language/faq.rakudoc doc/Type/Complex.rakudoc" make xtest
 ```
 
 If you see some tests are skipped (spelling or signature checks), that's fine.

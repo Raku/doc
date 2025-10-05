@@ -222,7 +222,7 @@ spec items are available in.
 
 ## Use of HTML
 
-Generally, Pod6 should be more than enough for any
+Generally, rakudoc should be more than enough for any
 documentation. However, if you need to embed HTML into the
 documentation after thinking about it twice, bear in mind that we support
 the current and previous major releases of Chrome, Firefox, Edge,
