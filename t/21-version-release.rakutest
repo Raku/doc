@@ -1,0 +1,32 @@
+#!/usr/bin/env raku
+
+use Test;
+use RakuDoc::Test::Files;
+
+=begin overview
+
+Ensure that any references to a Rakudo release, e.g. 2020.05, are not preceded
+by the word version. 'version' is reserved for language versions, like 6.d.
+
+=end overview
+
+my @files = RakuDoc::Test::Files.documents;
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No document files specified>
+}
+
+for @files.sort -> $file {
+    my $err-count = 0;
+    my $content = $file.IO.slurp;
+    for $content ~~ m:g:i/ <! after MoarVM> 'version 2'\d\d\d\.\d\d / -> $match {
+        $err-count++;
+    }
+    my $error = $file;
+    if $err-count {
+        $error ~= " ($err-count instance{$err-count==1 ?? '' !! 's'})";
+    }
+    ok !$err-count, "$error: Rakudo releases should not be called 'version'." ;
+}
