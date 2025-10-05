@@ -173,7 +173,7 @@ sub int2hex($i --> Str) {
 
 sub get-brackets(:$grammar-file, :$refresh!, :$debug! --> List) {
     # Extracts the data from the nqp/HLL/Grammar.nqp file.
-    use HTTP::UserAgent;
+    use Cro::HTTP::Client;
 
     # The local copy of the nqp repo's source file
     my $f = $grammar-file;
@@ -189,10 +189,9 @@ sub get-brackets(:$grammar-file, :$refresh!, :$debug! --> List) {
         }
         # Otherwise, get it from Github
         else {
-            my $ua = HTTP::UserAgent.new;
-            $ua.timeout = 10;
+            my $ua = Cro::HTTP::Client.new;
             my $uri = "https://raw.githubusercontent.com/Raku/nqp/main" ~ $end-path;
-            my $response = $ua.get($uri);
+            my $response = await $ua.get: $uri;
             if $response.is-success {
                 spurt $f, $response.content;
             }
