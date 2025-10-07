@@ -1084,11 +1084,46 @@ X<|Language,sub-signature>
 To match against a compound parameter use a sub-signature following the argument
 name in parentheses.
 
-    sub foo(|c(Int, Str)){
-       put "called with {c.raku}"
+    sub foo(\p(Int, Str)){
+       put "called with {p.raku}"
     };
-    foo(42, "answer");
-    # OUTPUT: «called with \(42, "answer")␤»
+    foo((42, "answer"));
+    # OUTPUT: «called with (42, "answer")␤»
+
+Sub-signatures can themselves use most of the syntax available for signatures.
+
+    sub bar(\p(Int $y where * > 5, Str $s?, *%h)) { put p.raku; put $s // "undefined"; }
+    bar((42, life => 40, universe => 41))
+    # OUTPUT: «(42, :life(40), :universe(41))␤undefined␤»
+
+=head1 X<Capture parameters|Syntax,|>
+
+Prefixing a parameter with a vertical bar C<|> makes the parameter a
+L<C<Capture>|/type/Capture>, using up all the remaining positional and named
+arguments.
+
+    sub a(Int $i, |cap) { say $i; say cap.gist }
+    a(42, universe => 41, 1, 2, 3)
+    # OUTPUT: ›42␤\(1, 2, 3, :universe(41))␤»
+
+Arguments captured to a variable can be forwarded as a whole using the slip
+operator C<|>.
+
+    sub b(Int $i, Str $s) { say $i.^name ~ ' ' ~ $s.^name }
+    sub c(|cap) { say cap.^name; b(|cap) }
+    c(42, "answer");
+    # OUTPUT: «Capture␤Int Str␤»
+
+One can also constrain the arguments subject to a C<Capture> by using a sub-signature.
+
+    sub d(|cap(Int, Str, *%)) { put "called with {cap.raku}" };
+    d(41)
+    # OUTPUT: «Too few positionals passed to 'd'; expected 2 arguments but got 1 in sub-signature or parameter cap␤ ...»
+
+I<Unbound> C<Captures> are often used in C<proto> definitions (like C<proto foo (|) {*}>) to
+indicate that the routine's L<C<multi> definitions|/syntax/multi> can have any L<type
+constraints|#Type_constraints>. See L<proto|/language/functions#proto> for an
+example.
 
 =head1 X<Long names|Language,Long names>
 
@@ -1098,25 +1133,6 @@ separate them with a double semicolon.
     multi f(Int $i, Str $s;; :$b) { say "$i, $s, {$b.raku}" };
     f(10, 'answer');
     # OUTPUT: «10, answer, Any␤»
-
-=head1 X<Capture parameters|Syntax,|>
-
-Prefixing a parameter with a vertical bar C<|> makes the parameter a
-L<C<Capture>|/type/Capture>, using up all the remaining positional and named
-arguments.
-
-This is often used in C<proto> definitions (like C<proto foo (|) {*}>) to
-indicate that the routine's L<C<multi> definitions|/syntax/multi> can have any L<type
-constraints|#Type_constraints>. See L<proto|/language/functions#proto> for an
-example.
-
-If bound to a variable, arguments can be forwarded as a whole using the slip
-operator C<|>.
-
-    sub a(Int $i, Str $s) { say $i.^name ~ ' ' ~ $s.^name }
-    sub b(|c) { say c.^name; a(|c) }
-    b(42, "answer");
-    # OUTPUT: «Capture␤Int Str␤»
 
 =head1 Parameter traits and modifiers
 
