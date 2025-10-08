@@ -133,6 +133,10 @@ change the variable name it is bound to.
     }
     say Foo.whoami; # OUTPUT: «Well I'm class Foo, of course!␤»
 
+A further exception is the L<double semicolon C<;;>|/language/Signatures#The_;;_separator>,
+which can be used in L<multi|/language/functions#Multi-dispatch> signatures to declare that all subsequent parameters should not
+contribute to its precedence under multiple dispatch.
+
 X<|Language,type constraint>
 X<|Language,Constraint>
 =head1 Type constraints
@@ -1125,14 +1129,52 @@ indicate that the routine's L<C<multi> definitions|/syntax/multi> can have any L
 constraints|#Type_constraints>. See L<proto|/language/functions#proto> for an
 example.
 
-=head1 X<Long names|Language,Long names>
+=head1 X<The C«;;» separator|Syntax,double-semicolon;Language,Long names>
 
-To exclude certain parameters from being considered in multiple dispatch,
-separate them with a double semicolon.
+In L<multiple dispatch|/language/Functions#Multi-dispatch>, when more than one multi signature matches
+the given input parameters, the narrowest signature wins.
 
-    multi f(Int $i, Str $s;; :$b) { say "$i, $s, {$b.raku}" };
-    f(10, 'answer');
-    # OUTPUT: «10, answer, Any␤»
+When a double semicolon <;;> is present in a signature,
+only parameters to the left of the `;;` are considered in this narrowness analysis.
+It can take the place of a comma, or be at the very beginning:
+
+    multi foo (;; Numeric $a) { say "numeric" }
+    multi foo (;; Int     $a) { say "int" }
+    foo(42)  
+    # OUTPUT: «Ambiguous call to 'foo(Int)'; these signatures all match:
+                (;; Numeric $a) from <unknown file> line 1
+                (;; Int $a) from <unknown file> line 1␤...»
+    # (Without the ;; the output would have been «int».)
+
+This can be useful when the usual order of precedence is undesired.
+Consider this example with a named parameter:
+
+    multi bar(Int $i) { say "just $i" };
+    multi bar(Int $i, Str :$s) { say "both $i and ｢$s.raku｣" };
+    bar(42)
+    # OUTPUT: «Use of uninitialized value of type Str in string context.␤(...)
+    #           both 42 and ｢｣␤  in sub e at <tmp> line 1␤»
+
+Here it was the I<second> multi that got executed,
+because its signature is narrower than the first and does in fact match C<bar(42)>, even though $s then stays undefined.
+By adding C<;;>, we can lower its precedence:
+
+    multi f(Int $i) { say "just $i" };
+    multi f(Int $i;; Str :$s) { say "both $i and ｢$s｣" };
+    f(42)
+    # OUTPUT: «Ambiguous call to 'e(Int)'; these signatures all match:
+    #           (Int $i) from <tmp> line 1␤  (Int $i;; Str :$s) from <tmp> line 1␤ ...»
+
+One could then give the first multi the trait L<C<is default>|/type/Routine#trait_is_default>, whose exact effect is
+to break a tie between multiple signatures of the same precedence.
+
+There is more than one way to control the narrowness
+(and thereby, precedence) of signatures. Other options include
+making parameters optional via C<?> or required via C<!>.
+
+The double semicolon `;;` can also be used in signatures of L<parameterized Roles|/language/Typesystem#Parameterized>.
+Parameterized roles have a so-called "long name" generated from their signature, which can be used for introspection.
+Only parameters to the left of `;;` contribute to it.
 
 =head1 Parameter traits and modifiers
 
