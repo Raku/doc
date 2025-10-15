@@ -2847,88 +2847,83 @@ occurrence of the word I<SQL> (as C<$1> in the regular expression). Since the
 engine is not able to get backward and change the path to match, the regular
 expression fails.
 
-It is worth noting that disabling backtracking will not prevent the engine
-to try several ways to match the regular expression.
-Consider the following slightly changed example:
-
-=begin code
-my $string = 'PostgreSQL is a SQL database!';
-say $string ~~ / (SQL) (.+) $1 /; # OUTPUT: «Nil␤»
-=end code
-
-Since there is no specification for a character before the word I<SQL>,
-the engine will match against the rightmost word I<SQL> and go forward
-from there. Since there is no repetition of I<SQL> remaining, the
-match fails.
-It is possible, again, to inspect what the engine performs
-introducing a dumping piece of code within the regular expression:
-
-=begin code :preamble<my $string = '';>
-my $iteration = 0;
-sub show-captures( Match $m ){
-    my Str $result-split;
-    say "\n=== Iteration {++$iteration} ===";
-    for $m.list.kv -> $i, $capture {
-        say "Capture $i = $capture";
-        $result-split ~= '[' ~ $capture ~ ']';
-    }
-
-    say $result-split;
-}
-
-$string ~~ / (SQL) (.+) { show-captures( $/ ); } $1 /;
-=end code
-
-that produces a rather simple output:
-
-=begin code :lang<text>
-=== Iteration 1 ===
-Capture 0 = SQL
-Capture 1 =  is a SQL database!
-[SQL][ is a SQL database!]
-
-=== Iteration 2 ===
-Capture 0 = SQL
-Capture 1 =  database!
-[SQL][ database!]
-=end code
-
-Even using the L<:r|/language/regexes#Ratchet> adverb to prevent backtracking will not
-change things:
-
-=begin code :preamble<my $string = '';>
-my $iteration = 0;
-sub show-captures( Match $m ){
-    my Str $result-split;
-    say "\n=== Iteration {++$iteration} ===";
-    for $m.list.kv -> $i, $capture {
-        say "Capture $i = $capture";
-        $result-split ~= '[' ~ $capture ~ ']';
-    }
-
-    say $result-split;
-}
-
-$string ~~ / :r (SQL) (.+) { show-captures( $/ ); } $1 /;
-=end code
-
-and the output will remain the same:
-
-=begin code :lang<text>
-=== Iteration 1 ===
-Capture 0 = SQL
-Capture 1 =  is a SQL database!
-[SQL][ is a SQL database!]
-
-=== Iteration 2 ===
-Capture 0 = SQL
-Capture 1 =  database!
-[SQL][ database!]
-=end code
-
-This demonstrates that disabling backtracking does not mean disabling possible
+In general, disabling backtracking does not mean disabling possible
 multiple iterations of the matching engine, but rather disabling the backward
 matching tuning.
+
+To address problematic backtracking, there are also other, at times better ways.
+
+One is by using frugal quantifiers (or by leaving out certain capture groups altogether).
+Most of the backtracking in our example above is indeed necessary because the
+greedy capture groups C<(.+)> (especially the first one)
+immediately eat up as many characters as they can.
+
+By making the first one frugal, C<(.+?)>,
+we cause it to extend only until the beginning of the first I<SQL>.
+This way, the capture groups C<$0> and C<$1> attain
+their final result right off the bat, so that the characters at the very end
+need to be backtracked only once (rather than twice like above):
+
+=begin code :lang<text>
+$string ~~ / (.+?) (SQL) (.+) { show-captures( $/ ); } $1 /;
+
+=== Iteration 1 ===
+[Postgre][SQL][ is a SQL database!]
+
+=== Iteration 2 ===
+[Postgre][SQL][ is a SQL database]
+
+...
+
+=== Iteration 13 ===
+[Postgre][SQL][ is a S]
+
+=== Iteration 14 ===
+[Postgre][SQL][ is a ]
+=end code
+
+Frugality of the I<second> C<(.+)> can also helps us.
+In our case, it is most useful when combined with frugality of the first.
+Observe how it changes the behavior of the capture group C<$2>
+from gradual shortening to gradual lengthening:
+
+=begin code :lang<text>
+$string ~~ / (.+?) (SQL) (.+?) { show-captures( $/ ); } $1 /;
+
+=== Iteration 1 ===
+[Postgre][SQL][ ]
+
+=== Iteration 2 ===
+[Postgre][SQL][ i]
+
+...
+
+=== Iteration 5 ===
+[Postgre][SQL][ is a]
+
+=== Iteration 6 ===
+[Postgre][SQL][ is a ]
+=end code
+
+On the other hand, combining ratcheting I<and> frugal quantifiers would not help in our case.
+For example:
+
+=begin code :lang<text>
+$string ~~ /:r (.+?) (SQL) { show-captures( $/ ); } (.+?) $1 /;
+
+=== Iteration 1 ===
+Capture 0 = e
+Capture 1 = SQL  # from the word "PostgreSQL"
+[e][SQL]
+
+=== Iteration 2 ===
+Capture 0 =  
+Capture 1 = SQL  # from the second "SQL"
+[ ][sql]
+=end code
+
+You can play around with putting the C<{ show-captures( $/ ); }> in different places
+to get a better feel of how C<:r> and frugal as well as greedy quantifiers interact.
 
 =head2 Backtracking control
 
