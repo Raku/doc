@@ -523,6 +523,7 @@ Examples of word characters:
     03B4 δ GREEK SMALL LETTER DELTA
     03F3 ϳ GREEK LETTER YOT
     0409 Љ CYRILLIC CAPITAL LETTER LJE
+    99F1 駱 CJK UNIFIED IDEOGRAPH-99F1
     =end code
 
 =head3 X<C<\c> and C<\C>|Regexes,\c;Regexes,\C>
@@ -580,7 +581,7 @@ L<C<\c> and C<\C>|#\c_and_\C>.
     <digit>  | \d        | Decimal digits
     <xdigit> |           | Hexadecimal digit [0-9A-Fa-f]
     <alnum>  | \w        | <alpha> plus <digit>
-    <punct>  |           | Punctuation and Symbols (only Punct beyond ASCII)
+    <punct>  |           | Punctuation and Symbols (ASCII and non-ASCII)
     <graph>  |           | <alnum> plus <punct>
     <space>  | \s        | Whitespace
     <cntrl>  |           | Control characters
@@ -619,7 +620,7 @@ L<backtrack|/language/regexes#Backtracking>) shown below:
     Token    | Regex equivalent |   Description
     =========+=====================================
     <ws>     |  <!ww> \s*:      | Word-separating whitespace (including zero, e.g. at EOF)
-    <ident>  |  <.alpha> \w*:   | Basic identifier (no support for ' or -).
+    <ident>  |  <.alpha> \w*:   | L<Ordinary identifiers|/language/Syntax#Identifiers> (no support for ' or -).
 
 =head2 X«Unicode properties|Regexes,<:property>»
 
@@ -694,7 +695,7 @@ Categories can be used together, with an infix operator:
     Operator  |  Meaning
     ==========+=========
     \+        |  set union
-    \-        |  set difference
+     -        |  set difference
 =end table
 
 To match either a lowercase letter or a number, write
@@ -1079,7 +1080,7 @@ a regex C<quoted> that matches a quoted string, then C</ <quoted> && <-[x]>* />
 matches a quoted string that does not contain the character C<x>.
 
 Note that you cannot easily obtain the same behavior with a lookahead, that
-is, a regex doesn't consume characters, because a lookahead doesn't stop
+is, a regex that doesn't consume characters, because a lookahead doesn't stop
 looking when the quoted string stops matching.
 
     =begin code
@@ -1256,18 +1257,20 @@ character of an input string.
 
 =begin table
 
-    Anchor  | Description         | Examples
-    ========+=====================+=================
-    ^       | Start of string     | "⏏two\nlines"
-    ^^      | Start of line       | "⏏two\n⏏lines"
-    $       | End of string       | "two\nlines⏏"
-    $$      | End of line         | "two⏏\nlines⏏"
-    << or « | Left word boundary  | "⏏two ⏏words"
-    >> or » | Right word boundary | "two⏏ words⏏"
-    <?wb>   | Any word boundary   | "⏏two⏏ ⏏words⏏~!"
-    <!wb>   | Not a word boundary | "t⏏w⏏o w⏏o⏏r⏏d⏏s~⏏!"
-    <?ww>   | Within word         | "t⏏w⏏o w⏏o⏏r⏏d⏏s~!"
-    <!ww>   | Not within word     | "⏏two⏏ ⏏words⏏~⏏!⏏"
+    Anchor   | Description         | Examples
+    =========+=====================+=================
+    ^        | Start of string     | "⏏two\nlines"
+    ^^       | Start of line       | "⏏two\n⏏lines"
+    $        | End of string       | "two\nlines⏏"
+    $$       | End of line         | "two⏏\nlines⏏"
+    << or «  | Left word boundary  | "⏏two ⏏words"
+    >> or »  | Right word boundary | "two⏏ words⏏"
+    <?wb>    | Any word boundary   | "⏏two⏏ ⏏words⏏~!"
+    <!wb>    | Not a word boundary | "t⏏w⏏o w⏏o⏏r⏏d⏏s~⏏!"
+    <?ww>    | Within word         | "t⏏w⏏o w⏏o⏏r⏏d⏏s~!"
+    <!ww>    | Not within word     | "⏏two⏏ ⏏words⏏~⏏!⏏"
+    <at(n)>  | After nth character | "abc⏏de" for <at(3)>
+    <!at(n)> | Not after nth char  | "⏏a⏏b⏏cd⏏e" for <!at(3)>
 
 =end table
 
@@ -1314,6 +1317,15 @@ the first digit, which is then consumed by the expression; in the third, the
 negative lookaround assertion behaves in the same way. In the fourth
 statement the last digit is matched but not consumed, thus the match includes
  only the first two digits.
+
+The inbuilt named assertion C«<same>» also works like a lookaround assertion:
+It requires that the next and previous character are the same,
+but consumes none of them.
+
+=for code
+say '123345' ~~ m/ <same>\d+ /;          # OUTPUT: «｢345｣␤ same => ｢｣␤»
+say 'aa11' ~~ m/ <alpha><same><digit> /; # OUTPUT: «False␤»
+
 
 =head2 X«Lookahead assertions|Regexes,before;Regexes,<?before>»
 
@@ -1583,7 +1595,7 @@ say HasOur.parse('Þor is mighty'); # OUTPUT: «｢Þor is mighty｣␤»
 say $HasOur::our;                  # OUTPUT: «Þor␤»
 =end code
 
-Once the parsing has been done successfully, we use the FQN name of the C<$our>
+Once the parsing has been done successfully, we use the L<FQN name|/syntax/FQN> of the C<$our>
 variable to access its value, that can be none other than C<Þor>.
 
 =head2 X<Named captures|Regexes,Named captures>
@@ -1681,10 +1693,13 @@ C<s:i/Foo/bar/> and the other delimiters are used for other purposes.
 If you use balancing curly braces, square brackets, or parentheses, the
 substitution works like this instead:
 
+    =begin code :preamble<my $str;>
     s[replace] = 'with';
+    $str ~~ s[replace] = 'with';
+    =end code
 
-The right-hand side is now a (not quoted) Raku expression, in which C<$/>
-is available as the current match:
+The right-hand side of the equal sign is now a (not quoted) Raku expression,
+in which C<$/> is available as the current match:
 
     $_ = 'some 11 words 21';
     s:g[ \d+ ] =  2 * $/;
@@ -1792,7 +1807,7 @@ text out there.
 =head2 Common adverbs
 
 The full list of adverbs that you can apply to regular expressions can be found
-elsewhere in this document (L<section Adverbs|#Adverbs>), but the most
+elsewhere in this document (section L<Adverbs|#Adverbs>), but the most
 common are probably C<:g> and C<:i>.
 
 =item Global adverb C<:g>
@@ -1823,7 +1838,7 @@ case-insensitive.
     .say;                          # OUTPUT: «vegetable␤»
 
 For more information on what these adverbs are actually
-doing, refer to the L<section Adverbs|#Adverbs> section of this document.
+doing, refer to the L<Adverbs|#Adverbs> section of this document.
 
 These are just a few of the transformations you can apply with the substitution
 operator. Some of the simpler uses in the real world include removing personal
@@ -1917,11 +1932,11 @@ example, consider this Regex:
 
     / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
 
-This says "match B<either> an open parentheses, followed by zero or more
-non-parentheses characters, followed by a close parentheses B<or> an open
-parentheses followed by zero or more non-parentheses characters, followed by
+This says "match B<either> an open parenthesis, followed by zero or more
+non-parentheses characters, followed by a close parenthesis B<or> an open
+parenthesis followed by zero or more non-parentheses characters, followed by
 I<another match for this Regex>, followed by zero or more non-parentheses
-characters, followed by a close parentheses."  This Regex allows you to match
+characters, followed by a close parenthesis."  This Regex allows you to match
 arbitrarily many nested parentheses, as show below:
 
      my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
@@ -1933,7 +1948,7 @@ arbitrarily many nested parentheses, as show below:
 Note that the last expression shown above does I<not> match all the
 way to the final C<)>, as would have happened with C</'('.*')'/>, nor
 does it match only to the first C<)>.  Instead, it correctly matches
-to the close parentheses paired with the first opening parentheses, an
+to the close parenthesis paired with the first opening parenthesis, an
 effect that is very difficult to duplicate without recursive regexes.
 
 When using recursive regexes (as with any other recursive data
@@ -2157,8 +2172,8 @@ C<@(code)>. In this example, both regexes are equivalent:
 
     my %h = a => 1, b => 2;
     my @a = %h.keys;
-    say S:g/@(%h.keys)/%h{$/}/ given 'abc';    # OUTPUT: «12c>
-    say S:g/@a/%h{$/}/ given 'abc';            # OUTPUT: «12c>
+    say S:g/@(%h.keys)/%h{$/}/ given 'abc';    # OUTPUT: «12c␤»
+    say S:g/@a/%h{$/}/ given 'abc';            # OUTPUT: «12c␤»
 
 The use of hashes in regexes is reserved.
 
@@ -2316,10 +2331,10 @@ Square brackets and parentheses limit the scope of an adverb:
 
 Alternations and conjunctions, and their branches, have no impact on the scope of an adverb:
 
-/  :i a | b c /;            # matches 'a', 'A', 'bc', 'Bc', 'bC' or 'BC'
-/ [:i a | b] c /;           # matches 'ac', 'Ac', 'bc', or 'Bc' but not 'aC', 'AC', 'bC' or 'BC'
+    /  :i a | b c /;        # matches 'a', 'A', 'bc', 'Bc', 'bC' or 'BC'
+    / [:i a | b] c /;       # matches 'ac', 'Ac', 'bc', or 'Bc' but not 'aC', 'AC', 'bC' or 'BC'
 
-When two adverbs are used together, they keep their colon at the front
+When two adverbs are used together, they each keep their colon at the front:
 
     "þor is Þor" ~~ m:g:i/þ/;  # OUTPUT: «(｢þ｣ ｢Þ｣)␤»
 
@@ -2331,7 +2346,7 @@ correspond to the same adverb, as in C<:ov> or C<:P5>.
 The C<:ignorecase> or C<:i> adverb instructs the regex engine to ignore
 the distinction between uppercase, lowercase, and titlecase letters.
 
-See the L<section Regex adverbs|/language/regexes#Regex_adverbs>
+See the section L<Regex adverbs|/language/regexes#Regex_adverbs>
 for examples.
 
 =head3 X<Ignoremark|Adverbs,:ignoremark;Adverbs,:m>
@@ -2356,7 +2371,7 @@ in one direction and can't backtrack.
 Without this adverb, parts of a regex will try different ways to match a
 string in order to make it possible for other parts of the regex to match.
 For example, in C<'abc' ~~ /\w+ ./>, the C<\w+> first eats up the whole
-string, C<abc> but then the C<.> fails. Thus C<\w+> gives up a character,
+string, C<abc>, but then the C<.> fails. Thus C<\w+> gives up a character,
 matching only C<ab>, and the C<.> can successfully match the string C<c>.
 This process of giving up characters (or in the case of alternations, trying
 a different branch) is known as backtracking.
@@ -2499,7 +2514,7 @@ whitespace) is significant, it's advisable to override C<ws>.
 
 =head3 Perl compatibility adverb
 
-The B<C<:Perl5>> or B<C<:P5>> adverb switch the Regex parsing and matching
+The B<C<:Perl5>> or B<C<:P5>> adverb switches the Regex parsing and matching
 to the way Perl regexes behave:
 
     so 'hello world' ~~ m:Perl5/^hello (world)/;   # OUTPUT: «True␤»
@@ -2783,23 +2798,25 @@ last one being the I<winning>. The following is an excerpt of the output:
 
 =begin code :lang<text>
 === Iteration 1 ===
-Capture 0 = PostgreSQL is a
-Capture 1 = SQL
-Capture 2 =  database!
 [PostgreSQL is a ][SQL][ database!]
 
 === Iteration 2 ===
-Capture 0 = PostgreSQL is a
-Capture 1 = SQL
-Capture 2 =  database
 [PostgreSQL is a ][SQL][ database]
 
 ...
 
+=== Iteration 10 ===
+[PostgreSQL is a ][SQL][ ]
+
+=== Iteration 11 ===
+[Postgre][SQL][ is a SQL database!]
+
+=== Iteration 12 ===
+[Postgre][SQL][ is a SQL database]
+
+...
+
 === Iteration 24 ===
-Capture 0 = Postgre
-Capture 1 = SQL
-Capture 2 =  is a
 [Postgre][SQL][ is a ]
 =end code
 
@@ -2807,18 +2824,10 @@ In the first iteration the I<SQL> part of I<PostgreSQL> is kept within the word:
 the regular expression asks for, so there's the need for another iteration. The second iteration will move back,
 in particular one character back (removing thus the final I<!>) and try to match again, resulting
 in a fail since again the I<SQL> is still kept within I<PostgreSQL>.
-After several iterations, the final result is match.
-
-It is worth noting that the final iteration is number I<24>, and that such number is exactly
-the distance, in number of chars, from the end of the string to the first I<SQL> occurrence:
-
-=begin code :preamble<my $string = '';>
-say $string.chars - $string.index: 'SQL'; # OUTPUT: «23␤»
-=end code
-
-Since there are 23 chars from the very end of the string to the very first I<S> of I<SQL>
-the backtracking engine will need 23 "useless" matches to find the right one, that is,
-it will need 24 steps to get the final result.
+After ten iterations (the initial run and nine shortenings), the last capture C<$2> cannot be shortened any further,
+so now capture C<$1> changes to matching the first instead of the second I<SQL>.
+The rest of the string is left for C<$2>, including the part that was backtracked before but now needs to be backtracked anew.
+After 14 further iterations (the initial run and 13 shortenings), the final result is a match.
 
 Backtracking is a costly machinery, therefore it is possible to disable
 it in those cases where the matching can be found I<forward> only.
@@ -2838,88 +2847,83 @@ occurrence of the word I<SQL> (as C<$1> in the regular expression). Since the
 engine is not able to get backward and change the path to match, the regular
 expression fails.
 
-It is worth noting that disabling backtracking will not prevent the engine
-to try several ways to match the regular expression.
-Consider the following slightly changed example:
-
-=begin code
-my $string = 'PostgreSQL is a SQL database!';
-say $string ~~ / (SQL) (.+) $1 /; # OUTPUT: «Nil␤»
-=end code
-
-Since there is no specification for a character before the word I<SQL>,
-the engine will match against the rightmost word I<SQL> and go forward
-from there. Since there is no repetition of I<SQL> remaining, the
-match fails.
-It is possible, again, to inspect what the engine performs
-introducing a dumping piece of code within the regular expression:
-
-=begin code :preamble<my $string = '';>
-my $iteration = 0;
-sub show-captures( Match $m ){
-    my Str $result-split;
-    say "\n=== Iteration {++$iteration} ===";
-    for $m.list.kv -> $i, $capture {
-        say "Capture $i = $capture";
-        $result-split ~= '[' ~ $capture ~ ']';
-    }
-
-    say $result-split;
-}
-
-$string ~~ / (SQL) (.+) { show-captures( $/ ); } $1 /;
-=end code
-
-that produces a rather simple output:
-
-=begin code :lang<text>
-=== Iteration 1 ===
-Capture 0 = SQL
-Capture 1 =  is a SQL database!
-[SQL][ is a SQL database!]
-
-=== Iteration 2 ===
-Capture 0 = SQL
-Capture 1 =  database!
-[SQL][ database!]
-=end code
-
-Even using the L<:r|/language/regexes#Ratchet> adverb to prevent backtracking will not
-change things:
-
-=begin code :preamble<my $string = '';>
-my $iteration = 0;
-sub show-captures( Match $m ){
-    my Str $result-split;
-    say "\n=== Iteration {++$iteration} ===";
-    for $m.list.kv -> $i, $capture {
-        say "Capture $i = $capture";
-        $result-split ~= '[' ~ $capture ~ ']';
-    }
-
-    say $result-split;
-}
-
-$string ~~ / :r (SQL) (.+) { show-captures( $/ ); } $1 /;
-=end code
-
-and the output will remain the same:
-
-=begin code :lang<text>
-=== Iteration 1 ===
-Capture 0 = SQL
-Capture 1 =  is a SQL database!
-[SQL][ is a SQL database!]
-
-=== Iteration 2 ===
-Capture 0 = SQL
-Capture 1 =  database!
-[SQL][ database!]
-=end code
-
-This demonstrates that disabling backtracking does not mean disabling possible
+In general, disabling backtracking does not mean disabling possible
 multiple iterations of the matching engine, but rather disabling the backward
 matching tuning.
+
+To address problematic backtracking, there are also other, at times better ways.
+
+One is by using frugal quantifiers (or by leaving out certain capture groups altogether).
+Most of the backtracking in our example above is indeed necessary because the
+greedy capture groups C<(.+)> (especially the first one)
+immediately eat up as many characters as they can.
+
+By making the first one frugal, C<(.+?)>,
+we cause it to extend only until the beginning of the first I<SQL>.
+This way, the capture groups C<$0> and C<$1> attain
+their final result right off the bat, so that the characters at the very end
+need to be backtracked only once (rather than twice like above):
+
+=begin code :lang<text>
+$string ~~ / (.+?) (SQL) (.+) { show-captures( $/ ); } $1 /;
+
+=== Iteration 1 ===
+[Postgre][SQL][ is a SQL database!]
+
+=== Iteration 2 ===
+[Postgre][SQL][ is a SQL database]
+
+...
+
+=== Iteration 13 ===
+[Postgre][SQL][ is a S]
+
+=== Iteration 14 ===
+[Postgre][SQL][ is a ]
+=end code
+
+Frugality of the I<second> C<(.+)> can also helps us.
+In our case, it is most useful when combined with frugality of the first.
+Observe how it changes the behavior of the capture group C<$2>
+from gradual shortening to gradual lengthening:
+
+=begin code :lang<text>
+$string ~~ / (.+?) (SQL) (.+?) { show-captures( $/ ); } $1 /;
+
+=== Iteration 1 ===
+[Postgre][SQL][ ]
+
+=== Iteration 2 ===
+[Postgre][SQL][ i]
+
+...
+
+=== Iteration 5 ===
+[Postgre][SQL][ is a]
+
+=== Iteration 6 ===
+[Postgre][SQL][ is a ]
+=end code
+
+On the other hand, combining ratcheting I<and> frugal quantifiers would not help in our case.
+For example:
+
+=begin code :lang<text>
+$string ~~ /:r (.+?) (SQL) { show-captures( $/ ); } (.+?) $1 /;
+
+=== Iteration 1 ===
+Capture 0 = e
+Capture 1 = SQL  # from the word "PostgreSQL"
+[e][SQL]
+
+=== Iteration 2 ===
+Capture 0 =      # one whitespace
+Capture 1 = SQL  # from the stand-alone word "SQL"
+[ ][sql]
+=end code
+
+You can play around with putting the C<{ show-captures( $/ ); }> in different places
+to get a better feel of how C<:r> and frugal as well as greedy quantifiers interact.
 
 =head2 Backtracking control
 
@@ -2938,7 +2942,7 @@ for the third (C<\d+>).
 C<:ratchet> is enabled by default in C<token>s and C<rule>s; see
 L<grammars|/language/grammars> for more details.
 
-Raku also offers three regex metacharacters to control backtracking at for an
+Raku also offers three regex metacharacters to control backtracking for an
 individual atom.
 
 =head3 X<Disable backtracking: C<:>|Regexes,:;Regexes,disable backtracking>
