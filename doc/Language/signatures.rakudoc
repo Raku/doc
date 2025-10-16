@@ -99,13 +99,6 @@ L<C<Signature>|/type/Signature> literals can contain string/numeric literals
     my $sig = :('Þor', Str, Int);
     say <Þor Hammer 1> ~~ $sig; # OUTPUT: «True␤»
 
-And they can also contain the invocant marker, explained in the next section:
-
-    class Foo {
-        method bar( $self: ){ "baz" }
-    };
-    say Foo.^methods.first(*.name eq 'bar').signature ~~ :($: *%) ;
-    # OUTPUT: «True␤»
 
 
 
@@ -117,9 +110,9 @@ commas.
     my $sig = :($a, @b, %c);
     sub add($a, $b) { $a + $b };
 
-As an exception the first parameter may be followed by a colon instead
+As an exception, the first parameter may be followed by a colon instead
 of a comma to mark the invocant of a method. This is done in order to
-distinguish it from what would then be a regular positional parameter.
+distinguish it from what would otherwise be a regular positional parameter.
 The invocant is the object that was used to call the method, which is usually
 bound to L<C<self>|/routine/self>. By specifying it in the signature, you can
 change the variable name it is bound to.
@@ -132,10 +125,11 @@ change the variable name it is bound to.
         }
     }
     say Foo.whoami; # OUTPUT: «Well I'm class Foo, of course!␤»
+    say Foo.^methods.first(*.name eq 'whoami').signature ~~ :($: *%) ; # OUTPUT: «True␤» 
 
-A further exception is the L<double semicolon C<;;>|/language/Signatures#The_;;_separator>,
-which can be used in L<multi|/language/functions#Multi-dispatch> signatures to declare that all subsequent parameters should not
-contribute to its precedence under multiple dispatch.
+Another exception is the L<double semicolon C<;;>|/language/Signatures#The_;;_separator>,
+which can take the place of one comma in a L<multi|/language/functions#Multi-dispatch> signature
+to declare that the subsequent parameters should not contribute to its precedence in multiple dispatch.
 
 X<|Language,type constraint>
 X<|Language,Constraint>
@@ -839,6 +833,34 @@ the function body.
     my &s = f(10, 2, Int.new / Int.new);
     say s(2); # 10 / 2 * 2 == 10
 
+
+Captured types can also be used to coerce other parameters to that type
+(just like it is done in section L<Coercion types|/language/signatures#Coercion_type>
+for fixed types).
+For example, this function coerces the second parameter C<b>, which must be of type L<C<Cool>|/type/Cool>,
+to whichever type the first parameter C<a> has:
+
+    sub accum( ::T \a, T(Cool) \b ) { a += b };
+
+    my $t = 3;        # Int
+    accum( $t, 5/3 ); # OUTPUT: «4␤»
+
+    my $t = 3.0;      # Rat
+    accum( $t, 5/3 ); # OUTPUT: «4.666667␤»
+
+    my $t = 3.0;      # Rat, and the second parameter an Array
+    accum ( $t, ["x","y"] ); # OUTPUT: «5.0»
+
+Type captures can also be subject to type constraints.
+In the example above, nonsensical calls could be prevented by changing
+the signature to one of the following:
+
+    (Numeric ::T \a, T(Cool) \b )
+    (::T Numeric \a, T(Cool) \b )
+
+See also section C<method type_captures|/type/Parameter#method_type_captures>
+in the type reference for C<Parameter>.
+
 X<|Language,positional argument>
 X<|Language,named argument>
 =head1 Positional vs. named arguments
@@ -999,14 +1021,14 @@ Table showing checks of whether an argument was passed for a given parameter:
  ===============|================|============================|========================
  Slurpy         | *@array        | Don't check using .defined | if not @array
  Required       | $foo           | Can't be omitted           | (not applicable)
- Optional       | @bar = default | Pick a suitable default¹   | if @bar =:= default
+ Optional       | @bar = default | Pick a suitable default¹   | if @bar === default
 =end table
 
-¹ A suitable default is an Object that has a distinct identity, as may be checked by the L<C<WHICH>|https://docs.raku.org/type/Mu#method_WHICH> method.
+¹ A suitable default is an Object that has a distinct identity, as may be checked by the L<C<WHICH>|/type/Mu#method_WHICH> method.
 
 A parameter with a default is always I<optional>, so there is no need to mark it with a C<?>.
 
-Then you can use the C<===> L<value identity operator|https://docs.raku.org/language/operators#infix_===> in the body of the routine to check
+Then you can use the C<===> L<value identity operator|/language/operators#infix_===> in the body of the routine to check
 whether this exact default object was bound to the parameter. These examples use names like C<PositionalAt> to reflect that the C<.WHICH> test
 invoked by C<===> returns an object of type L<C<ObjAt>|/type/ObjAt>.
 
@@ -1014,7 +1036,7 @@ Example with a positional parameter:
 =begin code
 my constant PositionalAt = Positional.new;
 
-sub a (@list = PositionalAt) { say @list === PositionalAt }  # here, one can also use =:=, the container identity operator
+sub a (@list = PositionalAt) { say @list === PositionalAt }
 a;              # OUTPUT: «True␤»
 a [1, 2, 3];    # OUTPUT: «False␤»
 =end code
@@ -1023,13 +1045,13 @@ Example with some scalar parameters:
 =begin code
 my constant AnyAt = Any.new;
 
-sub b ($x=AnyAt, :$y=AnyAt) { say $x === AnyAt; say $y === AnyAt }  # here, =:= would always produce False
+sub b ($x=AnyAt, :$y=AnyAt) { say $x === AnyAt; say $y === AnyAt }
 b 1;            # OUTPUT: «False␤True␤»
 b 1, :2y;       # OUTPUT: «False␤False␤»
 =end code
 
-If your parameters are typed, then the L<type smileys|https://docs.raku.org/language/glossary#Type_smiley> can be used with
-L<C<multi>|https://docs.raku.org/language/functions#Multi-dispatch>s like this:
+If your parameters are typed, then the L<type smileys|/language/glossary#Type_smiley> can be used with
+L<C<multi>|/language/functions#Multi-dispatch>s like this:
 
 =begin code
 multi c (Int:U $z)  { say 'Undefined' }
@@ -1135,8 +1157,8 @@ In L<multiple dispatch|/language/Functions#Multi-dispatch>, when more than one m
 the given input parameters, the narrowest signature wins.
 
 When a double semicolon C<;;> is present in a signature,
-only parameters to the left of the C<;;> are considered in this narrowness analysis.
-It can take the place of a comma, or be at the very beginning:
+only parameters to the left of it are considered in this narrowness analysis.
+It can take the place of a comma, or sit at the very beginning:
 
     multi foo (;; Numeric $a) { say "numeric" };
     multi foo (;; Int     $a) { say "int" };
@@ -1156,23 +1178,23 @@ Consider this example with a named parameter:
     #           both 42 and ｢｣␤  in sub e at <tmp> line 1␤»
 
 Here it was the I<second> multi that got executed,
-because its signature is narrower than the first and does in fact match C<bar(42)>, even though $s then stays undefined.
-By adding C<;;>, we can lower its precedence:
+because its signature is narrower than the first and does in fact match C<bar(42)>, even though C<$s> then stays undefined.
+By adding C<;;>, we can lower its precedence to match that of the first:
 
-    multi f(Int $i) { say "just $i" };
-    multi f(Int $i;; Str :$s) { say "both $i and ｢$s｣" };
-    f(42);
-    # OUTPUT: «Ambiguous call to 'e(Int)'; these signatures all match:
+    multi baz(Int $i) { say "just $i" };
+    multi baz(Int $i;; Str :$s) { say "both $i and ｢$s｣" };
+    baz(42);
+    # OUTPUT: «Ambiguous call to 'baz(Int)'; these signatures all match:
     #           (Int $i) from <tmp> line 1␤  (Int $i;; Str :$s) from <tmp> line 1␤ ...»
 
 One could then give the first multi the trait L<C<is default>|/type/Routine#trait_is_default>, whose exact effect is
-to break a tie between multiple signatures of the same precedence.
+to break a tie between signatures of the same precedence.
 
 There is more than one way to control the narrowness
 (and thereby, precedence) of signatures. Other options include
 making parameters optional via C<?> or required via C<!>.
 
-The double semicolon C<;;> can also be used in signatures of L<parameterized Roles|/language/Typesystem#Parameterized>.
+The double semicolon C<;;> can also be used in signatures of L<parameterized roles|/language/typesystem#Parameterized>.
 Parameterized roles have a so-called "long name" generated from their signature, which can be used for introspection.
 Only parameters to the left of C<;;> contribute to it.
 
