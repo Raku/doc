@@ -486,29 +486,32 @@ specifying a L<Signature|/type/Signature> literal right after the parameter
         l(n)
     }
 
-    sub identity(Int:D \i --> Int:D) { i }
     sub double(Int:D \x --> Int:D) { 2 * x }
+    say apply &double, 10;         # OUTPUT: «20␤»
 
-    say apply &identity, 10; # OUTPUT: «10␤»
-    say apply &double, 10;   # OUTPUT: «20␤»
+    sub general-double(Num:D \x --> Num:D) { 2 * x }
+    say apply &general-double, 10; # OUTPUT: «Signature constraint check failed(…)␤»
 
-Typed L<lambdas|/language/functions#Blocks_and_lambdas> also work with
-constrained callable parameters.
+This shorthand syntax for constraining the signature of <&l>
+is only available because it has the C<&> sigil.
+For C<$>-sigilled callable parameters, you need to use the long version with C<where>:
+
+    sub apply($l where .signature ~~ :(Int:D --> Int:D), Int:D \n) {
+        $l(n)
+    }
+
+You can also pass typed L<lambdas|/language/functions#Blocks_and_lambdas>
+for constrained callable parameters like C<&l> or C<$l>:
 
 =for code :preamble<sub apply {...}>
 say apply -> Int:D \x --> Int:D { 2 * x }, 3;  # OUTPUT: «6␤»
 say apply -> Int:D \x --> Int:D { x ** 3 }, 3; # OUTPUT: «27␤»
 
-Note that this shorthand syntax is available only for parameters with the C<&>
-sigil. For others, you need to use the long version:
+Constraints without type smileys are also possible.
 
-    sub play-with-tens($c where .signature ~~ :(Int, Str)) { say $c(10, 'ten') }
-    sub by-joining-them(Int $i, Str $s) { $s ~ $i }
-    play-with-tens &by-joining-them;                              # OUTPUT: «ten10␤»
-    play-with-tens -> Int \i, Str \s { s x (1..10).roll mod i };  # OUTPUT: «tenten␤»
-
-    sub g(Num $i, Str $s) { $s ~ $i }
-    # play-with-tens(&g); # Constraint type check failed
+   sub play-with-tens(&c:(Int,    Str)) { say c(10, 'ten') }
+   play-with-tens ->   Int \i, Str \s { s ~ i }                 # OUTPUT: «ten10»
+   play-with-tens ->   Int \i, Str \s { s x (1..30).roll mod i} # OUTPUT: «tenten(…)ten␤»
 
 =head2 Constraining return types
 
