@@ -56,7 +56,6 @@ multi stuff(Int)  { 3 }
 multi stuff(Complex)  { 66 }
 say stuff($_) for (33, ⅓, i, 48); # OUTPUT: «58␤43␤66␤3␤»
 
-
 However, you can't use C<True> or C<False> as literals in signatures since
 they will always succeed (or fail). A warning will be issued if you do so:
 
@@ -98,8 +97,6 @@ L<C<Signature>|/type/Signature> literals can contain string/numeric literals
 
     my $sig = :('Þor', Str, Int);
     say <Þor Hammer 1> ~~ $sig; # OUTPUT: «True␤»
-
-
 
 
 =head1 Parameter separators
@@ -660,6 +657,110 @@ bar(3);
 =end code
 
 
+X<|Language,Type capture>
+=head1 Type captures
+
+Type captures allow deferring the specification of a type constraint to the time
+the function is called. They allow referring to a type both in the signature and
+the function body.
+
+    sub f(::T $p1, T $p2, ::C){
+        # $p1 and $p2 are of the same type T, that we don't know yet
+        # C will hold a type we derive from a type object or value
+        my C $division = $p1 / $p2;
+        return sub (T $p1) {
+            $division * $p1;
+        }
+    }
+
+    # The first parameter is Int and so must be the 2nd.
+    # We derive the 3rd type from calling the operator that is used in &f.
+    my &s = f(10, 2, Int.new / Int.new);
+    say s(2); # 10 / 2 * 2 == 10
+
+A captured type can be used as the return type constraint
+(cf. L<Constraining return types|/language/signature/Constraining_return_types>):
+
+    sub cast-by-example(Any $x, ::T $example --> T) { T($x) }
+    sub cast-or-create(Any $x, ::T $example --> T:D) { with $x { T($x) } else { T.new } }
+
+Captured types can also be used to coerce other parameters to that type
+(just like it is done in section L<Coercion types|/language/signatures#Coercion_type>
+for fixed types).
+For example, this function coerces the second parameter C<b>, which must be of type L<C<Cool>|/type/Cool>,
+to whichever type the first parameter C<a> has:
+
+    sub accum( ::T \a, T(Cool) \b ) { a += b };
+
+    my $t = 3;        # Int
+    accum( $t, 5/3 ); # OUTPUT: «4␤»
+
+    my $t = 3.0;      # Rat
+    accum( $t, 5/3 ); # OUTPUT: «4.666667␤»
+
+    my $t = 3.0;      # Rat, and the second parameter an Array
+    accum ( $t, ["x","y"] ); # OUTPUT: «5.0»
+
+Type captures can also be subject to type constraints.
+In the example above, certain nonsensical calls could be prevented by changing
+the signature to one of the following:
+
+    =for code :skip-test<simple snippet>
+    (Numeric ::T \a, T(Cool) \b )
+    (::T Numeric \a, T(Cool) \b )
+
+See also section C<method type_captures|/type/Parameter#method_type_captures>
+in the type reference for C<Parameter>.
+
+
+X<|Language,positional argument>
+X<|Language,named argument>
+=head1 Positional vs. named arguments
+
+An argument can be I<positional> or I<named>. By default, arguments are
+positional, except slurpy hash and arguments marked with a leading colon C<:>.
+The latter is called a L<colon-pair|/type/Pair>. Check the following signatures
+and what they denote:
+
+=for code :preamble<my ($sig1, $sig2, $sig3, $sig4);>
+$sig1 = :($a);               # a positional argument
+$sig2 = :(:$a);              # a named argument of name 'a'
+$sig3 = :(*@a);              # a slurpy positional argument
+$sig4 = :(*%h);              # a slurpy named argument
+
+On the caller side, positional arguments are passed in the same order as the
+arguments are declared.
+
+    sub pos($x, $y) { "x=$x y=$y" }
+    pos(4, 5);                          # OUTPUT: «x=4 y=5»
+
+In the case of named arguments and parameters, only the name is used for mapping
+arguments to parameters. If a fat arrow is used to construct a
+L<C<Pair>|/type/Pair> only those with valid identifiers as keys are recognized as
+named arguments.
+
+=for code
+sub named(:$x, :$y) { "x=$x y=$y" }
+named( y => 5, x => 4);             # OUTPUT: «x=4 y=5»
+
+You can invoke the routine using a variable with the same name as the named
+argument; in that case C<:> will be used for the invocation so that the name of
+the variable is understood as the key of the argument.
+
+    sub named-shortcut( :$shortcut ) {
+        say "Looks like $shortcut"
+    }
+    named-shortcut( shortcut => "to here"); # OUTPUT: «Looks like to here␤»
+    my $shortcut = "Þor is mighty";
+    named-shortcut( :$shortcut );           # OUTPUT: «Looks like Þor is mighty␤»
+
+It is possible to have a different name for a named argument than the
+variable name:
+
+    sub named(:official($private)) { "Official business!" if $private }
+    named :official;
+
+
 X<|Syntax,*@>
 X<|Syntax,*%>
 X<|Language,slurpy argument>
@@ -783,6 +884,17 @@ a(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]␤»
 A single asterisk slurpy flattens all given iterables, effectively hoisting any
 object created with commas up to the top level.
 
+Such flattening can be prevented for individual arguments
+by putting them in an L<item context|/type/List#Items,_flattening_and_sigils>.
+This can be done by prepending the sigil C<$> or by applying the C<.item> method:
+
+=begin code
+sub slurp(*@pos) { say @pos; }
+my @array = [5,6];
+slurp([1,2], $[3,4], $@array);        # OUTPUT: «[1 2 [3 4] [5 6]]␤»
+slurp([1,2], [3,4].item, @array.item) # OUTPUT: «[1 2 [3 4] [5 6]]␤»
+=end code
+
 =head2 X<Unflattened slurpy|Syntax,**@>
 
 Slurpy parameters declared with two stars do not flatten any
@@ -806,7 +918,6 @@ in the slurpy array.
 X<|Syntax,+ (Single argument rule slurpy)>
 =head2 Single argument rule slurpy
 
-
 A slurpy parameter created using a plus engages the I<"single argument rule">,
 which decides how to handle the slurpy argument based upon context. Basically,
 if only a single argument is passed and that argument is
@@ -826,107 +937,6 @@ c(($_ for 1, 2, 3));       # OUTPUT: «[1, 2, 3]␤»
 
 For additional discussion and examples, see L<Slurpy Conventions for Functions|/language/functions#Slurpy_conventions>.
 
-X<|Language,Type capture>
-=head1 Type captures
-
-Type captures allow deferring the specification of a type constraint to the time
-the function is called. They allow referring to a type both in the signature and
-the function body.
-
-    sub f(::T $p1, T $p2, ::C){
-        # $p1 and $p2 are of the same type T, that we don't know yet
-        # C will hold a type we derive from a type object or value
-        my C $division = $p1 / $p2;
-        return sub (T $p1) {
-            $division * $p1;
-        }
-    }
-
-    # The first parameter is Int and so must be the 2nd.
-    # We derive the 3rd type from calling the operator that is used in &f.
-    my &s = f(10, 2, Int.new / Int.new);
-    say s(2); # 10 / 2 * 2 == 10
-
-A captured type can be used as the return type constraint
-(cf. L<Constraining return types|/language/signature/Constraining_return_types>):
-
-    sub cast-by-example(Any $x, ::T $example --> T) { T($x) }
-    sub cast-or-create(Any $x, ::T $example --> T:D) { with $x { T($x) } else { T.new } }
-
-Captured types can also be used to coerce other parameters to that type
-(just like it is done in section L<Coercion types|/language/signatures#Coercion_type>
-for fixed types).
-For example, this function coerces the second parameter C<b>, which must be of type L<C<Cool>|/type/Cool>,
-to whichever type the first parameter C<a> has:
-
-    sub accum( ::T \a, T(Cool) \b ) { a += b };
-
-    my $t = 3;        # Int
-    accum( $t, 5/3 ); # OUTPUT: «4␤»
-
-    my $t = 3.0;      # Rat
-    accum( $t, 5/3 ); # OUTPUT: «4.666667␤»
-
-    my $t = 3.0;      # Rat, and the second parameter an Array
-    accum ( $t, ["x","y"] ); # OUTPUT: «5.0»
-
-Type captures can also be subject to type constraints.
-In the example above, certain nonsensical calls could be prevented by changing
-the signature to one of the following:
-
-    =for code :skip-test<simple snippet>
-    (Numeric ::T \a, T(Cool) \b )
-    (::T Numeric \a, T(Cool) \b )
-
-See also section C<method type_captures|/type/Parameter#method_type_captures>
-in the type reference for C<Parameter>.
-
-X<|Language,positional argument>
-X<|Language,named argument>
-=head1 Positional vs. named arguments
-
-An argument can be I<positional> or I<named>. By default, arguments are
-positional, except slurpy hash and arguments marked with a leading colon C<:>.
-The latter is called a L<colon-pair|/type/Pair>. Check the following signatures
-and what they denote:
-
-=for code :preamble<my ($sig1, $sig2, $sig3, $sig4);>
-$sig1 = :($a);               # a positional argument
-$sig2 = :(:$a);              # a named argument of name 'a'
-$sig3 = :(*@a);              # a slurpy positional argument
-$sig4 = :(*%h);              # a slurpy named argument
-
-On the caller side, positional arguments are passed in the same order as the
-arguments are declared.
-
-    sub pos($x, $y) { "x=$x y=$y" }
-    pos(4, 5);                          # OUTPUT: «x=4 y=5»
-
-In the case of named arguments and parameters, only the name is used for mapping
-arguments to parameters. If a fat arrow is used to construct a
-L<C<Pair>|/type/Pair> only those with valid identifiers as keys are recognized as
-named arguments.
-
-=for code
-sub named(:$x, :$y) { "x=$x y=$y" }
-named( y => 5, x => 4);             # OUTPUT: «x=4 y=5»
-
-You can invoke the routine using a variable with the same name as the named
-argument; in that case C<:> will be used for the invocation so that the name of
-the variable is understood as the key of the argument.
-
-    sub named-shortcut( :$shortcut ) {
-        say "Looks like $shortcut"
-    }
-    named-shortcut( shortcut => "to here"); # OUTPUT: «Looks like to here␤»
-    my $shortcut = "Þor is mighty";
-    named-shortcut( :$shortcut );           # OUTPUT: «Looks like Þor is mighty␤»
-
-It is possible to have a different name for a named argument than the
-variable name:
-
-    sub named(:official($private)) { "Official business!" if $private }
-    named :official;
 
 X<|Language,argument aliases>
 =head1 Argument aliases
