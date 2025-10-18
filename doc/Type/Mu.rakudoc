@@ -16,7 +16,6 @@ L<C<Any>|/type/Any>.
 
 =head1 Methods
 
-
 =head2 method iterator
 
     method iterator(--> Iterator)
@@ -28,37 +27,31 @@ method and uses L«C<iterator>|/type/Iterable#method_iterator» on it.
     say $it.pull-one; # OUTPUT: «(Mu)␤»
     say $it.pull-one; # OUTPUT: «IterationEnd␤»
 
-=head2 method defined
+=head2 routine defined
 
     multi method defined(   --> Bool:D)
+    multi        defined(Mu --> Bool:D)
 
-Returns C<False> on a type object, and C<True> otherwise.
+Returns C<False> on a type object, and C<True> otherwise. (The sub
+evaluates its argument, and the method its invocant.)
 
     say Int.defined;                # OUTPUT: «False␤»
     say 42.defined;                 # OUTPUT: «True␤»
 
-A few types (like L<C<Failure>|/type/Failure>) override C<defined> to return
-C<False> even for instances:
+A few types (like L<C<Failure>|/type/Failure>) override C<defined> to
+return C<False> even for instances:
 
     sub fails() { fail 'oh noe' };
     say fails().defined;            # OUTPUT: «False␤»
 
-
-=head2 routine defined
-
-    multi defined(Mu --> Bool:D)
-
-invokes the C<.defined> method on the object and returns its result.
-
-
-=head2 routine isa
+=head2 method isa
 
     multi method isa(Mu $type     --> Bool:D)
     multi method isa(Str:D $type  --> Bool:D)
 
 Returns C<True> if the invocant is an instance of class C<$type>, a subset type
 or a derived class (through inheritance) of C<$type>.
-L<C<does>|/routine/does#(Mu)_routine_does> is similar, but includes roles.
+L<C<does>|/method/does#(Mu)_method_does> is similar, but includes roles.
 
     my $i = 17;
     say $i.isa("Int");   # OUTPUT: «True␤»
@@ -69,8 +62,7 @@ L<C<does>|/routine/does#(Mu)_routine_does> is similar, but includes roles.
     say $but-true.does(Truish); # OUTPUT: «True␤»
     say $but-true.isa(Truish);  # OUTPUT: «False␤»
 
-
-=head2 routine does
+=head2 method does
 
     method does(Mu $type --> Bool:D)
 
@@ -82,7 +74,7 @@ say $d.does(Dateish);             # OUTPUT: «True␤»    (Date does role Datei
 say $d.does(Any);                 # OUTPUT: «True␤»    (Date is a subclass of Any)
 say $d.does(DateTime);            # OUTPUT: «False␤»   (Date is not a subclass of DateTime)
 
-Unlike L<C<isa>|/routine/isa#(Mu)_routine_isa>, which
+Unlike L<C<isa>|/method/isa#(Mu)_method_isa>, which
 returns C<True> only for superclasses, C<does> includes both superclasses and
 roles.
 
@@ -98,8 +90,8 @@ Using the smartmatch operator L<~~|/routine/~~> is a more idiomatic alternative.
 
 =head2 routine Bool
 
-    multi        Bool(Mu --> Bool:D)
     multi method Bool(   --> Bool:D)
+    multi        Bool(Mu --> Bool:D)
 
 Returns C<False> on the type object, and C<True> otherwise.
 
@@ -143,8 +135,8 @@ readable. Method L<C<Str>|/type/Str> warns on type objects, and produces the emp
 
 =head2 routine gist
 
-    multi        gist(+args --> Str)
     multi method gist(   --> Str)
+    multi        gist(+args --> Str)
 
 Returns a string representation of the invocant, optimized for fast recognition
 by humans. As such lists will be truncated at 100 elements. Use C<.raku> to get
@@ -184,15 +176,25 @@ that can be used via L«C<EVAL>|/routine/EVAL» to reconstruct the value of the 
 
     say (1..3).Set.raku;  # OUTPUT: «Set.new(1,2,3)␤»
 
-=head2 method item
+=head2 routine item
 
     method item(Mu \item:) is raw
+    multi  item(\x)
+    multi  item(|c)
+    multi  item(Mu $a)
 
-Forces the invocant to be evaluated in item context and returns the value of it.
+Forces the invocant to be evaluated in item context and returns the
+value of it.
 
     say [1,2,3].item.raku;          # OUTPUT: «$[1, 2, 3]␤»
     say %( apple => 10 ).item.raku; # OUTPUT: «${:apple(10)}␤»
-    say "abc".item.raku;            # OUTPUT: «"abc"␤»
+    say item([1,2,3]).raku;         # OUTPUT: «$[1, 2, 3]␤»
+    say item("abc").raku;           # OUTPUT: «"abc"␤»
+
+You can also use C<$> as item contextualizer.
+
+    say $[1,2,3].raku;              # OUTPUT: «$[1, 2, 3]␤»
+    say $("abc").raku;              # OUTPUT: «"abc"␤»
 
 =head2 method self
 
@@ -343,7 +345,7 @@ initializing any attributes.
 
     say Mu.CREATE.defined;  # OUTPUT: «True␤»
 
-=head2 method print
+=head2 routine print
 
     multi method print(--> Bool:D)
 
@@ -352,7 +354,7 @@ adding a newline at end.
 
     "abc\n".print;          # OUTPUT: «abc␤»
 
-=head2 method put
+=head2 routine put
 
     multi method put(--> Bool:D)
 
@@ -361,7 +363,7 @@ stringifying non-L<C<Str>|/type/Str> object using the C<.Str> method.
 
     "abc".put;              # OUTPUT: «abc␤»
 
-=head2 method say
+=head2 routine say
 
     multi method say()
 
@@ -456,7 +458,8 @@ are marked as C<is export>.
 
 See L<Exporting and Selective Importing Modules|/language/modules#Exporting_and_selective_importing>
 for more details.
-=head2 method return
+
+=head2 routine return
 
     method return()
 
@@ -470,12 +473,12 @@ can be caught with L<CONTROL|/language/phasers#CONTROL>.
     sub f { (1|2|3).return };
     say f(); # OUTPUT: «any(1, 2, 3)␤»
 
-=head2 method return-rw
+=head2 routine return-rw
 
-Same as method L<C<return>|/type/Mu#method_return> except that C<return-rw> returns a writable
+Same as routine L<C<return>|/type/Mu#routine_return> except that C<return-rw> returns a writable
 container to the invocant (see more details here: L<C<return-rw>|/language/control#return-rw>).
 
-=head2 method emit
+=head2 routine emit
 
     method emit()
 
@@ -492,11 +495,23 @@ L<react|/language/concurrency#react> block.
     # received Int (42)
     # received Rat (0.5)
 
-=head2 method take
+=head2 routine take
 
+    sub    take(\item)
     method take()
 
-Returns the invocant in the enclosing L<gather|/language/control#gather/take> block.
+The sub takes the given item and passes it to the enclosing C<gather>
+block.
+
+    #| randomly select numbers for lotto
+    my $num-selected-numbers = 6;
+    my $max-lotto-numbers = 49;
+    gather for ^$num-selected-numbers {
+        take (1 .. $max-lotto-numbers).pick(1);
+    }.say;    # six random values
+
+The method returns the invocant in the enclosing
+L<gather|/language/control#gather/take> block.
 
     sub insert($sep, +@list) {
         gather for @list {
@@ -508,20 +523,7 @@ Returns the invocant in the enclosing L<gather|/language/control#gather/take> bl
     say insert ':', <a b c>;
     # OUTPUT: «(a : b : c)␤»
 
-=head2 routine take
-
-    sub take(\item)
-
-Takes the given item and passes it to the enclosing C<gather> block.
-
-    #| randomly select numbers for lotto
-    my $num-selected-numbers = 6;
-    my $max-lotto-numbers = 49;
-    gather for ^$num-selected-numbers {
-        take (1 .. $max-lotto-numbers).pick(1);
-    }.say;    # six random values
-
-=head2 routine take-rw
+=head2 sub take-rw
 
     sub take-rw(\item)
 
@@ -533,7 +535,7 @@ Returns the given item to the enclosing C<gather> block, without introducing a n
     say @a;
     # OUTPUT: «[2 3 4]␤»
 
-=head2 method so
+=head2 routine so
 
     method so()
 
@@ -557,7 +559,7 @@ any(False, False), any(False, False), any(True, False))>. That is actually a
 I<truish> value; thus, negating it will yield C<False>. The negation of that
 result will be C<True>. C<so> is performing all those operations under the hood.
 
-=head2 method not
+=head2 routine not
 
     method not()
 
