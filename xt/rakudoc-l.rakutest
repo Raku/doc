@@ -31,6 +31,8 @@ sub is-valid-display($content) {
 
 my %bad-links = BagHash.new;
 my $network-testing = %*ENV<NETWORK_TESTING>:exists.so;
+my %good-links;
+
 sub is-valid-link($links) {
     for @$links -> $link {
         if $link.starts-with('/') {
@@ -107,6 +109,12 @@ sub is-valid-link($links) {
                 # Skip known problematic URLs (403 via Cro, fine via browser)
                 next if $link eq "https://dev.mysql.com/downloads/repo/apt/";
 
+                # auto-pass if we already pulled this session
+                if %good-links{$link}:exists {
+                    pass "HTTP KNOWN $link";
+                    next;
+                }
+
                 my $response = await $ua.get: $link, user-agent => 'Raku Docs Validator';
                 CATCH {
                     when X::Cro::HTTP2::GoAway {
@@ -140,6 +148,7 @@ sub is-valid-link($links) {
                     }
                     next;
                 }
+                %good-links{$link}++;
                 pass "HTTP {$response.status} $link";
                 next;
             }
