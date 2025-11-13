@@ -210,21 +210,29 @@ In the case of L<C<Associative>|/type/Associative>s, it will be applied to its v
 say deepmap *.flip, {what=>'is', this=>'thing', a=><real list>};
 # OUTPUT: «{a => (laer tsil), this => gniht, what => si}␤»
 
-=head2 method duckmap
+=head2 routine duckmap
 
-    method duckmap(&block) is rw is nodal
+    method duckmap(&block --> Iterable) is rw is nodal
+    multi  duckmap(&op, \obj --> Iterable)
 
-C<duckmap> will apply C<&block> on each element that behaves in such a way that
-C<&block> can be applied. If it fails, it will descend recursively if possible,
-or otherwise return the item without any transformation. It will act on
-values if the object is L<C<Associative>|/type/Associative>.
+C<duckmap> will apply its argument (or first argument for the sub form) to each
+element that behaves in such a way that the argument can be applied. If it
+fails, it will descend recursively if possible, or otherwise return the item
+without any transformation. It will act on values if the object is
+L<C<Associative>|/type/Associative>.
 
 =for code
 <a b c d e f g>.duckmap(-> $_ where <c d e>.any { .uc }).say;
 # OUTPUT: «(a b C D E f g)␤»
+say duckmap -> $_ where <c d e>.any { .uc }, <a b c d e f g>;
+# OUTPUT: «(a b C D E f g)␤»
 (('d', 'e'), 'f').duckmap(-> $_ where <e f>.any { .uc }).say;
 # OUTPUT: «((d E) F)␤»
+say duckmap -> $_ where <e f>.any { .uc }, (('d', 'e'), 'f');
+# OUTPUT: «((d E) F)␤»
 { first => ('d', 'e'), second => 'f'}.duckmap(-> $_ where <e f>.any { .uc }).say;
+# OUTPUT: «{first => (d E), second => F}␤»
+say duckmap -> $_ where <e f>.any { .uc }, { first => ('d', 'e'), second => 'f'};
 # OUTPUT: «{first => (d E), second => F}␤»
 
 In the first case, it is applied to C<c>, C<d> and C<e> which are the ones that
@@ -236,12 +244,16 @@ so it's visited; that flat list will behave in the same way as the first one. In
 this case:
 
     say [[1,2,3],[[4,5],6,7]].duckmap( *² ); # OUTPUT: «[9 9]␤»
+    say duckmap *², [[1,2,3],[[4,5],6,7]];   # OUTPUT: «[9 9]␤»
+
 
 You can square anything as long as it behaves like a number. In this case, there
 are two arrays with 3 elements each; these arrays will be converted into the
 number 3 and squared. In the next case, however
 
     say [[1,2,3],[[4,5],6.1,7.2]].duckmap( -> Rat $_ { $_²} );
+    # OUTPUT: «[[1 2 3] [[4 5] 37.21 51.84]]␤»
+    say duckmap -> Rat $_ { $_²}, [[1,2,3],[[4,5],6.1,7.2]];
     # OUTPUT: «[[1 2 3] [[4 5] 37.21 51.84]]␤»
 
 3-item lists are not L<C<Rat>|/type/Rat>, so it descends recursively, but eventually only
