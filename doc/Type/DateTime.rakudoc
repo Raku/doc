@@ -57,12 +57,14 @@ multi method new(Instant:D $i,  :$timezone=0, :&formatter)
 multi method new(Numeric:D $posix,  :$timezone=0, :&formatter)
 multi method new(Str:D $format, :$timezone=0, :&formatter)
 
-Creates a new C<DateTime> object. One option for creating a new DateTime object
+Creates a new C<DateTime> object. One option for creating a new C<DateTime> object
 is from the components (year, month, day, hour, ...) separately. Another is to
 pass a L<C<Date>|/type/Date> object for the date component, and specify the time
 component-wise. Yet another is to obtain the time from an
 L<C<Instant>|/type/Instant>, and only supply the time zone and formatter. Or
-instead of an Instant you can supply a L<C<Numeric>|/type/Numeric> as a UNIX timestamp.
+instead of an C<Instant> you can supply a L<C<Numeric>|/type/Numeric> as a Unix timestamp
+(but note that this last method provides no way to disambiguate leap seconds,
+unlike using C<Instant>).
 
 You can also supply a L<C<Str>|/type/Str> formatted in ISO 8601 timestamp
 notation or as a full L<RFC 3339|https://tools.ietf.org/html/rfc3339>
@@ -263,6 +265,11 @@ Returns the instant's time as a fraction of a 24-hour day.
 Notice the C<day-fraction> value is the same as the fractional part of
 the C<modified-julian-date> for the same instant.
 
+Also note that leap seconds may cause some variations from expected values:
+
+	for 30, 31 { say DateTime.new(2016,12,$_,12,0,0).day-fraction }
+	# OUTPUT: «0.5␤0.499994␤»
+
 Available as of the 2021.04 Rakudo compiler release.
 
 =head2 method julian-date
@@ -294,7 +301,9 @@ Returns the L<Modified Julian Date|https://en.wikipedia.org/wiki/Julian_day> (MJ
 
     say DateTime.new('2021-12-24T12:23:00.43Z').modified-julian-date; # OUTPUT: «59572.5159772␤»
 
-Notice the fractional part of the C<modified-julian-date> is same value as the C<day-fraction> for the same instant.
+Notice the fractional part of the C<modified-julian-date> is same value as the
+L<C<day-fraction>|/type/DateTime#method_day-fraction> for the same instant, and
+is similarly affected by leap seconds.
 Likewise, the integral part of the I<MJD> is the same value as the C<daycount> for the same instant since they
 reference the same epoch (November 17, 1858).
 The MJD is obtained by subtracting the constant C<2_400_000.5> from the I<Julian Date> and is used to simplify
@@ -310,13 +319,18 @@ Available as of the 2021.04 Rakudo compiler release.
 
     method posix(Bool:D: $ignore-timezone = False --> Int:D)
 
-Returns the date and time as a POSIX/UNIX timestamp (integral seconds since the POSIX epoch,
+Returns the date and time as a POSIX/Unix timestamp (non-leap seconds since the POSIX epoch,
 1970-01-01T00:00:00Z).
 
 If C<$ignore-timezone> is C<True>, the C<DateTime> object will be treated as if
 the time zone offset is zero.
 
     method posix(Bool:D: $ignore-timezone = False, :$real --> Num:D)
+
+Note that this will collapse both a leap second and the second immediately
+following it into the same timestamp, because POSIX time ignores leap seconds.
+If you need better than this, see L<C<Instant|/type/Instant> for the relevant
+methods.
 
 As of release 2022.06 of the Rakudo compiler, it is also possible to specify a
 C<:real> named argument.  If specified with a true value, a L<C<Num>|/type/Num> will be
