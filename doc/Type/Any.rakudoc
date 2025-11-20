@@ -189,7 +189,7 @@ the L<C<Seq>|/type/Seq> will be iterating over its elements, calling C<.take> on
 =head2 routine deepmap
 
     method deepmap(&block --> Iterable) is nodal
-    multi  deepmap(&op, \obj --> Iterable)
+    sub    deepmap(&op, \obj --> Iterable)
 
 C<deepmap> will apply its argument (or first argument for the sub form) to
 each element and return a new L<C<Iterable>|/type/Iterable> with the return
@@ -213,7 +213,7 @@ say deepmap *.flip, {what=>'is', this=>'thing', a=><real list>};
 =head2 routine duckmap
 
     method duckmap(&block --> Iterable) is rw is nodal
-    multi  duckmap(&op, \obj --> Iterable)
+    sub    duckmap(&op, \obj --> Iterable)
 
 C<duckmap> will apply its argument (or first argument for the sub form) to each
 element that behaves in such a way that the argument can be applied. If it
@@ -224,15 +224,9 @@ L<C<Associative>|/type/Associative>.
 =for code
 <a b c d e f g>.duckmap(-> $_ where <c d e>.any { .uc }).say;
 # OUTPUT: «(a b C D E f g)␤»
-say duckmap -> $_ where <c d e>.any { .uc }, <a b c d e f g>;
-# OUTPUT: «(a b C D E f g)␤»
 (('d', 'e'), 'f').duckmap(-> $_ where <e f>.any { .uc }).say;
 # OUTPUT: «((d E) F)␤»
-say duckmap -> $_ where <e f>.any { .uc }, (('d', 'e'), 'f');
-# OUTPUT: «((d E) F)␤»
 { first => ('d', 'e'), second => 'f'}.duckmap(-> $_ where <e f>.any { .uc }).say;
-# OUTPUT: «{first => (d E), second => F}␤»
-say duckmap -> $_ where <e f>.any { .uc }, { first => ('d', 'e'), second => 'f'};
 # OUTPUT: «{first => (d E), second => F}␤»
 
 In the first case, it is applied to C<c>, C<d> and C<e> which are the ones that
@@ -240,41 +234,39 @@ meet the conditions for the block (C<{ .uc }>) to be applied; the rest are
 returned as is.
 
 In the second case, the first item is a list that does not meet the condition,
-so it's visited; that flat list will behave in the same way as the first one. In
-this case:
+so it's visited; that flat list will behave in the same way as the first one.
+Similarly in the third case; here it's only the values in each pair that are
+visited.
 
-    say [[1,2,3],[[4,5],6,7]].duckmap( *² ); # OUTPUT: «[9 9]␤»
     say duckmap *², [[1,2,3],[[4,5],6,7]];   # OUTPUT: «[9 9]␤»
-
 
 You can square anything as long as it behaves like a number. In this case, there
 are two arrays with 3 elements each; these arrays will be converted into the
 number 3 and squared. In the next case, however
 
-    say [[1,2,3],[[4,5],6.1,7.2]].duckmap( -> Rat $_ { $_²} );
-    # OUTPUT: «[[1 2 3] [[4 5] 37.21 51.84]]␤»
     say duckmap -> Rat $_ { $_²}, [[1,2,3],[[4,5],6.1,7.2]];
     # OUTPUT: «[[1 2 3] [[4 5] 37.21 51.84]]␤»
 
 3-item lists are not L<C<Rat>|/type/Rat>, so it descends recursively, but eventually only
-applies the operation to those that walk (or slither, as the case may be) like a
-L<C<Rat>|/type/Rat>.
+applies the operation to those that match L<C<Rat>|/type/Rat>.
 
 Although on the surface (and name), C<duckmap> might look similar to
 L<C<deepmap>|/routine/deepmap>, the latter is applied recursively regardless of
 the type of the item.
 
-=head2 method nodemap
+=head2 routine nodemap
 
-    method nodemap(&block --> List) is nodal
+    method nodemap(&block --> Iterable) is nodal
+    sub    nodemap(&op, \obj --> Iterable)
 
-C<nodemap> will apply C<&block> to each element and return a new
-L<C<List>|/type/List> with the return values of C<&block>. In contrast to
+C<nodemap> will apply its argument (or first argument for the sub form) to each
+element and return a new L<C<Iterable>|/type/Iterable> with the return values
+of its L<C<Callable>|/type/Callable> argument. In contrast to
 L<deepmap|/routine/deepmap> it will B<not> descend recursively into sublists if
 it finds elements which L<do|/routine/does> the L<C<Iterable>|/type/Iterable>
 role.
 
-    say [[1,2,3], [[4,5],6,7], 7].nodemap(*+1);
+    say nodemap *+1, [[1,2,3], [[4,5],6,7], 7];
     # OUTPUT: «(4, 4, 8)␤»
 
     say [[2, 3], [4, [5, 6]]]».nodemap(*+1)
@@ -292,7 +284,7 @@ C<nodemap> doesn't.
 
 When applied to L<C<Associative>|/type/Associative>s, it will act on the values:
 
-    { what => "is", this => "thing" }.nodemap( *.flip ).say;
+    say nodemap *.flip, { what => "is", this => "thing" };
     # OUTPUT: «{this => gniht, what => si}␤»
 
 =head2 method flat
