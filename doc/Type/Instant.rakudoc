@@ -18,7 +18,41 @@ C<Instant> to a L<C<Duration>|/type/Duration> returns another Instant. Subtracti
 will yield a L<C<Duration>|/type/Duration>. Adding two C<Instant>s is explicitly disallowed. All
 other operations with Instants are undefined.
 
-=head1 Future Leap Seconds
+=head1 Leap Seconds
+
+POSIX time (commonly called "Unix time") makes the incorrect assumption that
+the period of rotation of the Earth is a fixed constant. Since in fact the
+number of seconds that pass between one noon and the next varies from day to
+day, we must occasionally have a 61st second in the 60th minute of some hour;
+this is called a leap second, and happens at the same time all over the world,
+and therefore at different times of day in different timezones.
+
+POSIX deals with this by assigning the same integer label to two different
+consecutive seconds; that is, when a leap second happens, C<DateTime.now.posix>
+does not change for two whole seconds. For example:
+
+    my Instant $i .= from-posix(1483228799);
+    my Duration $s = DateTime.new(1) - DateTime.new(0);
+    sub demo { say [$_, .posix] with DateTime.new($i + $^c * $s) }
+    demo(0); # OUTPUT: «[2016-12-31T23:59:59Z 1483228799]␤»
+    demo(1); # OUTPUT: «[2016-12-31T23:59:60Z 1483228800]␤»
+    demo(2); # OUTPUT: «[2017-01-01T00:00:00Z 1483228800]␤»
+    demo(3); # OUTPUT: «[2017-01-01T00:00:01Z 1483228801]␤»
+
+For L<C<Real>|/type/Real> values, this would count up through the fractions
+of the second, and then instantaneously decrement one second and repeat the
+process a second time. Because of this, each time a leap second is recorded,
+the Unix time falls back one more second behind the actual time. Actual time
+is recorded by atomic clocks which disregard the Earth's rotation: when Unix
+time was first established it was based on UTC, which does track the rotation,
+and had by that time fallen 10 seconds behind atomic-clock time. The numerical
+value of C<Instant> happens to track atomic-clock time, and as of 2025 there
+have been 27 leap seconds recorded. This adds up to a total of 37 seconds,
+which is why, as of 2025, the following holds:
+
+    with now { say .Int - DateTime.new($_).posix } # OUTPUT: «37␤»
+
+=head2 Future Leap Seconds
 
 The methods that involve knowledge of leap seconds always assume
 that there will be no further leaps after the last leap second
