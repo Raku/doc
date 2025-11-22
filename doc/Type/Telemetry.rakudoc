@@ -19,7 +19,8 @@ L<C<Telemetry::Instrument::Usage>|/type/Telemetry::Instrument::Usage>
 and L<C<Telemetry::Instrument::ThreadPool>|/type/Telemetry::Instrument::ThreadPool>
 instruments are activated.
 
-The C<Telemetry> (and L<C<Telemetry::Period>|/type/Telemetry::Period>) object also L<C<Associative>|/type/Associative>.  This means
+The C<Telemetry> (and L<C<Telemetry::Period>|/type/Telemetry::Period>) object
+also do the role L<C<Associative>|/type/Associative>.  This means
 that you can treat a Telemetry object as a read-only L<C<Hash>|/type/Hash>, with all of the
 data values of the instruments as keys.
 
@@ -77,21 +78,45 @@ say "Used {T<max-rss cpu>} (KiB CPU) so far";
     multi snap(@s --> Nil)
 
 The C<snap> subroutine is shorthand for creating a new C<Telemetry> object and
-pushing it to an array for later processing.  It is exported by default. From
-release 2021.12, it returns the filename it's storing the snapshots in the
-case it's provided with a C<:$heap> associative parameter.
+pushing it to an array for later processing.  The subroutine is exported by default. 
+
+From release 2017.11, one can give a custom array C<@s> to push to:
 
 =begin code
 use Telemetry;
-my @t;
+my @s;
 for ^5 {
-    snap(@t);
+    snap(@s);
     # do some stuff
-    LAST snap(@t);
+    LAST snap(@s);
 }
 =end code
 
 If no array is specified, it will use an internal array for convenience.
+
+From release 2019.07, C<snap> accepts a positional argument C<$message> of type C<Str>, which will
+become the value of the C<message> attribute of the new C<Telemetry> object.
+
+Also from release 2019.07, one can pass a named argument C<:heap>.
+This will cause the compiler to write a heap snapshot to a file.
+From release 2021.12, the name of that file is returned.
+(Also, just before and just after writing the snapshot, an ordinary C<Telemetry> object is pushed to the internal array.)
+The argument C<:heap> can be of type C<Bool>, C<Str>, or C<IO::Path>. Their implications are as follows:
+
+=item C<IO::Path>, e.g. C«snap( heap => 'outputfile'.IO )»: The snapshot will be written to exactly this path.
+The returned filename is an absolute path.
+
+=item C<Str>, e.g. C«snap(:heap<outputfile>)»: The snapshot will be written to this path I<if> no such file already exists.
+If such a file already exists, the snapshot will instead be written to C<outputfile-$($*PID)-$($i).mvmheap>
+(where C<$i> starts at 1 and increases each time). The returned filename is a relative path.
+
+=item Boolean C<True>, e.g. C<snap(:heap)>: The snapshot will be written to the file C<heapsnapshot-$($*PID)-$($i).mvmheap>.
+The returned filename is a relative path.
+
+=item Boolean C<False>, e.g. C<snap(:!heap)>: No heap snapshot is taken, no file is written.
+Instead, C<snap()> will be called (or C<snap($message)>, if a custom C<$message> has been specified).
+
+From release 2021.12, in the cases where output is written to a file, the name of this file is returned.
 
 =head2 routine snapper
 
