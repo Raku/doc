@@ -1324,6 +1324,10 @@ my $supply = supply {
 $supply.tap( -> $v { say "First : $v" });
 =end code
 
+C<emit> is implemented as a L<control exception|/language/phasers#CONTROL> and
+can therefore be used by something called from the C<supply> block that it
+refers to.
+
 See also L<the page for C<emit> methods|/routine/emit>.
 
 =head2 sub undefine
@@ -1459,9 +1463,13 @@ of any subsequent calls to C<exit> in the same, or any other thread.
     sub done(--> Nil)
 
 If used outside any supply or react block, throws an exception C<done without
-supply or react>. Within a L<C<Supply>|/type/Supply> block, it will indicate the
-supply will no longer emit anything. See also L<documentation on method
-C<done>|/routine/done>.
+supply or react>. Within a L<C<Supply>|/type/Supply> block, it will signal that
+the supply will not emit further values, and leaves the supply block. See also
+L<documentation on method C<done>|/routine/done>.
+
+C<done> is implemented as a L<control exception|/language/phasers#CONTROL> and
+can therefore be used by something called from the C<supply> or C<react> block
+that it refers to.
 
 =for code
 my $supply = supply {
@@ -1469,14 +1477,16 @@ my $supply = supply {
         emit($_);
     }
     done;
+    say "never reached";
 }
 $supply.tap( -> $v { say "Second : $v" }, done => { say "No more" });
 # OUTPUT: «Second : 1␤Second : 2␤Second : 3␤No More␤»
 
-The block passed to the C<done> named argument will be run when C<done> is
-called within the C<supply> block.
+The block passed to the C<done> named argument when tapping the supply will be
+run when C<done> is called within the C<supply> block. Similarly, C<whenever>
+blocks that were used to tap the supply will have any C<LAST> phasers called.
 
-As of the 2021.06 release of the Rakudo compiler, it is also possibly to
+As of the 2021.06 release of the Rakudo compiler, it is also possible to
 supply a value with C<done>:
 
     sub done($value --> Nil)
