@@ -1,4 +1,4 @@
-.PHONY: test xtest push help test-mine xtest-mine
+.PHONY: test xtest push help
 
 # Common tests - also run by CI
 test test-mine: testlist := t
