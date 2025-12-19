@@ -60,6 +60,90 @@ To see the existing Slang modules, we can look at:
 
 =item1 L<A search for slang|https://raku.land/?q=slang>
 
+=head2 Avoiding Slangs
+
+Writing slangs is a beautiful and powerful tool, but sometimes, there's no point killing a mosquito with a flamethrower.
+Sometimes, it's best to see if you can achieve something slang-like with
+simpler tools.  
+
+Before diving into creating a slang, consider these alternatives:
+
+=item1 L<Custom Operators|/language/optut> allow you to define new operators
+(prefix, infix, postfix, circumfix, or postcircumfix) that can be used
+throughout your code. This is often sufficient when you just need a new
+syntactic construct for operations.
+
+=item1 L<Custom Traits|/type/Sub#Traits> (created using C<trait_mod>) let you
+add compile-time behavior to declarations. Traits can modify classes,
+routines, variables, and other constructs without changing the grammar.
+
+=item1 Custom Declarators (like the C<model> declarator used in Red ORM) allow
+you to create new keywords that behave similarly to built-in declarators like
+C<class> or C<sub>. While this is a little advanced, it's still less complex
+than creating a full slang, as it typically involves working with the grammar
+at a more focused level.
+
+=head3 Creating Custom Declarators
+
+The most direct way to create a custom declarator that works like built-in
+declarators (such as C<class>, C<role>, or C<sub>) is to use the
+C<EXPORTHOW::DECLARE> mechanism. This is the approach used by Red ORM for its
+C<model> declarator.
+
+=head4 Using EXPORTHOW::DECLARE
+
+The C<EXPORTHOW::DECLARE> mechanism allows you to register a custom HOW
+(Higher Order Workings) class that the compiler will use when it encounters
+your declarator keyword. Here's a complete example:
+
+=begin code
+# lib/DeclaratorOne.rakumod
+# Custom declarator-one implementation
+# Similar to how Red ORM implements the "model" declarator
+
+class MetamodelX::DeclaratorOne is Metamodel::ClassHOW {}
+
+my package EXPORTHOW {
+    package DECLARE {
+        constant declarator-one = MetamodelX::DeclaratorOne;
+    }
+}
+=end code
+
+To use this declarator:
+
+=begin code :skip-test<needs module>
+use DeclaratorOne;
+
+declarator-one Foo {
+    has $.name;
+    method greet { say "Hello from $.name()!" }
+}
+
+my $foo = Foo.new(name => "World");
+$foo.greet;  # OUTPUT: «Hello from World!␤»
+=end code
+
+How it works:
+
+=item1 You create a HOW class that extends an appropriate base HOW (such as
+C<Metamodel::ClassHOW> for class-like declarators, or C<Metamodel::ParametricRoleHOW>
+for role-like declarators).
+
+=item1 You export it via the C<EXPORTHOW::DECLARE> package, where the constant
+name matches your desired declarator keyword.
+
+=item1 When the compiler encounters your declarator keyword, it uses your HOW
+to construct the type, just as it would use C<Metamodel::ClassHOW> for C<class>
+declarations.
+
+This approach integrates seamlessly with Raku's grammar and type system, making
+your custom declarator work exactly like built-in declarators.
+
+For a real-world example, see how Red ORM implements the C<model> declarator
+in L<its source code|https://github.com/FCO/Red/blob/master/lib/Red/Model.rakumod>.
+
+
 =head2 Prerequisites for Understanding Slangs
 
 If all you wish to do is use existing Slangs, you can stop reading now.
