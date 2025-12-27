@@ -15,22 +15,14 @@ All built-in exceptions inherit from L<C<Exception>|/type/Exception>, which
 provides some basic behavior, including the storage of a backtrace and an
 interface for the backtrace printer.
 
-=head1 I<Ad hoc> exceptions
-
-Ad hoc exceptions can be used by calling L<die|/routine/die> with
-a description of the error:
-
-    die "oops, something went wrong";
-    # OUTPUT: «oops, something went wrong in block <unit> at my-script.raku:1␤»
-
-
-It is worth noting that C<die> prints the error message to the standard error
-C<$*ERR>.
-
 =head1 Typed exceptions
 
-Typed exceptions provide more information about the error stored
-within an exception object.
+Typed exceptions are intended for use to indicate any of several
+predefined error conditions. Each of these provides information
+about the error, and when thrown may be caught by code intended
+to handle that kind of error. L<C<Exception>|/type/Exception>s
+can be delayed, that is, generated for handling but not thrown,
+by wrapping them in a L<C<Failure>|/type/Failure> object.
 
 For example, if while executing C<.frobnicate> on an object, a needed path
 C<foo/bar> becomes unavailable, then an
@@ -60,6 +52,30 @@ object, one can also use that object as a parameter to C<die>:
 =begin code :preamble<my $path>
 die X::IO::DoesNotExist.new(:$path, :trying("frobnicate"));
 =end code
+
+=head1 I<Ad hoc> exceptions
+
+If you call L<C<.throw>|/type/Exception#method_throw>,
+L<C<die>|/type/Exception#routine_die>, or
+L<C<fail>|/type/Exception#routine_fail> on an argument that is not
+some type of L<C<Exception>|/type/Exception>, then that argument gets wrapped in an
+L<C<X::AdHoc>|/type/X::AdHoc> object which is then used by the call.
+
+For example, you can call L<C<die>|/type/Exception#routine_die>
+on a string describing the error, and that string will become the
+C<message> of the L<C<X::AdHoc>|/type/X::AdHoc> exception:
+
+    die "oops, something went wrong";
+    # OUTPUT: «oops, something went wrong in block <unit> at my-script.raku:1␤»
+
+It is worth noting that C<die> prints the error message to the standard error
+C<$*ERR>.
+
+L<C<X::AdHoc>|/type/X::AdHoc> is an L<C<Exception>|/type/Exception> type like any
+other, but the intent is for use as a default type; it should not
+be used in cases for which specific L<C<Exception>|/type/Exception> types have already
+been provided.  It's probably not helpful to have a specific catch
+handler for the type of L<C<X::AdHoc>|/type/X::AdHoc>.
 
 =head1 X<Catching exceptions|Language,CATCH>
 
@@ -166,6 +182,8 @@ L<C<use fatal> pragma|/language/pragmas#fatal> and
 includes an implicit C<CATCH> block that drops the exception, which
 means you can use it to contain them. Caught exceptions are stored
 inside the C<$!> variable, which holds a value of type L<C<Exception>|/type/Exception>.
+(Note that immediately after a C<try> block, if no L<C<Exception>|/type/Exception>
+had been thrown, then C<$!> will be undefined.)
 
 A normal block like this one will simply fail:
 
@@ -308,8 +326,10 @@ try {
 
 =head1 Throwing exceptions
 
-Exceptions can be thrown explicitly with the C<.throw> method of an
-L<C<Exception>|/type/Exception> object.
+Exceptions can be thrown explicitly with the L<C<die>|/type/Exception#routine_die>
+routine and with the L<C<.throw>|/type/Exception#method_throw>
+method of an L<C<Exception>|/type/Exception> object. In addition,
+unhandled L<C<Failure>|/type/Failure> objects will throw when garbage-collected.
 
 This example throws an L<C<X::AdHoc>|/type/X::AdHoc> exception, catches it and allows the code
 to continue from the point of the exception by calling the C<.resume> method.
