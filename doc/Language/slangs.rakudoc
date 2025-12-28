@@ -143,39 +143,87 @@ your custom declarator work exactly like built-in declarators.
 For a real-world example, see how Red ORM implements the C<model> declarator
 in L<its source code|https://github.com/FCO/Red/blob/master/lib/Red/Model.rakumod>.
 
+=head4 Custom Attribute Classes
 
-=head5 Example: Custom Sub Declarator
+You can also customize what class is used when attributes are created with C<has>.
+This is done by exporting a custom attribute class via C<EXPORTHOW::DECLARE>.
+Unlike class declarators which extend a HOW class, custom attribute classes extend
+the L<C<Attribute>|/type/Attribute> class itself.
 
-The same mechanism works for creating custom sub declarators. Here's an example:
+This allows you to change the behavior of C<has> attributes within classes that use
+your custom class declarator. You still use C<has> to declare attributes, but they
+will be instantiated as instances of your custom attribute class instead of the
+default C<Attribute> class.
+
+Here's an example based on L<ValueClass|https://github.com/FCO/ValueClass>:
 
 =begin code
-# lib/CustomSub.rakumod
-# Custom sub declarator example using EXPORTHOW::DECLARE
+# lib/ValueClass.rakumod
+# Custom attribute class example
 
-class MetamodelX::CustomSubHOW is Metamodel::ClassHOW {}
+class ValueClass::Attribute is Attribute {
+    method compose(|) {
+        # Custom behavior during attribute composition
+        # For example, validate that attributes can't be rw
+        die "Attributes { $.name } can't be rw on a value-class" if $.rw;
+        nextsame
+    }
+    
+    method container_initializer(|c) {
+        # Custom initialization logic
+        # This can change default values or types
+        if $.name.starts-with: '@' {
+            return -> { Tuple.new }
+        } elsif $.name.starts-with: '%' {
+            return -> { ValueMap.new }
+        }
+        nextsame
+    }
+}
 
 my package EXPORTHOW {
     package DECLARE {
-        constant my-sub = MetamodelX::CustomSubHOW;
+        constant value-class = MetamodelX::ValueClassHOW;
+        constant value-class-attr = ValueClass::Attribute;
     }
 }
 =end code
 
-To use this declarator:
+To use this:
 
 =begin code :skip-test<needs module>
-use CustomSub;
+use ValueClass;
 
-my-sub greet {
-    say "Hello, World!";
+value-class MyClass {
+    has $.name;    # Regular scalar attribute (with ValueClass validation)
+    has @.items;   # This becomes a Tuple
+    has %.data;    # This becomes a ValueMap
 }
 
-greet;  # OUTPUT: «Hello, World!␤»
+my $obj = MyClass.new(name => "Test", items => [1,2,3]);
+say $obj.name;   # OUTPUT: «Test␤»
 =end code
 
-Note that subs internally use C<Metamodel::ClassHOW> as their HOW, so we extend
-that same base class. The C<EXPORTHOW::DECLARE> mechanism works for subs just as
-it does for classes, demonstrating the flexibility of this approach.
+How it works:
+
+=item1 You create a class that extends L<C<Attribute>|/type/Attribute>, which is the
+base class for all attributes in Raku.
+
+=item1 You can override methods like C<compose> and C<container_initializer> to
+customize the behavior of attributes created with C<has>.
+
+=item1 You export it via the C<EXPORTHOW::DECLARE> package, where the constant
+name (typically ending in C<-attr>) maps to your custom attribute class.
+
+=item1 When you use your custom class declarator (like C<value-class>), any C<has>
+attributes declared within that class will be instantiated as instances of your
+custom attribute class instead of the default C<Attribute> class.
+
+=item1 You still use C<has> to declare attributes; the custom attribute class
+simply changes what class those attributes are instantiated as.
+
+For a real-world example, see how L<ValueClass|https://github.com/FCO/ValueClass>
+implements custom attributes in L<its source code|https://github.com/FCO/ValueClass/blob/master/lib/ValueClass/Attribute.rakumod>.
 
 =head2 Prerequisites for Understanding Slangs
 
