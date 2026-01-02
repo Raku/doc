@@ -25,6 +25,10 @@ i.e. a sublanguage or L<I<slang>|/language/slangs>. This page describes this lan
 regexes can be used to search for text patterns in strings in a process called
 I<pattern matching>.
 
+Raku regexes can be modified by a variety of L<adverbs|/language/regexes#Adverbs>,
+and can L<interpolate|/language/regexes#Regex_interpolation> variables or code
+blocks in several different ways.
+
 =head1 X<Lexical conventions|Syntax,/ /;Syntax,rx;Syntax,m>
 
 Fundamentally, Raku regexes are very much like subroutines: both are code
@@ -2017,31 +2021,41 @@ list of predefined subrules is L<here|#Predefined_character_classes>.
 Instead of using a literal pattern for a regex match, you can use a variable
 that holds that pattern. This variable can then be 'interpolated' into a regex,
 such that its appearance in the regex is replaced with the pattern that it
-holds. The advantage of using interpolation this way, is that the pattern need
+holds. You can also use a block of code, the return value of which may be used
+literally, interpreted as a regex, or interpreted as a Boolean that either
+allows the match or prevents it.
+
+The advantage of using interpolation this way, is that the pattern need
 not be hardcoded in the source of your Raku program, but may instead be
 variable and generated at runtime.
 
-There are four different ways of interpolating a variable into a regex as a
-pattern, which may be summarized as follows:
+There are five different ways of interpolating a variable or code-block into a
+regex as a pattern, which may be summarized as follows:
 
 =begin table
 
-    Syntax         | Description
-    ===============+===========================================================
-    $variable      | Interpolates stringified contents of variable literally.
-    ---------------------------------------------------------------------------
-    $(code)        | Runs Raku code inside the regex, and interpolates the
-                   | stringified return value literally.
-    ---------------------------------------------------------------------------
-    <$variable>    | Interpolates stringified contents of variable as a regex.
-    ---------------------------------------------------------------------------
-    <{code}>       | Runs Raku code inside the regex, and interpolates the
-                   | stringified return value as a regex.
+Syntax         | Description
+===============+===========================================================
+$variable,     | Interpolates stringified contents of variable literally.
+@variable      |
+---------------------------------------------------------------------------
+$(code),       | Runs Raku code inside the regex, and interpolates the
+@(code)        | stringified return value literally.
+---------------------------------------------------------------------------
+<$variable>    | Interpolates stringified contents of variable as a regex.
+<@variable>    |
+---------------------------------------------------------------------------
+<{code}>       | Runs Raku code inside the regex, and interpolates the
+               | stringified return value as a regex.
+---------------------------------------------------------------------------
+<?{code}>,     | Evaluates Raku code inside the regex in Boolean context,
+<!{code}>      | with result either allowing or preventing the match.
 
 =end table
 
-Instead of the C<$> sigil, you may use the C<@> sigil for array interpolation.
-See below for how this works.
+The use of hashes in regexes is reserved.
+
+=head2 Literal interpolation
 
 X<|Regexes,$variable>X<|Regexes,$(code)>
 Let's start with the first two syntactical forms: C«$variable» and C«$(code)».
@@ -2119,6 +2133,8 @@ interpolation. Hence, in general, after possible stringification, C«$variable»
 and C«$(code)» provide for a strictly literal match of the variable or return
 value.
 
+=head2 Interpolation as a regex
+
 X«|Regexes,<$variable>»X«|Regexes,<{code}>»
 Now consider the second two syntactical forms from the table above:
 C«<$variable>» and C«<{code}>». These forms will stringify the value of the
@@ -2180,7 +2196,7 @@ The use of hashes in regexes is reserved.
 =head2 Regex Boolean condition check
 
 X«|Regexes,<?{}>;Regexes,<!{}>»
-The special operator C«<?{}>» allows the evaluation of a Boolean expression that
+The fifth syntactical form C«<?{}>» allows the evaluation of a Boolean expression that
 can perform a semantic evaluation of the match before the regular expression
 continues. In other words, it is possible to check in a Boolean context a part
 of a regular expression and therefore invalidate the whole match (or allow it to
