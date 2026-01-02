@@ -380,6 +380,34 @@ C<throw> can be viewed as the method form of C<die>, just that in this
 particular case, the sub and method forms of the routine have different
 names.
 
+=head1 Delaying exceptions as failures
+
+As noted above in L<I<Ad hoc> exceptions|/language/exceptions#Ad_hoc_exceptions>,
+in addition to L<C<throw>|/routine/throw> and L<C<die>|/routine/die>, you can also
+call L<C<fail>|/routine/fail> on an exception in order to handle it later.
+This is a usual thing to do if you want to return the exception to the caller
+for them to handle.
+
+If the resulting L<C<Failure>|/type/Failure> object is returned into sink
+context (that is, not handled), it's the same as if you had called C<die> or
+C<throw>. If it is instead returned into Boolean context or checked for
+definedness, then it is considered "handled" and does not throw. If it is
+assigned to a variable, the throw is delayed until the variable is
+garbage-collected if it hasn't been handled before that time.
+
+For example, assuming you don't have permission to create a new directory at
+the root level, then C<mkdir "/test"> will return a L<C<Failure>|/type/Failure>:
+
+    mkdir "/test";              # Returns Failure into sink context, acts like die()
+    my $result = mkdir "/test"; # throws when garbage-collected unless handled by then
+    so mkdir "/test";           # Failure "handled", doesn't die
+    if mkdir "/test" {          # Failure also "handled", doesn't die
+        ...                     # mkdir was successful
+    }
+    unless mkdir "/test" {
+        ...                     # Here we can handle the Failure (for real)
+    }
+
 =head1 Resuming of exceptions
 
 Exceptions interrupt control flow and divert it away from the statement
