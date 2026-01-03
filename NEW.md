@@ -1,3 +1,3 @@
 # Header
 
-Just a sampel. 
+Just a sample. 
