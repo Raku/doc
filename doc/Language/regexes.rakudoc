@@ -1871,94 +1871,6 @@ warning. To execute the substitution on a variable that isn't the C<$_> this
 operator uses, alias it to C<$_> with C<given>, C<with>, or any other way.
 Alternatively, use the L«C<.subst> method|/routine/subst».
 
-=head1 X<Tilde for nesting structures|Regexes,tilde;Regexes,~>
-
-The C<~> operator is a helper for matching nested subrules with a
-specific terminator as the goal. It is designed to be placed between
-an opening and closing delimiter pair, like so:
-
-    / '(' ~ ')' <expression> /
-
-However, it mostly ignores the left argument, and operates on the next
-two atoms (which may be quantified). Its operation on those next two
-atoms is to "twiddle" them so that they are actually matched in
-reverse order. Hence the expression above, at first blush, is merely
-another way of writing:
-
-    / '(' <expression> ')' /
-
-Using C<~> keeps the separators closer together but beyond that,
-when it rewrites the atoms it also inserts the apparatus that will
-set up the inner expression to recognize the terminator, and to
-produce an appropriate error message if the inner expression does
-not terminate on the required closing atom. So it really does pay
-attention to the left delimiter as well, and it actually rewrites
-our example to something more like:
-
-X<|Regexes,SETGOAL>
-    =begin code :skip-test<incomplete code>
-    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
-    =end code
-
-X<FAILGOAL|Regexes,FAILGOAL> is a special method that can be defined by the user and it
-will be called on parse failure:
-
-    grammar A { token TOP { '[' ~ ']' \w+  };
-                method FAILGOAL($goal) {
-                    die "Cannot find $goal near position {self.pos}"
-                }
-    }
-
-    say A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
-    A.parse: '[bad';        # will throw FAILGOAL exception
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 4␤»
-
-Note that you can use this construct to set up expectations for a
-closing construct even when there's no opening delimiter:
-
-    "3)"  ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
-    "(3)" ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
-
-Here C«<?>» successfully matches the null string.
-
-The order of the regex capture is original:
-
-    "abc" ~~ /a ~ (c) (b)/;
-    say $0; # OUTPUT: «｢c｣␤»
-    say $1; # OUTPUT: «｢b｣␤»
-
-=head1 X«Recursive Regexes|Regexes,recursive;Regexes,tilde tilde;Regexes,~~;Regexes,<~~>»
-
-You can use C«<~~>» to recursively invoke the current Regex from within the
-Regex.  This can be extremely helpful for matching nested data structures.  For
-example, consider this Regex:
-
-    / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
-
-This says "match B<either> an open parenthesis, followed by zero or more
-non-parentheses characters, followed by a close parenthesis B<or> an open
-parenthesis followed by zero or more non-parentheses characters, followed by
-I<another match for this Regex>, followed by zero or more non-parentheses
-characters, followed by a close parenthesis."  This Regex allows you to match
-arbitrarily many nested parentheses, as show below:
-
-     my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
-     say 'text' ~~ $paren;                            # OUTPUT: «Nil␤»
-     say '(1 + 1) = 2' ~~ $paren;                     # OUTPUT: «｢(1 + 1)｣␤»
-     say '(1 + (2 × 3)) = 7' ~~ $paren;               # OUTPUT: «｢(1 + (2 × 3))｣␤»
-     say '((5 + 2) × 6) = 42 (the answer)' ~~ $paren  # OUTPUT: «｢((5 + 2) × 6)｣␤»
-
-Note that the last expression shown above does I<not> match all the
-way to the final C<)>, as would have happened with C</'('.*')'/>, nor
-does it match only to the first C<)>.  Instead, it correctly matches
-to the close parenthesis paired with the first opening parenthesis, an
-effect that is very difficult to duplicate without recursive regexes.
-
-When using recursive regexes (as with any other recursive data
-structure) you should be careful to avoid infinite recursion, which
-will cause your program to hang or crash.
-
 =head1 X<Subrules|Syntax,regex>
 
 Just like you can put pieces of code into subroutines, you can also put
@@ -2731,6 +2643,94 @@ say S:samespace/a ./c d/.raku given "a\nb";     # OUTPUT: «"c\nd"␤»
 
 The C<ss/.../.../> syntactic form is a shorthand for
 C<s:samespace/.../.../>.
+
+=head1 X<Tilde for nesting structures|Regexes,tilde;Regexes,~>
+
+The C<~> operator is a helper for matching nested subrules with a
+specific terminator as the goal. It is designed to be placed between
+an opening and closing delimiter pair, like so:
+
+    / '(' ~ ')' <expression> /
+
+However, it mostly ignores the left argument, and operates on the next
+two atoms (which may be quantified). Its operation on those next two
+atoms is to "twiddle" them so that they are actually matched in
+reverse order. Hence the expression above, at first blush, is merely
+another way of writing:
+
+    / '(' <expression> ')' /
+
+Using C<~> keeps the separators closer together but beyond that,
+when it rewrites the atoms it also inserts the apparatus that will
+set up the inner expression to recognize the terminator, and to
+produce an appropriate error message if the inner expression does
+not terminate on the required closing atom. So it really does pay
+attention to the left delimiter as well, and it actually rewrites
+our example to something more like:
+
+X<|Regexes,SETGOAL>
+    =begin code :skip-test<incomplete code>
+    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
+    =end code
+
+X<FAILGOAL|Regexes,FAILGOAL> is a special method that can be defined by the user and it
+will be called on parse failure:
+
+    grammar A { token TOP { '[' ~ ']' \w+  };
+                method FAILGOAL($goal) {
+                    die "Cannot find $goal near position {self.pos}"
+                }
+    }
+
+    say A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
+    A.parse: '[bad';        # will throw FAILGOAL exception
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 4␤»
+
+Note that you can use this construct to set up expectations for a
+closing construct even when there's no opening delimiter:
+
+    "3)"  ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
+    "(3)" ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
+
+Here C«<?>» successfully matches the null string.
+
+The order of the regex capture is original:
+
+    "abc" ~~ /a ~ (c) (b)/;
+    say $0; # OUTPUT: «｢c｣␤»
+    say $1; # OUTPUT: «｢b｣␤»
+
+=head1 X«Recursive Regexes|Regexes,recursive;Regexes,tilde tilde;Regexes,~~;Regexes,<~~>»
+
+You can use C«<~~>» to recursively invoke the current Regex from within the
+Regex.  This can be extremely helpful for matching nested data structures.  For
+example, consider this Regex:
+
+    / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
+
+This says "match B<either> an open parenthesis, followed by zero or more
+non-parentheses characters, followed by a close parenthesis B<or> an open
+parenthesis followed by zero or more non-parentheses characters, followed by
+I<another match for this Regex>, followed by zero or more non-parentheses
+characters, followed by a close parenthesis."  This Regex allows you to match
+arbitrarily many nested parentheses, as show below:
+
+     my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
+     say 'text' ~~ $paren;                            # OUTPUT: «Nil␤»
+     say '(1 + 1) = 2' ~~ $paren;                     # OUTPUT: «｢(1 + 1)｣␤»
+     say '(1 + (2 × 3)) = 7' ~~ $paren;               # OUTPUT: «｢(1 + (2 × 3))｣␤»
+     say '((5 + 2) × 6) = 42 (the answer)' ~~ $paren  # OUTPUT: «｢((5 + 2) × 6)｣␤»
+
+Note that the last expression shown above does I<not> match all the
+way to the final C<)>, as would have happened with C</'('.*')'/>, nor
+does it match only to the first C<)>.  Instead, it correctly matches
+to the close parenthesis paired with the first opening parenthesis, an
+effect that is very difficult to duplicate without recursive regexes.
+
+When using recursive regexes (as with any other recursive data
+structure) you should be careful to avoid infinite recursion, which
+will cause your program to hang or crash.
 
 =head1 Backtracking
 
