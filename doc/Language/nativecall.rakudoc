@@ -748,6 +748,43 @@ if applicable, returns an appropriate error value to the native code that invoke
 It is not allowed to throw an exception out of a native callback, and doing so will
 lead to process termination.
 
+=head1 Variadic functions
+
+To call a variadic function, specify the fixed arguments as usual but add a
+slurpy argument. When calling a variadic function, just provide as many
+arguments as you like. The types of the variadic arguments are inferred by
+looking at the passed values.
+
+=begin code :skip-test<needs variadic args support introduced in rakudo 2025.12>
+use NativeCall;
+
+# Sums the passed int arguments. First arg is the count of the variadic args.
+sub sum_int_things(int32, **@varargs) returns int32 is native('mylib') { * }
+say sum_things(3, 1, 2, 3);  # 6
+=end code
+
+So one needs to cast the arguments to the intended type first.
+
+=begin code :skip-test<misses vararg support> :preamble<use NativeCall;
+sub sum_int_things(int32, **@varargs) returns int32 is native('mylib') { * }
+>
+my $input = prompt("Give a number to add 5 to: ");
+say sum_things(2, $input.Int, 5);
+=end code
+
+Passing pointers works via the C<Pointer.to()> method:
+
+=begin code :skip-test<needs variadic args support introduced in rakudo 2025.12>
+use NativeCall;
+
+# Writes a 5 into all passed pointers.
+sub write_5_to_ints(int32, **@varargs) is native('mylib') { * }
+my uint32 $number1;
+my uint32 $number2;
+write_5_to_ints(2, Pointer.to($number1), Pointer.to($number2));
+say "One: $number1, Two: $number2"; #One: 5, Two: 5
+=end code
+
 =head1 Library paths and names
 
 The C<native> trait accepts the library name, the full path, or a subroutine
