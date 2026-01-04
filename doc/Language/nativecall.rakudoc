@@ -988,7 +988,7 @@ SET PASSWORD = PASSWORD('sa');
 DROP DATABASE test;
 CREATE DATABASE test;
 
-=head2 Microsoft Windows
+=head2 Microsoft Windows API
 
 Here is an example of a Windows API call:
 
@@ -1001,6 +1001,58 @@ sub MessageBoxA(int32, Str, Str, int32)
     { * }
 
 MessageBoxA(0, "We have NativeCall", "ohai", 64);
+=end code
+
+=head3 wchar_t
+
+Passing and receiving a C<wchar_t> string works by passing the C<Str> encoding
+via a trait:
+
+=begin code :method<False>
+use NativeCall;
+
+# Using the wide character variant (notice the trailing "W" in the name)
+sub MessageBoxW(int32, Str is encoded('utf16'), Str is encoded('utf16'), int32
+    --> int32) is native('user32') { * }
+
+MessageBoxW(0, "We have NativeCall", "ohai", 64);
+=end code
+
+When passing a string as a pointer that the native function sets, one has to
+use plain C<Pointer>s:
+
+=begin code :method<False>
+use NativeCall;
+
+sub make-guid($val) {
+    my $buf = Buf[uint8].new;
+    for ^16 Z $val.subst('-', :g).comb(2) -> ($i, $byte-text) {
+        my $byte = $byte-text.parse-base(16).Int;
+        $buf.write-uint8: $i, $byte;
+    }
+    $buf
+}
+my $local-appdata-guid = make-guid('F1B32785-6FBA-4FCF-9D55-7B8E7F157091');
+
+sub SHGetKnownFolderPath(
+  Buf[uint8]      $rfid,
+  uint32          $dwFlags,
+  Pointer         $hToken,
+  Pointer[uint16] $ppszPath is rw
+  --> int32) is native('Shell32') { * }
+
+my Pointer[uint16] $path-pointer .= new;
+SHGetKnownFolderPath($local-appdata-guid, 0, 0, $path-pointer);
+
+my $buf = Buf[uint8].new;
+my $pos = 0;
+while $path-pointer.deref() != 0 {
+    $buf.write-uint16($pos, $path-pointer.deref());
+    $pos += 2;
+    $path-pointer++;
+}
+$buf.write-uint16($pos, 0);
+my $path = $buf.decode('utf16');
 =end code
 
 =head2 Short tutorial on calling a C function
