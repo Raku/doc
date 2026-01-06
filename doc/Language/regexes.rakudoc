@@ -25,6 +25,10 @@ i.e. a sublanguage or L<I<slang>|/language/slangs>. This page describes this lan
 regexes can be used to search for text patterns in strings in a process called
 I<pattern matching>.
 
+Raku regexes can L<interpolate|/language/regexes#Regex_interpolation>
+variables or code blocks in several different ways, and can be modified
+by a variety of L<adverbs|/language/regexes#Adverbs>.
+
 =head1 X<Lexical conventions|Syntax,/ /;Syntax,rx;Syntax,m>
 
 Fundamentally, Raku regexes are very much like subroutines: both are code
@@ -1867,94 +1871,6 @@ warning. To execute the substitution on a variable that isn't the C<$_> this
 operator uses, alias it to C<$_> with C<given>, C<with>, or any other way.
 Alternatively, use the L«C<.subst> method|/routine/subst».
 
-=head1 X<Tilde for nesting structures|Regexes,tilde;Regexes,~>
-
-The C<~> operator is a helper for matching nested subrules with a
-specific terminator as the goal. It is designed to be placed between
-an opening and closing delimiter pair, like so:
-
-    / '(' ~ ')' <expression> /
-
-However, it mostly ignores the left argument, and operates on the next
-two atoms (which may be quantified). Its operation on those next two
-atoms is to "twiddle" them so that they are actually matched in
-reverse order. Hence the expression above, at first blush, is merely
-another way of writing:
-
-    / '(' <expression> ')' /
-
-Using C<~> keeps the separators closer together but beyond that,
-when it rewrites the atoms it also inserts the apparatus that will
-set up the inner expression to recognize the terminator, and to
-produce an appropriate error message if the inner expression does
-not terminate on the required closing atom. So it really does pay
-attention to the left delimiter as well, and it actually rewrites
-our example to something more like:
-
-X<|Regexes,SETGOAL>
-    =begin code :skip-test<incomplete code>
-    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
-    =end code
-
-X<FAILGOAL|Regexes,FAILGOAL> is a special method that can be defined by the user and it
-will be called on parse failure:
-
-    grammar A { token TOP { '[' ~ ']' \w+  };
-                method FAILGOAL($goal) {
-                    die "Cannot find $goal near position {self.pos}"
-                }
-    }
-
-    say A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
-    A.parse: '[bad';        # will throw FAILGOAL exception
-    CATCH { default { put .^name, ': ', .Str } };
-    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 4␤»
-
-Note that you can use this construct to set up expectations for a
-closing construct even when there's no opening delimiter:
-
-    "3)"  ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
-    "(3)" ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
-
-Here C«<?>» successfully matches the null string.
-
-The order of the regex capture is original:
-
-    "abc" ~~ /a ~ (c) (b)/;
-    say $0; # OUTPUT: «｢c｣␤»
-    say $1; # OUTPUT: «｢b｣␤»
-
-=head1 X«Recursive Regexes|Regexes,recursive;Regexes,tilde tilde;Regexes,~~;Regexes,<~~>»
-
-You can use C«<~~>» to recursively invoke the current Regex from within the
-Regex.  This can be extremely helpful for matching nested data structures.  For
-example, consider this Regex:
-
-    / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
-
-This says "match B<either> an open parenthesis, followed by zero or more
-non-parentheses characters, followed by a close parenthesis B<or> an open
-parenthesis followed by zero or more non-parentheses characters, followed by
-I<another match for this Regex>, followed by zero or more non-parentheses
-characters, followed by a close parenthesis."  This Regex allows you to match
-arbitrarily many nested parentheses, as show below:
-
-     my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
-     say 'text' ~~ $paren;                            # OUTPUT: «Nil␤»
-     say '(1 + 1) = 2' ~~ $paren;                     # OUTPUT: «｢(1 + 1)｣␤»
-     say '(1 + (2 × 3)) = 7' ~~ $paren;               # OUTPUT: «｢(1 + (2 × 3))｣␤»
-     say '((5 + 2) × 6) = 42 (the answer)' ~~ $paren  # OUTPUT: «｢((5 + 2) × 6)｣␤»
-
-Note that the last expression shown above does I<not> match all the
-way to the final C<)>, as would have happened with C</'('.*')'/>, nor
-does it match only to the first C<)>.  Instead, it correctly matches
-to the close parenthesis paired with the first opening parenthesis, an
-effect that is very difficult to duplicate without recursive regexes.
-
-When using recursive regexes (as with any other recursive data
-structure) you should be careful to avoid infinite recursion, which
-will cause your program to hang or crash.
-
 =head1 X<Subrules|Syntax,regex>
 
 Just like you can put pieces of code into subroutines, you can also put
@@ -2017,31 +1933,41 @@ list of predefined subrules is L<here|#Predefined_character_classes>.
 Instead of using a literal pattern for a regex match, you can use a variable
 that holds that pattern. This variable can then be 'interpolated' into a regex,
 such that its appearance in the regex is replaced with the pattern that it
-holds. The advantage of using interpolation this way, is that the pattern need
+holds. You can also use a block of code, the return value of which may be used
+literally, interpreted as a regex, or interpreted as a Boolean that either
+allows the match or prevents it.
+
+The advantage of using interpolation this way, is that the pattern need
 not be hardcoded in the source of your Raku program, but may instead be
 variable and generated at runtime.
 
-There are four different ways of interpolating a variable into a regex as a
-pattern, which may be summarized as follows:
+There are five different ways of interpolating a variable or code-block into a
+regex as a pattern, which may be summarized as follows:
 
 =begin table
 
-    Syntax         | Description
-    ===============+===========================================================
-    $variable      | Interpolates stringified contents of variable literally.
-    ---------------------------------------------------------------------------
-    $(code)        | Runs Raku code inside the regex, and interpolates the
-                   | stringified return value literally.
-    ---------------------------------------------------------------------------
-    <$variable>    | Interpolates stringified contents of variable as a regex.
-    ---------------------------------------------------------------------------
-    <{code}>       | Runs Raku code inside the regex, and interpolates the
-                   | stringified return value as a regex.
+Syntax         | Description
+===============+===========================================================
+$variable,     | Interpolates stringified contents of variable literally.
+@variable      |
+---------------------------------------------------------------------------
+$(code),       | Runs Raku code inside the regex, and interpolates the
+@(code)        | stringified return value literally.
+---------------------------------------------------------------------------
+<$variable>    | Interpolates stringified contents of variable as a regex.
+<@variable>    |
+---------------------------------------------------------------------------
+<{code}>       | Runs Raku code inside the regex, and interpolates the
+               | stringified return value as a regex.
+---------------------------------------------------------------------------
+<?{code}>,     | Evaluates Raku code inside the regex in Boolean context,
+<!{code}>      | with result either allowing or preventing the match.
 
 =end table
 
-Instead of the C<$> sigil, you may use the C<@> sigil for array interpolation.
-See below for how this works.
+The use of hashes in regexes is reserved.
+
+=head2 Literal interpolation
 
 X<|Regexes,$variable>X<|Regexes,$(code)>
 Let's start with the first two syntactical forms: C«$variable» and C«$(code)».
@@ -2119,6 +2045,8 @@ interpolation. Hence, in general, after possible stringification, C«$variable»
 and C«$(code)» provide for a strictly literal match of the variable or return
 value.
 
+=head2 Interpolation as a regex
+
 X«|Regexes,<$variable>»X«|Regexes,<{code}>»
 Now consider the second two syntactical forms from the table above:
 C«<$variable>» and C«<{code}>». These forms will stringify the value of the
@@ -2180,7 +2108,7 @@ The use of hashes in regexes is reserved.
 =head2 Regex Boolean condition check
 
 X«|Regexes,<?{}>;Regexes,<!{}>»
-The special operator C«<?{}>» allows the evaluation of a Boolean expression that
+The fifth syntactical form C«<?{}>» allows the evaluation of a Boolean expression that
 can perform a semantic evaluation of the match before the regular expression
 continues. In other words, it is possible to check in a Boolean context a part
 of a regular expression and therefore invalidate the whole match (or allow it to
@@ -2715,6 +2643,94 @@ say S:samespace/a ./c d/.raku given "a\nb";     # OUTPUT: «"c\nd"␤»
 
 The C<ss/.../.../> syntactic form is a shorthand for
 C<s:samespace/.../.../>.
+
+=head1 X<Tilde for nesting structures|Regexes,tilde;Regexes,~>
+
+The C<~> operator is a helper for matching nested subrules with a
+specific terminator as the goal. It is designed to be placed between
+an opening and closing delimiter pair, like so:
+
+    / '(' ~ ')' <expression> /
+
+However, it mostly ignores the left argument, and operates on the next
+two atoms (which may be quantified). Its operation on those next two
+atoms is to "twiddle" them so that they are actually matched in
+reverse order. Hence the expression above, at first blush, is merely
+another way of writing:
+
+    / '(' <expression> ')' /
+
+Using C<~> keeps the separators closer together but beyond that,
+when it rewrites the atoms it also inserts the apparatus that will
+set up the inner expression to recognize the terminator, and to
+produce an appropriate error message if the inner expression does
+not terminate on the required closing atom. So it really does pay
+attention to the left delimiter as well, and it actually rewrites
+our example to something more like:
+
+X<|Regexes,SETGOAL>
+    =begin code :skip-test<incomplete code>
+    $<OPEN> = '(' <SETGOAL: ')'> <expression> [ $GOAL || <FAILGOAL> ]
+    =end code
+
+X<FAILGOAL|Regexes,FAILGOAL> is a special method that can be defined by the user and it
+will be called on parse failure:
+
+    grammar A { token TOP { '[' ~ ']' \w+  };
+                method FAILGOAL($goal) {
+                    die "Cannot find $goal near position {self.pos}"
+                }
+    }
+
+    say A.parse: '[good]';  # OUTPUT: «｢[good]｣␤»
+    A.parse: '[bad';        # will throw FAILGOAL exception
+    CATCH { default { put .^name, ': ', .Str } };
+    # OUTPUT: «X::AdHoc: Cannot find ']'  near position 4␤»
+
+Note that you can use this construct to set up expectations for a
+closing construct even when there's no opening delimiter:
+
+    "3)"  ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
+    "(3)" ~~ / <?> ~ ')' \d+ /;  # OUTPUT: «｢3)｣»
+
+Here C«<?>» successfully matches the null string.
+
+The order of the regex capture is original:
+
+    "abc" ~~ /a ~ (c) (b)/;
+    say $0; # OUTPUT: «｢c｣␤»
+    say $1; # OUTPUT: «｢b｣␤»
+
+=head1 X«Recursive Regexes|Regexes,recursive;Regexes,tilde tilde;Regexes,~~;Regexes,<~~>»
+
+You can use C«<~~>» to recursively invoke the current Regex from within the
+Regex.  This can be extremely helpful for matching nested data structures.  For
+example, consider this Regex:
+
+    / '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /
+
+This says "match B<either> an open parenthesis, followed by zero or more
+non-parentheses characters, followed by a close parenthesis B<or> an open
+parenthesis followed by zero or more non-parentheses characters, followed by
+I<another match for this Regex>, followed by zero or more non-parentheses
+characters, followed by a close parenthesis."  This Regex allows you to match
+arbitrarily many nested parentheses, as show below:
+
+     my $paren = rx/ '(' <-[()]>* ')' || '('[ <-[()]>* <~~> <-[()]>* ]* ')' /;
+     say 'text' ~~ $paren;                            # OUTPUT: «Nil␤»
+     say '(1 + 1) = 2' ~~ $paren;                     # OUTPUT: «｢(1 + 1)｣␤»
+     say '(1 + (2 × 3)) = 7' ~~ $paren;               # OUTPUT: «｢(1 + (2 × 3))｣␤»
+     say '((5 + 2) × 6) = 42 (the answer)' ~~ $paren  # OUTPUT: «｢((5 + 2) × 6)｣␤»
+
+Note that the last expression shown above does I<not> match all the
+way to the final C<)>, as would have happened with C</'('.*')'/>, nor
+does it match only to the first C<)>.  Instead, it correctly matches
+to the close parenthesis paired with the first opening parenthesis, an
+effect that is very difficult to duplicate without recursive regexes.
+
+When using recursive regexes (as with any other recursive data
+structure) you should be careful to avoid infinite recursion, which
+will cause your program to hang or crash.
 
 =head1 Backtracking
 
