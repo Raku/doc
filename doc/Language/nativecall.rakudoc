@@ -491,12 +491,14 @@ say nativesizeof(MyUnion.new);  # OUTPUT: «8␤»
                                 # ie. max(sizeof(MyUnion.flags32), sizeof(MyUnion.flags64))
 =end code
 
-=head2 Embedding CStructs and CUnions with X<C<HAS>|Syntax,HAS>
+=head2 Embedding CStructs, CUnions and CArrays with X<C<HAS>|Syntax,HAS>
 
-C<CStruct>s and C<CUnion>s can be in turn referenced by—or embedded into—a
+C<CStruct>s, C<CUnion>s and C<CArrays> can be in turn referenced by—or embedded into—a
 surrounding C<CStruct> and C<CUnion>. To say the former we use C<has>
 as usual, and to do the latter we use the C<HAS> declarator
-instead:
+instead.
+
+To embed an array, you need to provide the dimensions so the size of the array is fixed.
 
 =begin code :skip-test<continued example>
 class MyStruct is repr('CStruct') {
@@ -505,16 +507,20 @@ class MyStruct is repr('CStruct') {
 }
 
 say nativesizeof(MyStruct.new);  # OUTPUT: «16␤»
-                                 # ie. sizeof(struct Point *) + sizeof(int32_t)
+                                 # ie. Point* + int32 + padding
+                                 # ie. 8      + 4     + 4
 
 class MyStruct2 is repr('CStruct') {
     HAS Point $.point;  # embedded
     has int32 $.flags;
+    HAS int32 @.b[4] is CArray;
 }
 
-say nativesizeof(MyStruct2.new);  # OUTPUT: «24␤»
-                                  # ie. sizeof(struct Point) + sizeof(int32_t)
+say nativesizeof(MyStruct2.new);  # OUTPUT: «40␤»
+                                  # ie. Point + int32 + padding + 4 * int32
+                                  # ie. 16    + 4     + 4       + 4 * 4
 =end code
+
 
 =head2 Notes on memory management
 
@@ -742,6 +748,43 @@ if applicable, returns an appropriate error value to the native code that invoke
 It is not allowed to throw an exception out of a native callback, and doing so will
 lead to process termination.
 
+=head1 Variadic functions
+
+To call a variadic function, specify the fixed arguments as usual but add a
+slurpy argument. When calling a variadic function, just provide as many
+arguments as you like. The types of the variadic arguments are inferred by
+looking at the passed values.
+
+=begin code :skip-test<needs variadic args support introduced in rakudo 2025.12>
+use NativeCall;
+
+# Sums the passed int arguments. First arg is the count of the variadic args.
+sub sum_int_things(int32, **@varargs) returns int32 is native('mylib') { * }
+say sum_things(3, 1, 2, 3);  # 6
+=end code
+
+So one needs to cast the arguments to the intended type first.
+
+=begin code :skip-test<misses vararg support> :preamble<use NativeCall;
+sub sum_int_things(int32, **@varargs) returns int32 is native('mylib') { * }
+>
+my $input = prompt("Give a number to add 5 to: ");
+say sum_things(2, $input.Int, 5);
+=end code
+
+Passing pointers works via the C<Pointer.to()> method:
+
+=begin code :skip-test<needs variadic args support introduced in rakudo 2025.12>
+use NativeCall;
+
+# Writes a 5 into all passed pointers.
+sub write_5_to_ints(int32, **@varargs) is native('mylib') { * }
+my uint32 $number1;
+my uint32 $number2;
+write_5_to_ints(2, Pointer.to($number1), Pointer.to($number2));
+say "One: $number1, Two: $number2"; #One: 5, Two: 5
+=end code
+
 =head1 Library paths and names
 
 The C<native> trait accepts the library name, the full path, or a subroutine
@@ -945,7 +988,7 @@ SET PASSWORD = PASSWORD('sa');
 DROP DATABASE test;
 CREATE DATABASE test;
 
-=head2 Microsoft Windows
+=head2 Microsoft Windows API
 
 Here is an example of a Windows API call:
 
@@ -958,6 +1001,58 @@ sub MessageBoxA(int32, Str, Str, int32)
     { * }
 
 MessageBoxA(0, "We have NativeCall", "ohai", 64);
+=end code
+
+=head3 wchar_t
+
+Passing and receiving a C<wchar_t> string works by passing the C<Str> encoding
+via a trait:
+
+=begin code :method<False>
+use NativeCall;
+
+# Using the wide character variant (notice the trailing "W" in the name)
+sub MessageBoxW(int32, Str is encoded('utf16'), Str is encoded('utf16'), int32
+    --> int32) is native('user32') { * }
+
+MessageBoxW(0, "We have NativeCall", "ohai", 64);
+=end code
+
+When passing a string as a pointer that the native function sets, one has to
+use plain C<Pointer>s:
+
+=begin code :method<False>
+use NativeCall;
+
+sub make-guid($val) {
+    my $buf = Buf[uint8].new;
+    for ^16 Z $val.subst('-', :g).comb(2) -> ($i, $byte-text) {
+        my $byte = $byte-text.parse-base(16).Int;
+        $buf.write-uint8: $i, $byte;
+    }
+    $buf
+}
+my $local-appdata-guid = make-guid('F1B32785-6FBA-4FCF-9D55-7B8E7F157091');
+
+sub SHGetKnownFolderPath(
+  Buf[uint8]      $rfid,
+  uint32          $dwFlags,
+  Pointer         $hToken,
+  Pointer[uint16] $ppszPath is rw
+  --> int32) is native('Shell32') { * }
+
+my Pointer[uint16] $path-pointer .= new;
+SHGetKnownFolderPath($local-appdata-guid, 0, 0, $path-pointer);
+
+my $buf = Buf[uint8].new;
+my $pos = 0;
+while $path-pointer.deref() != 0 {
+    $buf.write-uint16($pos, $path-pointer.deref());
+    $pos += 2;
+    $path-pointer++;
+}
+$buf.write-uint16($pos, 0);
+my $path = $buf.decode('utf16');
 =end code
 
 =head2 Short tutorial on calling a C function
