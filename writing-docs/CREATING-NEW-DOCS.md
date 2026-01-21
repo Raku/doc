@@ -1,27 +1,23 @@
-### A new (or existing) rakudoc document currently must adhere to the following conventions:
+### Conventions
 
-1. it must be valid Raku pod
-2. the first non-comment or non-empty line must be:
+1. It must be valid Raku pod
+2. The first non-comment or non-empty line must be:
 
         =begin pod # optionally followed by :key<value> %config pairs
 
-3. the second non-comment or non-empty line must be:
+3. The second non-comment or non-empty line must be:
 
         =TITLE ...text...
 
-4. an optional (but usually desired) subtitle must be the third non-comment or non-empty line:
+4. An optional (but usually desired) subtitle must be the third non-comment or non-empty line:
 
         =SUBTITLE ...text...
 
-5. the last non-comment or non-empty line must be:
+5. The last non-comment or non-empty line must be:
 
         =end pod
 
-You can use
-
-    TEST_FILES="files changed but not pushed" make xtest
-
-To validate these and other conventions before committing.
+See [TESTING.md](TESTING.md) for how to programmatically verify these and other requirements.
 
 ### Valid example:
 
@@ -33,7 +29,6 @@ To validate these and other conventions before committing.
 # ... more valid pod and text
 =comment a pod comment # a valid comment
 =end pod
-# vi or emacs info
 ```
 
 ### Invalid example:
@@ -45,5 +40,4 @@ To validate these and other conventions before committing.
 =SUBTITLE Alice in Wonderland
 # ... more valid pod and text
 =end pod
-# vi or emacs info
 ```
