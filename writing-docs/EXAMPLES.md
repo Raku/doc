@@ -1,7 +1,6 @@
 # Contributing examples to the documentation
 
-Please follow these guidelines if you are illustrating the
-documentation with some example.
+Please follow these guidelines when adding sample code to the documentation.
 
 ## Writing Examples
 
@@ -12,17 +11,17 @@ blocks are considered. The rakudoc directives also allow you to set
 attributes for a block of code.
 
 When using a `=for code` directive or a `=begin code`/`=end code`
-combination, the code block does not need to be indented and should not
-be for a better aligned result.
+combination, the code block should not be indented. If it is, it
+will impact the website rendering.
 
 ## Testing Examples
 
-The file `xt/examples-compilation.t` will test the code from all the
-examples. This file is run as part of `make xtest`.
+`t/19-examples-compilation.rakutest` will test the code from all the
+examples. This file is run as part of continuous integration.
 
 To test specific files (recommended), pass them as options on the command
 line to the test file, or set the environment variable TEST_FILES to
-a space separated list.
+a space separated list. See [TESTING.md](TESTING.md) for more details.
 
 Note that method signatures are also compiled. They have an implied block
 added to insure valid compilation.
@@ -172,4 +171,4 @@ relative to the indentation of the rakudoc directives.
 ##  Environment Variables
 
 * set `RAKU_DOC_TEST_VERBOSE` to a true value to display verbose messages during test suite run.
-* `RAKU_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `xt/examples-compilation.t` test.
+* `RAKU_DOC_TEST_FUDGE` fudges `skip-test` code examples as TODO in `t/19-examples-compilation.rakutest` test.
