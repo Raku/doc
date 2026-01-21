@@ -47,7 +47,7 @@ Works well instead. Specifically for types, follow this convention:
 
     L<C<SomeClass>|/type/SomeClass>
 
-when referring to a type from another page, and
+when referring to a type from another page (each time it appears), and
 
     C<SomeClass>
 
@@ -130,19 +130,10 @@ objects.
 
 ### 'filehandle' vs 'file-handle', 'file handle' and other dashed or space-separated constructs
 
-Be consistent when using this kind of constructs. Generally, the form
-with no dash or space is preferred.  As of
-[issue 2015](https://github.com/Raku/doc/issues/2015) the term must
-be written without spaces between words. When in doubt, search for the
-term in the documentation and stick to the form that is used the most
-(and create an issue to change the form that is not).
+These are enforced by `t/15-word-variants.rakutest`, which is run as part of CI.
 
-### Use present tense when talking about Perl features
-
-Perl 5 is still an active language, therefore instead of "In Perl
-this was used for ..., but in Raku ..."  use a form like "In Perl
-this is used for ..., but in Raku ..."  ('was' has been made a
-present 'is').
+If you find a variant that is not covered by the test, please submit a PR that adds
+the preference to the test, and update the docs to pass the test.
 
 ### Prefer clear and readable variable names
 
@@ -154,6 +145,7 @@ stick to easily understandable names:
 
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.raku.org/language/unicode_ascii).
+
 ### Prefer non-ASCII syntax in examples
 
     my @infinite-sequence = 1, 3 … ∞     # GOOD
@@ -188,17 +180,12 @@ Style guidelines related to Perl family languages.
 We are not expecting our users to have to know Perl to learn Raku,
 so this should not be part of the bulk of the documentation.
 
-### Use non-breaking spaces when dealing with Perl version numbers
+### Use present tense when talking about Perl features
 
-To avoid the version number to be wrapped on a separate line from the
-'Perl' term, use a
-[non-breaking space (NBSP)](https://en.wikipedia.org/wiki/Non-breaking_space),
-that is coded as Unicode character U+00A0.
-
-To convert all Perl names to this style in `SOME-FILE`, you can use
-this one liner:
-
-    perl -C -pi -e 's/Perl (6|5)/Perl\x{A0}$1/g'  SOME-FILE
+Perl 5 is still an active language, therefore instead of "In Perl
+this was used for ..., but in Raku ..."  use a form like "In Perl
+this is used for ..., but in Raku ..."  ('was' has been made a
+present 'is').
 
 ## Domain
 
