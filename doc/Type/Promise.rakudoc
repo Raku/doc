@@ -229,6 +229,52 @@ to the C<&code>.
     say $after.result;
     # OUTPUT: «Kept␤2 seconds are over␤result␤»
 
+=head2 method andthen
+
+    method andthen(Promise:D: &code)
+
+Schedules a piece of code to be run after the invocant has been kept.
+If the invocant is broken, the C<&code> is skipped and the returned promise
+will be broken with the same cause. The C<Promise> is passed as an argument
+to the C<&code>.
+
+    # Successful chain
+    my $p = Promise.kept(42);
+    my $after = $p.andthen(-> $orig {
+        my $res = $orig.result;  # Get result from original promise
+        say "Got $res";
+        $res + 10
+    });
+    say await $after;    # OUTPUT: «Got 42␤52␤»
+
+    # Broken promise skips the code
+    my $broken = Promise.broken(X::AdHoc.new(payload => "Error"));
+    my $unrun = $broken.andthen(-> $orig { say "never runs" });
+    try await $unrun;
+    say $unrun.cause.message;  # OUTPUT: «Error␤»
+
+=head2 method orelse
+
+    method orelse(Promise:D: &code)
+
+Schedules a piece of code to be run after the invocant has been broken.
+If the invocant is kept, the C<&code> is skipped and the returned promise
+will be kept with the same result. The C<Promise> is passed as an argument
+to the C<&code>.
+
+    # Error recovery
+    my $broken = Promise.broken(X::AdHoc.new(payload => "DB Error"));
+    my $recovered = $broken.orelse(-> $orig {
+        my $err = $orig.cause;  # Get exception from original promise
+        "Using cached data because of {$err.message}"
+    });
+    say await $recovered;  # OUTPUT: «Using cached data because of DB Error␤»
+
+    # Kept promise skips the code
+    my $kept = Promise.kept(42);
+    my $unchanged = $kept.orelse(-> $orig { "recovered" });
+    say await $unchanged;  # OUTPUT: «42␤»
+
 =head2 method keep
 
     multi method keep(Promise:D: \result = True)
