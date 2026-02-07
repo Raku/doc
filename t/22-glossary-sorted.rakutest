@@ -1,0 +1,45 @@
+#!/usr/bin/env raku
+
+use experimental :rakuast;
+use Test;
+use RakuDoc::Test::Files;
+
+=begin overview
+
+Verify the glossary is sorted
+
+=end overview
+
+my @files = RakuDoc::Test::Files.pods.grep(*.contains('glossary'));
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<Not testing the glossary>;
+}
+
+# Should just be the glossary
+for @files -> $file {
+    subtest $file, {
+        my @headings;
+        for $file.IO.slurp.AST.rakudoc -> $node {
+            for $node.paragraphs -> $node2 {
+                next unless $node2 ~~ RakuAST::Doc::Block;
+                next unless $node2.type eq "head";
+                next unless $node2.level eq 1;
+                for $node2.paragraphs -> $node3 {
+                    if $node3 ~~ Str {
+                        flunk "=head1 with no xref tag";
+                    } else {
+                        my $xref = $node3.atoms[0];
+                        unless $xref.letter eq 'X' {
+                            flunk "=head1 with invalid markup tag";
+                        }
+                        @headings.push: ~$xref.atoms;
+                    }
+                }
+            }
+        }
+        is @headings, @headings.sort(*.fc), "Headings are sorted";
+    }
+}
