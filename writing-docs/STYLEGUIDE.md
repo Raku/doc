@@ -146,17 +146,20 @@ stick to easily understandable names:
 If you want to add some fancy characters, please stick to
 [well-known characters from our Unicode set](https://docs.raku.org/language/unicode_ascii).
 
-### Prefer non-ASCII syntax in examples
+### Ascii vs. Unicode Examples
 
-    my @infinite-sequence = 1, 3 … ∞     # GOOD
-    my @infinite-sequence = 1, 3 ... Inf # OK, but rather not
-    <a b c >  ⊖  <c d e> # Good
-    <a b c > (^) <c d e> # OK, but don't do that
+While Raku has great support for unicode, the documentation should be approachable by
+a wide audience, and using unicode in code examples where it is not specifically relevant
+to learning the topic adds (an arguably small) barrier to adoption.
 
-All operators have an ASCII equivalent, but they are more verbose and
-do not correspond exactly to the mathematical operator or constant
-they often represent. Please use that syntax (the Unicode mathematical
-operator or constant) whenever possible.
+For example, in a section where we are talking about the sequence operator, this is preferred:
+
+    my @infinite-sequence = 1, 3 ... Inf;
+
+While the equivalent with all unicode may be more appealing to mathematicians, it makes it
+harder for the new user to start using the language.
+
+    my @infinite-sequence = 1, 3 … ∞;
 
 ### Try to express intent, rather than just demonstrating the syntax
 
