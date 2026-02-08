@@ -606,6 +606,35 @@ scope.
 C<my> is the default scope for subroutines, so C<my sub x() {}> and
 C<sub x() {}> do exactly the same thing.
 
+This makes it easy for the compiler take care of several things
+before runtime, including:
+
+=item binding subroutine names as read-only (similar to C<constant>)
+=item reporting undeclared subroutines
+=item argument checking
+=item resolving multiple dispatch
+=item more detailed error messages
+=item optimizations
+
+In general, when an item's visibility is directly associated with
+its location in the code, this makes it easier to understand and
+reason about the program, which enables not only a more helpful
+compiler but also other tools, such as IDEs and debuggers.
+
+Also note that although declarations of constants, enumerations,
+modules, and types of various kinds (classes, subsets, grammars,
+roles) all default to package scoping (see C<our> below), you can
+prefix such a declaration with C<my> to keep it from being exposed
+in the API, which frees you to modify it in future revisions without
+breaking dependents.  For example:
+
+    class Foo {                           # visible in GLOBAL
+        my class ImplementationDetail {   # hidden from users of Foo
+            # ...
+        }
+        # ...
+    }
+
 =head2 The C<our> declarator
 
 C<our> variables are created in the scope of the surrounding package. They also create
@@ -618,6 +647,39 @@ an alias in the lexical scope, therefore they can be used like C<my> variables a
 
     # Available as $M::Var here.
 
+Although lexical scoping with C<my> has many advantages, sometimes
+we need to share more widely than within a given lexical scope,
+and using the C<is export> trait can lead to namespace conflicts.
+Package scoping with C<our> assigns symbols to distinct namespaces,
+avoiding conflicts.  For example, to use the Cro clients for both
+HTTP and WebSockets in the same code, just refer to them as
+C<Cro::HTTP::Client> and C<Cro::WebSocket::Client> respectively.
+
+Packages are introduced by package declarators, such as C<class>,
+C<module>, C<grammar>, and (with caveats) C<role>.  An C<our> declaration
+will make an installation in the enclosing package construct.  Then
+users of your code (literally, with C<use>) can refer to C<our>-scoped
+entities in your package by providing the full package-qualified
+name of the entity.
+
+All packages exist within a top-level package named C<GLOBAL> and
+thus are globally visible, so declaring an C<our>-scoped variable
+is declaring a global variable, even with namespace control.
+Anything that ends up visible via C<GLOBAL> is effectively part of
+your API, so consider accordingly.
+
+The kind of elements that are most likely to be shared default to
+package (C<our>) scope, namely:
+=item type declarations, including C<class>, C<role>, C<grammar>, and C<subset>
+=item constants
+=item enumerations
+=item C<module> declarations
+
+Items that do I<not> default to package scope:
+=item subroutines default to lexical (C<my>) scope, as discussed above
+=item methods are scoped with C<has> (only visible through a method dispatch)
+=item variables have no default scope (although the most common choice here, C<my>, is also the shortest to type)
+
 In order to create more than one variable with package scope,
 at the same time, surround the variables with parentheses:
 
@@ -625,8 +687,23 @@ at the same time, surround the variables with parentheses:
 
 see also L<the section on declaring a list of variables with lexical or package scope|/language/variables#index-entry-declaring_a_list_of_variables>.
 
+=head3 Scoping tips: C<my> vs C<our>
+
+It can be a good idea to make an element I<less visible> than the default (for example, C<my> on constants for internal use or classes used to structure
+implementation details). Whenever you need to expose something in the API, remember there are at least three ways:
+=item an C<our> scoped element, with access controlled by the package namespacing
+=item a C<sub> (visible with the C<is export> trait), and potential access control through C<sub EXPORT>
+=item a C<method> (visible through its package-scoped C<class>)
+
+In summary:
+=item Use C<my> scope for everything that's an implementation detail
+=item Also use C<my> scope for things that you plan to C<export>, but remember that exporting puts symbols into the single lexical scope of the consumer and
+risks name clashes, so be thoughtful about exporting particularly generic names
+=item Use C<our> for things that are there to be shared, and when it's desired to use namespacing to avoid clashes
+=item The elements we'd most want to share default to C<our> scope anyway, so explicitly writing C<our> should give pause for thought
+
 X<|Language,declaring a list of variables>
-=head2 Declaring a list of variables with lexical (C<my>) or package (C<our>) scope
+=head3 Declaring a list of variables with lexical (C<my>) or package (C<our>) scope
 
 It is possible to scope more than one variable at a time, but both C<my>
 and C<our> require variables to be placed into parentheses:
