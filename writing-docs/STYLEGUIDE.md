@@ -214,3 +214,8 @@ spec items are available in.
 
 Do not embed HTML in the documentation files.
 
+## Nits
+
+Do not leave trailing whitespace inside a `C<>` tag (CI tests will fail).
+If there is a formatting reason why this is *absolutely* required, you can prefix
+the use something like 'Z<ignore-code-ws>C<foo >`.
