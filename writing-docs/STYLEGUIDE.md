@@ -133,7 +133,7 @@ objects.
 These are enforced by `t/15-word-variants.rakutest`, which is run as part of CI.
 
 If you find a variant that is not covered by the test, please submit a PR that adds
-the preference to the test, and update the docs to pass the test.
+the preference to the test, and updates the docs to pass the test.
 
 ### Prefer clear and readable variable names
 
