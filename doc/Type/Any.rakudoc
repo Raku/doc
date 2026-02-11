@@ -135,6 +135,68 @@ Examples:
     say <hello world!>.reverse;     # OUTPUT: «(world! hello)␤»
     say reverse ^10;                # OUTPUT: «(9 8 7 6 5 4 3 2 1 0)␤»
 
+=head2 method skip
+
+    multi method skip(Seq:D:)
+    multi method skip(Seq:D: Whatever)
+    multi method skip(Seq:D: Callable:D $w)
+    multi method skip(Seq:D: Int() $n)
+    multi method skip(Seq:D: $skip, $produce)
+
+Returns a L<C<Seq>|/type/Seq> containing whatever is left of the invocant after
+throwing away C<$n> of the next available values. Negative values of
+C<$n> count as 0.  Also can take a L<C<WhateverCode>|/type/WhateverCode> to indicate how many values
+to skip from the end.  Will block on lazy Seqs until the requested
+number of values have been discarded.
+
+    say (1..5).Seq.skip;      # OUTPUT: «(2 3 4 5)␤»
+    say (1..5).Seq.skip(3);   # OUTPUT: «(4 5)␤»
+    say (1..5).Seq.skip(5);   # OUTPUT: «()␤»
+    say (1..5).Seq.skip(-1);  # OUTPUT: «(1 2 3 4 5)␤»
+
+Calling it with L<C<Whatever>|/type/Whatever> will return an empty C<Seq>:
+
+    say <1 2 3>.Seq.skip(*);  # OUTPUT: «()␤»
+
+The multi that uses a Callable is intended mainly to be used this way:
+
+    say (1..5).Seq.skip(*-3); # OUTPUT: «(3 4 5)␤»
+
+Instead of throwing away the first C<$n> elements, it throws away everything
+I<but> the elements indicated by the WhateverCode, in this case all but the
+last three elements.
+
+As of language version C<6.e> (early implementation exists in Rakudo
+compiler 2022.12+), it is also possible to specify multiple argument values.
+These are then interpreted as number of values to produce, then skip, then
+produce, etc.
+
+    say (1..12).Seq.skip(2,3,4); # OUTPUT: «(3 4 5 10 11 12)␤»
+
+If the final value specified is in a "produce" position, then the rest of the
+C<Seq> will be skipped.  If the final value is in a "skip" position, then the
+rest of the C<Seq> will be produced.
+
+    say (1..10).Seq.skip(2,3,1,2); # OUTPUT: «(3 4 5 7 8)␤»
+    say (1..10).Seq.skip(2,3,1);   # OUTPUT: «(3 4 5 7 8 9 10)␤»
+
+If a L<C<Whatever>|/type/Whatever> is specified in a "produce" position, it will cause the rest
+of the C<Seq> to be produced.  Otherwise, it will cause the rest if the C<Seq>
+to be skipped.
+
+    say (1..10).Seq.skip(2,*);   # OUTPUT: «(3 4 5 6 7 8 9 10)␤»
+    say (1..10).Seq.skip(2,3,*); # OUTPUT: «(3 4 5)␤»
+
+If you want to start with producing values instead of skipping, specify B<0>
+as the first value.
+
+    say (1..10).Seq.skip(0,3,4); # OUTPUT: «(1 2 3 8 9 10)␤»
+
+If you want an unending repeating pattern of skips and produces, you can
+specify the arguments as an unending C<Seq> themselves.
+
+    say (^20).Seq.skip(|(2,3) xx *); # OUTPUT: «(0 1 5 6 10 11 15 16)␤»
+
 =head2 method sort
 
     multi method sort()
