@@ -8,16 +8,18 @@ See L<creating operators|/language/optut> on how to define new operators.
 
 =head1 Operator precedence
 
-The precedence and associativity of Raku operators determine the order of
-evaluation of operands in expressions.
+The precedence and associativity of Raku operators determine how an expression
+is going to be parsed, more specifically, what operands will be passed to which
+operand during the evaluation of the expression. (Parentheses can also be used
+to indicate if a subexpression should be treated as a single operand.)
 
-Where two operators with a different precedence act on the same operand, the
-subexpression involving the higher-precedence operator is evaluated first. For
-instance, in the expression C<1 + 2 * 3>, both the binary C<+> operator for
-addition and the binary C<*> operator for multiplication act on the operand
-C<2>. Because the C<*> operator has a higher precedence than the C<+> operator,
-the subexpression C<2 * 3> will be evaluated first. Consequently, the resulting
-value of the overall expression is C<7> and not C<9>.
+When an operand appears in a position where it could belong to two operators,
+e.g. C<2> in C<1 + 2 * 3>, the operand belongs to the operator with higher
+precedence - in this case, the C<*> operator. This means that the operands of
+C<+> are C<1> and C<2 * 3> so C<1 + 2 * 3> is equivalent to C<1 + (2 * 3)>, and
+the sum will evaluate to C<7>. On the other hand, C<1 ** 2 * 3> will be equivalent
+to C<(1 ** 2) * 3> and evaluate to C<3> because the L<power operator C<**>|#infix_**>
+has higher precedence than C<*>.
 
 Instead of "precedence" one can also speak of "binding": operators with a higher
 precedence are then said to have a tighter binding to the operand(s) in
@@ -77,12 +79,12 @@ operator|#infix_=_(list_assignment)>.
 
 =head1 Operator associativity
 
-Where two operators with a same precedence level act on an operand, the
-associativity of the operators determines which subexpression/operator is
-evaluated first. For instance, in the expression C<100 / 2 * 10>, the binary
-division operator C</> and the binary multiplication operator C<*> have equal
-precedence, so that the order of their evaluation is determined by their
-associativity. As the two operators are I<left associative>, operations are
+Associativity can be seen as a tiebreaker: where two operators with the same
+precedence level act on an operand, the associativity of the operators determines
+which operator the given operand belongs to. For instance, in the expression
+C<100 / 2 * 10>, the binary division operator C</> and the binary multiplication
+operator C<*> have equal precedence, so their associativity decides which operator
+C<2> belongs to. As the two operators are I<left associative>, operations are
 grouped from the left like this: C<(100 / 2) * 10>. The expression thus
 evaluates to C<500>. Conversely, if C</> and C<*> had both been I<right
 associative>, the expression would have been grouped as C<100 / (2 * 10)> and
@@ -105,12 +107,15 @@ associativity (using a fictitious infix C<§> operator):
 =end table
 
 Although this table only depicts infix operators, associativity also determines
-the order of evaluation for expressions with other types of operators.  For
-example, if you created an infix C<§> operator with the precedence
-C<equiv(&prefix:<~>)>, then the order of evaluation of C<~$a § $b> would depend
-on what associativity you assigned to C<§>.  If C<§> is left associative, then
-C<~$a> will be evaluated first and then passed to C<§>; if C<§> is right
-associative, then C<$a § $b> will be evaluated first and passed to C<~>.
+the structure of expressions when other types of operators are used. (Note: currently
+only the associativity of infix operators can be I<set>.)
+For example, if you created an infix C<§> operator with the precedence
+C<equiv(&prefix:<~>)>, then in the expression C<~$a § $b>, C<$a>
+could be the left operand of C<§> or the (only) operand of C<~>, depending on the
+associativity you assigned to C<§>.  If C<§> is left associative, then C<$a> will be
+the operand of C<~> and C<~$a> will be the left operand of C<§>, making the expression
+equivalent to C<(~$a) § $b>. If C<§> is right associative, then C<$a> will be the
+left operand of C<§> and the expression will be equivalent to C<~($a § $b)>.
 
 When two operators have the same precedence but I<different> associativity,
 determining the grouping of operands is more complicated.  However, for
@@ -124,7 +129,7 @@ have the same associativity.
 
    Associativity works slightly differently for unary operators (that is, operators
    that take only one operand such as prefix and postfix operators).  The following
-   table shows the evaluation order for a fictitious C<¶> operator given left,
+   table shows the grouping for a fictitious C<¶> operator given left,
    right, or non associativity.
 
    =begin table
