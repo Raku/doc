@@ -2,12 +2,12 @@
 
 =begin overview
 
-Sort words files as expected by xt/words.t
+Sort words files as expected by t/24-words.rakutest
 
 =end overview
 
-my $word-io = $*PROGRAM.parent.parent.child('xt/pws/words.pws').IO;
-my $code-io = $*PROGRAM.parent.parent.child('xt/pws/code.pws').IO;
+my $word-io = $*PROGRAM.parent.parent.child('t/pws/words.pws').IO;
+my $code-io = $*PROGRAM.parent.parent.child('t/pws/code.pws').IO;
 
 my @word = $word-io.lines;
 my @code = $code-io.lines;
