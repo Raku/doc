@@ -1950,6 +1950,173 @@ Here's more complete code for parsing C<ini> files:
 Named regexes can and should be grouped in L<grammars|/language/grammars>. A
 list of predefined subrules is L<here|#Predefined_character_classes>.
 
+=head2 X<Regexes with signatures | Syntax, Parameterised regexes>
+
+Regexes are a subclass of the Code, Routine, and Method classes.
+That is, they are callable objects with all the characteristics of
+subroutines/methods...including the characteristic of having a signature.
+
+When a regex is declared with an explicit signature, it can (and must) then be called
+with the equivalent number and type of arguments, using the in-regex syntax:
+
+    <regexname:  arg, list, here >
+
+The arguments passed to the regex can be of I<any> type, and are accessible within
+the regex's body via the corresponding parameter variable. For example:
+=begin code
+    my regex demo ($param) {
+        foo             # First match 'foo'
+        { say $param }  # Then show the value that was passed in
+        bar             # Then match 'bar'
+    }
+
+    'foobar' ~~ / <demo: { key => <v a l> }> /  # say prints: {key => (v a l)}
+=end code
+
+Of course, we rarely pass complex arguments into regexes just to print them out.
+Mostly we pass arguments that help us configure the regex to match something.
+That means we most often pass strings or other regexes (but see below for other uses).
+
+The parameter variables of the regex's signature can be used within the regex body
+in any way that any other variable can be used within a regex. For example, you can
+pass a L<(string)|/type/Str> argument and then have it match literally within the regex:
+=begin code
+    #                     vvvvvvvvv
+    my regex prefixed_int ($prefix) {   # Pass desired prefix into regex
+        $prefix                         # First match that specified prefix (literally)
+        \d+                             # Then match digits
+    }
+
+    'inc123' ~~ / <prefixed_int: 'inc' > /;       # Matches
+    'inc456' ~~ / <prefixed_int: 'dec' > /;       # Doesn't match
+    'dec789' ~~ / <prefixed_int: 'dec' > /;       # Matches
+    #                            ^^^^^
+=end code
+
+Or you can pass a L<(regex)|/type/Regex> argument and have it match like a regex:
+
+=begin code
+    my regex prefixed_int ($prefix) {   # Pass desired prefix into regex
+        $prefix                         # First match that specified prefix
+        \d+                             # Then match digits
+    }
+
+    'inc123' ~~ / <prefixed_int: /i<alpha>+/ > /;    # Matches
+    'inc456' ~~ / <prefixed_int: /d<alpha>+/ > /;    # Doesn't match
+    'dec789' ~~ / <prefixed_int: /d<alpha>+/ > /;    # Matches
+    #                            ^^^^^^^^^^^
+=end code
+
+Of course, if you definitely want users to pass a regex there
+(i.e. not a string or anything else), then you can specify
+that constraint in the signature:
+
+=begin code
+    #                      vvvvv
+    my regex prefixed_int (Regex $prefix) {
+        $prefix     # First match the specified prefix
+        \d+           # Then digits
+    }
+
+    'inc123' ~~ / <prefixed_int: /i<alpha>+/ > /;      # Matches
+    'inc456' ~~ / <prefixed_int: /d<alpha>+/ > /;      # Doesn't match
+    'dec789' ~~ / <prefixed_int: 'dec'       > /;      # Dies (parameter type mismatch)
+=end code
+
+Alternatively, you could use the C«<{...}>» "match-like-a-regex" construct
+to ensure that the contents of the parameter are...well...matched like a regex:
+
+=begin code
+    my regex prefix_int ($prefix) {
+    #   vvvvvvvvvvv
+        <{$prefix}>     # First match prefix (as a regex)
+        \d+             # Then match digits
+    }
+
+    '123'    ~~ / <prefix_int: /abc/ > /;      # Doesn't match
+    'abc456' ~~ / <prefix_int: /abc/ > /;      # Matches
+    'abc456' ~~ / <prefix_int: /def/ > /;      # Doesn't match
+=end code
+
+You can also use a parameter in the C«<?{...}>» and C«<!{...}>» Boolean-condition-check constructs,
+to enable users to switch certain matches on or off. For example:
+
+=begin code
+    my regex maybe_prefixed_num ($require-prefix) {
+        ^                                  # From start of string
+        # vvvvvvvvvvvvvvvvvvvv
+        [ <?{$require-prefix}> <alpha>+    # First match prefix (if required)
+        | <!{$require-prefix}>             # Or skip (if not required)
+        ]
+        \d+                                # Then match digits
+    }
+
+    '123'    ~~ / <maybe_prefixed_num: True  > /;      # Doesn't match
+    '123'    ~~ / <maybe_prefixed_num: False > /;      # Matches
+    'abc456' ~~ / <maybe_prefixed_num: True  > /;      # Matches
+    'abc456' ~~ / <maybe_prefixed_num: False > /;      # Doesn't match
+=end code
+
+Of course, raw True and False values like that are a major code smell and maintenance nightmare,
+so we might prefer to pass the boolean values in a named parameter instead:
+
+=begin code
+    #                            vvvvvvvvvvvvv
+    my regex maybe_prefixed_num (:$with-prefix) {
+        ^                                  # From start of string
+        # vvvvvvvvvvvvvvvvv
+        [ <?{$with-prefix}> <alpha>+       # First match prefix (if required)
+        | <!{$with-prefix}>                # Or skip (if not required)
+        ]
+        \d+                                # Then match digits
+    }
+
+    '123'    ~~ / <maybe_prefixed_num: :with-prefix  > /;      # Doesn't match
+    '123'    ~~ / <maybe_prefixed_num: :!with-prefix > /;      # Matches
+    'abc456' ~~ / <maybe_prefixed_num: :with-prefix  > /;      # Matches
+    'abc456' ~~ / <maybe_prefixed_num: :!with-prefix > /;      # Doesn't match
+=end code
+
+You can also pass an integer or range argument and then use it as a repetition counter:
+
+=begin code
+    my regex prefix_len ($repcount) {
+        ^                         # From start of string only
+        <alpha> ** {$repcount}    # First match the specified number of alphas
+        \d+                       # Then digits
+    }
+
+    'x123'   ~~ / <prefix_len: 1     > /;      # Matches
+    'xx456'  ~~ / <prefix_len: 2     > /;      # Matches
+    'xx789'  ~~ / <prefix_len: 1..2  > /;      # Matches
+
+    'x123'   ~~ / <prefix_len: 2     > /;      # Doesn't match
+    'xx456'  ~~ / <prefix_len: 1     > /;      # Doesn't match
+    'xxx789' ~~ / <prefix_len: 1..2  > /;      # Doesn't match
+=end code
+
+And, as we've seen earlier, any parameter you pass can be accessed within
+a code block inside the regex. So you can (for example) set flags on certain
+outcomes:
+
+=begin code
+    my regex prefix_optional ($has-prefix is rw) {
+        { $has-prefix = False }                  # No prefix (yet)
+        [ <alpha>+  { $has-prefix = True } ]?    # First match optional prefix (and set flag)
+        \d+                                      # Then match digits
+    }
+
+    my $prefix-seen;
+
+    '123'     ~~ / <prefix_optional: $prefix-seen  > /;      # $prefix-seen is false
+
+    'abc456'  ~~ / <prefix_optional: $prefix-seen  > /;      # $prefix-seen is true
+=end code
+
+In summary, then, regex parameter lists are a way of making regexes runtime configurable
+(in exactly the same way that subroutine parameter lists are a way of making subroutines
+runtime configurable).
+
 =head1 X<Regex interpolation|Regexes,Regex Interpolation>
 
 Instead of using a literal pattern for a regex match, you can use a variable
