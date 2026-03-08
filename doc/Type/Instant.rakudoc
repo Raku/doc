@@ -18,18 +18,66 @@ C<Instant> to a L<C<Duration>|/type/Duration> returns another Instant. Subtracti
 will yield a L<C<Duration>|/type/Duration>. Adding two C<Instant>s is explicitly disallowed. All
 other operations with Instants are undefined.
 
+I<NOTE:> POSIX time, a commonly used time standard, does not address leap seconds,
+while C<Instant> objects do, so there's some extra machinery in the conversion
+methods to handle this. See methods C<from-posix>, C<to-posix>, and the discussion
+of leap seconds below.
+
+=head1 Methods
+
+=head2 method from-posix
+
+    method from-posix($posix, Bool $prefer-leap-second = False)
+
+Converts the POSIX timestamp C<$posix> to an Instant.
+If C<$prefer-leap-second> is C<True>, the return value will be
+the first of the two possible seconds in the case of a leap second.
+
+    say DateTime.new(Instant.from-posix(1483228800, True));  # OUTPUT: «2016-12-31T23:59:60Z␤»
+    say DateTime.new(Instant.from-posix(1483228800));        # OUTPUT: «2017-01-01T00:00:00Z␤»
+
+=head2 method to-posix
+
+    method to-posix()
+
+Converts the invocant to a POSIX timestamp and returns a two
+element list containing the POSIX timestamp and a L<C<Bool>|/type/Bool>.
+It is the inverse of L<method from-posix|#method from-posix>, except that the second return
+value is C<True> if *and only if* this Instant is in a leap
+second.
+
+    say DateTime.new("2017-01-01T00:00:00Z").Instant.to-posix; # OUTPUT: «(1483228800 False)␤»
+    say DateTime.new('2016-12-31T23:59:60Z').Instant.to-posix; # OUTPUT: «(1483228800 True)␤»
+
+=head2 method Date
+
+    method Date(Instant:D: --> Date:D)
+
+Coerces the invocant to L<C<Date>|/type/Date>.
+
+    my $i = "/etc/passwd".IO.modified;
+    say $i;             # OUTPUT: «Instant:1771879757.95139447␤»
+    say $i.Date;        # OUTPUT: «2026-02-23␤»
+
+=head2 method DateTime
+
+    method DateTime(Instant:D: --> DateTime:D)
+
+Coerces the invocant to L<C<DateTime>|/type/DateTime>.
+
+    say now.DateTime;  # OUTPUT: «2026-03-07T13:56:42.930951Z␤»
+
 =head1 Leap Seconds
 
-POSIX time (commonly called "Unix time") makes the incorrect assumption that
-the period of rotation of the Earth is a fixed constant. Since in fact the
-number of seconds that pass between one noon and the next varies from day to
-day, we must occasionally have a 61st second in the 60th minute of some hour;
-this is called a leap second, and happens at the same time all over the world,
-and therefore at different times of day in different timezones.
-
-POSIX deals with this by assigning the same integer label to two different
-consecutive seconds; that is, when a leap second happens, C<DateTime.now.posix>
-does not change for two whole seconds. For example:
+POSIX time (commonly called "Unix time") does not address leap seconds; in
+other words, it assumes that the period of rotation of the Earth is a fixed
+constant. Since in fact the amount of time that passes between one noon and
+the next varies from day to day, we must occasionally have a 61st second in
+the 60th minute of some hour; this is called a leap second, and happens at the
+same time all over the world, and therefore at different times of day in
+different timezones. POSIX handles this by assigning the same integer label to
+two different consecutive seconds; that is, when a leap second happens,
+C<DateTime.now.posix> does not change for two whole seconds.
 
     my Instant $i .= from-posix(1483228799);
     my Duration $s = DateTime.new(1) - DateTime.new(0);
@@ -39,16 +87,12 @@ does not change for two whole seconds. For example:
     demo(2); # OUTPUT: «[2017-01-01T00:00:00Z 1483228800]␤»
     demo(3); # OUTPUT: «[2017-01-01T00:00:01Z 1483228801]␤»
 
-For L<C<Real>|/type/Real> values, this would count up through the fractions
-of the second, and then instantaneously decrement one second and repeat the
-process a second time. Because of this, each time a leap second is recorded,
-the Unix time falls back one more second behind the actual time. Actual time
-is recorded by atomic clocks which disregard the Earth's rotation: when Unix
-time was first established it was based on UTC, which does track the rotation,
-and had by that time fallen 10 seconds behind atomic-clock time. The numerical
-value of C<Instant> happens to track atomic-clock time, and as of 2025 there
-have been 27 leap seconds recorded. This adds up to a total of 37 seconds,
-which is why, as of 2025, the following holds:
+Atomic clocks also disregard the Earth's rotation, so between 1958 when they
+were first calibrated and the POSIX epoch of 1970, UTC had fallen 10 seconds
+behind atomic-clock time. The numerical value of C<Instant> happens to track
+atomic-clock time, and as of 2026 there have been 27 leap seconds recorded.
+This adds up to a total of 37 seconds, which is why, as of 2026, the following
+holds:
 
     with now { say .Int - DateTime.new($_).posix } # OUTPUT: «37␤»
 
@@ -84,50 +128,8 @@ $ perl6-2016.07 -e 'say ($*VM.version before v2016.07 ?? 1 !! 0) + Instant.from-
 Instant:1485726632
 =end code
 
-I<These examples require compilers that predate the rename, and so still refer to perl6.>
-
-=head1 Methods
-
-=head2 method from-posix
-
-    method from-posix($posix, Bool $prefer-leap-second = False)
-
-Converts the POSIX timestamp C<$posix> to an Instant.
-If C<$prefer-leap-second> is C<True>, the return value will be
-the first of the two possible seconds in the case of a leap second.
-
-    say DateTime.new(Instant.from-posix(915148800, True));  # OUTPUT: «1998-12-31T23:59:60Z␤»
-    say DateTime.new(Instant.from-posix(915148800));        # OUTPUT: «1999-01-01T00:00:00Z␤»
-
-=head2 method to-posix
-
-    method to-posix()
-
-Converts the invocant to a POSIX timestamp and returns a two
-element list containing the POSIX timestamp and a L<C<Bool>|/type/Bool>.
-It is the inverse of L<method from-posix|#method from-posix>, except that the second return
-value is C<True> if *and only if* this Instant is in a leap
-second.
-
-    say DateTime.new("1999-01-01T00:00:00Z").Instant.to-posix; # OUTPUT: «(915148800 False)␤»
-    say DateTime.new('1998-12-31T23:59:60Z').Instant.to-posix; # OUTPUT: «(915148800 True)␤»
-
-=head2 method Date
-
-    method Date(Instant:D: --> Date:D)
-
-Coerces the invocant to L<C<Date>|/type/Date>.
-
-    my $i = "/etc/passwd".IO.modified;
-    say $i;             # OUTPUT: «Instant:1451489025.878018␤»
-    say $i.Date;        # OUTPUT: «2015-12-30␤»
-
-=head2 method DateTime
-
-    method DateTime(Instant:D: --> DateTime:D)
-
-Coerces the invocant to L<C<DateTime>|/type/DateTime>.
-
-    say now.DateTime;  # OUTPUT: «2017-05-09T14:02:58.147165Z␤»
+I<These examples require compilers that predate the rename, and so still refer
+to perl6. This is because there have been no new leap seconds so far since
+then, as Earth's rotation has been steady since the end of 2016.>
 
 =end pod
