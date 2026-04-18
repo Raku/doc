@@ -30,15 +30,9 @@ in the [#raku IRC channel](https://raku.org/community/irc).
     - [Heading numbering](#heading-numbering)
 - [Reporting bugs](#reporting-bugs)
 - [Contributing pull requests](#contributing-pull-requests)
-- [Building the documentation](#building-the-documentation)
-    - [Dependency installation](#dependency-installation)
-        - [Rakudo](#rakudo)
-        - [Zef](#zef)
-        - [Pod::To::HTML](#podtohtml)
-        - [Mojolicious / Web Server](#mojolicious--web-server)
-        - [SASS compiler](#sass-compiler)
-    - [Build and view the documentation](#build-and-view-the-documentation)
-        - [Using Docker](#using-docker-to-build-and-view-the-documentation)
+- [Dependency installation](#dependency-installation)
+    - [Rakudo](#rakudo)
+    - [Zef](#zef)
 
 ## General principles
 
