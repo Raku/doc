@@ -2,27 +2,67 @@
 
 =TITLE class Instant
 
-=SUBTITLE Specific moment in time
+=SUBTITLE Moment in time
 
     class Instant is Cool does Real { }
 
-An C<Instant> is a particular moment in time measured in atomic seconds, with
-fractions. It is not tied to or aware of any epoch.
-
-An C<Instant> can be used to create a L<C<DateTime>|/type/DateTime> object set to that
-C<Instant>. The pseudo-constant C<now> returns the current time as an
-C<Instant>.
+An C<Instant> specifies a moment in time as a number of seconds from a conceptual starting point.
 
 Basic math is defined for C<Instant>s (as well as L<C<Duration>|/type/Duration>s). Adding an
 C<Instant> to a L<C<Duration>|/type/Duration> returns another Instant. Subtracting two C<Instant>s
 will yield a L<C<Duration>|/type/Duration>. Adding two C<Instant>s is explicitly disallowed. All
-other operations with Instants are undefined.
+other math operations with C<Instant>s are undefined.
 
-I<NOTE:> L<POSIX time|https://en.wikipedia.org/wiki/Unix_time>, a commonly used
-L<time standard|https://en.wikipedia.org/wiki/Time_standard>,
-does not address leap seconds, while C<Instant> objects do, so there's some
-extra machinery in the conversion methods to handle this. See methods C<from-posix>,
-C<to-posix>, and the discussion of leap seconds below.
+=head1 Characteristics
+
+In current Raku there are two kinds of sources of an C<Instant>'s value. The characteristics
+of an C<Instant>'s value depends on its source:
+
+=item1 B<From fixed data> For example, an C<Instant> created from a POSIX timestamp argument
+(via the C<Instant.from-posix> method). This can be used to bridge between POSIX timestamps
+and other timestamp standards.
+
+=item1 B<From a civil time clock> For example, an C<Instant> created from the C<now> function,
+based on the current civil time provided by the underlying platform. This can be used to create
+a L<C<DateTime>|/type/DateTime> object corresponding to the C<Instant>.
+
+C<Instant>s based on fixed data can be relied on to behave exactly as accurately and precisely
+as that fixed data. For example, the C<Duration> returned by subtracting between two such
+C<Instant>s will determine the duration between them as accurately and precisely as the
+original fixed data allows.
+
+C<Instant>s based on clocks can only be relied on to behave as accurately and precisely as
+that clock allows:
+
+=item1 The I<accuracy> of clocks varies quite wildly, depending on various factors
+(OS and system configuration and physical factors of a particular system). For example the
+<Duration> returned by subtracting such an C<Instant> created at the I<start> of 
+process from another such C<Instant> created at the I<end> of that process may return a
+I<negative> duration. This is because civil time clocks sometimes jump I<backwards>.
+
+=item2 Precision> and accuracy are inversely proportional in all real systems, but when
+accuracy is so unpredictable the relevance of I<precision> is dubious in the extreme.
+
+=head1 Missing characteristics
+
+There are currently no built in ways to create C<Instant>s based on tracking clocks
+whose ticks are more or less guaranteed to be:
+
+=item1 B<Monotonic> Monotonic means later values never jump backwards from earlier
+values. This ensures durations calculated between an earlier moment in time and a
+later moment in time are never negative.
+
+=item1 B<Raw> Raw means a clock and its ticks are passed straight from a clock to
+the Raku program. This typically means no slew, jumpiness, or other such factors
+that can be introduced by software modification of a raw clock signal.
+
+=item1 B<Fastest> Fastest means the combination of a chosen clock and factors
+introduced by software result in time being returned as fast as a platform can do so.
+
+Due to the nature of physical systems it is essentially impossible to provide
+I<absolute> guarantees of these properties (even ignoring effects such as
+general relativity), but later versions of Raku may introduce new options
+for the C<Instant> datatype that provide qualified guarantees of the above.
 
 =head1 Methods
 
@@ -30,9 +70,12 @@ C<to-posix>, and the discussion of leap seconds below.
 
     method from-posix($posix, Bool $prefer-leap-second = False)
 
-Converts the POSIX timestamp C<$posix> to an Instant.
-If C<$prefer-leap-second> is C<True>, the return value will be
-the first of the two possible seconds in the case of a leap second.
+Converts the POSIX timestamp C<$posix> to an C<Instant>.
+
+I<NOTE:> L<POSIX time|https://en.wikipedia.org/wiki/Unix_time>, a commonly used
+L<time standard|https://en.wikipedia.org/wiki/Time_standard>, does not address leap seconds,
+while C<Instant> objects created from a POSIX timestamp do, so if C<$prefer-leap-second>
+is C<True>, the return value will be the first of the two possible seconds in the case of a leap second.
 
     say DateTime.new(Instant.from-posix(1483228800, True));  # OUTPUT: «2016-12-31T23:59:60Z␤»
     say DateTime.new(Instant.from-posix(1483228800));        # OUTPUT: «2017-01-01T00:00:00Z␤»
