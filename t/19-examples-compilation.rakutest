@@ -116,7 +116,7 @@ sub test-example ($eg) {
 
     my $msg = "$eg<file> chunk $eg<count> starts with “" ~ starts-with($eg<contents>) ~ "” compiles";
 
-    my $has-error;
+    my $has-error = False;
     my $error-reason;
     {
         # Does the test require its own file?
@@ -131,11 +131,8 @@ sub test-example ($eg) {
         else {
             temp $*OUT = open :w, $*SPEC.devnull;
             temp $*ERR = open :w, $*SPEC.devnull;
-            use nqp;
             my $*LINEPOSCACHE;
-            my $parser = nqp::getcomp('Raku') || nqp::getcomp('perl6');
-            $has-error = not try { $parser.parse($code) };
-            $error-reason = $! if $!;
+            ($has-error, $error-reason) = syntax-bad($code);
             close $*OUT;
             close $*ERR;
 
@@ -151,6 +148,14 @@ sub test-example ($eg) {
     else {
         pass $msg;
     }
+}
+
+sub syntax-bad($code) {
+    CATCH {
+        return [True, $_];
+    }
+    EVAL($code, :check);
+   [False, ''];
 }
 
 sub code-blocks (IO() $file) {
