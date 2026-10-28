@@ -40,10 +40,14 @@ for @files -> $file {
             my $title = $line.substr($line.index(' ') + 1);
             # ignore "class X::TypeCheck" and the like
             $title ~~ s:g/^ ( class | role | module | enum | package ) \s+ \S+//;
+            # Ignore class names, including multi-part names like RakuAST::Name
+            for ($title ~~ m:g/ (\s || ^ ) $<word>=(\S+) /).map(*<word>) -> $word {
+                $title = remove-if-class($title, $word);
+            }
             # proper names, macros, acronyms, and other exceptions
             $title ~~ s:g/ <?wb> (
                 I
-                | Raku | RakuAST | Rakudo | RakuDoc | Perl 6 | Pod6 | P6 | C3 | NQP
+                | Raku | Rakudo | RakuDoc | Perl 6 | Pod6 | P6 | C3 | NQP
                 | AST | EVAL | PRE | POST | CLI | MOP
                 | TITLE | SUBTITLE | "MONKEY-TYPING"
                 | API | TCP | UDP | FAQ
@@ -52,28 +56,18 @@ for @files -> $file {
                 | "Alice in Wonderland"
                 | "Virtual Machine"
                 | "Binary Large OBject"
-                | Boolean | Unicode | ASCII
+                | Boolean
+                | ASCII
                 | "Normal Form " ( "C" | "D" | "KC" | "KD" )
                 | POSIX | QNX | Windows | Cygwin | Win32
-                # class names
+                # class names/plurals
                 | CompUnits
-                | Whatever
                 | Scheduler
                 | NaN
-                | ( <:Lu><:L>+ "::" )+ <:Lu><:L>+
                 # these seem fishy?
-                | Socket
             ) <?wb> //;
             $title ~~ s:g/ <?wb> <[ C ]> \< .*? \> //;
-            # ignore known classes like "Real" and "Date" which are capitalized
-            my @words = $title ~~ m:g/ <?wb> ( <:Lu> \S+ ) /;
-            for @words -> $word {
-                # if it exists, skip it
-                try {
-                    ::($word);
-                    $title ~~ s:g/ << $word >> //;
-                }
-            }
+
             # sentence case: all lowercase, titlecase for first
             # character except for cases where the first word is a
             # uncapitalized name of a program
@@ -89,4 +83,14 @@ for @files -> $file {
     } else {
         pass "$file capitalises headings consistently ";
     }
+}
+
+sub remove-if-class($title is copy, $word) {
+    my $found = ::($word);
+    if $found ~~ Failure {
+        $found.Bool; # handle it
+    } else {
+        $title ~~ s:g/ << $word >> //;
+    }
+    $title;
 }
