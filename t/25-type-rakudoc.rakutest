@@ -1,0 +1,42 @@
+#!/usr/bin/env raku
+
+=begin overview
+
+Validate that all type docs have the same basic layout:
+
+A title declaring the meta type.
+
+An initial code block defining a class, role, etc.
+
+A head1 called Methods
+
+At least one head2 for each method
+
+Under each head2 expect a method definition.
+
+=end overview
+
+use Test;
+
+use RakuDoc::Test::Files;
+
+my @files = RakuDoc::Test::Files.pods
+    .grep(*.starts-with('doc/Type'))                     # every type document, except...
+    .grep(* ne 'doc/Type/independent-routines.rakudoc'); # skip this one, it's a one off.
+
+if @files {
+    plan +@files;
+} else {
+    plan :skip-all<No rakudoc type files specified>
+}
+
+my @valid-metas = <class role enum package module Subset>;
+
+for @files -> $file {
+    subtest $file => {
+        my @paras = $file.IO.slurp.AST.rakudoc[0].paragraphs; # top level elements in rakudoc
+        my $title = @paras[0];
+        is $title.type, 'TITLE', 'first block is the title';
+        ok $title.paragraphs.Str.starts-with(any(@valid-metas)), 'title starts with meta type';
+    }
+}
