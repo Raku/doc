@@ -30,7 +30,6 @@ method cache-file(Str $file --> Str) {
        LEAVE $outfile.close;
        $outfile.lock;
 
-       %*ENV<RAKUDO_RAKUAST>="1"; # Activate AST mode
        my $job = Proc::Async.new($*EXECUTABLE-NAME, '--doc', $file);
        $job.stdout.tap(-> $buf {$outfile.print: $buf});
 
