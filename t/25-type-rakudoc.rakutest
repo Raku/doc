@@ -35,8 +35,21 @@ my @valid-metas = <class role enum package module Subset>;
 for @files -> $file {
     subtest $file => {
         my @paras = $file.IO.slurp.AST.rakudoc[0].paragraphs; # top level elements in rakudoc
-        my $title = @paras[0];
-        is $title.type, 'TITLE', 'first block is the title';
-        ok $title.paragraphs.Str.starts-with(any(@valid-metas)), 'title starts with meta type';
+
+        my $para = @paras.shift;
+        is $para.type, 'TITLE', 'first block is the title';
+        ok $para.paragraphs.Str.starts-with(any(@valid-metas)), 'title starts with meta type';
+
+        $para = @paras.shift;
+        is $para.type, 'SUBTITLE', 'second block is the subtitle';
+
+        my $found = False;
+        while (!$found) {
+            $para = @paras.shift;
+            next if $para.Str.starts-with('X<');
+
+            ok $para.Str.trim ~~ / ^ 'my '? @valid-metas/, 'declaration starts with meta type';
+            $found = True;
+        }
     }
 }
